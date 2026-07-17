@@ -3,7 +3,7 @@ export const siteConfig = {
   description:
     'The show everyday pickleball players actually relate to. Conversations, community, and everything in between.',
   url: 'https://juicebros.com',
-  ogImage: '/brand/JB_Banner.jpeg',
+  ogImage: '/brand/og-image.png',
   links: {
     youtube: 'https://www.youtube.com/@JuiceBrosPickleball',
     spotify: 'https://open.spotify.com/show/033oOtZrkX2ifvBZ8JQyt5',
