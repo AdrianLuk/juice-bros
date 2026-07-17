@@ -2,7 +2,7 @@ export const siteConfig = {
   name: 'Juice Bros Pickleball',
   description:
     'The show everyday pickleball players actually relate to. Conversations, community, and everything in between.',
-  url: 'https://juicebros.com',
+  url: 'https://juice-bros.vercel.app',
   ogImage: '/brand/og-image.png',
   links: {
     youtube: 'https://www.youtube.com/@JuiceBrosPickleball',
