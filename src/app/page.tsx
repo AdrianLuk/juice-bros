@@ -156,7 +156,7 @@ export default async function Home() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-[#1db954]"
                 >
-                  <SpotifyIcon className="size-4" />
+                  <SpotifyIcon className="size-4 text-[#1db954]" />
                   Listen on Spotify
                 </Link>
               )}

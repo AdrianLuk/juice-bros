@@ -30,7 +30,7 @@ export default async function PodcastPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-[#ff0000]"
           >
-            <YoutubeIcon className="size-4" />
+            <YoutubeIcon className="size-4 text-[#ff0000]" />
             YouTube
           </a>
           <a
@@ -39,7 +39,7 @@ export default async function PodcastPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-[#1db954]"
           >
-            <SpotifyIcon className="size-4" />
+            <SpotifyIcon className="size-4 text-[#1db954]" />
             Spotify
           </a>
         </div>
