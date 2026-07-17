@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
 
+import { pillars } from "@/data/about";
+
 export const metadata: Metadata = {
   title: "About",
 };
-
-const pillars = [
-  { label: "Podcast", blurb: "Weekly conversations about the game, the gear, and everything in between." },
-  { label: "Pickleball", blurb: "Two guys who can't stop talking about the sport that took over their lives." },
-  { label: "Good Vibes", blurb: "No egos, no gatekeeping — just love for the game and the people who play it." },
-];
 
 export default function AboutPage() {
   return (

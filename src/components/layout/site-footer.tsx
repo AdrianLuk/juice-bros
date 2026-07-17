@@ -25,7 +25,7 @@ const socialLinks = [
 export function SiteFooter() {
   return (
     <footer className="bg-brand-black text-white">
-      <div className="flex w-full flex-col gap-4 border-t border-white/10 px-4 py-8 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <div className="flex w-full flex-col-reverse items-center gap-4 border-t border-white/10 px-4 py-8 text-sm text-white/60 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
         <p className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
           <img src="/brand/JB_Logo_White.svg" alt="" className="h-5 w-5" />
