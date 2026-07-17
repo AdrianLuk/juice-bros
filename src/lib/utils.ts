@@ -6,6 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getYoutubeEmbedUrl(youtubeUrl: string) {
-  const videoId = new URL(youtubeUrl).searchParams.get("v");
+  const url = new URL(youtubeUrl);
+  const videoId =
+    url.hostname === "youtu.be"
+      ? url.pathname.slice(1)
+      : url.searchParams.get("v");
   return videoId ? `https://www.youtube.com/embed/${videoId}` : youtubeUrl;
 }

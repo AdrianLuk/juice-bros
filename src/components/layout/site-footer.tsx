@@ -1,38 +1,50 @@
-import Link from "next/link";
-
 import { siteConfig } from "@/config/site";
-import { NewsletterForm } from "@/components/newsletter-form";
+import { YoutubeIcon, SpotifyIcon, InstagramIcon } from "@/components/icons";
+
+const socialLinks = [
+  {
+    name: "YouTube",
+    href: siteConfig.links.youtube,
+    icon: YoutubeIcon,
+    hoverClass: "hover:text-[#ff0000]",
+  },
+  {
+    name: "Spotify",
+    href: siteConfig.links.spotify,
+    icon: SpotifyIcon,
+    hoverClass: "hover:text-[#1db954]",
+  },
+  {
+    name: "Instagram",
+    href: siteConfig.links.instagram,
+    icon: InstagramIcon,
+    hoverClass: "hover:text-[#e1306c]",
+  },
+];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-heading text-base font-semibold">Get the newsletter</p>
-            <p className="text-sm text-muted-foreground">
-              New episodes, gear picks, and no spam.
-            </p>
-          </div>
-          <NewsletterForm />
-        </div>
-
-        <div className="flex flex-col gap-4 border-t pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            &copy; {new Date().getFullYear()} {siteConfig.name}
-          </p>
-          <nav className="flex gap-4">
-            <Link href={siteConfig.links.youtube} target="_blank" rel="noopener noreferrer">
-              YouTube
-            </Link>
-            <Link href={siteConfig.links.spotify} target="_blank" rel="noopener noreferrer">
-              Spotify
-            </Link>
-            <Link href={siteConfig.links.instagram} target="_blank" rel="noopener noreferrer">
-              Instagram
-            </Link>
-          </nav>
-        </div>
+    <footer className="bg-brand-black text-white">
+      <div className="flex w-full flex-col gap-4 border-t border-white/10 px-4 py-8 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <p className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
+          <img src="/brand/JB_Logo_White.svg" alt="" className="h-5 w-5" />
+          &copy; {new Date().getFullYear()} {siteConfig.name}
+        </p>
+        <nav className="flex items-center gap-5">
+          {socialLinks.map((social) => (
+            <a
+              key={social.name}
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={social.name}
+              className={`text-white/60 transition-colors ${social.hoverClass}`}
+            >
+              <social.icon className="size-5" />
+            </a>
+          ))}
+        </nav>
       </div>
     </footer>
   );

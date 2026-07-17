@@ -1,20 +1,20 @@
 export const siteConfig = {
-  name: "Juice Bros Pickleball",
+  name: 'Juice Bros Pickleball',
   description:
-    "Juice Bros Pickleball is a podcast covering the game, the gear, and the culture.",
-  url: "https://juicebros.com",
-  ogImage: "/og.png",
+    'The show everyday pickleball players actually relate to. Conversations, community, and everything in between.',
+  url: 'https://juicebros.com',
+  ogImage: '/brand/JB_Banner.jpeg',
   links: {
-    youtube: "https://www.youtube.com/@juicebros",
-    spotify: "https://open.spotify.com/show/placeholder",
-    instagram: "https://www.instagram.com/juicebros",
+    youtube: 'https://www.youtube.com/@JuiceBrosPickleball',
+    spotify: 'https://open.spotify.com/show/033oOtZrkX2ifvBZ8JQyt5',
+    instagram: 'https://www.instagram.com/juicebrospickleball',
   },
   nav: [
-    { title: "Home", href: "/" },
-    { title: "Podcast", href: "/podcast" },
-    { title: "Gear", href: "/gear" },
-    { title: "About", href: "/about" },
-    { title: "Contact", href: "/contact" },
+    { title: 'Home', href: '/' },
+    { title: 'Podcast', href: '/podcast' },
+    { title: 'Gear', href: '/gear' },
+    { title: 'About', href: '/about' },
+    { title: 'Contact', href: '/contact' },
   ],
 } as const;
 
