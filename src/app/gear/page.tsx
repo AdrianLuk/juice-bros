@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 
-import { hosts, type GearItem, type HostGear } from "@/data/gear";
+import {
+  GearCategory,
+  hosts,
+  partnerCodes,
+  type GearItem,
+  type HostGear,
+} from "@/data/gear";
 
 export const metadata: Metadata = {
   title: "Gear",
@@ -28,9 +34,11 @@ function GearImage({ item }: { item: GearItem }) {
 }
 
 function GearCard({ item }: { item: GearItem }) {
-  // Shopify auto-applies a code when you hit /discount/<code>, so link straight there.
+  // Shopify auto-applies a code at /discount/<code>?redirect=<path>, landing the
+  // shopper on the specific product page with the discount already in their cart.
+  const url = new URL(item.url);
   const href = item.code
-    ? `${item.url.replace(/\/$/, "")}/discount/${item.code}`
+    ? `${url.origin}/discount/${item.code}?redirect=${url.pathname}${url.search}`
     : item.url;
   return (
     <a
@@ -66,7 +74,9 @@ function Subsection({ label, items }: { label: string; items: GearItem[] }) {
   if (items.length === 0) return null;
   // Paddles first; stable sort keeps the rest in their original order.
   const ordered = [...items].sort(
-    (a, b) => Number(b.category === "Paddle") - Number(a.category === "Paddle"),
+    (a, b) =>
+      Number(b.category === GearCategory.Paddle) -
+      Number(a.category === GearCategory.Paddle),
   );
   return (
     <div className="mt-8">
@@ -111,6 +121,23 @@ export default function GearPage() {
       {hosts.map((host) => (
         <HostSection key={host.name} host={host} />
       ))}
+
+      {partnerCodes.length > 0 && (
+        <section className="mt-16">
+          <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+            More Codes
+          </h2>
+          <p className="mt-2 text-muted-foreground">
+            Brands we&apos;ve partnered with but don&apos;t currently game — our codes
+            still work if you want to try them.
+          </p>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {partnerCodes.map((item) => (
+              <GearCard key={item.name} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <p className="mt-16 text-xs text-muted-foreground">
         Affiliate disclosure: some products featured have ambassador discount codes
