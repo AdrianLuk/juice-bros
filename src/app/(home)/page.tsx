@@ -3,9 +3,11 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/metadata";
 import { getLatestVideos } from "@/lib/youtube";
+import { getLatestInstagramPosts } from "@/lib/instagram";
 import { Hero } from "./sections/hero";
 import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
+import { InstagramFeed } from "./sections/instagram-feed";
 import { ListenEverywhere } from "./sections/listen-everywhere";
 import { Newsletter } from "./sections/newsletter";
 
@@ -17,12 +19,14 @@ export const metadata: Metadata = pageMetadata({
 export default async function Home() {
   // First item is the feature card up top; the rest fill the grid below.
   const [featuredVideo, ...restVideos] = await getLatestVideos(7);
+  const instagramPosts = await getLatestInstagramPosts(6);
 
   return (
     <div className="flex flex-1 flex-col">
       <Hero />
       {featuredVideo && <FeaturedEpisode video={featuredVideo} />}
       {restVideos.length > 0 && <LatestVideos videos={restVideos} />}
+      {instagramPosts.length > 0 && <InstagramFeed posts={instagramPosts} />}
       <ListenEverywhere />
       <Newsletter />
     </div>
