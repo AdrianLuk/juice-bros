@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 
-import { PageHeading } from "@/components/typography/page-heading";
-import { Intro } from "./sections/intro";
-import { OriginEpisode } from "./sections/origin-episode";
+import { Hero } from "./sections/hero";
+import { OriginStory } from "./sections/origin-story";
+import { Mission } from "./sections/mission";
+import { MeetTheBros } from "./sections/meet-the-bros";
+import { Pillars } from "./sections/pillars";
+import { Differentiation } from "./sections/differentiation";
+import { JoinIn } from "./sections/join-in";
 
 export const metadata: Metadata = {
   title: "About",
@@ -10,11 +14,14 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
-      <PageHeading eyebrow="Who We Are" title="About Juice Bros Pickleball" />
-
-      <Intro />
-      <OriginEpisode />
+    <div className="flex w-full flex-1 flex-col">
+      <Hero />
+      <OriginStory />
+      <Mission />
+      <MeetTheBros />
+      <Differentiation />
+      <Pillars />
+      <JoinIn />
     </div>
   );
 }
