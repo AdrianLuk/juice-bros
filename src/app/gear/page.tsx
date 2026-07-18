@@ -15,7 +15,7 @@ export default function GearPage() {
       <PageHeading
         eyebrow="What We Play With"
         title="Gear"
-        description="The paddles, apparel, and accessories we actually use — plus our ambassador codes for a discount. We only share products we genuinely play with and believe in."
+        description="The paddles, apparel, and accessories we actually use - plus our ambassador codes for a discount. We only share products we genuinely play with and believe in."
       />
 
       {hosts.map((host) => (

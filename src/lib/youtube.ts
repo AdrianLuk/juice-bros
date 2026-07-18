@@ -58,7 +58,7 @@ export async function getLatestVideos(limit?: number): Promise<YoutubeVideo[]> {
     }
     return limit ? videos.slice(0, limit) : videos;
   } catch {
-    // Feed unreachable at build/revalidate time — render pages without the grid.
+    // Feed unreachable at build/revalidate time - render pages without the grid.
     return [];
   }
 }

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
-// Stub UI — swap for the Beehiiv embed snippet once the publication is set up.
+// Stub UI - swap for the Beehiiv embed snippet once the publication is set up.
 export function NewsletterForm() {
   return (
     <form className="flex w-full max-w-sm gap-2" onSubmit={(e) => e.preventDefault()}>

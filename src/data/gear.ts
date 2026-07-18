@@ -25,7 +25,7 @@ export type HostGear = {
 const triggerGripCard: GearItem = {
   name: "Trigger Grip Pro",
   category: GearCategory.Accessory,
-  blurb: "The grip upgrade both of us run — the accessory that changed our games.",
+  blurb: "The grip upgrade both of us run - the accessory that changed our games.",
   code: "JUICEBROS",
   url: "https://triggergrippro.com/products/tgp-premium-grip",
   image:
@@ -83,7 +83,7 @@ export const partnerCodes: GearItem[] = [
   {
     name: "Aethos",
     category: GearCategory.Paddle,
-    blurb: "A raw carbon paddle brand we've partnered with — grab our code if you want to try them.",
+    blurb: "A raw carbon paddle brand we've partnered with - grab our code if you want to try them.",
     code: "DWONG10",
     url: "https://aethospickleball.com",
     image:

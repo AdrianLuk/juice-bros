@@ -9,7 +9,7 @@ export function Episodes({ videos }: { videos: YoutubeVideo[] }) {
         <VideoGrid videos={videos} />
       ) : (
         <p className="text-muted-foreground">
-          Couldn&apos;t load episodes right now — catch us on{" "}
+          Couldn&apos;t load episodes right now - catch us on{" "}
           <a
             href={siteConfig.links.youtube}
             target="_blank"
