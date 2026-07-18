@@ -122,7 +122,7 @@ export default async function Home() {
         <section className="w-full px-4 py-20 sm:px-6 lg:px-8">
           <div className="grid overflow-hidden rounded-3xl border bg-brand-black text-white lg:grid-cols-2">
             {/* Video */}
-            <div className="aspect-video lg:aspect-auto lg:min-h-120">
+            <div className="aspect-video lg:min-h-120">
               <iframe
                 className="h-full w-full"
                 src={getYoutubeEmbedUrl(featuredVideo.url)}

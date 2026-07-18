@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { pillars } from "@/data/about";
 import { getYoutubeEmbedUrl } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
@@ -44,17 +43,6 @@ export default function AboutPage() {
             brands, and characters shaping the sport, and bring it back to you every week.
           </p>
         </div>
-      </div>
-
-      <div className="mt-16 grid gap-6 sm:grid-cols-3">
-        {pillars.map((pillar) => (
-          <div key={pillar.label} className="rounded-xl border p-6">
-            <p className="font-heading text-lg font-semibold text-brand-orange">
-              {pillar.label}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">{pillar.blurb}</p>
-          </div>
-        ))}
       </div>
 
       {/* Origin episode */}
