@@ -6,6 +6,7 @@ export type YoutubeVideo = {
   title: string;
   url: string;
   thumbnail: string;
+  description: string;
   published: string;
 };
 
@@ -16,6 +17,17 @@ function decodeXmlEntities(text: string) {
     .replaceAll("&gt;", ">")
     .replaceAll("&quot;", '"')
     .replaceAll("&#39;", "'");
+}
+
+/**
+ * Punchy one-liner from a video's full description: just the first paragraph,
+ * collapsed to one line and capped so it reads like a hook, not a video description
+ * (which usually runs into timestamps/hashtags after a couple lines).
+ */
+export function getEpisodeHook(description: string, maxLength = 140) {
+  const firstParagraph = description.split(/\n\s*\n/)[0]?.replace(/\s+/g, " ").trim() ?? "";
+  if (firstParagraph.length <= maxLength) return firstParagraph;
+  return `${firstParagraph.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
 /**
@@ -33,12 +45,14 @@ export async function getLatestVideos(limit?: number): Promise<YoutubeVideo[]> {
       const id = entry.match(/<yt:videoId>(.*?)<\/yt:videoId>/)?.[1];
       const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1];
       const published = entry.match(/<published>(.*?)<\/published>/)?.[1];
+      const description = entry.match(/<media:description>([\s\S]*?)<\/media:description>/)?.[1] ?? "";
       if (!id || !title || !published) continue;
       videos.push({
         id,
         title: decodeXmlEntities(title),
         url: `https://www.youtube.com/watch?v=${id}`,
         thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        description: decodeXmlEntities(description),
         published,
       });
     }

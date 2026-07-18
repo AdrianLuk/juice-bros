@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 
 import { pillars } from "@/data/about";
+import { getYoutubeEmbedUrl } from "@/lib/utils";
+import { siteConfig } from "@/config/site";
+import { Button } from "@/components/ui/button";
+import { YoutubeIcon, SpotifyIcon } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "About",
 };
+
+// The very first episode — where the show (and this whole brand) started.
+const ORIGIN_EPISODE_URL = "https://youtu.be/J6gvgo_RKfo";
 
 export default function AboutPage() {
   return (
@@ -48,6 +55,56 @@ export default function AboutPage() {
             <p className="mt-2 text-sm text-muted-foreground">{pillar.blurb}</p>
           </div>
         ))}
+      </div>
+
+      {/* Origin episode */}
+      <div className="mt-16 border-t pt-16">
+        <p className="text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
+          Where It Started
+        </p>
+        <h2 className="mt-1 font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+          Welcome to Juice Bros Pickleball
+        </h2>
+
+        <div className="mt-6 grid gap-8 sm:grid-cols-5 sm:items-center">
+          <div className="overflow-hidden rounded-2xl border sm:col-span-3">
+            <div className="aspect-video">
+              <iframe
+                className="h-full w-full"
+                src={getYoutubeEmbedUrl(ORIGIN_EPISODE_URL)}
+                title="Welcome to Juice Bros Pickleball"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-4 sm:col-span-2">
+            <p className="text-muted-foreground">
+              The first episode we ever recorded — who we are and why we started this
+              podcast. If you&apos;re new here, start with this one.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                size="lg"
+                nativeButton={false}
+                className="h-11 bg-[#ff0000] px-6 text-base text-white hover:bg-[#d90000]"
+                render={<a href={ORIGIN_EPISODE_URL} target="_blank" rel="noopener noreferrer" />}
+              >
+                <YoutubeIcon className="size-5" />
+                Watch on YouTube
+              </Button>
+              <Button
+                size="lg"
+                nativeButton={false}
+                className="h-11 bg-[#1db954] px-6 text-base text-white hover:bg-[#1aa64c]"
+                render={<a href={siteConfig.links.spotify} target="_blank" rel="noopener noreferrer" />}
+              >
+                <SpotifyIcon className="size-5" />
+                Listen on Spotify
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

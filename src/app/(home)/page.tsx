@@ -1,9 +1,8 @@
 import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
-import { episodes } from "@/data/episodes";
 import { getYoutubeEmbedUrl } from "@/lib/utils";
-import { getLatestVideos } from "@/lib/youtube";
+import { getEpisodeHook, getLatestVideos } from "@/lib/youtube";
 import { Button } from "@/components/ui/button";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { VideoGrid } from "@/components/video-grid";
@@ -30,6 +29,10 @@ const socialLinks = [
   },
 ];
 
+// TODO: Swap for a distinct candid shot of Daven & Adrian. Currently reuses the
+// hero banner, which shows the same faces already featured at the top of the page.
+const hostPhoto = "/pictures/adrian-dav-chatgpt-edited.png";
+
 const listenLinks = [
   {
     name: "YouTube",
@@ -46,9 +49,8 @@ const listenLinks = [
 ];
 
 export default async function Home() {
-  const featuredEpisode =
-    episodes.find((episode) => episode.featured) ?? episodes[0];
-  const latestVideos = await getLatestVideos(6);
+  // First item is the feature card up top; the rest fill the grid below.
+  const [featuredVideo, ...restVideos] = await getLatestVideos(7);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -115,58 +117,86 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Latest episode */}
-      {featuredEpisode && (
+      {/* Latest episode — feature card */}
+      {featuredVideo && (
         <section className="w-full px-4 py-20 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-                Latest Episode
-              </p>
-              <h2 className="mt-1 font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-                {featuredEpisode.title}
-              </h2>
+          <div className="grid overflow-hidden rounded-3xl border bg-brand-black text-white lg:grid-cols-2">
+            {/* Video */}
+            <div className="aspect-video lg:aspect-auto lg:min-h-120">
+              <iframe
+                className="h-full w-full"
+                src={getYoutubeEmbedUrl(featuredVideo.url)}
+                title={featuredVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
             </div>
-            <Link
-              href="/podcast"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              See all episodes &rarr;
-            </Link>
-          </div>
 
-          <div className="mt-6 grid gap-8 sm:grid-cols-5">
-            <div className="overflow-hidden rounded-2xl border sm:col-span-3">
-              <div className="aspect-video">
-                <iframe
-                  className="h-full w-full"
-                  src={getYoutubeEmbedUrl(featuredEpisode.youtubeUrl)}
-                  title={featuredEpisode.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-            <div className="flex flex-col justify-center gap-4 sm:col-span-2">
-              <p className="text-muted-foreground">{featuredEpisode.description}</p>
-              {featuredEpisode.spotifyUrl && (
+            {/* Host photo + episode details */}
+            <div className="relative flex flex-col justify-center gap-6 p-8 sm:p-10 lg:p-12">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
+              <img
+                src={hostPhoto}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-30"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-linear-to-t from-brand-black via-brand-black/85 to-brand-black/55"
+              />
+              <div className="relative flex flex-col gap-5">
+                <span className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-orange px-3 py-1 text-xs font-semibold tracking-[0.15em] text-white uppercase">
+                  <span className="relative flex size-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80" />
+                    <span className="relative inline-flex size-2 rounded-full bg-white" />
+                  </span>
+                  New Episode
+                </span>
+                <div>
+                  <h2 className="font-heading text-3xl font-black tracking-tight text-balance sm:text-4xl">
+                    {featuredVideo.title}
+                  </h2>
+                  {featuredVideo.description && (
+                    <p className="mt-3 text-lg text-white/85 text-balance">
+                      {getEpisodeHook(featuredVideo.description)}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-1 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    size="lg"
+                    nativeButton={false}
+                    className="h-11 bg-[#ff0000] px-6 text-base text-white hover:bg-[#d90000]"
+                    render={<a href={featuredVideo.url} target="_blank" rel="noopener noreferrer" />}
+                  >
+                    <YoutubeIcon className="size-5" />
+                    Watch on YouTube
+                  </Button>
+                  <Button
+                    size="lg"
+                    nativeButton={false}
+                    className="h-11 bg-[#1db954] px-6 text-base text-white hover:bg-[#1aa64c]"
+                    render={<a href={siteConfig.links.spotify} target="_blank" rel="noopener noreferrer" />}
+                  >
+                    <SpotifyIcon className="size-5" />
+                    Listen on Spotify
+                  </Button>
+                </div>
                 <Link
-                  href={featuredEpisode.spotifyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-[#1db954]"
+                  href="/podcast"
+                  className="w-fit text-sm font-medium text-white/60 transition-colors hover:text-white"
                 >
-                  <SpotifyIcon className="size-4 text-[#1db954]" />
-                  Listen on Spotify
+                  Browse all episodes &rarr;
                 </Link>
-              )}
+              </div>
             </div>
           </div>
         </section>
       )}
 
       {/* Latest videos */}
-      {latestVideos.length > 0 && (
+      {restVideos.length > 0 && (
         <section className="w-full border-t px-4 py-20 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -187,7 +217,7 @@ export default async function Home() {
             </a>
           </div>
           <div className="mt-6">
-            <VideoGrid videos={latestVideos} />
+            <VideoGrid videos={restVideos} />
           </div>
         </section>
       )}
