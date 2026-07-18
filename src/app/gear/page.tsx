@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 
 import { hosts, partnerCodes } from "@/data/gear";
+import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { HostGearSection } from "./sections/host-gear-section";
 import { PartnerCodesSection } from "./sections/partner-codes-section";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Gear",
-};
+  description:
+    "The paddles, shoes, and accessories the Juice Bros actually play with, plus ambassador discount codes for our favorite gear.",
+  path: "/gear",
+});
 
 export default function GearPage() {
   return (

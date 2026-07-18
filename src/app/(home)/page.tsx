@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
+
+import { siteConfig } from "@/config/site";
+import { pageMetadata } from "@/lib/metadata";
 import { getLatestVideos } from "@/lib/youtube";
 import { Hero } from "./sections/hero";
 import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
 import { ListenEverywhere } from "./sections/listen-everywhere";
 import { Newsletter } from "./sections/newsletter";
+
+export const metadata: Metadata = pageMetadata({
+  description: siteConfig.description,
+  path: "/",
+});
 
 export default async function Home() {
   // First item is the feature card up top; the rest fill the grid below.

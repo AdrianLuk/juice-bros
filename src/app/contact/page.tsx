@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/metadata";
 import { ContactInfo } from "./sections/contact-info";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact",
-};
+  description:
+    "Get in touch with Juice Bros Pickleball - questions, guest pitches, sponsorships, and more.",
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (
