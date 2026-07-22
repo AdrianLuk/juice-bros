@@ -22,7 +22,7 @@ const pillars = [
 
 export function Pillars() {
   return (
-    <section className="w-full border-y bg-muted/40">
+    <section className="w-full bg-muted/40">
       <div className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <SectionHeading eyebrow="What You'll Find Here" title="More than a podcast" align="center" />
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

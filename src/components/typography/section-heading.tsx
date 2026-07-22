@@ -3,6 +3,7 @@ import { Eyebrow } from "./eyebrow";
 
 type SectionHeadingProps = {
   eyebrow?: string;
+  eyebrowColor?: "orange" | "yellow";
   title: string;
   align?: "left" | "center";
   weight?: "semibold" | "bold";
@@ -11,6 +12,7 @@ type SectionHeadingProps = {
 
 export function SectionHeading({
   eyebrow,
+  eyebrowColor,
   title,
   align = "left",
   weight = "bold",
@@ -18,7 +20,7 @@ export function SectionHeading({
 }: SectionHeadingProps) {
   return (
     <div className={align === "center" ? "text-center" : undefined}>
-      {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+      {eyebrow && <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>}
       <h2
         className={cn(
           "font-heading text-2xl tracking-tight",
