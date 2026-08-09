@@ -1,5 +1,6 @@
 export const siteConfig = {
   name: 'Juice Bros Pickleball',
+  tagline: 'Juice Bros Pickleball | The Podcast for Everyday Players',
   description:
     'The show everyday pickleball players actually relate to. Conversations, community, and everything in between.',
   url: 'https://juicebrospickleball.com',
