@@ -1,7 +1,7 @@
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { InstagramIcon } from "@/components/icons";
-import { PageHeading } from "@/components/typography/page-heading";
+import { SectionHeading } from "@/components/typography/section-heading";
 
 type Account = {
   name: string;
@@ -14,31 +14,32 @@ const accounts: Account[] = [
   { name: "Adrian", instagram: "https://www.instagram.com/adrian.pickleball" },
 ];
 
+function AccountButton({ account }: { account: Account }) {
+  return (
+    <Button
+      size="lg"
+      variant="outline"
+      nativeButton={false}
+      className="h-11 w-full min-w-0 justify-start gap-2 px-4 text-sm"
+      render={<a href={account.instagram} target="_blank" rel="noopener noreferrer" />}
+    >
+      <InstagramIcon className="size-4 shrink-0 text-[#e1306c]" />
+      <span className="truncate">{account.name}</span>
+    </Button>
+  );
+}
+
 export function ContactInfo() {
   return (
-    <>
-      <PageHeading title="Contact" description="Get in touch - coming soon." />
-
-      <div className="mt-12 border-t pt-12">
-        <p className="font-heading text-xl font-bold">Follow the Juice Bros</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+    <section className="w-full bg-muted/40 px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl">
+        <SectionHeading eyebrow="Stay In The Loop" title="Follow the Juice Bros" />
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {accounts.map((account) => (
-            <Button
-              key={account.name}
-              size="lg"
-              variant="outline"
-              nativeButton={false}
-              className="h-11 justify-start px-6 text-base"
-              render={
-                <a href={account.instagram} target="_blank" rel="noopener noreferrer" />
-              }
-            >
-              <InstagramIcon className="size-5 text-[#e1306c]" />
-              {account.name}
-            </Button>
+            <AccountButton key={account.name} account={account} />
           ))}
         </div>
       </div>
-    </>
+    </section>
   );
 }

@@ -1,10 +1,6 @@
+import { team } from "@/content/team";
+import { InstagramIcon } from "@/components/icons";
 import { SectionHeading } from "@/components/typography/section-heading";
-
-type Bro = {
-  name: string;
-};
-
-const bros: Bro[] = [{ name: "Daven" }, { name: "Adrian" }];
 
 export function MeetTheBros() {
   return (
@@ -21,15 +17,26 @@ export function MeetTheBros() {
       />
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        {bros.map((bro) => (
+        {team.map((member) => (
           <div
-            key={bro.name}
-            className="flex flex-col gap-2 rounded-xl border border-dashed p-6"
+            key={member.name}
+            className="flex flex-col gap-2 rounded-xl border p-6"
           >
-            <p className="font-heading text-xl font-bold">{bro.name}</p>
-            <p className="text-sm text-muted-foreground italic">
-              Bio coming soon - in {bro.name}&apos;s own words.
-            </p>
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="font-heading text-xl font-bold">{member.name}</p>
+              <span className="text-xs text-muted-foreground">{member.role}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">{member.bio}</p>
+            <p className="mt-1 text-sm font-medium">{member.funFact}</p>
+            <a
+              href={member.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              <InstagramIcon className="size-4 text-[#e1306c]" />
+              Follow {member.name}
+            </a>
           </div>
         ))}
       </div>
