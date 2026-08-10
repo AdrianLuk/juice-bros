@@ -3,6 +3,13 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Landscape phones (short viewport height) and iPad-width viewports, where a
+   sticky top bar eats too much of the limited vertical space. Split into two
+   single-condition variants instead of one `or`-combined media query, since
+   the `or` combinator in media queries isn't supported by older browsers
+   (the whole block would silently fail to match). */
+@custom-variant landscape-short (@media (orientation: landscape) and (max-height: 500px));
+@custom-variant tablet-width (@media (min-width: 768px) and (max-width: 1024px));
 
 @theme inline {
   --color-background: var(--background);

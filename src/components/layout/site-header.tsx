@@ -20,8 +20,19 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  // Pickle Point Pal is used mid-match on phones and iPads, often in
+  // landscape, where a sticky bar eats too much of the limited vertical
+  // space. Let it scroll away instead of staying pinned there.
+  const isPicklePointPal = pathname?.startsWith("/tools/pickle-point-pal") ?? false;
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-brand-orange text-white sm:shadow-sm">
+    <header
+      className={cn(
+        "sticky top-0 z-40 w-full bg-brand-orange text-white sm:shadow-sm",
+        isPicklePointPal &&
+          "landscape-short:static landscape-short:shadow-none tablet-width:static tablet-width:shadow-none"
+      )}
+    >
       <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
