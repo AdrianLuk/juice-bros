@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useScrollToTopOnChange } from "@/components/apps/pickle-point-pal/hooks/use-scroll-to-top-on-change";
 import { clear, load, type Persisted } from "@/components/apps/pickle-point-pal/lib/persistence/match-storage";
 import type { MatchConfig, MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
@@ -46,6 +47,12 @@ export function PicklePointPal() {
         // Offline caching is a nicety; a failed registration must not break play.
       });
   }, []);
+
+  // Covers loading→resume/setup, resume→match, and match→setup (New match).
+  // setup→match and match's own internal steps (coin toss, live play,
+  // summary) are handled inside `MatchScreen`, which sees finer-grained
+  // transitions than `phase.kind` does.
+  useScrollToTopOnChange(phase.kind);
 
   const startFresh = (config: MatchConfig) => {
     clear();

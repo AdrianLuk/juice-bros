@@ -5,6 +5,7 @@ import { ArrowLeftRight } from "lucide-react";
 
 import { useMatch } from "@/components/apps/pickle-point-pal/hooks/use-match";
 import { useRefFlipped } from "@/components/apps/pickle-point-pal/hooks/use-ref-flipped";
+import { useScrollToTopOnChange } from "@/components/apps/pickle-point-pal/hooks/use-scroll-to-top-on-change";
 import { useWakeLock } from "@/components/apps/pickle-point-pal/hooks/use-wake-lock";
 import { leftTeam, teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { TEAM_IDS, type MatchConfig, type MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
@@ -54,6 +55,12 @@ export function MatchScreen({
   useWakeLock(!state.matchComplete);
 
   const hasPrematch = match.events.some((e) => e.type === "PREMATCH");
+  // Coin toss and the summary are their own early returns below, swapped in
+  // without remounting `MatchScreen` — the parent's phase-level scroll reset
+  // never sees that switch, so it's covered here instead.
+  useScrollToTopOnChange(
+    !hasPrematch ? "coinflip" : state.matchComplete ? "summary" : "active"
+  );
 
   if (!hasPrematch) {
     return <CoinFlip config={config} onDecided={match.prematch} />;
