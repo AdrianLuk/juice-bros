@@ -56,6 +56,35 @@ export function load(): Persisted | null {
   }
 }
 
+/**
+ * Which side of the net the ref is standing on, as a flip of the default
+ * left/right assignment in the landscape layout.
+ *
+ * Kept out of the match record on purpose. It describes where a person is
+ * standing, not something that happened in the game: undo must not be able to
+ * reach it, and it is still true for the next match on the same court — so
+ * `clear()` deliberately leaves it alone.
+ */
+const REF_FLIPPED_KEY = "juicebros.picklepointpal.refflipped";
+
+export function loadRefFlipped(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(REF_FLIPPED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function saveRefFlipped(flipped: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(REF_FLIPPED_KEY, flipped ? "1" : "0");
+  } catch {
+    // Same reasoning as save().
+  }
+}
+
 export function clear(): void {
   if (typeof window === "undefined") return;
   try {

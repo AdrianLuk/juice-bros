@@ -16,22 +16,54 @@ type Court = "even" | "odd";
  *
  * The ref layout turns the whole diagram a quarter turn clockwise so the net
  * runs vertically and each team takes the side of the screen its point button
- * is on — A left, B right. That rotation happens to leave both rows' slot
- * order untouched (a row's left-to-right becomes a column's top-to-bottom, and
- * the top/bottom teams swap to right/left), so it is purely a flex-direction
- * change with no reordering.
+ * is on. That rotation happens to leave both rows' slot order untouched (a
+ * row's left-to-right becomes a column's top-to-bottom, and the top/bottom
+ * teams swap to right/left), so it is purely a flex-direction change.
+ *
+ * `leftTeam` says which team the ref currently has on their left — it moves
+ * when the teams change ends and when the ref changes which side of the net
+ * they stand on. Both are the same thing to the diagram: the plan view turns
+ * 180°, which is the row AND each team's two courts running the other way.
+ * Note which slot sits where is a property of the half of the screen, not of
+ * the team: whoever is on the left faces right, so their even/right court is
+ * the lower of their two either way.
  */
-export function CourtDiagram({ state }: { state: MatchState }) {
+export function CourtDiagram({
+  state,
+  leftTeam,
+}: {
+  state: MatchState;
+  leftTeam: TeamId;
+}) {
   const court = serverCourt(state);
+  // DOM order stays B-then-A so portrait always reads B on top, untouched.
+  const mirrored = leftTeam !== "A";
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border-2 border-neutral-300 bg-neutral-50 ref-landscape:min-h-0 ref-landscape:flex-1 ref-landscape:flex-row-reverse">
-      <TeamRow state={state} team="B" order={["even", "odd"]} activeCourt={court} />
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-xl border-2 border-neutral-300 bg-neutral-50 ref-landscape:min-h-0 ref-landscape:flex-1",
+        mirrored ? "ref-landscape:flex-row" : "ref-landscape:flex-row-reverse"
+      )}
+    >
+      <TeamRow
+        state={state}
+        team="B"
+        order={["even", "odd"]}
+        activeCourt={court}
+        mirrored={mirrored}
+      />
       <div
         className="h-1 shrink-0 bg-brand-black ref-landscape:h-auto ref-landscape:w-1"
         aria-hidden
       />
-      <TeamRow state={state} team="A" order={["odd", "even"]} activeCourt={court} />
+      <TeamRow
+        state={state}
+        team="A"
+        order={["odd", "even"]}
+        activeCourt={court}
+        mirrored={mirrored}
+      />
     </div>
   );
 }
@@ -41,11 +73,13 @@ function TeamRow({
   team,
   order,
   activeCourt,
+  mirrored,
 }: {
   state: MatchState;
   team: TeamId;
   order: [Court, Court];
   activeCourt: Court;
+  mirrored: boolean;
 }) {
   const isServing = state.current.serving === team;
   const positions = state.current.positions[team];
@@ -62,14 +96,19 @@ function TeamRow({
         : undefined;
 
   return (
-    <div className="grid grid-cols-2 ref-landscape:min-w-0 ref-landscape:flex-1 ref-landscape:grid-cols-1 ref-landscape:grid-rows-2">
+    <div
+      className={cn(
+        "grid grid-cols-2 ref-landscape:flex ref-landscape:min-w-0 ref-landscape:flex-1",
+        mirrored ? "ref-landscape:flex-col-reverse" : "ref-landscape:flex-col"
+      )}
+    >
       {order.map((slot) => {
         const name = occupant(slot);
         if (!name) {
           return (
             <div
               key={slot}
-              className="min-h-16 border border-neutral-200 bg-neutral-100/60 ref-landscape:min-h-11"
+              className="min-h-16 border border-neutral-200 bg-neutral-100/60 ref-landscape:min-h-11 ref-landscape:flex-1"
             />
           );
         }
@@ -81,7 +120,7 @@ function TeamRow({
             key={slot}
             className={cn(
               "flex min-h-16 flex-col items-center justify-center border border-neutral-200 px-2 py-3 text-center",
-              "ref-landscape:min-h-11 ref-landscape:py-1",
+              "ref-landscape:min-h-11 ref-landscape:flex-1 ref-landscape:py-1",
               isServerCell && "bg-brand-orange/10 ring-2 ring-brand-orange ring-inset"
             )}
           >

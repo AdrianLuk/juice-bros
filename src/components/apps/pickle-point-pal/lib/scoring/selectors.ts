@@ -104,12 +104,52 @@ export function receivingPlayer(state: MatchState): string {
   return serverCourt(state) === "even" ? pair[0] : (pair[1] ?? pair[0]);
 }
 
+/**
+ * How many times the two teams have traded ends since the first serve: once at
+ * the end of every completed game, plus the mid-game switch in any game where
+ * it fired. Whoever the ref had on their left at the start is on their right
+ * after an odd number of these.
+ */
+export function endChanges(state: MatchState): number {
+  const currentIndex = state.games.length - 1;
+  return state.games.reduce(
+    (count, game, index) =>
+      count + (game.sidesSwitched ? 1 : 0) + (index < currentIndex ? 1 : 0),
+    0
+  );
+}
+
+/**
+ * Which team the ref has on their left, for the landscape "standing at the net"
+ * layout.
+ *
+ * Two independent things move it. The teams changing ends is derivable from the
+ * match (`endChanges`). The ref walking round to the other side of the net is
+ * not — nothing in a score log says where a person is standing — so that half
+ * comes in as `refFlipped`, which the ref sets by hand. Team A starts on the
+ * left purely because it's the pair entered first at setup; the manual flip is
+ * what makes that match the actual court.
+ */
+export function leftTeam(state: MatchState, refFlipped: boolean): TeamId {
+  const swapped = (endChanges(state) % 2 === 1) !== refFlipped;
+  return swapped ? "B" : "A";
+}
+
 export function teamName(config: MatchConfig, team: TeamId): string {
+  return teamNameLines(config, team).join(" / ");
+}
+
+/**
+ * Same names as `teamName`, unjoined — for callers that want to lay a doubles
+ * pair out as two lines instead of one slash-separated string (the rally
+ * buttons, where a pair of long names squeezed onto one line reads worse than
+ * two short ones stacked).
+ */
+export function teamNameLines(config: MatchConfig, team: TeamId): string[] {
   const named = config.players[team].filter(
     (name): name is string => Boolean(name && name.trim())
   );
-  if (named.length === 0) return `Team ${team}`;
-  return named.join(" / ");
+  return named.length === 0 ? [`Team ${team}`] : named;
 }
 
 export function playerLabel(

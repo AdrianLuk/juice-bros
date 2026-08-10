@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { teamNameLines } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { TEAM_IDS, type MatchState, type TeamId } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
@@ -11,15 +11,18 @@ import { TEAM_IDS, type MatchState, type TeamId } from "@/components/apps/pickle
  *
  * In the ref layout the wrapper goes `display: contents` so the two buttons
  * become direct children of the match screen's three-column grid and can take
- * the outer edges themselves — team A under the ref's left thumb, team B under
- * their right, matching the sides the teams occupy in the court diagram.
+ * the outer edges themselves, each on the side of the net its team is actually
+ * standing on. Grid placement rather than DOM order, so the portrait stack
+ * keeps its fixed A-then-B reading while the landscape columns move.
  */
 export function RallyButtons({
   state,
+  leftTeam,
   disabled,
   onRallyWon,
 }: {
   state: MatchState;
+  leftTeam: TeamId;
   disabled: boolean;
   onRallyWon: (team: TeamId) => void;
 }) {
@@ -52,7 +55,7 @@ export function RallyButtons({
               "touch-manipulation select-none active:translate-y-px",
               "disabled:pointer-events-none disabled:opacity-40",
               "ref-landscape:row-start-1 ref-landscape:h-full ref-landscape:px-2",
-              team === "A"
+              team === leftTeam
                 ? "ref-landscape:col-start-1"
                 : "ref-landscape:col-start-3",
               isServing
@@ -60,8 +63,18 @@ export function RallyButtons({
                 : "border-neutral-300 bg-white"
             )}
           >
-            <span className="text-lg font-semibold wrap-break-word text-neutral-950">
-              {teamName(state.config, team)}
+            {/* One line per player rather than "Alexandra / Bartholomew" run
+                together — a doubles pair of long names wraps mid-word on the
+                narrow ref-layout buttons otherwise. */}
+            <span className="flex flex-col items-center leading-tight">
+              {teamNameLines(state.config, team).map((name) => (
+                <span
+                  key={name}
+                  className="text-lg font-semibold wrap-break-word text-neutral-950"
+                >
+                  {name}
+                </span>
+              ))}
             </span>
             <span className="mt-0.5 font-mono text-[0.65rem] tracking-widest text-neutral-500 uppercase">
               {hint}

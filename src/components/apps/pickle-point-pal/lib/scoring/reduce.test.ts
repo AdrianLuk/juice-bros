@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { reduceMatch } from "./reduce.ts";
-import { scoreCall, serverCourt, servingPlayer } from "./selectors.ts";
+import {
+  endChanges,
+  leftTeam,
+  scoreCall,
+  serverCourt,
+  servingPlayer,
+} from "./selectors.ts";
 import type { MatchConfig, MatchEvent, TeamId } from "./types.ts";
 
 const doubles11: MatchConfig = {
@@ -447,6 +453,74 @@ test("doubles rally scoring still swaps the serving pair on a point", () => {
   assert.deepEqual(state.current.scores, { A: 1, B: 0 });
   assert.deepEqual(state.current.positions.A, ["Alex", "Amy"]);
   assert.equal(scoreCall(state), "1-0", "rally scoring drops the server number");
+});
+
+/** Play `team` to a game win and confirm it, so the next game starts. */
+function winGame(config: MatchConfig, events: MatchEvent[], team: TeamId): void {
+  let guard = 0;
+  while (!reduceMatch(config, events).current.complete) {
+    scorePoint(config, events, team);
+    if (++guard > 40) throw new Error("game never completed");
+  }
+  events.push({ type: "GAME_CONFIRMED", at: tick() });
+}
+
+test("the ref's left team follows the teams round the net at every change of ends", () => {
+  // `doubles11` is best-of-3 and only switches mid-game in the decider, so
+  // games 1 and 2 contribute exactly one change of ends each.
+  const events: MatchEvent[] = [serveFirst("A")];
+  assert.equal(endChanges(reduceMatch(doubles11, events)), 0);
+  assert.equal(leftTeam(reduceMatch(doubles11, events), false), "A");
+
+  winGame(doubles11, events, "A");
+  assert.equal(endChanges(reduceMatch(doubles11, events)), 1);
+  assert.equal(leftTeam(reduceMatch(doubles11, events), false), "B");
+
+  winGame(doubles11, events, "B");
+  const decider = reduceMatch(doubles11, events);
+  assert.equal(decider.games.length, 3, "1-1 forces a third game");
+  assert.equal(endChanges(decider), 2);
+  assert.equal(leftTeam(decider, false), "A");
+
+  // Mid-game switch in the decider: a third change of ends, mid-point-run.
+  while (reduceMatch(doubles11, events).current.scores.A < 6) {
+    scorePoint(doubles11, events, "A");
+  }
+  const switched = reduceMatch(doubles11, events);
+  assert.equal(switched.current.sidesSwitched, true);
+  assert.equal(endChanges(switched), 3);
+  assert.equal(leftTeam(switched, false), "B");
+});
+
+test("a mid-game switch in an earlier game still counts once the game is over", () => {
+  // Every game switches at 6 here, so game 1 contributes two changes of ends —
+  // the mid-game one and the one between games — leaving the sides as they were.
+  const everyGame = { ...doubles11, switchAtScoreDecidingGameOnly: false };
+  const events: MatchEvent[] = [serveFirst("A")];
+
+  while (reduceMatch(everyGame, events).current.scores.A < 6) {
+    scorePoint(everyGame, events, "A");
+  }
+  assert.equal(endChanges(reduceMatch(everyGame, events)), 1);
+  assert.equal(leftTeam(reduceMatch(everyGame, events), false), "B");
+
+  winGame(everyGame, events, "A");
+  assert.equal(endChanges(reduceMatch(everyGame, events)), 2);
+  assert.equal(leftTeam(reduceMatch(everyGame, events), false), "A");
+});
+
+test("the ref's manual flip mirrors whatever the change of ends says", () => {
+  const events: MatchEvent[] = [serveFirst("A")];
+  assert.equal(leftTeam(reduceMatch(doubles11, events), true), "B");
+
+  winGame(doubles11, events, "A");
+  const afterGameOne = reduceMatch(doubles11, events);
+  assert.equal(leftTeam(afterGameOne, false), "B");
+  assert.equal(
+    leftTeam(afterGameOne, true),
+    "A",
+    "a ref on the far side of the net sees the opposite of the default"
+  );
 });
 
 test("undo parity: replaying without the last event equals the state before it", () => {

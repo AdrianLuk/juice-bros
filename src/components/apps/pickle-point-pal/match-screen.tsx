@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeftRight } from "lucide-react";
 
 import { useMatch } from "@/components/apps/pickle-point-pal/hooks/use-match";
+import { useRefFlipped } from "@/components/apps/pickle-point-pal/hooks/use-ref-flipped";
 import { useWakeLock } from "@/components/apps/pickle-point-pal/hooks/use-wake-lock";
-import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { leftTeam, teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { TEAM_IDS, type MatchConfig, type MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 import { ActionBar, Sheet } from "./action-bar";
@@ -31,16 +33,22 @@ export function MatchScreen({
 
   const [logOpen, setLogOpen] = useState(false);
   const [endMatchOpen, setEndMatchOpen] = useState(false);
+  const [refFlipped, toggleRefFlipped] = useRefFlipped();
   // The reducer flags the switch once per game and never un-flags it, so the
   // prompt needs its own sense of "still relevant." It's pinned to the point
   // total at the moment the switch fired; once another rally is scored the
   // players have had their dead-ball window to move, so it clears on its own
   // instead of sitting onscreen — otherwise it'd still read "switch ends"
   // well past the score it fired at (e.g. 8) all the way to a deep deuce.
-  // A tap still clears it immediately for a ref who wants it gone sooner.
+  // A tap still clears it immediately for a ref who wants it gone sooner —
+  // which is why dismissal is a flag on the capture rather than clearing it
+  // back to null. `switched` stays true for the rest of the game, so a null
+  // here would be re-armed by the guard below on the very next render and the
+  // tap would appear to do nothing.
   const [switchTrigger, setSwitchTrigger] = useState<{
     game: number;
     total: number;
+    dismissed: boolean;
   } | null>(null);
 
   useWakeLock(!state.matchComplete);
@@ -66,12 +74,15 @@ export function MatchScreen({
   const gameNumber = state.games.length;
   const totalPoints = state.current.scores.A + state.current.scores.B;
   const switched = state.current.sidesSwitched;
+  // Recomputed every render, so the landscape layout follows the teams round
+  // the net the moment a game is confirmed or the mid-game switch fires.
+  const left = leftTeam(state, refFlipped);
 
   // Derived during render rather than an effect: adjust `switchTrigger` the
   // instant it's out of sync with the current game/switch status, so the
   // prompt is captured (or cleared) in the same render that changed it.
   if (switched && switchTrigger?.game !== gameNumber) {
-    setSwitchTrigger({ game: gameNumber, total: totalPoints });
+    setSwitchTrigger({ game: gameNumber, total: totalPoints, dismissed: false });
   } else if (!switched && switchTrigger !== null && switchTrigger.game === gameNumber) {
     setSwitchTrigger(null);
   }
@@ -79,6 +90,7 @@ export function MatchScreen({
   const showSwitchPrompt =
     switchTrigger !== null &&
     switchTrigger.game === gameNumber &&
+    !switchTrigger.dismissed &&
     totalPoints <= switchTrigger.total;
 
   return (
@@ -91,12 +103,27 @@ export function MatchScreen({
           which puts the action bar — everything a ref only reaches for between
           rallies — one deliberate scroll below it. */}
       <div className="flex flex-col gap-4 ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-2">
-        <header className="flex items-baseline justify-between gap-3 text-xs text-neutral-500">
+        <header className="flex items-center justify-between gap-3 text-xs text-neutral-500">
           <span className="font-mono tracking-widest uppercase">
             Game {gameNumber} of {config.bestOf}
           </span>
-          <span className="font-mono tabular-nums">
-            {TEAM_IDS.map((t) => state.gamesWon[t]).join("-")} games
+          <span className="flex items-center gap-3">
+            <span className="font-mono tabular-nums">
+              {TEAM_IDS.map((t) => state.gamesWon[t]).join("-")} games
+            </span>
+            {/* Only meaningful side-on, where there is a left and a right. The
+                match itself tracks the teams changing ends; this covers the
+                other half — a ref who is standing on the other side of the
+                net, or has moved there, and sees the mirror image. */}
+            <button
+              type="button"
+              onClick={toggleRefFlipped}
+              aria-label={`Swap sides — ${teamName(config, left)} is currently on your left`}
+              className="hidden min-h-10 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 font-medium text-neutral-700 touch-manipulation ref-landscape:flex"
+            >
+              <ArrowLeftRight className="size-3.5" />
+              Swap sides
+            </button>
           </span>
         </header>
 
@@ -110,7 +137,9 @@ export function MatchScreen({
             {showSwitchPrompt && (
               <button
                 type="button"
-                onClick={() => setSwitchTrigger(null)}
+                onClick={() =>
+                  setSwitchTrigger((t) => t && { ...t, dismissed: true })
+                }
                 className="rounded-xl border-2 border-brand-orange bg-brand-orange/10 px-4 py-3 text-left touch-manipulation ref-landscape:px-3 ref-landscape:py-2"
               >
                 <span className="block text-sm font-semibold text-neutral-950">
@@ -119,14 +148,18 @@ export function MatchScreen({
                 <span className="mt-0.5 block text-xs text-neutral-600">
                   Tap once the players have changed sides.
                 </span>
+                <span className="mt-0.5 hidden text-xs text-neutral-600 ref-landscape:block">
+                  The buttons and court have already swapped to match.
+                </span>
               </button>
             )}
 
-            <CourtDiagram state={state} />
+            <CourtDiagram state={state} leftTeam={left} />
           </div>
 
           <RallyButtons
             state={state}
+            leftTeam={left}
             disabled={state.activeTimeout !== null || state.current.complete}
             onRallyWon={match.rallyWon}
           />
@@ -135,6 +168,7 @@ export function MatchScreen({
 
       <ActionBar
         state={state}
+        leftTeam={left}
         canUndo={match.canUndo}
         canRedo={match.canRedo}
         onUndo={match.undo}

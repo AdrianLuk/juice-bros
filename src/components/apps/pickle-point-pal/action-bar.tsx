@@ -17,6 +17,7 @@ import { TEAM_IDS, type MatchState, type TeamId, type TimeoutKind } from "@/comp
  */
 export function ActionBar({
   state,
+  leftTeam,
   canUndo,
   canRedo,
   onUndo,
@@ -27,6 +28,8 @@ export function ActionBar({
   onOpenLog,
 }: {
   state: MatchState;
+  /** Which team the ref has on their left; orders the timeout controls to match. */
+  leftTeam: TeamId;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -51,6 +54,15 @@ export function ActionBar({
             key={team}
             state={state}
             team={team}
+            // `row-start-1` is not redundant: without it, auto-placement never
+            // walks backwards, so the swapped order (B in column 1 arriving
+            // second in the DOM) opens a second row instead of sitting beside A.
+            className={cn(
+              "ref-landscape:row-start-1",
+              team === leftTeam
+                ? "ref-landscape:col-start-1"
+                : "ref-landscape:col-start-2"
+            )}
             onStandard={() => onStartTimeout(team, "standard")}
             onOpenKinds={() => setKindMenuFor(team)}
           />
@@ -139,11 +151,13 @@ export function ActionBar({
 function TimeoutControl({
   state,
   team,
+  className,
   onStandard,
   onOpenKinds,
 }: {
   state: MatchState;
   team: TeamId;
+  className?: string;
   onStandard: () => void;
   onOpenKinds: () => void;
 }) {
@@ -151,7 +165,12 @@ function TimeoutControl({
   const allowed = canCallTimeout(state, team, "standard");
 
   return (
-    <div className="flex items-stretch gap-1 rounded-lg border border-neutral-300 bg-white p-1">
+    <div
+      className={cn(
+        "flex items-stretch gap-1 rounded-lg border border-neutral-300 bg-white p-1",
+        className
+      )}
+    >
       <button
         type="button"
         disabled={!allowed}
