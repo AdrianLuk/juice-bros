@@ -43,8 +43,9 @@ export function ActionBar({
     <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
       {/* Stacked full-width, not side-by-side — a two-column split leaves too
           little room for long names before the kind-select control gets
-          squeezed out. */}
-      <div className="grid gap-2">
+          squeezed out. The ref layout is the exception: it runs edge to edge,
+          so there is room for the two teams to sit next to each other. */}
+      <div className="grid gap-2 ref-landscape:grid-cols-2">
         {TEAM_IDS.map((team) => (
           <TimeoutControl
             key={team}

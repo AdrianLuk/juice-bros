@@ -30,7 +30,7 @@ export function SiteHeader() {
       className={cn(
         "sticky top-0 z-40 w-full bg-brand-orange text-white sm:shadow-sm",
         isPicklePointPal &&
-          "landscape-short:static landscape-short:shadow-none tablet-width:static tablet-width:shadow-none"
+          "landscape-short:static landscape-short:shadow-none tablet-width:static tablet-width:shadow-none ref-landscape:static ref-landscape:shadow-none"
       )}
     >
       <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">

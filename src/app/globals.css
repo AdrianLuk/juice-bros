@@ -10,6 +10,20 @@
    (the whole block would silently fail to match). */
 @custom-variant landscape-short (@media (orientation: landscape) and (max-height: 500px));
 @custom-variant tablet-width (@media (min-width: 768px) and (max-width: 1024px));
+/* The "ref at the net" layout: a phone or tablet held sideways, where the two
+   teams can sit on the left and right edges under the ref's thumbs. Two
+   separate media blocks rather than one comma list so each condition stays
+   readable — landscape phones are identified by their short viewport, tablets
+   by being a wide touch screen (a desktop window of the same size is a
+   fine-motor pointer and keeps the normal centred column). */
+@custom-variant ref-landscape {
+  @media (orientation: landscape) and (max-height: 500px) {
+    @slot;
+  }
+  @media (orientation: landscape) and (pointer: coarse) and (min-width: 768px) {
+    @slot;
+  }
+}
 
 @theme inline {
   --color-background: var(--background);

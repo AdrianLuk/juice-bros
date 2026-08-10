@@ -82,40 +82,56 @@ export function MatchScreen({
     totalPoints <= switchTrigger.total;
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
-      <header className="flex items-baseline justify-between gap-3 text-xs text-neutral-500">
-        <span className="font-mono tracking-widest uppercase">
-          Game {gameNumber} of {config.bestOf}
-        </span>
-        <span className="font-mono tabular-nums">
-          {TEAM_IDS.map((t) => state.gamesWon[t]).join("-")} games
-        </span>
-      </header>
-
-      <ScoreCall state={state} />
-
-      {showSwitchPrompt && (
-        <button
-          type="button"
-          onClick={() => setSwitchTrigger(null)}
-          className="rounded-xl border-2 border-brand-orange bg-brand-orange/10 px-4 py-3 text-left touch-manipulation"
-        >
-          <span className="block text-sm font-semibold text-neutral-950">
-            Switch ends — {config.switchAtScore} reached
+    // `max-w-xl` is dropped in the ref layout: a ref standing at the net wants
+    // the two point buttons pinned to the far left and right edges of the
+    // device, which only works if the screen is used edge to edge.
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4 ref-landscape:max-w-none">
+      {/* The fold. Sized so its bottom edge lands on the bottom of the viewport
+          (100dvh less the 4rem header and the page's 0.75rem top padding),
+          which puts the action bar — everything a ref only reaches for between
+          rallies — one deliberate scroll below it. */}
+      <div className="flex flex-col gap-4 ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-2">
+        <header className="flex items-baseline justify-between gap-3 text-xs text-neutral-500">
+          <span className="font-mono tracking-widest uppercase">
+            Game {gameNumber} of {config.bestOf}
           </span>
-          <span className="mt-0.5 block text-xs text-neutral-600">
-            Tap once the players have changed sides.
+          <span className="font-mono tabular-nums">
+            {TEAM_IDS.map((t) => state.gamesWon[t]).join("-")} games
           </span>
-        </button>
-      )}
+        </header>
 
-      <CourtDiagram state={state} />
+        {/* Portrait stacks; the ref layout becomes left team · court · right
+            team. The centre column is the widest so the score call and court
+            stay the thing you read, with the buttons as thumb rails. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 ref-landscape:grid ref-landscape:grid-cols-[minmax(6rem,1fr)_minmax(0,2.5fr)_minmax(6rem,1fr)] ref-landscape:gap-2">
+          <div className="flex min-h-0 flex-col gap-4 ref-landscape:col-start-2 ref-landscape:row-start-1 ref-landscape:justify-center ref-landscape:gap-2">
+            <ScoreCall state={state} />
 
-      <RallyButtons
-        state={state}
-        disabled={state.activeTimeout !== null || state.current.complete}
-        onRallyWon={match.rallyWon}
-      />
+            {showSwitchPrompt && (
+              <button
+                type="button"
+                onClick={() => setSwitchTrigger(null)}
+                className="rounded-xl border-2 border-brand-orange bg-brand-orange/10 px-4 py-3 text-left touch-manipulation ref-landscape:px-3 ref-landscape:py-2"
+              >
+                <span className="block text-sm font-semibold text-neutral-950">
+                  Switch ends — {config.switchAtScore} reached
+                </span>
+                <span className="mt-0.5 block text-xs text-neutral-600">
+                  Tap once the players have changed sides.
+                </span>
+              </button>
+            )}
+
+            <CourtDiagram state={state} />
+          </div>
+
+          <RallyButtons
+            state={state}
+            disabled={state.activeTimeout !== null || state.current.complete}
+            onRallyWon={match.rallyWon}
+          />
+        </div>
+      </div>
 
       <ActionBar
         state={state}
