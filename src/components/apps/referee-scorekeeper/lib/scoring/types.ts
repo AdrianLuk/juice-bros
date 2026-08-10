@@ -25,7 +25,7 @@ export interface MatchConfig {
   scoring: "sideout" | "rally";
   doubles: boolean;
   pointsToWin: number; // 11 | 15 | 21
-  winBy: number; // 2 (sometimes 1 in rally formats)
+  winBy: number; // 2 for side-out, 1 for rally
   bestOf: number; // 1 | 3 | 5
   /**
    * Rally scoring only. A team that reaches game point while receiving does

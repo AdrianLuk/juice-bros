@@ -9,9 +9,11 @@ import {
   DEFAULT_OPTIONS,
   describeConfig,
   POINTS_OPTIONS,
+  WIN_BY_OPTIONS,
   type BestOf,
   type MatchOptions,
   type PointsToWin,
+  type WinBy,
 } from "@/components/apps/referee-scorekeeper/lib/scoring/formats";
 import type { MatchConfig, PlayerPair, TeamId } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
 
@@ -81,32 +83,46 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
             { id: "sideout" as const, label: "Side-out" },
             { id: "rally" as const, label: "Rally" },
           ]}
-          onChange={(value) =>
-            // Freeze only means anything under rally scoring — drop it the
-            // moment the ref switches away so it can't linger as hidden state.
-            setOptions((prev) => ({
-              ...prev,
-              scoring: value,
-              freezeRule: value === "rally" ? prev.freezeRule : false,
-            }))
-          }
+          // Win by and Freeze only mean anything under rally scoring, and
+          // buildConfig pins both to the side-out values regardless — so the
+          // toggles can keep the ref's choices across a trip through side-out
+          // and back rather than silently resetting.
+          onChange={(value) => set("scoring", value)}
         />
         {options.scoring === "rally" && (
-          <div>
-            <Toggle
-              label="Freeze"
-              value={options.freezeRule ?? false}
-              options={[
-                { id: false, label: "Off" },
-                { id: true, label: "On" },
-              ]}
-              onChange={(value) => set("freezeRule", value)}
-            />
-            <p className="mt-1 text-xs text-neutral-500">
-              On: a team can only win the game on its own serve — reaching
-              game point while receiving holds the score until they do.
-            </p>
-          </div>
+          <>
+            <div>
+              <Toggle
+                label="Win by"
+                value={options.winBy ?? 1}
+                options={WIN_BY_OPTIONS.map((winBy) => ({
+                  id: winBy as WinBy,
+                  label: winBy === 1 ? "1 (flat)" : "2 (deuce)",
+                }))}
+                onChange={(value) => set("winBy", value)}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                1: the game ends the moment someone hits the target. 2: play
+                continues past it until a team leads by two — the USAP margin.
+              </p>
+            </div>
+            <div>
+              <Toggle
+                label="Freeze"
+                value={options.freezeRule ?? true}
+                options={[
+                  { id: false, label: "Off" },
+                  { id: true, label: "On" },
+                ]}
+                onChange={(value) => set("freezeRule", value)}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                On: a team can only win the game on its own serve — reaching
+                game point while receiving holds the score until they do. USAP
+                dropped this for 2026; set it Off for a sanctioned event.
+              </p>
+            </div>
+          </>
         )}
         <Toggle
           label="Points to win"
@@ -198,7 +214,7 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
       <button
         type="button"
         onClick={submit}
-        className="mt-8 min-h-14 w-full rounded-xl bg-neutral-950 text-base font-semibold text-white touch-manipulation active:translate-y-px"
+        className="mt-8 min-h-14 w-full rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px"
       >
         Continue to coin toss
       </button>

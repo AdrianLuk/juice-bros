@@ -50,7 +50,7 @@ export function GameOverSheet({
         <button
           type="button"
           onClick={onConfirm}
-          className="min-h-14 rounded-xl bg-neutral-950 text-base font-semibold text-white touch-manipulation active:translate-y-px"
+          className="min-h-14 rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px"
         >
           {decidesMatch ? "Confirm match result" : "Confirm and start next game"}
         </button>

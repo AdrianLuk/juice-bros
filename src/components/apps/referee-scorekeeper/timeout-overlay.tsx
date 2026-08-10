@@ -92,7 +92,7 @@ export function TimeoutOverlay({
           <button
             type="button"
             onClick={onEndTimeout}
-            className="min-h-14 rounded-xl bg-neutral-950 text-base font-semibold text-white touch-manipulation active:translate-y-px"
+            className="min-h-14 rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px"
           >
             End timeout
           </button>

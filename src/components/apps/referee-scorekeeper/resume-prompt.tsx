@@ -53,7 +53,7 @@ export function ResumePrompt({
         <button
           type="button"
           onClick={onResume}
-          className="min-h-14 rounded-xl bg-neutral-950 text-base font-semibold text-white touch-manipulation active:translate-y-px"
+          className="min-h-14 rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px"
         >
           Resume this match
         </button>

@@ -58,6 +58,16 @@ export function CoinFlip({
         actually won the toss.
       </p>
 
+      {/* The call comes before the draw in real life, so it comes first here. */}
+      <div className="mt-6">
+        <TeamToggle
+          label="Who called it?"
+          config={config}
+          value={calledBy}
+          onChange={setCalledBy}
+        />
+      </div>
+
       <div className="mt-6 flex min-h-40 flex-col items-center justify-center rounded-xl border-2 border-neutral-200 bg-neutral-50 px-4 py-6">
         {drawn === null ? (
           <p className="text-center text-sm text-neutral-500">
@@ -76,18 +86,12 @@ export function CoinFlip({
       <button
         type="button"
         onClick={draw}
-        className="mt-3 min-h-14 w-full rounded-xl bg-neutral-950 text-base font-semibold text-white touch-manipulation active:translate-y-px"
+        className="mt-3 min-h-14 w-full rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px"
       >
         {drawn === null ? "Draw a number" : "Draw again"}
       </button>
 
-      <div className="mt-6 grid gap-4">
-        <TeamToggle
-          label="Who called it?"
-          config={config}
-          value={calledBy}
-          onChange={setCalledBy}
-        />
+      <div className="mt-6">
         <TeamToggle
           label="Who won the toss?"
           config={config}
@@ -149,7 +153,7 @@ function OpponentChoice({
   return (
     <div className="mt-6">
       <div className="flex items-baseline justify-between">
-        <p className="font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
+        <p className="font-mono text-[0.7rem] font-bold tracking-[0.2em] text-neutral-950 uppercase">
           {teamName(config, opponent)}&apos;s choice
         </p>
         <button
@@ -160,7 +164,7 @@ function OpponentChoice({
           ‹ Back
         </button>
       </div>
-      <p className="mt-1 text-xs text-neutral-500">
+      <p className="mt-1 text-xs font-bold text-neutral-950">
         {teamName(config, winner)} won the toss, chose side, and gave{" "}
         {teamName(config, opponent)} the choice to serve or receive.
       </p>

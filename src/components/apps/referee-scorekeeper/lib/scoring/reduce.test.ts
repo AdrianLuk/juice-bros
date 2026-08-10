@@ -32,6 +32,7 @@ const rally21: MatchConfig = {
   ...doubles11,
   scoring: "rally",
   pointsToWin: 21,
+  winBy: 1, // rally formats close out flat — see `winByFor`
   bestOf: 1,
   switchAtScore: 11,
 };
@@ -285,6 +286,80 @@ test("singles rally scoring never uses a second server", () => {
   assert.equal(state.current.serving, "B");
   assert.equal(state.current.serverNumber, 1);
   assert.equal(scoreCall(state), "2-1", "no server number in singles");
+});
+
+/** Trading rallies one for one leaves both teams on 10 with B holding serve. */
+const TEN_ALL = "ABABABABABABABABABAB";
+
+test("rally scoring closes out at the target with no deuce", () => {
+  const rally11: MatchConfig = {
+    ...rally21,
+    pointsToWin: 11,
+    freezeRule: false,
+    switchAtScore: 6,
+  };
+  const events: MatchEvent[] = [serveFirst("A"), ...rallies(TEN_ALL)];
+  assert.deepEqual(reduceMatch(rally11, events).current.scores, { A: 10, B: 10 });
+
+  events.push(rally("A"));
+  const state = reduceMatch(rally11, events);
+  assert.equal(state.current.complete, true, "11-10 ends it — no two-point margin");
+  assert.equal(state.current.winner, "A");
+  assert.deepEqual(state.current.scores, { A: 11, B: 10 });
+});
+
+test("rally scoring set to win by 2 plays past the target — the USAP margin", () => {
+  const rally11Deuce: MatchConfig = {
+    ...rally21,
+    pointsToWin: 11,
+    winBy: 2,
+    freezeRule: false,
+    switchAtScore: 6,
+  };
+  const events: MatchEvent[] = [serveFirst("A"), ...rallies(TEN_ALL)];
+
+  events.push(rally("A"));
+  const gamePoint = reduceMatch(rally11Deuce, events);
+  assert.deepEqual(gamePoint.current.scores, { A: 11, B: 10 });
+  assert.equal(gamePoint.current.complete, false, "11-10 is only game point");
+  assert.equal(gamePoint.current.serving, "A", "the receiver took point and serve");
+
+  events.push(rally("B"));
+  assert.deepEqual(
+    reduceMatch(rally11Deuce, events).current.scores,
+    { A: 11, B: 11 },
+    "B claws it back rather than losing on the first game point"
+  );
+
+  events.push(rally("B"), rally("B"));
+  const won = reduceMatch(rally11Deuce, events);
+  assert.equal(won.current.complete, true, "13-11 closes it");
+  assert.equal(won.current.winner, "B");
+  assert.deepEqual(won.current.scores, { A: 11, B: 13 });
+});
+
+test("win by 1 and the freeze rule together: 10-10 is still only winnable on serve", () => {
+  const rally11: MatchConfig = {
+    ...rally21,
+    pointsToWin: 11,
+    freezeRule: true,
+    switchAtScore: 6,
+  };
+  const events: MatchEvent[] = [serveFirst("A"), ...rallies(TEN_ALL)];
+  const tenAll = reduceMatch(rally11, events);
+  assert.deepEqual(tenAll.current.scores, { A: 10, B: 10 });
+  assert.equal(tenAll.current.serving, "B");
+
+  events.push(rally("A")); // would be 11-10 A, but A is receiving
+  const frozen = reduceMatch(rally11, events);
+  assert.deepEqual(frozen.current.scores, { A: 10, B: 10 }, "held at 10-10");
+  assert.equal(frozen.current.serving, "A");
+  assert.equal(frozen.current.complete, false);
+
+  events.push(rally("A"));
+  const won = reduceMatch(rally11, events);
+  assert.equal(won.current.complete, true);
+  assert.deepEqual(won.current.scores, { A: 11, B: 10 });
 });
 
 test("freeze rule: winning the rally while receiving at game point is a side-out, not a scored point", () => {
