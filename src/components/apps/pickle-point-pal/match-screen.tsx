@@ -127,7 +127,7 @@ export function MatchScreen({
       </button>
 
       {logOpen && (
-        <Sheet title="Match log" onClose={() => setLogOpen(false)} centered>
+        <Sheet title="Match log" onClose={() => setLogOpen(false)}>
           <MatchLog
             config={config}
             events={match.events}
@@ -137,7 +137,7 @@ export function MatchScreen({
       )}
 
       {endMatchOpen && (
-        <Sheet title="End match?" onClose={() => setEndMatchOpen(false)} centered>
+        <Sheet title="End match?" onClose={() => setEndMatchOpen(false)}>
           <p className="text-sm text-neutral-600">
             This ends the match now, before it&apos;s reached a normal
             finish. The score so far stays in the log and shows on the

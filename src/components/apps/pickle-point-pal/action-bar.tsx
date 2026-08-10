@@ -218,20 +218,13 @@ export function Sheet({
   title,
   onClose,
   children,
-  centered,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  centered?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "fixed inset-0 z-50 flex justify-center bg-neutral-950/50 p-4",
-        centered ? "items-center" : "items-end"
-      )}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4">
       {/* The panel is capped to the viewport and scrolls its own body. Without
           the cap, long content (the match log) pushes the sheet past both edges
           of a centred overlay, where nothing can scroll it and Cancel becomes
