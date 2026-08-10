@@ -6,7 +6,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { ComingSoon } from "@/components/apps/coming-soon";
 
-// Apps with their own dedicated route folder (e.g. src/app/apps/referee-scorekeeper)
+// Apps with their own dedicated route folder (e.g. src/app/tools/referee-scorekeeper)
 // are excluded here so this catch-all doesn't also prerender their slug.
 const DEDICATED_ROUTE_SLUGS = new Set(["referee-scorekeeper"]);
 
@@ -18,7 +18,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/apps/[slug]">): Promise<Metadata> {
+}: PageProps<"/tools/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const app = apps.find((item) => item.slug === slug);
   if (!app) notFound();
@@ -30,7 +30,7 @@ export async function generateMetadata({
   });
 }
 
-export default async function AppPage({ params }: PageProps<"/apps/[slug]">) {
+export default async function AppPage({ params }: PageProps<"/tools/[slug]">) {
   const { slug } = await params;
   const app = apps.find((item) => item.slug === slug);
   if (!app) notFound();

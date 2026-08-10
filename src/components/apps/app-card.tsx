@@ -7,10 +7,12 @@ export function AppCard({ app }: { app: AppItem }) {
   return (
     <Link
       href={app.href}
+      target="_blank"
+      rel="noopener noreferrer"
       className="group flex flex-col rounded-xl border p-4 transition-colors hover:border-brand-orange"
     >
       <div className="flex aspect-4/3 w-full items-center justify-center rounded-lg border bg-brand-orange/5">
-        <Icon className="size-10 text-brand-orange/40" />
+        <Icon className="size-30 text-brand-orange" />
       </div>
       <p className="mt-4 font-heading text-lg font-semibold transition-colors group-hover:text-brand-orange">
         {app.title}

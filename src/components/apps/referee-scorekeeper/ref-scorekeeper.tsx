@@ -41,7 +41,7 @@ export function RefScorekeeper() {
     // Registered from this route only, so the rest of the site is untouched.
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker
-      .register("/referee-scorekeeper-sw.js", { scope: "/apps/referee-scorekeeper" })
+      .register("/referee-scorekeeper-sw.js", { scope: "/tools/referee-scorekeeper" })
       .catch(() => {
         // Offline caching is a nicety; a failed registration must not break play.
       });

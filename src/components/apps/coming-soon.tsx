@@ -14,10 +14,10 @@ export function ComingSoon({ icon: Icon }: { icon: LucideIcon }) {
         other tools in the meantime.
       </p>
       <Link
-        href="/apps"
+        href="/tools"
         className="mt-6 text-sm font-medium text-brand-orange underline-offset-4 hover:underline"
       >
-        ← Back to Apps
+        ← Back to Tools
       </Link>
     </div>
   );

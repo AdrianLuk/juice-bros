@@ -16,7 +16,7 @@ export const apps: AppItem[] = [
   {
     slug: "referee-scorekeeper",
     title: "Referee Scorekeeper",
-    href: "/apps/referee-scorekeeper",
+    href: "/tools/referee-scorekeeper",
     description:
       "Keep score and track serves for a pickleball match like a referee would.",
     icon: ClipboardList,
@@ -25,7 +25,7 @@ export const apps: AppItem[] = [
   {
     slug: "round-robin-generator",
     title: "Round Robin Generator",
-    href: "/apps/round-robin-generator",
+    href: "/tools/round-robin-generator",
     description:
       "Generate round robin pairings and courts for open play or a group session.",
     icon: Shuffle,

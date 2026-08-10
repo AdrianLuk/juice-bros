@@ -10,7 +10,7 @@ const routes: Array<{
 }> = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/podcast", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/apps", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
   ...apps.map((app) => ({
     path: app.href,
     changeFrequency: "monthly" as const,
