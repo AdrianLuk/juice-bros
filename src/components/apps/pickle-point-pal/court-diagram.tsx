@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { serverCourt, servingPlayer } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import type { MatchState, TeamId } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { serverCourt, servingPlayer } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import type { MatchState, TeamId } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 type Court = "even" | "odd";
 

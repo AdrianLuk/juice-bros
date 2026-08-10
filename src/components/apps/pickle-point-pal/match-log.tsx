@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import {
   buildMatchLog,
   type LogEntryTone,
-} from "@/components/apps/referee-scorekeeper/lib/scoring/match-log";
-import { elapsedLabel } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import type { MatchConfig, MatchEvent } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+} from "@/components/apps/pickle-point-pal/lib/scoring/match-log";
+import { elapsedLabel } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import type { MatchConfig, MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 const TONE_DOT: Record<LogEntryTone, string> = {
   setup: "bg-neutral-300",

@@ -1,7 +1,7 @@
 "use client";
 
-import { matchWinner, teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import { otherTeam, TEAM_IDS, type MatchEvent, type MatchState } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { matchWinner, teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { otherTeam, TEAM_IDS, type MatchEvent, type MatchState } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 import { MatchLog } from "./match-log";
 
 export function MatchSummary({

@@ -1,9 +1,9 @@
 "use client";
 
-import { reduceMatch } from "@/components/apps/referee-scorekeeper/lib/scoring/reduce";
-import { currentGameNumber, teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import type { Persisted } from "@/components/apps/referee-scorekeeper/lib/persistence/match-storage";
-import { TEAM_IDS } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { reduceMatch } from "@/components/apps/pickle-point-pal/lib/scoring/reduce";
+import { currentGameNumber, teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import type { Persisted } from "@/components/apps/pickle-point-pal/lib/persistence/match-storage";
+import { TEAM_IDS } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * Shows the actual score it would restore to, not a generic "restore previous

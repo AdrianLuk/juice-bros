@@ -47,7 +47,7 @@ const events: MatchEvent[] = [
   { type: "RALLY_WON", at: 2_000, team: "A" },
 ];
 
-const KEY = "juicebros.ref.match";
+const KEY = "juicebros.picklepointpal.match";
 
 test("round-trips a config and event log", () => {
   clear();

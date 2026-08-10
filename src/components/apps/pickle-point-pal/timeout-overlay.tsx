@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { formatClock, timeoutAnnouncement } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import type { MatchState } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { formatClock, timeoutAnnouncement } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import type { MatchState } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * Takes over the screen for the duration of a timeout.

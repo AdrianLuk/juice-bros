@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import { clear, load, type Persisted } from "@/components/apps/referee-scorekeeper/lib/persistence/match-storage";
-import type { MatchConfig, MatchEvent } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { clear, load, type Persisted } from "@/components/apps/pickle-point-pal/lib/persistence/match-storage";
+import type { MatchConfig, MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 import { MatchScreen } from "./match-screen";
 import { MatchSetup } from "./match-setup";
@@ -20,7 +20,7 @@ type Phase =
  * live match; remounting it with a new `session` key is how a fresh match
  * starts from a clean event log.
  */
-export function RefScorekeeper() {
+export function PicklePointPal() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
 
   // The resume check runs in an effect, never during render. localStorage does
@@ -41,7 +41,7 @@ export function RefScorekeeper() {
     // Registered from this route only, so the rest of the site is untouched.
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker
-      .register("/referee-scorekeeper-sw.js", { scope: "/tools/referee-scorekeeper" })
+      .register("/pickle-point-pal-sw.js", { scope: "/tools/pickle-point-pal" })
       .catch(() => {
         // Offline caching is a nicety; a failed registration must not break play.
       });

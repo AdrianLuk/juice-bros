@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 
 import { apps } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
-import { RefScorekeeper } from "@/components/apps/referee-scorekeeper/ref-scorekeeper";
+import { PicklePointPal } from "@/components/apps/pickle-point-pal/pickle-point-pal";
 
-const app = apps.find((item) => item.slug === "referee-scorekeeper")!;
+const app = apps.find((item) => item.slug === "pickle-point-pal")!;
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     description: app.description,
     path: app.href,
   }),
-  manifest: "/referee-scorekeeper.webmanifest",
-  appleWebApp: { capable: true, title: "Juice Bros Ref", statusBarStyle: "default" },
+  manifest: "/pickle-point-pal.webmanifest",
+  appleWebApp: { capable: true, title: "Pickle Point Pal", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -22,10 +22,10 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export default function RefereeScorekeeperPage() {
+export default function PicklePointPalPage() {
   return (
     <div className="flex w-full flex-1 flex-col bg-white px-4 py-6 text-neutral-950 sm:px-6">
-      <RefScorekeeper />
+      <PicklePointPal />
     </div>
   );
 }

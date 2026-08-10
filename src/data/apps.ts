@@ -14,9 +14,9 @@ export type AppItem = {
 
 export const apps: AppItem[] = [
   {
-    slug: "referee-scorekeeper",
-    title: "Referee Scorekeeper",
-    href: "/tools/referee-scorekeeper",
+    slug: "pickle-point-pal",
+    title: "Pickle Point Pal",
+    href: "/tools/pickle-point-pal",
     description:
       "Keep score and track serves for a pickleball match like a referee would.",
     icon: ClipboardList,

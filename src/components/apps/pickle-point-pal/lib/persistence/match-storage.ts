@@ -1,4 +1,4 @@
-import type { MatchConfig, MatchEvent } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import type { MatchConfig, MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * The single-match scratchpad.
@@ -9,7 +9,7 @@ import type { MatchConfig, MatchEvent } from "@/components/apps/referee-scorekee
  * genuinely the right tool: no async ceremony, and the write completes before
  * the browser can unload the page.
  */
-const KEY = "juicebros.ref.match";
+const KEY = "juicebros.picklepointpal.match";
 
 /** Bump whenever MatchEvent or MatchConfig changes shape. Old saves are discarded, not migrated. */
 const SCHEMA = 1;

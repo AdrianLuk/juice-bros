@@ -1,8 +1,8 @@
 "use client";
 
-import { gamesToWin } from "@/components/apps/referee-scorekeeper/lib/scoring/reduce";
-import { teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import { otherTeam, type MatchState } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { gamesToWin } from "@/components/apps/pickle-point-pal/lib/scoring/reduce";
+import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { otherTeam, type MatchState } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * Game point does not auto-advance. A ref needs a beat to confirm the call

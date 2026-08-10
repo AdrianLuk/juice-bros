@@ -6,8 +6,8 @@ import {
   serverCourt,
   servingPlayer,
   teamName,
-} from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import type { MatchState } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+} from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import type { MatchState } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * The hero of the screen: serving score, receiving score, server number — in

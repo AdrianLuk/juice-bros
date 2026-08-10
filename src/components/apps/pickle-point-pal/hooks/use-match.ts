@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
-import { useTimeoutClock } from "@/components/apps/referee-scorekeeper/hooks/use-timeout-clock";
-import { save } from "@/components/apps/referee-scorekeeper/lib/persistence/match-storage";
-import { reduceMatch } from "@/components/apps/referee-scorekeeper/lib/scoring/reduce";
+import { useTimeoutClock } from "@/components/apps/pickle-point-pal/hooks/use-timeout-clock";
+import { save } from "@/components/apps/pickle-point-pal/lib/persistence/match-storage";
+import { reduceMatch } from "@/components/apps/pickle-point-pal/lib/scoring/reduce";
 import type {
   MatchConfig,
   MatchEvent,
@@ -12,7 +12,7 @@ import type {
   MatchState,
   TeamId,
   TimeoutKind,
-} from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+} from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 type LogState = { events: MatchEvent[]; redo: MatchEvent[] };
 

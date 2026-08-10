@@ -1,9 +1,9 @@
 {
-  "name": "Juice Bros Ref",
-  "short_name": "JB Ref",
+  "name": "Pickle Point Pal",
+  "short_name": "Point Pal",
   "description": "Referee-facing pickleball scorekeeping. Works offline.",
-  "start_url": "/tools/referee-scorekeeper",
-  "scope": "/tools/referee-scorekeeper",
+  "start_url": "/tools/pickle-point-pal",
+  "scope": "/tools/pickle-point-pal",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",

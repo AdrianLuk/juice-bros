@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 
-import { useMatch } from "@/components/apps/referee-scorekeeper/hooks/use-match";
-import { useWakeLock } from "@/components/apps/referee-scorekeeper/hooks/use-wake-lock";
-import { teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import { TEAM_IDS, type MatchConfig, type MatchEvent } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { useMatch } from "@/components/apps/pickle-point-pal/hooks/use-match";
+import { useWakeLock } from "@/components/apps/pickle-point-pal/hooks/use-wake-lock";
+import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { TEAM_IDS, type MatchConfig, type MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 import { ActionBar, Sheet } from "./action-bar";
 import { CoinFlip } from "./coin-flip";

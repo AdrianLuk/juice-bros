@@ -4,8 +4,8 @@ import { useState } from "react";
 import { ListOrdered, MoreHorizontal, Redo2, TriangleAlert, Undo2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { canCallTimeout, teamName, timeoutsRemaining } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import { TEAM_IDS, type MatchState, type TeamId, type TimeoutKind } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { canCallTimeout, teamName, timeoutsRemaining } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { TEAM_IDS, type MatchState, type TeamId, type TimeoutKind } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * Undo, a timeout control per team, and the technical-call menu.

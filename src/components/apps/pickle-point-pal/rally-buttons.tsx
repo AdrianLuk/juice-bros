@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import { TEAM_IDS, type MatchState, type TeamId } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { TEAM_IDS, type MatchState, type TeamId } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * The two primary targets: one per team, labelled with the players' names

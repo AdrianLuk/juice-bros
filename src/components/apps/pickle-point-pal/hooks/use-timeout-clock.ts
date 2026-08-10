@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { ActiveTimeout } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import type { ActiveTimeout } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 /**
  * Remaining rest time, computed on every tick from the accumulated-time fields

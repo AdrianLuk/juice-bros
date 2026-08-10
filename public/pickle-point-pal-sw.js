@@ -1,5 +1,5 @@
 /*
- * Service worker for /tools/referee-scorekeeper only.
+ * Service worker for /tools/pickle-point-pal only.
  *
  * Court wifi is unreliable, so the app shell has to survive going offline. The
  * strategy is deliberately conservative, because a scorekeeper serving a stale
@@ -10,8 +10,8 @@
  *     picked up as soon as there's a connection.
  *   - Nothing else is touched. The match itself lives in localStorage, not here.
  */
-const CACHE = "jb-ref-v1";
-const SHELL = "/tools/referee-scorekeeper";
+const CACHE = "jb-pickle-point-pal-v1";
+const SHELL = "/tools/pickle-point-pal";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

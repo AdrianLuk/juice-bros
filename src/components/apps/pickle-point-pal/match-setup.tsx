@@ -14,8 +14,8 @@ import {
   type MatchOptions,
   type PointsToWin,
   type WinBy,
-} from "@/components/apps/referee-scorekeeper/lib/scoring/formats";
-import type { MatchConfig, PlayerPair, TeamId } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+} from "@/components/apps/pickle-point-pal/lib/scoring/formats";
+import type { MatchConfig, PlayerPair, TeamId } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 type Names = Record<TeamId, [string, string]>;
 type PlayerIndex = 0 | 1;

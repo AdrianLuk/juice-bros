@@ -6,9 +6,9 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { ComingSoon } from "@/components/apps/coming-soon";
 
-// Apps with their own dedicated route folder (e.g. src/app/tools/referee-scorekeeper)
+// Apps with their own dedicated route folder (e.g. src/app/tools/pickle-point-pal)
 // are excluded here so this catch-all doesn't also prerender their slug.
-const DEDICATED_ROUTE_SLUGS = new Set(["referee-scorekeeper"]);
+const DEDICATED_ROUTE_SLUGS = new Set(["pickle-point-pal"]);
 
 export function generateStaticParams() {
   return apps

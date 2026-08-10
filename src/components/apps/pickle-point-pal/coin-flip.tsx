@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
-import { otherTeam, TEAM_IDS, type MatchConfig, type TeamId } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
+import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
+import { otherTeam, TEAM_IDS, type MatchConfig, type TeamId } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
 type WinnerChoice = "serve" | "receive" | "side";
 type Draw = 1 | 2;
