@@ -20,7 +20,7 @@ export const apps: AppItem[] = [
     description:
       "Keep score and track serves for a pickleball match like a referee would.",
     icon: ClipboardList,
-    status: "coming-soon",
+    status: "live",
   },
   {
     slug: "round-robin-generator",

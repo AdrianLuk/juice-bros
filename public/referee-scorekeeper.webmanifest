@@ -1,0 +1,25 @@
+{
+  "name": "Juice Bros Ref",
+  "short_name": "JB Ref",
+  "description": "Referee-facing pickleball scorekeeping. Works offline.",
+  "start_url": "/apps/referee-scorekeeper",
+  "scope": "/apps/referee-scorekeeper",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/brand/JB_Logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
