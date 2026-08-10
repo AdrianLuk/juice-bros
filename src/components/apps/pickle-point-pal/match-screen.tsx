@@ -31,9 +31,17 @@ export function MatchScreen({
 
   const [logOpen, setLogOpen] = useState(false);
   const [endMatchOpen, setEndMatchOpen] = useState(false);
-  // The reducer flags the switch once per game; this tracks the acknowledgement
-  // so the prompt doesn't come back after it's been dismissed.
-  const [switchAckGame, setSwitchAckGame] = useState<number | null>(null);
+  // The reducer flags the switch once per game and never un-flags it, so the
+  // prompt needs its own sense of "still relevant." It's pinned to the point
+  // total at the moment the switch fired; once another rally is scored the
+  // players have had their dead-ball window to move, so it clears on its own
+  // instead of sitting onscreen — otherwise it'd still read "switch ends"
+  // well past the score it fired at (e.g. 8) all the way to a deep deuce.
+  // A tap still clears it immediately for a ref who wants it gone sooner.
+  const [switchTrigger, setSwitchTrigger] = useState<{
+    game: number;
+    total: number;
+  } | null>(null);
 
   useWakeLock(!state.matchComplete);
 
@@ -56,11 +64,25 @@ export function MatchScreen({
   }
 
   const gameNumber = state.games.length;
+  const totalPoints = state.current.scores.A + state.current.scores.B;
+  const switched = state.current.sidesSwitched;
+
+  // Derived during render rather than an effect: adjust `switchTrigger` the
+  // instant it's out of sync with the current game/switch status, so the
+  // prompt is captured (or cleared) in the same render that changed it.
+  if (switched && switchTrigger?.game !== gameNumber) {
+    setSwitchTrigger({ game: gameNumber, total: totalPoints });
+  } else if (!switched && switchTrigger !== null && switchTrigger.game === gameNumber) {
+    setSwitchTrigger(null);
+  }
+
   const showSwitchPrompt =
-    state.current.sidesSwitched && switchAckGame !== gameNumber;
+    switchTrigger !== null &&
+    switchTrigger.game === gameNumber &&
+    totalPoints <= switchTrigger.total;
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <header className="flex items-baseline justify-between gap-3 text-xs text-neutral-500">
         <span className="font-mono tracking-widest uppercase">
           Game {gameNumber} of {config.bestOf}
@@ -75,7 +97,7 @@ export function MatchScreen({
       {showSwitchPrompt && (
         <button
           type="button"
-          onClick={() => setSwitchAckGame(gameNumber)}
+          onClick={() => setSwitchTrigger(null)}
           className="rounded-xl border-2 border-brand-orange bg-brand-orange/10 px-4 py-3 text-left touch-manipulation"
         >
           <span className="block text-sm font-semibold text-neutral-950">
