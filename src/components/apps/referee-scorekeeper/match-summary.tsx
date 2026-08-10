@@ -2,7 +2,7 @@
 
 import { matchWinner, teamName } from "@/components/apps/referee-scorekeeper/lib/scoring/selectors";
 import { otherTeam, TEAM_IDS, type MatchEvent, type MatchState } from "@/components/apps/referee-scorekeeper/lib/scoring/types";
-import { TimeoutLog } from "./timeout-log";
+import { MatchLog } from "./match-log";
 
 export function MatchSummary({
   state,
@@ -56,13 +56,14 @@ export function MatchSummary({
       </ul>
 
       <p className="mt-6 font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
-        Timeouts
+        Match log
       </p>
       <div className="mt-2">
-        <TimeoutLog
-          history={state.timeoutHistory}
+        <MatchLog
           config={state.config}
+          events={events}
           matchStartedAt={matchStartedAt}
+          capHeight
         />
       </div>
 

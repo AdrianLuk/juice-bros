@@ -232,8 +232,14 @@ export function Sheet({
         centered ? "items-center" : "items-end"
       )}
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
-        <div className="flex items-center justify-between">
+      {/* The panel is capped to the viewport and scrolls its own body. Without
+          the cap, long content (the match log) pushes the sheet past both edges
+          of a centred overlay, where nothing can scroll it and Cancel becomes
+          unreachable. `dvh` so mobile browser chrome is accounted for, and
+          `min-h-0` because a flex child otherwise refuses to shrink below its
+          content and the body's overflow never engages. */}
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-2xl bg-white p-4 shadow-xl">
+        <div className="flex shrink-0 items-center justify-between">
           <h2 className="font-heading text-base font-semibold text-neutral-950">
             {title}
           </h2>
@@ -242,10 +248,12 @@ export function Sheet({
             onClick={onClose}
             className="rounded-lg px-3 py-1 text-sm text-neutral-500"
           >
-            Cancel
+            Close
           </button>
         </div>
-        <div className="mt-3 grid gap-2">{children}</div>
+        <div className="mt-3 grid min-h-0 gap-2 overflow-y-auto overscroll-contain">
+          {children}
+        </div>
       </div>
     </div>
   );

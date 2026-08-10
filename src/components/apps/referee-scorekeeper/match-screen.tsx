@@ -14,7 +14,7 @@ import { GameOverSheet } from "./game-over-sheet";
 import { MatchSummary } from "./match-summary";
 import { RallyButtons } from "./rally-buttons";
 import { ScoreCall } from "./score-call";
-import { TimeoutLog } from "./timeout-log";
+import { MatchLog } from "./match-log";
 import { TimeoutOverlay } from "./timeout-overlay";
 
 export function MatchScreen({
@@ -127,10 +127,10 @@ export function MatchScreen({
       </button>
 
       {logOpen && (
-        <Sheet title="Timeout log" onClose={() => setLogOpen(false)}>
-          <TimeoutLog
-            history={state.timeoutHistory}
+        <Sheet title="Match log" onClose={() => setLogOpen(false)} centered>
+          <MatchLog
             config={config}
+            events={match.events}
             matchStartedAt={match.matchStartedAt}
           />
         </Sheet>
