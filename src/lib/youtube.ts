@@ -1,3 +1,5 @@
+import fallbackVideos from "../../content/videos-fallback.json" with { type: "json" };
+
 const CHANNEL_ID = "UC_5WnU_sagF2tCBmioV9b3g";
 const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
 
@@ -32,9 +34,17 @@ export function getEpisodeHook(description: string, maxLength = 140) {
 
 /**
  * Latest videos from the channel's public RSS feed (max 15, no API key).
- * Cached for an hour via ISR.
+ * Cached for an hour via ISR. Falls back to a committed snapshot
+ * (content/videos-fallback.json, refreshed via scripts/snapshot-videos.mts)
+ * if the live feed is unreachable or returns nothing.
  */
 export async function getLatestVideos(limit?: number): Promise<YoutubeVideo[]> {
+  const videos = await fetchLiveVideos();
+  const result = videos.length > 0 ? videos : (fallbackVideos as YoutubeVideo[]);
+  return limit ? result.slice(0, limit) : result;
+}
+
+async function fetchLiveVideos(): Promise<YoutubeVideo[]> {
   try {
     const res = await fetch(FEED_URL, { next: { revalidate: 3600 } });
     if (!res.ok) return [];
@@ -56,9 +66,9 @@ export async function getLatestVideos(limit?: number): Promise<YoutubeVideo[]> {
         published,
       });
     }
-    return limit ? videos.slice(0, limit) : videos;
+    return videos;
   } catch {
-    // Feed unreachable at build/revalidate time - render pages without the grid.
+    // Feed unreachable at build/revalidate time - caller falls back to the snapshot.
     return [];
   }
 }
