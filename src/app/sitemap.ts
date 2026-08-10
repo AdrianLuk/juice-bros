@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { apps } from "@/data/apps";
 import { siteConfig } from "@/config/site";
 
 const routes: Array<{
@@ -9,6 +10,12 @@ const routes: Array<{
 }> = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/podcast", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/apps", changeFrequency: "monthly", priority: 0.6 },
+  ...apps.map((app) => ({
+    path: app.href,
+    changeFrequency: "monthly" as const,
+    priority: 0.4,
+  })),
   { path: "/gear", changeFrequency: "monthly", priority: 0.6 },
   { path: "/about", changeFrequency: "yearly", priority: 0.5 },
   { path: "/contact", changeFrequency: "yearly", priority: 0.3 },
