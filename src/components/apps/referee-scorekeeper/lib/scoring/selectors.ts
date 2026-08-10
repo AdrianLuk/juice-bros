@@ -70,13 +70,22 @@ export function canCallTimeout(
 }
 
 /**
- * The correct serving court is derived, never stored: the server stands on the
- * even/right court when their own team's score is even. Combined with
- * `positions`, this says which named player should be serving from which side —
- * the thing that catches positional faults.
+ * Which side the current server is standing on. Combined with `positions`,
+ * this says which named player should be serving from which side — the thing
+ * that catches positional faults.
+ *
+ * For everything except doubles side-out this is derived from score parity
+ * (the server stands on the even/right court when their own team's score is
+ * even). Doubles side-out is the exception, because there the serving player
+ * changes independently of the score: a side-out hands the serve to the
+ * right-court player and the second-server handoff moves nobody, so neither
+ * transition touches the score. `servingSlot` is the tracked answer.
  */
 export function serverCourt(state: MatchState): "even" | "odd" {
   const game = state.current;
+  if (state.config.doubles && state.config.scoring === "sideout") {
+    return game.servingSlot === 0 ? "even" : "odd";
+  }
   return game.scores[game.serving] % 2 === 0 ? "even" : "odd";
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  receivingPlayer,
   scoreCallParts,
   serverCourt,
   servingPlayer,
@@ -45,7 +46,8 @@ export function ScoreCall({ state }: { state: MatchState }) {
       </p>
       <p className="text-sm text-neutral-500">
         {servingPlayer(state)} from the{" "}
-        {court === "even" ? "right (even)" : "left (odd)"} court
+        {court === "even" ? "right (even)" : "left (odd)"} court, to{" "}
+        {receivingPlayer(state)}
       </p>
     </section>
   );

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { reduceMatch } from "./reduce.ts";
-import { scoreCall, servingPlayer } from "./selectors.ts";
+import { scoreCall, serverCourt, servingPlayer } from "./selectors.ts";
 import type { MatchConfig, MatchEvent, TeamId } from "./types.ts";
 
 const doubles11: MatchConfig = {
@@ -164,6 +164,81 @@ test("serving team scoring swaps its own players; a side-out does not", () => {
     sideout.current.positions,
     scored.current.positions,
     "a side-out never moves anyone"
+  );
+});
+
+test("second server: the partner takes over on the correct side, not the player who just lost the rally", () => {
+  const events: MatchEvent[] = [serveFirst("A"), rally("B")]; // immediate side-out (A opened at server 2)
+  const server1 = reduceMatch(doubles11, events);
+  assert.equal(server1.current.serving, "B");
+  assert.equal(server1.current.serverNumber, 1);
+  assert.deepEqual(server1.current.positions.B, ["Ben", "Bea"]);
+  assert.equal(servingPlayer(server1), "Ben");
+
+  events.push(rally("B")); // Ben (server 1) scores and swaps to the odd side
+  const stillBen = reduceMatch(doubles11, events);
+  assert.equal(stillBen.current.serverNumber, 1);
+  assert.deepEqual(stillBen.current.positions.B, ["Bea", "Ben"]);
+  assert.equal(servingPlayer(stillBen), "Ben", "same server, now on the odd side");
+
+  events.push(rally("A")); // Ben loses — hands off to Bea, not a full side-out
+  const server2 = reduceMatch(doubles11, events);
+  assert.equal(server2.current.serving, "B", "still B's turn to serve");
+  assert.equal(server2.current.serverNumber, 2);
+  assert.deepEqual(
+    server2.current.scores,
+    stillBen.current.scores,
+    "no score changes on the handoff"
+  );
+  assert.deepEqual(
+    server2.current.positions.B,
+    stillBen.current.positions.B,
+    "nobody moves on the handoff — Bea serves from wherever she already stands"
+  );
+  assert.equal(
+    servingPlayer(server2),
+    "Bea",
+    "the partner serves next, not the player who just lost the rally"
+  );
+  assert.equal(
+    serverCourt(server2),
+    "even",
+    "Bea was on the even side all along — the handoff doesn't require her to match B's (unchanged) odd-score parity"
+  );
+});
+
+test("side-out: the right-court player serves first even when the team's score is odd", () => {
+  const events: MatchEvent[] = [serveFirst("A"), rally("A")];
+  // A scored, so Amy and Alex switched: Alex is now on the right, and Amy —
+  // the game's starting server — is on the left, matching A's odd score.
+  const scored = reduceMatch(doubles11, events);
+  assert.deepEqual(scored.current.scores, { A: 1, B: 0 });
+  assert.deepEqual(scored.current.positions.A, ["Alex", "Amy"]);
+  assert.equal(servingPlayer(scored), "Amy", "Amy keeps serving, now from the left");
+
+  // Hand the serve to B and straight back, leaving A's score untouched at 1.
+  events.push(rally("B")); // A was on server 2 → side-out to B
+  events.push(rally("A")); // B's server 1 loses → handoff to server 2
+  events.push(rally("A")); // B's server 2 loses → side-out back to A
+
+  const regained = reduceMatch(doubles11, events);
+  assert.equal(regained.current.serving, "A");
+  assert.equal(regained.current.serverNumber, 1);
+  assert.deepEqual(regained.current.scores, { A: 1, B: 0 }, "A's score is still odd");
+  assert.deepEqual(
+    regained.current.positions.A,
+    ["Alex", "Amy"],
+    "a side-out moves nobody"
+  );
+  assert.equal(
+    serverCourt(regained),
+    "even",
+    "a team gaining the serve always opens from the right/even court"
+  );
+  assert.equal(
+    servingPlayer(regained),
+    "Alex",
+    "the right-court player serves first — not Amy, whose left-court position merely tracks the odd score"
   );
 });
 

@@ -20,7 +20,7 @@ export function CourtDiagram({ state }: { state: MatchState }) {
   return (
     <div className="overflow-hidden rounded-xl border-2 border-neutral-300 bg-neutral-50">
       <TeamRow state={state} team="B" order={["even", "odd"]} activeCourt={court} />
-      <div className="h-1 bg-neutral-400" aria-hidden />
+      <div className="h-1 bg-brand-black" aria-hidden />
       <TeamRow state={state} team="A" order={["odd", "even"]} activeCourt={court} />
     </div>
   );

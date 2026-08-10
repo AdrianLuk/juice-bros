@@ -120,6 +120,16 @@ export interface GameState {
   scores: Record<TeamId, number>;
   serving: TeamId;
   serverNumber: ServerNumber;
+  /**
+   * Doubles side-out only: which slot of `positions[serving]` is serving.
+   *
+   * Must be tracked, not re-derived from score parity. Parity governs where
+   * the game's STARTING server stands — not which player is serving. A side-out
+   * always opens with the right/even-court player (slot 0), and the second
+   * server takes over from wherever they already stand, so either player can
+   * end up serving from either side.
+   */
+  servingSlot: 0 | 1;
   /** index 0 = player currently on the even/right court */
   positions: Record<TeamId, PlayerPair>;
   timeoutsUsed: Record<TeamId, number>;

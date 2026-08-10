@@ -214,6 +214,9 @@ function newGame(config: MatchConfig, firstServer: TeamId): GameState {
     scores: { A: 0, B: 0 },
     serving: firstServer,
     serverNumber: startingServerNumber(config),
+    // The chosen first server is always positions[team][0] (see match-setup's
+    // firstServer reordering), and 0-0 is even, so slot 0 is correct here.
+    servingSlot: 0,
     positions: {
       A: [...config.players.A] as PlayerPair,
       B: [...config.players.B] as PlayerPair,
@@ -257,17 +260,32 @@ function awardRally(config: MatchConfig, game: GameState, team: TeamId): void {
   // Side-out scoring.
   if (serving) {
     game.scores[team] += 1;
-    if (config.doubles) swapPositions(game, team);
+    if (config.doubles) {
+      swapPositions(game, team);
+      // Same server, but they just switched sides with their partner to
+      // stay matched to the team's new score parity.
+      game.servingSlot = game.servingSlot === 0 ? 1 : 0;
+    }
     return;
   }
 
   // Receiving team wins the rally — no score change either way.
   if (config.doubles && game.serverNumber === 1) {
     game.serverNumber = 2;
+    // Nobody moves — the second server just steps in from wherever they
+    // already are. That's usually the side that does *not* match the
+    // team's (unchanged) score parity, since only the outgoing server's
+    // position was ever kept in sync with it.
+    game.servingSlot = game.servingSlot === 0 ? 1 : 0;
     return;
   }
   game.serving = team;
   game.serverNumber = 1;
+  // A team gaining the serve always opens with whoever is standing on the
+  // right/even court, whatever their score. Score parity governs where the
+  // game's *starting* server stands, not who serves first off a side-out —
+  // at an odd score that right-hand player is the partner, not the starter.
+  game.servingSlot = 0;
 }
 
 function applySideSwitch(
