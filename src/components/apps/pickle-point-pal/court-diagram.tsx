@@ -14,11 +14,12 @@ type Court = "even" | "odd";
  * player's right as they face the net, so team B's even court sits on the
  * screen's left and team A's on the screen's right.
  *
- * The ref layout turns the whole diagram a quarter turn clockwise so the net
- * runs vertically and each team takes the side of the screen its point button
- * is on. That rotation happens to leave both rows' slot order untouched (a
- * row's left-to-right becomes a column's top-to-bottom, and the top/bottom
- * teams swap to right/left), so it is purely a flex-direction change.
+ * The net runs vertically and each team takes the side of the screen its
+ * rally button is on — portrait and the ref landscape layout both read this
+ * way now, so a ref never has to remap "left button" to "top row." That
+ * quarter turn leaves both rows' slot order untouched (a row's left-to-right
+ * becomes a column's top-to-bottom, and the top/bottom teams swap to
+ * right/left), so it is purely a flex-direction change.
  *
  * `leftTeam` says which team the ref currently has on their left — it moves
  * when the teams change ends and when the ref changes which side of the net
@@ -36,14 +37,15 @@ export function CourtDiagram({
   leftTeam: TeamId;
 }) {
   const court = serverCourt(state);
-  // DOM order stays B-then-A so portrait always reads B on top, untouched.
+  // DOM order stays B-then-A; `mirrored` is what actually puts each team on
+  // the correct side of the screen.
   const mirrored = leftTeam !== "A";
 
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border-2 border-neutral-300 bg-neutral-50 ref-landscape:min-h-0 ref-landscape:flex-1",
-        mirrored ? "ref-landscape:flex-row" : "ref-landscape:flex-row-reverse"
+        "flex min-h-0 overflow-hidden rounded-xl border-2 border-neutral-300 bg-neutral-50 ref-landscape:flex-1",
+        mirrored ? "flex-row" : "flex-row-reverse"
       )}
     >
       <TeamRow
@@ -53,10 +55,7 @@ export function CourtDiagram({
         activeCourt={court}
         mirrored={mirrored}
       />
-      <div
-        className="h-1 shrink-0 bg-brand-black ref-landscape:h-auto ref-landscape:w-1"
-        aria-hidden
-      />
+      <div className="w-1 shrink-0 bg-brand-black" aria-hidden />
       <TeamRow
         state={state}
         team="A"
@@ -98,8 +97,8 @@ function TeamRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 ref-landscape:flex ref-landscape:min-w-0 ref-landscape:flex-1",
-        mirrored ? "ref-landscape:flex-col-reverse" : "ref-landscape:flex-col"
+        "flex min-w-0 flex-1",
+        mirrored ? "flex-col-reverse" : "flex-col"
       )}
     >
       {order.map((slot) => {
@@ -108,7 +107,7 @@ function TeamRow({
           return (
             <div
               key={slot}
-              className="min-h-16 border border-neutral-200 bg-neutral-100/60 ref-landscape:min-h-11 ref-landscape:flex-1"
+              className="min-h-16 flex-1 border border-neutral-200 bg-neutral-100/60 ref-landscape:min-h-11"
             />
           );
         }
@@ -119,8 +118,8 @@ function TeamRow({
           <div
             key={slot}
             className={cn(
-              "flex min-h-16 flex-col items-center justify-center border border-neutral-200 px-2 py-3 text-center",
-              "ref-landscape:min-h-11 ref-landscape:flex-1 ref-landscape:py-1",
+              "flex min-h-16 flex-1 flex-col items-center justify-center border border-neutral-200 px-2 py-3 text-center",
+              "ref-landscape:min-h-11 ref-landscape:py-1",
               isServerCell && "bg-brand-orange/10 ring-2 ring-brand-orange ring-inset"
             )}
           >

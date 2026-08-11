@@ -164,7 +164,7 @@ export function MatchScreen({
                 <span className="mt-0.5 block text-xs text-neutral-600">
                   Tap once the players have changed sides.
                 </span>
-                <span className="mt-0.5 hidden text-xs text-neutral-600 ref-landscape:block">
+                <span className="mt-0.5 block text-xs text-neutral-600">
                   The buttons and court have already swapped to match.
                 </span>
               </button>
@@ -205,15 +205,16 @@ export function MatchScreen({
       )}
 
       <div className="flex items-center gap-3 ref-landscape:justify-center">
-        {/* Only meaningful side-on, where there is a left and a right. The
-            match itself tracks the teams changing ends; this covers the
-            other half — a ref who is standing on the other side of the
-            net, or has moved there, and sees the mirror image. */}
+        {/* The court diagram and rally buttons are drawn left/right in every
+            layout now, so this is meaningful everywhere too. The match
+            itself tracks the teams changing ends; this covers the other
+            half — a ref who is standing on the other side of the net, or
+            has moved there, and sees the mirror image. */}
         <button
           type="button"
           onClick={toggleRefFlipped}
           aria-label={`Swap sides — ${teamName(config, left)} is currently on your left`}
-          className="hidden min-h-11 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 touch-manipulation ref-landscape:flex"
+          className="flex min-h-11 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 touch-manipulation"
         >
           <ArrowLeftRight className="size-3.5" />
           Swap sides
