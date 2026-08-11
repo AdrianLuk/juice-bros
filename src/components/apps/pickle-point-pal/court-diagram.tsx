@@ -132,7 +132,7 @@ function TeamRow({
             >
               {name}
             </span>
-            <span className="mt-0.5 font-mono text-[0.6rem] tracking-widest text-neutral-400 uppercase">
+            <span className={cn("mt-0.5 font-mono font-semibold text-[0.7rem] tracking-widest text-neutral-400 uppercase", isServerCell && "text-brand-orange")}>
               {isServerCell ? "serving" : slot === "even" ? "even / R" : "odd / L"}
             </span>
           </div>

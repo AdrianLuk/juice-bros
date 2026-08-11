@@ -109,29 +109,38 @@ export function MatchScreen({
           (100dvh less the 4rem header and the page's 0.75rem top padding),
           which puts the action bar — everything a ref only reaches for between
           rallies — one deliberate scroll below it. */}
-      <div className="flex flex-col gap-4 ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-2">
-        <header className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+      <div className="flex flex-col gap-4 ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-4">
+        <header className="flex items-center justify-between gap-3 py-1 text-xs text-neutral-500">
           <span className="font-mono tracking-widest uppercase">
-            Game {gameNumber} of {config.bestOf}
+            {config.bestOf > 1 ? (
+              `Game ${gameNumber} of ${config.bestOf}`
+            ) : (
+              <span className="font-mono tabular-nums normal-case">
+                Game to {config.pointsToWin}
+                {config.winBy > 1 ? `, win by ${config.winBy}` : ""}
+              </span>
+            )}
           </span>
-          <span className="flex items-center gap-3">
-            <span className="font-mono tabular-nums">
-              {TEAM_IDS.map((t) => state.gamesWon[t]).join("-")} games
+          {config.bestOf > 1 && (
+            <span className="flex items-center gap-3">
+              <span className="font-mono tabular-nums">
+                {TEAM_IDS.map((t, i) => (
+                  <span key={t}>
+                    {i > 0 && " - "}
+                    {i === 0 && `${teamName(config, t)} `}
+                    <span className="font-semibold text-neutral-950">
+                      {state.gamesWon[t]}
+                    </span>
+                    {i > 0 && ` ${teamName(config, t)}`}
+                  </span>
+                ))}
+              </span>
+              <span className="font-mono tabular-nums text-neutral-400">
+                Game to {config.pointsToWin}
+                {config.winBy > 1 ? `, win by ${config.winBy}` : ""}
+              </span>
             </span>
-            {/* Only meaningful side-on, where there is a left and a right. The
-                match itself tracks the teams changing ends; this covers the
-                other half — a ref who is standing on the other side of the
-                net, or has moved there, and sees the mirror image. */}
-            <button
-              type="button"
-              onClick={toggleRefFlipped}
-              aria-label={`Swap sides — ${teamName(config, left)} is currently on your left`}
-              className="hidden min-h-10 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 font-medium text-neutral-700 touch-manipulation ref-landscape:flex"
-            >
-              <ArrowLeftRight className="size-3.5" />
-              Swap sides
-            </button>
-          </span>
+          )}
         </header>
 
         {/* Portrait stacks; the ref layout becomes left team · court · right
@@ -195,15 +204,31 @@ export function MatchScreen({
         </p>
       )}
 
-      {/* Last in the flow so it isn't next to the rally buttons, but red so
-          a ref can still spot it fast when a match needs to end early. */}
-      <button
-        type="button"
-        onClick={() => setEndMatchOpen(true)}
-        className="min-h-11 rounded-lg bg-destructive px-3 text-xs font-medium text-white touch-manipulation hover:bg-destructive/80"
-      >
-        End match
-      </button>
+      <div className="flex items-center gap-3 ref-landscape:justify-center">
+        {/* Only meaningful side-on, where there is a left and a right. The
+            match itself tracks the teams changing ends; this covers the
+            other half — a ref who is standing on the other side of the
+            net, or has moved there, and sees the mirror image. */}
+        <button
+          type="button"
+          onClick={toggleRefFlipped}
+          aria-label={`Swap sides — ${teamName(config, left)} is currently on your left`}
+          className="hidden min-h-11 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 touch-manipulation ref-landscape:flex"
+        >
+          <ArrowLeftRight className="size-3.5" />
+          Swap sides
+        </button>
+
+        {/* Last in the flow so it isn't next to the rally buttons, but red so
+            a ref can still spot it fast when a match needs to end early. */}
+        <button
+          type="button"
+          onClick={() => setEndMatchOpen(true)}
+          className="min-h-11 flex-1 rounded-lg bg-destructive px-3 text-xs font-medium text-white touch-manipulation hover:bg-destructive/80 ref-landscape:flex-none ref-landscape:w-auto"
+        >
+          End match
+        </button>
+      </div>
 
       {logOpen && (
         <Sheet title="Match log" onClose={() => setLogOpen(false)}>

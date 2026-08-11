@@ -48,9 +48,9 @@ export function ScoreCall({ state }: { state: MatchState }) {
         {teamName(state.config, state.current.serving)} serving
       </p>
       <p className="text-sm text-neutral-500">
-        {servingPlayer(state)} from the{" "}
-        {court === "even" ? "right (even)" : "left (odd)"} court, to{" "}
-        {receivingPlayer(state)}
+        <span className="text-brand-black font-semibold">{servingPlayer(state)}</span> from the{" "}
+        <span className="text-brand-black font-semibold">{court === "even" ? "right (even)" : "left (odd)"}</span> court, to{" "}
+        <span className="text-brand-black font-semibold">{receivingPlayer(state)}</span>
       </p>
     </section>
   );

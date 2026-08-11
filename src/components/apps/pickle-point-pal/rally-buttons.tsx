@@ -39,11 +39,11 @@ export function RallyButtons({
           state.config.doubles &&
           state.config.scoring === "sideout" &&
           state.current.serverNumber === 1;
-        const hint = isServing
-          ? "wins rally · point"
+        const hintAction = isServing
+          ? "point"
           : isSecondServe
-            ? "wins rally · second serve"
-            : "wins rally · side out";
+            ? "second serve"
+            : "side out";
         return (
           <button
             key={team}
@@ -76,8 +76,16 @@ export function RallyButtons({
                 </span>
               ))}
             </span>
-            <span className="mt-0.5 font-mono text-[0.65rem] tracking-widest text-neutral-500 uppercase">
-              {hint}
+            <span className="mt-1 flex flex-col items-center ref-landscape:mt-2">
+              <span className="font-mono text-[0.65rem] tracking-widest text-neutral-500 uppercase ref-landscape:hidden">
+                wins rally · {hintAction}
+              </span>
+              <span className="hidden font-mono text-xs font-semibold tracking-wide text-brand-black uppercase ref-landscape:block">
+                wins rally
+              </span>
+              <span className="hidden font-mono text-xs font-semibold tracking-wide text-brand-orange uppercase ref-landscape:block">
+                {hintAction}
+              </span>
             </span>
           </button>
         );
