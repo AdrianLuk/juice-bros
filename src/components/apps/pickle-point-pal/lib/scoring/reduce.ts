@@ -110,8 +110,6 @@ export function reduceMatch(config: MatchConfig, events: MatchEvent[]): MatchSta
           startedAt: event.at,
           endedAt: null,
           endReason: null,
-          pausedMs: 0,
-          pauseCount: 0,
         });
 
         activeTimeout = {
@@ -121,7 +119,6 @@ export function reduceMatch(config: MatchConfig, events: MatchEvent[]): MatchSta
           durationMs: timeoutSeconds(config, event.kind) * 1000,
           accumulatedMs: 0,
           runningSince: event.at,
-          pausedSince: null,
         };
         break;
       }
@@ -130,28 +127,18 @@ export function reduceMatch(config: MatchConfig, events: MatchEvent[]): MatchSta
         if (!activeTimeout || activeTimeout.runningSince === null) break;
         activeTimeout.accumulatedMs += event.at - activeTimeout.runningSince;
         activeTimeout.runningSince = null;
-        activeTimeout.pausedSince = event.at;
-        openRecord().pauseCount += 1;
         break;
       }
 
       case "TIMEOUT_RESUMED": {
         if (!activeTimeout || activeTimeout.runningSince !== null) break;
-        if (activeTimeout.pausedSince !== null) {
-          openRecord().pausedMs += event.at - activeTimeout.pausedSince;
-        }
         activeTimeout.runningSince = event.at;
-        activeTimeout.pausedSince = null;
         break;
       }
 
       case "TIMEOUT_ENDED": {
         if (!activeTimeout) break;
         const record = openRecord();
-        // Ending a paused timeout outright is valid; still bank the paused span.
-        if (activeTimeout.runningSince === null && activeTimeout.pausedSince !== null) {
-          record.pausedMs += event.at - activeTimeout.pausedSince;
-        }
         record.endedAt = event.at;
         record.endReason = event.reason;
         activeTimeout = null;

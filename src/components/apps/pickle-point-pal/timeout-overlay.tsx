@@ -33,24 +33,28 @@ export function TimeoutOverlay({
 
   const record = state.timeoutHistory[state.timeoutHistory.length - 1];
   const paused = active.runningSince === null;
-  const warning = !paused && remainingMs <= 10_000;
+  const warning = !paused && remainingMs <= 15_000;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-white px-5 py-6">
+    // Stays a vertical stack in ref-landscape too, just a compact one: every
+    // section shrinks (smaller timer, tighter gaps, no growth) so the whole
+    // stack fits comfortably inside a short landscape viewport and the
+    // buttons never get pushed past the bottom edge.
+    <div className="fixed inset-0 z-40 flex flex-col bg-white px-5 py-6 ref-landscape:justify-center ref-landscape:gap-2 ref-landscape:px-4 ref-landscape:py-3">
       <p className="text-center font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
         {active.kind} timeout
       </p>
 
       {record && (
-        <p className="mt-3 text-center font-heading text-xl leading-snug font-semibold text-neutral-950">
+        <p className="mt-3 text-center font-heading text-xl leading-snug font-semibold text-neutral-950 ref-landscape:mt-1 ref-landscape:text-sm">
           {timeoutAnnouncement(record, state.config)}
         </p>
       )}
 
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div className="flex flex-1 flex-col items-center justify-center ref-landscape:flex-none ref-landscape:py-1">
         <div
           className={cn(
-            "font-mono text-[clamp(4.5rem,26vw,10rem)] leading-none font-bold tracking-tight tabular-nums",
+            "font-mono text-[clamp(4.5rem,26vw,10rem)] leading-none font-bold tracking-tight tabular-nums ref-landscape:text-[clamp(2.5rem,20vh,4rem)]",
             paused ? "text-neutral-300" : warning ? "text-brand-orange" : "text-neutral-950"
           )}
         >
@@ -60,18 +64,16 @@ export function TimeoutOverlay({
             close — the failure mode is a ref seeing a number and assuming rest
             time is running when it isn't. */}
         {paused && (
-          <p className="mt-2 font-mono text-[clamp(2rem,10vw,4rem)] leading-none font-bold tracking-[0.15em] text-neutral-500 uppercase">
+          <p className="mt-2 font-mono text-[clamp(2rem,10vw,4rem)] leading-none font-bold tracking-[0.15em] text-neutral-500 uppercase ref-landscape:mt-1 ref-landscape:text-lg">
             Paused
-          </p>
-        )}
-        {record && record.pauseCount > 0 && (
-          <p className="mt-4 text-xs text-neutral-500">
-            Paused {record.pauseCount}× · {formatClock(record.pausedMs)} total
           </p>
         )}
       </div>
 
-      <div className="grid gap-3">
+      {/* Capped and centred in ref-landscape: a wide phone would otherwise
+          stretch these edge to edge, which reads as oversized once the
+          height constraint has already forced a compact vertical stack. */}
+      <div className="grid gap-3 ref-landscape:mx-auto ref-landscape:w-full ref-landscape:max-w-xs ref-landscape:gap-2">
         <button
           type="button"
           onClick={paused ? onStartClock : onPauseClock}
@@ -81,7 +83,7 @@ export function TimeoutOverlay({
         </button>
 
         {/* Deliberately separated from the pause control. */}
-        <div className="grid grid-cols-[auto_1fr] gap-3 pt-6">
+        <div className="grid grid-cols-[auto_1fr] gap-3 pt-6 ref-landscape:gap-2 ref-landscape:pt-0">
           <button
             type="button"
             onClick={onUndo}

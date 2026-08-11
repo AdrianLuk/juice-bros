@@ -162,7 +162,21 @@ export function playerLabel(
   return config.doubles ? `Team ${team} ${index + 1}` : `Team ${team}`;
 }
 
-const ORDINAL_WORDS = ["first", "second", "third", "fourth"];
+/** 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 4 -> "4th", 11-13 -> "th" (English ordinal suffix rules). */
+function ordinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
 
 /**
  * Sanctioned play requires the ref to say the team, the timeout number, and the
@@ -176,8 +190,9 @@ export function timeoutAnnouncement(
   const who = teamName(config, record.team);
   const score = `Score ${recordScoreCall(record, config)}.`;
   if (record.kind === "standard") {
-    const nth = ORDINAL_WORDS[record.ordinal - 1] ?? `#${record.ordinal}`;
-    return `Timeout — ${who}, ${nth} of ${config.timeoutsPerGame}. ${score}`;
+    const nth = ordinal(record.ordinal);
+    const left = config.timeoutsPerGame - record.ordinal;
+    return `Timeout — ${who}, ${nth} timeout. ${left} left. ${score}`;
   }
   const kind = record.kind === "medical" ? "Medical timeout" : "Equipment timeout";
   return `${kind} — ${who}. ${score}`;

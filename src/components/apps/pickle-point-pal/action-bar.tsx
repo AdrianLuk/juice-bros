@@ -244,14 +244,20 @@ export function Sheet({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4"
+      onClick={onClose}
+    >
       {/* The panel is capped to the viewport and scrolls its own body. Without
           the cap, long content (the match log) pushes the sheet past both edges
           of a centred overlay, where nothing can scroll it and Cancel becomes
           unreachable. `dvh` so mobile browser chrome is accounted for, and
           `min-h-0` because a flex child otherwise refuses to shrink below its
           content and the body's overflow never engages. */}
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-2xl bg-white p-4 shadow-xl">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-2xl bg-white p-4 shadow-xl"
+      >
         <div className="flex shrink-0 items-center justify-between">
           <h2 className="font-heading text-base font-semibold text-neutral-950">
             {title}

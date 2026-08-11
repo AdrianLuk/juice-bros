@@ -90,8 +90,6 @@ export interface ActiveTimeout {
   durationMs: number;
   accumulatedMs: number;
   runningSince: number | null;
-  /** When the current pause began; needed to accrue `pausedMs` on resume. */
-  pausedSince: number | null;
 }
 
 /**
@@ -112,8 +110,6 @@ export interface TimeoutRecord {
   startedAt: number;
   endedAt: number | null; // null while still open
   endReason: "expired" | "ended_early" | null;
-  pausedMs: number; // total wall time spent paused
-  pauseCount: number;
 }
 
 export interface GameState {

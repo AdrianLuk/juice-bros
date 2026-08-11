@@ -668,8 +668,6 @@ test("pause accounting: 60s timeout paused from 20s to 50s has 40s left", () => 
   assert.ok(active);
   assert.equal(active.accumulatedMs, 20_000);
   assert.equal(active.runningSince, 50_000);
-  assert.equal(state.timeoutHistory[0].pausedMs, 30_000);
-  assert.equal(state.timeoutHistory[0].pauseCount, 1);
 
   // remaining at the instant of resume
   const remaining = active.durationMs - active.accumulatedMs;
@@ -687,8 +685,6 @@ test("two pause/resume cycles accumulate correctly", () => {
 
   assert.equal(state.activeTimeout?.accumulatedMs, 20_000);
   assert.equal(state.activeTimeout?.runningSince, 40_000);
-  assert.equal(state.timeoutHistory[0].pausedMs, 20_000);
-  assert.equal(state.timeoutHistory[0].pauseCount, 2);
 });
 
 test("double pause and redundant resume are no-ops", () => {
@@ -702,11 +698,9 @@ test("double pause and redundant resume are no-ops", () => {
 
   assert.equal(state.activeTimeout?.accumulatedMs, 10_000);
   assert.equal(state.activeTimeout?.runningSince, 20_000);
-  assert.equal(state.timeoutHistory[0].pauseCount, 1);
-  assert.equal(state.timeoutHistory[0].pausedMs, 10_000);
 });
 
-test("ending a paused timeout is valid and banks the paused span", () => {
+test("ending a paused timeout is valid", () => {
   const state = reduceMatch(doubles11, [
     { type: "TIMEOUT_STARTED", at: 0, team: "A", kind: "standard" },
     { type: "TIMEOUT_PAUSED", at: 15_000 },
@@ -716,7 +710,6 @@ test("ending a paused timeout is valid and banks the paused span", () => {
   assert.equal(state.activeTimeout, null);
   assert.equal(state.timeoutHistory[0].endedAt, 45_000);
   assert.equal(state.timeoutHistory[0].endReason, "ended_early");
-  assert.equal(state.timeoutHistory[0].pausedMs, 30_000);
 });
 
 test("rallies during an active timeout are ignored", () => {

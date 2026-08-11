@@ -197,12 +197,7 @@ function timeoutDetail(record: TimeoutRecord, config: MatchConfig): string {
       ? "in progress"
       : `${record.endReason === "expired" ? "expired" : "ended early"} after ${formatClock(record.endedAt - record.startedAt)}`;
 
-  const paused =
-    record.pauseCount > 0
-      ? ` · paused ${record.pauseCount}× for ${formatClock(record.pausedMs)}`
-      : "";
-
-  return `${kind} · ${outcome}${paused}`;
+  return `${kind} · ${outcome}`;
 }
 
 /**
