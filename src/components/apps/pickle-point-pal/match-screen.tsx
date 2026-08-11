@@ -217,7 +217,7 @@ export function MatchScreen({
           className="flex min-h-11 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 touch-manipulation"
         >
           <ArrowLeftRight className="size-3.5" />
-          Swap sides
+          Swap Sides
         </button>
 
         {/* Last in the flow so it isn't next to the rally buttons, but red so
@@ -227,7 +227,7 @@ export function MatchScreen({
           onClick={() => setEndMatchOpen(true)}
           className="min-h-11 flex-1 rounded-lg bg-destructive px-3 text-xs font-medium text-white touch-manipulation hover:bg-destructive/80 ref-landscape:flex-none ref-landscape:w-auto"
         >
-          End match
+          End Match
         </button>
       </div>
 
