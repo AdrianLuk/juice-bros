@@ -41,8 +41,9 @@ Tracking against the phases in the original implementation brief. Checked = done
 - [ ] Ontario tournament calendar
 - [ ] Club spotlight pages
 - [ ] Gear page write-ups
-- [ ] Round Robin Generator
-- [ ] Pickleball Referee scorekeeper
+- [ ] Round Robin Generator — removed from the live `/tools` listing (`src/data/apps.ts`) and put on the backburner; brief still at `briefs/juice-bros-round-robin-brief.md` if it gets picked back up.
+- [x] Pickleball Referee scorekeeper — shipped as "Pickle Point Pal" at `/tools/pickle-point-pal`. Mostly done; Adrian may still add to it.
+- [ ] Booking Buddy — friend-group scheduling app (Apps section), needs accounts/auth, friend connections, saved availability/slot data. Will need Supabase, scoped to just this app's routes per `CLAUDE.md`. Not started.
 
 ## Manual (Adrian, not Claude Code)
 

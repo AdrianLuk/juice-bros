@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Shuffle, ClipboardList } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 
 export type AppStatus = "coming-soon" | "live";
 
@@ -21,14 +21,5 @@ export const apps: AppItem[] = [
       "Keep score and track serves for a pickleball match like a referee would.",
     icon: ClipboardList,
     status: "live",
-  },
-  {
-    slug: "round-robin-generator",
-    title: "Round Robin Generator",
-    href: "/tools/round-robin-generator",
-    description:
-      "Generate round robin pairings and courts for open play or a group session.",
-    icon: Shuffle,
-    status: "coming-soon",
   },
 ];
