@@ -76,7 +76,8 @@ Verified end-to-end with two real Users against the local stack — created via 
 
 Not done:
 
-- [ ] **Click-through in a browser.** The server-rendered halves are proven; what is not is the client-side behaviour — search-as-you-type firing `searchUsers`, and the buttons submitting. There is no browser-driving tooling in this repo, so this is a human step. Two local accounts are seeded with password `pickleball123` (`amy.render.*@example.com`, `ben.render.*@example.com`).
+- [x] **Click-through in a browser** — done by Adrian. Search, send, accept and remove all work; `responded_at` timestamps on the local rows came from the UI, not a script. Test accounts are listed in [docs/local-test-accounts.md](docs/local-test-accounts.md) and re-creatable with `npm run seed:users`.
+- [ ] **Removing a friend is now behind a confirmation dialog** (`@base-ui/react` alert-dialog, added via shadcn). The dialog's own confirm button is the only thing that can submit the remove form, so a stray click on the row can't destroy a Connection. Declining and cancelling are deliberately *not* gated — those are re-sendable. Needs one click-through to confirm the dialog submits.
 - [ ] `supabase db push` — four migrations are still local-only. **Needs Adrian**: pushing rewrites `handle_new_user` and backfills usernames on the hosted project. Deliberately not run by an agent.
 - [ ] Open question for Adrian: his account predates usernames, so the backfill derives `adrianluk`. If he'd rather choose, this ticket needs a settings screen for changing a username.
 - [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The friends page is only reachable via a link on the dashboard, which is only reachable by typing the URL.
