@@ -32,31 +32,35 @@ export default async function BookingBuddyPage() {
   const greeting = profile?.display_name ?? session.email ?? "there";
 
   return (
-    <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
-      <PageHeading
-        eyebrow="Booking Buddy"
-        title={`Hi, ${greeting}`}
-        description="Post open time, see who's in, and keep your court bookings in one place."
-      />
+    <div className="flex w-full flex-1 flex-col">
+      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title={`Hi, ${greeting}`}
+            description="Post open time, see who's in, and keep your court bookings in one place."
+          />
 
-      <p className="mt-8 text-sm text-muted-foreground">
-        You&apos;re signed in. Open slots and bookings are on the way.
-      </p>
+          <p className="mt-8 text-sm text-muted-foreground">
+            You&apos;re signed in. Open slots and bookings are on the way.
+          </p>
 
-      <p className="mt-4 text-sm">
-        <Link
-          href="/booking-buddy/friends"
-          className="underline underline-offset-4"
-        >
-          Manage your friends
-        </Link>
-      </p>
+          <p className="mt-4 text-sm">
+            <Link
+              href="/booking-buddy/friends"
+              className="underline underline-offset-4"
+            >
+              Manage your friends
+            </Link>
+          </p>
 
-      <form action={signOut} className="mt-6">
-        <Button type="submit" variant="outline">
-          Sign out
-        </Button>
-      </form>
+          <form action={signOut} className="mt-8">
+            <Button type="submit" variant="outline">
+              Sign out
+            </Button>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }

@@ -28,14 +28,20 @@ export default async function SignInPage({
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
-      <PageHeading
-        eyebrow="Booking Buddy"
-        title="Sign in"
-        description="Plan pickleball with your friends — open a time, see who's in."
-      />
+    <div className="flex w-full flex-1 flex-col">
+      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+        {/* Narrower than the other Booking Buddy pages: a sign-in form reads
+            better as a single centred column than stretched across one. */}
+        <div className="mx-auto max-w-md">
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Sign in"
+            description="Plan pickleball with your friends — open a time, see who's in."
+          />
 
-      <SignInForm next={target} error={error} />
+          <SignInForm next={target} error={error} />
+        </div>
+      </section>
     </div>
   );
 }
