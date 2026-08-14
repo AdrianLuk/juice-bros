@@ -7,6 +7,7 @@ import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
 import { verifySession } from "@/lib/booking-buddy/dal";
+import { personLabel } from "@/lib/booking-buddy/connections";
 import { listConnections } from "@/lib/booking-buddy/actions/connections";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
@@ -86,6 +87,11 @@ export default async function FriendsPage() {
                   label="Remove"
                   pendingLabel="Removing…"
                   variant="ghost"
+                  confirm={{
+                    title: `Remove ${personLabel(person)}?`,
+                    description:
+                      "You'll both stop seeing each other's open time, and they aren't told. You can send a new request later, but they'd have to accept it again.",
+                  }}
                 />
               )}
             />
