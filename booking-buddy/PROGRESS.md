@@ -33,10 +33,24 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 - **Middleware is called Proxy in Next.js 16.** The file is `src/proxy.ts`, not `middleware.ts`. Next's own docs are explicit that it must not be the only line of defence, which is why the DAL (`src/lib/booking-buddy/dal.ts`) sits beneath it and coarse RLS beneath that (ADR 0003).
 - **`NEXT_PUBLIC_*` must be read as literals.** Next only inlines these into the browser bundle where `process.env.NEXT_PUBLIC_X` appears verbatim; a dynamic lookup or an alias of `process.env` yields `undefined` in the browser. `readPublicSupabaseEnv` handles this — don't "simplify" it back to a dynamic read.
 
+### Hosted environment
+
+- [x] Hosted Supabase project `juice-bros` (ref `zhvhddzpgxtjdyrhgsqd`, region `ca-central-1`, Postgres 17), linked to this repo via `supabase link` — so `supabase db push` targets it.
+- [x] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` set on the Vercel project for Production and Preview, the service-role key marked sensitive. Repo linked to Vercel (`lukabaseballs-projects/juice-bros`).
+
+  **Deviation from issue #3 as written**: the ticket said to use Vercel's Supabase *marketplace* integration. We used a directly-owned Supabase account instead, with env vars pushed via `vercel env add`. Reason: nearly every ticket from Phase 2 on ships migrations, and `supabase link` + `db push` against a project we own directly is the cleaner loop; the marketplace's benefit was a one-time env-var convenience. Same end state, different ownership.
+
+- Project security settings chosen at creation, both reinforcing ADR 0003:
+  - **Automatic RLS enabled** — every new table gets RLS on by default, so a table can't ship unprotected by accident. Expect a brand-new table to return zero rows until policies exist; that's the safety net, not a bug.
+  - **"Automatically expose new tables" disabled** — tables are not granted to the Data API roles by default; each migration grants explicitly.
+
 ### Outstanding — needs a human (cannot be done by an agent)
 
-- [ ] Create a hosted Supabase project and connect it to the existing juice-bros Vercel project via Vercel's Supabase marketplace integration, so the `NEXT_PUBLIC_SUPABASE_*` and `SUPABASE_SERVICE_ROLE_KEY` values are provisioned into Preview and Production. Local dev works without this; deployed environments do not.
 - [ ] Google Cloud OAuth credentials, needed by Phase 1 / issue #4 (sign-in).
+
+### Local vs hosted
+
+`.env` points at the **local** Docker stack (`127.0.0.1:54321`) and should stay that way — `npm run test:rls` and day-to-day development run against local Postgres. The hosted project is only used by deployed environments.
 
 ### Deferred follow-up
 
