@@ -52,6 +52,12 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
   The Google consent screen is in **Testing** mode, so only addresses listed as test users in the Cloud Console can sign in with Google. Magic link and email/password have no such restriction. Publishing the consent screen triggers Google's verification review — worth doing before real users arrive, not before.
 
+- [x] **Auth URL configuration on the hosted project.** Site URL set to `https://juice-bros.vercel.app`, with `https://juice-bros.vercel.app/**`, `https://*-lukabaseballs-projects.vercel.app/**`, `http://localhost:3000/**` and `http://127.0.0.1:3000/**` on the redirect allow-list.
+
+  This is not optional and it fails quietly: Auth ignores any `redirect_to` that is not on the allow-list and silently falls back to Site URL, so an OAuth or magic-link sign-in lands on `/` with a bare `?code=` and no route to handle it. The preview wildcard matters because every PR preview gets a fresh hostname.
+
+  Applied through the dashboard rather than `supabase config push`: `config.toml` carries no `[auth.external.google]` section, so pushing it risks disabling the Google provider. If auth config ever moves into `config.toml` wholesale, add that section first.
+
 ### Local vs hosted
 
 `.env` points at the **local** Docker stack (`127.0.0.1:54321`) and should stay that way — `npm run test:rls` and day-to-day development run against local Postgres. The hosted project is only used by deployed environments.
