@@ -4,15 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
+import { FRIENDS_PATH } from "../routes.ts";
+import { readFailed, type ActionResult } from "./result.ts";
 import {
   groupConnections,
   type ConnectionRow,
   type GroupedConnections,
 } from "../connections.ts";
 
-const FRIENDS_PATH = "/booking-buddy/friends";
-
-export type ActionResult = { error?: string; ok?: boolean };
+export type { ActionResult } from "./result.ts";
 
 /** One entry in a friends-page list: the Connection plus who it is with. */
 export type ConnectionPerson = {
@@ -25,17 +25,6 @@ export type ConnectionPerson = {
 export type ConnectionLists = Record<keyof GroupedConnections, ConnectionPerson[]>;
 
 const NO_CONNECTIONS: ConnectionLists = { friends: [], received: [], sent: [] };
-
-/**
- * A read failed. Thrown rather than returned, because there is no honest way
- * to render it inline: an empty list here reads as "you have no friends yet",
- * which is a lie the User has no way to see through. The route's error
- * boundary shows a real error and a retry instead.
- */
-function readFailed(what: string, error: unknown): never {
-  console.error(`booking-buddy: reading ${what} failed`, error);
-  throw new Error(`Could not read ${what}`);
-}
 
 /**
  * The caller's Connections, split into friends, requests received and requests

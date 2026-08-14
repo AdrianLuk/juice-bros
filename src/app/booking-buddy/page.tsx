@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { createClient } from "@/lib/booking-buddy/supabase/server";
 import { signOut } from "@/lib/booking-buddy/actions/auth";
+import { FRIENDS_PATH, GROUPS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Booking Buddy",
@@ -45,12 +46,18 @@ export default async function BookingBuddyPage() {
             You&apos;re signed in. Open slots and bookings are on the way.
           </p>
 
-          <p className="mt-4 text-sm">
+          <p className="mt-4 flex gap-4 text-sm">
             <Link
-              href="/booking-buddy/friends"
+              href={FRIENDS_PATH}
               className="underline underline-offset-4"
             >
               Manage your friends
+            </Link>
+            <Link
+              href={GROUPS_PATH}
+              className="underline underline-offset-4"
+            >
+              Friend groups
             </Link>
           </p>
 

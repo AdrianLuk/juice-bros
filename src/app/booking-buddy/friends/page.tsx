@@ -9,7 +9,7 @@ import { ConnectionActionButton } from "@/components/booking-buddy/connection-ac
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { listConnections } from "@/lib/booking-buddy/actions/connections";
-import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, GROUPS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friends",
@@ -97,7 +97,13 @@ export default async function FriendsPage() {
             />
           </div>
 
-          <p className="mt-14 text-sm">
+          <p className="mt-14 flex gap-4 text-sm">
+            <Link
+              href={GROUPS_PATH}
+              className="underline underline-offset-4"
+            >
+              Friend groups
+            </Link>
             <Link
               href={BOOKING_BUDDY_ROOT}
               className="underline underline-offset-4"
