@@ -8,6 +8,10 @@ A friend-group pickleball scheduling app living under the Juice Bros platform. L
 A person with an account in Booking Buddy.
 _Avoid_: Player, member (reserve for later if a distinct facility-membership concept emerges)
 
+**Username**:
+The handle a User shares so friends can find them without giving out an email address — unique, lower-case, and safe to display. Assigned automatically at signup (derived from display name, or the email local part when there is none) so every User is discoverable without having to set one up; changeable afterwards.
+_Avoid_: Handle, nickname (both fine in product copy; Username is the canonical term)
+
 **Connection**:
 A mutual, two-sided friendship between two Users, established when one sends a friend request and the other accepts. Required before either User can see the other's availability or invite them to a Slot.
 _Avoid_: Friend (use as informal shorthand only), Follow, Follower (rejected model — connections are symmetric, not one-way)
