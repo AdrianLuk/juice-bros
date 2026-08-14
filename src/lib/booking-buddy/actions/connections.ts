@@ -4,10 +4,83 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
+import {
+  groupConnections,
+  type ConnectionRow,
+  type GroupedConnections,
+} from "../connections.ts";
 
 const FRIENDS_PATH = "/booking-buddy/friends";
 
 export type ActionResult = { error?: string; ok?: boolean };
+
+/** One entry in a friends-page list: the Connection plus who it is with. */
+export type ConnectionPerson = {
+  connectionId: string;
+  userId: string;
+  displayName: string | null;
+  username: string | null;
+};
+
+export type ConnectionLists = Record<keyof GroupedConnections, ConnectionPerson[]>;
+
+const NO_CONNECTIONS: ConnectionLists = { friends: [], received: [], sent: [] };
+
+/**
+ * The caller's Connections, split into friends, requests received and requests
+ * sent.
+ *
+ * Two queries rather than one join: `connections` references `auth.users`, not
+ * `public.profiles`, so PostgREST has no relationship to embed across. RLS
+ * scopes both — the profile policy covers pending Connections too, which is
+ * what makes an incoming request show a name instead of an anonymous row.
+ */
+export async function listConnections(): Promise<ConnectionLists> {
+  const session = await verifySession();
+  const supabase = await createClient();
+
+  const { data: rows, error } = await supabase
+    .from("connections")
+    .select("id, requester_id, addressee_id, status, created_at");
+
+  if (error) {
+    return NO_CONNECTIONS;
+  }
+
+  const grouped = groupConnections((rows ?? []) as ConnectionRow[], session.userId);
+  const buckets = Object.values(grouped);
+  const otherUserIds = buckets.flat().map((entry) => entry.otherUserId);
+
+  if (otherUserIds.length === 0) {
+    return NO_CONNECTIONS;
+  }
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, username")
+    .in("id", otherUserIds);
+
+  const profileById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile]),
+  );
+
+  const withPeople = (entries: (typeof buckets)[number]): ConnectionPerson[] =>
+    entries.map((entry) => {
+      const profile = profileById.get(entry.otherUserId);
+      return {
+        connectionId: entry.connectionId,
+        userId: entry.otherUserId,
+        displayName: profile?.display_name ?? null,
+        username: profile?.username ?? null,
+      };
+    });
+
+  return {
+    friends: withPeople(grouped.friends),
+    received: withPeople(grouped.received),
+    sent: withPeople(grouped.sent),
+  };
+}
 
 export type UserSearchResult = {
   id: string;
