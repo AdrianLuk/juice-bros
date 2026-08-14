@@ -79,6 +79,25 @@ export function FriendSearch() {
           <p className="text-sm text-muted-foreground">Searching…</p>
         )}
 
+        {/* Distinct from the empty result below on purpose. These used to look
+            identical, which is how a search that was failing outright read as
+            "nobody matches that". */}
+        {!tooShort && search.isError && (
+          <div className="flex items-center gap-3" role="alert">
+            <p className="text-sm text-red-600">
+              Search isn&apos;t working right now.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => search.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        )}
+
         {!tooShort && search.isSuccess && results.length === 0 && (
           <p className="text-sm text-muted-foreground">
             Nobody matches that. Ask them for their username — searching part of

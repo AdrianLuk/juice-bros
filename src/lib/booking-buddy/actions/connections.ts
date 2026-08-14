@@ -27,6 +27,17 @@ export type ConnectionLists = Record<keyof GroupedConnections, ConnectionPerson[
 const NO_CONNECTIONS: ConnectionLists = { friends: [], received: [], sent: [] };
 
 /**
+ * A read failed. Thrown rather than returned, because there is no honest way
+ * to render it inline: an empty list here reads as "you have no friends yet",
+ * which is a lie the User has no way to see through. The route's error
+ * boundary shows a real error and a retry instead.
+ */
+function readFailed(what: string, error: unknown): never {
+  console.error(`booking-buddy: reading ${what} failed`, error);
+  throw new Error(`Could not read ${what}`);
+}
+
+/**
  * The caller's Connections, split into friends, requests received and requests
  * sent.
  *
@@ -44,7 +55,7 @@ export async function listConnections(): Promise<ConnectionLists> {
     .select("id, requester_id, addressee_id, status, created_at");
 
   if (error) {
-    return NO_CONNECTIONS;
+    readFailed("your connections", error);
   }
 
   const grouped = groupConnections((rows ?? []) as ConnectionRow[], session.userId);
@@ -55,11 +66,17 @@ export async function listConnections(): Promise<ConnectionLists> {
     return NO_CONNECTIONS;
   }
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("id, display_name, username")
     .in("id", otherUserIds);
 
+  if (profilesError) {
+    readFailed("who those connections are with", profilesError);
+  }
+
+  // A *missing* row is different from a failed query and stays tolerated below:
+  // RLS can legitimately hide a profile, and an unnamed friend beats a crash.
   const profileById = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
@@ -111,7 +128,12 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
   const { data, error } = await supabase.rpc("search_users", { query: trimmed });
 
   if (error) {
-    return [];
+    // Deliberately not an empty list. Returning one would render as "nobody
+    // matches that", which is indistinguishable from a working search — a
+    // missing `search_users` function looked exactly like an unpopular name.
+    // Throwing surfaces it as an error state in the caller's useQuery instead.
+    console.error("booking-buddy: search_users failed", error);
+    throw new Error("User search failed");
   }
 
   return (data ?? []) as UserSearchResult[];
