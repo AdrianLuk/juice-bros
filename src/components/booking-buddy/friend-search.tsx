@@ -54,7 +54,7 @@ export function FriendSearch() {
 
       {/* No form: results stream in as you type, and there is nothing to
           submit. Search itself is a read, so it never needs a POST. */}
-      <div className="mt-3 flex max-w-sm flex-col gap-1.5">
+      <div className="mt-4 flex flex-col gap-1.5">
         <Label htmlFor="friend-search" className="sr-only">
           Search for someone
         </Label>
@@ -68,7 +68,7 @@ export function FriendSearch() {
         />
       </div>
 
-      <div className="mt-3" aria-live="polite">
+      <div className="mt-4" aria-live="polite">
         {term.trim().length > 0 && tooShort && (
           <p className="text-sm text-muted-foreground">
             Keep typing — at least {MIN_QUERY_LENGTH} characters.
@@ -91,7 +91,7 @@ export function FriendSearch() {
             {results.map((result) => (
               <li
                 key={result.id}
-                className="flex items-center justify-between gap-4 px-4 py-3"
+                className="flex items-center justify-between gap-4 px-5 py-4"
               >
                 <PersonName
                   person={{

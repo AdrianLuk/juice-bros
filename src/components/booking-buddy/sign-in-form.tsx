@@ -35,7 +35,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
 
   if (magicState.sent) {
     return (
-      <p className="mt-8 max-w-md text-sm">
+      <p className="mt-8 text-sm">
         Check your email — we&apos;ve sent you a sign-in link. You can close this tab.
       </p>
     );
@@ -43,7 +43,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
 
   if (signUpState.sent) {
     return (
-      <p className="mt-8 max-w-md text-sm">
+      <p className="mt-8 text-sm">
         Almost there — confirm your email address using the link we just sent, then
         sign in.
       </p>
@@ -51,7 +51,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
   }
 
   return (
-    <div className="mt-8 max-w-md">
+    <div className="mt-8">
       {error && (
         <p className="mb-4 text-sm text-red-600" role="alert">
           {error === "link_invalid"
