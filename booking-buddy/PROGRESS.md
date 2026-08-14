@@ -7,6 +7,8 @@ Built test-first, in vertical slices: one seam, one red test, one minimal green 
 2. **RLS policies** — a deliberate database-level seam, since the coarse safety net (ADR 0003) exists specifically to catch access that bypasses application code. These tests query Postgres directly, on purpose.
 3. **UI/hooks** — scoped down. One high-stakes interaction test (Slot Response), not broad component coverage.
 
+**How to run any of this**: see [docs/testing.md](docs/testing.md) — what each suite needs running, and how to click through the app yourself.
+
 **Test tooling**: business-logic tests use the existing `node --test` setup (`src/**/*.test.ts`, already configured in `package.json`) — Server Actions and the pure functions they call are plain async/sync functions, importable and callable directly without spinning up a Next.js server. RLS tests need a real Postgres instance: **requires the Supabase CLI and Docker Desktop running locally** (`supabase start` spins up local Postgres + Auth). Flagging this now since it's a new local dependency — say if Docker isn't available and we'll adjust (e.g. testing RLS against a hosted Supabase dev project instead).
 
 **Proposed file layout** (extends the existing `src/components/apps/<slug>` convention):
@@ -77,7 +79,7 @@ Verified against the local stack: 15 new pgTAP tests (57 in total) and 92 `node 
 Not done on #6:
 
 - [ ] **Enforcement** (above). Phase 5's Slot RLS and Phase 6's `respondToSlot` guard are where the resolved level starts to bite.
-- [ ] **Click-through in a browser.** The forms were exercised at the PostgREST layer as a real User (create, duplicate name, add/remove member, change group level, set and clear an override, and a second User being refused all of it), but nobody has clicked the buttons. Test accounts are in [docs/local-test-accounts.md](docs/local-test-accounts.md).
+- [x] **Click-through in a browser** — now automated. `npm run test:e2e` drives Chromium through sign-in, creating a group, adding and removing a member, pinning and clearing an override, the most-permissive resolution across two groups, and the duplicate-name refusal. See [docs/testing.md](docs/testing.md).
 
 **Still outstanding from issue #5** (the `connections` table, `search_users`, usernames, the Server Actions and the `/booking-buddy/friends` page are all done and verified end-to-end with two real Users):
 
@@ -127,6 +129,7 @@ Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`
 - **`resolveVisibilityByConnection` is driven by the friends list, not by the membership rows**, so an ungrouped friend gets an explicit `none` rather than a missing key. A caller reading "absent" as "unknown" instead of "no access" is the failure mode worth designing out.
 - **Level pickers are native `<select>`s** (`visibility-select.tsx`), not the shadcn one. Every form on the page posts to a Server Action and works with no JavaScript; a native control keeps that true.
 - **Every write selects its row back** and treats zero rows as a failure. RLS turns "that isn't yours" into an empty result, not an error, so a delete or an update naming someone else's group otherwise returns a cheerful `{ ok: true }` for something that never happened. The one deliberate exception is clearing a visibility override, where no row is the state the User asked for.
+- **The member picker shows `Name (@username)`, not just the name.** Found by the browser tests, not by review: with two "Ben Backhand"s in the local data, an `<option>` carrying only the display name gives no way to tell which friend you are adding. `personOptionLabel` exists for one-line contexts where `PersonName`'s second line doesn't fit.
 - **Beyond the ticket, on purpose**: groups can be deleted (a group you can't get rid of is a trap), names are unique per owner case-insensitively and capped at 60 characters (two "Tuesday crew"s are indistinguishable in the member picker), and the three level names were coined here and written into [CONTEXT.md](CONTEXT.md) — the issue asked for "a default visibility level" without saying what the levels are.
 
 ## Phase 4 — Org + Booking

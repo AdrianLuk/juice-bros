@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { groupConnections, personLabel, type ConnectionRow } from "./connections.ts";
+import {
+  groupConnections,
+  personLabel,
+  personOptionLabel,
+  type ConnectionRow,
+} from "./connections.ts";
 
 const ME = "11111111-1111-1111-1111-111111111111";
 const AMY = "22222222-2222-2222-2222-222222222222";
@@ -98,4 +103,20 @@ test("a person with neither is still named, never blank", () => {
 
 test("a blank display name is treated as absent", () => {
   assert.equal(personLabel({ displayName: "   ", username: "amyace" }), "amyace");
+});
+
+test("a one-line label carries the username, so two Amys are tellable apart", () => {
+  // A `<option>` has no room for the second line PersonName uses, and picking
+  // the wrong Amy out of a list of identical names is a real mistake to make.
+  assert.equal(
+    personOptionLabel({ displayName: "Amy Ace", username: "amyace2" }),
+    "Amy Ace (@amyace2)",
+  );
+});
+
+test("a one-line label doesn't repeat the username when it is already the name", () => {
+  assert.equal(
+    personOptionLabel({ displayName: null, username: "amyace" }),
+    "amyace",
+  );
 });

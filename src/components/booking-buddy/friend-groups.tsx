@@ -21,7 +21,7 @@ import {
   VisibilitySelect,
   visibilityLabel,
 } from "@/components/booking-buddy/visibility-select";
-import { personLabel } from "@/lib/booking-buddy/connections";
+import { personLabel, personOptionLabel } from "@/lib/booking-buddy/connections";
 import type { ConnectionPerson } from "@/lib/booking-buddy/actions/connections";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -173,7 +173,7 @@ function RemoveMemberForm({
       <input type="hidden" name="group_id" value={groupId} />
       <input type="hidden" name="connection_id" value={connectionId} />
       <input type="hidden" name="member" value="no" />
-      <Button type="submit" size="sm" variant="ghost" disabled={pending}>
+      <Button type="submit" size="sm" variant="destructive" disabled={pending}>
         {pending ? "Removing…" : "Remove"}
       </Button>
       <ActionError state={state} />
@@ -217,7 +217,7 @@ function AddMemberForm({
           </option>
           {addable.map((friend) => (
             <option key={friend.connectionId} value={friend.connectionId}>
-              {personLabel(friend)}
+              {personOptionLabel(friend)}
             </option>
           ))}
         </FormSelect>

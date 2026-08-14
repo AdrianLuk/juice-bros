@@ -91,3 +91,21 @@ export function personLabel(person: {
     "A Booking Buddy user"
   );
 }
+
+/**
+ * The same person on one line, for places with no room for a second — an
+ * `<option>`, mainly.
+ *
+ * Two Users can share a display name (ADR 0004 is why Usernames exist), so the
+ * handle comes along unless it is already the name. Without it, a picker
+ * listing two "Ben Backhand"s offers no way to tell which is which.
+ */
+export function personOptionLabel(person: {
+  displayName: string | null;
+  username: string | null;
+}): string {
+  const name = personLabel(person);
+  const username = person.username?.trim();
+
+  return username && username !== name ? `${name} (@${username})` : name;
+}
