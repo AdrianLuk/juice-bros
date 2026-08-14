@@ -20,7 +20,7 @@ _Avoid_: Friend (use as informal shorthand only), Follow, Follower (rejected mod
 A named, user-owned collection of a User's own Connections (e.g. "Tuesday crew"), used to set a default visibility level for calendar/Slot access. Groups are private to their owner — one User's grouping of a friend has no effect on how that friend groups them back.
 
 **Visibility**:
-How much of a User's calendar/Slot data a given Connection can see. Resolved per friend as: an explicit per-friend override always wins if set; otherwise, for a friend in multiple Groups, the most permissive of those Groups' levels applies. Adding a friend to a more-open Group can only expand what they see, never silently restrict it.
+How much of a User's calendar/Slot data a given Connection can see. Three levels, least to most permissive: `none` (nothing), `slots` (only the Slots the owner shares with them), `calendar` (those Slots plus the owner's open time). Resolved per friend as: an explicit per-friend override always wins if set; otherwise, for a friend in multiple Groups, the most permissive of those Groups' levels applies. Adding a friend to a more-open Group can only expand what they see, never silently restrict it — an override is the only way to close one person off without dismantling the Group they are in. A friend in no Group and with no override sees nothing.
 
 **Org**:
 A club or facility where a User holds court reservations (e.g. a CourtReserve-registered club). Entered manually by the User in v1 — Booking Buddy does not integrate with any facility platform's API. A single User can have Bookings across multiple Orgs.
