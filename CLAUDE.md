@@ -16,9 +16,12 @@ design/Figma. Design comes from Daven; implementation is done here.
 - Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - Hosting: Vercel. Version control: GitHub.
 - No backend / no Supabase for the MVP marketing + podcast site.
-- Data fetching default: Next.js server components for simple content. Add
-  TanStack Query later, only once there are interactive apps / client state syncing /
-  API-heavy features.
+- Data fetching default: Next.js server components for simple content (marketing/podcast
+  pages). That trigger is now live for **Booking Buddy**: it uses TanStack Query for its
+  interactive routes (friend groups, Slot Responses, live-feeling state), paired with
+  server components for initial data fetch + hydration - not a client-only fetch. Other
+  simple content stays on server components; don't reach for Query outside Booking Buddy
+  without the same trigger (interactive state / client syncing / API-heavy).
 
 ## Site structure (target, beyond current MVP)
 ```
@@ -32,6 +35,7 @@ design/Figma. Design comes from Daven; implementation is done here.
     Rating Calculator
     Tournament Tracker
     Drill Generator
+    Booking Buddy
   Store
   Blog
   About
@@ -61,9 +65,12 @@ second app to justify it.
   in-site store. Only build this once Phase 1 has validated demand.
 
 ## When to add Supabase
-Only add Supabase when a feature actually needs: user accounts/auth, saved user data,
-leaderboards, app state persistence, or community features. Do NOT add it for the
-static marketing/podcast site - no backend needed for that.
+Supabase is now in scope: **Booking Buddy** (friend-group scheduling app, under `Apps`)
+needs user accounts/auth, friend connections, and saved availability/slot data, so wire
+it up for that app now. It lives as a route/section in this repo (not a separate
+monorepo app) - Supabase is scoped to Booking Buddy's routes. The static marketing/
+podcast pages (Home, Podcast, Gear, About, Contact) still need no backend - do not
+pull them onto Supabase or add auth to them.
 
 ## Mobile (later stage)
 Expo, sharing code with web via the future monorepo. Build after the web apps are

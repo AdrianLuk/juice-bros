@@ -43,7 +43,7 @@ Tracking against the phases in the original implementation brief. Checked = done
 - [ ] Gear page write-ups
 - [ ] Round Robin Generator — removed from the live `/tools` listing (`src/data/apps.ts`) and put on the backburner; brief still at `briefs/juice-bros-round-robin-brief.md` if it gets picked back up.
 - [x] Pickleball Referee scorekeeper — shipped as "Pickle Point Pal" at `/tools/pickle-point-pal`. Mostly done; Adrian may still add to it.
-- [ ] Booking Buddy — friend-group scheduling app (Apps section), needs accounts/auth, friend connections, saved availability/slot data. Will need Supabase, scoped to just this app's routes per `CLAUDE.md`. Not started.
+- [ ] Booking Buddy — friend-group scheduling app (Apps section). Product/domain planning and implementation plan done — see [booking-buddy/CONTEXT.md](booking-buddy/CONTEXT.md), [booking-buddy/docs/adr/](booking-buddy/docs/adr/), and [booking-buddy/PROGRESS.md](booking-buddy/PROGRESS.md) for the phased build plan. Implementation not started.
 
 ## Manual (Adrian, not Claude Code)
 

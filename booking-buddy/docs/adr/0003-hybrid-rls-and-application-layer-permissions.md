@@ -1,0 +1,11 @@
+# Permission enforcement: coarse RLS safety net + application-layer precedence logic
+
+Booking Buddy's visibility model (per-friend override beats most-permissive Friend Group default, Slot Link bypasses Connection status for one Slot, Guests have no auth session at all) is genuinely nuanced — encoding the full precedence chain as SQL predicates in Supabase Row Level Security would be hard to write, test, and iterate on compared to the same logic in TypeScript.
+
+**Decision**: Use simple, coarse RLS policies as a default-deny safety net on every table (e.g. "you must be the owner or an accepted Connection to read this row at all"), and implement the actual nuanced precedence rules — Friend Group defaults, per-friend overrides, Slot Link token access — in application code (Server Actions), not in RLS policies.
+
+**Why not application code alone?** Supabase ships a public `anon` key in the client bundle and auto-generates a REST API (PostgREST) over every table using it. A table with zero RLS returns every row to anyone holding that key — which is effectively anyone, since the key is public by design. That request bypasses Next.js, Server Actions, and every permission check written in application code entirely; app-layer code never runs for a direct PostgREST call, so it cannot defend against this. Supabase's own client SDK also invites querying straight from client components, making it easy for a future direct client-side query to accidentally skip application-layer checks. A coarse, default-deny RLS policy closes this off for the cost of simple ownership/participant checks, without needing to encode the full precedence logic in SQL.
+
+## Consequences
+
+Supabase Realtime's `postgres_changes` subscriptions are filtered by RLS, not application code. Since the coarse RLS net is looser than the real precedence rules, a raw client-side Realtime subscription could surface events a User shouldn't fully see per the app-layer logic. This is why Realtime is skipped for v1 (see [CONTEXT.md](../../CONTEXT.md) discussion) — doing it correctly would need either the full precedence logic pushed into RLS (defeating this decision) or a server-side broadcast layer that reapplies application-layer checks before pushing events, which doesn't exist yet.
