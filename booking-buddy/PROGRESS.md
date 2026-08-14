@@ -44,9 +44,19 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
   - **Automatic RLS enabled** — every new table gets RLS on by default, so a table can't ship unprotected by accident. Expect a brand-new table to return zero rows until policies exist; that's the safety net, not a bug.
   - **"Automatically expose new tables" disabled** — tables are not granted to the Data API roles by default; each migration grants explicitly.
 
+    In practice this means **every migration must include its own `grant`s**, or the table is invisible to the API even with RLS policies in place. Confirmed on the hosted project: `profiles` returns `42501 permission denied` to `service_role`, which was deliberately not granted, while `authenticated` (the role the app actually runs as) works because the migration grants it. Grant `service_role` only where a job genuinely needs to bypass RLS — the reminders work in Phase 8 is the first likely case.
+
 ### Outstanding — needs a human (cannot be done by an agent)
 
-- [ ] Google Cloud OAuth credentials, needed by Phase 1 / issue #4 (sign-in).
+- [x] Google Cloud OAuth credentials, wired into Supabase → Authentication → Providers → Google. Verified: `/auth/v1/authorize?provider=google` redirects to Google with a client id, the Supabase callback as `redirect_uri`, and `email profile` scopes.
+
+  The Google consent screen is in **Testing** mode, so only addresses listed as test users in the Cloud Console can sign in with Google. Magic link and email/password have no such restriction. Publishing the consent screen triggers Google's verification review — worth doing before real users arrive, not before.
+
+- [x] **Auth URL configuration on the hosted project.** Site URL set to `https://juice-bros.vercel.app`, with `https://juice-bros.vercel.app/**`, `https://*-lukabaseballs-projects.vercel.app/**`, `http://localhost:3000/**` and `http://127.0.0.1:3000/**` on the redirect allow-list.
+
+  This is not optional and it fails quietly: Auth ignores any `redirect_to` that is not on the allow-list and silently falls back to Site URL, so an OAuth or magic-link sign-in lands on `/` with a bare `?code=` and no route to handle it. The preview wildcard matters because every PR preview gets a fresh hostname.
+
+  Applied through the dashboard rather than `supabase config push`: `config.toml` carries no `[auth.external.google]` section, so pushing it risks disabling the Google provider. If auth config ever moves into `config.toml` wholesale, add that section first.
 
 ### Local vs hosted
 

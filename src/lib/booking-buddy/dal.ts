@@ -17,7 +17,16 @@ import { SIGN_IN_PATH } from "./routes.ts";
  * `cache` dedupes the check within a single render pass, so a layout and the
  * page beneath it don't each pay for a round trip.
  */
-export const verifySession = cache(async () => {
+export type Session = {
+  userId: string;
+  email: string | undefined;
+};
+
+/**
+ * The signed-in User, or null. Use this where being signed out is a legitimate
+ * state to render — the sign-in page itself, or a Slot Link open to Guests.
+ */
+export const getOptionalSession = cache(async (): Promise<Session | null> => {
   const supabase = await createClient();
 
   // getUser revalidates the token with Supabase Auth. getSession only decodes
@@ -26,9 +35,16 @@ export const verifySession = cache(async () => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  return user ? { userId: user.id, email: user.email } : null;
+});
+
+/** The signed-in User, or a redirect to sign-in. */
+export const verifySession = cache(async (): Promise<Session> => {
+  const session = await getOptionalSession();
+
+  if (!session) {
     redirect(SIGN_IN_PATH);
   }
 
-  return { userId: user.id, email: user.email };
+  return session;
 });
