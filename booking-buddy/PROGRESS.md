@@ -66,11 +66,26 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 - [ ] Booking Buddy is not listed in `src/data/apps.ts`, so it doesn't appear on `/tools` or in the sitemap. Deliberate for now — there's nothing usable to link to yet. Add the entry once sign-in and a real dashboard exist, so the Apps section doesn't advertise a dead end.
 
+## Where to pick up
+
+**Issue #5 (Friend Connections) is half done**, on branch `feat/booking-buddy-connections` (pushed, no PR yet — the ticket isn't demonstrable so a PR would be premature).
+
+Done and tested: the `connections` table, `search_users`, usernames, and the Server Actions in `src/lib/booking-buddy/actions/connections.ts`. 42 pgTAP tests pass.
+
+Not done:
+
+- [ ] `/booking-buddy/friends` page — search box, pending requests (sent and received), accepted Connections list, wired to the existing Server Actions
+- [ ] End-to-end check with two real Users locally (sign up a second account via Mailpit at `http://127.0.0.1:54324`, send a request between them, accept it)
+- [ ] `supabase db push` — four migrations are local-only. Hold until the UI lands: `add_username` rewrites `handle_new_user` and backfills existing profiles, so it should ship with the code that uses it rather than ahead of it.
+- [ ] Open question for Adrian: his account predates usernames, so the backfill derives `adrianluk`. If he'd rather choose, this ticket needs a settings screen for changing a username.
+
+Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 5`.
+
 ## Phase 1 — User + Auth
 
-- [ ] 1.1 Schema: `public.profiles` (id references `auth.users`, display_name) + trigger to auto-create a profile row on signup
-- [ ] 1.2 🔴 Test: inserting a row into `auth.users` results in a matching `profiles` row → 🟢 implement `handle_new_user()` trigger
-- [ ] 1.3 Auth UI: sign-in page offering magic link (primary), Google OAuth, and email/password (Q3) — no dedicated seam test, manual verification (UI scoped down)
+- [x] 1.1 Schema: `public.profiles` (id references `auth.users`, display_name) + trigger to auto-create a profile row on signup. Also carries `username` — see `add_username`.
+- [x] 1.2 🔴 Test: inserting a row into `auth.users` results in a matching `profiles` row → 🟢 implemented as `handle_new_user()`
+- [x] 1.3 Auth UI: sign-in page offering magic link, Google OAuth, and email/password. All three verified; Google's consent screen is in Testing mode, so only listed test users can use it.
 
 ## Phase 2 — Connection
 
