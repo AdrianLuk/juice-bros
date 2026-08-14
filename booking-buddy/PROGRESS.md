@@ -68,16 +68,24 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ## Where to pick up
 
-**Issue #5 (Friend Connections) is half done**, on branch `feat/booking-buddy-connections` (pushed, no PR yet — the ticket isn't demonstrable so a PR would be premature).
+**Issue #5 (Friend Connections) is code-complete locally**, on branch `feat/booking-buddy-connections`. Every acceptance criterion on the ticket is met and verified against local Postgres.
 
-Done and tested: the `connections` table, `search_users`, usernames, and the Server Actions in `src/lib/booking-buddy/actions/connections.ts`. 42 pgTAP tests pass.
+Done and tested: the `connections` table, `search_users`, usernames, the Server Actions in `src/lib/booking-buddy/actions/connections.ts`, and the `/booking-buddy/friends` page. 42 pgTAP tests and 85 `node --test` tests pass.
+
+Verified end-to-end with two real Users against the local stack — created via the Auth admin API rather than Mailpit, which is faster and needs no inbox clicking. The page was rendered over HTTP as each User in turn: empty state, request sent, request received (named, with Accept/Decline), and both sides seeing each other under "Your friends" after acceptance. Only-the-addressee-can-accept and the duplicate-pair rejection were re-confirmed through PostgREST as real Users.
 
 Not done:
 
-- [ ] `/booking-buddy/friends` page — search box, pending requests (sent and received), accepted Connections list, wired to the existing Server Actions
-- [ ] End-to-end check with two real Users locally (sign up a second account via Mailpit at `http://127.0.0.1:54324`, send a request between them, accept it)
-- [ ] `supabase db push` — four migrations are local-only. Hold until the UI lands: `add_username` rewrites `handle_new_user` and backfills existing profiles, so it should ship with the code that uses it rather than ahead of it.
+- [ ] **Click-through in a browser.** The server-rendered halves are proven; what is not is the client-side behaviour — search-as-you-type firing `searchUsers`, and the buttons submitting. There is no browser-driving tooling in this repo, so this is a human step. Two local accounts are seeded with password `pickleball123` (`amy.render.*@example.com`, `ben.render.*@example.com`).
+- [ ] `supabase db push` — four migrations are still local-only. **Needs Adrian**: pushing rewrites `handle_new_user` and backfills usernames on the hosted project. Deliberately not run by an agent.
 - [ ] Open question for Adrian: his account predates usernames, so the backfill derives `adrianluk`. If he'd rather choose, this ticket needs a settings screen for changing a username.
+- [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The friends page is only reachable via a link on the dashboard, which is only reachable by typing the URL.
+
+### Notes carried out of the friends page
+
+- **TanStack Query earns its place in exactly one spot here**: the search box, where debounced, cached, per-term fetching is the whole job. Everything else on the page is a server component reading through `listConnections`, mutated by plain `<form action={…}>` Server Actions that call `revalidatePath` — so the lists re-render from the server in the same roundtrip and the page still works without JavaScript. Don't "unify" these onto one mechanism; they are different problems.
+- **`connections` references `auth.users`, not `public.profiles`**, so PostgREST has no relationship to embed across and `listConnections` reads profiles in a second query. A `select("*, profiles(...)")` will fail here.
+- **Grouping lives in `src/lib/booking-buddy/connections.ts`**, deliberately free of Next.js and Supabase imports so it is unit-testable. A Connection row means different things depending on who is looking at it; that asymmetry is the logic worth testing, and it is.
 
 Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 5`.
 
@@ -89,11 +97,12 @@ Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`
 
 ## Phase 2 — Connection
 
-- [ ] 2.1 Schema: `connections` (requester_id, addressee_id, status: pending/accepted, created_at)
-- [ ] 2.2 🔴 Test: `sendConnectionRequest` creates a pending Connection between two Users → 🟢 implement
-- [ ] 2.3 🔴 Test: `acceptConnectionRequest` flips status to accepted; only the addressee can accept, requester attempting it is rejected → 🟢 implement
-- [ ] 2.4 🔴 Test: `sendConnectionRequest` rejects a duplicate pending request between the same pair → 🟢 implement
-- [ ] 2.5 🔴 RLS test: querying `connections` directly as a third User (not requester or addressee) returns no row → 🟢 implement coarse policy
+- [x] 2.1 Schema: `connections` (requester_id, addressee_id, status: pending/accepted, created_at)
+- [x] 2.2 🔴 Test: `sendConnectionRequest` creates a pending Connection between two Users → 🟢 implement
+- [x] 2.3 🔴 Test: `acceptConnectionRequest` flips status to accepted; only the addressee can accept, requester attempting it is rejected → 🟢 implement
+- [x] 2.4 🔴 Test: `sendConnectionRequest` rejects a duplicate pending request between the same pair → 🟢 implement
+- [x] 2.5 🔴 RLS test: querying `connections` directly as a third User (not requester or addressee) returns no row → 🟢 implement coarse policy
+- [x] 2.6 Discovery: `search_users` and Usernames (ADR 0004), plus `/booking-buddy/friends` — the search box, both pending-request lists and the accepted Connections list. Ahead of Phase 9's route work because issue #5 is only demonstrable with a UI.
 
 ## Phase 3 — Friend Group + Visibility
 

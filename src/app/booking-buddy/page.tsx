@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
@@ -39,7 +40,16 @@ export default async function BookingBuddyPage() {
       />
 
       <p className="mt-8 text-sm text-muted-foreground">
-        You&apos;re signed in. Friends, open slots and bookings are on the way.
+        You&apos;re signed in. Open slots and bookings are on the way.
+      </p>
+
+      <p className="mt-4 text-sm">
+        <Link
+          href="/booking-buddy/friends"
+          className="underline underline-offset-4"
+        >
+          Manage your friends
+        </Link>
       </p>
 
       <form action={signOut} className="mt-6">
