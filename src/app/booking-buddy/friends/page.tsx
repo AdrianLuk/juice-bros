@@ -86,7 +86,7 @@ export default async function FriendsPage() {
                   action="remove"
                   label="Remove"
                   pendingLabel="Removing…"
-                  variant="ghost"
+                  variant="destructive"
                   confirm={{
                     title: `Remove ${personLabel(person)}?`,
                     description:

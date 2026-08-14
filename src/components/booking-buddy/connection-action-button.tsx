@@ -43,7 +43,7 @@ export function ConnectionActionButton({
   action: keyof typeof ACTIONS;
   label: string;
   pendingLabel: string;
-  variant?: "default" | "outline" | "ghost";
+  variant?: "default" | "outline" | "ghost" | "destructive";
   /**
    * Puts the action behind a confirmation step. Worth it for unfriending,
    * which throws away an established Connection; not for declining or
