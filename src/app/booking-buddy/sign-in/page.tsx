@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { SignInForm } from "@/components/booking-buddy/sign-in-form";
+import { getOptionalSession } from "@/lib/booking-buddy/dal";
+import { safeRedirectTarget } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Sign in to Booking Buddy",
@@ -9,19 +13,29 @@ export const metadata: Metadata = pageMetadata({
   path: "/booking-buddy/sign-in",
 });
 
-/**
- * Placeholder. The actual magic-link / Google OAuth / email-password flows are
- * built in the "Sign in" ticket; this exists so the proxy's redirect target
- * resolves rather than 404-ing.
- */
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; error?: string }>;
+}) {
+  const { next, error } = await searchParams;
+  const target = safeRedirectTarget(next);
+
+  // Already signed in? Don't make them sign in again.
+  const session = await getOptionalSession();
+  if (session) {
+    redirect(target);
+  }
+
   return (
     <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
       <PageHeading
         eyebrow="Booking Buddy"
         title="Sign in"
-        description="Sign-in is being built. Check back shortly."
+        description="Plan pickleball with your friends — open a time, see who's in."
       />
+
+      <SignInForm next={target} error={error} />
     </div>
   );
 }

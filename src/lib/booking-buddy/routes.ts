@@ -21,6 +21,36 @@ function isUnderRoot(pathname: string): boolean {
   );
 }
 
+/**
+ * Sanitises the `?next=` value the proxy attaches when it bounces a signed-out
+ * visitor, before it is used as a redirect after sign-in.
+ *
+ * The value comes off the URL, so it is attacker-controllable: without this, a
+ * crafted link could land a freshly-authenticated User on another origin. Only
+ * paths inside Booking Buddy are accepted; anything else falls back to the
+ * dashboard.
+ */
+export function safeRedirectTarget(next: string | null | undefined): string {
+  if (!next) {
+    return BOOKING_BUDDY_ROOT;
+  }
+
+  // Reject anything that could resolve to another origin: absolute URLs,
+  // protocol-relative `//host`, and backslash forms some browsers normalise
+  // into them. Requiring a single leading `/` covers `javascript:` too.
+  if (!next.startsWith("/") || next.startsWith("//") || next.includes("\\")) {
+    return BOOKING_BUDDY_ROOT;
+  }
+
+  // Only ever a Booking Buddy destination — this is the only section sign-in
+  // guards — and never sign-in itself, which would loop.
+  if (!isUnderRoot(next) || requiresSession(next) === false) {
+    return BOOKING_BUDDY_ROOT;
+  }
+
+  return next;
+}
+
 export function requiresSession(pathname: string): boolean {
   if (!isUnderRoot(pathname)) {
     return false;
