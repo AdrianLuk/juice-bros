@@ -5,10 +5,14 @@ Password for all four: `pickleball123`
 
 | Display name | Username | Email |
 | --- | --- | --- |
-| Amy Ace | `@amyace` | `amy.1786698918470@example.com` |
-| Ben Backhand | `@benbackhand` | `ben.1786698918470@example.com` |
-| Amy Ace | `@amyace2` | `amy.render.1786699064786@example.com` |
-| Ben Backhand | `@benbackhand2` | `ben.render.1786699064786@example.com` |
+| Amy Ace | `@amyace` | `amyace@example.com` |
+| Ben Backhand | `@benbackhand` | `benbackhand@example.com` |
+| Amy Ace | `@amyace2` | `amyace2@example.com` |
+| Ben Backhand | `@benbackhand2` | `benbackhand2@example.com` |
+
+Each email's local part is that account's Username, so you only have to remember one
+string per account — and either form works in the search box, since search accepts an
+exact Username or an exact email.
 
 Sign in at `http://localhost:3000/booking-buddy/sign-in` with the password option
 (not magic link — these addresses have no inbox).
@@ -26,8 +30,9 @@ the Auth admin API, which fires the same signup trigger a real user does — so 
 gets its profile and Username the normal way.
 
 Usernames are assigned in the order above, which is the order the script creates them in.
-That is what makes the `2` suffixes stable across a reset: `amyace` is taken by the time
-the third account arrives.
+That is what makes the `2` suffixes stable across a reset — `amyace` is taken by the time
+the third account arrives — and therefore what keeps each email matching its Username.
+Reorder `TEST_ACCOUNTS` and the numbering swaps.
 
 ## Two Amys and two Bens
 
