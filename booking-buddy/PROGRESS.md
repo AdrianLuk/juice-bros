@@ -48,7 +48,9 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Outstanding — needs a human (cannot be done by an agent)
 
-- [ ] Google Cloud OAuth credentials, needed by Phase 1 / issue #4 (sign-in).
+- [x] Google Cloud OAuth credentials, wired into Supabase → Authentication → Providers → Google. Verified: `/auth/v1/authorize?provider=google` redirects to Google with a client id, the Supabase callback as `redirect_uri`, and `email profile` scopes.
+
+  The Google consent screen is in **Testing** mode, so only addresses listed as test users in the Cloud Console can sign in with Google. Magic link and email/password have no such restriction. Publishing the consent screen triggers Google's verification review — worth doing before real users arrive, not before.
 
 ### Local vs hosted
 
