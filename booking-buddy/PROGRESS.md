@@ -7,6 +7,8 @@ Built test-first, in vertical slices: one seam, one red test, one minimal green 
 2. **RLS policies** — a deliberate database-level seam, since the coarse safety net (ADR 0003) exists specifically to catch access that bypasses application code. These tests query Postgres directly, on purpose.
 3. **UI/hooks** — scoped down. One high-stakes interaction test (Slot Response), not broad component coverage.
 
+**How to run any of this**: see [docs/testing.md](docs/testing.md) — what each suite needs running, and how to click through the app yourself.
+
 **Test tooling**: business-logic tests use the existing `node --test` setup (`src/**/*.test.ts`, already configured in `package.json`) — Server Actions and the pure functions they call are plain async/sync functions, importable and callable directly without spinning up a Next.js server. RLS tests need a real Postgres instance: **requires the Supabase CLI and Docker Desktop running locally** (`supabase start` spins up local Postgres + Auth). Flagging this now since it's a new local dependency — say if Docker isn't available and we'll adjust (e.g. testing RLS against a hosted Supabase dev project instead).
 
 **Proposed file layout** (extends the existing `src/components/apps/<slug>` convention):
@@ -68,17 +70,21 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ## Where to pick up
 
-**Issue #5 (Friend Connections) is code-complete locally**, on branch `feat/booking-buddy-connections`. Every acceptance criterion on the ticket is met and verified against local Postgres.
+**Issue #6 (Friend Groups & Visibility) is built but not finished.** Seven of the eight acceptance criteria are met: groups, membership of accepted Connections only, per-group defaults, per-friend overrides that win in both directions, most-permissive resolution across groups, no-group-no-override defaulting to nothing, and owner-only RLS.
 
-Done and tested: the `connections` table, `search_users`, usernames, the Server Actions in `src/lib/booking-buddy/actions/connections.ts`, and the `/booking-buddy/friends` page. 42 pgTAP tests and 85 `node --test` tests pass.
+The eighth — "with the resolved visibility **actually enforced elsewhere in the app**" — is **not** delivered, and can't be yet: `resolveVisibility` has exactly one caller, `getGroupsPageData`, which renders the level as text on the groups page. There is nothing to enforce it against until Slots exist. The honest status of #6 is *blocked on Phase 5*, not done — don't close the issue on the strength of the other seven.
 
-Verified end-to-end with two real Users against the local stack — created via the Auth admin API rather than Mailpit, which is faster and needs no inbox clicking. The page was rendered over HTTP as each User in turn: empty state, request sent, request received (named, with Accept/Decline), and both sides seeing each other under "Your friends" after acceptance. Only-the-addressee-can-accept and the duplicate-pair rejection were re-confirmed through PostgREST as real Users.
+Verified against the local stack: 15 new pgTAP tests (57 in total) and 92 `node --test` tests pass. `/booking-buddy/groups` was rendered over HTTP as a real signed-in User with two friends across two groups — the page showed the most-permissive resolution for the friend in both, and the pinned `none` for the one with an override.
 
-Not done:
+Not done on #6:
 
-- [x] **Click-through in a browser** — done by Adrian. Search, send, accept and remove all work; `responded_at` timestamps on the local rows came from the UI, not a script. Test accounts are listed in [docs/local-test-accounts.md](docs/local-test-accounts.md) and re-creatable with `npm run seed:users`.
+- [ ] **Enforcement** (above). Phase 5's Slot RLS and Phase 6's `respondToSlot` guard are where the resolved level starts to bite.
+- [x] **Click-through in a browser** — now automated. `npm run test:e2e` drives Chromium through sign-in, creating a group, adding and removing a member, pinning and clearing an override, the most-permissive resolution across two groups, and the duplicate-name refusal. See [docs/testing.md](docs/testing.md).
+
+**Still outstanding from issue #5** (the `connections` table, `search_users`, usernames, the Server Actions and the `/booking-buddy/friends` page are all done and verified end-to-end with two real Users):
+
 - [ ] **Removing a friend is now behind a confirmation dialog** (`@base-ui/react` alert-dialog, added via shadcn). The dialog's own confirm button is the only thing that can submit the remove form, so a stray click on the row can't destroy a Connection. Declining and cancelling are deliberately *not* gated — those are re-sendable. Needs one click-through to confirm the dialog submits.
-- [ ] `supabase db push` — four migrations are still local-only. **Needs Adrian**: pushing rewrites `handle_new_user` and backfills usernames on the hosted project. Deliberately not run by an agent.
+- [ ] `supabase db push` — five migrations are still local-only, now including the friend-groups one. **Needs Adrian**: pushing rewrites `handle_new_user` and backfills usernames on the hosted project. Deliberately not run by an agent.
 - [ ] Open question for Adrian: his account predates usernames, so the backfill derives `adrianluk`. If he'd rather choose, this ticket needs a settings screen for changing a username.
 - [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The friends page is only reachable via a link on the dashboard, which is only reachable by typing the URL.
 
@@ -88,7 +94,7 @@ Not done:
 - **`connections` references `auth.users`, not `public.profiles`**, so PostgREST has no relationship to embed across and `listConnections` reads profiles in a second query. A `select("*, profiles(...)")` will fail here.
 - **Grouping lives in `src/lib/booking-buddy/connections.ts`**, deliberately free of Next.js and Supabase imports so it is unit-testable. A Connection row means different things depending on who is looking at it; that asymmetry is the logic worth testing, and it is.
 
-Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 5`.
+Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 7` — Phase 4 (Org + Booking) is next.
 
 ## Phase 1 — User + Auth
 
@@ -107,13 +113,24 @@ Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`
 
 ## Phase 3 — Friend Group + Visibility
 
-- [ ] 3.1 Schema: `friend_groups` (owner_id, name), `friend_group_members` (group_id, connection_id), `visibility_overrides` (owner_id, connection_id, level)
-- [ ] 3.2 🔴 Test: `createFriendGroup` creates a group owned by the caller → 🟢 implement
-- [ ] 3.3 🔴 Test: `assignToGroup` rejects a Connection that isn't `accepted` yet → 🟢 implement guard
-- [ ] 3.4 🔴 Test: `resolveVisibility` — a per-friend override always wins over any group default (pure function, no DB) → 🟢 implement
-- [ ] 3.5 🔴 Test: `resolveVisibility` — a friend in two groups with different levels resolves to the most permissive → 🟢 implement
-- [ ] 3.6 🔴 Test: `resolveVisibility` — a Connection with no group and no override defaults to no access → 🟢 implement
-- [ ] 3.7 🔴 RLS test: querying `friend_groups`/`visibility_overrides` directly as a non-owner returns no rows → 🟢 implement coarse policy
+- [x] 3.1 Schema: `friend_groups` (owner_id, name, default_visibility), `friend_group_members` (group_id, connection_id), `visibility_overrides` (owner_id, connection_id, level)
+- [x] 3.2 🔴 Test: `createFriendGroup` creates a group owned by the caller → 🟢 implement — **tested at the database seam, not the action seam** (see the deviation note below)
+- [x] 3.3 🔴 Test: `assignToGroup` rejects a Connection that isn't `accepted` yet → 🟢 implement guard — shipped as `setGroupMembership`, since adding and removing are one control with two states. Same deviation.
+- [x] 3.4 🔴 Test: `resolveVisibility` — a per-friend override always wins over any group default (pure function, no DB) → 🟢 implement
+- [x] 3.5 🔴 Test: `resolveVisibility` — a friend in two groups with different levels resolves to the most permissive → 🟢 implement
+- [x] 3.6 🔴 Test: `resolveVisibility` — a Connection with no group and no override defaults to no access → 🟢 implement
+- [x] 3.7 🔴 RLS test: querying `friend_groups`/`visibility_overrides` directly as a non-owner returns no rows → 🟢 implement coarse policy
+
+### Notes carried out of Phase 3
+
+- **Deviation from the agreed seam, worth knowing before Phase 4 repeats it.** The preamble at the top of this file makes Server Actions the primary seam and rules out asserting through the database as a side channel. 3.2 and 3.3 are not tested that way: their behaviour is enforced by a unique index and two triggers, and asserted in `supabase/tests/friend_groups.test.sql`. `friend-groups.ts` has no test of its own — the same gap `connections.ts` has, for the same reason (an action test needs a Next.js request context and a live Supabase client, and the tooling for that was never chosen). The rule was written to stop tests bypassing the logic under test; here the logic genuinely *is* in the database. Either pick the tooling and backfill both files, or amend the preamble to say so — the current state matches neither.
+- **The two guards live in the database, not the actions.** "Only accepted Connections are groupable" and "only into your own groups" need subqueries, so they are `before insert or update` triggers rather than check constraints — and firing on update too is what stops a row being edited into a state the insert would have refused. `setGroupMembership` deliberately doesn't re-check either; adding a TypeScript copy would just be a second place to get it wrong.
+- **Membership is keyed by Connection, not by the friend's user id.** Unfriending therefore cascades the grouping away with it. A grouping of someone you are no longer connected to would otherwise sit there still granting visibility.
+- **`resolveVisibilityByConnection` is driven by the friends list, not by the membership rows**, so an ungrouped friend gets an explicit `none` rather than a missing key. A caller reading "absent" as "unknown" instead of "no access" is the failure mode worth designing out.
+- **Level pickers are native `<select>`s** (`visibility-select.tsx`), not the shadcn one. Every form on the page posts to a Server Action and works with no JavaScript; a native control keeps that true.
+- **Every write selects its row back** and treats zero rows as a failure. RLS turns "that isn't yours" into an empty result, not an error, so a delete or an update naming someone else's group otherwise returns a cheerful `{ ok: true }` for something that never happened. The one deliberate exception is clearing a visibility override, where no row is the state the User asked for.
+- **The member picker shows `Name (@username)`, not just the name.** Found by the browser tests, not by review: with two "Ben Backhand"s in the local data, an `<option>` carrying only the display name gives no way to tell which friend you are adding. `personOptionLabel` exists for one-line contexts where `PersonName`'s second line doesn't fit.
+- **Beyond the ticket, on purpose**: groups can be deleted (a group you can't get rid of is a trap), names are unique per owner case-insensitively and capped at 60 characters (two "Tuesday crew"s are indistinguishable in the member picker), and the three level names were coined here and written into [CONTEXT.md](CONTEXT.md) — the issue asked for "a default visibility level" without saying what the levels are.
 
 ## Phase 4 — Org + Booking
 
