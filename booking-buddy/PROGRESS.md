@@ -20,13 +20,27 @@ Built test-first, in vertical slices: one seam, one red test, one minimal green 
 
 ## Phase 0 — Tooling & scaffolding
 
-Not TDD (no behavior yet) — infra setup only.
+Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
-- [ ] 0.1 Install Supabase CLI, `supabase init`, confirm `supabase start` works locally (Docker required)
-- [ ] 0.2 Add `@supabase/supabase-js`, `@supabase/ssr`, `@tanstack/react-query` to `package.json`
-- [ ] 0.3 Scaffold `src/app/booking-buddy/layout.tsx` as its own top-level route group with auth middleware (Q2)
-- [ ] 0.4 Add Supabase env vars to `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only)
-- [ ] 0.5 Add `test:rls` script (runs RLS test file(s) against local Supabase Postgres, separate from the default `test` script so CI/quick runs aren't blocked on Docker being up)
+- [x] 0.1 Install Supabase CLI, `supabase init`, confirm `supabase start` works locally (Docker required)
+- [x] 0.2 Add `@supabase/supabase-js`, `@supabase/ssr`, `@tanstack/react-query` to `package.json`
+- [x] 0.3 Scaffold `src/app/booking-buddy/` as its own top-level route group (Q2). Gating is **not** in `layout.tsx` — the sign-in page lives beneath that layout, so gating there would lock people out of the page they need. Instead: `src/proxy.ts` (optimistic, per Next.js 16 guidance) plus `verifySession` in each protected page/Server Action (authoritative).
+- [x] 0.4 Add Supabase env vars to `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `SUPABASE_DB_URL`. `.env.example` is now git-tracked (a `!.env.example` negation in `.gitignore`) and holds placeholders only.
+- [x] 0.5 Add `test:rls` script — uses the Supabase CLI's native pgTAP runner (`supabase test db`) against `supabase/tests/*.test.sql`, separate from the default `test` script so quick runs aren't blocked on Docker being up.
+
+### Notes carried out of Phase 0
+
+- **Middleware is called Proxy in Next.js 16.** The file is `src/proxy.ts`, not `middleware.ts`. Next's own docs are explicit that it must not be the only line of defence, which is why the DAL (`src/lib/booking-buddy/dal.ts`) sits beneath it and coarse RLS beneath that (ADR 0003).
+- **`NEXT_PUBLIC_*` must be read as literals.** Next only inlines these into the browser bundle where `process.env.NEXT_PUBLIC_X` appears verbatim; a dynamic lookup or an alias of `process.env` yields `undefined` in the browser. `readPublicSupabaseEnv` handles this — don't "simplify" it back to a dynamic read.
+
+### Outstanding — needs a human (cannot be done by an agent)
+
+- [ ] Create a hosted Supabase project and connect it to the existing juice-bros Vercel project via Vercel's Supabase marketplace integration, so the `NEXT_PUBLIC_SUPABASE_*` and `SUPABASE_SERVICE_ROLE_KEY` values are provisioned into Preview and Production. Local dev works without this; deployed environments do not.
+- [ ] Google Cloud OAuth credentials, needed by Phase 1 / issue #4 (sign-in).
+
+### Deferred follow-up
+
+- [ ] Booking Buddy is not listed in `src/data/apps.ts`, so it doesn't appear on `/tools` or in the sitemap. Deliberate for now — there's nothing usable to link to yet. Add the entry once sign-in and a real dashboard exist, so the Apps section doesn't advertise a dead end.
 
 ## Phase 1 — User + Auth
 
