@@ -101,3 +101,17 @@ Phase 4: mobile app (Expo), community features.
 ## Product framing
 This is not "a website" - it's a sports media + tools + merch ecosystem. The MVP goal
 is to get a real brand site live fast, then expand vertically from there.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues (github.com/AdrianLuk/juice-bros), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context layout: root `CONTEXT-MAP.md` indexes per-context `CONTEXT.md` files (currently just `booking-buddy/`). See `docs/agents/domain.md`.
