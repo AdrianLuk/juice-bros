@@ -44,6 +44,8 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
   - **Automatic RLS enabled** — every new table gets RLS on by default, so a table can't ship unprotected by accident. Expect a brand-new table to return zero rows until policies exist; that's the safety net, not a bug.
   - **"Automatically expose new tables" disabled** — tables are not granted to the Data API roles by default; each migration grants explicitly.
 
+    In practice this means **every migration must include its own `grant`s**, or the table is invisible to the API even with RLS policies in place. Confirmed on the hosted project: `profiles` returns `42501 permission denied` to `service_role`, which was deliberately not granted, while `authenticated` (the role the app actually runs as) works because the migration grants it. Grant `service_role` only where a job genuinely needs to bypass RLS — the reminders work in Phase 8 is the first likely case.
+
 ### Outstanding — needs a human (cannot be done by an agent)
 
 - [ ] Google Cloud OAuth credentials, needed by Phase 1 / issue #4 (sign-in).
