@@ -4,6 +4,16 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   acceptConnectionRequest,
   removeConnection,
   type ActionResult,
@@ -27,21 +37,33 @@ export function ConnectionActionButton({
   label,
   pendingLabel,
   variant = "outline",
+  confirm,
 }: {
   connectionId: string;
   action: keyof typeof ACTIONS;
   label: string;
   pendingLabel: string;
   variant?: "default" | "outline" | "ghost";
+  /**
+   * Puts the action behind a confirmation step. Worth it for unfriending,
+   * which throws away an established Connection; not for declining or
+   * cancelling a request, which the other person can simply send again.
+   */
+  confirm?: { title: string; description: string };
 }) {
   const [state, formAction, pending] = useActionState(ACTIONS[action], EMPTY);
 
-  return (
-    // A real form, so the lists re-render from the server in the same
-    // roundtrip — the actions call revalidatePath on this page.
+  // A real form, so the lists re-render from the server in the same roundtrip
+  // — the actions call revalidatePath on this page.
+  const form = (
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="connection_id" value={connectionId} />
-      <Button type="submit" size="sm" variant={variant} disabled={pending}>
+      <Button
+        type="submit"
+        size={confirm ? "default" : "sm"}
+        variant={confirm ? "destructive" : variant}
+        disabled={pending}
+      >
         {pending ? pendingLabel : label}
       </Button>
       {state.error && (
@@ -50,5 +72,30 @@ export function ConnectionActionButton({
         </p>
       )}
     </form>
+  );
+
+  if (!confirm) {
+    return form;
+  }
+
+  // The form moves inside the dialog so the only thing that can submit it is
+  // the confirm button. The row's button merely opens the dialog, which is
+  // what makes a stray click harmless.
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger render={<Button size="sm" variant={variant} />}>
+        {label}
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{confirm.title}</AlertDialogTitle>
+          <AlertDialogDescription>{confirm.description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep friend</AlertDialogCancel>
+          {form}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
