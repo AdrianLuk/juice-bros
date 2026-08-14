@@ -25,11 +25,17 @@ const SERVICE_ROLE_KEY =
 
 export const TEST_PASSWORD = "pickleball123";
 
+/**
+ * Order matters. Usernames are derived from the display name at signup, so the
+ * first "Amy Ace" takes `amyace` and the second falls through to `amyace2` —
+ * which is what keeps each email's local part equal to that account's Username
+ * across a reset. Reorder these and the numbering swaps.
+ */
 export const TEST_ACCOUNTS = [
-  { email: "amy.1786698918470@example.com", displayName: "Amy Ace" },
-  { email: "ben.1786698918470@example.com", displayName: "Ben Backhand" },
-  { email: "amy.render.1786699064786@example.com", displayName: "Amy Ace" },
-  { email: "ben.render.1786699064786@example.com", displayName: "Ben Backhand" },
+  { email: "amyace@example.com", displayName: "Amy Ace" },
+  { email: "benbackhand@example.com", displayName: "Ben Backhand" },
+  { email: "amyace2@example.com", displayName: "Amy Ace" },
+  { email: "benbackhand2@example.com", displayName: "Ben Backhand" },
 ];
 
 if (!API_URL.includes("127.0.0.1")) {
