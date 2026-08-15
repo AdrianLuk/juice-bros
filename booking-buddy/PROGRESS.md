@@ -98,7 +98,7 @@ Everything that was outstanding from #5 and #6 is now done:
 - **`connections` references `auth.users`, not `public.profiles`**, so PostgREST has no relationship to embed across and `listConnections` reads profiles in a second query. A `select("*, profiles(...)")` will fail here.
 - **Grouping lives in `src/lib/booking-buddy/connections.ts`**, deliberately free of Next.js and Supabase imports so it is unit-testable. A Connection row means different things depending on who is looking at it; that asymmetry is the logic worth testing, and it is.
 
-**Phase 4 (issue #7, Org + Booking) is complete on branch `org-and-booking-manual-entry`**, after being redesigned partway through: an Org is no longer a free-text name, it points at a Google Place. [adr/0005](docs/adr/0005-orgs-identified-by-google-place-id.md) is why; [Phase 4](#phase-4--org--booking) below has the steps and the notes carried out of it.
+**Phase 4 (issue #7, Org + Booking) is shipped and merged** ([#19](https://github.com/AdrianLuk/juice-bros/pull/19)), after being redesigned partway through: an Org is no longer a free-text name, it points at a Google Place. [adr/0005](docs/adr/0005-orgs-identified-by-google-place-id.md) is why; [Phase 4](#phase-4--org--booking) below has the steps and the notes carried out of it.
 
 Both open decisions were settled before any code: the Google Places integration is **split into [#18](https://github.com/AdrianLuk/juice-bros/issues/18)** and search there will be **server-side, not a client autocomplete**. Reasoning is under Phase 4; don't relitigate either.
 
@@ -117,7 +117,14 @@ Worth reading before Phase 5 repeats any of it:
 - **`23514` arrives from five different rules** — both branches of `assert_booking_coherent` and three check constraints — so mapping it all to "that isn't your place" told people with a time-zone problem to go looking at ownership. `bookingWriteMessage` reads the message now.
 - **A write that RLS filtered away returns `200 []`, not an error.** The seed script accepted a pending Connection as whichever party it happened to have, and a row found in the reverse direction meant the *requester* tried to accept — filtered to zero rows, reported as "connected", pair still pending. The lesson is the one already written into the Phase 3 notes: check the row count, never the status code.
 
-**Start the next session with**: `gh issue view 8` (Phase 5, Slot as a poll), which #6 and #7 both unblock. Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
+Two follow-ups are open and **neither blocks Phase 5**:
+
+- [#18](https://github.com/AdrianLuk/juice-bros/issues/18) — the Google Places half. Waiting on an API key only a human can provision.
+- [#20](https://github.com/AdrianLuk/juice-bros/issues/20) — `time_zone` belongs on `orgs`, not `bookings`. It is a property of the facility, not of the reservation, and defaulting it to the browser's zone quietly stores the wrong instant if you log a booking while travelling. Blocked on #18, which supplies the coordinates that make deriving it automatic rather than another question at Org creation.
+
+**Start the next session with**: `gh issue view 8` (Phase 5, Slot as a poll), which #6 and #7 both unblock. Note `gh issue view` fails on this repo with a Projects-classic GraphQL error — use `gh issue view 8 --json number,title,body,comments` or `gh api`. Same for `gh pr edit`; `gh issue edit`, `gh issue create` and `gh api` all work.
+
+Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 
 **Work happens on a branch with a PR per ticket now**, not direct commits to `master`.
 
