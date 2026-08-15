@@ -4,12 +4,19 @@ Three suites, deliberately separate because they need different things running.
 
 | Command | What it covers | Needs |
 | --- | --- | --- |
-| `npm test` | Pure logic — visibility resolution, Connection grouping, routes, env | nothing |
+| `npm test` | Pure logic — visibility resolution, username rules, form parsing, Connection grouping, routes | nothing |
 | `npm run test:rls` | Schema, constraints, triggers and RLS policies (pgTAP) | Docker + `supabase start` |
 | `npm run test:e2e` | The real pages in a real browser (Playwright) | Docker + `supabase start` + test accounts |
 
 `npm test` is the one to run constantly — it is a second or two and has no
 dependencies. The other two need the local stack up.
+
+**Where a new test goes.** If it can be decided without a database, it belongs
+in `npm test` — and if the logic is currently stuck inside a Server Action,
+extract it rather than reaching for a heavier tool. If the rule is enforced by
+a constraint, trigger or policy, it belongs in pgTAP. If it spans several
+actions or two Users, it belongs in Playwright. See "Seams under test" in
+[../PROGRESS.md](../PROGRESS.md) for why the plan changed to this.
 
 ## Getting the local stack up
 
@@ -40,9 +47,10 @@ Then open <http://localhost:3000/booking-buddy/sign-in>, choose **Sign in with a
 password**, and use one of the test accounts. Booking Buddy isn't linked from
 the main nav yet, so navigate by URL:
 
-- `/booking-buddy` — dashboard, with links to the two pages below
+- `/booking-buddy` — dashboard, with links to the three pages below
 - `/booking-buddy/friends` — search, requests, your friends
 - `/booking-buddy/groups` — friend groups and per-friend visibility
+- `/booking-buddy/settings` — change your username
 
 Signing in as a second account in the same browser will replace the first
 session. Use a private window for the two-user flows (sending a request from
@@ -74,3 +82,20 @@ Some things worth knowing before writing more of them:
   first. This is not hypothetical: it is how the first version of these tests
   failed, and how the group member picker was found showing bare display names
   with no way to tell the two apart.
+- **Scope locators to a section, and end with `.last()`.** The same person
+  appears in up to three places on the friends page at once — a search result,
+  a pending request, and a friend — all carrying the same handle. Both specs
+  have a `section(page, heading)` helper for this. `.last()` is load-bearing:
+  the page's own wrapper `<section>` contains every heading too, so an
+  unqualified filter matches the wrapper as well as the section you meant.
+- **`getByRole("alert")` matches Next's route announcer.** Every navigation
+  leaves a `role="alert"` div holding the page title, so an unscoped alert
+  locator is ambiguous the moment a real error appears. Scope it —
+  `page.locator("form").getByRole("alert")`.
+- **After clicking, wait for the effect before navigating.** These forms post
+  to Server Actions that `revalidatePath`; a `goto` fired straight after a
+  click reads the page from before the write landed. Assert on something that
+  changes (a section disappearing, a count going up) and let Playwright wait.
+- **Two Users means two browser contexts.** Signing in as a second account on
+  the same context replaces the first session rather than adding one. See
+  `friends.spec.ts`.

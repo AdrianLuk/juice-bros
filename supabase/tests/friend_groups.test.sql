@@ -131,8 +131,13 @@ reset role;
 
 delete from public.connections where id = '11111111-0000-0000-0000-000000000001';
 
+-- Scoped to this test's own Connection. The assertions above run as a User, so
+-- RLS confines them to that User's rows; this one runs with the role reset, so
+-- an unscoped count would also see whatever else happens to be in the local
+-- database — and did, the first time someone had clicked a group into being.
 select is(
-  (select count(*)::int from public.friend_group_members),
+  (select count(*)::int from public.friend_group_members
+   where connection_id = '11111111-0000-0000-0000-000000000001'),
   0,
   'removing a Connection removes it from every group'
 );

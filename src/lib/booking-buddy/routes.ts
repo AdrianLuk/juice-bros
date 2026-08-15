@@ -14,6 +14,8 @@ export const FRIENDS_PATH = `${BOOKING_BUDDY_ROOT}/friends`;
 
 export const GROUPS_PATH = `${BOOKING_BUDDY_ROOT}/groups`;
 
+export const SETTINGS_PATH = `${BOOKING_BUDDY_ROOT}/settings`;
+
 /** Reachable while signed out, despite living under the Booking Buddy root. */
 const PUBLIC_SUBPATHS = ["/sign-in", "/auth"];
 
