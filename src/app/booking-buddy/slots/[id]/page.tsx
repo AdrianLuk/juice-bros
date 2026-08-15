@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { ResponseButtons } from "@/components/booking-buddy/slots";
+import {
+  ResponseButtons,
+  SlotCapacityPanel,
+  SlotCourts,
+} from "@/components/booking-buddy/slots";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { SLOTS_PATH } from "@/lib/booking-buddy/routes";
@@ -35,7 +39,7 @@ export default async function SlotDetailPage({
     notFound();
   }
 
-  const { slot, isOwner, responses, myAnswer } = detail;
+  const { slot, isOwner, responses, myAnswer, capacity } = detail;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -49,19 +53,46 @@ export default async function SlotDetailPage({
             }
           />
 
-          <section className="mt-10">
-            <h2 className="font-heading text-lg font-semibold tracking-tight">
-              Your response
-            </h2>
-            <div className="mt-4">
-              <ResponseButtons
-                slotId={slot.id}
-                viewerId={session.userId}
-                viewerName={null}
-                initial={{ responses, myAnswer }}
-              />
-            </div>
-          </section>
+          <div className="mt-10 flex flex-col gap-12">
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Capacity
+              </h2>
+              <div className="mt-4">
+                <SlotCapacityPanel
+                  slotId={slot.id}
+                  isOwner={isOwner}
+                  capacity={capacity}
+                  initial={{ responses, myAnswer }}
+                />
+              </div>
+            </section>
+
+            {isOwner && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Courts
+                </h2>
+                <div className="mt-4">
+                  <SlotCourts slotId={slot.id} capacity={capacity} />
+                </div>
+              </section>
+            )}
+
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Your response
+              </h2>
+              <div className="mt-4">
+                <ResponseButtons
+                  slotId={slot.id}
+                  viewerId={session.userId}
+                  viewerName={null}
+                  initial={{ responses, myAnswer }}
+                />
+              </div>
+            </section>
+          </div>
 
           <p className="mt-14">
             <Link href={SLOTS_PATH} className="text-sm underline underline-offset-4">

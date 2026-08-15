@@ -4,10 +4,17 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { SLOTS_PATH } from "../routes.ts";
+import { SLOTS_PATH, slotPath } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { formatSlotWhen, parseNewSlotProposal, slotWriteMessage } from "../slots.ts";
+import {
+  bookingOverlapsSlot,
+  computeCapacity,
+  parseRotationBuffer,
+  slotBookingWriteMessage,
+} from "../capacity.ts";
 import type { ResponseAnswer } from "../responses.ts";
+import { getBookingsPageData, type Booking } from "./bookings.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -28,12 +35,30 @@ export type SlotResponse = {
   answer: ResponseAnswer;
 };
 
+/**
+ * What a Slot's Capacity is made of. `capacity` is `null` for a Slot with no
+ * Booking attached — a bare proposal has nothing to enforce (ADR 0001).
+ *
+ * `courtCount` comes from `slot_bookings`, which every viewer of the Slot can
+ * read, so a friend sees the same Capacity the organizer does. `attached` and
+ * `attachable` are empty for a friend: `bookings` itself stays owner-only, so
+ * where and which court are never theirs to see.
+ */
+export type SlotCapacity = {
+  courtCount: number;
+  rotationBuffer: number;
+  capacity: number | null;
+  attached: Booking[];
+  attachable: Booking[];
+};
+
 export type SlotDetail = {
   slot: Slot;
   isOwner: boolean;
   responses: SlotResponse[];
   /** The caller's own answer, if they've given one. */
   myAnswer: ResponseAnswer | null;
+  capacity: SlotCapacity;
 };
 
 export type SlotResponses = {
@@ -149,6 +174,72 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
 }
 
 /**
+ * What the Slot's courts add up to, and — for the organizer — which Bookings
+ * those are and which of theirs are still free to attach.
+ *
+ * Two reads, and which of them runs is decided by who is asking:
+ * `slot_bookings` is readable by anyone who can see the Slot, so the court
+ * count (and therefore Capacity) is the same number on everyone's screen;
+ * `bookings` is owner-only, so the Booking details are fetched at all only for
+ * the owner. Nothing here filters by viewer — that split is RLS's, which is
+ * why a friend's `attached`/`attachable` come back empty rather than needing a
+ * branch that could be forgotten.
+ */
+async function getSlotCapacity(
+  slotId: string,
+  slotWindow: { proposedStart: string; proposedEnd: string },
+  rotationBuffer: number,
+  isOwner: boolean,
+): Promise<SlotCapacity> {
+  const supabase = await createClient();
+
+  // `format` is copied onto this row at attach time (the migration's
+  // trigger), which is what lets a friend — who can read `slot_bookings` but
+  // not the owner-only `bookings` table — compute the same Capacity the
+  // organizer sees, singles/doubles included.
+  const { data: attachedRows, error } = await supabase
+    .from("slot_bookings")
+    .select("booking_id, format")
+    .eq("slot_id", slotId);
+
+  if (error) {
+    readFailed("this slot's courts", error);
+  }
+
+  const attachedIds = new Set((attachedRows ?? []).map((row) => row.booking_id));
+  const courtCount = attachedIds.size;
+  const formats = (attachedRows ?? []).map((row) => row.format);
+
+  const base = {
+    courtCount,
+    rotationBuffer,
+    capacity: computeCapacity({ formats, rotationBuffer }),
+  };
+
+  if (!isOwner) {
+    return { ...base, attached: [], attachable: [] };
+  }
+
+  // Reuses the Bookings page's own read rather than repeating the Org-name and
+  // time-zone resolution it already does — the picker needs a Booking to read
+  // exactly as it does on that page, or the same reservation looks like two
+  // different ones.
+  const { bookings } = await getBookingsPageData();
+
+  return {
+    ...base,
+    attached: bookings.filter((booking) => attachedIds.has(booking.id)),
+    // Only bookings for the same real-world game — same overlapping window —
+    // are offered. Attaching one from an unrelated date would silently attach
+    // the wrong reservation, and Capacity would read the courts of a game
+    // that isn't this one.
+    attachable: bookings.filter(
+      (booking) => !attachedIds.has(booking.id) && bookingOverlapsSlot(booking, slotWindow),
+    ),
+  };
+}
+
+/**
  * Everything the Slot detail page renders. `slot` is `null` when the row
  * doesn't exist or (per `can_access_slot`/`has_slot_visibility`) the caller
  * has no Visibility into it — the two are indistinguishable through RLS on
@@ -160,7 +251,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
-    .select("id, owner_id, proposed_start, proposed_end, time_zone")
+    .select("id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer")
     .eq("id", slotId)
     .maybeSingle();
 
@@ -171,9 +262,17 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
     return null;
   }
 
-  const [{ responses, myAnswer }, ownerProfileResult] = await Promise.all([
+  const isOwner = slotRow.owner_id === session.userId;
+
+  const [{ responses, myAnswer }, ownerProfileResult, capacity] = await Promise.all([
     getSlotResponses(slotId),
     supabase.from("profiles").select("display_name").eq("id", slotRow.owner_id).maybeSingle(),
+    getSlotCapacity(
+      slotId,
+      { proposedStart: slotRow.proposed_start, proposedEnd: slotRow.proposed_end },
+      slotRow.rotation_buffer,
+      isOwner,
+    ),
   ]);
 
   if (ownerProfileResult.error) {
@@ -192,9 +291,10 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
       }),
       proposedStart: slotRow.proposed_start,
     },
-    isOwner: slotRow.owner_id === session.userId,
+    isOwner,
     responses,
     myAnswer,
+    capacity,
   };
 }
 
@@ -229,5 +329,111 @@ export async function createSlot(
   }
 
   revalidatePath(SLOTS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Attach one of the caller's Bookings to one of their Slots — the act that
+ * turns a bare proposal into a confirmed Slot with real Capacity (ADR 0001).
+ *
+ * Several Bookings on one Slot is the multi-court game, not a mistake, so this
+ * adds rather than replaces. Ownership of both sides is checked in the
+ * database (`assert_slot_booking_coherent` plus the insert policy) rather than
+ * re-derived here; an RLS-filtered write comes back as zero rows, which
+ * `slotBookingWriteMessage` reads as "not yours", the same convention every
+ * other write in this app follows.
+ */
+export async function attachBookingToSlot(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const slotId = String(formData.get("slot_id") ?? "").trim();
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+
+  if (!slotId || !bookingId) {
+    return { error: "Pick a booking to attach." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("slot_bookings")
+    .insert({ slot_id: slotId, booking_id: bookingId })
+    .select("booking_id");
+
+  if (error || !data?.length) {
+    return { error: slotBookingWriteMessage(error) };
+  }
+
+  revalidatePath(slotPath(slotId));
+  return { ok: true };
+}
+
+/**
+ * Detach a Booking, dropping the Slot's Capacity by one court — back to a bare
+ * proposal if it was the last one, since the Slot never changes identity
+ * (ADR 0001). The Booking itself is untouched; the reservation still exists.
+ */
+export async function detachBookingFromSlot(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const slotId = String(formData.get("slot_id") ?? "").trim();
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+
+  if (!slotId || !bookingId) {
+    return { error: "Pick a booking to detach." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("slot_bookings")
+    .delete()
+    .eq("slot_id", slotId)
+    .eq("booking_id", bookingId)
+    .select("booking_id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't detach that booking. Try again." };
+  }
+
+  revalidatePath(slotPath(slotId));
+  return { ok: true };
+}
+
+/**
+ * Set how many players beyond the courts' own capacity a Slot expects to
+ * rotate through (CONTEXT.md's Capacity entry).
+ *
+ * Settable on a bare proposal too — it costs nothing, and it means the buffer
+ * is already right at the moment a Booking gets attached, rather than needing
+ * a second visit once Capacity starts counting.
+ */
+export async function setRotationBuffer(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const parsed = parseRotationBuffer(formData);
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("slots")
+    .update({ rotation_buffer: parsed.rotationBuffer })
+    .eq("id", parsed.slotId)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't save that rotation buffer. Try again." };
+  }
+
+  revalidatePath(slotPath(parsed.slotId));
   return { ok: true };
 }

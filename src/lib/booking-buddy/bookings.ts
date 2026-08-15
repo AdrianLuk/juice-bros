@@ -17,10 +17,13 @@ import {
   isHalfHourTime,
   isRealDate,
 } from "./datetime.ts";
+import { isBookingFormat, type BookingFormat } from "./capacity.ts";
 
 export { HALF_HOUR_TIMES, formatTimeLabel };
 
 export const COURT_LABEL_MAX_LENGTH = 40;
+
+export const DEFAULT_BOOKING_FORMAT: BookingFormat = "doubles";
 
 export type NewBooking = {
   orgId: string;
@@ -28,6 +31,8 @@ export type NewBooking = {
   date: string;
   startTime: string;
   endTime: string;
+  /** What the court holds Capacity to (ADR 0008) — defaults to doubles, the common case. */
+  format: BookingFormat;
 };
 
 export function parseNewBooking(
@@ -68,7 +73,13 @@ export function parseNewBooking(
     return { error: "The end time has to be after the start time." };
   }
 
-  return { orgId, courtLabel, date, startTime, endTime };
+  // Never refused for an odd value — a stray/tampered value just falls back
+  // to the common case, the same "default rather than error" the User
+  // themselves gets by leaving the field alone.
+  const rawFormat = formData.get("format");
+  const format: BookingFormat = isBookingFormat(rawFormat) ? rawFormat : DEFAULT_BOOKING_FORMAT;
+
+  return { orgId, courtLabel, date, startTime, endTime, format };
 }
 
 /**

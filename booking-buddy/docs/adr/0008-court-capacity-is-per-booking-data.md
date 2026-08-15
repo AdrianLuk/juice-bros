@@ -1,0 +1,17 @@
+# A court's capacity is per-Booking data, keyed by format
+
+Capacity is defined as the sum of an attached Booking's *court capacities* plus a rotation buffer (see [../../CONTEXT.md](../../CONTEXT.md)) — but nothing in the schema said how many players a court holds, and a Booking is a hand-copied mirror of a facility reservation (ADR 0002), which carries no such number either. Something had to supply it.
+
+The first draft of this decision made it a constant: one court holds four, always, with singles left unrepresented and folded into the organizer's manual read of the rotation buffer instead. Revisited before shipping — singles (2 players) and informal drilling (3+ players sharing a court) are common enough recreational patterns that treating "how many people does this court fit" as fixed data was wrong, not simplified.
+
+**Decision**: `bookings.format` is `'singles' | 'doubles'`, set when the Booking is logged and defaulting to `'doubles'` (the common case, so most Users never have to think about it). Capacity sums each attached Booking's own court capacity (2 or 4) rather than multiplying a flat constant by a court count. The rotation buffer is unchanged — it still covers substitutions on top of whatever the courts themselves add up to.
+
+**Why default to doubles rather than asking**: most recreational play is doubles, and a default that's usually right beats a required field that's usually the same answer. Format is one `<select>` next to court and time on the existing Booking form, not a new screen.
+
+**Why per-Booking and not per-Slot**: a Slot's courts can be a genuine mix — a multi-court game with one doubles court and one singles court is a real, if unusual, shape — and format is a fact about the physical court reservation (what was actually booked), which is exactly what a Booking already models. Putting it on the Slot instead would mean re-declaring it every time a Booking is attached, and would drift the moment two attached Bookings disagreed.
+
+## Consequences
+
+`slot_bookings` carries its own copy of `format`, written by `assert_slot_booking_coherent` from the Booking at attach time rather than trusted from the client. This is what lets a friend who can see the Slot compute the same Capacity the organizer sees: `bookings` stays owner-only RLS, `slot_bookings` doesn't, and format has no edit path once a Booking exists, so the copy can't drift out from under it. If Bookings ever become editable, this copy needs to be re-derived (or the edit path needs to refuse changing `format` on an already-attached Booking) — nothing currently enforces that.
+
+**Over-capacity still isn't "too many people showed up."** A doubles court reading 7 of 4 doesn't mean three people are turned away — read against the rotation buffer, it means three are expected to sub in and out over the game, which is what the buffer exists to size for (ADR 0001's "no hard block, resolve manually" already covers this; sizing the buffer correctly *is* the resolution, not something left over to resolve). On a singles court specifically, the same overshoot more often means informal drilling — three or more players sharing one court, rotating through drills — rather than a doubles game that needs a second court booked. The organizer is the one who knows which of these it is for their own Slot; the app has no way to tell drilling from rotation from an actual overbooked game, the same reasoning ADR 0001 gives for not automating a response to it at all.

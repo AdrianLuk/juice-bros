@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { AMY, BEN2, signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
+import { addPlace, logBooking, placeName, removePlace } from "./support/places.ts";
 
 /**
  * The Slot poll journey: post a bare proposal, a friend with slots Visibility
@@ -193,6 +194,81 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
     }
   } finally {
     await deleteSlots([slotId]);
+  }
+});
+
+test("attaching a booking gives a proposal real capacity, and detaching takes it away", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    court: "Court 7",
+    date: "2031-07-07",
+    start: "09:00",
+    end: "10:30",
+  });
+  await logBooking(page, {
+    place,
+    court: "Court 8",
+    date: "2031-07-07",
+    start: "09:00",
+    end: "10:30",
+    format: "Singles",
+  });
+  // The inserts have to land before the next navigation, or the picker this
+  // test drives has nothing to select — `logBooking` submits but doesn't wait.
+  await expect(row(page, "Court 7")).toBeVisible();
+  await expect(row(page, "Court 8")).toBeVisible();
+
+  const slotId = await createSlot(page, {
+    date: "2031-07-07",
+    start: "09:00",
+    end: "10:30",
+    label: "Jul 7, 2031",
+  });
+
+  try {
+    // A bare proposal: nothing to fill yet (ADR 0001).
+    await expect(page.getByText("still a proposal")).toBeVisible();
+
+    // Picked by the option's own value: its label is the whole Booking
+    // ("when — where · court"), which no exact-label match would survive.
+    const picker = page.getByLabel("Add a court");
+    const value = await picker
+      .locator("option", { hasText: "Court 7" })
+      .getAttribute("value");
+    await picker.selectOption(value!);
+    await page.getByRole("button", { name: "Attach booking" }).click();
+
+    // One court, no buffer — four spots, and nobody has said yes.
+    await expect(page.getByText("0 of 4 spots taken")).toBeVisible();
+    await expect(page.getByText("1 court")).toBeVisible();
+
+    await page.getByLabel("Rotation buffer").fill("2");
+    await page.getByRole("button", { name: "Save buffer" }).click();
+    await expect(page.getByText("0 of 6 spots taken")).toBeVisible();
+
+    // A second, singles court adds its own two spots — not another four — on
+    // top of what's already there (ADR 0008: each attached booking counts its
+    // own format, doubles and singles summed independently).
+    const secondValue = await picker
+      .locator("option", { hasText: "Court 8" })
+      .getAttribute("value");
+    await picker.selectOption(secondValue!);
+    await page.getByRole("button", { name: "Attach booking" }).click();
+    await expect(page.getByText("0 of 8 spots taken")).toBeVisible();
+    await expect(page.getByText("2 courts")).toBeVisible();
+
+    const detachButtons = page.getByRole("button", { name: "Detach" });
+    await detachButtons.first().click();
+    await expect(detachButtons).toHaveCount(1);
+    await detachButtons.click();
+    await expect(page.getByText("still a proposal")).toBeVisible();
+  } finally {
+    await deleteSlots([slotId]);
+    await removePlace(page, place);
   }
 });
 

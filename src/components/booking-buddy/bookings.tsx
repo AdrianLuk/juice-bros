@@ -18,9 +18,11 @@ import {
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import {
   COURT_LABEL_MAX_LENGTH,
+  DEFAULT_BOOKING_FORMAT,
   HALF_HOUR_TIMES,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
+import { BOOKING_FORMATS, BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -112,6 +114,17 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
           <Label htmlFor="booking-end">End</Label>
           <HalfHourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
         </div>
+
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label htmlFor="booking-format">Format</Label>
+          <FormSelect id="booking-format" name="format" defaultValue={DEFAULT_BOOKING_FORMAT}>
+            {BOOKING_FORMATS.map((format) => (
+              <option key={format} value={format}>
+                {BOOKING_FORMAT_LABEL[format]}
+              </option>
+            ))}
+          </FormSelect>
+        </div>
       </div>
 
       <div className="flex flex-col items-start gap-1">
@@ -130,7 +143,7 @@ export function BookingRow({ booking }: { booking: Booking }) {
       <div className="min-w-0">
         <p className="truncate font-medium">{booking.when}</p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {booking.orgName} · {booking.courtLabel}
+          {booking.orgName} · {booking.courtLabel} · {BOOKING_FORMAT_LABEL[booking.format]}
         </p>
       </div>
       <DeleteBookingButton booking={booking} />

@@ -1,6 +1,14 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { AMY, BEN, signIn } from "./support/sign-in.ts";
+import {
+  PREFIX,
+  addPlace,
+  logBooking,
+  placeName,
+  removePlace,
+  row,
+} from "./support/places.ts";
 
 /**
  * The Org → Booking journey, clicked rather than asserted against the database.
@@ -20,52 +28,6 @@ import { AMY, BEN, signIn } from "./support/sign-in.ts";
  * where a non-default zone is actually reachable: `places.spec.ts`'s
  * coordinate-derivation test.
  */
-const PREFIX = "Playwright";
-
-const placeName = (suffix = "") =>
-  `${PREFIX} ${Date.now()}${Math.random().toString(36).slice(2, 6)}${suffix}`;
-
-/** A row in either list — both pages render `<ul><li>`. */
-function row(page: Page, text: string): Locator {
-  return page.getByRole("listitem").filter({ hasText: text });
-}
-
-async function addPlace(page: Page, name: string) {
-  await page.goto("/booking-buddy/orgs");
-  await page.getByText("Can't find your club?").click();
-  await page.getByLabel("Place name").fill(name);
-  await page.getByRole("button", { name: "Add place" }).click();
-  await expect(row(page, name)).toBeVisible();
-}
-
-async function removePlace(page: Page, name: string) {
-  await page.goto("/booking-buddy/orgs");
-  await row(page, name).getByRole("button", { name: "Remove" }).click();
-  await page.getByRole("button", { name: "Remove place" }).click();
-  await expect(row(page, name)).toHaveCount(0);
-}
-
-async function logBooking(
-  page: Page,
-  booking: {
-    place: string;
-    court: string;
-    date: string;
-    start: string;
-    end: string;
-  },
-) {
-  await page.goto("/booking-buddy/bookings");
-  await page.getByLabel("Where").selectOption({ label: booking.place });
-  await page.getByLabel("Court").fill(booking.court);
-  await page.getByLabel("Date").fill(booking.date);
-  // Half-hour slots only (issue #20 follow-up) — these are `<select>`s now,
-  // not free-typed times, so a value off the half-hour grid isn't reachable.
-  await page.getByLabel("Start").selectOption(booking.start);
-  await page.getByLabel("End").selectOption(booking.end);
-  await page.getByRole("button", { name: "Log booking" }).click();
-}
-
 test.beforeEach(async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy/orgs");
 });

@@ -9,12 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { HALF_HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import {
+  BOOKING_FORMAT_LABEL,
+  MAX_ROTATION_BUFFER,
+  isOverCapacity,
+} from "@/lib/booking-buddy/capacity";
 import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
+  attachBookingToSlot,
   createSlot,
+  detachBookingFromSlot,
   getSlotResponses,
+  setRotationBuffer,
   type Slot,
+  type SlotCapacity,
   type SlotResponse,
   type SlotResponses,
 } from "@/lib/booking-buddy/actions/slots";
@@ -113,6 +122,21 @@ const ANSWER_LABEL: Record<ResponseAnswer, string> = {
 
 const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
 
+/**
+ * The Responses query, shared by the buttons and the Capacity panel.
+ *
+ * One key, so the optimistic "yes" that `ResponseButtons` writes into the
+ * cache moves the over-capacity signal at the same moment — the count and the
+ * thing it's counted against can't disagree if they read the same cache entry.
+ */
+function slotResponsesQuery(slotId: string, initial: SlotResponses) {
+  return {
+    queryKey: ["booking-buddy", "slot", slotId, "responses"],
+    queryFn: () => getSlotResponses(slotId),
+    initialData: initial,
+  };
+}
+
 function answerFormData(slotId: string, answer: ResponseAnswer): FormData {
   const data = new FormData();
   data.set("slot_id", slotId);
@@ -162,13 +186,9 @@ export function ResponseButtons({
   initial: SlotResponses;
 }) {
   const queryClient = useQueryClient();
-  const queryKey = ["booking-buddy", "slot", slotId, "responses"];
+  const { queryKey } = slotResponsesQuery(slotId, initial);
 
-  const query = useQuery({
-    queryKey,
-    queryFn: () => getSlotResponses(slotId),
-    initialData: initial,
-  });
+  const query = useQuery(slotResponsesQuery(slotId, initial));
 
   const mutation = useMutation({
     mutationFn: async (answer: ResponseAnswer) => {
@@ -248,5 +268,233 @@ export function ResponseButtons({
         ))}
       </ul>
     </div>
+  );
+}
+
+function courtsLabel(courtCount: number): string {
+  return courtCount === 1 ? "1 court" : `${courtCount} courts`;
+}
+
+/**
+ * What this Slot holds, and whether it's overflowing.
+ *
+ * Reads the same Responses cache entry `ResponseButtons` writes to, so the
+ * count moves with an optimistic answer instead of waiting for the page to be
+ * re-rendered on the server.
+ *
+ * The over-capacity line is the organizer's alone — it's a prompt to book
+ * another court, which nobody else can act on — but the Capacity itself is
+ * shown to everyone who can see the Slot, so "is there still room" is a
+ * question a friend can answer without asking.
+ */
+export function SlotCapacityPanel({
+  slotId,
+  isOwner,
+  capacity,
+  initial,
+}: {
+  slotId: string;
+  isOwner: boolean;
+  capacity: SlotCapacity;
+  initial: SlotResponses;
+}) {
+  const query = useQuery(slotResponsesQuery(slotId, initial));
+  const yesCount = query.data.responses.filter(
+    (response) => response.answer === "yes",
+  ).length;
+
+  if (capacity.capacity === null) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {yesCount} in so far. No court attached yet, so there&apos;s no capacity
+        to fill — this is still a proposal.
+      </p>
+    );
+  }
+
+  const over = isOverCapacity({ capacity: capacity.capacity, yesCount });
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm">
+        <span className="font-medium">
+          {yesCount} of {capacity.capacity} spots taken
+        </span>
+        <span className="text-muted-foreground">
+          {" — "}
+          {courtsLabel(capacity.courtCount)}
+          {capacity.rotationBuffer > 0 &&
+            ` plus ${capacity.rotationBuffer} rotating`}
+        </span>
+      </p>
+
+      {over && isOwner && (
+        <p
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm"
+          role="status"
+        >
+          More yeses than spots. Nobody has been turned away — book another
+          court and attach it, raise the rotation buffer, or leave it as is.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The organizer's court controls: which Bookings this Slot is built on, and
+ * how many extra players rotate through.
+ *
+ * Rendered for the owner only — a friend has no Bookings of their own to
+ * attach here, and `bookings` is owner-only anyway, so there would be nothing
+ * to show.
+ */
+export function SlotCourts({
+  slotId,
+  capacity,
+}: {
+  slotId: string;
+  capacity: SlotCapacity;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      {capacity.attached.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No court attached yet. Attach a booking once you&apos;ve reserved one
+          and this becomes a real game with real capacity.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border rounded-lg border border-border">
+          {capacity.attached.map((booking) => (
+            <li
+              key={booking.id}
+              className="flex items-center justify-between gap-4 px-5 py-4"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium">{booking.when}</p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {booking.orgName} · {booking.courtLabel} ·{" "}
+                  {BOOKING_FORMAT_LABEL[booking.format]}
+                </p>
+              </div>
+              <DetachBookingButton slotId={slotId} booking={booking} />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <AttachBookingForm slotId={slotId} capacity={capacity} />
+      <RotationBufferForm slotId={slotId} rotationBuffer={capacity.rotationBuffer} />
+    </div>
+  );
+}
+
+function AttachBookingForm({
+  slotId,
+  capacity,
+}: {
+  slotId: string;
+  capacity: SlotCapacity;
+}) {
+  const [state, formAction, pending] = useActionState(attachBookingToSlot, EMPTY);
+
+  if (capacity.attachable.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {capacity.attached.length === 0
+          ? "You haven't logged any bookings yet — log one first, then attach it here."
+          : "Every booking you've logged is already on this slot."}
+      </p>
+    );
+  }
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="slot_id" value={slotId} />
+
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="attach-booking">Add a court</Label>
+        <FormSelect id="attach-booking" name="booking_id" defaultValue="" required>
+          <option value="" disabled>
+            Pick a booking
+          </option>
+          {capacity.attachable.map((booking) => (
+            <option key={booking.id} value={booking.id}>
+              {booking.when} — {booking.orgName} · {booking.courtLabel} ·{" "}
+              {BOOKING_FORMAT_LABEL[booking.format]}
+            </option>
+          ))}
+        </FormSelect>
+      </div>
+
+      <div className="flex flex-col items-start gap-1">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Attaching…" : "Attach booking"}
+        </Button>
+        <ActionError state={state} />
+      </div>
+    </form>
+  );
+}
+
+function DetachBookingButton({
+  slotId,
+  booking,
+}: {
+  slotId: string;
+  booking: SlotCapacity["attached"][number];
+}) {
+  const [state, formAction, pending] = useActionState(detachBookingFromSlot, EMPTY);
+
+  return (
+    <form action={formAction} className="flex flex-col items-end gap-1">
+      <input type="hidden" name="slot_id" value={slotId} />
+      <input type="hidden" name="booking_id" value={booking.id} />
+      <Button type="submit" size="sm" variant="ghost" disabled={pending}>
+        {pending ? "Detaching…" : "Detach"}
+      </Button>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
+function RotationBufferForm({
+  slotId,
+  rotationBuffer,
+}: {
+  slotId: string;
+  rotationBuffer: number;
+}) {
+  const [state, formAction, pending] = useActionState(setRotationBuffer, EMPTY);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="slot_id" value={slotId} />
+
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="rotation-buffer">Rotation buffer</Label>
+        <Input
+          id="rotation-buffer"
+          name="rotation_buffer"
+          type="number"
+          min={0}
+          max={MAX_ROTATION_BUFFER}
+          step={1}
+          defaultValue={rotationBuffer}
+          className="sm:max-w-32"
+        />
+        <p className="text-xs text-muted-foreground">
+          Extra players on top of what the courts hold, for anyone rotating in
+          and out.
+        </p>
+      </div>
+
+      <div className="flex flex-col items-start gap-1">
+        <Button type="submit" variant="outline" disabled={pending}>
+          {pending ? "Saving…" : "Save buffer"}
+        </Button>
+        <ActionError state={state} />
+      </div>
+    </form>
   );
 }
