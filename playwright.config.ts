@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { GOOGLE_PLACES_MOCK_URL } from "./e2e/support/google-places-mock.ts";
+
 /**
  * Browser tests, kept apart from `npm test`.
  *
@@ -29,5 +31,16 @@ export default defineConfig({
     // the port. Next refuses to start a second one anyway.
     reuseExistingServer: true,
     timeout: 120_000,
+    // Only takes effect when Playwright starts the server itself — i.e.
+    // always in CI, where nothing is already listening on :3000. A locally
+    // reused dev server keeps whatever's in its own `.env` (the real Google
+    // host by default), which is why e2e/places.spec.ts needs a dev server
+    // that *wasn't* already running to get the mock — see testing.md.
+    env: {
+      GOOGLE_PLACES_API_BASE_URL: GOOGLE_PLACES_MOCK_URL,
+      // The mock never validates this; a placeholder keeps CI from needing a
+      // real key provisioned just to run tests that never call Google.
+      GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY ?? "test-key-for-e2e",
+    },
   },
 });
