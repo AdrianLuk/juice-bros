@@ -25,17 +25,6 @@ export default async function BookingsPage() {
 
   const { orgs, bookings } = await getBookingsPageData();
 
-  // Resolved here rather than in the client component so both renders agree on
-  // the same list — Node's ICU and the browser's are free to disagree about
-  // which zones exist, and that would be a hydration mismatch.
-  //
-  // `UTC` is prepended because Node's list genuinely omits it, and a machine
-  // configured to UTC — a Linux desktop, a container, Firefox with
-  // `resistFingerprinting` on — would otherwise have no way to say so. Postgres
-  // recognises it. The select adds the browser's own zone too when the list is
-  // missing it, so this is a floor rather than the whole answer.
-  const zones = ["UTC", ...Intl.supportedValuesOf("timeZone")];
-
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
@@ -66,7 +55,7 @@ export default async function BookingsPage() {
                   reserved.
                 </p>
                 <div className="mt-4">
-                  <CreateBookingForm orgs={orgs} zones={zones} />
+                  <CreateBookingForm orgs={orgs} />
                 </div>
               </section>
 

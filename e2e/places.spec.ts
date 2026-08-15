@@ -166,6 +166,49 @@ test("Google being unreachable reports it honestly, and the hand-typed fallback 
   await removePlace(page, handTyped);
 });
 
+test("a picked place's time zone is derived from its coordinates, no question asked", async ({
+  page,
+}) => {
+  const query = uniqueName();
+  const placeId = `mock-${query}`;
+
+  // Vancouver, not Toronto — picked specifically to differ from every other
+  // spec's default zone and from most CI runners' local zone, so a passing
+  // assertion actually proves the derivation ran rather than coincidentally
+  // matching the environment (issue #20).
+  mock.registerSearch(query, [
+    { placeId, name: query, formattedAddress: "800 Robson St, Vancouver, BC" },
+  ]);
+  mock.registerDetails(placeId, {
+    placeId,
+    name: query,
+    formattedAddress: "800 Robson St, Vancouver, BC",
+    latitude: 49.2827,
+    longitude: -123.1207,
+  });
+
+  await search(page, query);
+  await candidateRow(page, query).getByRole("button", { name: "Add this place" }).click();
+  await expect(orgRow(page, query)).toBeVisible();
+
+  // No time-zone field anywhere in this flow — `pickPlace` derived it
+  // server-side. Logging a booking against this Org is the only way to
+  // observe the result, since the Orgs list doesn't render a zone.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByLabel("Where").selectOption({ label: query });
+  await page.getByLabel("Court").fill("Vancouver court");
+  await page.getByLabel("Date").fill("2026-09-15");
+  await page.getByLabel("Start").selectOption("18:00");
+  await page.getByLabel("End").selectOption("19:00");
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  const booking = row(page, "Vancouver court");
+  await expect(booking).toContainText("6:00");
+  await expect(booking).toContainText("7:00");
+
+  await removePlace(page, query);
+});
+
 test("a place_id that stops resolving is refused rather than creating a broken Org", async ({
   page,
 }) => {

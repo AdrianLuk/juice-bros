@@ -9,6 +9,7 @@ import type { ActionResult } from "./result.ts";
 import { orgWriteMessage } from "../orgs.ts";
 import { ensureFreshPlaceCache } from "../place-cache.ts";
 import { searchPlacesText } from "../google-places-client.ts";
+import { deriveTimeZoneFromCoordinates } from "../derive-time-zone.ts";
 import {
   parsePlacePick,
   parsePlaceSearchQuery,
@@ -94,10 +95,28 @@ export async function pickPlace(
     return { error: placePickFailedMessage(outcome.reason) };
   }
 
+  // Coordinates give a zone — no question asked for a Place-backed Org
+  // (issue #20). A miss here (no coordinates cached, or geo-tz finding
+  // nothing usable) is rare enough not to block Org creation over; 'UTC' is a
+  // logged stopgap, not a real answer for where PicklePlex Downsview is.
+  const timeZone =
+    outcome.latitude !== null && outcome.longitude !== null
+      ? deriveTimeZoneFromCoordinates(outcome.latitude, outcome.longitude)
+      : null;
+
+  if (!timeZone) {
+    console.error(
+      "booking-buddy: couldn't derive a time zone for place",
+      parsed.placeId,
+      { latitude: outcome.latitude, longitude: outcome.longitude },
+    );
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("orgs").insert({
     owner_id: session.userId,
     google_place_id: parsed.placeId,
+    time_zone: timeZone ?? "UTC",
     // Explicit rather than omitted, so the check constraint's "exactly one of
     // the two" reads the same here as it does in the migration.
     name: null,

@@ -10,46 +10,42 @@
  * `bookings` migration — change one and you must change the other.
  */
 
+import { isKnownTimeZone } from "./timezone.ts";
+
 export const COURT_LABEL_MAX_LENGTH = 40;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+// Half-hour boundaries only. Courts are booked in half-hour chunks, not
+// whatever a free-typed or click-dragged time picker happens to land on — a
+// "6:23 PM" booking isn't a real reservation anyone could have made.
+const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
 
 export type NewBooking = {
   orgId: string;
   courtLabel: string;
-  /**
-   * A wall-clock time carrying its own zone — `2026-08-20 18:00:00
-   * America/Toronto`. Postgres does the DST-aware conversion to an instant
-   * itself, which is a great deal harder to get wrong than doing it here.
-   */
-  startsAt: string;
-  endsAt: string;
-  timeZone: string;
+  date: string;
+  startTime: string;
+  endTime: string;
 };
 
 /**
- * Is this a zone anything can actually render?
- *
- * The trigger on `bookings` asks Postgres the same question and is the
- * authority. Asking here first is what turns a raw constraint violation into a
- * sentence about the form the User just filled in.
+ * Every half-hour slot in a day, `"00:00"` through `"23:30"` — what the start
+ * and end pickers offer. A `<select>` rather than `<input type="time">` so a
+ * User physically cannot choose anything off the half-hour grid; the pattern
+ * above is the server-side backstop for a request built by hand.
  */
-export function isKnownTimeZone(zone: string): boolean {
-  // `Intl` accepts bare offsets like `+05:30`, and `pg_timezone_names` does
-  // not — so without this the trigger refuses a row this function just called
-  // fine. An offset is not a zone in any case: it cannot say what happens when
-  // the clocks change, which is the one thing storing the zone is for.
-  if (!/^[A-Za-z]/.test(zone)) {
-    return false;
-  }
+export const HALF_HOUR_TIMES: readonly string[] = Array.from(
+  { length: 48 },
+  (_, index) =>
+    `${String(Math.floor(index / 2)).padStart(2, "0")}:${index % 2 === 0 ? "00" : "30"}`,
+);
 
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: zone });
-    return true;
-  } catch {
-    return false;
-  }
+/** `"18:30"` → `"6:30 PM"`, for the option labels — the value posted is still 24-hour. */
+export function formatTimeLabel(time: string): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  const period = hours < 12 ? "AM" : "PM";
+  const twelveHour = hours % 12 === 0 ? 12 : hours % 12;
+  return `${twelveHour}:${String(minutes).padStart(2, "0")} ${period}`;
 }
 
 /** A calendar date, not merely four digits and two hyphens. */
@@ -104,21 +100,7 @@ export function parseNewBooking(
     return { error: "The end time has to be after the start time." };
   }
 
-  const timeZone = String(formData.get("time_zone") ?? "").trim();
-  // Never defaulted to the server's zone. That is precisely the bug this column
-  // exists to prevent: in production the server is on UTC, which would turn a
-  // 6pm court booking into 10pm.
-  if (!isKnownTimeZone(timeZone)) {
-    return { error: "Couldn't tell what time zone you're in. Try again." };
-  }
-
-  return {
-    orgId,
-    courtLabel,
-    startsAt: `${date} ${startTime}:00 ${timeZone}`,
-    endsAt: `${date} ${endTime}:00 ${timeZone}`,
-    timeZone,
-  };
+  return { orgId, courtLabel, date, startTime, endTime };
 }
 
 /**
@@ -164,11 +146,11 @@ export function formatBookingWhen(booking: {
 /**
  * Turns a failed Booking write into something worth reading.
  *
- * `23514` arrives from five different rules — both branches of
+ * `23514` arrives from four rules — the org-ownership branch of
  * `assert_booking_coherent` and three check constraints — so the code alone
- * doesn't say what went wrong. Telling someone their time-zone problem is an
- * ownership problem sends them looking in entirely the wrong place, which is
- * why the message is read rather than assumed.
+ * doesn't say what went wrong. The zone-validity branch that used to live here
+ * moved to `orgs` with the column (issue #20); a Booking write can no longer
+ * raise it.
  */
 export function bookingWriteMessage(error: {
   code?: string;
@@ -176,10 +158,6 @@ export function bookingWriteMessage(error: {
 }): string {
   if (error.code !== "23514") {
     return "Couldn't save that booking. Try again.";
-  }
-
-  if (error.message?.includes("time zone")) {
-    return "That time zone isn't one the calendar recognises. Pick another.";
   }
 
   if (error.message?.includes("orgs")) {

@@ -10,17 +10,30 @@
  * `orgs` migration — change one and you must change the other.
  */
 
+import { isKnownTimeZone } from "./timezone.ts";
+
 export const ORG_NAME_MAX_LENGTH = 80;
 
-export type HandNamedOrg = { name: string };
+/**
+ * Every early User of this app is in Toronto, and so is everyone they're
+ * testing with — asking a hand-typed venue to pick a zone reads as an
+ * unrelated speed bump on top of "I couldn't even find my club" (issue #20
+ * follow-up). `parseHandNamedOrg` still accepts a `time_zone` field when the
+ * form sends one, so wiring `TimeZoneSelect` (`time-zone-select.tsx`, kept
+ * around unused for this) back into `CreateOrgForm` is the entire job of
+ * bringing the picker back once a User outside Toronto shows up.
+ */
+export const DEFAULT_HAND_NAMED_TIME_ZONE = "America/Toronto";
+
+export type HandNamedOrg = { name: string; timeZone: string };
 
 /**
  * The hand-typed path: a venue Google has no listing for.
  *
  * The Place-backed path has no parser here because there is nothing to parse —
  * the User picks a candidate the server itself fetched, so the `place_id` comes
- * from our own search results rather than from the form. That path arrives with
- * issue #18.
+ * from our own search results rather than from the form, and its time zone is
+ * derived from the Place's coordinates rather than asked (issue #20).
  */
 export function parseHandNamedOrg(
   formData: FormData,
@@ -39,7 +52,19 @@ export function parseHandNamedOrg(
     };
   }
 
-  return { name };
+  // No field in the form today — see `DEFAULT_HAND_NAMED_TIME_ZONE`. A value
+  // is still honoured if one shows up (the picker's `name="time_zone"` would
+  // slot back in unchanged), and still validated either way: a bad zone
+  // shouldn't reach the database's own check just because this path is
+  // usually silent about it.
+  const rawTimeZone = String(formData.get("time_zone") ?? "").trim();
+  const timeZone = rawTimeZone || DEFAULT_HAND_NAMED_TIME_ZONE;
+
+  if (!isKnownTimeZone(timeZone)) {
+    return { error: "Couldn't tell what time zone to use for this place. Try again." };
+  }
+
+  return { name, timeZone };
 }
 
 export type OrgIdentity = {
@@ -89,18 +114,27 @@ const FAILED: Record<OrgWrite, string> = {
   delete: "Couldn't remove that place. Try again.",
 };
 
-/** Turns a failed write into something worth reading. */
+/**
+ * Turns a failed write into something worth reading.
+ *
+ * `23514` arrives from two sources: the place-backed/hand-named check
+ * constraint, and (for a hand-named Org) the `orgs_time_zone_known` trigger.
+ * `isKnownTimeZone` already catches a bad zone before the database sees it, so
+ * the second case shouldn't be reachable from the form as it stands — but a
+ * wrong answer here would be baffling either way, so the message is read
+ * rather than assumed.
+ */
 export function orgWriteMessage(
-  error: { code?: string },
+  error: { code?: string; message?: string },
   write: OrgWrite,
 ): string {
   switch (error.code) {
     case "23505":
       return "You've already added that place.";
     case "23514":
-      // The place-backed/hand-named check constraint. Not reachable from the
-      // form as it stands, but a wrong answer here would be baffling.
-      return "A place needs either a Google listing or a name of its own.";
+      return error.message?.includes("time zone")
+        ? "That time zone isn't one the calendar recognises. Pick another."
+        : "A place needs either a Google listing or a name of its own.";
     default:
       return FAILED[write];
   }

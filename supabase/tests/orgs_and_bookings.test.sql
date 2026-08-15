@@ -1,10 +1,13 @@
 -- An Org is one User's record of playing at a Place; a Booking is one court
 -- reservation held there (see CONTEXT.md). Both belong to exactly one User.
 --
--- Three rules are worth pinning down at this layer:
+-- Four rules are worth pinning down at this layer:
 --
 --   * an Org names a Google Place or carries a hand-typed name, never both and
 --     never neither (ADR 0005);
+--   * an Org carries the facility's own clock — not null, and it has to be a
+--     zone Postgres itself recognises (issue #20; moved here from
+--     `bookings.time_zone`, which no longer exists);
 --   * Bookings are never friend-visible on their own — a friend only ever
 --     learns about one through a Slot it has been attached to, which is Phase
 --     5's problem, so here even an accepted Connection sees nothing;
@@ -15,11 +18,14 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(29);
+select plan(33);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
 select has_table('public', 'place_cache', 'place_cache table exists');
+
+select has_column('public', 'orgs', 'time_zone', 'orgs carries the facility''s clock (issue #20)');
+select hasnt_column('public', 'bookings', 'time_zone', 'bookings no longer carries its own time zone (issue #20)');
 
 -- Both reads are "mine, newest first", and the two unique indexes are partial,
 -- so neither of them can serve it. Asserted because a missing index is a
@@ -54,17 +60,18 @@ insert into public.place_cache (place_id, name, formatted_address, latitude, lon
 
 -- Ben plays at the same club as Amy, and has his own Org for it. That two rows
 -- carry one `place_id` is the entire reason for storing one.
-insert into public.orgs (id, owner_id, google_place_id) values
-  ('cccc0000-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000012', 'ChIJpickleplex-downsview');
+insert into public.orgs (id, owner_id, google_place_id, time_zone) values
+  ('cccc0000-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000012', 'ChIJpickleplex-downsview', 'America/Toronto');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000011", "role": "authenticated"}';
 
-insert into public.orgs (id, owner_id, google_place_id)
+insert into public.orgs (id, owner_id, google_place_id, time_zone)
 values (
   'aaaa0000-0000-0000-0000-000000000001',
   'aaaaaaaa-0000-0000-0000-000000000011',
-  'ChIJpickleplex-downsview'
+  'ChIJpickleplex-downsview',
+  'America/Toronto'
 );
 
 select is(
@@ -73,13 +80,20 @@ select is(
   'a User can create a Place-backed Org and read it back'
 );
 
+select is(
+  (select time_zone from public.orgs where id = 'aaaa0000-0000-0000-0000-000000000001'),
+  'America/Toronto',
+  'the Org carries the facility''s clock, derived from its coordinates at pick time'
+);
+
 -- The escape hatch for a venue Google has never heard of. Permanently a second
 -- class of Org: nothing cross-User can join it to anyone else's.
-insert into public.orgs (id, owner_id, name)
+insert into public.orgs (id, owner_id, name, time_zone)
 values (
   'aaaa0000-0000-0000-0000-000000000002',
   'aaaaaaaa-0000-0000-0000-000000000011',
-  'Bob''s backyard court'
+  'Bob''s backyard court',
+  'America/Vancouver'
 );
 
 select is(
@@ -91,11 +105,12 @@ select is(
 -- A hand-typed name alongside a place_id is the divergence problem ADR 0005
 -- exists to prevent: the club would be renameable per owner after all.
 select throws_ok(
-  $$insert into public.orgs (owner_id, google_place_id, name)
+  $$insert into public.orgs (owner_id, google_place_id, name, time_zone)
     values (
       'aaaaaaaa-0000-0000-0000-000000000011',
       'ChIJvaughan-pickleball',
-      'Vaughan Pickleball, but my spelling'
+      'Vaughan Pickleball, but my spelling',
+      'America/Toronto'
     )$$,
   '23514',
   null,
@@ -103,20 +118,37 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$insert into public.orgs (owner_id)
-    values ('aaaaaaaa-0000-0000-0000-000000000011')$$,
+  $$insert into public.orgs (owner_id, time_zone)
+    values ('aaaaaaaa-0000-0000-0000-000000000011', 'America/Toronto')$$,
   '23514',
   null,
   'an Org must be one or the other — neither is not an Org'
 );
 
+select throws_ok(
+  $$insert into public.orgs (owner_id, name)
+    values ('aaaaaaaa-0000-0000-0000-000000000011', 'No zone given')$$,
+  '23502',
+  null,
+  'an Org cannot be created without a time zone'
+);
+
+select throws_ok(
+  $$insert into public.orgs (owner_id, name, time_zone)
+    values ('aaaaaaaa-0000-0000-0000-000000000011', 'Mars court', 'Mars/Olympus_Mons')$$,
+  '23514',
+  null,
+  'an Org cannot carry a time zone Postgres does not recognise'
+);
+
 -- Two rows for one club would be two indistinguishable entries in the Booking
 -- form's picker.
 select throws_ok(
-  $$insert into public.orgs (owner_id, google_place_id)
+  $$insert into public.orgs (owner_id, google_place_id, time_zone)
     values (
       'aaaaaaaa-0000-0000-0000-000000000011',
-      'ChIJpickleplex-downsview'
+      'ChIJpickleplex-downsview',
+      'America/Toronto'
     )$$,
   '23505',
   null,
@@ -124,31 +156,30 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$insert into public.orgs (owner_id, name)
-    values ('aaaaaaaa-0000-0000-0000-000000000011', 'bob''s BACKYARD court')$$,
+  $$insert into public.orgs (owner_id, name, time_zone)
+    values ('aaaaaaaa-0000-0000-0000-000000000011', 'bob''s BACKYARD court', 'America/Vancouver')$$,
   '23505',
   null,
   'the same owner cannot add two hand-named Orgs alike but for casing'
 );
 
 select throws_ok(
-  $$insert into public.orgs (owner_id, name)
-    values ('bbbbbbbb-0000-0000-0000-000000000012', 'Amy pretending to be Ben')$$,
+  $$insert into public.orgs (owner_id, name, time_zone)
+    values ('bbbbbbbb-0000-0000-0000-000000000012', 'Amy pretending to be Ben', 'America/Toronto')$$,
   '42501',
   null,
   'a User cannot create an Org owned by someone else'
 );
 
 -- A Booking under an Org of your own is the ordinary case.
-insert into public.bookings (id, org_id, owner_id, court_label, starts_at, ends_at, time_zone)
+insert into public.bookings (id, org_id, owner_id, court_label, starts_at, ends_at)
 values (
   'bbbb0000-0000-0000-0000-000000000001',
   'aaaa0000-0000-0000-0000-000000000001',
   'aaaaaaaa-0000-0000-0000-000000000011',
   'Court 3',
   '2026-08-20 18:00:00 America/Toronto',
-  '2026-08-20 19:30:00 America/Toronto',
-  'America/Toronto'
+  '2026-08-20 19:30:00 America/Toronto'
 );
 
 select is(
@@ -161,14 +192,13 @@ select is(
 -- somebody else's Org would misattribute it, and RLS alone does not stop it:
 -- the insert is on `bookings`, a table Amy is allowed to write.
 select throws_ok(
-  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at, time_zone)
+  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at)
     values (
       'cccc0000-0000-0000-0000-000000000001',
       'aaaaaaaa-0000-0000-0000-000000000011',
       'Court 1',
       '2026-08-21 18:00:00 America/Toronto',
-      '2026-08-21 19:00:00 America/Toronto',
-      'America/Toronto'
+      '2026-08-21 19:00:00 America/Toronto'
     )$$,
   '23514',
   null,
@@ -176,35 +206,17 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at, time_zone)
+  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at)
     values (
       'aaaa0000-0000-0000-0000-000000000001',
       'aaaaaaaa-0000-0000-0000-000000000011',
       'Court 1',
       '2026-08-21 19:00:00 America/Toronto',
-      '2026-08-21 18:00:00 America/Toronto',
-      'America/Toronto'
+      '2026-08-21 18:00:00 America/Toronto'
     )$$,
   '23514',
   null,
   'a Booking cannot end before it starts'
-);
-
--- A zone Postgres cannot resolve makes `starts_at` unrenderable later, so it is
--- refused at the door rather than stored and discovered at Reminder time.
-select throws_ok(
-  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at, time_zone)
-    values (
-      'aaaa0000-0000-0000-0000-000000000001',
-      'aaaaaaaa-0000-0000-0000-000000000011',
-      'Court 1',
-      '2026-08-21 18:00:00 America/Toronto',
-      '2026-08-21 19:00:00 America/Toronto',
-      'Mars/Olympus_Mons'
-    )$$,
-  '23514',
-  null,
-  'a Booking cannot carry a time zone Postgres does not recognise'
 );
 
 -- Stored as an instant, so the same wall-clock reading in winter and summer are
