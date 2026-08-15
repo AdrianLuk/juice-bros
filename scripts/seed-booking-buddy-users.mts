@@ -22,6 +22,8 @@
 const API_URL = "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
 export const TEST_PASSWORD = "pickleball123";
 
@@ -78,6 +80,128 @@ async function createUser({
   throw new Error(`Creating ${email} failed (${response.status}): ${body}`);
 }
 
+/**
+ * The friendships the browser tests take as given.
+ *
+ * `e2e/friends.spec.ts` asserts that Amy and Ben are already friends, and
+ * `e2e/friend-groups.spec.ts` can only group someone it is already connected
+ * to — so without these, a fresh `supabase db reset` leaves five browser tests
+ * failing for reasons that have nothing to do with the code under test.
+ *
+ * `amyace2` and `benbackhand2` are deliberately left strangers: the two-sided
+ * request journey needs a pair who aren't connected yet.
+ */
+const SEEDED_FRIENDSHIPS = [
+  { requester: "amyace@example.com", addressee: "benbackhand@example.com" },
+  { requester: "amyace@example.com", addressee: "benbackhand2@example.com" },
+];
+
+/**
+ * Made as the Users themselves rather than with the service-role key, because
+ * `connections` is granted to `authenticated` and to nobody else. Seeding it
+ * any other way would mean widening a grant in production to make a local
+ * fixture convenient — and this way the fixture goes through the same policies
+ * the app does.
+ */
+async function accessToken(email: string): Promise<string> {
+  const response = await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: TEST_PASSWORD }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Signing in as ${email} failed: ${await response.text()}`);
+  }
+
+  return (await response.json()).access_token as string;
+}
+
+async function asUser(
+  token: string,
+  path: string,
+  init: RequestInit = {},
+): Promise<unknown> {
+  const response = await fetch(`${API_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: ANON_KEY,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...init.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`${init.method ?? "GET"} ${path} failed: ${await response.text()}`);
+  }
+
+  return response.status === 204 ? null : await response.json();
+}
+
+async function userId(token: string): Promise<string> {
+  const response = await fetch(`${API_URL}/auth/v1/user`, {
+    headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+  });
+  return (await response.json()).id as string;
+}
+
+type ConnectionRow = {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: string;
+};
+
+async function connect(requester: string, addressee: string): Promise<string> {
+  const [requesterToken, addresseeToken] = await Promise.all([
+    accessToken(requester),
+    accessToken(addressee),
+  ]);
+  const [requesterId, addresseeId] = await Promise.all([
+    userId(requesterToken),
+    userId(addresseeToken),
+  ]);
+
+  // RLS already limits this to the requester's own Connections, so the pair is
+  // found by filtering rather than by a query the policy would narrow anyway.
+  const existing = ((await asUser(
+    requesterToken,
+    "connections?select=id,requester_id,addressee_id,status",
+  )) as ConnectionRow[]).find(
+    (row) =>
+      (row.requester_id === requesterId && row.addressee_id === addresseeId) ||
+      (row.requester_id === addresseeId && row.addressee_id === requesterId),
+  );
+
+  if (existing?.status === "accepted") {
+    return "already friends";
+  }
+
+  const pending =
+    existing ??
+    ((await asUser(requesterToken, "connections", {
+      method: "POST",
+      body: JSON.stringify({
+        requester_id: requesterId,
+        addressee_id: addresseeId,
+      }),
+    })) as ConnectionRow[])[0];
+
+  // Only the addressee may accept — the RLS update policy says so, which is
+  // why this switches tokens rather than carrying on as the requester.
+  await asUser(addresseeToken, `connections?id=eq.${pending.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      status: "accepted",
+      responded_at: new Date().toISOString(),
+    }),
+  });
+
+  return "connected";
+}
+
 let created = 0;
 
 for (const account of TEST_ACCOUNTS) {
@@ -89,3 +213,10 @@ for (const account of TEST_ACCOUNTS) {
 console.log(
   `\n${created} created, ${TEST_ACCOUNTS.length - created} already existed. Password for all: ${TEST_PASSWORD}`,
 );
+
+console.log("");
+
+for (const { requester, addressee } of SEEDED_FRIENDSHIPS) {
+  const result = await connect(requester, addressee);
+  console.log(`${result}  ${requester} ↔ ${addressee}`);
+}
