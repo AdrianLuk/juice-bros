@@ -18,6 +18,12 @@ export const ORGS_PATH = `${BOOKING_BUDDY_ROOT}/orgs`;
 
 export const BOOKINGS_PATH = `${BOOKING_BUDDY_ROOT}/bookings`;
 
+export const SLOTS_PATH = `${BOOKING_BUDDY_ROOT}/slots`;
+
+export function slotPath(slotId: string): string {
+  return `${SLOTS_PATH}/${slotId}`;
+}
+
 export const SETTINGS_PATH = `${BOOKING_BUDDY_ROOT}/settings`;
 
 /** Reachable while signed out, despite living under the Booking Buddy root. */
