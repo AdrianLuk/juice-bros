@@ -42,6 +42,8 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Hosted environment
 
+- [x] Schema is current as of the friend-groups migration (2026-08-14). `npx supabase migration list` compares local against remote and is the quickest way to check whether that is still true — do it before assuming a hosted bug is a code bug.
+
 - [x] Hosted Supabase project `juice-bros` (ref `zhvhddzpgxtjdyrhgsqd`, region `ca-central-1`, Postgres 17), linked to this repo via `supabase link` — so `supabase db push` targets it.
 - [x] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` set on the Vercel project for Production and Preview, the service-role key marked sensitive. Repo linked to Vercel (`lukabaseballs-projects/juice-bros`).
 
@@ -90,7 +92,7 @@ Not done on #6:
 
 - [x] **Removing a friend is behind a confirmation dialog** (`@base-ui/react` alert-dialog, added via shadcn). The dialog's own confirm button is the only thing that can submit the remove form, so a stray click on the row can't destroy a Connection. Declining and cancelling are deliberately *not* gated — those are re-sendable. Covered by `e2e/friends.spec.ts`, including that cancelling really does leave the Connection alone.
 - [x] **The username question is answered**: `adrianluk` stands, and `/booking-buddy/settings` now lets anyone change theirs. Format rules mirror the `username_format` constraint; uniqueness is left to the index rather than a check-then-write, because asking first leaves a gap two people can claim the same handle through.
-- [ ] `supabase db push` — **only the friend-groups migration is still pending**; the other four are already on the hosted project. **Needs Adrian**: the push is blocked for agents. Nothing in Phase 3 is deployed until it runs.
+- [x] `supabase db push` — **done**. All six migrations now match local ↔ remote, confirmed with `supabase migration list`; `friend_groups`, `friend_group_members` and `visibility_overrides` exist on the hosted project and are empty. Phase 3's schema is deployed.
 - [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The pages are only reachable via links on the dashboard, which is only reachable by typing the URL.
 
 ### Notes carried out of the friends page
