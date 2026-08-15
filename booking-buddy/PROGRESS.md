@@ -25,7 +25,7 @@ What's left in a Server Action after that is glue, and glue is covered by 3.
 
 ---
 
-## Phase 0 — Tooling & scaffolding
+## Phase 0 — Tooling & scaffolding (#3)
 
 Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
@@ -123,18 +123,20 @@ One follow-up stays behind for later:
 
 **#18 (Google Places lookup for Orgs) is done** — see its own notes under Phase 4 above. That was the one-time exception to the recorded ordering; **start the next session with #8** (Slot as a poll) per that decision — it's still the critical-path ticket everything else in the plan sits behind, #9/#10/#11 all build on Slots existing. #20 is small and now unblocked if there's a reason to grab it first instead.
 
+[#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list, fka Phase 9.1's placeholder) is fully spec'd and ticketed, but deliberately queued **after** #18 and #8 — it only needs Bookings, which already ship, so it isn't blocked, but the existing #18-then-#8 order was a deliberate choice and this ticket doesn't unblock anything else in the graph.
+
 Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 
 **Work happens on a branch with a PR per ticket now**, not direct commits to `master`.
 
-## Phase 1 — User + Auth
+## Phase 1 — User + Auth ([#4](https://github.com/AdrianLuk/juice-bros/issues/4))
 
 - [x] 1.1 Schema: `public.profiles` (id references `auth.users`, display_name) + trigger to auto-create a profile row on signup. Also carries `username` — see `add_username`.
 - [x] 1.2 🔴 Test: inserting a row into `auth.users` results in a matching `profiles` row → 🟢 implemented as `handle_new_user()`
 - [x] 1.3 Auth UI: sign-in page offering magic link, Google OAuth, and email/password. All three verified; Google's consent screen is in Testing mode, so only listed test users can use it.
 - [x] 1.4 `/booking-buddy/settings`: change your Username. Signup assigns one so nobody has to think about it, but the handle you hand out shouldn't be one an algorithm picked. Rules in `src/lib/booking-buddy/username.ts` mirror the database's; uniqueness is the index's job, not a check-then-write.
 
-## Phase 2 — Connection
+## Phase 2 — Connection ([#5](https://github.com/AdrianLuk/juice-bros/issues/5))
 
 - [x] 2.1 Schema: `connections` (requester_id, addressee_id, status: pending/accepted, created_at)
 - [x] 2.2 🔴 Test: `sendConnectionRequest` creates a pending Connection between two Users → 🟢 implement
@@ -143,7 +145,7 @@ Confirm the local stack is current first: `supabase start` (Docker), `npx supaba
 - [x] 2.5 🔴 RLS test: querying `connections` directly as a third User (not requester or addressee) returns no row → 🟢 implement coarse policy
 - [x] 2.6 Discovery: `search_users` and Usernames (ADR 0004), plus `/booking-buddy/friends` — the search box, both pending-request lists and the accepted Connections list. Ahead of Phase 9's route work because issue #5 is only demonstrable with a UI.
 
-## Phase 3 — Friend Group + Visibility
+## Phase 3 — Friend Group + Visibility ([#6](https://github.com/AdrianLuk/juice-bros/issues/6))
 
 - [x] 3.1 Schema: `friend_groups` (owner_id, name, default_visibility), `friend_group_members` (group_id, connection_id), `visibility_overrides` (owner_id, connection_id, level)
 - [x] 3.2 🔴 Test: `createFriendGroup` creates a group owned by the caller → 🟢 implement — **tested at the database seam, not the action seam** (see the deviation note below)
@@ -164,7 +166,7 @@ Confirm the local stack is current first: `supabase start` (Docker), `npx supaba
 - **The member picker shows `Name (@username)`, not just the name.** Found by the browser tests, not by review: with two "Ben Backhand"s in the local data, an `<option>` carrying only the display name gives no way to tell which friend you are adding. `personOptionLabel` exists for one-line contexts where `PersonName`'s second line doesn't fit.
 - **Beyond the ticket, on purpose**: groups can be deleted (a group you can't get rid of is a trap), names are unique per owner case-insensitively and capped at 60 characters (two "Tuesday crew"s are indistinguishable in the member picker), and the three level names were coined here and written into [CONTEXT.md](CONTEXT.md) — the issue asked for "a default visibility level" without saying what the levels are.
 
-## Phase 4 — Org + Booking
+## Phase 4 — Org + Booking ([#7](https://github.com/AdrianLuk/juice-bros/issues/7), [#18](https://github.com/AdrianLuk/juice-bros/issues/18))
 
 **Redesigned mid-session on 2026-08-14: an Org is Google Place-backed, not free text.** The reasoning, the alternatives rejected, and the consequences are in [adr/0005-orgs-identified-by-google-place-id.md](docs/adr/0005-orgs-identified-by-google-place-id.md); the vocabulary is in [CONTEXT.md](CONTEXT.md) under **Place** and **Org**. Read both before starting — the steps below are the shape, not the argument.
 
@@ -218,6 +220,8 @@ Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tes
 
 ## Phase 5 — Slot (poll → confirmed lifecycle, ADR 0001)
 
+*Split across two issues, not a clean 1:1*: 5.1 (the `slots` half)/5.2/5.6 are [#8](https://github.com/AdrianLuk/juice-bros/issues/8) (bare-proposal Slot creation + Slot RLS); 5.1 (the `slot_bookings` half)/5.3/5.4/5.5 are [#9](https://github.com/AdrianLuk/juice-bros/issues/9) (attaching Booking(s) + Capacity).
+
 - [ ] 5.1 Schema: `slots` (owner_id, proposed_start, proposed_end, rotation_buffer default 0), `slot_bookings` (slot_id, booking_id) join table for multi-Booking Slots (Q5d)
 - [ ] 5.2 🔴 Test: `createSlot` with no Booking creates a bare proposal → 🟢 implement
 - [ ] 5.3 🔴 Test: `attachBookingToSlot` links a Booking; only the Slot owner can attach → 🟢 implement
@@ -227,13 +231,15 @@ Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tes
 
 ## Phase 6 — Response
 
+*Also split*: 6.1/6.2/6.3 are [#8](https://github.com/AdrianLuk/juice-bros/issues/8) (Responses on a bare-proposal Slot); 6.4/6.5 are [#9](https://github.com/AdrianLuk/juice-bros/issues/9) (the over-capacity signal, since it needs Capacity from that ticket).
+
 - [ ] 6.1 Schema: `responses` (slot_id, user_id nullable, guest_name nullable, answer: yes/no/maybe, created_at) with a check constraint requiring exactly one of user_id/guest_name
 - [ ] 6.2 🔴 Test: `respondToSlot` records yes/no/maybe for a Connection with resolved visibility into the Slot → 🟢 implement, calling `resolveVisibility` from Phase 3 as a guard
 - [ ] 6.3 🔴 Test: `respondToSlot` rejects a User with no visibility into the Slot → 🟢 implement
 - [ ] 6.4 🔴 Test: `respondToSlot` succeeds even when confirmed "yes" Responses already exceed Capacity — no hard block (documents the ADR 0001 consequence explicitly) → 🟢 implement (no blocking logic needed, but the test proves it)
 - [ ] 6.5 🔴 Test: `isOverCapacity` returns true once "yes" Responses exceed `computeCapacity`'s result (pure function, drives the organizer-facing warning) → 🟢 implement
 
-## Phase 7 — Slot Link + Guest
+## Phase 7 — Slot Link + Guest ([#10](https://github.com/AdrianLuk/juice-bros/issues/10))
 
 - [ ] 7.1 Schema: `slot_links` (slot_id, token unique, created_at)
 - [ ] 7.2 🔴 Test: `generateSlotLink` creates an unguessable token tied to one Slot → 🟢 implement (crypto-random token)
@@ -244,6 +250,8 @@ Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tes
 
 ## Phase 8 — Reminder
 
+*Split by channel*: 8.1 (`notification_preferences`/`reminder_sends`)/8.2/8.4/8.5 (email half) are [#11](https://github.com/AdrianLuk/juice-bros/issues/11); 8.1 (`push_subscriptions`)/8.3/8.5 (push half) are [#12](https://github.com/AdrianLuk/juice-bros/issues/12), alongside PWA installability.
+
 - [ ] 8.1 Schema: `notification_preferences` (user_id, email_enabled default true, push_enabled default false), `push_subscriptions` (user_id, endpoint, keys), `reminder_sends` (slot_id, user_id, channel, sent_at) for idempotency
 - [ ] 8.2 🔴 Test: `getReminderRecipients` returns Users with a "yes" Response on a confirmed Slot only (has ≥1 Booking) — excludes bare proposals and Guests → 🟢 implement, matching `CONTEXT.md`'s Reminder definition exactly
 - [ ] 8.3 🔴 Test: `sendReminder` skips the push channel for a User with `push_enabled: false` → 🟢 implement, respecting preferences
@@ -252,12 +260,12 @@ Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tes
 
 ## Phase 9 — UI wiring (scoped per agreement — business logic already covered above)
 
-- [ ] 9.1 Routes: `/booking-buddy` (dashboard/calendar), `/booking-buddy/friends`, `/booking-buddy/slots/[id]`, `/booking-buddy/settings`, and the public guest route `/s/[token]` (outside the auth-gated layout)
+- [ ] 9.1 Routes: `/booking-buddy` (dashboard/calendar — spec'd and ticketed as [#23](https://github.com/AdrianLuk/juice-bros/issues/23), Booking-only for now since Slots don't exist yet), `/booking-buddy/friends`, `/booking-buddy/slots/[id]`, `/booking-buddy/settings`, and the public guest route `/s/[token]` (outside the auth-gated layout)
 - [ ] 9.2 TanStack Query hooks wrapping each Server Action, with mutation-driven query-key invalidation; initial data fetched server-side and hydrated (Q5)
 - [ ] 9.3 🔴 The one agreed high-stakes UI test: tapping "Yes" on a Slot shows an optimistic "yes" state immediately, before the server responds → 🟢 implement (tooling for this — RTL/jsdom vs. Playwright — to be decided when we reach this step)
-- [ ] 9.4 PWA: `manifest.json`, service worker, install prompt/nudge tied to enabling push notifications (Q8)
+- [ ] 9.4 PWA: `manifest.json`, service worker, install prompt/nudge tied to enabling push notifications (Q8) — see [#12](https://github.com/AdrianLuk/juice-bros/issues/12)
 
-## Phase 10 — Hardening pass
+## Phase 10 — Hardening pass ([#13](https://github.com/AdrianLuk/juice-bros/issues/13))
 
 - [ ] 10.1 Cross-check every table introduced in Phases 1-8 has at least the coarse default-deny RLS policy its phase specified
 - [ ] 10.2 Confirm the guest-abuse soft-threshold logging (7.6) is actually wired into the production `guestRespondViaLink` path, not just the test
