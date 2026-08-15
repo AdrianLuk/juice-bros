@@ -57,7 +57,7 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Outstanding — needs a human (cannot be done by an agent)
 
-- [ ] **Google Maps Platform API key for Places**, restricted to the Places API and to the app's own origins/IPs, exposed to the app as a server-only env var (never `NEXT_PUBLIC_*` — the whole point of the server-side lookup in Phase 4 is keeping it off the client). Blocks Phase 4.7. The existing Google Cloud project used for OAuth is the obvious home for it; enabling Places there needs billing on the project, which is a card on file even though the free tier almost certainly covers this app's volume.
+- [x] **Google Maps Platform API key for Places**, restricted to the Places API and to the app's own origins/IPs, exposed to the app as a server-only env var (never `NEXT_PUBLIC_*`). Provisioned 2026-08-14 (billing enabled on the existing Google Cloud project) and consumed by #18 — `GOOGLE_MAPS_API_KEY` in `.env.example`.
 
 - [x] Google Cloud OAuth credentials, wired into Supabase → Authentication → Providers → Google. Verified: `/auth/v1/authorize?provider=google` redirects to Google with a client id, the Supabase callback as `redirect_uri`, and `email profile` scopes.
 
@@ -119,9 +119,9 @@ Worth reading before Phase 5 repeats any of it:
 
 One follow-up stays behind for later:
 
-- [#20](https://github.com/AdrianLuk/juice-bros/issues/20) — `time_zone` belongs on `orgs`, not `bookings`. Blocked on #18 for the coordinates that make deriving it automatic. Next after #18.
+- [#20](https://github.com/AdrianLuk/juice-bros/issues/20) — `time_zone` belongs on `orgs`, not `bookings`. Was blocked on #18 for the coordinates that make deriving it automatic; unblocked now that #18 is shipped, but still not pulled in — Orgs don't render coordinates anywhere yet, only cache them.
 
-**Start the next session with #18** (Google Places lookup for Orgs), by explicit request over #8 — the API key is provisioned and Adrian wants Places hooked up now. `gh issue view 18 --json number,title,body,comments` (plain `gh issue view` fails on this repo with a Projects-classic GraphQL error). ADR 0005 has the design; the two decisions already made — server-side search, not autocomplete — are in the issue body, so don't relitigate them. #8 (Slot as a poll) is still the critical-path ticket everything else in the plan sits behind — #9, #10 and #11 all build on Slots existing — so it's next after #18 regardless of what else comes up.
+**#18 (Google Places lookup for Orgs) is done** — see its own notes under Phase 4 above. That was the one-time exception to the recorded ordering; **start the next session with #8** (Slot as a poll) per that decision — it's still the critical-path ticket everything else in the plan sits behind, #9/#10/#11 all build on Slots existing. #20 is small and now unblocked if there's a reason to grab it first instead.
 
 Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 
@@ -174,8 +174,8 @@ Confirm the local stack is current first: `supabase start` (Docker), `npx supaba
 - [x] 4.4 🔴 Test: `createBooking` requires an existing Org owned by the caller → 🟢 implement (trigger — the rule needs a subquery, and RLS does not cover it: the insert is on `bookings`, a table the User may write, and nothing in that policy looks at whose Org they named)
 - [x] 4.5 🔴 RLS test: querying `bookings` or `orgs` directly as a non-owner returns no rows — including as an *accepted Connection*, since a Booking reaches a friend only through an attached Slot → 🟢 implement coarse policy
 - [x] 4.6 🔴 RLS test: `place_cache` is readable by any authenticated User and writable by none → 🟢 select-only grant, writes via `service_role`
-- [ ] 4.7 🔴 Test: Place lookup — search returns candidates, picking one caches it, a stale row is refreshed → 🟢 implement — **moved to [#18](https://github.com/AdrianLuk/juice-bros/issues/18)**
-- [ ] 4.8 "Powered by Google" attribution on the Org picker and anywhere a Place's address is shown. Required by Google's terms, not optional. — **moved to [#18](https://github.com/AdrianLuk/juice-bros/issues/18)**
+- [x] 4.7 🔴 Test: Place lookup — search returns candidates, picking one caches it, a stale row is refreshed → 🟢 implement — shipped in [#18](https://github.com/AdrianLuk/juice-bros/issues/18), see its notes below
+- [x] 4.8 "Powered by Google" attribution on the Org picker and anywhere a Place's address is shown. Required by Google's terms, not optional. — shipped in [#18](https://github.com/AdrianLuk/juice-bros/issues/18)
 
 Beyond the numbered steps, #7 also shipped the UI its acceptance criteria ask for: `/booking-buddy/orgs` (add a hand-named place, see your places, remove one) and `/booking-buddy/bookings` (log a court reservation, see them soonest-first, remove one), both linked from the dashboard.
 
@@ -199,6 +199,22 @@ Beyond the numbered steps, #7 also shipped the UI its acceptance criteria ask fo
 - **`npm run seed:users` now seeds Connections too**, because it turned out not to be true that `db reset` + `seed:users` restores a working local environment — the friendships the browser tests assume were created by hand once and died with the reset, taking five unrelated tests with them. They are seeded as the Users themselves rather than with the service-role key: `connections` is granted to `authenticated` and nobody else, and widening a grant in production to make a local fixture convenient is the wrong trade. See [docs/local-test-accounts.md](docs/local-test-accounts.md) for which pairs and why.
 
 - **Removing a place and removing a booking both sit behind a confirmation dialog**, and neither was in the ticket. Same reasoning as the Friend Group delete: an entry you cannot get rid of is a trap, and a mistyped one would sit in the Booking form's picker forever. The dialogs say plainly that this only changes what Booking Buddy knows — the actual court reservation is untouched.
+
+**#18 (Google Places lookup for Orgs) is shipped**, PR opened against master from branch `google-places-org-lookup`. 4.7 and 4.8 above are it. No schema change and no new pgTAP — #7 already landed everything this ticket writes to.
+
+### Notes carried out of #18
+
+- **Places API (New)**, not the legacy `maps.googleapis.com/maps/api/place/*` surface — `POST /v1/places:searchText` for search, `GET /v1/places/{id}` for the Details refresh, both under `https://places.googleapis.com`. Google's current recommendation for a fresh key; if the wrong product turns out to have been enabled in Cloud Console, it's a one-file swap (`src/lib/booking-buddy/google-places-client.ts`).
+- **One `PLACE_CACHE_TTL_DAYS` (30), for the whole `place_cache` row, not just coordinates.** ADR 0005 gives a hard number only for coordinates and no caching exception at all for name/address; using the stricter number everywhere means one staleness check instead of two that could drift apart.
+- **Refresh happens at two touchpoints, never on every render** — the ADR 0005 constraint that a cache-miss page still has to render. `pickPlace` (`src/lib/booking-buddy/actions/places.ts`) refreshes synchronously, since the User is already waiting on a network round trip. `listOrgs` schedules a refresh for whatever's stale via `after()` (`next/server`) — runs after the response is already sent, so a Google outage can never slow down or fail the Orgs/Bookings pages. Both funnel through `ensureFreshPlaceCache` in `src/lib/booking-buddy/place-cache.ts`.
+- **A failed refresh drops coordinates rather than leaving them stale past 30 days.** Satisfies "refreshed or dropped" literally: success overwrites the whole row; failure on a row already past the TTL nulls just `latitude`/`longitude` (via the new `service_role` admin client, `src/lib/booking-buddy/supabase/admin.ts` — the second use of that key, after `place_cache`'s own writes in #7). Name/address stay, since nothing renders coordinates yet (that's #20) and `orgDisplayName` still needs something to show.
+- **A `place_id` that stops resolving (`not_found`) is handled differently depending on who's asking.** At pick time it's a blocking, actionable error ("search again") — the id came from a live search moments earlier, so a 404 is worth surfacing. In the background refresh of an existing Org it's silent: the last-known name/address stays, same as any other cache-miss degradation.
+- **The trust boundary on the pick form is `place_id` only.** `place_cache` is shared across every User, so a candidate's name/address is never trusted back from a hidden field — the server re-derives it itself (cache or a fresh Details call), the same reasoning ADR 0005 gives for why the table isn't User-writable.
+- **The hand-typed `CreateOrgForm` moved into a `<details>` disclosure** on the Orgs page ("Can't find your club?"), still reachable with JavaScript off — a native element rather than a client-side toggle, same posture as the rest of Booking Buddy's forms.
+- **Mocking a server-side `fetch` in Playwright needs its own seam**, since `page.route()` only intercepts requests the *browser* makes. `GOOGLE_PLACES_API_BASE_URL` (server-only, optional, defaults to the real API) lets `playwright.config.ts`'s `webServer.env` point a freshly-started dev server at a local fixture (`e2e/support/google-places-mock.ts`, fixed port so the URL can be baked into config ahead of time). That `env` block only takes effect when Playwright starts the server itself — `reuseExistingServer: true` means a dev server already running on :3000 keeps its own `.env` (the real Google host). CI always gets the override since nothing is already listening; a local run of `e2e/places.spec.ts` only gets it if `npm run dev` wasn't already up when `npm run test:e2e` started.
+- **The mock's writes to `place_cache` are real, committed rows in the local database** — and that broke a pgTAP assertion (`orgs_and_bookings.test.sql`, "a User with nothing of their own can still read the Place cache") that assumed the table was otherwise empty, since nothing had ever populated it before this ticket. `e2e/places.spec.ts` now sweeps every `place_id` its mock cached via a direct `service_role` delete (`deleteCachedPlaces` in the mock support file) in its own `afterAll`, using the same published local demo key `scripts/seed-booking-buddy-users.mts` already uses — the app itself has no such action (ADR 0005: nothing evicts a cached Place on purpose), so this is test-only cleanup, not a UI path. Worth remembering for any future ticket that writes real `place_cache` rows from a browser test.
+
+Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
 
 ## Phase 5 — Slot (poll → confirmed lifecycle, ADR 0001)
 
