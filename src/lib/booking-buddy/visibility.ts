@@ -6,24 +6,44 @@
  * Kept free of Next.js and Supabase imports so it can be unit tested directly.
  */
 
-export type VisibilityLevel = "none" | "slots" | "calendar";
+export type VisibilityLevel = "none" | "slots" | "open_time" | "calendar";
 
 /**
- * Least to most permissive. The order is the whole model — "most permissive
- * wins" reads straight off this array, and so does the picker's option list,
- * so adding a level means inserting it in the right place here and in the
- * `visibility_level` enum, and nowhere else.
+ * Not a total order. `slots` and `open_time` are independent, incomparable
+ * grants — one shares Slots without Availability Windows, the other shares
+ * Availability Windows without Slots — and `calendar` is both together.
+ * `none` is bottom, `calendar` is top; that's the whole order there is. This
+ * array is only display order for the picker's option list; the actual
+ * merge logic is `grantsOf`/`levelFromGrants` below, so adding a level means
+ * updating those two (and the `visibility_level` enum), not this array.
  */
 export const VISIBILITY_LEVELS: readonly VisibilityLevel[] = [
   "none",
   "slots",
+  "open_time",
   "calendar",
 ];
 
-const NO_VISIBILITY: VisibilityLevel = "none";
+type Grants = { slots: boolean; openTime: boolean };
 
-function isAtLeast(level: VisibilityLevel, required: VisibilityLevel): boolean {
-  return VISIBILITY_LEVELS.indexOf(level) >= VISIBILITY_LEVELS.indexOf(required);
+const GRANTS_BY_LEVEL: Record<VisibilityLevel, Grants> = {
+  none: { slots: false, openTime: false },
+  slots: { slots: true, openTime: false },
+  open_time: { slots: false, openTime: true },
+  calendar: { slots: true, openTime: true },
+};
+
+function levelFromGrants(grants: Grants): VisibilityLevel {
+  if (grants.slots && grants.openTime) {
+    return "calendar";
+  }
+  if (grants.slots) {
+    return "slots";
+  }
+  if (grants.openTime) {
+    return "open_time";
+  }
+  return "none";
 }
 
 /**
@@ -31,8 +51,10 @@ function isAtLeast(level: VisibilityLevel, required: VisibilityLevel): boolean {
  *
  * An explicit per-friend override wins outright, in both directions — it is
  * the only way to shut one person out without dismantling the group they are
- * in. Otherwise the most permissive of their groups applies, so adding someone
- * to a more open group can only ever expand what they see.
+ * in. Otherwise every one of their groups contributes whatever it grants, and
+ * the grants union — so being in a `slots` group and an `open_time` group
+ * gives the same access as being in one `calendar` group, and adding someone
+ * to a more open group can only ever expand what they see, never retract it.
  */
 export function resolveVisibility({
   groupLevels,
@@ -45,10 +67,15 @@ export function resolveVisibility({
     return override;
   }
 
-  return groupLevels.reduce<VisibilityLevel>(
-    (best, level) => (isAtLeast(level, best) ? level : best),
-    NO_VISIBILITY,
+  const grants = groupLevels.reduce<Grants>(
+    (acc, level) => {
+      const g = GRANTS_BY_LEVEL[level];
+      return { slots: acc.slots || g.slots, openTime: acc.openTime || g.openTime };
+    },
+    { slots: false, openTime: false },
   );
+
+  return levelFromGrants(grants);
 }
 
 export type FriendGroupDefault = {

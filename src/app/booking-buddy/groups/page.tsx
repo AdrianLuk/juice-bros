@@ -71,8 +71,9 @@ export default async function GroupsPage() {
 
                 {groups.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No groups yet. Until you make one, friends see nothing of
-                    your calendar.
+                    No groups yet. Groups grant visibility to several friends
+                    at once — set it per friend instead below if you&apos;d
+                    rather do that.
                   </p>
                 ) : (
                   <div className="mt-4 flex flex-col gap-6">
