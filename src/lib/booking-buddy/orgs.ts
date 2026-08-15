@@ -14,6 +14,17 @@ import { isKnownTimeZone } from "./timezone.ts";
 
 export const ORG_NAME_MAX_LENGTH = 80;
 
+/**
+ * Every early User of this app is in Toronto, and so is everyone they're
+ * testing with — asking a hand-typed venue to pick a zone reads as an
+ * unrelated speed bump on top of "I couldn't even find my club" (issue #20
+ * follow-up). `parseHandNamedOrg` still accepts a `time_zone` field when the
+ * form sends one, so wiring `TimeZoneSelect` (`time-zone-select.tsx`, kept
+ * around unused for this) back into `CreateOrgForm` is the entire job of
+ * bringing the picker back once a User outside Toronto shows up.
+ */
+export const DEFAULT_HAND_NAMED_TIME_ZONE = "America/Toronto";
+
 export type HandNamedOrg = { name: string; timeZone: string };
 
 /**
@@ -22,10 +33,7 @@ export type HandNamedOrg = { name: string; timeZone: string };
  * The Place-backed path has no parser here because there is nothing to parse —
  * the User picks a candidate the server itself fetched, so the `place_id` comes
  * from our own search results rather than from the form, and its time zone is
- * derived from the Place's coordinates rather than asked (issue #20). A
- * hand-named venue has no coordinates to derive from, so it's asked once here,
- * defaulting to the browser's zone — a reasonable guess for a court typed in by
- * hand, unlike one searched for.
+ * derived from the Place's coordinates rather than asked (issue #20).
  */
 export function parseHandNamedOrg(
   formData: FormData,
@@ -44,10 +52,14 @@ export function parseHandNamedOrg(
     };
   }
 
-  const timeZone = String(formData.get("time_zone") ?? "").trim();
-  // Never defaulted to the server's zone. That is precisely the bug this
-  // column exists to prevent: in production the server is on UTC, which would
-  // turn a 6pm court booking into 10pm for every Booking under this Org.
+  // No field in the form today — see `DEFAULT_HAND_NAMED_TIME_ZONE`. A value
+  // is still honoured if one shows up (the picker's `name="time_zone"` would
+  // slot back in unchanged), and still validated either way: a bad zone
+  // shouldn't reach the database's own check just because this path is
+  // usually silent about it.
+  const rawTimeZone = String(formData.get("time_zone") ?? "").trim();
+  const timeZone = rawTimeZone || DEFAULT_HAND_NAMED_TIME_ZONE;
+
   if (!isKnownTimeZone(timeZone)) {
     return { error: "Couldn't tell what time zone to use for this place. Try again." };
   }

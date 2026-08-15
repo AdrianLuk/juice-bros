@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  DEFAULT_HAND_NAMED_TIME_ZONE,
   ORG_NAME_MAX_LENGTH,
   orgDisplayName,
   orgWriteMessage,
@@ -16,16 +17,26 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-const VALID = { name: "Bob's backyard court", time_zone: "America/Toronto" };
+const VALID = { name: "Bob's backyard court" };
 
-function parse(overrides: Partial<typeof VALID> = {}) {
+function parse(overrides: Record<string, string> = {}) {
   return parseHandNamedOrg(form({ ...VALID, ...overrides }));
 }
 
-test("a hand-typed venue name and zone are accepted", () => {
+test("a hand-typed venue name is accepted, defaulting to Toronto", () => {
+  // No `time_zone` field is sent today — see `DEFAULT_HAND_NAMED_TIME_ZONE`.
   assert.deepEqual(parse(), {
     name: "Bob's backyard court",
-    timeZone: "America/Toronto",
+    timeZone: DEFAULT_HAND_NAMED_TIME_ZONE,
+  });
+});
+
+test("a time_zone field, if one is ever sent again, is honoured over the default", () => {
+  // The picker's gone from the UI, not from the parser — this is what makes
+  // reintroducing `TimeZoneSelect` the whole job of bringing it back.
+  assert.deepEqual(parse({ time_zone: "Asia/Tokyo" }), {
+    name: "Bob's backyard court",
+    timeZone: "Asia/Tokyo",
   });
 });
 
@@ -49,11 +60,11 @@ test("an over-long name is refused before the database has to", () => {
   assert.match(parsed.error, new RegExp(String(ORG_NAME_MAX_LENGTH)));
 });
 
-test("a missing or unrecognised time zone is refused rather than defaulted", () => {
-  // Defaulting to the server's zone is exactly the bug this column exists to
-  // prevent: in production that is UTC, which would turn a 6pm court booking
-  // into 10pm for every Booking logged under this Org.
-  assert.ok("error" in parse({ time_zone: "" }));
+test("an explicitly sent but unrecognised time zone is still refused", () => {
+  // An empty field is treated as "not sent" (the ordinary case today) and
+  // falls back to the default rather than erroring — but a real, garbage
+  // value shouldn't reach the database's own check just because this path
+  // doesn't ask for one by default.
   assert.ok("error" in parse({ time_zone: "Mars/Olympus_Mons" }));
 });
 

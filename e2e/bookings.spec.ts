@@ -13,9 +13,12 @@ import { AMY, BEN, signIn } from "./support/sign-in.ts";
  * cache) is e2e/places.spec.ts. `addPlace` opens the "Can't find your club?"
  * disclosure first: the hand-typed form lives inside it now.
  *
- * A Booking's clock comes from its Org, asked once at creation (issue #20) —
- * there's no per-Booking zone field anymore, so `addPlace` is where a zone
- * other than the default gets set.
+ * A Booking's clock comes from its Org (issue #20), and every hand-named Org
+ * defaults to `America/Toronto` — there's no zone field in this form for now
+ * (see `DEFAULT_HAND_NAMED_TIME_ZONE` in `orgs.ts`). The property that a
+ * Booking renders on its *Org's* clock rather than the viewer's is proven
+ * where a non-default zone is actually reachable: `places.spec.ts`'s
+ * coordinate-derivation test.
  */
 const PREFIX = "Playwright";
 
@@ -27,11 +30,10 @@ function row(page: Page, text: string): Locator {
   return page.getByRole("listitem").filter({ hasText: text });
 }
 
-async function addPlace(page: Page, name: string, zone = "America/Toronto") {
+async function addPlace(page: Page, name: string) {
   await page.goto("/booking-buddy/orgs");
   await page.getByText("Can't find your club?").click();
   await page.getByLabel("Place name").fill(name);
-  await page.getByLabel("Time zone").selectOption(zone);
   await page.getByRole("button", { name: "Add place" }).click();
   await expect(row(page, name)).toBeVisible();
 }
@@ -110,32 +112,6 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
   await expect(row(page, "Court 3")).toHaveCount(0);
 });
 
-test("a booking is shown on its Org's clock, not the viewer's", async ({ page }) => {
-  const place = placeName();
-
-  // A zone the machine running this is very unlikely to be in, set once on
-  // the Org rather than per Booking. Six o'clock typed here has to read back
-  // as six o'clock — that round trip is the entire reason this Org carries a
-  // time zone, and getting it wrong is invisible until somebody shows up
-  // hours late.
-  await addPlace(page, place, "Asia/Tokyo");
-
-  await logBooking(page, {
-    place,
-    court: "Tokyo court",
-    date: "2026-09-15",
-    start: "18:00",
-    end: "20:00",
-  });
-
-  const booking = row(page, "Tokyo court");
-  await expect(booking).toContainText("Sep 15, 2026");
-  await expect(booking).toContainText("6:00");
-  await expect(booking).toContainText("8:00");
-
-  await removePlace(page, place);
-});
-
 test("a booking cannot end before it starts", async ({ page }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -163,7 +139,6 @@ test("the same place cannot be added twice", async ({ page }) => {
 
   // Case-insensitively: "rally point" is not a second club.
   await page.getByLabel("Place name").fill(place.toUpperCase());
-  await page.getByLabel("Time zone").selectOption("America/Toronto");
   await page.getByRole("button", { name: "Add place" }).click();
 
   await expect(

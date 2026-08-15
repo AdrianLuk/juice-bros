@@ -119,7 +119,9 @@ Worth reading before Phase 5 repeats any of it:
 
 **#18 (Google Places lookup for Orgs) is done** — see its own notes under Phase 4 above.
 
-**#20 (`time_zone` belongs on `orgs`, not `bookings`) is done too**, grabbed ahead of #8 since it was small and already unblocked. `orgs.time_zone` is `not null`; a Place-backed Org derives it from `place_cache`'s coordinates via [`geo-tz`](https://www.npmjs.com/package/geo-tz) (offline, no second Google API), asking nothing; a hand-named Org asks once at creation, defaulting to the browser's zone via the same `TimeZoneSelect` the Bookings form used to own (relocated to `src/components/booking-buddy/time-zone-select.tsx`). `bookings.time_zone` is gone — `createBooking` reads the Org's zone server-side (also doubling as the ownership check) and `getBookingsPageData` renders through it. Two migrations, additive then destructive, both shipped together since nothing is deployed to real users yet.
+**#20 (`time_zone` belongs on `orgs`, not `bookings`) is done too**, grabbed ahead of #8 since it was small and already unblocked. `orgs.time_zone` is `not null`; a Place-backed Org derives it from `place_cache`'s coordinates via [`geo-tz`](https://www.npmjs.com/package/geo-tz) (offline, no second Google API), asking nothing. `bookings.time_zone` is gone — `createBooking` reads the Org's zone server-side (also doubling as the ownership check) and `getBookingsPageData` renders through it. Two migrations, additive then destructive, both shipped together since nothing is deployed to real users yet.
+
+**The hand-named path's picker was pulled back out the same session, by request**: every early User (and everyone testing with them) is in Toronto, and a time-zone question stacked on top of "I couldn't even find my club on Google" read as an unrelated speed bump for a problem that doesn't exist yet. `CreateOrgForm` no longer renders one; `parseHandNamedOrg` defaults to `DEFAULT_HAND_NAMED_TIME_ZONE` (`America/Toronto`, in `orgs.ts`) when the form sends no `time_zone` field, but still honours and validates one if a caller does send it. `TimeZoneSelect` (`src/components/booking-buddy/time-zone-select.tsx`) is kept in place, unimported, for exactly this: bringing the picker back is wiring it into `CreateOrgForm` and passing the Orgs page's `zones` list again (the pattern is still in `bookings/page.tsx`'s git history if it's easier to copy than re-derive), not rebuilding anything.
 
 Two things worth carrying forward:
 
@@ -128,7 +130,7 @@ Two things worth carrying forward:
 
 Also beyond the ticket: Booking start/end times became a `<select>` of half-hour slots rather than a free `<input type="time">`, since a hand-typed or click-dragged time picker could produce something like `6:23 PM` that no court is actually booked in.
 
-Verified: 178 `node --test` tests, 90 pgTAP tests, and 34 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
+Verified: 179 `node --test` tests, 90 pgTAP tests, and 33 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
 
 **Start the next session with #8** (Slot as a poll) — it's still the critical-path ticket everything else in the plan sits behind, #9/#10/#11 all build on Slots existing.
 
