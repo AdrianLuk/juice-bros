@@ -29,8 +29,13 @@ export type Slot = {
 };
 
 export type SlotResponse = {
-  userId: string;
-  /** A profile the viewer can't read (no Connection to that responder) still counts, just unnamed. */
+  id: string;
+  /** `null` for a Guest response (issue #10) — keyed by `guestName` instead. */
+  userId: string | null;
+  /**
+   * A profile the viewer can't read (no Connection to that responder) still
+   * counts, just unnamed. Always set for a Guest — their own given name.
+   */
   displayName: string | null;
   answer: ResponseAnswer;
 };
@@ -78,7 +83,7 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
 
   const { data: responseRows, error: responsesError } = await supabase
     .from("responses")
-    .select("user_id, guest_name, answer")
+    .select("id, user_id, guest_name, answer")
     .eq("slot_id", slotId);
 
   if (responsesError) {
@@ -105,14 +110,15 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
     (profiles ?? []).map((profile) => [profile.id, profile.display_name]),
   );
 
-  const responses: SlotResponse[] = (responseRows ?? [])
-    // Guest responses aren't rendered until issue #10 wires up the Guest path.
-    .filter((row) => row.user_id !== null)
-    .map((row) => ({
-      userId: row.user_id!,
-      displayName: nameById.get(row.user_id!) ?? null,
-      answer: row.answer,
-    }));
+  const responses: SlotResponse[] = (responseRows ?? []).map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    // A signed-in responder's name comes from their profile (unnamed if the
+    // viewer can't read it); a Guest's is exactly the name they typed in —
+    // there's no profile to look up (issue #10).
+    displayName: row.user_id ? (nameById.get(row.user_id) ?? null) : row.guest_name,
+    answer: row.answer,
+  }));
 
   const mine = responses.find((response) => response.userId === session.userId);
 
