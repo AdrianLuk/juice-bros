@@ -33,6 +33,25 @@ export function isHalfHourTime(time: string): boolean {
   return TIME_PATTERN.test(time);
 }
 
+/** "Today" as a `YYYY-MM-DD` string in `zone`, at instant `now` — `en-CA` happens to format that way natively. */
+export function todayInZone(zone: string, now: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);
+}
+
+/**
+ * A coarse, calendar-day-only "is this obviously already gone" check for a
+ * `YYYY-MM-DD` date a User picked — not exact instant precision, which is
+ * the database trigger's job (`slots_not_in_the_past`/`bookings_not_in_the_past`).
+ * This only ever rejects a date that is a full day or more in the past, so it
+ * can never falsely reject a date that is genuinely still today or later —
+ * same-day-but-already-passed-hour is a real case this doesn't catch, and
+ * isn't meant to: it exists to save the round trip for the obvious mistake,
+ * not to duplicate the trigger's exactness.
+ */
+export function isPastDate(date: string, zone: string, now: Date): boolean {
+  return date < todayInZone(zone, now);
+}
+
 /**
  * Every half-hour slot in a day, `"00:00"` through `"23:30"` — what a start
  * or end picker offers. A `<select>` rather than `<input type="time">` so a

@@ -6,7 +6,12 @@
  */
 
 import { isKnownTimeZone } from "./timezone.ts";
-import { formatInstantRange, isHalfHourTime, isRealDate } from "./datetime.ts";
+import {
+  formatInstantRange,
+  isHalfHourTime,
+  isPastDate,
+  isRealDate,
+} from "./datetime.ts";
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "./orgs.ts";
 
 export type NewSlotProposal = {
@@ -25,6 +30,7 @@ export type NewSlotProposal = {
  */
 export function parseNewSlotProposal(
   formData: FormData,
+  now: Date = new Date(),
 ): NewSlotProposal | { error: string } {
   const date = String(formData.get("date") ?? "").trim();
   if (!isRealDate(date)) {
@@ -51,6 +57,17 @@ export function parseNewSlotProposal(
     return { error: "Couldn't tell what time zone to use for this slot. Try again." };
   }
 
+  // Calendar-day-only, not exact-instant — a same-day proposal whose start
+  // time has already passed slips through here and is caught by the
+  // database trigger instead (`slotWriteMessage` translates it). Resolving
+  // `timeZone` first is what makes this check possible at all: unlike a
+  // Booking, a bare-proposal Slot has no Org to read a clock off, so this is
+  // the only place in the whole write path that ever knows both the date and
+  // the zone before the instant itself gets constructed.
+  if (isPastDate(date, timeZone, now)) {
+    return { error: "That date has already passed. Pick a date in the future." };
+  }
+
   return { date, startTime, endTime, timeZone };
 }
 
@@ -75,12 +92,22 @@ export function formatSlotWhen(slot: {
   });
 }
 
-/** Turns a failed Slot write into something worth reading. */
-export function slotWriteMessage(error: { code?: string }): string {
+/**
+ * Turns a failed Slot write into something worth reading.
+ *
+ * `23514` arrives from three rules now: the two check constraints (end not
+ * after start, a negative buffer — neither reachable through
+ * `parseNewSlotProposal`, which already refuses the first and never sends
+ * the second) and the `slots_not_in_the_past` trigger, which *is* reachable
+ * — `parseNewSlotProposal`'s own past-date guard is calendar-day-only, so a
+ * same-day proposal whose start time already passed reaches the database
+ * before anything catches it.
+ */
+export function slotWriteMessage(error: { code?: string; message?: string }): string {
   if (error.code === "23514") {
-    // The two check constraints: end not after start, or a negative buffer —
-    // neither reachable through `parseNewSlotProposal`, which already refuses
-    // the first and never sends the second.
+    if (error.message?.includes("in the past")) {
+      return "That time has already passed. Pick a time in the future.";
+    }
     return "Something about that slot doesn't add up.";
   }
 

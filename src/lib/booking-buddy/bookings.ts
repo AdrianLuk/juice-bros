@@ -93,11 +93,11 @@ export function formatBookingWhen(booking: {
 /**
  * Turns a failed Booking write into something worth reading.
  *
- * `23514` arrives from four rules — the org-ownership branch of
- * `assert_booking_coherent` and three check constraints — so the code alone
- * doesn't say what went wrong. The zone-validity branch that used to live here
- * moved to `orgs` with the column (issue #20); a Booking write can no longer
- * raise it.
+ * `23514` arrives from five rules now — the org-ownership branch of
+ * `assert_booking_coherent`, three check constraints, and
+ * `bookings_not_in_the_past` — so the code alone doesn't say what went wrong.
+ * The zone-validity branch that used to live here moved to `orgs` with the
+ * column (issue #20); a Booking write can no longer raise it.
  */
 export function bookingWriteMessage(error: {
   code?: string;
@@ -109,6 +109,13 @@ export function bookingWriteMessage(error: {
 
   if (error.message?.includes("orgs")) {
     return "That booking doesn't sit under one of your own places.";
+  }
+
+  // `createBooking`'s own past-date check (`isPastDate`) is calendar-day-only,
+  // so a same-day booking whose start time already passed reaches here —
+  // the one past-time cause the action can't pre-empt itself.
+  if (error.message?.includes("in the past")) {
+    return "That time has already passed. Pick a time in the future.";
   }
 
   // The three check constraints — court label blank or over-long, and an end
