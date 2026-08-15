@@ -34,6 +34,30 @@ That is what makes the `2` suffixes stable across a reset — `amyace` is taken 
 the third account arrives — and therefore what keeps each email matching its Username.
 Reorder `TEST_ACCOUNTS` and the numbering swaps.
 
+## Who is already friends with whom
+
+The script also seeds two accepted Connections, because the browser tests take them as
+given:
+
+| Pair | Why |
+| --- | --- |
+| `@amyace` ↔ `@benbackhand` | `friends.spec.ts` asserts an existing friendship shows on both sides |
+| `@amyace` ↔ `@benbackhand2` | `friend-groups.spec.ts` can only group someone already connected |
+
+`@amyace2` and `@benbackhand2` are left **strangers** on purpose — the two-sided request
+journey needs a pair who aren't connected yet, and it puts them back that way when it
+finishes.
+
+Connections are seeded as the Users themselves, not with the service-role key: the
+`connections` table is granted to `authenticated` and to nobody else, and widening a
+grant in production to make a local fixture convenient would be the wrong trade. The
+requester inserts, the addressee accepts — the same two steps the app takes, through the
+same policies.
+
+Without this the friendships die with every `supabase db reset`, and five browser tests
+fail for reasons that have nothing to do with the code under test. That is how it got
+added.
+
 ## Two Amys and two Bens
 
 Deliberate, and worth understanding before it confuses you: the two pairs share display

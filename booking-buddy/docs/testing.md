@@ -22,11 +22,13 @@ actions or two Users, it belongs in Playwright. See "Seams under test" in
 
 ```
 supabase start          # Docker must be running
-npm run seed:users      # the four test accounts, idempotent
+npm run seed:users      # the four test accounts and their friendships, idempotent
 ```
 
 Accounts and passwords are in [local-test-accounts.md](local-test-accounts.md).
-They only exist locally and none of it is secret.
+They only exist locally and none of it is secret. `seed:users` also restores the
+two accepted Connections the browser tests assume — without them five of those
+tests fail for reasons unrelated to the code under test.
 
 If you've pulled new migrations, apply them without wiping your data:
 
@@ -35,7 +37,9 @@ supabase migration up --local
 ```
 
 `supabase db reset` also works but destroys everything, including the test
-accounts — re-run `npm run seed:users` afterwards.
+accounts and their friendships — re-run `npm run seed:users` afterwards. A reset
+is the right move when a migration has been **rewritten in place** rather than
+added, since `migration up` has no way to undo the old version.
 
 ## Clicking through it yourself
 
@@ -47,9 +51,11 @@ Then open <http://localhost:3000/booking-buddy/sign-in>, choose **Sign in with a
 password**, and use one of the test accounts. Booking Buddy isn't linked from
 the main nav yet, so navigate by URL:
 
-- `/booking-buddy` — dashboard, with links to the three pages below
+- `/booking-buddy` — dashboard, with links to the pages below
 - `/booking-buddy/friends` — search, requests, your friends
 - `/booking-buddy/groups` — friend groups and per-friend visibility
+- `/booking-buddy/orgs` — the places you play
+- `/booking-buddy/bookings` — court reservations you've logged
 - `/booking-buddy/settings` — change your username
 
 Signing in as a second account in the same browser will replace the first
