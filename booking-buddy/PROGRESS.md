@@ -132,7 +132,7 @@ Also beyond the ticket: Booking start/end times became a `<select>` of half-hour
 
 Verified: 179 `node --test` tests, 90 pgTAP tests, and 33 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
 
-**Start the next session with #8** (Slot as a poll) — it's still the critical-path ticket everything else in the plan sits behind, #9/#10/#11 all build on Slots existing.
+**Start the next session with Phase 4.5** (Availability Window: schema + `resolveAvailability` + RLS, 4.5.1–4.5.6) — inserted 2026-08-15 ahead of #8, since Slot's `calendar`-visibility RLS (5.6) should enforce against real Availability data, not a stub. No issue filed yet; see [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) before starting. Rendering it on a calendar is folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) instead of a separate UI step — #23's body now covers both Bookings and Availability. **#8** (Slot as a poll) remains the critical-path ticket after Phase 4.5 — #9/#10/#11 all build on Slots existing.
 
 [#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list, fka Phase 9.1's placeholder) is fully spec'd and ticketed, but deliberately queued **after** #18 and #8 — it only needs Bookings, which already ship, so it isn't blocked, but the existing #18-then-#8 order was a deliberate choice and this ticket doesn't unblock anything else in the graph.
 
@@ -228,6 +228,21 @@ Beyond the numbered steps, #7 also shipped the UI its acceptance criteria ask fo
 - **The mock's writes to `place_cache` are real, committed rows in the local database** — and that broke a pgTAP assertion (`orgs_and_bookings.test.sql`, "a User with nothing of their own can still read the Place cache") that assumed the table was otherwise empty, since nothing had ever populated it before this ticket. `e2e/places.spec.ts` now sweeps every `place_id` its mock cached via a direct `service_role` delete (`deleteCachedPlaces` in the mock support file) in its own `afterAll`, using the same published local demo key `scripts/seed-booking-buddy-users.mts` already uses — the app itself has no such action (ADR 0005: nothing evicts a cached Place on purpose), so this is test-only cleanup, not a UI path. Worth remembering for any future ticket that writes real `place_cache` rows from a browser test.
 
 Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
+
+## Phase 4.5 — Availability Window
+
+Inserted ahead of Slot so Slot's `calendar`-visibility RLS (5.6) enforces against real data instead of a stub. See [adr/0006-availability-layered-precedence.md](docs/adr/0006-availability-layered-precedence.md) and [CONTEXT.md](CONTEXT.md) under **Availability Window**. Numbered 4.5 rather than renumbering every phase after it.
+
+- [ ] 4.5.1 Schema: `availability_windows` (owner_id, type: open|busy, starts_at, ends_at) — no uniqueness/overlap constraint (ADR 0006)
+- [ ] 4.5.2 🔴 Test: `resolveAvailability(ownerId, at)` — a Booking or confirmed Slot covering `at` returns busy regardless of any Availability Window (pure function over pre-fetched rows) → 🟢 implement
+- [ ] 4.5.3 🔴 Test: `resolveAvailability` — with no covering Booking/confirmed Slot, the most recently *created* Availability Window covering `at` wins → 🟢 implement
+- [ ] 4.5.4 🔴 Test: `resolveAvailability` — a moment covered by neither returns unspecified → 🟢 implement
+- [ ] 4.5.5 🔴 Test: creation order, not edit order, decides precedence — editing an older window's time range/type doesn't change which window wins an overlap it didn't already win → 🟢 implement
+- [ ] 4.5.6 🔴 RLS test: querying `availability_windows` directly as a User with less than `calendar` Visibility into the owner (including no Connection at all) returns no rows → 🟢 implement coarse policy (nuanced precedence stays app-layer per ADR 0003, same as Slot)
+
+Rendering the User's own resolved Availability on a calendar grid is **not** built here — it's folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list), which already builds that grid for Bookings. Viewing a *friend's* resolved Availability (through `calendar` Visibility) has no surface at all yet and no ticket — deferred until scoped.
+
+Needs a GitHub issue filed for 4.5.1–4.5.6 before starting, per [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) — not created as part of this scoping pass. #23 should list it as a blocker once it exists (it currently names it in prose, pending the real issue number).
 
 ## Phase 5 — Slot (poll → confirmed lifecycle, ADR 0001)
 
