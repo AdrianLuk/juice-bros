@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useSyncExternalStore } from "react";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
-import { COURT_LABEL_MAX_LENGTH } from "@/lib/booking-buddy/bookings";
+import {
+  COURT_LABEL_MAX_LENGTH,
+  HALF_HOUR_TIMES,
+  formatTimeLabel,
+} from "@/lib/booking-buddy/bookings";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -39,78 +43,31 @@ function ActionError({ state }: { state: ActionResult }) {
   );
 }
 
-/** A zone never changes mid-session, so there is nothing to subscribe to. */
-const subscribeToNothing = () => () => {};
-
-const readBrowserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
-
 /**
- * Which clock the times below are on.
- *
- * A real, visible control rather than a hidden field, for two reasons. The
- * browser is the only thing that knows the User's zone — the server is on UTC
- * in production, and defaulting to it is exactly the bug `bookings.time_zone`
- * exists to prevent — but a field filled in by script alone would break with
- * JavaScript off, which every other Booking Buddy form survives. This way
- * script only *preselects* it, and it stays auditable: a booking stored against
- * the wrong clock is invisible until somebody shows up hours late.
- *
- * The zone list is passed in from the server so both renders agree on it;
- * `Intl.supportedValuesOf` is free to differ between Node's ICU and the
- * browser's, and a hydration mismatch on a 600-option list is not worth
- * discovering later.
+ * Half-hour slots only — courts are booked in chunks, not whatever a
+ * free-typed or click-dragged time picker happens to land on.
  */
-function TimeZoneSelect({ id, zones }: { id: string; zones: string[] }) {
-  // The browser's own zone is a client-only fact, so it is read as one: the
-  // server snapshot is empty, the client's is the real zone, and React swaps
-  // them after hydration without either a mismatch or a cascading render.
-  const detected = useSyncExternalStore(subscribeToNothing, readBrowserZone, () => "");
-
-  // The detected zone is added to the list when the list doesn't already have
-  // it, rather than being discarded as unrecognised. The two sides disagree
-  // more than you would hope: Node's ICU here lists 418 zones with the legacy
-  // spellings only — `Asia/Calcutta`, `Europe/Kiev`, and no `UTC` at all —
-  // while browsers report the canonical ids. Matching strictly against the
-  // server's list left a Chrome user in India detected as `Asia/Kolkata`, no
-  // match, the disabled placeholder selected, and `required` refusing to submit
-  // a form whose list never contained their zone under a name they would look
-  // for. Postgres accepts both spellings, so passing theirs straight through is
-  // safe.
-  const options =
-    detected && !zones.includes(detected) ? [detected, ...zones] : zones;
-
-  // Null until the User overrides the detection, so a later render can't
-  // clobber a choice they made by hand.
-  const [chosen, setChosen] = useState<string | null>(null);
-  const zone = chosen ?? detected;
-
+function HalfHourTimeSelect({
+  id,
+  name,
+  defaultValue,
+}: {
+  id: string;
+  name: string;
+  defaultValue: string;
+}) {
   return (
-    <FormSelect
-      id={id}
-      name="time_zone"
-      value={zone}
-      onChange={(event) => setChosen(event.target.value)}
-      required
-    >
-      <option value="" disabled>
-        Pick your time zone
-      </option>
-      {options.map((value) => (
-        <option key={value} value={value}>
-          {value.replaceAll("_", " ")}
+    <FormSelect id={id} name={name} defaultValue={defaultValue} required>
+      {HALF_HOUR_TIMES.map((time) => (
+        <option key={time} value={time}>
+          {formatTimeLabel(time)}
         </option>
       ))}
     </FormSelect>
   );
 }
 
-export function CreateBookingForm({
-  orgs,
-  zones,
-}: {
-  orgs: Org[];
-  zones: string[];
-}) {
+export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
   const [state, formAction, pending] = useActionState(createBooking, EMPTY);
 
   return (
@@ -147,18 +104,13 @@ export function CreateBookingForm({
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="booking-zone">Time zone</Label>
-          <TimeZoneSelect id="booking-zone" zones={zones} />
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-start">Start</Label>
-          <Input id="booking-start" name="start_time" type="time" required />
+          <HalfHourTimeSelect id="booking-start" name="start_time" defaultValue="18:00" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-end">End</Label>
-          <Input id="booking-end" name="end_time" type="time" required />
+          <HalfHourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
         </div>
       </div>
 

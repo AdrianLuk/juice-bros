@@ -17,7 +17,18 @@ import type { CachedPlace } from "./orgs.ts";
  *   "cannot fail" per ADR 0005, so a bad outcome here is logged and dropped.
  */
 export type EnsureOutcome =
-  | { ok: true; place: CachedPlace }
+  | {
+      ok: true;
+      place: CachedPlace;
+      /**
+       * Carried alongside `place`, not folded into `CachedPlace` itself —
+       * `listOrgs`/`orgDisplayName` never need coordinates, only `pickPlace`
+       * does, to derive the new Org's time zone (issue #20). Every code path
+       * below already has the row in hand, so this is free.
+       */
+      latitude: number | null;
+      longitude: number | null;
+    }
   | { ok: false; reason: PlacePickFailure };
 
 type PlaceCacheRow = {
@@ -82,7 +93,12 @@ export async function ensureFreshPlaceCache(placeId: string): Promise<EnsureOutc
   }
 
   if (existingRow && !isPlaceCacheStale(existingRow.fetched_at)) {
-    return { ok: true, place: toCachedPlace(existingRow) };
+    return {
+      ok: true,
+      place: toCachedPlace(existingRow),
+      latitude: existingRow.latitude,
+      longitude: existingRow.longitude,
+    };
   }
 
   const detailsOutcome = await fetchPlaceDetails(placeId);
@@ -94,8 +110,16 @@ export async function ensureFreshPlaceCache(placeId: string): Promise<EnsureOutc
 
     if (detailsOutcome.reason === "unreachable" && existingRow) {
       // Degrade to what's already known rather than blocking on an outage
-      // that has nothing to do with whether this Place still exists.
-      return { ok: true, place: toCachedPlace(existingRow) };
+      // that has nothing to do with whether this Place still exists. The
+      // coordinates returned here are the pre-drop, in-memory values — the
+      // write above may just have nulled them out in the database once past
+      // the 30-day window, but "last known" is still the best answer to give.
+      return {
+        ok: true,
+        place: toCachedPlace(existingRow),
+        latitude: existingRow.latitude,
+        longitude: existingRow.longitude,
+      };
     }
 
     return { ok: false, reason: detailsOutcome.reason };
@@ -119,6 +143,8 @@ export async function ensureFreshPlaceCache(placeId: string): Promise<EnsureOutc
   return {
     ok: true,
     place: { name: details.name, formattedAddress: details.formattedAddress },
+    latitude: details.latitude,
+    longitude: details.longitude,
   };
 }
 

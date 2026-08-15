@@ -35,8 +35,14 @@ function ActionError({ state }: { state: ActionResult }) {
 }
 
 /**
- * The hand-typed path — the only one there is until issue #18 brings the Google
- * search. The copy says as much rather than pretending this is the whole story.
+ * The hand-typed path — for a venue Google has no listing for.
+ *
+ * No time-zone field for now: every early User (and everyone they're testing
+ * with) is in Toronto, and asking for one on top of "I couldn't even find my
+ * club" is a speed bump nobody here needs yet (`DEFAULT_HAND_NAMED_TIME_ZONE`
+ * in `orgs.ts`, which has the story on bringing `TimeZoneSelect` back). A
+ * Place-backed Org (`place-search.tsx`) derives its zone server-side and has
+ * never asked.
  */
 export function CreateOrgForm() {
   const [state, formAction, pending] = useActionState(createOrg, EMPTY);

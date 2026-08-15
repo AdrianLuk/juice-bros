@@ -3,9 +3,10 @@ import test from "node:test";
 
 import {
   COURT_LABEL_MAX_LENGTH,
+  HALF_HOUR_TIMES,
   bookingWriteMessage,
   formatBookingWhen,
-  isKnownTimeZone,
+  formatTimeLabel,
   parseNewBooking,
 } from "./bookings.ts";
 
@@ -15,7 +16,6 @@ const VALID = {
   date: "2026-08-20",
   start_time: "18:00",
   end_time: "19:30",
-  time_zone: "America/Toronto",
 };
 
 function form(fields: Record<string, string>): FormData {
@@ -31,14 +31,14 @@ function parse(overrides: Partial<typeof VALID> = {}) {
 }
 
 test("a court, a date and a window become a Booking", () => {
+  // No zone here — the Booking's zone comes from its Org, resolved by the
+  // Server Action, not from this form (issue #20).
   assert.deepEqual(parse(), {
     orgId: VALID.org_id,
     courtLabel: "Court 3",
-    // Handed to Postgres as a wall-clock time carrying its own zone, so the
-    // DST-aware conversion happens there rather than in JavaScript.
-    startsAt: "2026-08-20 18:00:00 America/Toronto",
-    endsAt: "2026-08-20 19:30:00 America/Toronto",
-    timeZone: "America/Toronto",
+    date: "2026-08-20",
+    startTime: "18:00",
+    endTime: "19:30",
   });
 });
 
@@ -77,48 +77,37 @@ test("a time that isn't a time is refused", () => {
   }
 });
 
+test("a time off the half-hour grid is refused", () => {
+  // Courts are booked in half-hour chunks. The `<select>` in the UI physically
+  // can't produce one of these, but a hand-built request could.
+  for (const time of ["18:15", "18:45", "18:01", "18:29"]) {
+    assert.ok("error" in parse({ start_time: time }), `${time} should be refused`);
+  }
+});
+
+test("every half-hour slot in a day is offered, and only those", () => {
+  assert.equal(HALF_HOUR_TIMES.length, 48);
+  assert.equal(HALF_HOUR_TIMES[0], "00:00");
+  assert.equal(HALF_HOUR_TIMES[1], "00:30");
+  assert.equal(HALF_HOUR_TIMES.at(-1), "23:30");
+  for (const time of HALF_HOUR_TIMES.slice(0, -1)) {
+    assert.ok(!("error" in parse({ start_time: time, end_time: "23:30" })), time);
+  }
+});
+
+test("a half-hour slot renders as a 12-hour label", () => {
+  assert.equal(formatTimeLabel("00:00"), "12:00 AM");
+  assert.equal(formatTimeLabel("06:30"), "6:30 AM");
+  assert.equal(formatTimeLabel("12:00"), "12:00 PM");
+  assert.equal(formatTimeLabel("18:30"), "6:30 PM");
+  assert.equal(formatTimeLabel("23:30"), "11:30 PM");
+});
+
 test("a Booking cannot end before it starts, or at the moment it starts", () => {
   // The database refuses this too. Catching it here is what turns a raw
   // constraint violation into a sentence about the form the User just filled in.
   assert.ok("error" in parse({ start_time: "19:30", end_time: "18:00" }));
   assert.ok("error" in parse({ end_time: "18:00" }));
-});
-
-test("a missing or unrecognised time zone is refused rather than defaulted", () => {
-  // Defaulting to the server's zone is exactly the bug `time_zone` exists to
-  // prevent: in production that is UTC, which turns a 6pm court booking into
-  // 10pm.
-  assert.ok("error" in parse({ time_zone: "" }));
-  assert.ok("error" in parse({ time_zone: "Mars/Olympus_Mons" }));
-});
-
-test("real IANA zones are recognised and invented ones are not", () => {
-  assert.equal(isKnownTimeZone("America/Toronto"), true);
-  assert.equal(isKnownTimeZone("UTC"), true);
-  assert.equal(isKnownTimeZone("Mars/Olympus_Mons"), false);
-  assert.equal(isKnownTimeZone(""), false);
-});
-
-test("a bare UTC offset is not a time zone, whatever Intl says", () => {
-  // `Intl` accepts these; `pg_timezone_names` does not, so the trigger would
-  // refuse the row after this said it was fine — and an offset is not a zone
-  // anyway, since it cannot say what happens when the clocks change.
-  for (const offset of ["+05:30", "-08:00", "+00:00"]) {
-    assert.equal(isKnownTimeZone(offset), false, `${offset} is not a zone`);
-  }
-});
-
-test("legacy and canonical spellings of one zone are both accepted", () => {
-  // Node's ICU lists the legacy name and the browser reports the canonical one.
-  // Postgres knows both, so refusing either here would reject a real zone.
-  for (const zone of [
-    "Asia/Kolkata",
-    "Asia/Calcutta",
-    "Europe/Kyiv",
-    "Europe/Kiev",
-  ]) {
-    assert.equal(isKnownTimeZone(zone), true, `${zone} is a zone`);
-  }
 });
 
 test("a Booking is rendered in its own time zone, not the server's", () => {
@@ -148,9 +137,9 @@ test("the same instant reads differently in a different zone", () => {
 });
 
 test("an unrenderable zone falls back to UTC and says so", () => {
-  // The trigger refuses a zone Postgres doesn't know, so a row like this should
-  // not exist — but a list that throws while rendering one Booking takes the
-  // whole page down, and that is a worse answer than an honest fallback.
+  // An Org's zone is guarded by its own trigger, so a row like this should not
+  // exist — but a list that throws while rendering one Booking takes the whole
+  // page down, and that is a worse answer than an honest fallback.
   const when = formatBookingWhen({
     startsAt: "2026-08-20T22:00:00Z",
     endsAt: "2026-08-20T23:30:00Z",
@@ -169,20 +158,6 @@ test("a Booking under someone else's Org reads as the rule that rejected it", ()
       message: "a booking can only sit under one of your own orgs",
     }),
     /your own|belongs/i,
-  );
-});
-
-test("the other 23514s do not all claim to be about the wrong Org", () => {
-  // The trigger's time-zone branch and three check constraints raise the same
-  // SQLSTATE. Telling someone their zone problem is an ownership problem sends
-  // them looking in the wrong place entirely.
-  assert.match(
-    bookingWriteMessage({ code: "23514", message: "unknown time zone Mars/Olympus_Mons" }),
-    /time zone/i,
-  );
-  assert.doesNotMatch(
-    bookingWriteMessage({ code: "23514", message: "unknown time zone X" }),
-    /your own places/i,
   );
 });
 

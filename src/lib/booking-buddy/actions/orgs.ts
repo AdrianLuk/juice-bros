@@ -28,6 +28,8 @@ export type Org = {
   handTypedName: string | null;
   /** From the Place cache, so it only ever exists for a Place-backed Org. */
   address: string | null;
+  /** The facility's own clock — derived (Place-backed) or asked once (hand-named). See issue #20. */
+  timeZone: string;
   createdAt: string;
 };
 
@@ -45,7 +47,7 @@ export async function listOrgs(): Promise<Org[]> {
 
   const { data: rows, error } = await supabase
     .from("orgs")
-    .select("id, google_place_id, name, created_at")
+    .select("id, google_place_id, name, time_zone, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -116,6 +118,7 @@ export async function listOrgs(): Promise<Org[]> {
       googlePlaceId: row.google_place_id,
       handTypedName: row.name,
       address: place?.formattedAddress ?? null,
+      timeZone: row.time_zone,
       createdAt: row.created_at,
     };
   });
@@ -143,6 +146,7 @@ export async function createOrg(
   const { error } = await supabase.from("orgs").insert({
     owner_id: session.userId,
     name: parsed.name,
+    time_zone: parsed.timeZone,
     // Explicit rather than omitted, so the check constraint's "exactly one of
     // the two" reads the same here as it does in the migration.
     google_place_id: null,

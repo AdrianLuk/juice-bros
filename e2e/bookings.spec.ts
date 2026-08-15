@@ -12,6 +12,13 @@ import { AMY, BEN, signIn } from "./support/sign-in.ts";
  * Only hand-named Orgs appear here — the Google-backed path (search, pick,
  * cache) is e2e/places.spec.ts. `addPlace` opens the "Can't find your club?"
  * disclosure first: the hand-typed form lives inside it now.
+ *
+ * A Booking's clock comes from its Org (issue #20), and every hand-named Org
+ * defaults to `America/Toronto` — there's no zone field in this form for now
+ * (see `DEFAULT_HAND_NAMED_TIME_ZONE` in `orgs.ts`). The property that a
+ * Booking renders on its *Org's* clock rather than the viewer's is proven
+ * where a non-default zone is actually reachable: `places.spec.ts`'s
+ * coordinate-derivation test.
  */
 const PREFIX = "Playwright";
 
@@ -46,16 +53,16 @@ async function logBooking(
     date: string;
     start: string;
     end: string;
-    zone: string;
   },
 ) {
   await page.goto("/booking-buddy/bookings");
   await page.getByLabel("Where").selectOption({ label: booking.place });
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
-  await page.getByLabel("Time zone").selectOption(booking.zone);
-  await page.getByLabel("Start").fill(booking.start);
-  await page.getByLabel("End").fill(booking.end);
+  // Half-hour slots only (issue #20 follow-up) — these are `<select>`s now,
+  // not free-typed times, so a value off the half-hour grid isn't reachable.
+  await page.getByLabel("Start").selectOption(booking.start);
+  await page.getByLabel("End").selectOption(booking.end);
   await page.getByRole("button", { name: "Log booking" }).click();
 }
 
@@ -90,7 +97,6 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
     date: "2026-09-15",
     start: "18:00",
     end: "19:30",
-    zone: "America/Toronto",
   });
 
   const booking = row(page, "Court 3");
@@ -106,31 +112,6 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
   await expect(row(page, "Court 3")).toHaveCount(0);
 });
 
-test("a booking is shown on the clock it was entered on", async ({ page }) => {
-  const place = placeName();
-  await addPlace(page, place);
-
-  // A zone the machine running this is very unlikely to be in. Six o'clock
-  // typed in Tokyo has to read back as six o'clock — that round trip is the
-  // entire reason `bookings.time_zone` exists, and getting it wrong is
-  // invisible until somebody shows up hours late.
-  await logBooking(page, {
-    place,
-    court: "Tokyo court",
-    date: "2026-09-15",
-    start: "18:00",
-    end: "20:00",
-    zone: "Asia/Tokyo",
-  });
-
-  const booking = row(page, "Tokyo court");
-  await expect(booking).toContainText("Sep 15, 2026");
-  await expect(booking).toContainText("6:00");
-  await expect(booking).toContainText("8:00");
-
-  await removePlace(page, place);
-});
-
 test("a booking cannot end before it starts", async ({ page }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -141,7 +122,6 @@ test("a booking cannot end before it starts", async ({ page }) => {
     date: "2026-09-15",
     start: "19:30",
     end: "18:00",
-    zone: "America/Toronto",
   });
 
   await expect(
@@ -178,7 +158,6 @@ test("another User sees none of it", async ({ page, browser }) => {
     date: "2026-09-15",
     start: "18:00",
     end: "19:30",
-    zone: "America/Toronto",
   });
   await expect(row(page, "Private court")).toBeVisible();
 
