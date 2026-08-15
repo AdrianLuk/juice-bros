@@ -104,9 +104,18 @@ Both open decisions were settled before any code: the Google Places integration 
 
 What that means for what shipped: `orgs`, `bookings` and `place_cache` all landed with the ADR 0005 shape, and the UI covers the hand-named path end to end. **No User-facing path writes a `place_id` yet** — that arrives with #18, which is blocked on a Google Maps API key only a human can provision (see "Outstanding — needs a human").
 
-Verified: 140 `node --test` tests, 84 pgTAP tests and 29 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean. Migrations are deployed — `supabase migration list` shows all seven in sync between local and the hosted project.
+Verified: 143 `node --test` tests, 86 pgTAP tests and 29 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean. Migrations are deployed — `supabase migration list` shows all eight in sync between local and the hosted project.
 
-Note that the orgs/bookings migration is now **on the hosted project even though #19 hasn't merged**. It is additive — three new tables, nothing existing altered, and no deployed code touches them — so it cannot break what's live. But the "rewrite it in place" freedom this phase used up is gone: any further change to `orgs`, `bookings` or `place_cache` needs a new migration stacked on top.
+Note that the orgs/bookings migration went **to the hosted project before #19 merged**. It is additive — three new tables, nothing existing altered, and no deployed code touches them — so it could not break what's live. But the "rewrite it in place" freedom this phase used up is gone, and it was spent within the hour: the review found `orgs` had no index its RLS filter could use and `bookings.org_id` none for its cascade, which had to land as `20260814183000_index_orgs_and_bookings.sql` rather than as an edit.
+
+### What the review caught
+
+Worth reading before Phase 5 repeats any of it:
+
+- **`Intl.supportedValuesOf("timeZone")` is not the same list on the server as in the browser.** Node 24 here returns 418 zones with the *legacy* spellings only — `Asia/Calcutta`, `Europe/Kiev` — and no `UTC` at all, while browsers report the canonical ids. Matching the detected zone strictly against the server's list meant a Chrome user in India detected as `Asia/Kolkata` found no match, got the disabled placeholder, and was blocked by `required` from submitting a form whose list never held their zone under a name they'd look for. The select now *adds* the detected zone when the list lacks it, and the page prepends `UTC`. Postgres accepts every spelling involved, so passing the browser's through is safe. Note that `resolvedOptions().timeZone` does **not** canonicalise aliases in Node — that was the first fix tried, and it doesn't work.
+- **`Intl` accepts bare UTC offsets (`+05:30`) and `pg_timezone_names` doesn't**, so `isKnownTimeZone` was green-lighting values the trigger then refused. It now requires a leading letter.
+- **`23514` arrives from five different rules** — both branches of `assert_booking_coherent` and three check constraints — so mapping it all to "that isn't your place" told people with a time-zone problem to go looking at ownership. `bookingWriteMessage` reads the message now.
+- **A write that RLS filtered away returns `200 []`, not an error.** The seed script accepted a pending Connection as whichever party it happened to have, and a row found in the reverse direction meant the *requester* tried to accept — filtered to zero rows, reported as "connected", pair still pending. The lesson is the one already written into the Phase 3 notes: check the row count, never the status code.
 
 **Start the next session with**: `gh issue view 8` (Phase 5, Slot as a poll), which #6 and #7 both unblock. Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 

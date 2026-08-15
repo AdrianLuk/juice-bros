@@ -99,6 +99,28 @@ test("real IANA zones are recognised and invented ones are not", () => {
   assert.equal(isKnownTimeZone(""), false);
 });
 
+test("a bare UTC offset is not a time zone, whatever Intl says", () => {
+  // `Intl` accepts these; `pg_timezone_names` does not, so the trigger would
+  // refuse the row after this said it was fine — and an offset is not a zone
+  // anyway, since it cannot say what happens when the clocks change.
+  for (const offset of ["+05:30", "-08:00", "+00:00"]) {
+    assert.equal(isKnownTimeZone(offset), false, `${offset} is not a zone`);
+  }
+});
+
+test("legacy and canonical spellings of one zone are both accepted", () => {
+  // Node's ICU lists the legacy name and the browser reports the canonical one.
+  // Postgres knows both, so refusing either here would reject a real zone.
+  for (const zone of [
+    "Asia/Kolkata",
+    "Asia/Calcutta",
+    "Europe/Kyiv",
+    "Europe/Kiev",
+  ]) {
+    assert.equal(isKnownTimeZone(zone), true, `${zone} is a zone`);
+  }
+});
+
 test("a Booking is rendered in its own time zone, not the server's", () => {
   // 22:00 UTC is 6pm in Toronto in August. Rendering it as 10pm is the failure
   // this column was added to prevent, and it is invisible until someone shows
@@ -141,7 +163,27 @@ test("an unrenderable zone falls back to UTC and says so", () => {
 
 test("a Booking under someone else's Org reads as the rule that rejected it", () => {
   // Raised by the assert_booking_coherent trigger.
-  assert.match(bookingWriteMessage({ code: "23514" }), /your own|belongs/i);
+  assert.match(
+    bookingWriteMessage({
+      code: "23514",
+      message: "a booking can only sit under one of your own orgs",
+    }),
+    /your own|belongs/i,
+  );
+});
+
+test("the other 23514s do not all claim to be about the wrong Org", () => {
+  // The trigger's time-zone branch and three check constraints raise the same
+  // SQLSTATE. Telling someone their zone problem is an ownership problem sends
+  // them looking in the wrong place entirely.
+  assert.match(
+    bookingWriteMessage({ code: "23514", message: "unknown time zone Mars/Olympus_Mons" }),
+    /time zone/i,
+  );
+  assert.doesNotMatch(
+    bookingWriteMessage({ code: "23514", message: "unknown time zone X" }),
+    /your own places/i,
+  );
 });
 
 test("an unexplained failure still says what was being attempted", () => {

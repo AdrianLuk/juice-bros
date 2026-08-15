@@ -190,14 +190,31 @@ async function connect(requester: string, addressee: string): Promise<string> {
     })) as ConnectionRow[])[0];
 
   // Only the addressee may accept — the RLS update policy says so, which is
-  // why this switches tokens rather than carrying on as the requester.
-  await asUser(addresseeToken, `connections?id=eq.${pending.id}`, {
+  // why this switches tokens rather than carrying on as the requester. Which
+  // token that is depends on the row: a pending request found above may run in
+  // either direction, and accepting as the wrong party is filtered to zero rows
+  // by the policy rather than refused, so it would look like it worked.
+  const accepterToken =
+    pending.addressee_id === addresseeId ? addresseeToken : requesterToken;
+
+  const accepted = (await asUser(accepterToken, `connections?id=eq.${pending.id}`, {
     method: "PATCH",
     body: JSON.stringify({
       status: "accepted",
       responded_at: new Date().toISOString(),
     }),
-  });
+  })) as ConnectionRow[];
+
+  // `Prefer: return=representation` means a write RLS filtered away comes back
+  // as an empty array with a 200, so the response being ok proves nothing. This
+  // script exists to stop the browser suite failing for reasons unrelated to
+  // the code under test; announcing a friendship it did not make would be
+  // exactly that failure wearing a disguise.
+  if (accepted.length === 0) {
+    throw new Error(
+      `Accepting ${requester} ↔ ${addressee} changed no rows — the connection is still pending.`,
+    );
+  }
 
   return "connected";
 }
