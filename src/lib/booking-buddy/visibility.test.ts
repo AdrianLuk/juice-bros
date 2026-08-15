@@ -31,6 +31,24 @@ test("a friend in two groups gets the most permissive of them", () => {
   );
 });
 
+test("slots and open_time are independent grants that union, not a scale", () => {
+  // Neither is "more permissive" than the other — together they grant
+  // everything calendar does, same as being in one calendar group.
+  assert.equal(
+    resolveVisibility({ groupLevels: ["slots", "open_time"] }),
+    "calendar",
+  );
+  // A group only granting the other axis contributes nothing extra.
+  assert.equal(
+    resolveVisibility({ groupLevels: ["slots", "none"] }),
+    "slots",
+  );
+  assert.equal(
+    resolveVisibility({ groupLevels: ["open_time", "none"] }),
+    "open_time",
+  );
+});
+
 test("a friend with no group and no override has no access", () => {
   assert.equal(resolveVisibility({ groupLevels: [] }), "none");
   assert.equal(resolveVisibility({ groupLevels: [], override: null }), "none");

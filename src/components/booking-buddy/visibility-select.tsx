@@ -7,10 +7,11 @@ import {
 const VISIBILITY_LABELS: Record<VisibilityLevel, string> = {
   none: "Nothing",
   slots: "Slots I share with them",
+  open_time: "Just my open time",
   calendar: "Slots and my open time",
 };
 
-/** Least to most permissive — the order comes from the levels themselves. */
+/** Display order comes from the levels themselves — see visibility.ts. */
 export const VISIBILITY_OPTIONS = VISIBILITY_LEVELS.map((value) => ({
   value: value as string,
   label: VISIBILITY_LABELS[value],
