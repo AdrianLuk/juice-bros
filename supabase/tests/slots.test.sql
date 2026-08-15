@@ -9,7 +9,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(15);
 
 select has_table('public', 'slots', 'slots table exists');
 select has_table('public', 'responses', 'responses table exists');
@@ -37,12 +37,15 @@ values ('66666666-0000-0000-0000-000000000031', 'aaaaaaaa-0000-0000-0000-0000000
 insert into public.friend_group_members (group_id, connection_id)
 values ('66666666-0000-0000-0000-000000000031', '44444444-0000-0000-0000-000000000031');
 
+-- Dated a comfortable distance out (not merely "later than 2026-08-15,
+-- today") so the `slots_not_in_the_past` trigger doesn't turn this fixture
+-- into a ticking time bomb that starts failing once the date arrives.
 insert into public.slots (id, owner_id, proposed_start, proposed_end, time_zone)
 values (
   '77777777-0000-0000-0000-000000000031',
   'aaaaaaaa-0000-0000-0000-000000000031',
-  '2026-08-22 13:00:00+00',
-  '2026-08-22 14:30:00+00',
+  '2031-08-22 13:00:00+00',
+  '2031-08-22 14:30:00+00',
   'America/Toronto'
 );
 
@@ -55,10 +58,21 @@ select is(
 
 select throws_ok(
   $$insert into public.slots (owner_id, proposed_start, proposed_end, time_zone)
-    values ('bbbbbbbb-0000-0000-0000-000000000032', '2026-08-22 13:00:00+00', '2026-08-22 14:30:00+00', 'America/Toronto')$$,
+    values ('bbbbbbbb-0000-0000-0000-000000000032', '2031-08-22 13:00:00+00', '2031-08-22 14:30:00+00', 'America/Toronto')$$,
   '42501',
   null,
   'a User cannot create a slot owned by someone else'
+);
+
+-- A Slot represents something going forward, not a record of something that
+-- already happened — unambiguously past, so this holds regardless of when
+-- the suite actually runs.
+select throws_ok(
+  $$insert into public.slots (owner_id, proposed_start, proposed_end, time_zone)
+    values ('aaaaaaaa-0000-0000-0000-000000000031', '2020-01-01 13:00:00+00', '2020-01-01 14:30:00+00', 'America/Toronto')$$,
+  '23514',
+  null,
+  'a slot cannot be proposed in the past'
 );
 
 -- Ben: accepted Connection, slots-visible via the group he's in.

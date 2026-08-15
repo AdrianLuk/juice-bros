@@ -7,6 +7,7 @@ import { verifySession } from "../dal.ts";
 import { BOOKINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { bookingWriteMessage, formatBookingWhen, parseNewBooking } from "../bookings.ts";
+import { isPastDate } from "../datetime.ts";
 import { listOrgs, type Org } from "./orgs.ts";
 
 export type { ActionResult } from "./result.ts";
@@ -112,6 +113,16 @@ export async function createBooking(
 
   if (orgError || !org) {
     return { error: "Pick one of your own places." };
+  }
+
+  // Calendar-day-only, not exact-instant — same reasoning as
+  // `parseNewSlotProposal`'s own check, just run here instead of inside
+  // `parseNewBooking`: the Org's zone (and therefore the only way to ask this
+  // question correctly) isn't known until this read completes. A same-day
+  // booking whose start time already passed reaches `bookings_not_in_the_past`
+  // instead, translated by `bookingWriteMessage`.
+  if (isPastDate(parsed.date, org.time_zone, new Date())) {
+    return { error: "That date has already passed. Pick a date in the future." };
   }
 
   const { error } = await supabase.from("bookings").insert({

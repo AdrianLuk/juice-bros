@@ -18,7 +18,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(33);
+select plan(34);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
@@ -171,15 +171,18 @@ select throws_ok(
   'a User cannot create an Org owned by someone else'
 );
 
--- A Booking under an Org of your own is the ordinary case.
+-- A Booking under an Org of your own is the ordinary case. Dated a
+-- comfortable distance out (not merely "later than 2026-08-15, today") so
+-- the `bookings_not_in_the_past` trigger doesn't turn this fixture into a
+-- ticking time bomb that starts failing once the date arrives.
 insert into public.bookings (id, org_id, owner_id, court_label, starts_at, ends_at)
 values (
   'bbbb0000-0000-0000-0000-000000000001',
   'aaaa0000-0000-0000-0000-000000000001',
   'aaaaaaaa-0000-0000-0000-000000000011',
   'Court 3',
-  '2026-08-20 18:00:00 America/Toronto',
-  '2026-08-20 19:30:00 America/Toronto'
+  '2031-08-20 18:00:00 America/Toronto',
+  '2031-08-20 19:30:00 America/Toronto'
 );
 
 select is(
@@ -197,8 +200,8 @@ select throws_ok(
       'cccc0000-0000-0000-0000-000000000001',
       'aaaaaaaa-0000-0000-0000-000000000011',
       'Court 1',
-      '2026-08-21 18:00:00 America/Toronto',
-      '2026-08-21 19:00:00 America/Toronto'
+      '2031-08-21 18:00:00 America/Toronto',
+      '2031-08-21 19:00:00 America/Toronto'
     )$$,
   '23514',
   null,
@@ -211,12 +214,29 @@ select throws_ok(
       'aaaa0000-0000-0000-0000-000000000001',
       'aaaaaaaa-0000-0000-0000-000000000011',
       'Court 1',
-      '2026-08-21 19:00:00 America/Toronto',
-      '2026-08-21 18:00:00 America/Toronto'
+      '2031-08-21 19:00:00 America/Toronto',
+      '2031-08-21 18:00:00 America/Toronto'
     )$$,
   '23514',
   null,
   'a Booking cannot end before it starts'
+);
+
+-- A Booking mirrors a reservation that already exists (ADR 0002) — one dated
+-- before right now isn't a record of anything real. Unambiguously past, so
+-- this holds regardless of when the suite actually runs.
+select throws_ok(
+  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at)
+    values (
+      'aaaa0000-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000011',
+      'Court 1',
+      '2020-01-01 18:00:00 America/Toronto',
+      '2020-01-01 19:00:00 America/Toronto'
+    )$$,
+  '23514',
+  null,
+  'a booking cannot start in the past'
 );
 
 -- Stored as an instant, so the same wall-clock reading in winter and summer are
@@ -225,7 +245,7 @@ select throws_ok(
 select is(
   (select starts_at at time zone 'UTC' from public.bookings
    where id = 'bbbb0000-0000-0000-0000-000000000001'),
-  '2026-08-20 22:00:00'::timestamp,
+  '2031-08-20 22:00:00'::timestamp,
   'a wall-clock time is stored as the instant its own time zone makes it'
 );
 

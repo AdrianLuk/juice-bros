@@ -9,6 +9,10 @@ const VALID = {
   end_time: "10:30",
 };
 
+// Fixed rather than `new Date()`, so "2026-08-20" stays a valid future date
+// for VALID no matter when this suite actually runs.
+const NOW = new Date("2026-08-01T12:00:00Z");
+
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
   for (const [key, value] of Object.entries(fields)) {
@@ -17,8 +21,11 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-function parse(overrides: Partial<typeof VALID & { time_zone: string }> = {}) {
-  return parseNewSlotProposal(form({ ...VALID, ...overrides }));
+function parse(
+  overrides: Partial<typeof VALID & { time_zone: string }> = {},
+  now: Date = NOW,
+) {
+  return parseNewSlotProposal(form({ ...VALID, ...overrides }), now);
 }
 
 test("a date and a window become a bare-proposal Slot, defaulted to Toronto", () => {
@@ -59,8 +66,39 @@ test("a Slot cannot end before it starts, or at the moment it starts", () => {
   assert.ok("error" in parse({ end_time: "09:00" }));
 });
 
-test("a check-constraint failure reads as a generic mismatch, since the form already refuses both known causes", () => {
+test("a date already in the past is refused", () => {
+  assert.ok("error" in parse({ date: "2026-07-31" }));
+  assert.ok("error" in parse({ date: "2020-01-01" }));
+});
+
+test("today and later are not in the past", () => {
+  assert.ok(!("error" in parse({ date: "2026-08-01" })));
+  assert.ok(!("error" in parse({ date: "2026-08-20" })));
+});
+
+test("the past-date check reads the date in the resolved zone, not UTC", () => {
+  // At 2026-08-01T02:00Z, it's still 2026-07-31 in Toronto (UTC-4 in
+  // August) — so "2026-07-31" is today there, not yesterday.
+  const earlyUtc = new Date("2026-08-01T02:00:00Z");
+  assert.ok(
+    !(
+      "error" in
+      parse({ date: "2026-07-31", start_time: "23:00", end_time: "23:30" }, earlyUtc)
+    ),
+  );
+});
+
+test("a check-constraint failure reads as a generic mismatch, since the form already refuses every known cause it can", () => {
   assert.match(slotWriteMessage({ code: "23514" }), /doesn't add up/);
+});
+
+test("the database's own past-time rejection (same-day, already-passed hour) reads as a friendly message", () => {
+  // parseNewSlotProposal's own check is calendar-day-only, so this is the
+  // one 23514 cause it cannot pre-empt itself.
+  assert.match(
+    slotWriteMessage({ code: "23514", message: "a slot cannot be proposed in the past" }),
+    /already passed/,
+  );
 });
 
 test("an unexplained failure still says what was being attempted", () => {

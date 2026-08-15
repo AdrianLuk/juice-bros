@@ -102,6 +102,19 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   }
 });
 
+test("a slot cannot be posted for a date that's already passed", async ({ page }) => {
+  await page.goto("/booking-buddy/slots");
+  await page.getByLabel("Date").fill("2020-01-01");
+  await page.getByLabel("Start").selectOption("13:00");
+  await page.getByLabel("End").selectOption("14:30");
+  await page.getByRole("button", { name: "Post slot" }).click();
+
+  await expect(
+    page.getByRole("alert").filter({ hasText: "already passed" }),
+  ).toBeVisible();
+  await expect(row(page, "2020")).toHaveCount(0);
+});
+
 test("a friend with slots Visibility can respond, and the owner sees it", async ({
   page,
   browser,
