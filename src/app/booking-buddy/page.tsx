@@ -13,6 +13,7 @@ import {
   GROUPS_PATH,
   ORGS_PATH,
   SETTINGS_PATH,
+  SLOTS_PATH,
 } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -49,10 +50,16 @@ export default async function BookingBuddyPage() {
           />
 
           <p className="mt-8 text-sm text-muted-foreground">
-            You&apos;re signed in. Open slots are on the way.
+            You&apos;re signed in.
           </p>
 
           <p className="mt-4 flex flex-wrap gap-4 text-sm">
+            <Link
+              href={SLOTS_PATH}
+              className="underline underline-offset-4"
+            >
+              Slots
+            </Link>
             <Link
               href={FRIENDS_PATH}
               className="underline underline-offset-4"
