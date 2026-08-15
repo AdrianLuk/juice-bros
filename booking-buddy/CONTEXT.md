@@ -22,9 +22,14 @@ A named, user-owned collection of a User's own Connections (e.g. "Tuesday crew")
 **Visibility**:
 How much of a User's calendar/Slot data a given Connection can see. Three levels, least to most permissive: `none` (nothing), `slots` (only the Slots the owner shares with them), `calendar` (those Slots plus the owner's open time). Resolved per friend as: an explicit per-friend override always wins if set; otherwise, for a friend in multiple Groups, the most permissive of those Groups' levels applies. Adding a friend to a more-open Group can only expand what they see, never silently restrict it — an override is the only way to close one person off without dismantling the Group they are in. A friend in no Group and with no override sees nothing.
 
+**Place**:
+A real-world pickleball facility as Google Maps knows it — "PicklePlex Downsview", "Vaughan Pickleball" — identified by its Google `place_id`. Not something Booking Buddy owns or maintains: the list of Places is Google's, and the app only ever holds the ones its Users have actually picked. Facts about a Place (display name, address, coordinates) are cached server-side and refreshed, never authored here. See [adr/0005-orgs-identified-by-google-place-id.md](docs/adr/0005-orgs-identified-by-google-place-id.md).
+
 **Org**:
-A club or facility where a User holds court reservations (e.g. a CourtReserve-registered club). Entered manually by the User in v1 — Booking Buddy does not integrate with any facility platform's API. A single User can have Bookings across multiple Orgs.
-_Avoid_: Facility, Club (use Org as the canonical term, matching how platforms like CourtReserve model it)
+One User's record of playing at a Place — the thing their Bookings hang off. A single User can have Bookings across multiple Orgs, and two Users who play at the same Place have separate Orgs pointing at the same `place_id`, which is what lets anything cross-User join them up. Where a venue isn't in Google Maps (a community-centre gym, a private court), an Org carries a hand-typed name instead and has no Place; it is one or the other, never both. A place-backed Org cannot be renamed — its name is the Place's, so everyone sees the same one.
+
+Bookings under an Org are still entered by hand: Google supplies the venue's identity, not its reservations (ADR 0002 stands).
+_Avoid_: Facility, Club (use Org as the canonical term, matching how platforms like CourtReserve model it). Note that an Org is a User's *record*, not the venue itself — the venue is a Place.
 
 **Booking**:
 A single court reservation at a specific Org, owned by a User, with a court and date/time — mirrors one reservation record as it exists on the facility's own platform (e.g. one CourtReserve reservation = one Booking). Entered manually by the User; there is no "unconfirmed" or "intended" state — a Booking represents a reservation that exists. A gathering spanning multiple courts (e.g. an 8-person game held as two separate court reservations for the same window) is multiple Bookings attached to one Slot, not multiple Slots.
