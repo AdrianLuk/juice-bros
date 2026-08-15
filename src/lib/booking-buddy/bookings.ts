@@ -10,15 +10,17 @@
  * `bookings` migration — change one and you must change the other.
  */
 
-import { isKnownTimeZone } from "./timezone.ts";
+import {
+  HALF_HOUR_TIMES,
+  formatInstantRange,
+  formatTimeLabel,
+  isHalfHourTime,
+  isRealDate,
+} from "./datetime.ts";
+
+export { HALF_HOUR_TIMES, formatTimeLabel };
 
 export const COURT_LABEL_MAX_LENGTH = 40;
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-// Half-hour boundaries only. Courts are booked in half-hour chunks, not
-// whatever a free-typed or click-dragged time picker happens to land on — a
-// "6:23 PM" booking isn't a real reservation anyone could have made.
-const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
 
 export type NewBooking = {
   orgId: string;
@@ -27,40 +29,6 @@ export type NewBooking = {
   startTime: string;
   endTime: string;
 };
-
-/**
- * Every half-hour slot in a day, `"00:00"` through `"23:30"` — what the start
- * and end pickers offer. A `<select>` rather than `<input type="time">` so a
- * User physically cannot choose anything off the half-hour grid; the pattern
- * above is the server-side backstop for a request built by hand.
- */
-export const HALF_HOUR_TIMES: readonly string[] = Array.from(
-  { length: 48 },
-  (_, index) =>
-    `${String(Math.floor(index / 2)).padStart(2, "0")}:${index % 2 === 0 ? "00" : "30"}`,
-);
-
-/** `"18:30"` → `"6:30 PM"`, for the option labels — the value posted is still 24-hour. */
-export function formatTimeLabel(time: string): string {
-  const [hours, minutes] = time.split(":").map(Number);
-  const period = hours < 12 ? "AM" : "PM";
-  const twelveHour = hours % 12 === 0 ? 12 : hours % 12;
-  return `${twelveHour}:${String(minutes).padStart(2, "0")} ${period}`;
-}
-
-/** A calendar date, not merely four digits and two hyphens. */
-function isRealDate(date: string): boolean {
-  if (!DATE_PATTERN.test(date)) {
-    return false;
-  }
-
-  // Round-tripping is what catches 2026-13-01 and 2026-02-30, which the
-  // pattern alone is happy with.
-  const parsed = new Date(`${date}T00:00:00Z`);
-  return (
-    !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
-  );
-}
 
 export function parseNewBooking(
   formData: FormData,
@@ -89,7 +57,7 @@ export function parseNewBooking(
   const startTime = String(formData.get("start_time") ?? "").trim();
   const endTime = String(formData.get("end_time") ?? "").trim();
 
-  if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) {
+  if (!isHalfHourTime(startTime) || !isHalfHourTime(endTime)) {
     return { error: "Pick a start and end time." };
   }
 
@@ -115,42 +83,21 @@ export function formatBookingWhen(booking: {
   endsAt: string;
   timeZone: string;
 }): string {
-  const start = new Date(booking.startsAt);
-  const end = new Date(booking.endsAt);
-
-  // The trigger refuses a zone Postgres doesn't know, so a row that lands here
-  // should not exist. Throwing anyway would take down the whole list to punish
-  // one row, so UTC and an admission is the better answer.
-  const usable = isKnownTimeZone(booking.timeZone);
-  const zone = usable ? booking.timeZone : "UTC";
-
-  const day = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: zone,
+  return formatInstantRange({
+    startsAt: booking.startsAt,
+    endsAt: booking.endsAt,
+    timeZone: booking.timeZone,
   });
-
-  const clock = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: zone,
-  });
-
-  const when = `${day.format(start)} · ${clock.format(start)} – ${clock.format(end)}`;
-
-  return usable ? when : `${when} (UTC)`;
 }
 
 /**
  * Turns a failed Booking write into something worth reading.
  *
- * `23514` arrives from four rules — the org-ownership branch of
- * `assert_booking_coherent` and three check constraints — so the code alone
- * doesn't say what went wrong. The zone-validity branch that used to live here
- * moved to `orgs` with the column (issue #20); a Booking write can no longer
- * raise it.
+ * `23514` arrives from five rules now — the org-ownership branch of
+ * `assert_booking_coherent`, three check constraints, and
+ * `bookings_not_in_the_past` — so the code alone doesn't say what went wrong.
+ * The zone-validity branch that used to live here moved to `orgs` with the
+ * column (issue #20); a Booking write can no longer raise it.
  */
 export function bookingWriteMessage(error: {
   code?: string;
@@ -162,6 +109,13 @@ export function bookingWriteMessage(error: {
 
   if (error.message?.includes("orgs")) {
     return "That booking doesn't sit under one of your own places.";
+  }
+
+  // `createBooking`'s own past-date check (`isPastDate`) is calendar-day-only,
+  // so a same-day booking whose start time already passed reaches here —
+  // the one past-time cause the action can't pre-empt itself.
+  if (error.message?.includes("in the past")) {
+    return "That time has already passed. Pick a time in the future.";
   }
 
   // The three check constraints — court label blank or over-long, and an end

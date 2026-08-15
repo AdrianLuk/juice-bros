@@ -164,3 +164,12 @@ test("a Booking under someone else's Org reads as the rule that rejected it", ()
 test("an unexplained failure still says what was being attempted", () => {
   assert.match(bookingWriteMessage({ code: "08006" }), /booking/i);
 });
+
+test("the database's own past-time rejection (same-day, already-passed hour) reads as a friendly message", () => {
+  // createBooking's own past-date check (isPastDate) is calendar-day-only,
+  // so this is the one 23514 cause it cannot pre-empt itself.
+  assert.match(
+    bookingWriteMessage({ code: "23514", message: "a booking cannot start in the past" }),
+    /already passed/,
+  );
+});

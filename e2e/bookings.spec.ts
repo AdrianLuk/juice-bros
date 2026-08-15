@@ -132,6 +132,26 @@ test("a booking cannot end before it starts", async ({ page }) => {
   await removePlace(page, place);
 });
 
+test("a booking cannot be logged for a date that's already passed", async ({ page }) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  await logBooking(page, {
+    place,
+    court: "Time-traveling court",
+    date: "2020-01-01",
+    start: "18:00",
+    end: "19:00",
+  });
+
+  await expect(
+    page.getByRole("alert").filter({ hasText: "already passed" }),
+  ).toBeVisible();
+  await expect(row(page, "Time-traveling court")).toHaveCount(0);
+
+  await removePlace(page, place);
+});
+
 test("the same place cannot be added twice", async ({ page }) => {
   const place = placeName();
 

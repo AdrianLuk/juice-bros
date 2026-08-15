@@ -9,6 +9,7 @@ export const TEST_PASSWORD = "pickleball123";
 
 export const AMY = "amyace@example.com";
 export const BEN = "benbackhand@example.com";
+export const BEN2 = "benbackhand2@example.com";
 
 /**
  * Signs in through the real form, password mode.

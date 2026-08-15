@@ -1,0 +1,240 @@
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+import { AMY, BEN2, signIn } from "./support/sign-in.ts";
+import { deleteSlots } from "./support/slot-cleanup.ts";
+
+/**
+ * The Slot poll journey: post a bare proposal, a friend with slots Visibility
+ * sees it and responds, and the owner sees the response — issue #8.
+ *
+ * There's no delete-a-slot UI yet (out of scope for this ticket), so every
+ * Slot a test creates is swept up afterward direct against Postgres via
+ * `deleteSlots`, the same pattern `google-places-mock.ts`'s
+ * `deleteCachedPlaces` uses for the same reason.
+ */
+
+/** A "when" row is found by a distinctive month/day/year — each test uses its own date. */
+function row(page: Page, text: string): Locator {
+  return page.getByRole("listitem").filter({ hasText: text });
+}
+
+/**
+ * Posts a Slot and clicks into its detail page. `label` is the distinctive
+ * "month day, year" substring `formatSlotWhen` will render for `date` — the
+ * caller supplies it rather than this function deriving it, so each test's
+ * own assertions and this lookup can't drift apart.
+ */
+async function createSlot(
+  page: Page,
+  slot: { date: string; start: string; end: string; label: string },
+): Promise<string> {
+  await page.goto("/booking-buddy/slots");
+  await page.getByLabel("Date").fill(slot.date);
+  await page.getByLabel("Start").selectOption(slot.start);
+  await page.getByLabel("End").selectOption(slot.end);
+  await page.getByRole("button", { name: "Post slot" }).click();
+
+  await row(page, slot.label).getByRole("link").click();
+  await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
+  return page.url().split("/").pop()!;
+}
+
+test.beforeEach(async ({ page }) => {
+  await signIn(page, AMY, "/booking-buddy/slots");
+});
+
+/**
+ * Grants Ben2 `slots` Visibility into Amy for the duration of one test — the
+ * same "Playwright"-prefixed, delete-at-the-end convention friend-groups.spec.ts
+ * uses. Amy and Ben2 are already a Connection per the seed data
+ * (booking-buddy/docs/local-test-accounts.md); this only adds the group.
+ */
+async function grantBen2SlotsVisibility(page: Page): Promise<string> {
+  const name = `Playwright slots ${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+
+  await page.goto("/booking-buddy/groups");
+  await page.getByLabel("Group name").fill(name);
+  await page.getByLabel("What they can see").selectOption("slots");
+  await page.getByRole("button", { name: "Create group" }).click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+
+  const card = page.locator("section").filter({ hasText: name }).last();
+  const picker = card.getByLabel("Add a friend");
+  const value = await picker
+    .locator("option", { hasText: "@benbackhand2)" })
+    .getAttribute("value");
+  await picker.selectOption(value!);
+  await card.getByRole("button", { name: "Add" }).click();
+  await expect(card).toContainText("1 friend");
+
+  return name;
+}
+
+async function revokeBen2SlotsVisibility(page: Page, name: string) {
+  await page.goto("/booking-buddy/groups");
+  const card = page.locator("section").filter({ hasText: name }).last();
+  await card.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("button", { name: "Delete group" }).click();
+  await expect(page.getByRole("heading", { name })).toHaveCount(0);
+}
+
+test("a bare-proposal slot can be posted and shows up for its owner", async ({
+  page,
+}) => {
+  const slotId = await createSlot(page, {
+    date: "2031-03-03",
+    start: "13:00",
+    end: "14:30",
+    label: "Mar 3, 2031",
+  });
+
+  try {
+    await expect(page.getByRole("heading", { name: /Mar 3, 2031/ })).toBeVisible();
+    await expect(page.getByText("Proposed by you")).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: "Your response" }).getByRole("button"),
+    ).toHaveCount(3);
+
+    await page.goto("/booking-buddy/slots");
+    await expect(row(page, "Mar 3, 2031")).toBeVisible();
+  } finally {
+    await deleteSlots([slotId]);
+  }
+});
+
+test("a slot cannot be posted for a date that's already passed", async ({ page }) => {
+  await page.goto("/booking-buddy/slots");
+  await page.getByLabel("Date").fill("2020-01-01");
+  await page.getByLabel("Start").selectOption("13:00");
+  await page.getByLabel("End").selectOption("14:30");
+  await page.getByRole("button", { name: "Post slot" }).click();
+
+  await expect(
+    page.getByRole("alert").filter({ hasText: "already passed" }),
+  ).toBeVisible();
+  await expect(row(page, "2020")).toHaveCount(0);
+});
+
+test("a friend with slots Visibility can respond, and the owner sees it", async ({
+  page,
+  browser,
+}) => {
+  const groupName = await grantBen2SlotsVisibility(page);
+
+  const slotId = await createSlot(page, {
+    date: "2031-04-04",
+    start: "10:00",
+    end: "11:00",
+    label: "Apr 4, 2031",
+  });
+
+  try {
+    // Ben2 can see it from his own slots list, and can respond.
+    const ben2Context = await browser.newContext();
+    const ben2 = await ben2Context.newPage();
+
+    try {
+      await signIn(ben2, BEN2, "/booking-buddy/slots");
+      await expect(row(ben2, "Apr 4, 2031")).toBeVisible();
+
+      await ben2.goto(`/booking-buddy/slots/${slotId}`);
+      await expect(ben2.getByText(/Proposed by/)).toBeVisible();
+      await ben2
+        .getByRole("group", { name: "Your response" })
+        .getByRole("button", { name: "Maybe" })
+        .click();
+      await expect(
+        ben2.getByRole("button", { name: "Maybe", pressed: true }),
+      ).toBeVisible();
+    } finally {
+      await ben2Context.close();
+    }
+
+    // Amy sees Ben2's response on her own copy of the page. Ben and Ben2
+    // share a display name (local-test-accounts.md), but only Ben2 has
+    // responded to this Slot, so the row is unambiguous within it.
+    await page.reload();
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "Ben Backhand" }),
+    ).toContainText("Maybe");
+  } finally {
+    await deleteSlots([slotId]);
+    await revokeBen2SlotsVisibility(page, groupName);
+  }
+});
+
+test("a Connection with no slots Visibility cannot see or reach the slot", async ({
+  page,
+  browser,
+}) => {
+  // No group granted here — Amy and Ben2 are Connections per the seed data,
+  // but a friend with no group and no override defaults to no access.
+  const slotId = await createSlot(page, {
+    date: "2031-06-06",
+    start: "08:00",
+    end: "09:00",
+    label: "Jun 6, 2031",
+  });
+
+  try {
+    const ben2Context = await browser.newContext();
+    const ben2 = await ben2Context.newPage();
+
+    try {
+      await signIn(ben2, BEN2, "/booking-buddy/slots");
+      await expect(row(ben2, "Jun 6, 2031")).toHaveCount(0);
+
+      // RLS filters the row itself, so this reads as "not found" rather than
+      // a permission error, same as getSlotDetail's stated contract.
+      const response = await ben2.goto(`/booking-buddy/slots/${slotId}`);
+      expect(response?.status()).toBe(404);
+    } finally {
+      await ben2Context.close();
+    }
+  } finally {
+    await deleteSlots([slotId]);
+  }
+});
+
+test("tapping a response shows an optimistic update before the server confirms it", async ({
+  page,
+}) => {
+  const slotId = await createSlot(page, {
+    date: "2031-05-05",
+    start: "15:00",
+    end: "16:00",
+    label: "May 5, 2031",
+  });
+
+  try {
+    // Delay only the mutation's own round trip — registered after the initial
+    // navigation so the page itself loads at full speed.
+    let releaseResponse: (() => void) | undefined;
+    const held = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+
+    await page.route(`**/booking-buddy/slots/${slotId}`, async (route) => {
+      if (route.request().method() === "POST") {
+        await held;
+      }
+      await route.continue();
+    });
+
+    const yesButton = page
+      .getByRole("group", { name: "Your response" })
+      .getByRole("button", { name: "Yes" });
+
+    await yesButton.click();
+
+    // Optimistic: highlighted immediately, while the POST above is still held.
+    await expect(page.getByRole("button", { name: "Yes", pressed: true })).toBeVisible();
+
+    releaseResponse!();
+
+    // Still correct once the real response lands.
+    await expect(page.getByRole("button", { name: "Yes", pressed: true })).toBeVisible();
+  } finally {
+    await deleteSlots([slotId]);
+  }
+});
