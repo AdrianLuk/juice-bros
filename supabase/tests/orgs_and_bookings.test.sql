@@ -15,11 +15,26 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(27);
+select plan(29);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
 select has_table('public', 'place_cache', 'place_cache table exists');
+
+-- Both reads are "mine, newest first", and the two unique indexes are partial,
+-- so neither of them can serve it. Asserted because a missing index is a
+-- sequential scan that nothing else in this suite would notice.
+select has_index(
+  'public', 'orgs', 'orgs_owner_created_at',
+  'orgs is indexed by owner, which is how every read of it filters'
+);
+
+-- The referencing side of an `on delete cascade`, which Postgres does not index
+-- for you: without it, removing one Org scans every Booking there is.
+select has_index(
+  'public', 'bookings', 'bookings_org_id',
+  'bookings is indexed by org, which is how the cascade finds them'
+);
 
 -- Amy and Ben are friends, so that "a friend sees nothing" is a real test
 -- rather than a test about strangers. Cal is neither.

@@ -36,7 +36,11 @@ export type NewBooking = {
  * sentence about the form the User just filled in.
  */
 export function isKnownTimeZone(zone: string): boolean {
-  if (!zone) {
+  // `Intl` accepts bare offsets like `+05:30`, and `pg_timezone_names` does
+  // not — so without this the trigger refuses a row this function just called
+  // fine. An offset is not a zone in any case: it cannot say what happens when
+  // the clocks change, which is the one thing storing the zone is for.
+  if (!/^[A-Za-z]/.test(zone)) {
     return false;
   }
 
@@ -157,14 +161,33 @@ export function formatBookingWhen(booking: {
   return usable ? when : `${when} (UTC)`;
 }
 
-/** Turns a failed Booking write into something worth reading. */
-export function bookingWriteMessage(error: { code?: string }): string {
-  switch (error.code) {
-    case "23514":
-      // Raised by assert_booking_coherent (someone else's Org, or a zone
-      // Postgres doesn't know) and by the ends-after-starts constraint.
-      return "That booking doesn't sit under one of your own places.";
-    default:
-      return "Couldn't save that booking. Try again.";
+/**
+ * Turns a failed Booking write into something worth reading.
+ *
+ * `23514` arrives from five different rules — both branches of
+ * `assert_booking_coherent` and three check constraints — so the code alone
+ * doesn't say what went wrong. Telling someone their time-zone problem is an
+ * ownership problem sends them looking in entirely the wrong place, which is
+ * why the message is read rather than assumed.
+ */
+export function bookingWriteMessage(error: {
+  code?: string;
+  message?: string;
+}): string {
+  if (error.code !== "23514") {
+    return "Couldn't save that booking. Try again.";
   }
+
+  if (error.message?.includes("time zone")) {
+    return "That time zone isn't one the calendar recognises. Pick another.";
+  }
+
+  if (error.message?.includes("orgs")) {
+    return "That booking doesn't sit under one of your own places.";
+  }
+
+  // The three check constraints — court label blank or over-long, and an end
+  // that isn't after the start. `parseNewBooking` catches all of them first, so
+  // getting here means the form and the schema have drifted apart.
+  return "Something about that booking doesn't add up. Check the court and times.";
 }

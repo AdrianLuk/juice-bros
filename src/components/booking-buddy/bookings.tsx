@@ -66,10 +66,23 @@ function TimeZoneSelect({ id, zones }: { id: string; zones: string[] }) {
   // them after hydration without either a mismatch or a cascading render.
   const detected = useSyncExternalStore(subscribeToNothing, readBrowserZone, () => "");
 
+  // The detected zone is added to the list when the list doesn't already have
+  // it, rather than being discarded as unrecognised. The two sides disagree
+  // more than you would hope: Node's ICU here lists 418 zones with the legacy
+  // spellings only — `Asia/Calcutta`, `Europe/Kiev`, and no `UTC` at all —
+  // while browsers report the canonical ids. Matching strictly against the
+  // server's list left a Chrome user in India detected as `Asia/Kolkata`, no
+  // match, the disabled placeholder selected, and `required` refusing to submit
+  // a form whose list never contained their zone under a name they would look
+  // for. Postgres accepts both spellings, so passing theirs straight through is
+  // safe.
+  const options =
+    detected && !zones.includes(detected) ? [detected, ...zones] : zones;
+
   // Null until the User overrides the detection, so a later render can't
   // clobber a choice they made by hand.
   const [chosen, setChosen] = useState<string | null>(null);
-  const zone = chosen ?? (zones.includes(detected) ? detected : "");
+  const zone = chosen ?? detected;
 
   return (
     <FormSelect
@@ -82,7 +95,7 @@ function TimeZoneSelect({ id, zones }: { id: string; zones: string[] }) {
       <option value="" disabled>
         Pick your time zone
       </option>
-      {zones.map((value) => (
+      {options.map((value) => (
         <option key={value} value={value}>
           {value.replaceAll("_", " ")}
         </option>
