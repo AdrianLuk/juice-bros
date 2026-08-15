@@ -134,7 +134,9 @@ Verified: 179 `node --test` tests, 90 pgTAP tests, and 33 Playwright browser tes
 
 **#28 (Phase 4.5, Availability Window: schema + `resolveAvailability` + RLS) is shipped.** See "Notes carried out of Phase 4.5" above.
 
-**#8 (Slot as a poll, with Responses) is shipped too.** See "Notes carried out of #8" above, under Phase 6. **Start the next session with [#9](https://github.com/AdrianLuk/juice-bros/issues/9)** (Confirm a Slot — attaching Booking(s), Capacity, over-capacity signal), which already lists #8 as a blocker (now closed) and covers Phase 5's remaining 5.3–5.5 plus Phase 6's 6.4–6.5. #10 (Slot Link + Guest) and #11 (Email Reminders) both build on Slots existing too, and remain queued behind #9.
+**#8 (Slot as a poll, with Responses) is shipped too.** See "Notes carried out of #8" above, under Phase 6.
+
+**#9 (Confirm a Slot — attaching Booking(s), Capacity, over-capacity signal) is shipped**, closing Phases 5 and 6. See "Notes carried out of #9" above, under Phase 6. **Start the next session with [#10](https://github.com/AdrianLuk/juice-bros/issues/10)** (Slot Link & Guest RSVP) — #11 (Email Reminders) is queued behind it, and #23 (dashboard calendar) is independent of both.
 
 Verified for #8: 204 `node --test` tests, 114 pgTAP tests pass; typecheck, lint and `npm run build` are clean. 32 of Booking Buddy's Playwright specs pass, including the new `e2e/slots.spec.ts` (4 tests) — `e2e/places.spec.ts`'s 5 tests are excluded from that count for a pre-existing, documented reason unrelated to this ticket: they need a dev server Playwright starts itself to pick up the Google Places mock env var, and this session reused an already-running one (see docs/testing.md's "If you already have `npm run dev` running on :3000" note).
 
@@ -266,9 +268,9 @@ Verified: 183 `node --test` tests, 100 pgTAP tests pass; typecheck, lint and `np
 
 - [x] 5.1 Schema: `slots` (owner_id, proposed_start, proposed_end, rotation_buffer default 0), `slot_bookings` (slot_id, booking_id) join table for multi-Booking Slots (Q5d) — the `slots` half only; `slot_bookings` is #9's
 - [x] 5.2 🔴 Test: `createSlot` with no Booking creates a bare proposal → 🟢 implement
-- [ ] 5.3 🔴 Test: `attachBookingToSlot` links a Booking; only the Slot owner can attach → 🟢 implement
-- [ ] 5.4 🔴 Test: `computeCapacity` — base capacity sums attached Bookings' court capacities, plus rotation buffer (pure function) → 🟢 implement
-- [ ] 5.5 🔴 Test: `computeCapacity` — a Slot with zero Bookings returns unbounded/null (nothing to enforce yet) → 🟢 implement
+- [x] 5.3 🔴 Test: `attachBookingToSlot` links a Booking; only the Slot owner can attach → 🟢 implement — covered at the database seam (`slot_bookings.test.sql`) and the browser seam (`slots.spec.ts`), not as a pure-function test; the action itself is glue
+- [x] 5.4 🔴 Test: `computeCapacity` — base capacity sums attached Bookings' court capacities, plus rotation buffer (pure function) → 🟢 implement
+- [x] 5.5 🔴 Test: `computeCapacity` — a Slot with zero Bookings returns unbounded/null (nothing to enforce yet) → 🟢 implement
 - [x] 5.6 🔴 RLS test: querying `slots` directly as a User with no Connection to the owner and no valid Slot Link token returns no rows → 🟢 implement coarse policy (nuanced precedence stays app-layer per ADR 0003 — this only proves the coarse boundary). Shipped as `has_slot_visibility` + `can_access_slot` — the Slot Link token half of this test doesn't exist yet (#10); today's boundary is Connection-and-Visibility only.
 
 ## Phase 6 — Response
@@ -278,8 +280,8 @@ Verified: 183 `node --test` tests, 100 pgTAP tests pass; typecheck, lint and `np
 - [x] 6.1 Schema: `responses` (slot_id, user_id nullable, guest_name nullable, answer: yes/no/maybe, created_at) with a check constraint requiring exactly one of user_id/guest_name
 - [x] 6.2 🔴 Test: `respondToSlot` records yes/no/maybe for a Connection with resolved visibility into the Slot → 🟢 implement — **deviation from "calling `resolveVisibility` as a guard"**, see the notes below
 - [x] 6.3 🔴 Test: `respondToSlot` rejects a User with no visibility into the Slot → 🟢 implement
-- [ ] 6.4 🔴 Test: `respondToSlot` succeeds even when confirmed "yes" Responses already exceed Capacity — no hard block (documents the ADR 0001 consequence explicitly) → 🟢 implement (no blocking logic needed, but the test proves it)
-- [ ] 6.5 🔴 Test: `isOverCapacity` returns true once "yes" Responses exceed `computeCapacity`'s result (pure function, drives the organizer-facing warning) → 🟢 implement
+- [x] 6.4 🔴 Test: `respondToSlot` succeeds even when confirmed "yes" Responses already exceed Capacity — no hard block (documents the ADR 0001 consequence explicitly) → 🟢 implement (no blocking logic needed, but the test proves it) — see the notes below: there is no such test, because there is nowhere for one to fail
+- [x] 6.5 🔴 Test: `isOverCapacity` returns true once "yes" Responses exceed `computeCapacity`'s result (pure function, drives the organizer-facing warning) → 🟢 implement
 
 ### Notes carried out of #8
 
@@ -307,6 +309,21 @@ Not part of #8's acceptance criteria, added afterward by request: a Slot cannot 
 - **Code review caught a real bug before it shipped**: both triggers apply to the *existing* pgTAP fixtures too, and `orgs_and_bookings.test.sql`/`slots.test.sql` had hardcoded Booking/Slot dates only 5–7 days out from "today" (2026-08-15). Nothing enforced "not in the past" before this, so those dates were fine; adding the trigger turned them into a near-term time bomb that would've started failing within the week, for every future session, on shed unrelated to this feature — the DST wall-clock instant check in particular, which depends on one of those exact rows. Fixed by moving the threatened fixture dates out to 2031, matching the distance `e2e/slots.spec.ts` already uses for its own fixtures. Worth remembering for the next rule that adds a `now()`-relative constraint to an existing table: **grep the test fixtures for dates that rule would now touch, not just the ones in the diff.**
 
 Verified: 211 `node --test` tests, 116 pgTAP tests pass; typecheck, lint and `npm run build` are clean. `e2e/slots.spec.ts` and `e2e/bookings.spec.ts` each cover the friendly-error path.
+
+### Notes carried out of #9
+
+**Issue #9 (Confirm a Slot) is shipped.** All five acceptance criteria are met: the Slot owner can attach one or more of their Bookings; Capacity is the courts plus the rotation buffer; a Slot with no Bookings has no Capacity; "yes" Responses are never blocked; and the organizer sees an over-capacity signal once they exceed Capacity. This closes Phase 5 (5.3–5.5) and Phase 6 (6.4–6.5).
+
+- **Capacity is per-Booking data, not a flat constant** — [ADR 0008](docs/adr/0008-court-capacity-is-per-booking-data.md), revised mid-ticket before shipping. The first draft made "a court holds four" a constant and left singles unrepresented; revisited on request, because singles and informal drilling (a court shared by 3+ players rotating through drills, more spots than a strict doubles reading would show) are common enough that folding them entirely into the organizer's manual read of the rotation buffer was the wrong simplification. `bookings.format` (`singles` | `doubles`, defaulting to `doubles`) now drives each attached court's own share; `computeCapacity` sums the list rather than multiplying a count.
+- **`slot_bookings.format` is a deliberate copy of `bookings.format`, not a fresh read on every query.** A friend can read `slot_bookings` (gated on `can_access_slot`) but not `bookings` (owner-only), so without the copy a friend's Capacity would silently omit whatever singles courts are attached. `assert_slot_booking_coherent` writes the copy from the Booking itself — never from what the client's insert claims — the same trigger that already checked ownership; pgTAP proves a tampered `format` in the insert gets overwritten. Safe against drift only because Bookings have no edit path today; an editable Booking would need this revisited.
+- **The Capacity a friend sees is the same number the organizer sees, and RLS is what makes that safe.** `slot_bookings` is readable by anyone who can read the Slot (`can_access_slot`), so the court count and formats travel; `bookings` stays owner-only, so where and which court do not. `getSlotCapacity` doesn't branch on the viewer for that — it asks for the Booking details and a friend simply gets none back, which is a harder thing to get wrong than a filter someone could forget.
+- **The over-capacity signal reads the same query cache the response buttons write to.** `SlotCapacityPanel` and `ResponseButtons` share one `useQuery` key (`slotResponsesQuery`), so an optimistic "yes" moves the count and the signal together. Two independent reads of the same thing would have let the count and the ceiling disagree for a beat, which is exactly the moment the signal matters.
+- **6.4 asks for a test that `respondToSlot` succeeds over Capacity — the honest place for it turned out to be pgTAP, not the action.** The action never reads Capacity, so a test at that seam proves nothing about code that doesn't exist. What can regress is the database: someone adding a "helpful" trigger later. `slot_bookings.test.sql` therefore has five Users each RSVPing "yes" to a one-court Slot and asserts all five rows land.
+- **The Booking-side ownership check cannot live in RLS.** The insert is on `slot_bookings`, and the insert policy only sees the Slot; nothing in it looks at whose Booking was named. `assert_slot_booking_coherent` (security definer) is what closes that, the exact shape `assert_booking_coherent` already uses for Org ownership — and the reason attaching someone else's Booking raises `23514` rather than being silently filtered.
+- **A code-review pass caught a real gap before shipping**: the first `attachable` list offered every Booking the owner had ever logged, with no relation to the Slot's own date — attaching a wildly unrelated reservation would misreport Capacity with nothing to catch it. `bookingOverlapsSlot` now filters the picker to Bookings whose window actually overlaps the Slot's proposed one; not a hard block (nothing in this app hard-blocks attach/detach), just the picker not offering nonsense. The same pass also caught `slot_bookings`' primary key permitting one Booking to back two different Slots at once (double-counted Capacity) — closed with `slot_bookings_booking_unique` — and an e2e test that submitted a Booking-creation form without waiting for it to land before navigating away, which could leave the next step with nothing to select.
+- **`addPlace`/`logBooking`/`removePlace` moved out of `bookings.spec.ts` into `e2e/support/places.ts`** the moment the Slots spec needed a real Booking as a fixture — the same "extract when the second caller appears" move `datetime.ts` was in #8. `logBooking` grew an optional `format` param for the same reason.
+
+Verified: 234 `node --test` tests, 134 pgTAP tests pass; the full Playwright suite (40 tests, including `e2e/slots.spec.ts` and `e2e/bookings.spec.ts`) passes; typecheck, lint and `npm run build` are clean.
 
 ## Phase 7 — Slot Link + Guest ([#10](https://github.com/AdrianLuk/juice-bros/issues/10))
 

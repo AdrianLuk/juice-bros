@@ -8,6 +8,7 @@ import { BOOKINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { bookingWriteMessage, formatBookingWhen, parseNewBooking } from "../bookings.ts";
 import { isPastDate } from "../datetime.ts";
+import type { BookingFormat } from "../capacity.ts";
 import { listOrgs, type Org } from "./orgs.ts";
 
 export type { ActionResult } from "./result.ts";
@@ -21,6 +22,9 @@ export type Booking = {
   /** Already rendered in the Booking's own zone — see `formatBookingWhen`. */
   when: string;
   startsAt: string;
+  endsAt: string;
+  /** Doubles (4) or singles (2) — what this court's own share of Capacity is (ADR 0008). */
+  format: BookingFormat;
 };
 
 export type BookingsPageData = {
@@ -44,7 +48,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
     listOrgs(),
     supabase
       .from("bookings")
-      .select("id, org_id, court_label, starts_at, ends_at")
+      .select("id, org_id, court_label, starts_at, ends_at, format")
       .order("starts_at", { ascending: true }),
   ]);
 
@@ -73,6 +77,8 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
           timeZone: org?.timeZone ?? "UTC",
         }),
         startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        format: row.format,
       };
     }),
   };
@@ -129,6 +135,7 @@ export async function createBooking(
     org_id: parsed.orgId,
     owner_id: session.userId,
     court_label: parsed.courtLabel,
+    format: parsed.format,
     // Wall-clock strings carrying their own zone. Postgres does the DST-aware
     // conversion to an instant, which is much harder to get wrong than doing it
     // in JavaScript.
