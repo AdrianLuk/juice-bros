@@ -132,7 +132,7 @@ Also beyond the ticket: Booking start/end times became a `<select>` of half-hour
 
 Verified: 179 `node --test` tests, 90 pgTAP tests, and 33 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
 
-**Start the next session with Phase 4.5** (Availability Window: schema + `resolveAvailability` + RLS, 4.5.1–4.5.6) — inserted 2026-08-15 ahead of #8, since Slot's `calendar`-visibility RLS (5.6) should enforce against real Availability data, not a stub. No issue filed yet; see [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) before starting. Rendering it on a calendar is folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) instead of a separate UI step — #23's body now covers both Bookings and Availability. **#8** (Slot as a poll) remains the critical-path ticket after Phase 4.5 — #9/#10/#11 all build on Slots existing.
+**Start the next session with [#28](https://github.com/AdrianLuk/juice-bros/issues/28)** (Phase 4.5, Availability Window: schema + `resolveAvailability` + RLS) — inserted 2026-08-15 ahead of #8, since Slot's `calendar`-visibility RLS (5.6) should enforce against real Availability data, not a stub. Rendering it on a calendar is folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) instead of a separate UI step — #23's body now covers both Bookings and Availability, and lists #28 as a blocker. **#8** (Slot as a poll) remains the critical-path ticket after #28 — #9/#10/#11 all build on Slots existing.
 
 [#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list, fka Phase 9.1's placeholder) is fully spec'd and ticketed, but deliberately queued **after** #18 and #8 — it only needs Bookings, which already ship, so it isn't blocked, but the existing #18-then-#8 order was a deliberate choice and this ticket doesn't unblock anything else in the graph.
 
@@ -242,7 +242,7 @@ Inserted ahead of Slot so Slot's `calendar`-visibility RLS (5.6) enforces agains
 
 Rendering the User's own resolved Availability on a calendar grid is **not** built here — it's folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list), which already builds that grid for Bookings. Viewing a *friend's* resolved Availability (through `calendar` Visibility) has no surface at all yet and no ticket — deferred until scoped.
 
-Needs a GitHub issue filed for 4.5.1–4.5.6 before starting, per [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) — not created as part of this scoping pass. #23 should list it as a blocker once it exists (it currently names it in prose, pending the real issue number).
+4.5.1–4.5.6 are filed as [#28](https://github.com/AdrianLuk/juice-bros/issues/28).
 
 ## Phase 5 — Slot (poll → confirmed lifecycle, ADR 0001)
 
