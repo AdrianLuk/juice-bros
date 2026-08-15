@@ -8,8 +8,10 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { createClient } from "@/lib/booking-buddy/supabase/server";
 import { signOut } from "@/lib/booking-buddy/actions/auth";
 import {
+  BOOKINGS_PATH,
   FRIENDS_PATH,
   GROUPS_PATH,
+  ORGS_PATH,
   SETTINGS_PATH,
 } from "@/lib/booking-buddy/routes";
 
@@ -47,10 +49,10 @@ export default async function BookingBuddyPage() {
           />
 
           <p className="mt-8 text-sm text-muted-foreground">
-            You&apos;re signed in. Open slots and bookings are on the way.
+            You&apos;re signed in. Open slots are on the way.
           </p>
 
-          <p className="mt-4 flex gap-4 text-sm">
+          <p className="mt-4 flex flex-wrap gap-4 text-sm">
             <Link
               href={FRIENDS_PATH}
               className="underline underline-offset-4"
@@ -62,6 +64,18 @@ export default async function BookingBuddyPage() {
               className="underline underline-offset-4"
             >
               Friend groups
+            </Link>
+            <Link
+              href={ORGS_PATH}
+              className="underline underline-offset-4"
+            >
+              Where you play
+            </Link>
+            <Link
+              href={BOOKINGS_PATH}
+              className="underline underline-offset-4"
+            >
+              Your bookings
             </Link>
             <Link
               href={SETTINGS_PATH}

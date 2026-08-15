@@ -42,7 +42,7 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Hosted environment
 
-- [x] Schema is current as of the friend-groups migration (2026-08-14). `npx supabase migration list` compares local against remote and is the quickest way to check whether that is still true — do it before assuming a hosted bug is a code bug.
+- [x] Schema is current as of the orgs/bookings/place_cache migration (2026-08-14). `npx supabase migration list` compares local against remote and is the quickest way to check whether that is still true — do it before assuming a hosted bug is a code bug.
 
 - [x] Hosted Supabase project `juice-bros` (ref `zhvhddzpgxtjdyrhgsqd`, region `ca-central-1`, Postgres 17), linked to this repo via `supabase link` — so `supabase db push` targets it.
 - [x] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` set on the Vercel project for Production and Preview, the service-role key marked sensitive. Repo linked to Vercel (`lukabaseballs-projects/juice-bros`).
@@ -56,6 +56,8 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
     In practice this means **every migration must include its own `grant`s**, or the table is invisible to the API even with RLS policies in place. Confirmed on the hosted project: `profiles` returns `42501 permission denied` to `service_role`, which was deliberately not granted, while `authenticated` (the role the app actually runs as) works because the migration grants it. Grant `service_role` only where a job genuinely needs to bypass RLS — the reminders work in Phase 8 is the first likely case.
 
 ### Outstanding — needs a human (cannot be done by an agent)
+
+- [ ] **Google Maps Platform API key for Places**, restricted to the Places API and to the app's own origins/IPs, exposed to the app as a server-only env var (never `NEXT_PUBLIC_*` — the whole point of the server-side lookup in Phase 4 is keeping it off the client). Blocks Phase 4.7. The existing Google Cloud project used for OAuth is the obvious home for it; enabling Places there needs billing on the project, which is a card on file even though the free tier almost certainly covers this app's volume.
 
 - [x] Google Cloud OAuth credentials, wired into Supabase → Authentication → Providers → Google. Verified: `/auth/v1/authorize?provider=google` redirects to Google with a client id, the Supabase callback as `redirect_uri`, and `email profile` scopes.
 
@@ -96,7 +98,28 @@ Everything that was outstanding from #5 and #6 is now done:
 - **`connections` references `auth.users`, not `public.profiles`**, so PostgREST has no relationship to embed across and `listConnections` reads profiles in a second query. A `select("*, profiles(...)")` will fail here.
 - **Grouping lives in `src/lib/booking-buddy/connections.ts`**, deliberately free of Next.js and Supabase imports so it is unit-testable. A Connection row means different things depending on who is looking at it; that asymmetry is the logic worth testing, and it is.
 
-**Start the next session with**: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 7` — Phase 4 (Org + Booking) is next and unblocked. Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
+**Phase 4 (issue #7, Org + Booking) is complete on branch `org-and-booking-manual-entry`**, after being redesigned partway through: an Org is no longer a free-text name, it points at a Google Place. [adr/0005](docs/adr/0005-orgs-identified-by-google-place-id.md) is why; [Phase 4](#phase-4--org--booking) below has the steps and the notes carried out of it.
+
+Both open decisions were settled before any code: the Google Places integration is **split into [#18](https://github.com/AdrianLuk/juice-bros/issues/18)** and search there will be **server-side, not a client autocomplete**. Reasoning is under Phase 4; don't relitigate either.
+
+What that means for what shipped: `orgs`, `bookings` and `place_cache` all landed with the ADR 0005 shape, and the UI covers the hand-named path end to end. **No User-facing path writes a `place_id` yet** — that arrives with #18, which is blocked on a Google Maps API key only a human can provision (see "Outstanding — needs a human").
+
+Verified: 143 `node --test` tests, 86 pgTAP tests and 29 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean. Migrations are deployed — `supabase migration list` shows all eight in sync between local and the hosted project.
+
+Note that the orgs/bookings migration went **to the hosted project before #19 merged**. It is additive — three new tables, nothing existing altered, and no deployed code touches them — so it could not break what's live. But the "rewrite it in place" freedom this phase used up is gone, and it was spent within the hour: the review found `orgs` had no index its RLS filter could use and `bookings.org_id` none for its cascade, which had to land as `20260814183000_index_orgs_and_bookings.sql` rather than as an edit.
+
+### What the review caught
+
+Worth reading before Phase 5 repeats any of it:
+
+- **`Intl.supportedValuesOf("timeZone")` is not the same list on the server as in the browser.** Node 24 here returns 418 zones with the *legacy* spellings only — `Asia/Calcutta`, `Europe/Kiev` — and no `UTC` at all, while browsers report the canonical ids. Matching the detected zone strictly against the server's list meant a Chrome user in India detected as `Asia/Kolkata` found no match, got the disabled placeholder, and was blocked by `required` from submitting a form whose list never held their zone under a name they'd look for. The select now *adds* the detected zone when the list lacks it, and the page prepends `UTC`. Postgres accepts every spelling involved, so passing the browser's through is safe. Note that `resolvedOptions().timeZone` does **not** canonicalise aliases in Node — that was the first fix tried, and it doesn't work.
+- **`Intl` accepts bare UTC offsets (`+05:30`) and `pg_timezone_names` doesn't**, so `isKnownTimeZone` was green-lighting values the trigger then refused. It now requires a leading letter.
+- **`23514` arrives from five different rules** — both branches of `assert_booking_coherent` and three check constraints — so mapping it all to "that isn't your place" told people with a time-zone problem to go looking at ownership. `bookingWriteMessage` reads the message now.
+- **A write that RLS filtered away returns `200 []`, not an error.** The seed script accepted a pending Connection as whichever party it happened to have, and a row found in the reverse direction meant the *requester* tried to accept — filtered to zero rows, reported as "connected", pair still pending. The lesson is the one already written into the Phase 3 notes: check the row count, never the status code.
+
+**Start the next session with**: `gh issue view 8` (Phase 5, Slot as a poll), which #6 and #7 both unblock. Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
+
+**Work happens on a branch with a PR per ticket now**, not direct commits to `master`.
 
 ## Phase 1 — User + Auth
 
@@ -137,10 +160,39 @@ Everything that was outstanding from #5 and #6 is now done:
 
 ## Phase 4 — Org + Booking
 
-- [ ] 4.1 Schema: `orgs` (owner_id, name), `bookings` (org_id, owner_id, court_label, starts_at, ends_at)
-- [ ] 4.2 🔴 Test: `createOrg` creates an Org owned by the caller → 🟢 implement
-- [ ] 4.3 🔴 Test: `createBooking` requires an existing Org owned by the caller → 🟢 implement
-- [ ] 4.4 🔴 RLS test: querying `bookings` directly as a non-owner returns no rows (Bookings are only friend-visible indirectly, via an attached Slot) → 🟢 implement coarse policy
+**Redesigned mid-session on 2026-08-14: an Org is Google Place-backed, not free text.** The reasoning, the alternatives rejected, and the consequences are in [adr/0005-orgs-identified-by-google-place-id.md](docs/adr/0005-orgs-identified-by-google-place-id.md); the vocabulary is in [CONTEXT.md](CONTEXT.md) under **Place** and **Org**. Read both before starting — the steps below are the shape, not the argument.
+
+- [x] 4.1 Schema: `orgs` (owner_id, google_place_id nullable, name nullable, exactly one set), `bookings` (org_id, owner_id, court_label, starts_at, ends_at, time_zone), `place_cache` (place_id pk, name, formatted_address, latitude, longitude, fetched_at)
+- [x] 4.2 🔴 Test: an Org is either Place-backed or hand-named, never both and never neither → 🟢 check constraint
+- [x] 4.3 🔴 Test: the same owner cannot add the same Place twice → 🟢 unique index on `(owner_id, google_place_id)`
+- [x] 4.4 🔴 Test: `createBooking` requires an existing Org owned by the caller → 🟢 implement (trigger — the rule needs a subquery, and RLS does not cover it: the insert is on `bookings`, a table the User may write, and nothing in that policy looks at whose Org they named)
+- [x] 4.5 🔴 RLS test: querying `bookings` or `orgs` directly as a non-owner returns no rows — including as an *accepted Connection*, since a Booking reaches a friend only through an attached Slot → 🟢 implement coarse policy
+- [x] 4.6 🔴 RLS test: `place_cache` is readable by any authenticated User and writable by none → 🟢 select-only grant, writes via `service_role`
+- [ ] 4.7 🔴 Test: Place lookup — search returns candidates, picking one caches it, a stale row is refreshed → 🟢 implement — **moved to [#18](https://github.com/AdrianLuk/juice-bros/issues/18)**
+- [ ] 4.8 "Powered by Google" attribution on the Org picker and anywhere a Place's address is shown. Required by Google's terms, not optional. — **moved to [#18](https://github.com/AdrianLuk/juice-bros/issues/18)**
+
+Beyond the numbered steps, #7 also shipped the UI its acceptance criteria ask for: `/booking-buddy/orgs` (add a hand-named place, see your places, remove one) and `/booking-buddy/bookings` (log a court reservation, see them soonest-first, remove one), both linked from the dashboard.
+
+### Both decisions settled (2026-08-14)
+
+1. **The Places integration is split out — #7 lands the schema, [#18](https://github.com/AdrianLuk/juice-bros/issues/18) brings the picker.** 4.1–4.6 plus the hand-named Org path ship in #7; 4.7–4.8 are #18. The schema is the expensive-to-change part and it's what unblocks Phase 5, and shipping the picker inside #7 would have blocked the whole ticket on a Google Maps API key that doesn't exist yet (see "Outstanding — needs a human"). The consequence is stated in #7 and worth repeating: until #18 ships, the only Orgs creatable through the UI are hand-named ones. `google_place_id`, its uniqueness rule and `place_cache` all land here and are pgTAP-covered, so the shape is settled — but no User-facing path writes a `place_id` yet.
+2. **Place search runs server-side, not as a client autocomplete.** A Server Action calls Places Text Search, renders the candidates, and the User picks one in a second step. Every Booking Buddy form posts to a Server Action and works with JavaScript off — that property is why the visibility pickers are native `<select>`s — and a keystroke-driven autocomplete gives it up. It also keeps the API key server-side by construction rather than by discipline. Two steps instead of type-ahead is the accepted cost. Recorded on #18, which is where it gets built.
+
+### Notes carried out of Phase 4
+
+- **The migration and its pgTAP test were rewritten in place**, not stacked on with an `alter table` — they had been applied locally before the redesign but never pushed, so there was no history worth preserving. Most of the original survived: `bookings`, the `assert_booking_coherent` trigger, the `ends_at > starts_at` constraint, the coarse RLS policies and the explicit grants. What changed is `orgs` and the addition of `place_cache`. Rewriting in place is why the local database needed `supabase db reset` — `migration up` cannot undo a version of a migration that no longer exists on disk.
+
+- **`orgs.google_place_id` is deliberately not a foreign key to `place_cache`.** The cache is a cache: a row can be missing or stale, and ADR 0005 names the cache miss as a failure mode the read path has to cope with anyway. An FK would make an Org uninsertable until the server had fetched the Place, coupling the table to the Places integration rather than to the Place itself. The consequence to know about: PostgREST has no relationship to embed across, so `listOrgs` reads the cache in a second query — a `select("*, place_cache(...)")` will fail here, the same way it does on `connections`.
+
+- **A failed cache read is not a failed page.** `listOrgs` logs it and renders every Org without its Place's name, which is the degradation ADR 0005 asks for. `orgDisplayName` returns "Facility details unavailable" rather than a placeholder that reads like a real name. This is the one read in Booking Buddy that tolerates its own failure instead of throwing, and the reason is that the User's own rows are all still there.
+
+- **`time_zone` on `bookings` was not in the original plan and earns its place.** `starts_at` is an instant; rendering it back as the wall-clock time on the facility's own booking screen needs to know which clock that was, and without it the server renders in its own zone — UTC, in production, which turns a 6pm court booking into 10pm. The form sends an IANA zone, Postgres does the DST-aware conversion itself (`'2026-08-20 18:00:00 America/Toronto'::timestamptz`), and the trigger rejects a zone Postgres doesn't recognise. `e2e/bookings.spec.ts` logs a booking in `Asia/Tokyo` and asserts it reads back as the same six o'clock.
+
+- **The time zone is a visible control, not a hidden field.** A hidden input filled in by script would have been simpler and would have broken with JavaScript off, which every other Booking Buddy form survives. Instead the native `<select>` carries the full zone list, and script only *preselects* the browser's zone — read through `useSyncExternalStore` rather than `useEffect`, which the `react-hooks/set-state-in-effect` lint rule refuses. The list is passed down from the server so both renders agree on it: Node's ICU and the browser's are free to disagree about which zones exist, and that would be a hydration mismatch on a 600-option list.
+
+- **`npm run seed:users` now seeds Connections too**, because it turned out not to be true that `db reset` + `seed:users` restores a working local environment — the friendships the browser tests assume were created by hand once and died with the reset, taking five unrelated tests with them. They are seeded as the Users themselves rather than with the service-role key: `connections` is granted to `authenticated` and nobody else, and widening a grant in production to make a local fixture convenient is the wrong trade. See [docs/local-test-accounts.md](docs/local-test-accounts.md) for which pairs and why.
+
+- **Removing a place and removing a booking both sit behind a confirmation dialog**, and neither was in the ticket. Same reasoning as the Friend Group delete: an entry you cannot get rid of is a trap, and a mistyped one would sit in the Booking form's picker forever. The dialogs say plainly that this only changes what Booking Buddy knows — the actual court reservation is untouched.
 
 ## Phase 5 — Slot (poll → confirmed lifecycle, ADR 0001)
 
