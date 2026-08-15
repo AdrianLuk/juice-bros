@@ -9,7 +9,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(16);
 
 select has_table('public', 'slots', 'slots table exists');
 select has_table('public', 'responses', 'responses table exists');
@@ -18,15 +18,19 @@ select has_table('public', 'responses', 'responses table exists');
 -- to `slots` — visible. Cal is an accepted Connection with no group and no
 -- override — not visible, `slots` is not the default. Dave has no Connection
 -- to Amy at all — not visible either.
+-- Eve (added for #31): a Friend Group of Amy's defaulting to `open_time` —
+-- deliberately not visible here, since open_time doesn't grant Slots.
 insert into auth.users (id, instance_id, aud, role, email) values
   ('aaaaaaaa-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'amy-slot@example.com'),
   ('bbbbbbbb-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ben-slot@example.com'),
   ('cccccccc-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cal-slot@example.com'),
-  ('dddddddd-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dave-slot@example.com');
+  ('dddddddd-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dave-slot@example.com'),
+  ('eeeeeeee-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'eve-slot@example.com');
 
 insert into public.connections (id, requester_id, addressee_id, status) values
   ('44444444-0000-0000-0000-000000000031', 'aaaaaaaa-0000-0000-0000-000000000031', 'bbbbbbbb-0000-0000-0000-000000000032', 'accepted'),
-  ('55555555-0000-0000-0000-000000000032', 'aaaaaaaa-0000-0000-0000-000000000031', 'cccccccc-0000-0000-0000-000000000033', 'accepted');
+  ('55555555-0000-0000-0000-000000000032', 'aaaaaaaa-0000-0000-0000-000000000031', 'cccccccc-0000-0000-0000-000000000033', 'accepted'),
+  ('88888888-0000-0000-0000-000000000033', 'aaaaaaaa-0000-0000-0000-000000000031', 'eeeeeeee-0000-0000-0000-000000000035', 'accepted');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000031", "role": "authenticated"}';
@@ -185,6 +189,27 @@ select is(
    where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
   0,
   'a per-friend override below slots wins over the group default, closing the slot back off'
+);
+
+-- Eve: a Friend Group defaulting to `open_time` (#31) — the level that grants
+-- Availability Windows but deliberately not Slots. Proves the two grants are
+-- independent, not two rungs of one scale: `open_time` doesn't fall through
+-- to `has_slot_visibility` the way `calendar` does.
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000031", "role": "authenticated"}';
+
+insert into public.friend_groups (id, owner_id, name, default_visibility)
+values ('66666666-0000-0000-0000-000000000036', 'aaaaaaaa-0000-0000-0000-000000000031', 'Open time crew', 'open_time');
+
+insert into public.friend_group_members (group_id, connection_id)
+values ('66666666-0000-0000-0000-000000000036', '88888888-0000-0000-0000-000000000033');
+
+set local request.jwt.claims = '{"sub": "eeeeeeee-0000-0000-0000-000000000035", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.slots
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
+  0,
+  'open_time Visibility does not grant Slot visibility — it is not a rung below calendar, it is a different grant entirely'
 );
 
 select * from finish();
