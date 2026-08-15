@@ -4,6 +4,7 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { CreateOrgForm, OrgRow } from "@/components/booking-buddy/orgs";
+import { SearchPlaceForm } from "@/components/booking-buddy/place-search";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
@@ -38,13 +39,27 @@ export default async function OrgsPage() {
                 Add a place
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Type the name for now. Searching for your club by name is coming
-                — until then this is the way in, and it&apos;s the permanent one
-                for courts nobody has listed.
+                Search for your club and pick it from Google&apos;s listing.
               </p>
               <div className="mt-4">
-                <CreateOrgForm />
+                <SearchPlaceForm />
               </div>
+
+              <details className="mt-6 rounded-lg border border-border">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                  Can&apos;t find your club?
+                </summary>
+                <div className="border-t border-border px-4 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Community-centre gyms and private courts usually aren&apos;t
+                    on Google. Type the name instead — this is the permanent way
+                    in for those.
+                  </p>
+                  <div className="mt-4">
+                    <CreateOrgForm />
+                  </div>
+                </div>
+              </details>
             </section>
 
             <section>

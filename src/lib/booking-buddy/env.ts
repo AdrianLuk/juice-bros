@@ -45,3 +45,37 @@ export function readPublicSupabaseEnv(
     anonKey: requireEnv(source, "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   };
 }
+
+/**
+ * Bypasses Row Level Security entirely. First real use is `place_cache` (see
+ * `supabase/admin.ts`) — PROGRESS.md expected Phase 8's Reminder job to need
+ * this first, but writing the Place cache beat it there (ADR 0005).
+ */
+export function requireSupabaseServiceRoleKey(
+  source: EnvSource = { SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY },
+): string {
+  return requireEnv(source, "SUPABASE_SERVICE_ROLE_KEY");
+}
+
+/** Server-only. Never read this into anything that reaches the browser. */
+export function requireGoogleMapsApiKey(
+  source: EnvSource = { GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY },
+): string {
+  return requireEnv(source, "GOOGLE_MAPS_API_KEY");
+}
+
+const DEFAULT_GOOGLE_PLACES_API_BASE_URL = "https://places.googleapis.com";
+
+/**
+ * Test-only override so Playwright can point the app at a local fixture server
+ * instead of Google (see `e2e/support/google-places-mock.ts`). Not required —
+ * a blank or missing value means "use the real API".
+ */
+export function readGooglePlacesApiBaseUrl(
+  source: EnvSource = {
+    GOOGLE_PLACES_API_BASE_URL: process.env.GOOGLE_PLACES_API_BASE_URL,
+  },
+): string {
+  const value = source.GOOGLE_PLACES_API_BASE_URL;
+  return value && value.trim() !== "" ? value : DEFAULT_GOOGLE_PLACES_API_BASE_URL;
+}
