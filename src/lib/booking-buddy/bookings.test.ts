@@ -26,7 +26,7 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-function parse(overrides: Partial<typeof VALID> = {}) {
+function parse(overrides: Partial<typeof VALID & { format: string }> = {}) {
   return parseNewBooking(form({ ...VALID, ...overrides }));
 }
 
@@ -39,7 +39,21 @@ test("a court, a date and a window become a Booking", () => {
     date: "2026-08-20",
     startTime: "18:00",
     endTime: "19:30",
+    format: "doubles",
   });
+});
+
+test("a singles format is carried through", () => {
+  const parsed = parse({ format: "singles" });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.format, "singles");
+});
+
+test("a missing or unrecognized format defaults to doubles rather than refusing the form", () => {
+  assert.ok(!("error" in parse()));
+  const parsed = parse({ format: "mixed doubles" });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.format, "doubles");
 });
 
 test("surrounding space is trimmed off the court label", () => {
