@@ -132,7 +132,7 @@ Also beyond the ticket: Booking start/end times became a `<select>` of half-hour
 
 Verified: 179 `node --test` tests, 90 pgTAP tests, and 33 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
 
-**Start the next session with [#28](https://github.com/AdrianLuk/juice-bros/issues/28)** (Phase 4.5, Availability Window: schema + `resolveAvailability` + RLS) — inserted 2026-08-15 ahead of #8, since Slot's `calendar`-visibility RLS (5.6) should enforce against real Availability data, not a stub. Rendering it on a calendar is folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) instead of a separate UI step — #23's body now covers both Bookings and Availability, and lists #28 as a blocker. **#8** (Slot as a poll) remains the critical-path ticket after #28 — #9/#10/#11 all build on Slots existing.
+**#28 (Phase 4.5, Availability Window: schema + `resolveAvailability` + RLS) is shipped.** See "Notes carried out of Phase 4.5" above. **Start the next session with [#8](https://github.com/AdrianLuk/juice-bros/issues/8)** (Slot as a poll) — the critical-path ticket now that #28 has landed real Availability data for its 5.6 RLS to enforce against. #9/#10/#11 all build on Slots existing. Rendering Availability on a calendar is folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) instead of a separate UI step — #23's body now covers both Bookings and Availability, and lists #28 as a blocker (now closed).
 
 [#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list, fka Phase 9.1's placeholder) is fully spec'd and ticketed, but deliberately queued **after** #18 and #8 — it only needs Bookings, which already ship, so it isn't blocked, but the existing #18-then-#8 order was a deliberate choice and this ticket doesn't unblock anything else in the graph.
 
@@ -233,16 +233,24 @@ Verified: 171 `node --test` tests, 86 pgTAP tests, and 33 Playwright browser tes
 
 Inserted ahead of Slot so Slot's `calendar`-visibility RLS (5.6) enforces against real data instead of a stub. See [adr/0006-availability-layered-precedence.md](docs/adr/0006-availability-layered-precedence.md) and [CONTEXT.md](CONTEXT.md) under **Availability Window**. Numbered 4.5 rather than renumbering every phase after it.
 
-- [ ] 4.5.1 Schema: `availability_windows` (owner_id, type: open|busy, starts_at, ends_at) — no uniqueness/overlap constraint (ADR 0006)
-- [ ] 4.5.2 🔴 Test: `resolveAvailability(ownerId, at)` — a Booking or confirmed Slot covering `at` returns busy regardless of any Availability Window (pure function over pre-fetched rows) → 🟢 implement
-- [ ] 4.5.3 🔴 Test: `resolveAvailability` — with no covering Booking/confirmed Slot, the most recently *created* Availability Window covering `at` wins → 🟢 implement
-- [ ] 4.5.4 🔴 Test: `resolveAvailability` — a moment covered by neither returns unspecified → 🟢 implement
-- [ ] 4.5.5 🔴 Test: creation order, not edit order, decides precedence — editing an older window's time range/type doesn't change which window wins an overlap it didn't already win → 🟢 implement
-- [ ] 4.5.6 🔴 RLS test: querying `availability_windows` directly as a User with less than `calendar` Visibility into the owner (including no Connection at all) returns no rows → 🟢 implement coarse policy (nuanced precedence stays app-layer per ADR 0003, same as Slot)
+- [x] 4.5.1 Schema: `availability_windows` (owner_id, type: open|busy, starts_at, ends_at) — no uniqueness/overlap constraint (ADR 0006)
+- [x] 4.5.2 🔴 Test: `resolveAvailability(ownerId, at)` — a Booking or confirmed Slot covering `at` returns busy regardless of any Availability Window (pure function over pre-fetched rows) → 🟢 implement
+- [x] 4.5.3 🔴 Test: `resolveAvailability` — with no covering Booking/confirmed Slot, the most recently *created* Availability Window covering `at` wins → 🟢 implement
+- [x] 4.5.4 🔴 Test: `resolveAvailability` — a moment covered by neither returns unspecified → 🟢 implement
+- [x] 4.5.5 🔴 Test: creation order, not edit order, decides precedence — editing an older window's time range/type doesn't change which window wins an overlap it didn't already win → 🟢 implement
+- [x] 4.5.6 🔴 RLS test: querying `availability_windows` directly as a User with less than `calendar` Visibility into the owner (including no Connection at all) returns no rows → 🟢 implement coarse policy (nuanced precedence stays app-layer per ADR 0003, same as Slot)
 
 Rendering the User's own resolved Availability on a calendar grid is **not** built here — it's folded into [#23](https://github.com/AdrianLuk/juice-bros/issues/23) (Dashboard calendar + upcoming bookings list), which already builds that grid for Bookings. Viewing a *friend's* resolved Availability (through `calendar` Visibility) has no surface at all yet and no ticket — deferred until scoped.
 
-4.5.1–4.5.6 are filed as [#28](https://github.com/AdrianLuk/juice-bros/issues/28).
+4.5.1–4.5.6 are filed as [#28](https://github.com/AdrianLuk/juice-bros/issues/28), now shipped.
+
+### Notes carried out of Phase 4.5
+
+- **This is the first table whose read policy isn't pure ownership.** Every RLS policy through Phase 4 was "yours and nobody else's" (ADR 0003's example verbatim); `availability_windows` is gated on `calendar`-level Visibility specifically, per CONTEXT.md's Availability Window entry, so the coarse policy has to know the resolved level, not just who owns the row. `has_calendar_visibility(owner_user, viewer_user)` (the migration) replicates the override-then-group-default precedence `visibility.ts` already implements — but only as far as answering "is it `calendar`", since `calendar` is the top of `visibility_level`'s order and there's nothing more permissive to reduce over. The `resolveAvailability` pure function still owns the actual layered read (Booking/Slot busy-wins, then most-recently-created window); nothing about *that* moved into SQL.
+- **`throws_ok` is the wrong assertion for an RLS-filtered write.** An `update`/`insert` that RLS blocks matches zero rows rather than raising — the same lesson Phase 4's notes already recorded for reads. First draft of the pgTAP test asserted a calendar-visible friend's `update` with `throws_ok` and it failed for the right reason (no exception, because the row was just silently unmatched); fixed by asserting the row's value is unchanged instead.
+- **No `resolveAvailability` caller exists yet.** There's no Booking/confirmed-Slot data source wired to it (Slot doesn't exist until #8) and no UI (that's #23). The function takes pre-fetched `busyIntervals`/`windows` arrays rather than an `ownerId` — matching `resolveVisibility`'s shape, where the owner-scoping is the caller's query, not the pure function's job.
+
+Verified: 183 `node --test` tests, 100 pgTAP tests pass; typecheck, lint and `npm run build` are clean.
 
 ## Phase 5 — Slot (poll → confirmed lifecycle, ADR 0001)
 
