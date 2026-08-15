@@ -10,17 +10,22 @@
  * `orgs` migration — change one and you must change the other.
  */
 
+import { isKnownTimeZone } from "./timezone.ts";
+
 export const ORG_NAME_MAX_LENGTH = 80;
 
-export type HandNamedOrg = { name: string };
+export type HandNamedOrg = { name: string; timeZone: string };
 
 /**
  * The hand-typed path: a venue Google has no listing for.
  *
  * The Place-backed path has no parser here because there is nothing to parse —
  * the User picks a candidate the server itself fetched, so the `place_id` comes
- * from our own search results rather than from the form. That path arrives with
- * issue #18.
+ * from our own search results rather than from the form, and its time zone is
+ * derived from the Place's coordinates rather than asked (issue #20). A
+ * hand-named venue has no coordinates to derive from, so it's asked once here,
+ * defaulting to the browser's zone — a reasonable guess for a court typed in by
+ * hand, unlike one searched for.
  */
 export function parseHandNamedOrg(
   formData: FormData,
@@ -39,7 +44,15 @@ export function parseHandNamedOrg(
     };
   }
 
-  return { name };
+  const timeZone = String(formData.get("time_zone") ?? "").trim();
+  // Never defaulted to the server's zone. That is precisely the bug this
+  // column exists to prevent: in production the server is on UTC, which would
+  // turn a 6pm court booking into 10pm for every Booking under this Org.
+  if (!isKnownTimeZone(timeZone)) {
+    return { error: "Couldn't tell what time zone to use for this place. Try again." };
+  }
+
+  return { name, timeZone };
 }
 
 export type OrgIdentity = {
@@ -89,18 +102,27 @@ const FAILED: Record<OrgWrite, string> = {
   delete: "Couldn't remove that place. Try again.",
 };
 
-/** Turns a failed write into something worth reading. */
+/**
+ * Turns a failed write into something worth reading.
+ *
+ * `23514` arrives from two sources: the place-backed/hand-named check
+ * constraint, and (for a hand-named Org) the `orgs_time_zone_known` trigger.
+ * `isKnownTimeZone` already catches a bad zone before the database sees it, so
+ * the second case shouldn't be reachable from the form as it stands — but a
+ * wrong answer here would be baffling either way, so the message is read
+ * rather than assumed.
+ */
 export function orgWriteMessage(
-  error: { code?: string },
+  error: { code?: string; message?: string },
   write: OrgWrite,
 ): string {
   switch (error.code) {
     case "23505":
       return "You've already added that place.";
     case "23514":
-      // The place-backed/hand-named check constraint. Not reachable from the
-      // form as it stands, but a wrong answer here would be baffling.
-      return "A place needs either a Google listing or a name of its own.";
+      return error.message?.includes("time zone")
+        ? "That time zone isn't one the calendar recognises. Pick another."
+        : "A place needs either a Google listing or a name of its own.";
     default:
       return FAILED[write];
   }

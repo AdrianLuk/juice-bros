@@ -19,6 +19,7 @@ import { ORG_NAME_MAX_LENGTH } from "@/lib/booking-buddy/orgs";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import { createOrg, deleteOrg, type Org } from "@/lib/booking-buddy/actions/orgs";
 import { PoweredByGoogle } from "@/components/booking-buddy/place-search";
+import { TimeZoneSelect } from "@/components/booking-buddy/time-zone-select";
 
 const EMPTY: ActionResult = {};
 
@@ -35,26 +36,31 @@ function ActionError({ state }: { state: ActionResult }) {
 }
 
 /**
- * The hand-typed path — the only one there is until issue #18 brings the Google
- * search. The copy says as much rather than pretending this is the whole story.
+ * The hand-typed path — for a venue Google has no listing for. Asks for a time
+ * zone once, here, since a hand-named Org has no coordinates to derive one
+ * from (issue #20) — a Place-backed Org (`place-search.tsx`) derives its zone
+ * server-side and asks nothing.
  */
-export function CreateOrgForm() {
+export function CreateOrgForm({ zones }: { zones: string[] }) {
   const [state, formAction, pending] = useActionState(createOrg, EMPTY);
 
   return (
-    <form
-      action={formAction}
-      className="flex flex-col gap-3 sm:flex-row sm:items-end"
-    >
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <Label htmlFor="org-name">Place name</Label>
-        <Input
-          id="org-name"
-          name="name"
-          placeholder="PicklePlex Downsview"
-          maxLength={ORG_NAME_MAX_LENGTH}
-          required
-        />
+    <form action={formAction} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <Label htmlFor="org-name">Place name</Label>
+          <Input
+            id="org-name"
+            name="name"
+            placeholder="PicklePlex Downsview"
+            maxLength={ORG_NAME_MAX_LENGTH}
+            required
+          />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <Label htmlFor="org-zone">Time zone</Label>
+          <TimeZoneSelect id="org-zone" zones={zones} />
+        </div>
       </div>
       <div className="flex flex-col items-start gap-1">
         <Button type="submit" disabled={pending}>

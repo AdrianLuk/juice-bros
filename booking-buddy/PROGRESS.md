@@ -117,11 +117,20 @@ Worth reading before Phase 5 repeats any of it:
 - **`23514` arrives from five different rules** — both branches of `assert_booking_coherent` and three check constraints — so mapping it all to "that isn't your place" told people with a time-zone problem to go looking at ownership. `bookingWriteMessage` reads the message now.
 - **A write that RLS filtered away returns `200 []`, not an error.** The seed script accepted a pending Connection as whichever party it happened to have, and a row found in the reverse direction meant the *requester* tried to accept — filtered to zero rows, reported as "connected", pair still pending. The lesson is the one already written into the Phase 3 notes: check the row count, never the status code.
 
-One follow-up stays behind for later:
+**#18 (Google Places lookup for Orgs) is done** — see its own notes under Phase 4 above.
 
-- [#20](https://github.com/AdrianLuk/juice-bros/issues/20) — `time_zone` belongs on `orgs`, not `bookings`. Was blocked on #18 for the coordinates that make deriving it automatic; unblocked now that #18 is shipped, but still not pulled in — Orgs don't render coordinates anywhere yet, only cache them.
+**#20 (`time_zone` belongs on `orgs`, not `bookings`) is done too**, grabbed ahead of #8 since it was small and already unblocked. `orgs.time_zone` is `not null`; a Place-backed Org derives it from `place_cache`'s coordinates via [`geo-tz`](https://www.npmjs.com/package/geo-tz) (offline, no second Google API), asking nothing; a hand-named Org asks once at creation, defaulting to the browser's zone via the same `TimeZoneSelect` the Bookings form used to own (relocated to `src/components/booking-buddy/time-zone-select.tsx`). `bookings.time_zone` is gone — `createBooking` reads the Org's zone server-side (also doubling as the ownership check) and `getBookingsPageData` renders through it. Two migrations, additive then destructive, both shipped together since nothing is deployed to real users yet.
 
-**#18 (Google Places lookup for Orgs) is done** — see its own notes under Phase 4 above. That was the one-time exception to the recorded ordering; **start the next session with #8** (Slot as a poll) per that decision — it's still the critical-path ticket everything else in the plan sits behind, #9/#10/#11 all build on Slots existing. #20 is small and now unblocked if there's a reason to grab it first instead.
+Two things worth carrying forward:
+
+- **A bundler can rewrite `__dirname` out from under a package that reads its own data files via `fs`.** `geo-tz` ships timezone-boundary data it loads relative to its own package directory; Turbopack rewrote that to a synthetic path, so every lookup failed with a silent `ENOENT` — caught by the same try/catch meant for out-of-range coordinates, so it read as "coordinates too exotic to place" rather than the bundler bug it was. Fixed via `serverExternalPackages: ["geo-tz"]` in `next.config.ts`, which tells Next to `require()` it natively instead of bundling it. Worth checking first for any future native/fs-backed dependency that behaves correctly in a standalone `node -e` check but not inside the app.
+- **A pure-logic file that's safe for `node --test` isn't automatically safe for the client bundle, and vice versa.** `isKnownTimeZone` needed to stay in `timezone.ts` because `orgs.tsx`/`bookings.tsx` import `orgs.ts`/`bookings.ts` directly for form constants — pulling `geo-tz` into that same file would drag `fs` into the browser bundle (`Module not found: Can't resolve 'fs'`). It also couldn't just move to a `server-only`-marked file instead: that package throws unconditionally outside Next's `react-server` bundler condition, including under plain `node --test`, so marking `derive-time-zone.ts` that way would have made its own logic untestable. Split into a separate file, kept out of the `server-only` marker, and relied on import hygiene (only ever imported from the Server Action) instead.
+
+Also beyond the ticket: Booking start/end times became a `<select>` of half-hour slots rather than a free `<input type="time">`, since a hand-typed or click-dragged time picker could produce something like `6:23 PM` that no court is actually booked in.
+
+Verified: 178 `node --test` tests, 90 pgTAP tests, and 34 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean.
+
+**Start the next session with #8** (Slot as a poll) — it's still the critical-path ticket everything else in the plan sits behind, #9/#10/#11 all build on Slots existing.
 
 Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 

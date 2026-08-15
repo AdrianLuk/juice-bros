@@ -43,7 +43,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
     listOrgs(),
     supabase
       .from("bookings")
-      .select("id, org_id, court_label, starts_at, ends_at, time_zone")
+      .select("id, org_id, court_label, starts_at, ends_at")
       .order("starts_at", { ascending: true }),
   ]);
 
@@ -55,30 +55,40 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
 
   return {
     orgs,
-    bookings: (bookingsResult.data ?? []).map((row) => ({
-      id: row.id,
-      orgId: row.org_id,
-      // An Org deleted between the two reads would leave this blank rather than
-      // crash; the cascade means its Bookings are on their way out anyway.
-      orgName: orgById.get(row.org_id)?.displayName ?? "Somewhere you played",
-      courtLabel: row.court_label,
-      when: formatBookingWhen({
+    bookings: (bookingsResult.data ?? []).map((row) => {
+      const org = orgById.get(row.org_id);
+      return {
+        id: row.id,
+        orgId: row.org_id,
+        // An Org deleted between the two reads would leave this blank rather
+        // than crash; the cascade means its Bookings are on their way out
+        // anyway. Same fallback spirit for the zone: UTC is honest about not
+        // knowing rather than a guess.
+        orgName: org?.displayName ?? "Somewhere you played",
+        courtLabel: row.court_label,
+        when: formatBookingWhen({
+          startsAt: row.starts_at,
+          endsAt: row.ends_at,
+          timeZone: org?.timeZone ?? "UTC",
+        }),
         startsAt: row.starts_at,
-        endsAt: row.ends_at,
-        timeZone: row.time_zone,
-      }),
-      startsAt: row.starts_at,
-    })),
+      };
+    }),
   };
 }
 
 /**
  * Log a court reservation that already exists on the facility's own platform.
  *
- * The Org has to be one of the caller's own. This doesn't re-check that: the
- * `bookings_coherent` trigger does, because the rule needs a subquery and RLS
- * does not cover it — the insert is on `bookings`, a table the User may write,
- * and nothing in that policy looks at whose Org they named.
+ * The zone comes from the Org, not the form (issue #20) — every Booking under
+ * one Org is on the same clock, so there's nothing left for the User to pick.
+ * This means a fresh read of the Org right before the insert, rather than
+ * trusting whatever `orgs` list the form was rendered with: the read doubles
+ * as the ownership check (a stale or tampered `org_id` fails here with a clear
+ * message, ahead of the `bookings_coherent` trigger, which is still the
+ * authority — the rule needs a subquery and RLS does not cover it, since the
+ * insert is on `bookings`, a table the User may write, and nothing in that
+ * policy looks at whose Org they named).
  */
 export async function createBooking(
   _prev: ActionResult,
@@ -92,6 +102,18 @@ export async function createBooking(
   }
 
   const supabase = await createClient();
+
+  const { data: org, error: orgError } = await supabase
+    .from("orgs")
+    .select("time_zone")
+    .eq("id", parsed.orgId)
+    .eq("owner_id", session.userId)
+    .maybeSingle();
+
+  if (orgError || !org) {
+    return { error: "Pick one of your own places." };
+  }
+
   const { error } = await supabase.from("bookings").insert({
     org_id: parsed.orgId,
     owner_id: session.userId,
@@ -99,9 +121,8 @@ export async function createBooking(
     // Wall-clock strings carrying their own zone. Postgres does the DST-aware
     // conversion to an instant, which is much harder to get wrong than doing it
     // in JavaScript.
-    starts_at: parsed.startsAt,
-    ends_at: parsed.endsAt,
-    time_zone: parsed.timeZone,
+    starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.time_zone}`,
+    ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.time_zone}`,
   });
 
   if (error) {
