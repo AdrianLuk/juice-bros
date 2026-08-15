@@ -7,11 +7,12 @@ import { verifySession } from "../dal.ts";
 import { GROUPS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listConnections, type ConnectionPerson } from "./connections.ts";
+import { resolveVisibilityByConnection, type VisibilityLevel } from "../visibility.ts";
 import {
-  isVisibilityLevel,
-  resolveVisibilityByConnection,
-  type VisibilityLevel,
-} from "../visibility.ts";
+  groupWriteMessage,
+  parseNewGroup,
+  parseOverrideChoice,
+} from "../friend-groups.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -118,41 +119,26 @@ export async function getGroupsPageData(): Promise<GroupsPageData> {
   };
 }
 
-function readLevel(formData: FormData): VisibilityLevel | null {
-  const value = formData.get("level");
-  return isVisibilityLevel(value) ? value : null;
-}
-
 export async function createFriendGroup(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
   const session = await verifySession();
-  const name = String(formData.get("name") ?? "").trim();
-  const level = readLevel(formData);
 
-  if (!name) {
-    return { error: "Give the group a name." };
-  }
-  if (name.length > 60) {
-    return { error: "That name is too long — 60 characters at most." };
-  }
-  if (!level) {
-    return { error: "Pick what this group can see." };
+  const parsed = parseNewGroup(formData);
+  if ("error" in parsed) {
+    return parsed;
   }
 
   const supabase = await createClient();
   const { error } = await supabase.from("friend_groups").insert({
     owner_id: session.userId,
-    name,
-    default_visibility: level,
+    name: parsed.name,
+    default_visibility: parsed.level,
   });
 
   if (error) {
-    if (error.code === "23505") {
-      return { error: "You already have a group with that name." };
-    }
-    return { error: "Couldn't create that group. Try again." };
+    return { error: groupWriteMessage(error, "create") };
   }
 
   revalidatePath(GROUPS_PATH);
@@ -177,7 +163,7 @@ export async function deleteFriendGroup(
     .select("id");
 
   if (error || !data?.length) {
-    return { error: "Couldn't delete that group. Try again." };
+    return { error: groupWriteMessage(error ?? {}, "delete") };
   }
 
   revalidatePath(GROUPS_PATH);
@@ -194,9 +180,9 @@ export async function setGroupVisibility(
 ): Promise<ActionResult> {
   await verifySession();
   const groupId = String(formData.get("group_id") ?? "");
-  const level = readLevel(formData);
+  const level = parseOverrideChoice(formData.get("level"));
 
-  if (!level) {
+  if (!level || level === "clear") {
     return { error: "Pick a visibility level." };
   }
 
@@ -208,7 +194,7 @@ export async function setGroupVisibility(
     .select("id");
 
   if (error || !data?.length) {
-    return { error: "Couldn't update that group." };
+    return { error: groupWriteMessage(error ?? {}, "update") };
   }
 
   revalidatePath(GROUPS_PATH);
@@ -255,9 +241,9 @@ export async function setGroupMembership(
         .select("group_id");
 
   if (error || !data?.length) {
-    return shouldBeMember
-      ? { error: "Couldn't add them to that group." }
-      : { error: "Couldn't remove them from that group." };
+    return {
+      error: groupWriteMessage(error ?? {}, shouldBeMember ? "add" : "remove"),
+    };
   }
 
   revalidatePath(GROUPS_PATH);
@@ -277,15 +263,19 @@ export async function setFriendVisibilityOverride(
 ): Promise<ActionResult> {
   const session = await verifySession();
   const connectionId = String(formData.get("connection_id") ?? "");
-  const raw = formData.get("level");
+  const choice = parseOverrideChoice(formData.get("level"));
 
   if (!connectionId) {
     return { error: "Pick a friend." };
   }
 
+  if (!choice) {
+    return { error: "Pick a visibility level." };
+  }
+
   const supabase = await createClient();
 
-  if (raw === "clear") {
+  if (choice === "clear") {
     // No row-count check here, unlike the writes above: clearing an override
     // that was never set is the state the User asked for, not a failure.
     const { error } = await supabase
@@ -302,13 +292,8 @@ export async function setFriendVisibilityOverride(
     return { ok: true };
   }
 
-  const level = readLevel(formData);
-  if (!level) {
-    return { error: "Pick a visibility level." };
-  }
-
   const { error } = await supabase.from("visibility_overrides").upsert(
-    { owner_id: session.userId, connection_id: connectionId, level },
+    { owner_id: session.userId, connection_id: connectionId, level: choice },
     { onConflict: "owner_id,connection_id" },
   );
 

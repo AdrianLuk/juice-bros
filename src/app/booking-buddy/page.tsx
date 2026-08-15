@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { createClient } from "@/lib/booking-buddy/supabase/server";
 import { signOut } from "@/lib/booking-buddy/actions/auth";
-import { FRIENDS_PATH, GROUPS_PATH } from "@/lib/booking-buddy/routes";
+import {
+  FRIENDS_PATH,
+  GROUPS_PATH,
+  SETTINGS_PATH,
+} from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Booking Buddy",
@@ -58,6 +62,12 @@ export default async function BookingBuddyPage() {
               className="underline underline-offset-4"
             >
               Friend groups
+            </Link>
+            <Link
+              href={SETTINGS_PATH}
+              className="underline underline-offset-4"
+            >
+              Settings
             </Link>
           </p>
 

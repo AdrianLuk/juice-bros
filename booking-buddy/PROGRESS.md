@@ -2,14 +2,19 @@
 
 Built test-first, in vertical slices: one seam, one red test, one minimal green implementation, repeat. No horizontal slicing (no writing a batch of tests before any implementation). Refactoring happens at review time, not inside the red→green loop itself.
 
-**Seams under test** (agreed in planning — see [docs/adr/](docs/adr/) and [CONTEXT.md](CONTEXT.md) for the vocabulary these tests should use):
-1. **Server Actions / business-logic functions** — the primary seam. Tests call the action and assert through another read action or return value, never by querying the database directly as a side channel.
-2. **RLS policies** — a deliberate database-level seam, since the coarse safety net (ADR 0003) exists specifically to catch access that bypasses application code. These tests query Postgres directly, on purpose.
-3. **UI/hooks** — scoped down. One high-stakes interaction test (Slot Response), not broad component coverage.
+**Seams under test** — *revised after Phase 3, replacing the original plan. Read this before writing a test.*
+
+The plan opened with "Server Actions are the primary seam: call the action, assert through another read action." Two phases shipped without a single test like that, because the actions kept turning out to have nothing testable in them — session check, parse the form, one Supabase call, map the error. Testing that needs a Next.js request context and a live database, and would mostly be testing Supabase. Rather than keep the rule and keep breaking it, the seams are now:
+
+1. **Pure functions** — `node --test`, no dependencies, run constantly. Anything decidable without a database belongs here, and getting it here is a design job: input parsing and error-message mapping get *extracted out* of the actions (`friend-groups.ts`, `username.ts`, `visibility.ts`, `connections.ts`) rather than left inline and declared untestable. **If an action has interesting logic in it, that's the signal to pull the logic out, not to build a harness.**
+2. **The database** — pgTAP, for anything the schema itself enforces: RLS (the ADR 0003 safety net), constraints, triggers. These query Postgres directly, on purpose.
+3. **The browser** — Playwright, for journeys across several actions and both Users. This is what covers the actions end to end, and it earns its keep: it found the ambiguous member picker that two review passes missed.
+
+What's left in a Server Action after that is glue, and glue is covered by 3.
 
 **How to run any of this**: see [docs/testing.md](docs/testing.md) — what each suite needs running, and how to click through the app yourself.
 
-**Test tooling**: business-logic tests use the existing `node --test` setup (`src/**/*.test.ts`, already configured in `package.json`) — Server Actions and the pure functions they call are plain async/sync functions, importable and callable directly without spinning up a Next.js server. RLS tests need a real Postgres instance: **requires the Supabase CLI and Docker Desktop running locally** (`supabase start` spins up local Postgres + Auth). Flagging this now since it's a new local dependency — say if Docker isn't available and we'll adjust (e.g. testing RLS against a hosted Supabase dev project instead).
+**Test tooling**: `node --test` over `src/**/*.test.ts` for the pure functions; `supabase test db` (pgTAP) for the database; Playwright over `e2e/` for the browser. The last two need Docker and the local Supabase stack up.
 
 **Proposed file layout** (extends the existing `src/components/apps/<slug>` convention):
 - `src/app/booking-buddy/` — routes (auth-gated layout, per Q2)
@@ -83,10 +88,10 @@ Not done on #6:
 
 **Still outstanding from issue #5** (the `connections` table, `search_users`, usernames, the Server Actions and the `/booking-buddy/friends` page are all done and verified end-to-end with two real Users):
 
-- [ ] **Removing a friend is now behind a confirmation dialog** (`@base-ui/react` alert-dialog, added via shadcn). The dialog's own confirm button is the only thing that can submit the remove form, so a stray click on the row can't destroy a Connection. Declining and cancelling are deliberately *not* gated — those are re-sendable. Needs one click-through to confirm the dialog submits.
-- [ ] `supabase db push` — five migrations are still local-only, now including the friend-groups one. **Needs Adrian**: pushing rewrites `handle_new_user` and backfills usernames on the hosted project. Deliberately not run by an agent.
-- [ ] Open question for Adrian: his account predates usernames, so the backfill derives `adrianluk`. If he'd rather choose, this ticket needs a settings screen for changing a username.
-- [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The friends page is only reachable via a link on the dashboard, which is only reachable by typing the URL.
+- [x] **Removing a friend is behind a confirmation dialog** (`@base-ui/react` alert-dialog, added via shadcn). The dialog's own confirm button is the only thing that can submit the remove form, so a stray click on the row can't destroy a Connection. Declining and cancelling are deliberately *not* gated — those are re-sendable. Covered by `e2e/friends.spec.ts`, including that cancelling really does leave the Connection alone.
+- [x] **The username question is answered**: `adrianluk` stands, and `/booking-buddy/settings` now lets anyone change theirs. Format rules mirror the `username_format` constraint; uniqueness is left to the index rather than a check-then-write, because asking first leaves a gap two people can claim the same handle through.
+- [ ] `supabase db push` — **only the friend-groups migration is still pending**; the other four are already on the hosted project. **Needs Adrian**: the push is blocked for agents. Nothing in Phase 3 is deployed until it runs.
+- [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The pages are only reachable via links on the dashboard, which is only reachable by typing the URL.
 
 ### Notes carried out of the friends page
 
@@ -101,6 +106,7 @@ Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`
 - [x] 1.1 Schema: `public.profiles` (id references `auth.users`, display_name) + trigger to auto-create a profile row on signup. Also carries `username` — see `add_username`.
 - [x] 1.2 🔴 Test: inserting a row into `auth.users` results in a matching `profiles` row → 🟢 implemented as `handle_new_user()`
 - [x] 1.3 Auth UI: sign-in page offering magic link, Google OAuth, and email/password. All three verified; Google's consent screen is in Testing mode, so only listed test users can use it.
+- [x] 1.4 `/booking-buddy/settings`: change your Username. Signup assigns one so nobody has to think about it, but the handle you hand out shouldn't be one an algorithm picked. Rules in `src/lib/booking-buddy/username.ts` mirror the database's; uniqueness is the index's job, not a check-then-write.
 
 ## Phase 2 — Connection
 
@@ -123,7 +129,7 @@ Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`
 
 ### Notes carried out of Phase 3
 
-- **Deviation from the agreed seam, worth knowing before Phase 4 repeats it.** The preamble at the top of this file makes Server Actions the primary seam and rules out asserting through the database as a side channel. 3.2 and 3.3 are not tested that way: their behaviour is enforced by a unique index and two triggers, and asserted in `supabase/tests/friend_groups.test.sql`. `friend-groups.ts` has no test of its own — the same gap `connections.ts` has, for the same reason (an action test needs a Next.js request context and a live Supabase client, and the tooling for that was never chosen). The rule was written to stop tests bypassing the logic under test; here the logic genuinely *is* in the database. Either pick the tooling and backfill both files, or amend the preamble to say so — the current state matches neither.
+- **The agreed seam moved, deliberately — see "Seams under test" above.** 3.2 and 3.3 are not tested by calling the Server Action. Their rules live in a unique index and two triggers, asserted in `supabase/tests/friend_groups.test.sql`; the input handling that *is* decidable in TypeScript was pulled out into `src/lib/booking-buddy/friend-groups.ts` and unit tested there. Adrian chose this over building an action harness: the actions left behind are four lines of glue each, and a harness would exist mostly to test Supabase.
 - **The two guards live in the database, not the actions.** "Only accepted Connections are groupable" and "only into your own groups" need subqueries, so they are `before insert or update` triggers rather than check constraints — and firing on update too is what stops a row being edited into a state the insert would have refused. `setGroupMembership` deliberately doesn't re-check either; adding a TypeScript copy would just be a second place to get it wrong.
 - **Membership is keyed by Connection, not by the friend's user id.** Unfriending therefore cascades the grouping away with it. A grouping of someone you are no longer connected to would otherwise sit there still granting visibility.
 - **`resolveVisibilityByConnection` is driven by the friends list, not by the membership rows**, so an ungrouped friend gets an explicit `none` rather than a missing key. A caller reading "absent" as "unknown" instead of "no access" is the failure mode worth designing out.
