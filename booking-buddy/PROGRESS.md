@@ -42,7 +42,7 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Hosted environment
 
-- [x] Schema is current as of the friend-groups migration (2026-08-14). `npx supabase migration list` compares local against remote and is the quickest way to check whether that is still true — do it before assuming a hosted bug is a code bug.
+- [x] Schema is current as of the orgs/bookings/place_cache migration (2026-08-14). `npx supabase migration list` compares local against remote and is the quickest way to check whether that is still true — do it before assuming a hosted bug is a code bug.
 
 - [x] Hosted Supabase project `juice-bros` (ref `zhvhddzpgxtjdyrhgsqd`, region `ca-central-1`, Postgres 17), linked to this repo via `supabase link` — so `supabase db push` targets it.
 - [x] `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` set on the Vercel project for Production and Preview, the service-role key marked sensitive. Repo linked to Vercel (`lukabaseballs-projects/juice-bros`).
@@ -104,7 +104,9 @@ Both open decisions were settled before any code: the Google Places integration 
 
 What that means for what shipped: `orgs`, `bookings` and `place_cache` all landed with the ADR 0005 shape, and the UI covers the hand-named path end to end. **No User-facing path writes a `place_id` yet** — that arrives with #18, which is blocked on a Google Maps API key only a human can provision (see "Outstanding — needs a human").
 
-Verified: 140 `node --test` tests, 84 pgTAP tests and 29 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean. **Migrations are not yet pushed to the hosted project** — `supabase db push` still needs running for this one, unlike previous phases.
+Verified: 140 `node --test` tests, 84 pgTAP tests and 29 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean. Migrations are deployed — `supabase migration list` shows all seven in sync between local and the hosted project.
+
+Note that the orgs/bookings migration is now **on the hosted project even though #19 hasn't merged**. It is additive — three new tables, nothing existing altered, and no deployed code touches them — so it cannot break what's live. But the "rewrite it in place" freedom this phase used up is gone: any further change to `orgs`, `bookings` or `place_cache` needs a new migration stacked on top.
 
 **Start the next session with**: `gh issue view 8` (Phase 5, Slot as a poll), which #6 and #7 both unblock. Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 
