@@ -77,23 +77,18 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ## Where to pick up
 
-**Issue #6 (Friend Groups & Visibility) is built but not finished.** Seven of the eight acceptance criteria are met: groups, membership of accepted Connections only, per-group defaults, per-friend overrides that win in both directions, most-permissive resolution across groups, no-group-no-override defaulting to nothing, and owner-only RLS.
+**Issues #5 (Friend Connections) and #6 (Friend Groups & Visibility) are both closed out.** #5 is closed on GitHub, all six criteria checked. #6's seven acceptance criteria are all met and checked off on GitHub, but **it is deliberately left open**: the ticket's "What to build" line asks for the resolved visibility to be "actually enforced elsewhere in the app," and nothing enforces it yet — `resolveVisibility` has exactly one caller, `getGroupsPageData`, which renders the level as text on the groups page. There is nothing to enforce it against until a Slot exists. Enforcement is Phase 5's Slot RLS and Phase 6's `respondToSlot` guard, i.e. issue #8, which already lists #6 as a blocker. See the comment thread on #6 for the fuller version.
 
-The eighth — "with the resolved visibility **actually enforced elsewhere in the app**" — is **not** delivered, and can't be yet: `resolveVisibility` has exactly one caller, `getGroupsPageData`, which renders the level as text on the groups page. There is nothing to enforce it against until Slots exist. The honest status of #6 is *blocked on Phase 5*, not done — don't close the issue on the strength of the other seven.
+Verified: 116 `node --test` tests, 57 pgTAP tests, and 24 Playwright browser tests all pass; typecheck, lint and `npm run build` are clean. Migrations are deployed — `supabase migration list` shows all six in sync between local and the hosted project.
 
-Verified against the local stack: 15 new pgTAP tests (57 in total) and 92 `node --test` tests pass. `/booking-buddy/groups` was rendered over HTTP as a real signed-in User with two friends across two groups — the page showed the most-permissive resolution for the friend in both, and the pinned `none` for the one with an override.
+Everything that was outstanding from #5 and #6 is now done:
 
-Not done on #6:
-
-- [ ] **Enforcement** (above). Phase 5's Slot RLS and Phase 6's `respondToSlot` guard are where the resolved level starts to bite.
-- [x] **Click-through in a browser** — now automated. `npm run test:e2e` drives Chromium through sign-in, creating a group, adding and removing a member, pinning and clearing an override, the most-permissive resolution across two groups, and the duplicate-name refusal. See [docs/testing.md](docs/testing.md).
-
-**Still outstanding from issue #5** (the `connections` table, `search_users`, usernames, the Server Actions and the `/booking-buddy/friends` page are all done and verified end-to-end with two real Users):
-
-- [x] **Removing a friend is behind a confirmation dialog** (`@base-ui/react` alert-dialog, added via shadcn). The dialog's own confirm button is the only thing that can submit the remove form, so a stray click on the row can't destroy a Connection. Declining and cancelling are deliberately *not* gated — those are re-sendable. Covered by `e2e/friends.spec.ts`, including that cancelling really does leave the Connection alone.
-- [x] **The username question is answered**: `adrianluk` stands, and `/booking-buddy/settings` now lets anyone change theirs. Format rules mirror the `username_format` constraint; uniqueness is left to the index rather than a check-then-write, because asking first leaves a gap two people can claim the same handle through.
-- [x] `supabase db push` — **done**. All six migrations now match local ↔ remote, confirmed with `supabase migration list`; `friend_groups`, `friend_group_members` and `visibility_overrides` exist on the hosted project and are empty. Phase 3's schema is deployed.
-- [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The pages are only reachable via links on the dashboard, which is only reachable by typing the URL.
+- [x] Remove-friend confirmation dialog, verified in a browser including that cancelling leaves the Connection untouched (`e2e/friends.spec.ts`).
+- [x] Two-User flows (send/see/accept, decline/re-send) have browser coverage using two separate contexts (`e2e/friends.spec.ts`).
+- [x] Username changes: `/booking-buddy/settings`, format rules mirroring the database, uniqueness left to the index (`e2e/settings.spec.ts`).
+- [x] `supabase db push` — done, confirmed against the hosted project.
+- [x] Test seam decision — see "Seams under test" at the top of this file and the Phase 3 notes below: pure functions get `node --test`, the database gets pgTAP, cross-action journeys get Playwright.
+- [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The pages are only reachable via links on the dashboard, which is only reachable by typing the URL. Still deliberate — revisit once Slots give the Apps section something real to link to.
 
 ### Notes carried out of the friends page
 
@@ -101,7 +96,7 @@ Not done on #6:
 - **`connections` references `auth.users`, not `public.profiles`**, so PostgREST has no relationship to embed across and `listConnections` reads profiles in a second query. A `select("*, profiles(...)")` will fail here.
 - **Grouping lives in `src/lib/booking-buddy/connections.ts`**, deliberately free of Next.js and Supabase imports so it is unit-testable. A Connection row means different things depending on who is looking at it; that asymmetry is the logic worth testing, and it is.
 
-Start a session with: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 7` — Phase 4 (Org + Booking) is next.
+**Start the next session with**: read `booking-buddy/CONTEXT.md`, `booking-buddy/docs/adr/`, and `gh issue view 7` — Phase 4 (Org + Booking) is next and unblocked. Confirm the local stack is current first: `supabase start` (Docker), `npx supabase migration up --local` if there are new migrations, `npm run seed:users`. See [docs/testing.md](docs/testing.md) for what each test suite needs.
 
 ## Phase 1 — User + Auth
 
