@@ -1,0 +1,11 @@
+# Availability resolves as a layered stack, with Bookings authoritative
+
+Availability Windows (see [../../CONTEXT.md](../../CONTEXT.md)) can describe the same moment twice over — a User's own explicit windows can overlap each other, and a real Booking or confirmed Slot can cover the same span as an explicit window. Both needed a resolution rule before the schema could be written.
+
+**Decision**: Availability Windows carry no uniqueness or overlap constraint. Resolving a User's calendar for a given moment goes, in order: (1) a Booking or confirmed Slot covering it always wins and reads as busy, full stop, regardless of what any Availability Window says over the same span; (2) otherwise, the most recently *created* Availability Window covering it wins — creation order is fixed at insert, so editing an existing window's time range or type later doesn't reorder it; (3) otherwise the moment is unspecified. Nothing stops a User from declaring an Open window over time they already have a Booking for — the write succeeds, it just never wins the read, since Availability is informational only.
+
+**Why**: The rejected alternative was a `before insert or update` trigger rejecting overlapping windows, matching `assert_booking_coherent`'s pattern for double-booked courts. That keeps every moment mapped to exactly one row, but makes every small correction a delete-and-split: narrowing an existing "Busy 12–4pm" down to carve out "Open 1–2pm" would mean deleting the original and re-inserting three rows instead of adding one. Booking Buddy's target user is explicitly non-technical, so a model where adding a window always succeeds — and an unwanted one can simply be deleted to fall back to whatever was underneath it — was chosen over one that keeps every read a single-row lookup.
+
+## Consequences
+
+Reading "what does this User's calendar say for time T" needs a resolver function (check Bookings/confirmed Slots first, then max-by-`created_at` over overlapping Availability Windows), not a single-row lookup — that's the cost paid for cheap edits. Nothing enforces that a User's explicit windows agree with their real Bookings; that's deliberate, not an oversight — see Availability Window's "entirely informational" note.
