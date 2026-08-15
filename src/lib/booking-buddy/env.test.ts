@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { readPublicSupabaseEnv } from "./env.ts";
+import {
+  readGooglePlacesApiBaseUrl,
+  readPublicSupabaseEnv,
+  requireGoogleMapsApiKey,
+  requireSupabaseServiceRoleKey,
+} from "./env.ts";
 
 const validPublic = {
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
@@ -28,6 +33,49 @@ test("readPublicSupabaseEnv treats a blank value as missing", () => {
   assert.throws(
     () => readPublicSupabaseEnv({ ...validPublic, NEXT_PUBLIC_SUPABASE_ANON_KEY: "   " }),
     /NEXT_PUBLIC_SUPABASE_ANON_KEY/,
+  );
+});
+
+test("requireSupabaseServiceRoleKey returns the key when set", () => {
+  assert.equal(
+    requireSupabaseServiceRoleKey({ SUPABASE_SERVICE_ROLE_KEY: "service-key" }),
+    "service-key",
+  );
+});
+
+test("requireSupabaseServiceRoleKey names the variable when missing", () => {
+  assert.throws(
+    () => requireSupabaseServiceRoleKey({}),
+    /SUPABASE_SERVICE_ROLE_KEY/,
+  );
+});
+
+test("requireGoogleMapsApiKey returns the key when set", () => {
+  assert.equal(
+    requireGoogleMapsApiKey({ GOOGLE_MAPS_API_KEY: "maps-key" }),
+    "maps-key",
+  );
+});
+
+test("requireGoogleMapsApiKey names the variable when missing", () => {
+  assert.throws(() => requireGoogleMapsApiKey({}), /GOOGLE_MAPS_API_KEY/);
+});
+
+test("readGooglePlacesApiBaseUrl defaults to the real API when unset", () => {
+  assert.equal(readGooglePlacesApiBaseUrl({}), "https://places.googleapis.com");
+});
+
+test("readGooglePlacesApiBaseUrl defaults to the real API when blank", () => {
+  assert.equal(
+    readGooglePlacesApiBaseUrl({ GOOGLE_PLACES_API_BASE_URL: "   " }),
+    "https://places.googleapis.com",
+  );
+});
+
+test("readGooglePlacesApiBaseUrl uses the override when set", () => {
+  assert.equal(
+    readGooglePlacesApiBaseUrl({ GOOGLE_PLACES_API_BASE_URL: "http://127.0.0.1:5602" }),
+    "http://127.0.0.1:5602",
   );
 });
 

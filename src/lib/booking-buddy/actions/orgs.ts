@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
@@ -12,6 +13,8 @@ import {
   parseHandNamedOrg,
   type CachedPlace,
 } from "../orgs.ts";
+import { isPlaceCacheStale } from "../places.ts";
+import { refreshStalePlacesInBackground } from "../place-cache.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -59,7 +62,7 @@ export async function listOrgs(): Promise<Org[]> {
   if (placeIds.length > 0) {
     const { data: places, error: placesError } = await supabase
       .from("place_cache")
-      .select("place_id, name, formatted_address")
+      .select("place_id, name, formatted_address, fetched_at")
       .in("place_id", placeIds);
 
     // A failed cache read is not a failed page. Every Org still renders, just
@@ -69,11 +72,33 @@ export async function listOrgs(): Promise<Org[]> {
       console.error("booking-buddy: reading the place cache failed", placesError);
     }
 
+    // Missing (never cached, or its row is gone) counts the same as stale —
+    // both need a fetch before the next render can show anything real.
+    const cachedPlaceIds = new Set<string>();
+    const staleOrMissingPlaceIds: string[] = [];
+
     for (const place of places ?? []) {
       placeById.set(place.place_id, {
         name: place.name,
         formattedAddress: place.formatted_address,
       });
+      cachedPlaceIds.add(place.place_id);
+      if (isPlaceCacheStale(place.fetched_at)) {
+        staleOrMissingPlaceIds.push(place.place_id);
+      }
+    }
+
+    for (const placeId of placeIds) {
+      if (!cachedPlaceIds.has(placeId)) {
+        staleOrMissingPlaceIds.push(placeId);
+      }
+    }
+
+    // Scheduled for after the response is sent — this render never waits on
+    // Google, and a bad outcome here can't fail the page. The next visit
+    // benefits from whatever this refresh managed to do.
+    if (staleOrMissingPlaceIds.length > 0) {
+      after(() => refreshStalePlacesInBackground(staleOrMissingPlaceIds));
     }
   }
 

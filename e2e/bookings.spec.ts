@@ -9,8 +9,9 @@ import { AMY, BEN, signIn } from "./support/sign-in.ts";
  * end. Removing an Org cascades its Bookings away, so sweeping the places is
  * enough to sweep the bookings too.
  *
- * Only hand-named Orgs appear here, because until issue #18 lands the Google
- * search there is no other kind a User can make.
+ * Only hand-named Orgs appear here — the Google-backed path (search, pick,
+ * cache) is e2e/places.spec.ts. `addPlace` opens the "Can't find your club?"
+ * disclosure first: the hand-typed form lives inside it now.
  */
 const PREFIX = "Playwright";
 
@@ -24,6 +25,7 @@ function row(page: Page, text: string): Locator {
 
 async function addPlace(page: Page, name: string) {
   await page.goto("/booking-buddy/orgs");
+  await page.getByText("Can't find your club?").click();
   await page.getByLabel("Place name").fill(name);
   await page.getByRole("button", { name: "Add place" }).click();
   await expect(row(page, name)).toBeVisible();

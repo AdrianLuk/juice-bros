@@ -18,6 +18,7 @@ import {
 import { ORG_NAME_MAX_LENGTH } from "@/lib/booking-buddy/orgs";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import { createOrg, deleteOrg, type Org } from "@/lib/booking-buddy/actions/orgs";
+import { PoweredByGoogle } from "@/components/booking-buddy/place-search";
 
 const EMPTY: ActionResult = {};
 
@@ -71,9 +72,12 @@ export function OrgRow({ org }: { org: Org }) {
       <div className="min-w-0">
         <p className="truncate font-medium">{org.displayName}</p>
         {org.address && (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {org.address}
-          </p>
+          <>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {org.address}
+            </p>
+            <PoweredByGoogle />
+          </>
         )}
         {org.googlePlaceId && !org.address && (
           <p className="mt-0.5 text-xs text-muted-foreground">

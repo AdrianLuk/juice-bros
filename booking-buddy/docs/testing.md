@@ -105,3 +105,35 @@ Some things worth knowing before writing more of them:
 - **Two Users means two browser contexts.** Signing in as a second account on
   the same context replaces the first session rather than adding one. See
   `friends.spec.ts`.
+- **A search-result row and its "Your places" row can both be on screen at
+  once, with the same text.** The client-side search state doesn't clear
+  itself just because a pick succeeded. A locator matching "any listitem with
+  this text" is ambiguous the moment both exist — worse, it can make a
+  `toBeVisible()` wait pass instantly against the *pre-existing* candidate
+  row, before the pick's mutation has actually finished, which then races
+  ahead of assertions that depend on it. `places.spec.ts`'s `orgRow`/
+  `candidateRow` helpers disambiguate by which button the row has
+  ("Remove" vs "Add this place").
+- **`page.route()` can't mock a server-side `fetch`.** It only intercepts
+  requests the *browser* makes; a Server Action's own `fetch` (Google Places,
+  here) runs in the Next.js server process and never goes near the page's
+  network stack. `e2e/places.spec.ts` mocks it with a real local HTTP server
+  (`e2e/support/google-places-mock.ts`) and a `GOOGLE_PLACES_API_BASE_URL` env
+  override baked into `playwright.config.ts`'s `webServer.env` — which only
+  takes effect when Playwright starts the dev server itself. **If you already
+  have `npm run dev` running on :3000, `e2e/places.spec.ts` will hit the real
+  Google API against your own key instead of the mock** (reused per
+  `reuseExistingServer: true`, same as any other spec). Stop your dev server
+  first if you want that file mocked locally; CI always gets the override
+  since nothing is already listening.
+- **A test that writes real rows to `place_cache` has to clean them up
+  itself.** The app has no action that evicts a cached Place (ADR 0005), so
+  `place_cache` only ever grows through normal use — including through these
+  tests, which write real committed rows via the mocked pick flow. Left
+  alone, that breaks pgTAP's `orgs_and_bookings.test.sql`, which assumes the
+  table starts empty. `places.spec.ts`'s `afterAll` deletes everything it
+  cached, direct against Postgres with the same published local `service_role`
+  key `scripts/seed-booking-buddy-users.mts` uses — the app's own "Remove
+  place" only ever removes the Org, never the shared cached Place behind it,
+  by design. If a future test caches a Place, give it the same cleanup or
+  `npm run test:rls` will fail with a stale row count.
