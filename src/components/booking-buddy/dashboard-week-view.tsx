@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 import { isSameDay, layoutDayEvents, weekDays } from "@/lib/booking-buddy/calendar";
@@ -22,6 +22,8 @@ const DEFAULT_SCROLL_HOUR = 7;
 
 const HOUR_LABEL = new Intl.DateTimeFormat("en-US", { hour: "numeric" });
 const WEEKDAY_LABEL = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+
+const DAY_GRID_COLS = "grid-cols-[repeat(7,minmax(7rem,1fr))]";
 
 /**
  * Pixels from the top of a day column for an instant `dayStartMs` +
@@ -54,11 +56,26 @@ export function DashboardWeekView({
   onDayClick: (day: Date) => void;
 }) {
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: DEFAULT_SCROLL_HOUR * HOUR_HEIGHT });
+    bodyRef.current?.scrollTo({ top: DEFAULT_SCROLL_HOUR * HOUR_HEIGHT });
   }, [weekStart]);
+
+  /**
+   * The header (day names) has no vertical scroll of its own — only the body
+   * below does, since the header row has to stay put while hours scroll. So
+   * the body is the *one* real two-axis scroll surface (a drag anywhere in
+   * the grid moves both), and the header passively mirrors its horizontal
+   * position; `overflow-hidden` still accepts a programmatic `scrollLeft`,
+   * it just never shows its own scrollbar or takes a drag directly.
+   */
+  const syncHeaderScroll = useCallback(() => {
+    if (headerRef.current && bodyRef.current) {
+      headerRef.current.scrollLeft = bodyRef.current.scrollLeft;
+    }
+  }, []);
 
   const hours = useMemo(() => Array.from({ length: 24 }, (_, hour) => hour), []);
 
@@ -66,55 +83,71 @@ export function DashboardWeekView({
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="flex border-b border-border bg-card">
         <div className="w-12 shrink-0 sm:w-14" />
-        <div className="grid flex-1 grid-cols-7">
-          {days.map((day) => (
-            <button
-              key={day.toISOString()}
-              type="button"
-              onClick={() => onDayClick(day)}
-              aria-label={`Go to the week of ${day.toDateString()}`}
-              className="flex flex-col items-center gap-1 border-l border-border py-2 first:border-l-0 hover:bg-muted"
-            >
-              <span className="text-[11px] font-medium text-muted-foreground">
-                {WEEKDAY_LABEL.format(day)}
-              </span>
-              <span
-                className={cn(
-                  "flex size-6 items-center justify-center rounded-full text-sm font-medium",
-                  isSameDay(day, today) && "bg-primary text-primary-foreground",
-                )}
+        <div ref={headerRef} className="flex-1 overflow-hidden">
+          <div className={cn("grid", DAY_GRID_COLS)}>
+            {days.map((day) => (
+              <button
+                key={day.toISOString()}
+                type="button"
+                onClick={() => onDayClick(day)}
+                aria-label={`Go to the week of ${day.toDateString()}`}
+                className="flex flex-col items-center gap-1 border-l border-border py-2 first:border-l-0 hover:bg-muted"
               >
-                {day.getDate()}
-              </span>
-            </button>
-          ))}
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {WEEKDAY_LABEL.format(day)}
+                </span>
+                <span
+                  className={cn(
+                    "flex size-6 items-center justify-center rounded-full text-sm font-medium",
+                    isSameDay(day, today) && "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {day.getDate()}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex max-h-136 overflow-y-auto">
-        <div className="w-12 shrink-0 sm:w-14">
-          {hours.map((hour) => (
-            <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
-              {hour > 0 && (
-                <span className="absolute -top-2 right-1.5 text-[10px] text-muted-foreground">
-                  {HOUR_LABEL.format(new Date(2000, 0, 1, hour))}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* The one real scroller, both axes — cramped otherwise on a narrow
+          phone: 7 columns divided evenly across ~340px leaves no room for a
+          booking's time and court label, so each column keeps a comfortable
+          minimum width and the row scrolls sideways to reach the rest. */}
+      <div ref={bodyRef} onScroll={syncHeaderScroll} className="max-h-136 overflow-auto">
+        {/* `w-fit` is load-bearing: a plain `flex` block child sizes to its
+            *container's* width (the scroller's visible width) and lets its
+            items merely overflow it — which is fine for scrolling, but
+            leaves the sticky gutter's containing block too narrow to mean
+            anything, so it "sticks" to a box that isn't the real scrolled
+            content. `w-fit` makes this row size to its own content (the
+            gutter plus all 7 day columns), matching what's actually
+            scrolling and giving `sticky left-0` a coherent edge to pin to. */}
+        <div className="flex w-fit">
+          <div className="sticky left-0 z-10 w-12 shrink-0 bg-background sm:w-14">
+            {hours.map((hour) => (
+              <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
+                {hour > 0 && (
+                  <span className="absolute -top-2 right-1.5 text-[10px] text-muted-foreground">
+                    {HOUR_LABEL.format(new Date(2000, 0, 1, hour))}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
 
-        <div className="grid flex-1 grid-cols-7">
-          {days.map((day) => (
-            <DayColumn
-              key={day.toISOString()}
-              day={day}
-              hours={hours}
-              bookings={bookings}
-              busyIntervals={busyIntervals}
-              windows={windows}
-            />
-          ))}
+          <div className={cn("grid flex-1", DAY_GRID_COLS)}>
+            {days.map((day) => (
+              <DayColumn
+                key={day.toISOString()}
+                day={day}
+                hours={hours}
+                bookings={bookings}
+                busyIntervals={busyIntervals}
+                windows={windows}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

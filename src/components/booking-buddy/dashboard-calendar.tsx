@@ -76,7 +76,7 @@ export function DashboardCalendar({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-1.5">
           {view !== "agenda" && (
             <>
@@ -99,7 +99,7 @@ export function DashboardCalendar({
         <div
           role="group"
           aria-label="Calendar view"
-          className="flex gap-0.5 rounded-lg border border-border p-0.5"
+          className="flex w-fit gap-0.5 self-start rounded-lg border border-border p-0.5"
         >
           {VIEWS.map((option) => (
             <button
