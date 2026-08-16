@@ -10,6 +10,7 @@ import {
   SlotCourts,
 } from "@/components/booking-buddy/slots";
 import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
+import { ReminderOffsetForm } from "@/components/booking-buddy/reminders";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
@@ -41,7 +42,7 @@ export default async function SlotDetailPage({
     notFound();
   }
 
-  const { slot, isOwner, responses, myAnswer, capacity } = detail;
+  const { slot, isOwner, responses, myAnswer, capacity, reminderOffsetMinutes } = detail;
   const slotLink = isOwner ? await getSlotLink(slot.id) : null;
 
   return (
@@ -89,6 +90,20 @@ export default async function SlotDetailPage({
                 </h2>
                 <div className="mt-4">
                   <SlotLinkPanel slotId={slot.id} slotLink={slotLink} />
+                </div>
+              </section>
+            )}
+
+            {isOwner && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Reminder
+                </h2>
+                <div className="mt-4">
+                  <ReminderOffsetForm
+                    slotId={slot.id}
+                    reminderOffsetMinutes={reminderOffsetMinutes}
+                  />
                 </div>
               </section>
             )}

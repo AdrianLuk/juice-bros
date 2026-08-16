@@ -34,6 +34,15 @@ test.afterEach(async ({ page }) => {
     await page.getByRole("button", { name: "Save username" }).click();
     await expect(page.getByRole("status")).toBeVisible();
   }
+
+  // Same reasoning as the username reset above: the seed script won't put
+  // this back on its own, so a test that flips it off has to flip it back.
+  const emailReminders = page.getByLabel("Email me a reminder before slots I'm in");
+  if (!(await emailReminders.isChecked())) {
+    await emailReminders.check();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("status")).toBeVisible();
+  }
 });
 
 test("the handle assigned at signup is what the form starts on", async ({ page }) => {
@@ -93,4 +102,22 @@ test("punctuation is refused with a reason, not silently stripped", async ({
   await expect(alertIn(page)).toContainText(
     "letters, numbers and underscores",
   );
+});
+
+test("email reminders default to enabled", async ({ page }) => {
+  await expect(
+    page.getByLabel("Email me a reminder before slots I'm in"),
+  ).toBeChecked();
+});
+
+test("turning email reminders off sticks", async ({ page }) => {
+  const emailReminders = page.getByLabel("Email me a reminder before slots I'm in");
+
+  await emailReminders.uncheck();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Saved");
+
+  // Not just the optimistic form state — it survives a fresh read.
+  await page.reload();
+  await expect(emailReminders).not.toBeChecked();
 });

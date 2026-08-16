@@ -64,6 +64,8 @@ export type SlotDetail = {
   /** The caller's own answer, if they've given one. */
   myAnswer: ResponseAnswer | null;
   capacity: SlotCapacity;
+  /** Minutes before `proposedStart` a Reminder goes out (issue #11). Owner-editable. */
+  reminderOffsetMinutes: number;
 };
 
 export type SlotResponses = {
@@ -257,7 +259,9 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
-    .select("id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer")
+    .select(
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes",
+    )
     .eq("id", slotId)
     .maybeSingle();
 
@@ -301,6 +305,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
     responses,
     myAnswer,
     capacity,
+    reminderOffsetMinutes: slotRow.reminder_offset_minutes,
   };
 }
 
