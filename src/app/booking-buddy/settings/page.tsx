@@ -4,7 +4,10 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
-import { NotificationPreferencesForm } from "@/components/booking-buddy/reminders";
+import {
+  BookingWindowPreferenceForm,
+  NotificationPreferencesForm,
+} from "@/components/booking-buddy/reminders";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
@@ -42,8 +45,9 @@ export default async function SettingsPage() {
             <h2 className="font-heading text-lg font-semibold tracking-tight">
               Reminders
             </h2>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-6">
               <NotificationPreferencesForm preferences={notificationPreferences} />
+              <BookingWindowPreferenceForm preferences={notificationPreferences} />
             </div>
           </div>
 

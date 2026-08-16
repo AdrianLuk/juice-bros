@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { AMY, signIn } from "./support/sign-in.ts";
 
@@ -18,8 +18,17 @@ const TAKEN = "benbackhand";
  * The form's own error, not Next's route announcer — that is also
  * role="alert", and an unscoped locator matches both.
  */
-const alertIn = (page: import("@playwright/test").Page) =>
-  page.locator("form").getByRole("alert");
+const alertIn = (page: Page) => page.locator("form").getByRole("alert");
+
+/**
+ * Two independent preference forms both have a "Save" button — the account
+ * settings page's `NotificationPreferencesForm` and `BookingWindowPreferenceForm`
+ * are separate `<form>`s, each with the same exact button text. Scoping to
+ * "the form containing this field" is what makes each one's save button
+ * unambiguous.
+ */
+const formWithField = (page: Page, labelText: string) =>
+  page.locator("form").filter({ has: page.getByLabel(labelText) });
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy/settings");
@@ -36,11 +45,23 @@ test.afterEach(async ({ page }) => {
   }
 
   // Same reasoning as the username reset above: the seed script won't put
-  // this back on its own, so a test that flips it off has to flip it back.
+  // these back on their own, so a test that flips either off has to flip it
+  // back.
   const emailReminders = page.getByLabel("Email me a reminder before slots I'm in");
   if (!(await emailReminders.isChecked())) {
     await emailReminders.check();
-    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await formWithField(page, "Email me a reminder before slots I'm in")
+      .getByRole("button", { name: "Save", exact: true })
+      .click();
+    await expect(page.getByRole("status")).toBeVisible();
+  }
+
+  const bookingWindowReminders = page.getByLabel("Email me when it's time to book a court");
+  if (!(await bookingWindowReminders.isChecked())) {
+    await bookingWindowReminders.check();
+    await formWithField(page, "Email me when it's time to book a court")
+      .getByRole("button", { name: "Save", exact: true })
+      .click();
     await expect(page.getByRole("status")).toBeVisible();
   }
 });
@@ -114,10 +135,39 @@ test("turning email reminders off sticks", async ({ page }) => {
   const emailReminders = page.getByLabel("Email me a reminder before slots I'm in");
 
   await emailReminders.uncheck();
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await formWithField(page, "Email me a reminder before slots I'm in")
+    .getByRole("button", { name: "Save", exact: true })
+    .click();
   await expect(page.getByRole("status")).toContainText("Saved");
 
   // Not just the optimistic form state — it survives a fresh read.
   await page.reload();
   await expect(emailReminders).not.toBeChecked();
+});
+
+test("booking window reminders default to enabled", async ({ page }) => {
+  await expect(
+    page.getByLabel("Email me when it's time to book a court"),
+  ).toBeChecked();
+});
+
+test("turning booking window reminders off sticks, independently of the other toggle", async ({
+  page,
+}) => {
+  const bookingWindowReminders = page.getByLabel("Email me when it's time to book a court");
+  const emailReminders = page.getByLabel("Email me a reminder before slots I'm in");
+
+  await bookingWindowReminders.uncheck();
+  await formWithField(page, "Email me when it's time to book a court")
+    .getByRole("button", { name: "Save", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("Saved");
+
+  // Not just the optimistic form state — it survives a fresh read.
+  await page.reload();
+  await expect(page.getByLabel("Email me when it's time to book a court")).not.toBeChecked();
+
+  // The other preference is untouched — these are two separate settings,
+  // not one control wearing two labels.
+  await expect(emailReminders).toBeChecked();
 });

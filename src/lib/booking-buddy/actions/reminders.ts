@@ -47,6 +47,8 @@ export async function updateReminderOffset(
 export type NotificationPreferences = {
   emailEnabled: boolean;
   pushEnabled: boolean;
+  /** Independent of `emailEnabled` — governs the Booking Window Reminder (issue #36), not the attendee Reminder (issue #11). */
+  bookingWindowEmailEnabled: boolean;
 };
 
 /**
@@ -57,6 +59,7 @@ export type NotificationPreferences = {
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   emailEnabled: true,
   pushEnabled: false,
+  bookingWindowEmailEnabled: true,
 };
 
 /** The signed-in User's own notification preferences, defaulted if they've never set any. */
@@ -66,7 +69,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 
   const { data, error } = await supabase
     .from("notification_preferences")
-    .select("email_enabled, push_enabled")
+    .select("email_enabled, push_enabled, booking_window_email_enabled")
     .eq("user_id", session.userId)
     .maybeSingle();
 
@@ -77,7 +80,11 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
     return DEFAULT_NOTIFICATION_PREFERENCES;
   }
 
-  return { emailEnabled: data.email_enabled, pushEnabled: data.push_enabled };
+  return {
+    emailEnabled: data.email_enabled,
+    pushEnabled: data.push_enabled,
+    bookingWindowEmailEnabled: data.booking_window_email_enabled,
+  };
 }
 
 /**
@@ -100,6 +107,34 @@ export async function updateEmailRemindersEnabled(
   const { error } = await supabase
     .from("notification_preferences")
     .upsert({ user_id: session.userId, email_enabled: emailEnabled }, { onConflict: "user_id" });
+
+  if (error) {
+    return { error: "Couldn't save that. Try again." };
+  }
+
+  revalidatePath(SETTINGS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Toggle Booking Window Reminders on or off — a separate preference from
+ * `updateEmailRemindersEnabled` (issue #36's own acceptance criterion):
+ * someone may want to know a game is on without being nagged about booking
+ * logistics, or the reverse. Same shape as that action, touching only its
+ * own column.
+ */
+export async function updateBookingWindowRemindersEnabled(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const bookingWindowEmailEnabled = formData.get("booking_window_email_enabled") === "on";
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("notification_preferences").upsert(
+    { user_id: session.userId, booking_window_email_enabled: bookingWindowEmailEnabled },
+    { onConflict: "user_id" },
+  );
 
   if (error) {
     return { error: "Couldn't save that. Try again." };

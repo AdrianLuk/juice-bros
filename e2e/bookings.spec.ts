@@ -130,6 +130,26 @@ test("the same place cannot be added twice", async ({ page }) => {
   await removePlace(page, place);
 });
 
+test("a place's booking window can be set, and it survives a reload", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  const placeRow = row(page, place);
+  await placeRow.getByLabel("Days before").fill("3");
+  await placeRow.getByLabel("Time the window opens").selectOption("06:00");
+  await placeRow.getByRole("button", { name: "Save" }).click();
+  await expect(placeRow).toContainText("Opens 3 days before, at 6:00 AM");
+
+  await page.reload();
+  const reloadedRow = row(page, place);
+  await expect(reloadedRow.getByLabel("Days before")).toHaveValue("3");
+  await expect(reloadedRow.getByLabel("Time the window opens")).toHaveValue("06:00");
+
+  await removePlace(page, place);
+});
+
 test("another User sees none of it", async ({ page, browser }) => {
   const place = placeName();
 

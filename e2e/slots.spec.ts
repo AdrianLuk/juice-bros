@@ -297,6 +297,37 @@ test("the reminder timing defaults to 60 minutes and the owner can change it", a
   }
 });
 
+test("the organizer can set an intended org for a still-bare-proposal slot", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  const slotId = await createSlot(page, {
+    date: "2031-09-09",
+    start: "09:00",
+    end: "10:00",
+    label: "Sep 9, 2031",
+  });
+
+  try {
+    // Still a bare proposal — no court attached — but the organizer can
+    // already say which facility they're planning to book at.
+    const intendedOrgSelect = page.getByLabel("Planning to book at");
+    await intendedOrgSelect.selectOption({ label: place });
+    const orgId = await intendedOrgSelect.inputValue();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Saved");
+
+    // Not just the optimistic form state — it survives a fresh read.
+    await page.reload();
+    await expect(page.getByLabel("Planning to book at")).toHaveValue(orgId);
+  } finally {
+    await deleteSlots([slotId]);
+    await removePlace(page, place);
+  }
+});
+
 test("tapping a response shows an optimistic update before the server confirms it", async ({
   page,
 }) => {

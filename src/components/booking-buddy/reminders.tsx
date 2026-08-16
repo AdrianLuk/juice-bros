@@ -11,6 +11,7 @@ import {
 } from "@/lib/booking-buddy/reminders";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
+  updateBookingWindowRemindersEnabled,
   updateEmailRemindersEnabled,
   updateReminderOffset,
   type NotificationPreferences,
@@ -104,6 +105,56 @@ export function NotificationPreferencesForm({
         />
         <Label htmlFor="email-enabled" className="font-normal">
           Email me a reminder before slots I&apos;m in
+        </Label>
+      </div>
+
+      {state.error && (
+        <p className="text-sm text-red-600" role="alert">
+          {state.error}
+        </p>
+      )}
+      {state.ok && (
+        <p className="text-sm text-muted-foreground" role="status">
+          Saved.
+        </p>
+      )}
+
+      <div>
+        <Button type="submit" variant="outline" disabled={pending}>
+          {pending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * The signed-in User's own opt-in for Booking Window Reminders — a separate
+ * preference from `NotificationPreferencesForm` above (issue #36's own
+ * acceptance criterion), not a second control over the same setting.
+ */
+export function BookingWindowPreferenceForm({
+  preferences,
+}: {
+  preferences: NotificationPreferences;
+}) {
+  const [state, formAction, pending] = useActionState(
+    updateBookingWindowRemindersEnabled,
+    EMPTY,
+  );
+
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <input
+          id="booking-window-email-enabled"
+          name="booking_window_email_enabled"
+          type="checkbox"
+          defaultChecked={preferences.bookingWindowEmailEnabled}
+          className="h-4 w-4 rounded border-input accent-foreground"
+        />
+        <Label htmlFor="booking-window-email-enabled" className="font-normal">
+          Email me when it&apos;s time to book a court
         </Label>
       </div>
 
