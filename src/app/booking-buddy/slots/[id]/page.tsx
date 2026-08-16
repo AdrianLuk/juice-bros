@@ -9,8 +9,10 @@ import {
   SlotCapacityPanel,
   SlotCourts,
 } from "@/components/booking-buddy/slots";
+import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
+import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
 import { SLOTS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -40,6 +42,7 @@ export default async function SlotDetailPage({
   }
 
   const { slot, isOwner, responses, myAnswer, capacity } = detail;
+  const slotLink = isOwner ? await getSlotLink(slot.id) : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -75,6 +78,17 @@ export default async function SlotDetailPage({
                 </h2>
                 <div className="mt-4">
                   <SlotCourts slotId={slot.id} capacity={capacity} />
+                </div>
+              </section>
+            )}
+
+            {isOwner && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Invite link
+                </h2>
+                <div className="mt-4">
+                  <SlotLinkPanel slotId={slot.id} slotLink={slotLink} />
                 </div>
               </section>
             )}

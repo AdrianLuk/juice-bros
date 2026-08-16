@@ -152,7 +152,7 @@ function withResponse(
   viewerName: string | null,
   answer: ResponseAnswer,
 ): SlotResponses {
-  const mine: SlotResponse = { userId: viewerId, displayName: viewerName, answer };
+  const mine: SlotResponse = { id: viewerId, userId: viewerId, displayName: viewerName, answer };
   return {
     myAnswer: answer,
     responses: [
@@ -253,7 +253,7 @@ export function ResponseButtons({
         )}
         {query.data.responses.map((response) => (
           <li
-            key={response.userId}
+            key={response.id}
             className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
           >
             <span>
