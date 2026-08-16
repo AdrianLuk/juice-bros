@@ -5,6 +5,7 @@ import {
   MAX_REMINDER_OFFSET_MINUTES,
   MIN_REMINDER_OFFSET_MINUTES,
   formatReminderEmail,
+  formatReminderPush,
   getReminderRecipients,
   isReminderDue,
   parseReminderOffsetMinutes,
@@ -173,4 +174,15 @@ test("formatReminderEmail carries the slot's own time and a link, HTML-escaped",
   assert.match(subject, /Sat, Jan 1 at 9:00 AM <script>/);
   assert.ok(!html.includes("<script>"), "the slot's own text must not inject markup");
   assert.match(html, /https:\/\/example\.com\/booking-buddy\/slots\/abc/);
+});
+
+test("formatReminderPush carries the slot's own time and a target url", () => {
+  const { title, body, url } = formatReminderPush({
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+
+  assert.equal(title, "Booking Buddy");
+  assert.match(body, /Sat, Jan 1 at 9:00 AM/);
+  assert.equal(url, "https://example.com/booking-buddy/slots/abc");
 });

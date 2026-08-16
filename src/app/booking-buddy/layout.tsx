@@ -1,4 +1,23 @@
+import type { Metadata, Viewport } from "next";
+
 import { QueryProvider } from "@/components/booking-buddy/query-provider";
+import { ServiceWorkerRegistration } from "@/components/booking-buddy/service-worker-registration";
+
+/**
+ * Installability metadata (issue #12) — set at the section layout, not any
+ * one page, since `manifest` is a property of the whole app. Metadata
+ * objects from a layout and the page beneath it are shallowly merged (Next's
+ * own merge rules), so every Booking Buddy page keeps its own `title`/
+ * `description` from `pageMetadata()` while inheriting `manifest` from here.
+ */
+export const metadata: Metadata = {
+  manifest: "/booking-buddy.webmanifest",
+  appleWebApp: { capable: true, title: "Booking Buddy", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+};
 
 /**
  * Booking Buddy's section layout.
@@ -13,5 +32,10 @@ export default function BookingBuddyLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <QueryProvider>{children}</QueryProvider>;
+  return (
+    <QueryProvider>
+      <ServiceWorkerRegistration />
+      {children}
+    </QueryProvider>
+  );
 }

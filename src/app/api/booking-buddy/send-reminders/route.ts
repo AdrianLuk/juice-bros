@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
+import webpush from "web-push";
 
 import { createAdminClient } from "@/lib/booking-buddy/supabase/admin";
 import { slotPath } from "@/lib/booking-buddy/routes";
@@ -7,6 +8,7 @@ import { formatSlotWhen } from "@/lib/booking-buddy/slots";
 import {
   MAX_REMINDER_OFFSET_MINUTES,
   formatReminderEmail,
+  formatReminderPush,
   getReminderRecipients,
   isReminderDue,
   shouldSendReminder,
@@ -15,13 +17,20 @@ import {
 export const runtime = "nodejs";
 
 /**
- * The send job behind Reminders (issue #11, 8.5). Fired by Vercel Cron
- * (`vercel.json`) hitting this route on a schedule; nothing about the logic
- * below assumes any particular cadence — `isReminderDue`'s window stays open
- * from the configured offset all the way to the Slot's own start, and
- * `reminder_sends` is what makes a re-run safe, so running this more or less
- * often only changes how promptly a Reminder goes out, never whether it's
- * sent twice.
+ * The send job behind Reminders (issue #11, 8.5; the push channel is #12).
+ * Fired by Vercel Cron (`vercel.json`) hitting this route on a schedule;
+ * nothing about the logic below assumes any particular cadence —
+ * `isReminderDue`'s window stays open from the configured offset all the way
+ * to the Slot's own start, and `reminder_sends` is what makes a re-run safe,
+ * so running this more or less often only changes how promptly a Reminder
+ * goes out, never whether it's sent twice.
+ *
+ * Push is additive, not a replacement: a User with no push subscription (or
+ * `push_enabled: false`) simply gets nothing on that channel, same as
+ * `shouldSendReminder` already decided before this ticket wired up delivery.
+ * The VAPID env vars are checked once, up front — if they're unset, the push
+ * channel is skipped for the whole run rather than failing per-recipient;
+ * email delivery is unaffected either way.
  *
  * `vercel.json`'s schedule is `"0 13 * * *"` — once daily, the most Vercel's
  * Hobby plan allows (2 Cron Jobs total, each invoked at most once a day; Pro
@@ -60,6 +69,18 @@ export async function GET(request: NextRequest) {
   if (!apiKey || !from) {
     console.error("send-reminders: missing RESEND_API_KEY or REMINDER_FROM_EMAIL.");
     return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  }
+
+  // Optional, unlike the email config above: a deploy that hasn't provisioned
+  // VAPID keys yet still sends email Reminders, just not push ones.
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+  const vapidSubject = process.env.VAPID_SUBJECT;
+  const pushConfigured = Boolean(vapidPublicKey && vapidPrivateKey && vapidSubject);
+  if (pushConfigured) {
+    webpush.setVapidDetails(vapidSubject!, vapidPublicKey!, vapidPrivateKey!);
+  } else {
+    console.error("send-reminders: VAPID env vars not configured, skipping push channel.");
   }
 
   const supabase = createAdminClient();
@@ -141,18 +162,26 @@ export async function GET(request: NextRequest) {
     if (allRecipientIds.size > 0) {
       const recipientIds = [...allRecipientIds];
 
-      const [{ data: preferenceRows, error: preferencesError }, { data: sentRows, error: sentError }] =
-        await Promise.all([
-          supabase
-            .from("notification_preferences")
-            .select("user_id, email_enabled")
-            .in("user_id", recipientIds),
-          supabase
-            .from("reminder_sends")
-            .select("slot_id, user_id")
-            .eq("channel", "email")
-            .in("slot_id", dueSlotIds),
-        ]);
+      const [
+        { data: preferenceRows, error: preferencesError },
+        { data: sentRows, error: sentError },
+        { data: subscriptionRows, error: subscriptionsError },
+      ] = await Promise.all([
+        supabase
+          .from("notification_preferences")
+          .select("user_id, email_enabled, push_enabled")
+          .in("user_id", recipientIds),
+        supabase
+          .from("reminder_sends")
+          .select("slot_id, user_id, channel")
+          .in("slot_id", dueSlotIds),
+        pushConfigured
+          ? supabase
+              .from("push_subscriptions")
+              .select("id, user_id, endpoint, p256dh, auth")
+              .in("user_id", recipientIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
 
       if (preferencesError) {
         console.error("send-reminders: reading notification preferences failed", preferencesError);
@@ -162,14 +191,31 @@ export async function GET(request: NextRequest) {
         console.error("send-reminders: reading reminder_sends failed", sentError);
         return NextResponse.json({ error: "Read failed." }, { status: 502 });
       }
+      if (subscriptionsError) {
+        console.error("send-reminders: reading push_subscriptions failed", subscriptionsError);
+        return NextResponse.json({ error: "Read failed." }, { status: 502 });
+      }
 
-      // A missing row means the default — see getNotificationPreferences.
+      // A missing row means the defaults — see getNotificationPreferences.
       const emailEnabledById = new Map(
         (preferenceRows ?? []).map((row) => [row.user_id, row.email_enabled]),
       );
-      const alreadySent = new Set(
-        (sentRows ?? []).map((row) => `${row.slot_id}:${row.user_id}`),
+      const pushEnabledById = new Map(
+        (preferenceRows ?? []).map((row) => [row.user_id, row.push_enabled]),
       );
+      const alreadySent = new Set(
+        (sentRows ?? []).map((row) => `${row.slot_id}:${row.user_id}:${row.channel}`),
+      );
+
+      const subscriptionsByUser = new Map<
+        string,
+        { id: string; endpoint: string; p256dh: string; auth: string }[]
+      >();
+      for (const row of subscriptionRows ?? []) {
+        const list = subscriptionsByUser.get(row.user_id) ?? [];
+        list.push({ id: row.id, endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth });
+        subscriptionsByUser.set(row.user_id, list);
+      }
 
       for (const slot of dueSlots) {
         const recipients = recipientsBySlot.get(slot.id) ?? [];
@@ -184,52 +230,105 @@ export async function GET(request: NextRequest) {
         });
         const slotUrl = new URL(slotPath(slot.id), request.nextUrl.origin).toString();
         const { subject, html } = formatReminderEmail({ slotWhen, slotUrl });
+        const pushPayload = formatReminderPush({ slotWhen, slotUrl });
 
         for (const userId of recipients) {
-          const shouldSend = shouldSendReminder({
+          const shouldSendEmail = shouldSendReminder({
             channel: "email",
             emailEnabled: emailEnabledById.get(userId) ?? true,
             pushEnabled: false,
-            alreadySent: alreadySent.has(`${slot.id}:${userId}`),
+            alreadySent: alreadySent.has(`${slot.id}:${userId}:email`),
           });
-          if (!shouldSend) {
+          if (shouldSendEmail) {
+            // The `service_role` admin API, not a table read — no table
+            // anywhere in this schema is granted an email column to read one
+            // from.
+            const { data: userData, error: userError } =
+              await supabase.auth.admin.getUserById(userId);
+            if (userError || !userData?.user?.email) {
+              console.error("send-reminders: no email for recipient", userId, userError);
+              failed += 1;
+            } else {
+              const { error: sendError } = await resend.emails.send({
+                from,
+                to: userData.user.email,
+                subject,
+                html,
+              });
+
+              if (sendError) {
+                console.error("send-reminders: Resend error", sendError);
+                failed += 1;
+              } else {
+                // Best-effort — the email is already sent; a duplicate log row
+                // (a race with another run) is caught by the table's own
+                // unique constraint and is not itself a failure worth
+                // reporting.
+                const { error: logError } = await supabase
+                  .from("reminder_sends")
+                  .insert({ slot_id: slot.id, user_id: userId, channel: "email" });
+                if (logError && logError.code !== "23505") {
+                  console.error("send-reminders: logging the send failed", logError);
+                }
+                sent += 1;
+              }
+            }
+          }
+
+          const shouldSendPush =
+            pushConfigured &&
+            shouldSendReminder({
+              channel: "push",
+              emailEnabled: false,
+              pushEnabled: pushEnabledById.get(userId) ?? false,
+              alreadySent: alreadySent.has(`${slot.id}:${userId}:push`),
+            });
+          if (!shouldSendPush) {
             continue;
           }
 
-          // The `service_role` admin API, not a table read — no table anywhere
-          // in this schema is granted an email column to read one from.
-          const { data: userData, error: userError } =
-            await supabase.auth.admin.getUserById(userId);
-          if (userError || !userData?.user?.email) {
-            console.error("send-reminders: no email for recipient", userId, userError);
+          // No subscription on file is the graceful-skip case (issue #12's
+          // last acceptance criterion) — not a failure, nothing to send to.
+          const subscriptions = subscriptionsByUser.get(userId) ?? [];
+          if (subscriptions.length === 0) {
+            continue;
+          }
+
+          let anyPushSucceeded = false;
+          for (const subscription of subscriptions) {
+            try {
+              await webpush.sendNotification(
+                {
+                  endpoint: subscription.endpoint,
+                  keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+                },
+                JSON.stringify(pushPayload),
+              );
+              anyPushSucceeded = true;
+            } catch (error) {
+              const statusCode = (error as { statusCode?: number }).statusCode;
+              if (statusCode === 404 || statusCode === 410) {
+                // The push service reports this registration is gone —
+                // standard web-push practice is to prune it so future runs
+                // stop retrying a device that will never receive anything.
+                await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
+              } else {
+                console.error("send-reminders: web-push error", error);
+              }
+            }
+          }
+
+          if (anyPushSucceeded) {
+            const { error: logError } = await supabase
+              .from("reminder_sends")
+              .insert({ slot_id: slot.id, user_id: userId, channel: "push" });
+            if (logError && logError.code !== "23505") {
+              console.error("send-reminders: logging the push send failed", logError);
+            }
+            sent += 1;
+          } else {
             failed += 1;
-            continue;
           }
-
-          const { error: sendError } = await resend.emails.send({
-            from,
-            to: userData.user.email,
-            subject,
-            html,
-          });
-
-          if (sendError) {
-            console.error("send-reminders: Resend error", sendError);
-            failed += 1;
-            continue;
-          }
-
-          // Best-effort — the email is already sent; a duplicate log row (a
-          // race with another run) is caught by the table's own unique
-          // constraint and is not itself a failure worth reporting.
-          const { error: logError } = await supabase
-            .from("reminder_sends")
-            .insert({ slot_id: slot.id, user_id: userId, channel: "email" });
-          if (logError && logError.code !== "23505") {
-            console.error("send-reminders: logging the send failed", logError);
-          }
-
-          sent += 1;
         }
       }
     }

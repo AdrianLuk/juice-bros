@@ -8,6 +8,7 @@ import {
   BookingWindowPreferenceForm,
   NotificationPreferencesForm,
 } from "@/components/booking-buddy/reminders";
+import { PushNotificationsForm } from "@/components/booking-buddy/push-notifications";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
@@ -48,6 +49,7 @@ export default async function SettingsPage() {
             <div className="mt-4 flex flex-col gap-6">
               <NotificationPreferencesForm preferences={notificationPreferences} />
               <BookingWindowPreferenceForm preferences={notificationPreferences} />
+              <PushNotificationsForm />
             </div>
           </div>
 
