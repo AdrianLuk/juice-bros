@@ -77,9 +77,16 @@ export function DashboardCalendar({
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1.5">
+        {/* Date on the left, nav buttons pushed to the right on mobile
+            (`justify-between` + explicit `order`) — grouped together on the
+            left instead, buttons first, on `sm:` and up, matching how this
+            row read before the date/button split. */}
+        <div className="flex items-center justify-between gap-1.5 sm:justify-start">
+          <h2 className="font-heading order-1 text-base font-semibold tracking-tight sm:order-2 sm:ml-1">
+            {rangeLabel}
+          </h2>
           {view !== "agenda" && (
-            <>
+            <div className="order-2 flex items-center gap-1.5 sm:order-1">
               <Button variant="outline" size="icon-sm" onClick={goBack} aria-label="Previous">
                 <ChevronLeftIcon />
               </Button>
@@ -89,17 +96,14 @@ export function DashboardCalendar({
               <Button variant="outline" size="icon-sm" onClick={goForward} aria-label="Next">
                 <ChevronRightIcon />
               </Button>
-            </>
+            </div>
           )}
-          <h2 className="font-heading ml-1 text-base font-semibold tracking-tight">
-            {rangeLabel}
-          </h2>
         </div>
 
         <div
           role="group"
           aria-label="Calendar view"
-          className="flex w-fit gap-0.5 self-start rounded-lg border border-border p-0.5"
+          className="flex w-fit gap-0.5 self-center rounded-lg border border-border p-0.5 sm:self-start"
         >
           {VIEWS.map((option) => (
             <button
