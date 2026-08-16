@@ -24,6 +24,22 @@ export const runtime = "nodejs";
  * JS-side due-window logic here — the query itself is the due-check. Runs
  * entirely through the admin (`service_role`) client, same posture as every
  * other cross-User job in this app.
+ *
+ * `vercel.json`'s schedule is `"0 13 * * *"` — once daily, the most Vercel's
+ * Hobby plan allows (2 Cron Jobs total, each invoked at most once a day; Pro
+ * and above allow any frequency — see `send-reminders`'s own header comment
+ * for the fuller story). **Upgrading later is a one-line change**: edit
+ * that schedule string to a more frequent cron expression — nothing here
+ * needs to change, since this due-check already runs in SQL regardless of
+ * how often it's asked.
+ *
+ * The missed-entirely risk `send-reminders` carries for a short offset is
+ * much smaller here, by construction: the due-window stretches from
+ * `window_opens_at` all the way to the Slot's own `proposed_start`, which is
+ * typically days, not minutes. The one case that still narrows it is a
+ * `booking_window_days_before` of 0 (opens the same day as play) on a Slot
+ * later that same day — worth knowing, same as the attendee Reminder's
+ * short-offset caveat, but a much rarer configuration to actually hit.
  */
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
