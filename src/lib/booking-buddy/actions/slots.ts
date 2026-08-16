@@ -15,6 +15,7 @@ import {
 } from "../capacity.ts";
 import type { ResponseAnswer } from "../responses.ts";
 import { getBookingsPageData, type Booking } from "./bookings.ts";
+import { listOrgs, type Org } from "./orgs.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -66,6 +67,10 @@ export type SlotDetail = {
   capacity: SlotCapacity;
   /** Minutes before `proposedStart` a Reminder goes out (issue #11). Owner-editable. */
   reminderOffsetMinutes: number;
+  /** The organizer's own hint at which facility they plan to book (issue #36). */
+  intendedOrgId: string | null;
+  /** The owner's own Orgs, to pick an intended one from — empty for a non-owner, same pattern as `capacity.attached`/`attachable`. */
+  ownedOrgs: Org[];
 };
 
 export type SlotResponses = {
@@ -260,7 +265,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
     .select(
-      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes",
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id",
     )
     .eq("id", slotId)
     .maybeSingle();
@@ -274,7 +279,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
 
   const isOwner = slotRow.owner_id === session.userId;
 
-  const [{ responses, myAnswer }, ownerProfileResult, capacity] = await Promise.all([
+  const [{ responses, myAnswer }, ownerProfileResult, capacity, ownedOrgs] = await Promise.all([
     getSlotResponses(slotId),
     supabase.from("profiles").select("display_name").eq("id", slotRow.owner_id).maybeSingle(),
     getSlotCapacity(
@@ -283,6 +288,10 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
       slotRow.rotation_buffer,
       isOwner,
     ),
+    // Orgs are owner-only per RLS, so this would come back empty for a
+    // friend anyway — skipped outright rather than paying for a query whose
+    // answer is already known.
+    isOwner ? listOrgs() : Promise.resolve([]),
   ]);
 
   if (ownerProfileResult.error) {
@@ -306,6 +315,8 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
     myAnswer,
     capacity,
     reminderOffsetMinutes: slotRow.reminder_offset_minutes,
+    intendedOrgId: slotRow.intended_org_id,
+    ownedOrgs,
   };
 }
 
@@ -446,5 +457,44 @@ export async function setRotationBuffer(
   }
 
   revalidatePath(slotPath(parsed.slotId));
+  return { ok: true };
+}
+
+/**
+ * Set or clear which of the owner's own Orgs they plan to book at for this
+ * Slot (issue #36) — a hint for the Booking Window Reminder, not a
+ * reservation. An empty selection clears it back to unset.
+ *
+ * `assert_slot_intended_org_coherent` (the migration) is what actually
+ * enforces the Org belongs to the same owner as the Slot; an RLS-filtered or
+ * trigger-refused write comes back as zero rows or a `23514`, both read the
+ * same generic way here since neither is reachable from the picker as it
+ * stands (it only ever lists the owner's own Orgs).
+ */
+export async function setIntendedOrg(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const slotId = String(formData.get("slot_id") ?? "").trim();
+  if (!slotId) {
+    return { error: "Which slot is this for?" };
+  }
+
+  const orgId = String(formData.get("org_id") ?? "").trim();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("slots")
+    .update({ intended_org_id: orgId || null })
+    .eq("id", slotId)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't save that. Try again." };
+  }
+
+  revalidatePath(slotPath(slotId));
   return { ok: true };
 }

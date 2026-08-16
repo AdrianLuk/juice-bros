@@ -28,7 +28,7 @@ A real-world pickleball facility as Google Maps knows it — "PicklePlex Downsvi
 **Org**:
 One User's record of playing at a Place — the thing their Bookings hang off. A single User can have Bookings across multiple Orgs, and two Users who play at the same Place have separate Orgs pointing at the same `place_id`, which is what lets anything cross-User join them up. Where a venue isn't in Google Maps (a community-centre gym, a private court), an Org carries a hand-typed name instead and has no Place; it is one or the other, never both. A place-backed Org cannot be renamed — its name is the Place's, so everyone sees the same one.
 
-Bookings under an Org are still entered by hand: Google supplies the venue's identity, not its reservations (ADR 0002 stands).
+Bookings under an Org are still entered by hand: Google supplies the venue's identity, not its reservations (ADR 0002 stands). An Org may also carry a Booking Window, driving the Booking Reminder.
 _Avoid_: Facility, Club (use Org as the canonical term, matching how platforms like CourtReserve model it). Note that an Org is a User's *record*, not the venue itself — the venue is a Place.
 
 **Booking**:
@@ -52,7 +52,17 @@ _Avoid_: RSVP (used informally in product copy), Join, Vote
 The effective ceiling on "yes" Responses for a Slot: the base capacity derived from its attached Bookings' own court capacities, plus an optional rotation buffer the organizer can configure per Slot to allow for substitutions (e.g. a doubles court with a buffer of 2 supports up to 6 "yes" Responses, expecting some rotation in and out). Each Booking carries its own format — doubles (4) or singles (2), defaulting to doubles — so Capacity sums per attached court rather than assuming every court is the same (see [adr/0008-court-capacity-is-per-booking-data.md](docs/adr/0008-court-capacity-is-per-booking-data.md)). A Slot with no Bookings has no Capacity at all, which is not the same as a Capacity of zero: there is nothing to fill yet. "Yes" Responses beyond Capacity aren't blocked — the organizer sees an over-capacity signal to resolve manually (e.g. book another court, or read it as expected rotation/drilling rather than an actual overbook), same as an unbuffered overflow. Capacity is never stored; it is derived from the attached Bookings' formats and the buffer each time it's read.
 
 **Reminder**:
-An automated notification sent to Users with a "yes" Response on a confirmed Slot (one with a Booking attached — a bare proposal has nothing concrete to remind anyone about), at a time before the Slot's start configurable per Slot. Not sent to Guests in v1.
+An automated notification sent to Users with a "yes" Response on a confirmed Slot (one with a Booking attached — a bare proposal has nothing concrete to remind anyone about), at a time before the Slot's start configurable per Slot. Not sent to Guests in v1. Governed by its own opt-in preference, independent of the Booking Reminder's.
+_Avoid_: confusing with Booking Reminder — this one is for attendees of a confirmed game; that one is for the organizer of a still-unbooked one.
+
+**Booking Window**:
+A facility's own rule for how far in advance it opens court reservations — captured per Org as an optional lead time (days before play) and time of day, in the facility's own time zone. Not discovered automatically; the User sets it once, from what they know of the facility's own booking platform (e.g. CourtReserve), and it's reused for every Slot pointed at that Org. An Org with no Booking Window set simply never produces a Booking Reminder.
+
+**Booking Reminder**:
+An automated notification sent to a Slot's organizer once its intended Org's Booking Window opens — a nudge to go actually reserve a court before it fills up. Only sent while the Slot still has no Booking attached (once one is, there's nothing left to remind the organizer to do) and to the organizer alone, never to attendees or Guests. Governed by its own opt-in preference, independent of the plain Reminder's — someone may want one without the other.
+
+**Intended Org**:
+The organizer's own hint, on a still-bare-proposal Slot, at which Org they plan to book at — what a Booking Reminder is computed against. Not a reservation and not touched by attaching a real Booking; a bare-proposal Slot has no Org otherwise, since that only ever arrives via an actual Booking.
 
 **Slot Link**:
 A unique, shareable URL generated for a single Slot. Anyone holding the link can view that Slot's preview and RSVP, regardless of Connection status — it does not expose the organizer's broader calendar, only the one Slot it was generated for.

@@ -16,8 +16,20 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ORG_NAME_MAX_LENGTH } from "@/lib/booking-buddy/orgs";
+import {
+  MAX_BOOKING_WINDOW_DAYS_BEFORE,
+  MIN_BOOKING_WINDOW_DAYS_BEFORE,
+  bookingWindowLabel,
+} from "@/lib/booking-buddy/booking-window";
+import { HALF_HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
-import { createOrg, deleteOrg, type Org } from "@/lib/booking-buddy/actions/orgs";
+import {
+  createOrg,
+  deleteOrg,
+  updateBookingWindow,
+  type Org,
+} from "@/lib/booking-buddy/actions/orgs";
 import { PoweredByGoogle } from "@/components/booking-buddy/place-search";
 
 const EMPTY: ActionResult = {};
@@ -74,26 +86,91 @@ export function CreateOrgForm() {
 
 export function OrgRow({ org }: { org: Org }) {
   return (
-    <li className="flex items-center justify-between gap-4 px-5 py-4">
-      <div className="min-w-0">
-        <p className="truncate font-medium">{org.displayName}</p>
-        {org.address && (
-          <>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {org.address}
+    <li className="flex flex-col gap-3 px-5 py-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{org.displayName}</p>
+          {org.address && (
+            <>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {org.address}
+              </p>
+              <PoweredByGoogle />
+            </>
+          )}
+          {org.googlePlaceId && !org.address && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              We couldn&apos;t reach Google for this one. Your bookings here are
+              fine.
             </p>
-            <PoweredByGoogle />
-          </>
-        )}
-        {org.googlePlaceId && !org.address && (
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            We couldn&apos;t reach Google for this one. Your bookings here are
-            fine.
-          </p>
-        )}
+          )}
+        </div>
+        <DeleteOrgButton org={org} />
       </div>
-      <DeleteOrgButton org={org} />
+      <BookingWindowForm org={org} />
     </li>
+  );
+}
+
+/**
+ * When this facility opens court bookings — a fact about the place, set once
+ * and reused for every Slot pointed at it (issue #36), not something to redo
+ * per game. Leaving both fields blank clears it.
+ */
+function BookingWindowForm({ org }: { org: Org }) {
+  const [state, formAction, pending] = useActionState(updateBookingWindow, EMPTY);
+
+  return (
+    <form
+      action={formAction}
+      className="flex flex-wrap items-end gap-3 border-t border-border pt-3"
+    >
+      <input type="hidden" name="org_id" value={org.id} />
+
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor={`booking-window-days-${org.id}`} className="text-xs">
+          Booking window
+        </Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id={`booking-window-days-${org.id}`}
+            name="booking_window_days_before"
+            type="number"
+            min={MIN_BOOKING_WINDOW_DAYS_BEFORE}
+            max={MAX_BOOKING_WINDOW_DAYS_BEFORE}
+            step={1}
+            defaultValue={org.bookingWindow?.daysBefore ?? ""}
+            placeholder="Days"
+            className="w-20"
+            aria-label="Days before"
+          />
+          <span className="text-sm text-muted-foreground">days before, at</span>
+          <FormSelect
+            name="booking_window_time"
+            defaultValue={org.bookingWindow?.time ?? ""}
+            className="w-auto"
+            aria-label="Time the window opens"
+          >
+            <option value="">—</option>
+            {HALF_HOUR_TIMES.map((time) => (
+              <option key={time} value={time}>
+                {formatTimeLabel(time)}
+              </option>
+            ))}
+          </FormSelect>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {bookingWindowLabel(org.bookingWindow)}
+        </p>
+      </div>
+
+      <div className="flex flex-col items-start gap-1">
+        <Button type="submit" variant="outline" size="sm" disabled={pending}>
+          {pending ? "Saving…" : "Save"}
+        </Button>
+        <ActionError state={state} />
+      </div>
+    </form>
   );
 }
 
