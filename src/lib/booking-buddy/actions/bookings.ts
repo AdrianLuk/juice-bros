@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { BOOKINGS_PATH } from "../routes.ts";
+import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { bookingWriteMessage, formatBookingWhen, parseNewBooking } from "../bookings.ts";
 import { isPastDate } from "../datetime.ts";
@@ -23,6 +23,8 @@ export type Booking = {
   when: string;
   startsAt: string;
   endsAt: string;
+  /** The facility's own clock (issue #20) — what `when` was rendered in. Surfaced raw for the dashboard calendar's (#23) detail popover. */
+  timeZone: string;
   /** Doubles (4) or singles (2) — what this court's own share of Capacity is (ADR 0008). */
   format: BookingFormat;
 };
@@ -78,6 +80,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
         }),
         startsAt: row.starts_at,
         endsAt: row.ends_at,
+        timeZone: org?.timeZone ?? "UTC",
         format: row.format,
       };
     }),
@@ -148,6 +151,9 @@ export async function createBooking(
   }
 
   revalidatePath(BOOKINGS_PATH);
+  // The dashboard calendar (#23) renders these too, via a quick-add sheet
+  // that posts here without navigating off `/booking-buddy`.
+  revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
 }
 
@@ -176,5 +182,7 @@ export async function deleteBooking(
   }
 
   revalidatePath(BOOKINGS_PATH);
+  // The dashboard calendar's (#23) Booking popover can remove one too.
+  revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
 }

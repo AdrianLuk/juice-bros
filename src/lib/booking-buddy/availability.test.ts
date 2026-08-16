@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveAvailability } from "./availability.ts";
+import { resolveAvailability, resolveAvailabilitySegments } from "./availability.ts";
 
 test("a Booking or confirmed Slot covering `at` returns busy regardless of any Availability Window", () => {
   const at = new Date("2026-08-20T12:00:00Z");
@@ -120,4 +120,115 @@ test("creation order, not edit order, decides precedence", () => {
     "open",
     "the newer window still wins after the older one is edited to also cover `at`",
   );
+});
+
+test("resolveAvailabilitySegments: a busy-covered span is omitted entirely, not returned as a busy segment", () => {
+  const segments = resolveAvailabilitySegments({
+    rangeStart: new Date("2026-08-20T00:00:00Z"),
+    rangeEnd: new Date("2026-08-21T00:00:00Z"),
+    busyIntervals: [
+      { startsAt: "2026-08-20T10:00:00Z", endsAt: "2026-08-20T14:00:00Z" },
+    ],
+    windows: [
+      {
+        type: "open",
+        startsAt: "2026-08-20T00:00:00Z",
+        endsAt: "2026-08-21T00:00:00Z",
+        createdAt: "2026-08-19T00:00:00Z",
+      },
+    ],
+  });
+
+  // The Booking owns 10:00-14:00 — the calendar draws its own block there, so
+  // no Availability segment should claim that span (ADR 0006, "never both").
+  // The Availability Window's `open` declaration still surfaces either side.
+  assert.deepEqual(segments, [
+    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
+    { type: "open", startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+  ]);
+});
+
+test("resolveAvailabilitySegments: adjacent same-type slices merge into one segment", () => {
+  const segments = resolveAvailabilitySegments({
+    rangeStart: new Date("2026-08-20T00:00:00Z"),
+    rangeEnd: new Date("2026-08-21T00:00:00Z"),
+    busyIntervals: [],
+    windows: [
+      {
+        type: "open",
+        startsAt: "2026-08-20T08:00:00Z",
+        endsAt: "2026-08-20T12:00:00Z",
+        createdAt: "2026-08-15T00:00:00Z",
+      },
+      {
+        type: "open",
+        startsAt: "2026-08-20T12:00:00Z",
+        endsAt: "2026-08-20T18:00:00Z",
+        createdAt: "2026-08-16T00:00:00Z",
+      },
+    ],
+  });
+
+  assert.deepEqual(segments, [
+    { type: "open", startsAt: "2026-08-20T08:00:00.000Z", endsAt: "2026-08-20T18:00:00.000Z" },
+  ]);
+});
+
+test("resolveAvailabilitySegments: an unspecified stretch produces no segment at all", () => {
+  const segments = resolveAvailabilitySegments({
+    rangeStart: new Date("2026-08-20T00:00:00Z"),
+    rangeEnd: new Date("2026-08-21T00:00:00Z"),
+    busyIntervals: [],
+    windows: [],
+  });
+
+  assert.deepEqual(segments, []);
+});
+
+test("resolveAvailabilitySegments: a Window outside the visible range is clamped to it, not dropped", () => {
+  const segments = resolveAvailabilitySegments({
+    rangeStart: new Date("2026-08-20T00:00:00Z"),
+    rangeEnd: new Date("2026-08-21T00:00:00Z"),
+    busyIntervals: [],
+    windows: [
+      {
+        type: "busy",
+        startsAt: "2026-08-19T00:00:00Z",
+        endsAt: "2026-08-22T00:00:00Z",
+        createdAt: "2026-08-15T00:00:00Z",
+      },
+    ],
+  });
+
+  assert.deepEqual(segments, [
+    { type: "busy", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+  ]);
+});
+
+test("resolveAvailabilitySegments: an override still wins its own slice, splitting the group's default either side", () => {
+  const segments = resolveAvailabilitySegments({
+    rangeStart: new Date("2026-08-20T00:00:00Z"),
+    rangeEnd: new Date("2026-08-21T00:00:00Z"),
+    busyIntervals: [],
+    windows: [
+      {
+        type: "busy",
+        startsAt: "2026-08-20T09:00:00Z",
+        endsAt: "2026-08-20T17:00:00Z",
+        createdAt: "2026-08-15T00:00:00Z",
+      },
+      {
+        type: "open",
+        startsAt: "2026-08-20T12:00:00Z",
+        endsAt: "2026-08-20T13:00:00Z",
+        createdAt: "2026-08-18T00:00:00Z",
+      },
+    ],
+  });
+
+  assert.deepEqual(segments, [
+    { type: "busy", startsAt: "2026-08-20T09:00:00.000Z", endsAt: "2026-08-20T12:00:00.000Z" },
+    { type: "open", startsAt: "2026-08-20T12:00:00.000Z", endsAt: "2026-08-20T13:00:00.000Z" },
+    { type: "busy", startsAt: "2026-08-20T13:00:00.000Z", endsAt: "2026-08-20T17:00:00.000Z" },
+  ]);
 });

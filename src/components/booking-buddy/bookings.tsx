@@ -151,7 +151,7 @@ export function BookingRow({ booking }: { booking: Booking }) {
   );
 }
 
-function DeleteBookingButton({ booking }: { booking: Booking }) {
+export function DeleteBookingButton({ booking }: { booking: Booking }) {
   const [state, formAction, pending] = useActionState(deleteBooking, EMPTY);
 
   const form = (
