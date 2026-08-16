@@ -13,6 +13,35 @@ export const MIN_REMINDER_OFFSET_MINUTES = 0;
 /** 7 days — a Reminder set further out than that isn't really a reminder. */
 export const MAX_REMINDER_OFFSET_MINUTES = 10080;
 
+/**
+ * The choices offered on the Slot page's own picker. A free-typed number of
+ * minutes was the first cut, but nobody thinks in minutes past a couple of
+ * hours — these are the offsets people actually reach for. The underlying
+ * column and `parseReminderOffsetMinutes` still accept anything in bounds, so
+ * a value that predates this list (or one set some other way) still renders
+ * correctly, just via `reminderOffsetLabel` rather than a preset match — see
+ * `ReminderOffsetForm`, which adds it to the list rather than losing it.
+ */
+export const REMINDER_OFFSET_PRESETS: readonly number[] = [
+  15, 30, 60, 120, 240, 1440, 2880,
+];
+
+/** A human label for any whole-minute offset, preset or not. */
+export function reminderOffsetLabel(minutes: number): string {
+  if (minutes === 0) {
+    return "Right at the start time";
+  }
+  if (minutes % 1440 === 0) {
+    const days = minutes / 1440;
+    return `${days} day${days === 1 ? "" : "s"} before`;
+  }
+  if (minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} hour${hours === 1 ? "" : "s"} before`;
+  }
+  return `${minutes} minute${minutes === 1 ? "" : "s"} before`;
+}
+
 export type ReminderResponder = {
   userId: string | null;
   answer: ResponseAnswer;

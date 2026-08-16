@@ -3,11 +3,11 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import {
-  MAX_REMINDER_OFFSET_MINUTES,
-  MIN_REMINDER_OFFSET_MINUTES,
+  REMINDER_OFFSET_PRESETS,
+  reminderOffsetLabel,
 } from "@/lib/booking-buddy/reminders";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -43,25 +43,31 @@ export function ReminderOffsetForm({
 }) {
   const [state, formAction, pending] = useActionState(updateReminderOffset, EMPTY);
 
+  // The current value is always an option, even if it isn't one of the
+  // presets — a value set before this list existed (or some other way)
+  // shouldn't silently change the moment the page renders.
+  const options = REMINDER_OFFSET_PRESETS.includes(reminderOffsetMinutes)
+    ? REMINDER_OFFSET_PRESETS
+    : [reminderOffsetMinutes, ...REMINDER_OFFSET_PRESETS].sort((a, b) => a - b);
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="slot_id" value={slotId} />
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="reminder-offset">Remind attendees</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="reminder-offset"
-            name="reminder_offset_minutes"
-            type="number"
-            min={MIN_REMINDER_OFFSET_MINUTES}
-            max={MAX_REMINDER_OFFSET_MINUTES}
-            step={1}
-            defaultValue={reminderOffsetMinutes}
-            className="sm:max-w-32"
-          />
-          <span className="text-sm text-muted-foreground">minutes before it starts</span>
-        </div>
+        <FormSelect
+          id="reminder-offset"
+          name="reminder_offset_minutes"
+          defaultValue={reminderOffsetMinutes}
+          className="sm:max-w-56"
+        >
+          {options.map((minutes) => (
+            <option key={minutes} value={minutes}>
+              {reminderOffsetLabel(minutes)}
+            </option>
+          ))}
+        </FormSelect>
         <p className="text-xs text-muted-foreground">
           Only Users with a &ldquo;yes&rdquo; response get one, and only once
           a court is attached.

@@ -8,6 +8,7 @@ import {
   getReminderRecipients,
   isReminderDue,
   parseReminderOffsetMinutes,
+  reminderOffsetLabel,
   shouldSendReminder,
 } from "./reminders.ts";
 
@@ -146,6 +147,21 @@ test("shouldSendReminder sends when the channel is enabled and nothing was sent 
     shouldSendReminder({ channel: "push", emailEnabled: false, pushEnabled: true, alreadySent: false }),
     true,
   );
+});
+
+test("reminderOffsetLabel reads minutes, hours, and days in the units people think in", () => {
+  assert.equal(reminderOffsetLabel(0), "Right at the start time");
+  assert.equal(reminderOffsetLabel(1), "1 minute before");
+  assert.equal(reminderOffsetLabel(15), "15 minutes before");
+  assert.equal(reminderOffsetLabel(60), "1 hour before");
+  assert.equal(reminderOffsetLabel(120), "2 hours before");
+  assert.equal(reminderOffsetLabel(1440), "1 day before");
+  assert.equal(reminderOffsetLabel(2880), "2 days before");
+});
+
+test("reminderOffsetLabel falls back to minutes for a value with no clean unit", () => {
+  // Not a preset (a custom or legacy value) — still has to say something sane.
+  assert.equal(reminderOffsetLabel(90), "90 minutes before");
 });
 
 test("formatReminderEmail carries the slot's own time and a link, HTML-escaped", () => {

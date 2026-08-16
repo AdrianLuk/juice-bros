@@ -283,10 +283,10 @@ test("the reminder timing defaults to 60 minutes and the owner can change it", a
   });
 
   try {
-    const reminderInput = page.getByLabel("Remind attendees");
-    await expect(reminderInput).toHaveValue("60");
+    const reminderSelect = page.getByLabel("Remind attendees");
+    await expect(reminderSelect).toHaveValue("60");
 
-    await reminderInput.fill("120");
+    await reminderSelect.selectOption("120");
     await page.getByRole("button", { name: "Save reminder timing" }).click();
 
     // Not just the optimistic form state — it survives a fresh read.
