@@ -272,6 +272,31 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
   }
 });
 
+test("the reminder timing defaults to 60 minutes and the owner can change it", async ({
+  page,
+}) => {
+  const slotId = await createSlot(page, {
+    date: "2031-08-08",
+    start: "09:00",
+    end: "10:00",
+    label: "Aug 8, 2031",
+  });
+
+  try {
+    const reminderSelect = page.getByLabel("Remind attendees");
+    await expect(reminderSelect).toHaveValue("60");
+
+    await reminderSelect.selectOption("120");
+    await page.getByRole("button", { name: "Save reminder timing" }).click();
+
+    // Not just the optimistic form state — it survives a fresh read.
+    await page.reload();
+    await expect(page.getByLabel("Remind attendees")).toHaveValue("120");
+  } finally {
+    await deleteSlots([slotId]);
+  }
+});
+
 test("tapping a response shows an optimistic update before the server confirms it", async ({
   page,
 }) => {

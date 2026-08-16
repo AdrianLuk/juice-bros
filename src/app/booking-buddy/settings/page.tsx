@@ -4,8 +4,10 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
+import { NotificationPreferencesForm } from "@/components/booking-buddy/reminders";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
+import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -20,6 +22,7 @@ export default async function SettingsPage() {
   await verifySession();
 
   const profile = await getOwnProfile();
+  const notificationPreferences = await getNotificationPreferences();
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -33,6 +36,15 @@ export default async function SettingsPage() {
 
           <div className="mt-10">
             <UsernameForm username={profile.username} />
+          </div>
+
+          <div className="mt-12">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">
+              Reminders
+            </h2>
+            <div className="mt-4">
+              <NotificationPreferencesForm preferences={notificationPreferences} />
+            </div>
           </div>
 
           <p className="mt-14 text-sm">
