@@ -21,8 +21,24 @@ export const runtime = "nodejs";
  * from the configured offset all the way to the Slot's own start, and
  * `reminder_sends` is what makes a re-run safe, so running this more or less
  * often only changes how promptly a Reminder goes out, never whether it's
- * sent twice. See PROGRESS.md's Phase 8 notes for the Hobby-plan caveat on
- * cron frequency.
+ * sent twice.
+ *
+ * `vercel.json`'s schedule is `"0 13 * * *"` — once daily, the most Vercel's
+ * Hobby plan allows (2 Cron Jobs total, each invoked at most once a day; Pro
+ * and above allow any frequency). **Upgrading later is a one-line change**:
+ * edit that schedule string to a more frequent cron expression (every 15
+ * minutes, for instance) — no code here needs to change, since the
+ * due-window design above was already built to tolerate any cadence.
+ *
+ * One real consequence of daily-only cron worth knowing, not just a "runs
+ * later" inconvenience: a Reminder's own due-window is only as wide as its
+ * configured offset (`REMINDER_OFFSET_PRESETS` in `reminders.ts` — as
+ * narrow as 15 minutes). If that window opens and fully closes between two
+ * daily runs, the Reminder is silently never sent at all — not late, just
+ * missed, since `isReminderDue` requires `now < proposedStart` and a Slot
+ * that's already started won't retroactively get one. Short offsets are
+ * only reliable once cron runs more often than the offset itself; until an
+ * upgrade, a 1-day or 2-day offset is the dependable choice.
  *
  * Runs entirely through the admin (`service_role`) client — the same posture
  * issue #10's Guest RSVP path established: this is not a User acting through
