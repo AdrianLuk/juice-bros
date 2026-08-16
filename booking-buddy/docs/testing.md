@@ -56,6 +56,10 @@ the main nav yet, so navigate by URL:
 - `/booking-buddy/groups` — friend groups and per-friend visibility
 - `/booking-buddy/orgs` — the places you play
 - `/booking-buddy/bookings` — court reservations you've logged
+- `/booking-buddy/slots` — post a slot, then open one to find its "Invite
+  link" section — that's a Slot Link (issue #10). Paste the generated
+  `/s/[token]` URL into a private/incognito window to try the Guest RSVP path
+  with no account at all.
 - `/booking-buddy/settings` — change your username
 
 Signing in as a second account in the same browser will replace the first

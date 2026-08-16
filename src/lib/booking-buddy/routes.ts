@@ -26,6 +26,17 @@ export function slotPath(slotId: string): string {
 
 export const SETTINGS_PATH = `${BOOKING_BUDDY_ROOT}/settings`;
 
+/**
+ * A Guest's own view of one Slot (issue #10) — deliberately outside
+ * `BOOKING_BUDDY_ROOT`, so `requiresSession` never gates it and a Guest is
+ * never asked to sign in to use it.
+ */
+export const SLOT_LINK_ROOT = "/s";
+
+export function slotLinkPath(token: string): string {
+  return `${SLOT_LINK_ROOT}/${token}`;
+}
+
 /** Reachable while signed out, despite living under the Booking Buddy root. */
 const PUBLIC_SUBPATHS = ["/sign-in", "/auth"];
 
