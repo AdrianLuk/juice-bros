@@ -1,0 +1,226 @@
+/**
+ * Pure date/grid math for the dashboard calendar (issue #23) — Week/Month
+ * range bounds, the Month view's 6-week cell grid, and the overlap layout
+ * that decides how many columns wide a day's Week-view blocks are.
+ *
+ * Deliberately hand-rolled rather than a calendar library (the ticket's own
+ * call — the actual need doesn't justify the dependency), and free of
+ * Next.js/DOM imports so it can be unit tested directly, matching
+ * availability.ts and visibility.ts.
+ *
+ * Every function that needs "today" takes it as a `now: Date` parameter
+ * rather than reading `new Date()` itself, the same discipline
+ * `isPastDate`/`todayInZone` already use — determinism over convenience.
+ *
+ * All date math here is calendar-day arithmetic in whatever local time zone
+ * the `Date` objects themselves carry — i.e. the browser's, since this module
+ * only ever runs client-side. That's the point: the ticket asks the grid to
+ * position Bookings in the viewer's browser-local time, not any facility's.
+ */
+
+export type CalendarView = "month" | "week" | "agenda";
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+export function startOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+export function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+export function addMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+}
+
+/** Sunday through Saturday — the week the given date falls in. */
+export function startOfWeek(date: Date): Date {
+  return addDays(startOfDay(date), -date.getDay());
+}
+
+export function startOfMonth(date: Date): Date {
+  const result = startOfDay(date);
+  result.setDate(1);
+  return result;
+}
+
+/**
+ * The 42 cells (6 weeks × 7 days) a Month view renders, including the
+ * trailing days of the previous/next month that fill out the first and last
+ * weeks — a User's Bookings never land only on days that belong to the
+ * "current" month by the calendar's own arithmetic.
+ */
+export function monthGridDays(date: Date): Date[] {
+  const firstOfMonth = startOfMonth(date);
+  const gridStart = startOfWeek(firstOfMonth);
+  return Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
+}
+
+/** Every half-hour-aligned hour boundary a Week view's timeline draws rows for. */
+export function weekDays(weekStart: Date): Date[] {
+  return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+}
+
+export type TimeSpan = {
+  startsAt: string;
+  endsAt: string;
+};
+
+export type LaidOutEvent<T extends TimeSpan> = {
+  event: T;
+  /** 0-indexed column this event occupies among its overlap group. */
+  column: number;
+  /** How many columns wide the overlap group it belongs to is. */
+  columns: number;
+};
+
+/**
+ * Assigns each event in a single day a column and a column count, so
+ * time-overlapping events render side by side instead of on top of each
+ * other. A User's own Bookings rarely overlap, but nothing stops two
+ * being logged for the same window at different facilities.
+ *
+ * Greedy interval-graph coloring: process events by start time, give each the
+ * lowest-numbered column not already occupied by a still-open event, and once
+ * every event in a mutually-overlapping run has been placed, stamp all of
+ * them with that run's column count. Deterministic given a stable input
+ * order — ties at the same start time keep the order they arrived in.
+ */
+export function layoutDayEvents<T extends TimeSpan>(events: T[]): LaidOutEvent<T>[] {
+  const sorted = [...events]
+    .map((event, index) => ({ event, index }))
+    .sort((a, b) => {
+      const byStart = new Date(a.event.startsAt).getTime() - new Date(b.event.startsAt).getTime();
+      return byStart !== 0 ? byStart : a.index - b.index;
+    });
+
+  const results: LaidOutEvent<T>[] = [];
+  // Events in the overlap run currently open, each holding the column it was
+  // assigned — cleared out (and its max column count stamped onto every
+  // member) whenever a new event starts after all of them have ended.
+  let openGroup: { result: LaidOutEvent<T>; endsAtMs: number }[] = [];
+
+  const closeGroup = () => {
+    const columns = Math.max(0, ...openGroup.map((entry) => entry.result.column)) + 1;
+    for (const entry of openGroup) {
+      entry.result.columns = columns;
+    }
+    openGroup = [];
+  };
+
+  for (const { event } of sorted) {
+    const startMs = new Date(event.startsAt).getTime();
+    const endMs = new Date(event.endsAt).getTime();
+
+    const stillOpen = openGroup.filter((entry) => entry.endsAtMs > startMs);
+    if (stillOpen.length === 0 && openGroup.length > 0) {
+      closeGroup();
+    } else {
+      openGroup = stillOpen;
+    }
+
+    const occupied = new Set(openGroup.map((entry) => entry.result.column));
+    let column = 0;
+    while (occupied.has(column)) {
+      column++;
+    }
+
+    const result: LaidOutEvent<T> = { event, column, columns: 1 };
+    results.push(result);
+    openGroup.push({ result, endsAtMs: endMs });
+  }
+
+  closeGroup();
+
+  return results;
+}
+
+/** `"2026-08-16"`-style key for the browser-local calendar day a `Date` falls on — grouping key, not a display string. */
+export function localDayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Buckets items by the browser-local calendar day `getDate` reports for
+ * them — shared by the Month grid (which entries does this cell list) and
+ * the Agenda view (which day-group does this row fall under), so the two
+ * views agree on what "the same day" means without each re-deriving it.
+ */
+export function groupByLocalDay<T>(items: T[], getDate: (item: T) => Date): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = localDayKey(getDate(item));
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(item);
+    } else {
+      groups.set(key, [item]);
+    }
+  }
+  return groups;
+}
+
+/** Future Bookings only, soonest-first, capped — the upcoming-bookings sidebar. */
+export function upcomingBookings<T extends { startsAt: string }>(
+  bookings: T[],
+  now: Date,
+  limit: number,
+): T[] {
+  const nowMs = now.getTime();
+  return bookings
+    .filter((booking) => new Date(booking.startsAt).getTime() >= nowMs)
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+    .slice(0, limit);
+}
+
+const WEEKDAY_MONTH_DAY = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
+const MONTH_YEAR = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+
+const MONTH_DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+const MONTH_DAY_YEAR = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+/** e.g. "Aug 16 – 22, 2026", or "Dec 28, 2026 – Jan 3, 2027" across a year boundary. */
+export function weekRangeLabel(weekStart: Date): string {
+  const weekEnd = addDays(weekStart, 6);
+
+  if (weekStart.getFullYear() !== weekEnd.getFullYear()) {
+    return `${MONTH_DAY_YEAR.format(weekStart)} – ${MONTH_DAY_YEAR.format(weekEnd)}`;
+  }
+
+  if (weekStart.getMonth() !== weekEnd.getMonth()) {
+    return `${MONTH_DAY.format(weekStart)} – ${MONTH_DAY_YEAR.format(weekEnd)}`;
+  }
+
+  return `${MONTH_DAY.format(weekStart)} – ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+}
+
+export function monthLabel(date: Date): string {
+  return MONTH_YEAR.format(date);
+}
+
+export function dayLabel(date: Date): string {
+  return WEEKDAY_MONTH_DAY.format(date);
+}

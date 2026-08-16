@@ -1,0 +1,197 @@
+import { expect, test } from "@playwright/test";
+
+import { AMY, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
+import { PREFIX, addPlace, logBooking, placeName, removePlace, row } from "./support/places.ts";
+import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/availability.ts";
+
+/**
+ * The dashboard calendar (issue #23) — Month/Week/Agenda toggling, a
+ * Booking's popover + confirm-before-remove, click-a-day-to-Week, the
+ * quick-add sheet, and Availability rendering with ADR 0006's "Booking
+ * always wins" precedence proven in the browser, not just the resolver
+ * (that half is availability.test.ts's).
+ *
+ * Every Booking here lands on 2026-08-20 (a Thursday inside the default
+ * Week/Month range for this app's pinned "today", 2026-08-16) — the same
+ * fixed-near-future-date convention `bookings.spec.ts`/`slots.spec.ts`
+ * already use, rather than computing dates off a live clock.
+ */
+
+test.beforeEach(async ({ page }) => {
+  await signIn(page, AMY, "/booking-buddy");
+});
+
+/**
+ * Sweeps up anything a failed run left behind — same convention as
+ * `bookings.spec.ts`'s own `afterEach`. Each test still removes its own
+ * fixtures as part of what it asserts; this is only the safety net, and it's
+ * what stops one failed run from cascading into every run after it (a
+ * leftover `Playwright …`-named Org/Booking collides with the next run's
+ * fresh one, since both share a court label this suite asserts against).
+ */
+test.afterEach(async ({ page }) => {
+  await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
+
+  await page.goto("/booking-buddy/orgs");
+  const strays = row(page, PREFIX);
+  for (let left = await strays.count(); left > 0; left--) {
+    await strays.first().getByRole("button", { name: "Remove" }).click();
+    await page.getByRole("button", { name: "Remove place" }).click();
+    await expect(strays).toHaveCount(left - 1);
+  }
+});
+
+test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({
+  page,
+}) => {
+  await expect(page.getByRole("button", { name: "Week", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Month", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  // A Month grid has weekday column headers a Week/Agenda view doesn't.
+  await expect(page.getByText("Sun", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Agenda", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Agenda", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await expect(page).toHaveURL(/\/booking-buddy$/);
+});
+
+test("a Booking renders on the calendar and in the sidebar, and its popover can remove it", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    court: "Dashboard Court",
+    date: "2026-08-20",
+    start: "14:00",
+    end: "15:00",
+  });
+  // `logBooking` only clicks — waiting for the logged row is what actually
+  // waits out the Server Action's round trip before navigating away.
+  await page.getByRole("listitem").filter({ hasText: "Dashboard Court" }).waitFor();
+
+  await page.goto("/booking-buddy");
+
+  // Week view (default) — the block exists in the grid.
+  await expect(page.getByRole("button", { name: /Dashboard Court/ })).toBeVisible();
+  // The sidebar lists it too, soonest-first alongside date/time/duration.
+  await expect(page.getByText("Aug 20, 2026")).toBeVisible();
+
+  // Month view — same Booking, as an inline row rather than a positioned block.
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  const monthChip = page.getByRole("button", { name: /Dashboard Court/ });
+  await expect(monthChip).toBeVisible();
+
+  // Clicking it opens the detail popover — full details, not navigating away.
+  await monthChip.click();
+  await expect(page.getByText("Facility clock")).toBeVisible();
+  await expect(page.getByText("America/Toronto")).toBeVisible();
+  await expect(page).toHaveURL(/\/booking-buddy$/);
+
+  // Confirm-before-remove — same convention as Orgs/Bookings elsewhere.
+  await page.getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByRole("heading", { name: "Remove this booking?" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove booking" }).click();
+
+  await expect(page.getByRole("button", { name: /Dashboard Court/ })).toHaveCount(0);
+  await expect(page.getByText("Aug 20, 2026")).toHaveCount(0);
+
+  await removePlace(page, place);
+});
+
+test("clicking a Month day switches to Week view centered on that day", async ({ page }) => {
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+
+  // Aug 27 falls in the week after the one Week view opens on by default
+  // (Aug 16-22) — a real switch, not a same-range no-op.
+  await page.getByRole("button", { name: "Go to the week of Thu Aug 27 2026" }).click();
+
+  await expect(page.getByRole("button", { name: "Week", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByText("Aug 23 – 29, 2026")).toBeVisible();
+});
+
+test("the quick-add sheet logs a Booking without leaving the dashboard", async ({ page }) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy");
+
+  await page.getByRole("button", { name: "Add booking" }).click();
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
+
+  await page.getByLabel("Where").selectOption({ label: place });
+  await page.getByLabel("Court").fill("Sheet Court");
+  await page.getByLabel("Date").fill("2026-08-20");
+  // Exact matches: the calendar's own "Calendar view" toggle group label
+  // fuzzy-matches "End" as a substring ("cal-END-ar"), and is also on this page.
+  await page.getByLabel("Start", { exact: true }).selectOption("16:00");
+  await page.getByLabel("End", { exact: true }).selectOption("17:00");
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  await expect(page.getByText("Aug 20, 2026")).toBeVisible();
+  await expect(page).toHaveURL(/\/booking-buddy$/);
+
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page.getByRole("button", { name: /Sheet Court/ })).toBeVisible();
+
+  await removePlace(page, place);
+});
+
+test("a Booking always renders as busy over an overlapping Availability Window", async ({
+  page,
+}) => {
+  const user = { email: AMY, password: TEST_PASSWORD };
+  await deleteAvailabilityWindows(user);
+
+  // Busy declared noon-2pm local (EDT); a Booking then covers 1-2pm of it.
+  await insertAvailabilityWindow(user, {
+    type: "busy",
+    startsAt: "2026-08-20T16:00:00Z",
+    endsAt: "2026-08-20T18:00:00Z",
+  });
+  // Open declared 6-7pm local, with nothing booked over it — should render plainly.
+  await insertAvailabilityWindow(user, {
+    type: "open",
+    startsAt: "2026-08-20T22:00:00Z",
+    endsAt: "2026-08-20T23:00:00Z",
+  });
+
+  const place = placeName();
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    court: "Precedence Court",
+    date: "2026-08-20",
+    start: "13:00",
+    end: "14:00",
+  });
+
+  await page.goto("/booking-buddy");
+
+  // The Booking itself renders.
+  await expect(page.getByRole("button", { name: /Precedence Court/ })).toBeVisible();
+  // Its own span is never also drawn as a Busy Availability block (ADR 0006 — never both).
+  await expect(page.locator('[title*="Busy: 1:00 PM"]')).toHaveCount(0);
+  // The Busy declaration still surfaces either side of the Booking it doesn't cover.
+  await expect(page.locator('[title^="Busy: 12:00 PM"]')).toHaveCount(1);
+  // The unrelated Open declaration, nowhere near a Booking, renders untouched.
+  await expect(page.locator('[title^="Open: 6:00 PM"]')).toHaveCount(1);
+
+  await removePlace(page, place);
+  await deleteAvailabilityWindows(user);
+});
