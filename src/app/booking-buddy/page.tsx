@@ -4,11 +4,12 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { Button } from "@/components/ui/button";
+import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
+import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { verifySession } from "@/lib/booking-buddy/dal";
-import { createClient } from "@/lib/booking-buddy/supabase/server";
+import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
 import { signOut } from "@/lib/booking-buddy/actions/auth";
 import {
-  BOOKINGS_PATH,
   FRIENDS_PATH,
   GROUPS_PATH,
   ORGS_PATH,
@@ -26,77 +27,53 @@ export const metadata: Metadata = pageMetadata({
 export default async function BookingBuddyPage() {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
-  const session = await verifySession();
+  await verifySession();
 
-  const supabase = await createClient();
-  // RLS limits this to the caller's own profile, so no user filter is needed
-  // here for correctness — but one is passed anyway so the intent is legible.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", session.userId)
-    .maybeSingle();
-
-  const greeting = profile?.display_name ?? session.email ?? "there";
+  const { orgs, bookings, availabilityWindows } = await getDashboardPageData();
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title={`Hi, ${greeting}`}
-            description="Post open time, see who's in, and keep your court bookings in one place."
-          />
+      <section className="w-full px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <PageHeading
+              eyebrow="Booking Buddy"
+              title="Dashboard"
+              description="Your bookings and open time, at a glance."
+            />
 
-          <p className="mt-8 text-sm text-muted-foreground">
-            You&apos;re signed in.
-          </p>
+            <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 text-sm text-muted-foreground">
+              <Link href={SLOTS_PATH} className="underline underline-offset-4 hover:text-foreground">
+                Slots
+              </Link>
+              <Link href={FRIENDS_PATH} className="underline underline-offset-4 hover:text-foreground">
+                Friends
+              </Link>
+              <Link href={GROUPS_PATH} className="underline underline-offset-4 hover:text-foreground">
+                Friend groups
+              </Link>
+              <Link href={ORGS_PATH} className="underline underline-offset-4 hover:text-foreground">
+                Where you play
+              </Link>
+              <Link href={SETTINGS_PATH} className="underline underline-offset-4 hover:text-foreground">
+                Settings
+              </Link>
+              <form action={signOut}>
+                <Button type="submit" variant="outline" size="sm">
+                  Sign out
+                </Button>
+              </form>
+            </nav>
+          </div>
 
-          <p className="mt-4 flex flex-wrap gap-4 text-sm">
-            <Link
-              href={SLOTS_PATH}
-              className="underline underline-offset-4"
-            >
-              Slots
-            </Link>
-            <Link
-              href={FRIENDS_PATH}
-              className="underline underline-offset-4"
-            >
-              Manage your friends
-            </Link>
-            <Link
-              href={GROUPS_PATH}
-              className="underline underline-offset-4"
-            >
-              Friend groups
-            </Link>
-            <Link
-              href={ORGS_PATH}
-              className="underline underline-offset-4"
-            >
-              Where you play
-            </Link>
-            <Link
-              href={BOOKINGS_PATH}
-              className="underline underline-offset-4"
-            >
-              Your bookings
-            </Link>
-            <Link
-              href={SETTINGS_PATH}
-              className="underline underline-offset-4"
-            >
-              Settings
-            </Link>
-          </p>
-
-          <form action={signOut} className="mt-8">
-            <Button type="submit" variant="outline">
-              Sign out
-            </Button>
-          </form>
+          <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
+            <DashboardCalendar
+              bookings={bookings}
+              availabilityWindows={availabilityWindows}
+              orgs={orgs}
+            />
+            <UpcomingBookingsSidebar bookings={bookings} now={new Date()} />
+          </div>
         </div>
       </section>
     </div>

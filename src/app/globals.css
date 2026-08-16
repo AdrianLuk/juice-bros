@@ -155,3 +155,27 @@
     @apply font-sans;
   }
 }
+
+/* A slim, overlay-flavored scrollbar for Booking Buddy's week view — its
+   width still gets measured and compensated for in JS (browsers don't offer
+   a true zero-width overlay scrollbar on demand), but a thin one keeps that
+   reserved gutter small and unobtrusive instead of the ~17px default. */
+.bb-week-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+
+.bb-week-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.bb-week-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bb-week-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 9999px;
+  opacity: 0.5;
+}
