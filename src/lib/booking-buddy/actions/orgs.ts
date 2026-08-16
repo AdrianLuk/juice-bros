@@ -13,6 +13,7 @@ import {
   parseHandNamedOrg,
   type CachedPlace,
 } from "../orgs.ts";
+import { parseBookingWindow, type BookingWindow } from "../booking-window.ts";
 import { isPlaceCacheStale } from "../places.ts";
 import { refreshStalePlacesInBackground } from "../place-cache.ts";
 
@@ -30,6 +31,8 @@ export type Org = {
   address: string | null;
   /** The facility's own clock — derived (Place-backed) or asked once (hand-named). See issue #20. */
   timeZone: string;
+  /** When this facility opens court bookings, if the owner has said (issue #36). */
+  bookingWindow: BookingWindow | null;
   createdAt: string;
 };
 
@@ -47,7 +50,9 @@ export async function listOrgs(): Promise<Org[]> {
 
   const { data: rows, error } = await supabase
     .from("orgs")
-    .select("id, google_place_id, name, time_zone, created_at")
+    .select(
+      "id, google_place_id, name, time_zone, booking_window_days_before, booking_window_time, created_at",
+    )
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -119,6 +124,10 @@ export async function listOrgs(): Promise<Org[]> {
       handTypedName: row.name,
       address: place?.formattedAddress ?? null,
       timeZone: row.time_zone,
+      bookingWindow:
+        row.booking_window_days_before !== null && row.booking_window_time !== null
+          ? { daysBefore: row.booking_window_days_before, time: row.booking_window_time }
+          : null,
       createdAt: row.created_at,
     };
   });
@@ -197,5 +206,39 @@ export async function deleteOrg(
 
   revalidatePath(ORGS_PATH);
   revalidatePath(BOOKINGS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Set or clear an Org's own Booking Window (issue #36) — the first update
+ * path this table has ever had; ownership is still just the existing "for
+ * all" RLS policy, nothing new needed there.
+ */
+export async function updateBookingWindow(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const parsed = parseBookingWindow(formData);
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orgs")
+    .update({
+      booking_window_days_before: parsed.window?.daysBefore ?? null,
+      booking_window_time: parsed.window?.time ?? null,
+    })
+    .eq("id", parsed.orgId)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't save that booking window. Try again." };
+  }
+
+  revalidatePath(ORGS_PATH);
   return { ok: true };
 }

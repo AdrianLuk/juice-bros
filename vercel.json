@@ -3,6 +3,10 @@
     {
       "path": "/api/booking-buddy/send-reminders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/booking-buddy/send-booking-window-reminders",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
