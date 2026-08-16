@@ -1,0 +1,25 @@
+{
+  "name": "Booking Buddy",
+  "short_name": "Booking Buddy",
+  "description": "Friend-group pickleball scheduling — Slots, Bookings and Reminders.",
+  "start_url": "/booking-buddy",
+  "scope": "/booking-buddy",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/brand/JB_Logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

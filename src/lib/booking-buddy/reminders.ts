@@ -144,6 +144,18 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/** Title, body and target URL for one Reminder push notification (issue #12) — pure, no I/O. */
+export function formatReminderPush(params: {
+  slotWhen: string;
+  slotUrl: string;
+}): { title: string; body: string; url: string } {
+  return {
+    title: "Booking Buddy",
+    body: `You're down as yes for ${params.slotWhen}`,
+    url: params.slotUrl,
+  };
+}
+
 /** Subject and body for one Reminder email — pure string assembly, no I/O. */
 export function formatReminderEmail(params: {
   slotWhen: string;
