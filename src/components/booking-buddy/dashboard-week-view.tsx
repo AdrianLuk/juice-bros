@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { isSameDay, layoutDayEvents, weekDays } from "@/lib/booking-buddy/calendar";
@@ -23,7 +23,11 @@ const DEFAULT_SCROLL_HOUR = 7;
 const HOUR_LABEL = new Intl.DateTimeFormat("en-US", { hour: "numeric" });
 const WEEKDAY_LABEL = new Intl.DateTimeFormat("en-US", { weekday: "short" });
 
-const DAY_GRID_COLS = "grid-cols-[repeat(7,minmax(7rem,1fr))]";
+// Below `lg`, columns keep a comfortable minimum width and the row scrolls
+// sideways (see the scroller comment below). At `lg` and up there's reliably
+// enough room for 7 columns, so they shrink-to-fit instead of forcing a
+// horizontal scrollbar.
+const DAY_GRID_COLS = "grid-cols-[repeat(7,minmax(7rem,1fr))] lg:grid-cols-[repeat(7,minmax(0,1fr))]";
 
 /**
  * Pixels from the top of a day column for an instant `dayStartMs` +
@@ -58,6 +62,24 @@ export function DashboardWeekView({
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  // The body always has a vertical scrollbar (24h of content never fits
+  // `max-h-136`); the header never does. Left unaccounted for, the
+  // scrollbar's own width narrows the body's day columns relative to the
+  // header's, so the two grids drift out of alignment — worse on Windows'
+  // ~17px scrollbar than macOS's overlay one, but present either way. This
+  // reserves matching space in the header rather than depending on any one
+  // platform's scrollbar width.
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const measure = () => setScrollbarWidth(body.offsetWidth - body.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: DEFAULT_SCROLL_HOUR * HOUR_HEIGHT });
@@ -108,13 +130,18 @@ export function DashboardWeekView({
             ))}
           </div>
         </div>
+        <div aria-hidden style={{ width: scrollbarWidth }} className="shrink-0" />
       </div>
 
       {/* The one real scroller, both axes — cramped otherwise on a narrow
           phone: 7 columns divided evenly across ~340px leaves no room for a
           booking's time and court label, so each column keeps a comfortable
           minimum width and the row scrolls sideways to reach the rest. */}
-      <div ref={bodyRef} onScroll={syncHeaderScroll} className="max-h-136 overflow-auto">
+      <div
+        ref={bodyRef}
+        onScroll={syncHeaderScroll}
+        className="bb-week-scroll max-h-136 overflow-auto"
+      >
         {/* `w-fit` is load-bearing: a plain `flex` block child sizes to its
             *container's* width (the scroller's visible width) and lets its
             items merely overflow it — which is fine for scrolling, but
@@ -122,8 +149,12 @@ export function DashboardWeekView({
             anything, so it "sticks" to a box that isn't the real scrolled
             content. `w-fit` makes this row size to its own content (the
             gutter plus all 7 day columns), matching what's actually
-            scrolling and giving `sticky left-0` a coherent edge to pin to. */}
-        <div className="flex w-fit">
+            scrolling and giving `sticky left-0` a coherent edge to pin to.
+            At `lg` and up the day columns shrink-to-fit instead of holding a
+            minimum width, so there's nothing to overflow — `lg:w-full` lets
+            the row (and its `flex-1` grid) claim the scroller's actual width
+            rather than collapsing to the gutter's own zero-width content. */}
+        <div className="flex w-fit lg:w-full">
           <div className="sticky left-0 z-10 w-12 shrink-0 bg-background sm:w-14">
             {hours.map((hour) => (
               <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
