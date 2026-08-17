@@ -271,8 +271,11 @@ function DayColumn({
               width: `calc(${width}% - 4px)`,
             }}
           >
-            <p className="truncate font-medium">{formatTimeLabelFromMs(start)}</p>
-            <p className="truncate opacity-90">{booking.courtLabel}</p>
+            <p className="truncate font-medium">{booking.orgName}</p>
+            <p className="truncate opacity-90">
+              {formatTimeLabelFromMs(start)} – {formatTimeLabelFromMs(end)}
+            </p>
+            <p className="truncate opacity-90">Court {booking.courtLabel}</p>
           </DashboardBookingPopover>
         );
       })}

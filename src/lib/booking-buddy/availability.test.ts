@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveAvailability, resolveAvailabilitySegments } from "./availability.ts";
+import {
+  availabilityWriteMessage,
+  formatAvailabilityWindowRange,
+  parseNewAvailabilityWindow,
+  resolveAvailability,
+  resolveAvailabilitySegments,
+} from "./availability.ts";
 
 test("a Booking or confirmed Slot covering `at` returns busy regardless of any Availability Window", () => {
   const at = new Date("2026-08-20T12:00:00Z");
@@ -231,4 +237,206 @@ test("resolveAvailabilitySegments: an override still wins its own slice, splitti
     { type: "open", startsAt: "2026-08-20T12:00:00.000Z", endsAt: "2026-08-20T13:00:00.000Z" },
     { type: "busy", startsAt: "2026-08-20T13:00:00.000Z", endsAt: "2026-08-20T17:00:00.000Z" },
   ]);
+});
+
+function formData(fields: Record<string, string>): FormData {
+  const data = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    data.set(key, value);
+  }
+  return data;
+}
+
+test("parseNewAvailabilityWindow: an all-day range is accepted, defaulting to busy", () => {
+  const result = parseNewAvailabilityWindow(
+    formData({ all_day: "on", from_date: "2026-08-24", to_date: "2026-08-30" }),
+  );
+
+  assert.deepEqual(result, {
+    type: "busy",
+    fromDate: "2026-08-24",
+    toDate: "2026-08-30",
+    startTime: null,
+    endTime: null,
+  });
+});
+
+test("parseNewAvailabilityWindow: an explicit type is honoured", () => {
+  const result = parseNewAvailabilityWindow(
+    formData({ type: "open", all_day: "on", from_date: "2026-08-24", to_date: "2026-08-24" }),
+  );
+
+  assert.deepEqual(result, {
+    type: "open",
+    fromDate: "2026-08-24",
+    toDate: "2026-08-24",
+    startTime: null,
+    endTime: null,
+  });
+});
+
+test("parseNewAvailabilityWindow: an unrecognised type falls back to busy rather than refusing the form", () => {
+  const result = parseNewAvailabilityWindow(
+    formData({
+      type: "gone-fishing",
+      all_day: "on",
+      from_date: "2026-08-24",
+      to_date: "2026-08-24",
+    }),
+  );
+
+  assert.deepEqual(result, {
+    type: "busy",
+    fromDate: "2026-08-24",
+    toDate: "2026-08-24",
+    startTime: null,
+    endTime: null,
+  });
+});
+
+test("parseNewAvailabilityWindow: a missing or malformed start date is refused", () => {
+  assert.deepEqual(parseNewAvailabilityWindow(formData({ to_date: "2026-08-24" })), {
+    error: "Pick a start date.",
+  });
+  assert.deepEqual(
+    parseNewAvailabilityWindow(formData({ from_date: "not-a-date", to_date: "2026-08-24" })),
+    { error: "Pick a start date." },
+  );
+});
+
+test("parseNewAvailabilityWindow: a missing or malformed end date is refused", () => {
+  assert.deepEqual(parseNewAvailabilityWindow(formData({ from_date: "2026-08-24" })), {
+    error: "Pick an end date.",
+  });
+});
+
+test("parseNewAvailabilityWindow: an end date before the start date is refused", () => {
+  assert.deepEqual(
+    parseNewAvailabilityWindow(formData({ from_date: "2026-08-24", to_date: "2026-08-20" })),
+    { error: "The end date has to be on or after the start date." },
+  );
+});
+
+test("parseNewAvailabilityWindow: a single-day all-day window (from equals to) is accepted", () => {
+  const result = parseNewAvailabilityWindow(
+    formData({ all_day: "on", from_date: "2026-08-24", to_date: "2026-08-24" }),
+  );
+
+  assert.deepEqual(result, {
+    type: "busy",
+    fromDate: "2026-08-24",
+    toDate: "2026-08-24",
+    startTime: null,
+    endTime: null,
+  });
+});
+
+test("parseNewAvailabilityWindow: unchecking all-day requires a start and end time", () => {
+  const result = parseNewAvailabilityWindow(
+    formData({ from_date: "2026-08-24", to_date: "2026-08-24", start_time: "18:00", end_time: "21:00" }),
+  );
+
+  assert.deepEqual(result, {
+    type: "busy",
+    fromDate: "2026-08-24",
+    toDate: "2026-08-24",
+    startTime: "18:00",
+    endTime: "21:00",
+  });
+});
+
+test("parseNewAvailabilityWindow: a timed window missing or off-grid times is refused", () => {
+  assert.deepEqual(
+    parseNewAvailabilityWindow(formData({ from_date: "2026-08-24", to_date: "2026-08-24" })),
+    { error: "Pick a start and end time, or mark it all day." },
+  );
+  assert.deepEqual(
+    parseNewAvailabilityWindow(
+      formData({ from_date: "2026-08-24", to_date: "2026-08-24", start_time: "18:15", end_time: "21:00" }),
+    ),
+    { error: "Pick a start and end time, or mark it all day." },
+  );
+});
+
+test("parseNewAvailabilityWindow: a same-day timed window needs its end time after its start time", () => {
+  assert.deepEqual(
+    parseNewAvailabilityWindow(
+      formData({ from_date: "2026-08-24", to_date: "2026-08-24", start_time: "21:00", end_time: "18:00" }),
+    ),
+    { error: "The end time has to be after the start time." },
+  );
+});
+
+test("parseNewAvailabilityWindow: a cross-day timed window is fine even when the end clock time reads earlier", () => {
+  // Friday evening through Saturday morning — the date order already
+  // confirms it's a real span, so the same-day clock check doesn't apply.
+  const result = parseNewAvailabilityWindow(
+    formData({
+      from_date: "2026-08-21",
+      to_date: "2026-08-22",
+      start_time: "22:00",
+      end_time: "08:00",
+    }),
+  );
+
+  assert.deepEqual(result, {
+    type: "busy",
+    fromDate: "2026-08-21",
+    toDate: "2026-08-22",
+    startTime: "22:00",
+    endTime: "08:00",
+  });
+});
+
+test("availabilityWriteMessage: the ends-after-start check constraint reads as a friendly message", () => {
+  assert.equal(
+    availabilityWriteMessage({ code: "23514" }),
+    "The end date has to be on or after the start date.",
+  );
+});
+
+test("availabilityWriteMessage: an unexplained failure still says what was being attempted", () => {
+  assert.equal(availabilityWriteMessage({ code: "42501" }), "Couldn't save that. Try again.");
+  assert.equal(availabilityWriteMessage({}), "Couldn't save that. Try again.");
+});
+
+test("formatAvailabilityWindowRange: a multi-day window reads as From – To, using the inclusive last day", () => {
+  // A week off picked as Aug 24 through Aug 30 is stored with the exclusive
+  // next-day boundary (Aug 31 00:00) — the display has to undo that, or a
+  // window through Sunday would read as running through Monday.
+  const label = formatAvailabilityWindowRange(
+    { startsAt: "2026-08-24T04:00:00.000Z", endsAt: "2026-08-31T04:00:00.000Z" },
+    "America/Toronto",
+  );
+
+  assert.equal(label, "Aug 24 – Aug 30");
+});
+
+test("formatAvailabilityWindowRange: a single all-day window reads as one date, not a range", () => {
+  const label = formatAvailabilityWindowRange(
+    { startsAt: "2026-08-24T04:00:00.000Z", endsAt: "2026-08-25T04:00:00.000Z" },
+    "America/Toronto",
+  );
+
+  assert.equal(label, "Aug 24");
+});
+
+test("formatAvailabilityWindowRange: a same-day timed window reads as Date · Start – End", () => {
+  // 2026-08-24 6:00 PM / 9:00 PM in Toronto (EDT, UTC-4).
+  const label = formatAvailabilityWindowRange(
+    { startsAt: "2026-08-24T22:00:00.000Z", endsAt: "2026-08-25T01:00:00.000Z" },
+    "America/Toronto",
+  );
+
+  assert.equal(label, "Aug 24 · 6:00 PM – 9:00 PM");
+});
+
+test("formatAvailabilityWindowRange: a cross-day timed window reads as Date Time – Date Time", () => {
+  // Fri 2026-08-21 10:00 PM through Sat 2026-08-22 8:00 AM in Toronto.
+  const label = formatAvailabilityWindowRange(
+    { startsAt: "2026-08-22T02:00:00.000Z", endsAt: "2026-08-22T12:00:00.000Z" },
+    "America/Toronto",
+  );
+
+  assert.equal(label, "Aug 21 10:00 PM – Aug 22 8:00 AM");
 });

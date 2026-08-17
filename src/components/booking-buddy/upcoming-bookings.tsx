@@ -36,7 +36,7 @@ export function UpcomingBookingsSidebar({
   const upcoming = upcomingBookings(bookings, now, SIDEBAR_LIMIT);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-3 lg:w-72">
+    <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
         <h2 className="font-heading text-sm font-semibold tracking-tight">
           Coming up
@@ -72,6 +72,6 @@ export function UpcomingBookingsSidebar({
           ))}
         </ul>
       )}
-    </aside>
+    </div>
   );
 }

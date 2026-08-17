@@ -6,6 +6,7 @@ import {
   groupByLocalDay,
   isSameDay,
   layoutDayEvents,
+  layoutMultiDaySpans,
   localDayKey,
   monthGridDays,
   startOfWeek,
@@ -120,4 +121,49 @@ test("groupByLocalDay buckets items by local day, preserving each bucket's input
     groups.get("2026-08-17")?.map((item) => item.id),
     ["b"],
   );
+});
+
+test("layoutMultiDaySpans: a span touches every day it crosses, not just the day it starts on", () => {
+  const days = [
+    new Date(2026, 7, 17),
+    new Date(2026, 7, 18),
+    new Date(2026, 7, 19),
+    new Date(2026, 7, 20),
+  ];
+
+  // Aug 18 00:00 through Aug 20 00:00 (exclusive) — two full days, Aug 18 and Aug 19.
+  const event = {
+    startsAt: new Date(2026, 7, 18).toISOString(),
+    endsAt: new Date(2026, 7, 20).toISOString(),
+  };
+
+  const spans = layoutMultiDaySpans(days, [event]);
+
+  assert.deepEqual([...spans.keys()], ["2026-08-18", "2026-08-19"]);
+  assert.deepEqual(spans.get("2026-08-18"), [{ event, isStart: true, isEnd: false }]);
+  assert.deepEqual(spans.get("2026-08-19"), [{ event, isStart: false, isEnd: true }]);
+});
+
+test("layoutMultiDaySpans: a single-day span is both its own start and end", () => {
+  const days = [new Date(2026, 7, 18), new Date(2026, 7, 19)];
+
+  const event = {
+    startsAt: new Date(2026, 7, 18, 18).toISOString(),
+    endsAt: new Date(2026, 7, 18, 21).toISOString(),
+  };
+
+  const spans = layoutMultiDaySpans(days, [event]);
+
+  assert.deepEqual([...spans.keys()], ["2026-08-18"]);
+  assert.deepEqual(spans.get("2026-08-18"), [{ event, isStart: true, isEnd: true }]);
+});
+
+test("layoutMultiDaySpans: a day outside every event's range is left out of the map entirely", () => {
+  const days = [new Date(2026, 7, 18)];
+
+  const spans = layoutMultiDaySpans(days, [
+    { startsAt: new Date(2026, 6, 1).toISOString(), endsAt: new Date(2026, 6, 2).toISOString() },
+  ]);
+
+  assert.deepEqual([...spans.keys()], []);
 });

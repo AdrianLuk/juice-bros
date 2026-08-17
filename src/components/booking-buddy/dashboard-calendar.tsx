@@ -20,7 +20,7 @@ import type { AvailabilityWindow } from "@/lib/booking-buddy/availability";
 import { DashboardWeekView } from "@/components/booking-buddy/dashboard-week-view";
 import { DashboardMonthView } from "@/components/booking-buddy/dashboard-month-view";
 import { DashboardAgendaView } from "@/components/booking-buddy/dashboard-agenda-view";
-import { QuickAddBooking } from "@/components/booking-buddy/dashboard-quick-add";
+import { DashboardQuickActions } from "@/components/booking-buddy/dashboard-quick-add";
 
 const VIEWS: { id: CalendarView; label: string }[] = [
   { id: "month", label: "Month" },
@@ -148,7 +148,7 @@ export function DashboardCalendar({
         <DashboardAgendaView bookings={bookings} now={now} onDayClick={goToDay} />
       )}
 
-      <QuickAddBooking orgs={orgs} />
+      <DashboardQuickActions orgs={orgs} />
     </div>
   );
 }
