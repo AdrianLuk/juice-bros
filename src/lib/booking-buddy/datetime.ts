@@ -33,9 +33,50 @@ export function isHalfHourTime(time: string): boolean {
   return TIME_PATTERN.test(time);
 }
 
+/**
+ * `date` shifted by `deltaDays` calendar days — UTC-based like `isRealDate`'s
+ * own round-trip check, since this is calendar-day arithmetic on a date-only
+ * string, not an instant.
+ */
+function shiftCalendarDate(date: string, deltaDays: number): string {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  parsed.setUTCDate(parsed.getUTCDate() + deltaDays);
+  return parsed.toISOString().slice(0, 10);
+}
+
+/** Turns an inclusive "last day" a User picked into the exclusive end an `availability_windows` row actually stores. */
+export function nextCalendarDate(date: string): string {
+  return shiftCalendarDate(date, 1);
+}
+
+/** The inverse of `nextCalendarDate` — turns a stored exclusive end back into the inclusive last day to display. */
+export function previousCalendarDate(date: string): string {
+  return shiftCalendarDate(date, -1);
+}
+
 /** "Today" as a `YYYY-MM-DD` string in `zone`, at instant `now` — `en-CA` happens to format that way natively. */
 export function todayInZone(zone: string, now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);
+}
+
+/**
+ * The zone-local time of day for `at`, as a zero-padded 24-hour `"HH:MM"` —
+ * `todayInZone`'s time-of-day counterpart, used to tell an all-day
+ * Availability Window (zone-local midnight to zone-local midnight) apart from
+ * a timed one when rendering it back. `hourCycle: "h23"` is load-bearing:
+ * without it, some engines render midnight as `"24:00"` rather than `"00:00"`.
+ */
+export function clockInZone(zone: string, at: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(at);
+
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return `${hour}:${minute}`;
 }
 
 /**
@@ -73,18 +114,21 @@ export function formatTimeLabel(time: string): string {
 }
 
 /**
- * When an instant range falls, written as the zone it was created in —
- * shared by `formatBookingWhen` and `formatSlotWhen`. `startsAt`/`endsAt` are
+ * The date and time-range parts of an instant range, written as the zone it
+ * was created in, split apart rather than joined — what the calendar
+ * popover's own two-line "When" needs, and what `formatInstantRange` below
+ * joins back into one line for a plain list row. `startsAt`/`endsAt` are
  * instants, so rendering them needs to be told which clock to use, or the
  * server's own zone (UTC in production) reads back a different hour than
  * whoever created the row meant.
  *
  * A zone Postgres doesn't know shouldn't reach here — the trigger on both
  * `bookings` and `slots` refuses it at write time — but falling back to UTC
- * and saying so beats throwing and taking down the whole list to punish one
- * row.
+ * and saying so (on the date, since that's the part a misread zone could
+ * actually put on the wrong day) beats throwing and taking down the whole
+ * list to punish one row.
  */
-export function formatInstantRange({
+export function formatInstantDateAndTime({
   startsAt,
   endsAt,
   timeZone,
@@ -92,7 +136,7 @@ export function formatInstantRange({
   startsAt: string;
   endsAt: string;
   timeZone: string;
-}): string {
+}): { date: string; time: string } {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
 
@@ -113,7 +157,18 @@ export function formatInstantRange({
     timeZone: zone,
   });
 
-  const when = `${day.format(start)} · ${clock.format(start)} – ${clock.format(end)}`;
+  return {
+    date: usable ? day.format(start) : `${day.format(start)} (UTC)`,
+    time: `${clock.format(start)} – ${clock.format(end)}`,
+  };
+}
 
-  return usable ? when : `${when} (UTC)`;
+/** `formatInstantDateAndTime`'s date and time joined onto one line — what a plain list row (`formatBookingWhen`, `formatSlotWhen`) wants instead of the popover's own two. */
+export function formatInstantRange(args: {
+  startsAt: string;
+  endsAt: string;
+  timeZone: string;
+}): string {
+  const { date, time } = formatInstantDateAndTime(args);
+  return `${date} · ${time}`;
 }

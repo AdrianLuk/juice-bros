@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { DeleteBookingButton } from "@/components/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
+import { formatInstantDateAndTime } from "@/lib/booking-buddy/datetime";
 import { cn } from "@/lib/utils";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 
@@ -36,6 +37,8 @@ export function DashboardBookingPopover({
   style?: CSSProperties;
   children: ReactNode;
 }) {
+  const { date, time } = formatInstantDateAndTime(booking);
+
   return (
     <Popover>
       <PopoverTrigger
@@ -49,14 +52,14 @@ export function DashboardBookingPopover({
         <div className="flex flex-col gap-2">
           <p className="font-heading text-sm font-semibold">{booking.orgName}</p>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <dt>Date</dt>
+            <dd className="text-foreground">{date}</dd>
+            <dt>Time</dt>
+            <dd className="text-foreground">{time}</dd>
             <dt>Court</dt>
             <dd className="text-foreground">{booking.courtLabel}</dd>
-            <dt>When</dt>
-            <dd className="text-foreground">{booking.when}</dd>
             <dt>Format</dt>
             <dd className="text-foreground">{BOOKING_FORMAT_LABEL[booking.format]}</dd>
-            <dt>Facility clock</dt>
-            <dd className="text-foreground">{booking.timeZone}</dd>
           </dl>
         </div>
         <div className="mt-1 flex justify-end border-t border-border pt-2.5">
