@@ -33,7 +33,7 @@ export function DashboardAvailabilitySidebar({
       {upcoming.length === 0 ? (
         <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
           Nothing blocked off. Use &ldquo;Block off time&rdquo; to let friends
-          know when you&apos;re away.
+          know when you&apos;re available.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
