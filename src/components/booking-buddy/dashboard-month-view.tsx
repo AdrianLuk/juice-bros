@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -9,6 +9,7 @@ import {
   layoutMultiDaySpans,
   localDayKey,
   monthGridDays,
+  type CalendarEvent,
 } from "@/lib/booking-buddy/calendar";
 import {
   resolveAvailabilitySegments,
@@ -16,36 +17,47 @@ import {
   type AvailabilityWindow,
   type BusyInterval,
 } from "@/lib/booking-buddy/availability";
-import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
-import type { Booking } from "@/lib/booking-buddy/actions/bookings";
-import { DashboardBookingPopover } from "@/components/booking-buddy/dashboard-booking-popover";
 
 const WEEKDAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const VISIBLE_PER_DAY = 2;
 
-const TIME_LABEL = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
-
-export function DashboardMonthView({
+/**
+ * The Month grid shell (issue #23), generic over what an "event" is — see
+ * `dashboard-week-view.tsx`'s own note. `renderEvent` renders one visible
+ * cell entry (up to `VISIBLE_PER_DAY` per day); the overflow "+N more"
+ * button and the day-grid/Availability-bar layout stay owned here.
+ *
+ * `minDay`, when set (the friend calendar, issue #61), disables a day
+ * cell's own "go to this week" button (the day number) for any day before
+ * it — see `dashboard-week-view.tsx`'s own note on why: without it, a click
+ * on a past day silently lands on today's week instead, contradicting its
+ * own `aria-label`.
+ */
+export function DashboardMonthView<T extends CalendarEvent>({
   month,
   today,
-  bookings,
+  events,
   busyIntervals,
   windows,
   onDayClick,
+  renderEvent,
+  minDay,
 }: {
   month: Date;
   today: Date;
-  bookings: Booking[];
+  events: T[];
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
   onDayClick: (day: Date) => void;
+  renderEvent: (event: T) => ReactNode;
+  minDay?: Date | null;
 }) {
   const days = useMemo(() => monthGridDays(month), [month]);
   const currentMonth = month.getMonth();
 
-  const bookingsByDay = useMemo(
-    () => groupByLocalDay(bookings, (booking) => new Date(booking.startsAt)),
-    [bookings],
+  const eventsByDay = useMemo(
+    () => groupByLocalDay(events, (event) => new Date(event.startsAt)),
+    [events],
   );
 
   // One sweep across the whole visible grid rather than 42 separate resolver
@@ -61,7 +73,12 @@ export function DashboardMonthView({
     const rangeStart = days[0];
     const rangeEnd = new Date(days[days.length - 1]);
     rangeEnd.setDate(rangeEnd.getDate() + 1);
-    const segments = resolveAvailabilitySegments({ rangeStart, rangeEnd, busyIntervals, windows });
+    const segments = resolveAvailabilitySegments({
+      rangeStart,
+      rangeEnd,
+      busyIntervals,
+      windows,
+    });
     return layoutMultiDaySpans(days, segments);
   }, [days, busyIntervals, windows]);
 
@@ -69,9 +86,9 @@ export function DashboardMonthView({
     <div className="overflow-hidden bb-card">
       {/* Shared horizontal scroller for the weekday header and the day grid
           below it, same reasoning as the Week view's — 7 evenly-divided
-          columns are too cramped on a phone to show a booking's time and
-          court label, so each column gets a comfortable minimum width and
-          the two rows scroll together as one unit. */}
+          columns are too cramped on a phone to show an event's time and
+          detail, so each column gets a comfortable minimum width and the
+          two rows scroll together as one unit. */}
       <div className="overflow-x-auto">
         <div className="grid grid-cols-[repeat(7,minmax(6rem,1fr))] border-b border-border bg-card text-center text-[11px] font-medium text-muted-foreground">
           {WEEKDAY_HEADERS.map((weekday) => (
@@ -83,11 +100,13 @@ export function DashboardMonthView({
         <div className="grid grid-cols-[repeat(7,minmax(6rem,1fr))]">
           {days.map((day) => {
             const key = localDayKey(day);
-            const dayBookings = (bookingsByDay.get(key) ?? []).sort(
-              (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+            const dayEvents = (eventsByDay.get(key) ?? []).sort(
+              (a, b) =>
+                new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
             );
             const availabilitySpans = availabilitySpansByDay.get(key) ?? [];
-            const overflow = dayBookings.length - VISIBLE_PER_DAY;
+            const overflow = dayEvents.length - VISIBLE_PER_DAY;
+            const disabled = Boolean(minDay && day < minDay);
 
             return (
               <div
@@ -100,11 +119,14 @@ export function DashboardMonthView({
                 <button
                   type="button"
                   onClick={() => onDayClick(day)}
+                  disabled={disabled}
                   aria-label={`Go to the week of ${day.toDateString()}`}
                   className={cn(
                     "flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted",
                     day.getMonth() !== currentMonth && "text-muted-foreground",
-                    isSameDay(day, today) && "bg-primary text-primary-foreground hover:bg-primary/90",
+                    isSameDay(day, today) &&
+                      "bg-primary text-primary-foreground hover:bg-primary/90",
+                    disabled && "pointer-events-none opacity-40",
                   )}
                 >
                   {day.getDate()}
@@ -112,32 +134,23 @@ export function DashboardMonthView({
 
                 {availabilitySpans.length > 0 && (
                   <div className="flex flex-col gap-0.5">
-                    {availabilitySpans.map(({ event: segment, isStart, isEnd }) => (
-                      <AvailabilitySpanBar
-                        key={`${segment.type}-${segment.startsAt}`}
-                        segment={segment}
-                        isStart={isStart}
-                        isEnd={isEnd}
-                      />
-                    ))}
+                    {availabilitySpans.map(
+                      ({ event: segment, isStart, isEnd }) => (
+                        <AvailabilitySpanBar
+                          key={`${segment.type}-${segment.startsAt}`}
+                          segment={segment}
+                          isStart={isStart}
+                          isEnd={isEnd}
+                        />
+                      ),
+                    )}
                   </div>
                 )}
 
                 <div className="flex flex-col gap-0.5">
-                  {dayBookings.slice(0, VISIBLE_PER_DAY).map((booking) => (
-                    <DashboardBookingPopover
-                      key={booking.id}
-                      booking={booking}
-                      className="block w-full overflow-hidden rounded-sm bg-primary/90 px-1 py-0.5 text-[10px] font-medium text-primary-foreground"
-                    >
-                      <p className="truncate">{booking.orgName}</p>
-                      <p className="truncate opacity-90">
-                        {TIME_LABEL.format(new Date(booking.startsAt))} –{" "}
-                        {TIME_LABEL.format(new Date(booking.endsAt))} ·{" "}
-                        {formatCourtLabel(booking.courtLabel)}
-                      </p>
-                    </DashboardBookingPopover>
-                  ))}
+                  {dayEvents
+                    .slice(0, VISIBLE_PER_DAY)
+                    .map((event) => renderEvent(event))}
                   {overflow > 0 && (
                     <button
                       type="button"

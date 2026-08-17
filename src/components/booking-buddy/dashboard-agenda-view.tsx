@@ -1,51 +1,58 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
-import { dayLabel, groupByLocalDay, upcomingBookings } from "@/lib/booking-buddy/calendar";
-import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
-import type { Booking } from "@/lib/booking-buddy/actions/bookings";
-import { DashboardBookingPopover } from "@/components/booking-buddy/dashboard-booking-popover";
-
-const TIME_LABEL = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
+import {
+  dayLabel,
+  groupByLocalDay,
+  upcomingBookings,
+  type CalendarEvent,
+} from "@/lib/booking-buddy/calendar";
 
 /**
  * The day-grouped list view (issue #23, lowest priority of the three) —
- * forward-looking only, same "future Bookings, soonest first" read as the
+ * forward-looking only, same "future events, soonest first" read as the
  * sidebar (`upcomingBookings`, just uncapped here), with no navigation of
  * its own: it's a second lens onto "everything ahead," not a third
  * independently-scrollable calendar range.
+ *
+ * Generic over what an "event" is — see `dashboard-week-view.tsx`'s own
+ * note. `renderEvent` renders one row; the day grouping stays owned here.
  */
-export function DashboardAgendaView({
-  bookings,
+export function DashboardAgendaView<T extends CalendarEvent>({
+  events,
   now,
   onDayClick,
+  renderEvent,
+  emptyMessage,
 }: {
-  bookings: Booking[];
+  events: T[];
   now: Date;
   onDayClick: (day: Date) => void;
+  renderEvent: (event: T) => ReactNode;
+  emptyMessage: string;
 }) {
   const upcoming = useMemo(
-    () => upcomingBookings(bookings, now, Number.POSITIVE_INFINITY),
-    [bookings, now],
+    () => upcomingBookings(events, now, Number.POSITIVE_INFINITY),
+    [events, now],
   );
   const groups = useMemo(
-    () => groupByLocalDay(upcoming, (booking) => new Date(booking.startsAt)),
+    () => groupByLocalDay(upcoming, (event) => new Date(event.startsAt)),
     [upcoming],
   );
 
   if (upcoming.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-        Nothing coming up. Bookings you log will show up here, grouped by day.
+        {emptyMessage}
       </p>
     );
   }
 
   return (
     <div className="flex flex-col divide-y divide-border/60 overflow-hidden bb-card">
-      {[...groups.entries()].map(([key, dayBookings]) => {
-        const day = new Date(dayBookings[0].startsAt);
+      {[...groups.entries()].map(([key, dayEvents]) => {
+        const day = new Date(dayEvents[0].startsAt);
 
         return (
           <div key={key} className="flex flex-col gap-2 p-3">
@@ -58,20 +65,8 @@ export function DashboardAgendaView({
               {dayLabel(day)}
             </button>
             <ul className="flex flex-col gap-1.5">
-              {dayBookings.map((booking) => (
-                <li key={booking.id}>
-                  <DashboardBookingPopover
-                    booking={booking}
-                    className="flex w-full items-center gap-3 rounded-md bg-muted/60 px-3 py-2 text-sm hover:bg-muted"
-                  >
-                    <span className="font-medium">
-                      {TIME_LABEL.format(new Date(booking.startsAt))}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                      {booking.orgName} · {formatCourtLabel(booking.courtLabel)}
-                    </span>
-                  </DashboardBookingPopover>
-                </li>
+              {dayEvents.map((event) => (
+                <li key={event.id}>{renderEvent(event)}</li>
               ))}
             </ul>
           </div>
