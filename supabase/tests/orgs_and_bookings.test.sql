@@ -18,7 +18,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(37);
+select plan(39);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
@@ -256,6 +256,38 @@ select throws_ok(
   '23514',
   null,
   'a booking cannot start in the past'
+);
+
+-- Not every facility labels its courts, and not every User bothers to note
+-- one down — court_label is optional data about a reservation that is
+-- otherwise fully real, not a required field.
+select lives_ok(
+  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at)
+    values (
+      'aaaa0000-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000011',
+      null,
+      '2031-08-22 18:00:00 America/Toronto',
+      '2031-08-22 19:00:00 America/Toronto'
+    )$$,
+  'a Booking can be logged with no court noted'
+);
+
+-- The `booking_court_not_blank` check still stands — a User (or a hand-built
+-- request) writing '' rather than actually omitting the field is still
+-- refused, same as before this column became nullable.
+select throws_ok(
+  $$insert into public.bookings (org_id, owner_id, court_label, starts_at, ends_at)
+    values (
+      'aaaa0000-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000011',
+      '',
+      '2031-08-23 18:00:00 America/Toronto',
+      '2031-08-23 19:00:00 America/Toronto'
+    )$$,
+  '23514',
+  null,
+  'an empty-string court label is still refused — only a genuinely omitted one is allowed'
 );
 
 -- Stored as an instant, so the same wall-clock reading in winter and summer are

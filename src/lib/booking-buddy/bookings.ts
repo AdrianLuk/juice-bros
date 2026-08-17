@@ -27,7 +27,8 @@ export const DEFAULT_BOOKING_FORMAT: BookingFormat = "doubles";
 
 export type NewBooking = {
   orgId: string;
-  courtLabel: string;
+  /** Null when the User didn't note one down — not every facility labels its courts. */
+  courtLabel: string | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -43,12 +44,10 @@ export function parseNewBooking(
     return { error: "Pick which place this booking is at." };
   }
 
-  const courtLabel = String(formData.get("court_label") ?? "").trim();
-  if (!courtLabel) {
-    return { error: "Which court? Put in whatever the booking screen calls it." };
-  }
+  const rawCourtLabel = String(formData.get("court_label") ?? "").trim();
+  const courtLabel = rawCourtLabel === "" ? null : rawCourtLabel;
 
-  if (courtLabel.length > COURT_LABEL_MAX_LENGTH) {
+  if (courtLabel && courtLabel.length > COURT_LABEL_MAX_LENGTH) {
     return {
       error: `That court name is too long — ${COURT_LABEL_MAX_LENGTH} characters at most.`,
     };
@@ -80,6 +79,11 @@ export function parseNewBooking(
   const format: BookingFormat = isBookingFormat(rawFormat) ? rawFormat : DEFAULT_BOOKING_FORMAT;
 
   return { orgId, courtLabel, date, startTime, endTime, format };
+}
+
+/** "Court 3" when the User noted one down, otherwise a plain fallback. */
+export function formatCourtLabel(courtLabel: string | null): string {
+  return courtLabel ? `Court ${courtLabel}` : "No court noted";
 }
 
 /**

@@ -18,7 +18,8 @@ export type Booking = {
   orgId: string;
   /** Resolved the same way the Orgs page resolves it, cache miss included. */
   orgName: string;
-  courtLabel: string;
+  /** Null when the User didn't note one down — not every facility labels its courts. */
+  courtLabel: string | null;
   /** Already rendered in the Booking's own zone — see `formatBookingWhen`. */
   when: string;
   startsAt: string;

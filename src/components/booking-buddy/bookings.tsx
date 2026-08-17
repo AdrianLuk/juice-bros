@@ -20,6 +20,7 @@ import {
   COURT_LABEL_MAX_LENGTH,
   DEFAULT_BOOKING_FORMAT,
   HOUR_TIMES,
+  formatCourtLabel,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMATS, BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
@@ -151,7 +152,7 @@ export function CreateBookingForm({
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="booking-court">Court</Label>
+          <Label htmlFor="booking-court">Court # (optional)</Label>
           <Input
             id="booking-court"
             name="court_label"
@@ -159,7 +160,6 @@ export function CreateBookingForm({
             inputMode="numeric"
             placeholder="3"
             maxLength={COURT_LABEL_MAX_LENGTH}
-            required
           />
         </div>
       </div>
@@ -187,7 +187,7 @@ export function BookingRow({ booking }: { booking: Booking }) {
           <p className="font-medium">{whenDate}</p>
           <p className="font-medium">{whenTime}</p>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            Court {booking.courtLabel} · {BOOKING_FORMAT_LABEL[booking.format]}
+            {formatCourtLabel(booking.courtLabel)} · {BOOKING_FORMAT_LABEL[booking.format]}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {booking.orgName}
@@ -196,7 +196,7 @@ export function BookingRow({ booking }: { booking: Booking }) {
         <div className="hidden sm:block">
           <p className="truncate font-medium">{booking.when}</p>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {booking.orgName} · Court {booking.courtLabel} ·{" "}
+            {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
             {BOOKING_FORMAT_LABEL[booking.format]}
           </p>
         </div>

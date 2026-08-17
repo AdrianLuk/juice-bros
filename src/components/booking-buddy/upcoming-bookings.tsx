@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BOOKINGS_PATH } from "@/lib/booking-buddy/routes";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import { upcomingBookings } from "@/lib/booking-buddy/calendar";
+import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 
 const SIDEBAR_LIMIT = 5;
@@ -62,7 +63,7 @@ export function UpcomingBookingsSidebar({
             >
               <p className="text-sm font-medium">{booking.when}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {booking.orgName} · {booking.courtLabel}
+                {booking.orgName} · {formatCourtLabel(booking.courtLabel)}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {durationLabel(booking.startsAt, booking.endsAt)} ·{" "}

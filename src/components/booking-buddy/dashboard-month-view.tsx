@@ -16,6 +16,7 @@ import {
   type AvailabilityWindow,
   type BusyInterval,
 } from "@/lib/booking-buddy/availability";
+import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 import { DashboardBookingPopover } from "@/components/booking-buddy/dashboard-booking-popover";
 
@@ -132,7 +133,8 @@ export function DashboardMonthView({
                       <p className="truncate">{booking.orgName}</p>
                       <p className="truncate opacity-90">
                         {TIME_LABEL.format(new Date(booking.startsAt))} –{" "}
-                        {TIME_LABEL.format(new Date(booking.endsAt))} · Court {booking.courtLabel}
+                        {TIME_LABEL.format(new Date(booking.endsAt))} ·{" "}
+                        {formatCourtLabel(booking.courtLabel)}
                       </p>
                     </DashboardBookingPopover>
                   ))}
