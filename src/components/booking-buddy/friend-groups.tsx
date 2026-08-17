@@ -142,7 +142,10 @@ function GroupVisibilityForm({ group }: { group: FriendGroup }) {
       <input type="hidden" name="group_id" value={group.id} />
       <Label htmlFor={selectId}>What this group can see</Label>
       <div className="flex items-center gap-2">
+        {/* Keyed on the saved value so a successful save remounts the
+            select — see the note on BookingWindowForm in orgs.tsx. */}
         <VisibilitySelect
+          key={group.defaultVisibility}
           id={selectId}
           defaultValue={group.defaultVisibility}
           className="flex-1"
@@ -295,7 +298,10 @@ export function FriendVisibilityRow({ friend }: { friend: FriendVisibility }) {
           <Label htmlFor={selectId} className="sr-only">
             What {personLabel(friend.person)} can see
           </Label>
+          {/* Keyed on the saved value so a successful save remounts the
+              select — see the note on BookingWindowForm in orgs.tsx. */}
           <VisibilitySelect
+            key={friend.override ?? "clear"}
             id={selectId}
             defaultValue={friend.override ?? "clear"}
             extraOptions={[{ value: "clear", label: "Use my group defaults" }]}

@@ -43,7 +43,12 @@ export function SearchPlaceForm() {
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label htmlFor="place-query">Search for your club</Label>
+          {/* Keyed on the query so a completed search remounts the field —
+              it's uncontrolled (`defaultValue`), which only applies on
+              mount, and `state.query` can come back trimmed/normalized from
+              the server, different from what's still sitting in the DOM. */}
           <Input
+            key={state.query}
             id="place-query"
             name="query"
             defaultValue={state.query}

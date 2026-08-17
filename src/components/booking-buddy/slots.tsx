@@ -473,7 +473,10 @@ function RotationBufferForm({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="rotation-buffer">Rotation buffer</Label>
+        {/* Keyed on the saved value so a successful save remounts the
+            field — see the note on BookingWindowForm in orgs.tsx. */}
         <Input
+          key={rotationBuffer}
           id="rotation-buffer"
           name="rotation_buffer"
           type="number"

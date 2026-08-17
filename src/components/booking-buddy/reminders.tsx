@@ -57,7 +57,10 @@ export function ReminderOffsetForm({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="reminder-offset">Remind attendees</Label>
+        {/* Keyed on the saved value so a successful save remounts the
+            select — see the note on BookingWindowForm in orgs.tsx. */}
         <FormSelect
+          key={reminderOffsetMinutes}
           id="reminder-offset"
           name="reminder_offset_minutes"
           defaultValue={reminderOffsetMinutes}
