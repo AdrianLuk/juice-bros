@@ -1,10 +1,20 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/datetime";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -63,9 +73,20 @@ function HourTimeSelect({
  * the sheet around this form says outright rather than letting a User assume
  * otherwise.
  */
-export function CreateAvailabilityWindowForm() {
+export function CreateAvailabilityWindowForm({
+  onSaved,
+}: {
+  /** Called once the window actually saves — e.g. to close whatever dialog this form sits in. */
+  onSaved?: () => void;
+} = {}) {
   const [state, formAction, pending] = useActionState(createAvailabilityWindow, EMPTY);
   const [allDay, setAllDay] = useState(true);
+
+  useEffect(() => {
+    if (state.ok) {
+      onSaved?.();
+    }
+  }, [state, onSaved]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -155,22 +176,39 @@ export function AvailabilityWindowRow({
   );
 }
 
-/**
- * No confirm dialog, unlike `DeleteBookingButton` — a Booking mirrors a real
- * reservation, so removing one by mistake means re-typing it; an Availability
- * Window is a few clicks to redeclare and, per ADR 0006, deleting an unwanted
- * one is the intended way to fix it, not an edge case to guard against.
- */
 export function DeleteAvailabilityWindowButton({ windowId }: { windowId: string }) {
   const [state, formAction, pending] = useActionState(deleteAvailabilityWindow, EMPTY);
 
-  return (
-    <form action={formAction} className="flex shrink-0 flex-col items-end gap-1">
+  // The form lives inside the dialog so the confirm button is the only thing
+  // that can submit it — the same shape as removing a friend or a group.
+  const form = (
+    <form className="flex flex-col items-end gap-1" action={formAction}>
       <input type="hidden" name="window_id" value={windowId} />
       <Button type="submit" variant="destructive" size="sm" disabled={pending}>
         {pending ? "Removing…" : "Remove"}
       </Button>
       <ActionError state={state} />
     </form>
+  );
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
+        Remove
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove this availability?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This only affects what shows on your calendar, not any actual
+            court reservation.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep availability</AlertDialogCancel>
+          {form}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
