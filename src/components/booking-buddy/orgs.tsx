@@ -65,7 +65,7 @@ export function CreateOrgForm() {
       className="flex flex-col gap-3 sm:flex-row sm:items-end"
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <Label htmlFor="org-name">Place name</Label>
+        <Label htmlFor="org-name">Facility name</Label>
         <Input
           id="org-name"
           name="name"
@@ -76,7 +76,7 @@ export function CreateOrgForm() {
       </div>
       <div className="flex flex-col items-start gap-1">
         <Button type="submit" disabled={pending}>
-          {pending ? "Adding…" : "Add place"}
+          {pending ? "Adding…" : "Add facility"}
         </Button>
         <ActionError state={state} />
       </div>
@@ -199,7 +199,7 @@ function DeleteOrgButton({ org }: { org: Org }) {
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="org_id" value={org.id} />
       <Button type="submit" variant="destructive" disabled={pending}>
-        {pending ? "Removing…" : "Remove place"}
+        {pending ? "Removing…" : "Remove facility"}
       </Button>
       <ActionError state={state} />
     </form>
@@ -207,7 +207,7 @@ function DeleteOrgButton({ org }: { org: Org }) {
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
+      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -222,7 +222,7 @@ function DeleteOrgButton({ org }: { org: Org }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep place</AlertDialogCancel>
+          <AlertDialogCancel>Keep facility</AlertDialogCancel>
           {form}
         </AlertDialogFooter>
       </AlertDialogContent>

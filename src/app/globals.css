@@ -156,25 +156,102 @@
   }
 }
 
-/* A slim, overlay-flavored scrollbar for Booking Buddy's week view — its
-   width still gets measured and compensated for in JS (browsers don't offer
-   a true zero-width overlay scrollbar on demand), but a thin one keeps that
+/*
+ * Booking Buddy's own surface system, scoped to `.bb-theme` (applied once in
+ * its section layout) so the marketing site keeps its current palette
+ * untouched. The base tokens above are neutral-gray (chroma 0) and put the
+ * page background, card, and border all at nearly the same lightness, so
+ * nothing reads as elevated — everything blends into one white field. This
+ * warms every neutral toward the brand-orange/yellow hue (~60-75) at low
+ * chroma, and separates card lightness from page-background lightness so
+ * content actually sits "on" something instead of floating on blank white.
+ * Also raises muted-foreground's contrast (0.556 -> 0.43 lightness) past
+ * WCAG AA at small text sizes — this app is meant to onboard non-technical
+ * and older friends, not just power users who'll squint through it once.
+ */
+.bb-theme {
+  --background: oklch(0.972 0.008 75);
+  --foreground: oklch(0.2 0.014 55);
+  --card: oklch(0.997 0.003 75);
+  --card-foreground: oklch(0.2 0.014 55);
+  --popover: oklch(0.997 0.003 75);
+  --popover-foreground: oklch(0.2 0.014 55);
+  --secondary: oklch(0.936 0.012 75);
+  --secondary-foreground: oklch(0.2 0.014 55);
+  --muted: oklch(0.946 0.01 75);
+  --muted-foreground: oklch(0.43 0.016 55);
+  --border: oklch(0.888 0.012 75);
+  --input: oklch(0.888 0.012 75);
+  --radius: 0.75rem;
+}
+
+.dark .bb-theme {
+  --background: oklch(0.17 0.011 55);
+  --foreground: oklch(0.96 0.006 75);
+  --card: oklch(0.225 0.013 55);
+  --card-foreground: oklch(0.96 0.006 75);
+  --popover: oklch(0.225 0.013 55);
+  --popover-foreground: oklch(0.96 0.006 75);
+  --secondary: oklch(0.28 0.013 55);
+  --secondary-foreground: oklch(0.96 0.006 75);
+  --muted: oklch(0.26 0.013 55);
+  --muted-foreground: oklch(0.73 0.013 75);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+}
+
+/* Card surfaces: a soft, warm-tinted shadow (matched to the brand-orange
+   hue) instead of a flat gray border, so panels read as elevated rather
+   than just outlined. */
+.bb-card {
+  background-color: var(--card);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 1px 2px oklch(0.25 0.03 45 / 0.06),
+    0 10px 26px -16px oklch(0.55 0.16 40 / 0.28);
+}
+
+.bb-card-interactive {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.bb-card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 6px oklch(0.25 0.03 45 / 0.08),
+    0 18px 34px -18px oklch(0.55 0.16 40 / 0.34);
+}
+
+.bb-card-interactive:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px oklch(0.25 0.03 45 / 0.06),
+    0 10px 26px -16px oklch(0.55 0.16 40 / 0.28);
+}
+
+/* A slim, overlay-flavored scrollbar for Booking Buddy's scrollable strips
+   (the week view, the mobile nav) — width still gets measured and
+   compensated for in JS where that matters (browsers don't offer a true
+   zero-width overlay scrollbar on demand), but a thin one keeps the
    reserved gutter small and unobtrusive instead of the ~17px default. */
-.bb-week-scroll {
+.bb-scroll-x {
   scrollbar-width: thin;
   scrollbar-color: var(--muted-foreground) transparent;
 }
 
-.bb-week-scroll::-webkit-scrollbar {
+.bb-scroll-x::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.bb-week-scroll::-webkit-scrollbar-track {
+.bb-scroll-x::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.bb-week-scroll::-webkit-scrollbar-thumb {
+.bb-scroll-x::-webkit-scrollbar-thumb {
   background-color: var(--muted-foreground);
   border-radius: 9999px;
   opacity: 0.5;

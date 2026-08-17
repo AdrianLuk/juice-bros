@@ -47,7 +47,7 @@ export function GuestRsvpForm({ token }: { token: string }) {
 
   if (state.ok) {
     return (
-      <p className="rounded-lg border border-border px-4 py-3 text-sm" role="status">
+      <p className="bb-card px-4 py-3 text-sm" role="status">
         Thanks — your RSVP is in.
       </p>
     );
@@ -91,7 +91,7 @@ export function GuestResponseList({ responses }: { responses: GuestResponse[] })
   }
 
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
+    <ul className="divide-y divide-border/60 overflow-hidden bb-card">
       {responses.map((response) => (
         <li
           key={response.key}

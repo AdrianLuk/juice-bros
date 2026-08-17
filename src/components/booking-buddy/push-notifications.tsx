@@ -179,7 +179,7 @@ export function PushNotificationsForm() {
           checked={subscribed}
           disabled={support === "checking" || pending}
           onChange={(event) => (event.target.checked ? enable() : disable())}
-          className="h-4 w-4 rounded border-input accent-foreground"
+          className="h-5 w-5 rounded border-input accent-primary"
         />
         <Label htmlFor="push-enabled" className="font-normal">
           Push me a reminder on this device

@@ -70,18 +70,11 @@ export default async function GuestSlotPage({
             description={`Proposed by ${ownerName}`}
           />
 
-          <div className="mt-10 flex flex-col gap-12">
+          <div className="mt-8 flex flex-col gap-8">
             <section>
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Capacity
-              </h2>
-              <div className="mt-4">
-                {capacity.capacity === null ? (
-                  <p className="text-sm text-muted-foreground">
-                    No court attached yet — this is still a proposal.
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
+              <div className="bb-card p-6">
+                {capacity.capacity !== null && (
+                  <p className="mb-4 text-sm font-medium text-primary">
                     {courtsLabel(capacity.courtCount)}
                     {capacity.rotationBuffer > 0 &&
                       ` plus ${capacity.rotationBuffer} rotating`}
@@ -89,6 +82,12 @@ export default async function GuestSlotPage({
                     {capacity.capacity} spots
                   </p>
                 )}
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Are you in?
+                </h2>
+                <div className="mt-4">
+                  <GuestRsvpForm token={token} />
+                </div>
               </div>
             </section>
 
@@ -101,14 +100,11 @@ export default async function GuestSlotPage({
               </div>
             </section>
 
-            <section>
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
-                RSVP
-              </h2>
-              <div className="mt-4">
-                <GuestRsvpForm token={token} />
-              </div>
-            </section>
+            {capacity.capacity === null && (
+              <p className="text-sm text-muted-foreground">
+                No court attached yet — this is still a proposal.
+              </p>
+            )}
           </div>
         </div>
       </section>

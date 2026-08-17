@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
 import {
   BookingWindowPreferenceForm,
@@ -30,26 +31,38 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Settings"
-            description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
-          />
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Settings"
+                description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
+              />
+            </div>
 
-          <div className="mt-10">
+            <BookingBuddyNav current="settings" />
+          </div>
+
+          <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />
           </div>
 
-          <div className="mt-12">
+          <div className="mt-8">
             <h2 className="font-heading text-lg font-semibold tracking-tight">
               Reminders
             </h2>
-            <div className="mt-4 flex flex-col gap-6">
-              <NotificationPreferencesForm preferences={notificationPreferences} />
-              <BookingWindowPreferenceForm preferences={notificationPreferences} />
-              <PushNotificationsForm />
+            <div className="bb-card mt-4 flex flex-col divide-y divide-border/60 p-6">
+              <div className="pb-5">
+                <NotificationPreferencesForm preferences={notificationPreferences} />
+              </div>
+              <div className="py-5">
+                <BookingWindowPreferenceForm preferences={notificationPreferences} />
+              </div>
+              <div className="pt-5">
+                <PushNotificationsForm />
+              </div>
             </div>
           </div>
 

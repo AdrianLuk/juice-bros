@@ -50,7 +50,7 @@ export function UpcomingBookingsSidebar({
       </div>
 
       {upcoming.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
           Nothing booked yet. Log one to see it here.
         </p>
       ) : (
@@ -58,7 +58,7 @@ export function UpcomingBookingsSidebar({
           {upcoming.map((booking) => (
             <li
               key={booking.id}
-              className="rounded-lg border border-border bg-card p-3"
+              className="bb-card bb-card-interactive p-3"
             >
               <p className="text-sm font-medium">{booking.when}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
