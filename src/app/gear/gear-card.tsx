@@ -9,12 +9,12 @@ function GearImage({ item }: { item: GearItem }) {
         src={item.image}
         alt={item.name}
         loading="lazy"
-        className="aspect-4/3 w-full rounded-lg border bg-white object-contain p-3"
+        className="aspect-4/3 w-full rounded-[1.1rem] bg-white object-contain p-3"
       />
     );
   }
   return (
-    <div className="flex aspect-4/3 w-full items-center justify-center rounded-lg border bg-brand-orange/5">
+    <div className="flex aspect-4/3 w-full items-center justify-center rounded-[1.1rem] bg-brand-orange/5">
       <span className="font-heading text-4xl font-bold text-brand-orange/40">
         {item.name.charAt(0)}
       </span>
@@ -34,13 +34,13 @@ export function GearCard({ item }: { item: GearItem }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col rounded-xl border p-4 transition-colors hover:border-brand-orange"
+      className="group flex flex-col rounded-[1.5rem] bg-black/3 p-4 ring-1 ring-black/5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-brand hover:ring-brand-orange/25"
     >
       <GearImage item={item} />
       <Eyebrow size="xs" className="mt-4">
         {item.category}
       </Eyebrow>
-      <p className="mt-1 font-heading text-lg font-semibold transition-colors group-hover:text-brand-orange">
+      <p className="mt-1 font-heading text-lg font-semibold transition-colors duration-300 group-hover:text-brand-orange">
         {item.name}
       </p>
       <p className="mt-2 flex-1 text-sm text-muted-foreground">{item.blurb}</p>
@@ -68,7 +68,7 @@ export function GearGrid({ items }: { items: GearItem[] }) {
       Number(a.category === GearCategory.Paddle),
   );
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {ordered.map((item) => (
         <GearCard key={item.name} item={item} />
       ))}
