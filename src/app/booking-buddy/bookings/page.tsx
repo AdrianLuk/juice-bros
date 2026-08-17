@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   BookingRow,
   CreateBookingForm,
@@ -28,13 +29,19 @@ export default async function BookingsPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Your bookings"
-            description="Court reservations you've already made, typed in here so they're ready to share."
-          />
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Your bookings"
+                description="Court reservations you've already made, typed in here so they're ready to share."
+              />
+            </div>
+
+            <BookingBuddyNav />
+          </div>
 
           {orgs.length === 0 ? (
             <p className="mt-10 text-sm text-muted-foreground">
@@ -71,11 +78,11 @@ export default async function BookingsPage() {
                 </h2>
 
                 {bookings.length === 0 ? (
-                  <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                     Nothing logged yet.
                   </p>
                 ) : (
-                  <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                  <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                     {bookings.map((booking) => (
                       <BookingRow key={booking.id} booking={booking} />
                     ))}
@@ -86,7 +93,7 @@ export default async function BookingsPage() {
           )}
 
           <FooterNav>
-            <FooterLink href={ORGS_PATH}>Where you play</FooterLink>
+            <FooterLink href={ORGS_PATH}>Facilities</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

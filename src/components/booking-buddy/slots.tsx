@@ -103,8 +103,11 @@ export function SlotRow({
   href: string;
 }) {
   return (
-    <li className="px-5 py-4">
-      <Link href={href} className="block">
+    <li>
+      <Link
+        href={href}
+        className="block px-5 py-4 transition-colors hover:bg-muted/60 active:bg-muted"
+      >
         <p className="font-medium">{slot.when}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Proposed by {slot.ownerName}
@@ -245,7 +248,7 @@ export function ResponseButtons({
         </p>
       )}
 
-      <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+      <ul className="mt-4 divide-y divide-border/60 overflow-hidden rounded-lg bg-muted/30">
         {query.data.responses.length === 0 && (
           <li className="px-4 py-3 text-sm text-muted-foreground">
             Nobody has responded yet.
@@ -364,7 +367,7 @@ export function SlotCourts({
           and this becomes a real game with real capacity.
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border/60 overflow-hidden rounded-lg bg-muted/30">
           {capacity.attached.map((booking) => (
             <li
               key={booking.id}

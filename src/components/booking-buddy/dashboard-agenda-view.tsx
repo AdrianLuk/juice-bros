@@ -35,14 +35,14 @@ export function DashboardAgendaView({
 
   if (upcoming.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+      <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
         Nothing coming up. Bookings you log will show up here, grouped by day.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
+    <div className="flex flex-col divide-y divide-border/60 overflow-hidden bb-card">
       {[...groups.entries()].map(([key, dayBookings]) => {
         const day = new Date(dayBookings[0].startsAt);
 

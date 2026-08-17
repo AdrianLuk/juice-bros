@@ -3,6 +3,7 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { CreateOrgForm, OrgRow } from "@/components/booking-buddy/orgs";
 import { SearchPlaceForm } from "@/components/booking-buddy/place-search";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
@@ -11,9 +12,9 @@ import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Where you play",
+  title: "Facilities",
   description:
-    "Keep the clubs and courts you play at in one place, so your bookings have somewhere to hang off.",
+    "Keep the facilities you play at in one place, so your bookings have somewhere to hang off.",
   path: "/booking-buddy/orgs",
 });
 
@@ -26,29 +27,35 @@ export default async function OrgsPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Where you play"
-            description="The clubs and courts you book at. Only you can see this list."
-          />
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Facilities"
+                description="The facilities you book at. Only you can see this list."
+              />
+            </div>
+
+            <BookingBuddyNav current="orgs" />
+          </div>
 
           <div className="mt-10 flex flex-col gap-12">
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Add a place
+                Add a facility
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Search for your club and pick it from Google&apos;s listing.
+                Search for your facility and pick it from Google&apos;s listing.
               </p>
               <div className="mt-4">
                 <SearchPlaceForm />
               </div>
 
-              <details className="group mt-6 overflow-hidden rounded-lg border border-border">
+              <details className="group mt-6 overflow-hidden bb-card">
                 <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
-                  Can&apos;t find your club?
+                  Can&apos;t find your facility?
                   <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="border-t border-border px-4 py-4">
@@ -66,7 +73,7 @@ export default async function OrgsPage() {
 
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Your places
+                Your facilities
                 {orgs.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     {orgs.length}
@@ -75,12 +82,12 @@ export default async function OrgsPage() {
               </h2>
 
               {orgs.length === 0 ? (
-                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                  Nothing here yet. Add the club you play at and you can start
-                  logging court bookings.
+                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                  Nothing here yet. Add a facility you play at and you can
+                  start logging court bookings.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {orgs.map((org) => (
                     <OrgRow key={org.id} org={org} />
                   ))}

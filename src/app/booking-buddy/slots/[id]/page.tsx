@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   ResponseButtons,
   SlotCapacityPanel,
@@ -57,22 +58,42 @@ export default async function SlotDetailPage({
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title={slot.when}
-            description={
-              isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
-            }
-          />
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title={slot.when}
+                description={
+                  isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
+                }
+              />
+            </div>
 
-          <div className="mt-10 flex flex-col gap-12">
+            <BookingBuddyNav current="slots" />
+          </div>
+
+          <div className="mt-10 flex flex-col gap-8">
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Your response
+              </h2>
+              <div className="bb-card mt-4 p-6">
+                <ResponseButtons
+                  slotId={slot.id}
+                  viewerId={session.userId}
+                  viewerName={null}
+                  initial={{ responses, myAnswer }}
+                />
+              </div>
+            </section>
+
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
                 Capacity
               </h2>
-              <div className="mt-4">
+              <div className="bb-card mt-4 p-6">
                 <SlotCapacityPanel
                   slotId={slot.id}
                   isOwner={isOwner}
@@ -87,7 +108,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Courts
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <SlotCourts slotId={slot.id} capacity={capacity} />
                 </div>
               </section>
@@ -98,7 +119,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Invite link
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <SlotLinkPanel slotId={slot.id} slotLink={slotLink} />
                 </div>
               </section>
@@ -109,7 +130,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Reminder
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <ReminderOffsetForm
                     slotId={slot.id}
                     reminderOffsetMinutes={reminderOffsetMinutes}
@@ -123,7 +144,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Booking reminder
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <IntendedOrgForm
                     slotId={slot.id}
                     orgs={ownedOrgs}
@@ -132,20 +153,6 @@ export default async function SlotDetailPage({
                 </div>
               </section>
             )}
-
-            <section>
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Your response
-              </h2>
-              <div className="mt-4">
-                <ResponseButtons
-                  slotId={slot.id}
-                  viewerId={session.userId}
-                  viewerName={null}
-                  initial={{ responses, myAnswer }}
-                />
-              </div>
-            </section>
           </div>
 
           <FooterNav>

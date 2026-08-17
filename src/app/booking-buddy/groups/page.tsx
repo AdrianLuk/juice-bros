@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   CreateGroupForm,
   FriendVisibilityRow,
@@ -30,13 +31,19 @@ export default async function GroupsPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Friend groups"
-            description="Groups are yours alone — nobody is told which one they're in, or what they can see."
-          />
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Friend groups"
+                description="Groups are yours alone — nobody is told which one they're in, or what they can see."
+              />
+            </div>
+
+            <BookingBuddyNav current="groups" />
+          </div>
 
           {people.length === 0 ? (
             <p className="mt-10 text-sm text-muted-foreground">
@@ -71,7 +78,7 @@ export default async function GroupsPage() {
                 </h2>
 
                 {groups.length === 0 ? (
-                  <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                     No groups yet. Groups grant visibility to several friends
                     at once — set it per friend instead below if you&apos;d
                     rather do that.
@@ -93,7 +100,7 @@ export default async function GroupsPage() {
                   What everyone actually sees. Setting someone here pins them —
                   it beats every group they&apos;re in, either way.
                 </p>
-                <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {friends.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}

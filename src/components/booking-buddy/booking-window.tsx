@@ -45,9 +45,9 @@ export function IntendedOrgForm({
   if (orgs.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Add a place on your{" "}
+        Add a facility on{" "}
         <Link href={ORGS_PATH} className="underline underline-offset-4">
-          Orgs page
+          Facilities
         </Link>{" "}
         first, then come back here to plan which one you&apos;ll book at.
       </p>

@@ -39,11 +39,11 @@ export function ConnectionList({
       )}
 
       {people.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+        <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
           {emptyMessage}
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+        <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
           {people.map((person) => (
             <li
               key={person.connectionId}
