@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   HALF_HOUR_TIMES,
+  formatInstantDateAndTime,
+  formatInstantRange,
   formatTimeLabel,
   isHalfHourTime,
   isPastDate,
@@ -65,4 +67,41 @@ test("previousCalendarDate is nextCalendarDate's inverse", () => {
   assert.equal(previousCalendarDate("2026-08-25"), "2026-08-24");
   assert.equal(previousCalendarDate("2026-09-01"), "2026-08-31");
   assert.equal(previousCalendarDate("2027-01-01"), "2026-12-31");
+});
+
+test("formatInstantDateAndTime splits the date and the time range apart", () => {
+  // 22:00 UTC is 6pm in Toronto in August.
+  const { date, time } = formatInstantDateAndTime({
+    startsAt: "2026-08-20T22:00:00Z",
+    endsAt: "2026-08-20T23:30:00Z",
+    timeZone: "America/Toronto",
+  });
+
+  assert.equal(date, "Thu, Aug 20, 2026");
+  assert.equal(time, "6:00 PM – 7:30 PM");
+});
+
+test("formatInstantDateAndTime falls back to UTC and says so on the date, not the time", () => {
+  const { date, time } = formatInstantDateAndTime({
+    startsAt: "2026-08-20T22:00:00Z",
+    endsAt: "2026-08-20T23:30:00Z",
+    timeZone: "Mars/Olympus_Mons",
+  });
+
+  assert.match(date, /\(UTC\)$/);
+  assert.doesNotMatch(time, /UTC/);
+  assert.equal(time, "10:00 PM – 11:30 PM");
+});
+
+test("formatInstantRange joins formatInstantDateAndTime's own date and time with a middot", () => {
+  const args = {
+    startsAt: "2026-08-20T22:00:00Z",
+    endsAt: "2026-08-20T23:30:00Z",
+    timeZone: "America/Toronto",
+  };
+
+  assert.equal(
+    formatInstantRange(args),
+    `${formatInstantDateAndTime(args).date} · ${formatInstantDateAndTime(args).time}`,
+  );
 });

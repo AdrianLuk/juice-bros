@@ -114,18 +114,21 @@ export function formatTimeLabel(time: string): string {
 }
 
 /**
- * When an instant range falls, written as the zone it was created in —
- * shared by `formatBookingWhen` and `formatSlotWhen`. `startsAt`/`endsAt` are
+ * The date and time-range parts of an instant range, written as the zone it
+ * was created in, split apart rather than joined — what the calendar
+ * popover's own two-line "When" needs, and what `formatInstantRange` below
+ * joins back into one line for a plain list row. `startsAt`/`endsAt` are
  * instants, so rendering them needs to be told which clock to use, or the
  * server's own zone (UTC in production) reads back a different hour than
  * whoever created the row meant.
  *
  * A zone Postgres doesn't know shouldn't reach here — the trigger on both
  * `bookings` and `slots` refuses it at write time — but falling back to UTC
- * and saying so beats throwing and taking down the whole list to punish one
- * row.
+ * and saying so (on the date, since that's the part a misread zone could
+ * actually put on the wrong day) beats throwing and taking down the whole
+ * list to punish one row.
  */
-export function formatInstantRange({
+export function formatInstantDateAndTime({
   startsAt,
   endsAt,
   timeZone,
@@ -133,7 +136,7 @@ export function formatInstantRange({
   startsAt: string;
   endsAt: string;
   timeZone: string;
-}): string {
+}): { date: string; time: string } {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
 
@@ -154,7 +157,18 @@ export function formatInstantRange({
     timeZone: zone,
   });
 
-  const when = `${day.format(start)} · ${clock.format(start)} – ${clock.format(end)}`;
+  return {
+    date: usable ? day.format(start) : `${day.format(start)} (UTC)`,
+    time: `${clock.format(start)} – ${clock.format(end)}`,
+  };
+}
 
-  return usable ? when : `${when} (UTC)`;
+/** `formatInstantDateAndTime`'s date and time joined onto one line — what a plain list row (`formatBookingWhen`, `formatSlotWhen`) wants instead of the popover's own two. */
+export function formatInstantRange(args: {
+  startsAt: string;
+  endsAt: string;
+  timeZone: string;
+}): string {
+  const { date, time } = formatInstantDateAndTime(args);
+  return `${date} · ${time}`;
 }
