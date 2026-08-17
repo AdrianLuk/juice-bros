@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   HOUR_TIMES,
+  addHoursToTime,
   formatInstantDateAndTime,
   formatInstantRange,
   formatTimeLabel,
@@ -40,6 +41,28 @@ test("every hour slot in a day is offered, and only those", () => {
 test("an hour slot renders as a 12-hour label", () => {
   assert.equal(formatTimeLabel("00:00"), "12:00 AM");
   assert.equal(formatTimeLabel("18:30"), "6:30 PM");
+});
+
+test("addHoursToTime lands on the hour a duration picker would show", () => {
+  assert.equal(addHoursToTime("18:00", 1), "19:00");
+  assert.equal(addHoursToTime("18:00", 3), "21:00");
+  assert.equal(addHoursToTime("00:00", 23), "23:00");
+});
+
+test("addHoursToTime refuses a result that would cross midnight", () => {
+  assert.equal(addHoursToTime("22:00", 3), null);
+  assert.equal(addHoursToTime("23:00", 1), null);
+});
+
+test("addHoursToTime refuses a non-positive or fractional hour count", () => {
+  assert.equal(addHoursToTime("18:00", 0), null);
+  assert.equal(addHoursToTime("18:00", -1), null);
+  assert.equal(addHoursToTime("18:00", 1.5), null);
+});
+
+test("addHoursToTime refuses a start time that isn't on the hour grid", () => {
+  assert.equal(addHoursToTime("18:30", 1), null);
+  assert.equal(addHoursToTime("not a time", 1), null);
 });
 
 test("todayInZone reads the calendar date in the given zone, not UTC", () => {

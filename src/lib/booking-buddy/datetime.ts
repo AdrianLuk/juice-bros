@@ -104,6 +104,23 @@ export const HOUR_TIMES: readonly string[] = Array.from(
   (_, index) => `${String(index).padStart(2, "0")}:00`,
 );
 
+/**
+ * `startTime` shifted forward by a whole number of hours — what a duration
+ * picker (1/2/3 hours, or a custom count) turns into an End time without
+ * making the User pick one off the grid themselves. `null` when `hours` isn't
+ * a positive whole number or the result would run past `"23:00"`: a Booking
+ * can't cross midnight (see `parseNewBooking`), so there's no valid End to show.
+ */
+export function addHoursToTime(startTime: string, hours: number): string | null {
+  if (!isHourTime(startTime) || !Number.isInteger(hours) || hours <= 0) {
+    return null;
+  }
+
+  const startHour = Number(startTime.slice(0, 2));
+  const endHour = startHour + hours;
+  return endHour <= 23 ? `${String(endHour).padStart(2, "0")}:00` : null;
+}
+
 /** `"18:30"` → `"6:30 PM"`, for the option labels — the value posted is still 24-hour. */
 export function formatTimeLabel(time: string): string {
   const [hours, minutes] = time.split(":").map(Number);

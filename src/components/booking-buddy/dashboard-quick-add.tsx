@@ -44,7 +44,7 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
           <CalendarOffIcon />
           Block off time
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Set your availability</DialogTitle>
             <DialogDescription>
@@ -68,7 +68,7 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
           <PlusIcon />
           Add booking
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Log a booking</DialogTitle>
             <DialogDescription>
