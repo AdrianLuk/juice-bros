@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   CreateGroupForm,
   FriendVisibilityRow,
@@ -32,11 +33,17 @@ export default async function GroupsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Friend groups"
-            description="Groups are yours alone — nobody is told which one they're in, or what they can see."
-          />
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Friend groups"
+                description="Groups are yours alone — nobody is told which one they're in, or what they can see."
+              />
+            </div>
+
+            <BookingBuddyNav current="groups" />
+          </div>
 
           {people.length === 0 ? (
             <p className="mt-10 text-sm text-muted-foreground">

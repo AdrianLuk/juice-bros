@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   ResponseButtons,
   SlotCapacityPanel,
@@ -59,13 +60,19 @@ export default async function SlotDetailPage({
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title={slot.when}
-            description={
-              isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
-            }
-          />
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title={slot.when}
+                description={
+                  isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
+                }
+              />
+            </div>
+
+            <BookingBuddyNav current="slots" />
+          </div>
 
           <div className="mt-10 flex flex-col gap-8">
             <section>

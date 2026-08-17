@@ -3,6 +3,7 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { CreateOrgForm, OrgRow } from "@/components/booking-buddy/orgs";
 import { SearchPlaceForm } from "@/components/booking-buddy/place-search";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
@@ -28,11 +29,17 @@ export default async function OrgsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Facilities"
-            description="The facilities you book at. Only you can see this list."
-          />
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Facilities"
+                description="The facilities you book at. Only you can see this list."
+              />
+            </div>
+
+            <BookingBuddyNav current="orgs" />
+          </div>
 
           <div className="mt-10 flex flex-col gap-12">
             <section>

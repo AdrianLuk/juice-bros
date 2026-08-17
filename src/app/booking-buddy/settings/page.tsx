@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
 import {
   BookingWindowPreferenceForm,
@@ -32,11 +33,17 @@ export default async function SettingsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Settings"
-            description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
-          />
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Settings"
+                description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
+              />
+            </div>
+
+            <BookingBuddyNav current="settings" />
+          </div>
 
           <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />

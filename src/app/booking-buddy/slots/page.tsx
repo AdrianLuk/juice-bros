@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { CreateSlotForm, SlotRow } from "@/components/booking-buddy/slots";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
@@ -27,11 +28,17 @@ export default async function SlotsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Slots"
-            description="Propose a time before you've reserved a court — friends respond yes, no, or maybe, same as a poll."
-          />
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Slots"
+                description="Propose a time before you've reserved a court — friends respond yes, no, or maybe, same as a poll."
+              />
+            </div>
+
+            <BookingBuddyNav current="slots" />
+          </div>
 
           <div className="mt-10 flex flex-col gap-12">
             <section>

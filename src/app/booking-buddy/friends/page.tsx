@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
@@ -29,11 +30,17 @@ export default async function FriendsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Friends"
-            description="Connections are mutual — once you're both in, you can see each other's open time."
-          />
+          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Friends"
+                description="Connections are mutual — once you're both in, you can see each other's open time."
+              />
+            </div>
+
+            <BookingBuddyNav current="friends" />
+          </div>
 
           <div className="mt-10 flex flex-col gap-12">
             <FriendSearch />

@@ -1,30 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import {
-  CalendarClockIcon,
-  LogOutIcon,
-  MapPinIcon,
-  SettingsIcon,
-  UsersIcon,
-  UsersRoundIcon,
-} from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
-import { signOut } from "@/lib/booking-buddy/actions/auth";
-import {
-  FRIENDS_PATH,
-  GROUPS_PATH,
-  ORGS_PATH,
-  SETTINGS_PATH,
-  SLOTS_PATH,
-} from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Booking Buddy",
@@ -53,49 +35,7 @@ export default async function BookingBuddyPage() {
               />
             </div>
 
-            <nav className="bb-card flex flex-wrap items-center gap-0.5 p-1.5">
-              <Link
-                href={SLOTS_PATH}
-                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
-              >
-                <CalendarClockIcon className="size-4 text-primary" />
-                Slots
-              </Link>
-              <Link
-                href={FRIENDS_PATH}
-                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
-              >
-                <UsersIcon className="size-4 text-primary" />
-                Friends
-              </Link>
-              <Link
-                href={GROUPS_PATH}
-                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
-              >
-                <UsersRoundIcon className="size-4 text-primary" />
-                Friend groups
-              </Link>
-              <Link
-                href={ORGS_PATH}
-                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
-              >
-                <MapPinIcon className="size-4 text-primary" />
-                Facilities
-              </Link>
-              <Link
-                href={SETTINGS_PATH}
-                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
-              >
-                <SettingsIcon className="size-4 text-primary" />
-                Settings
-              </Link>
-              <form action={signOut} className="ml-1">
-                <Button type="submit" variant="outline" size="default" className="gap-1.5">
-                  <LogOutIcon className="size-4" />
-                  Sign out
-                </Button>
-              </form>
-            </nav>
+            <BookingBuddyNav current="dashboard" />
           </div>
 
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
