@@ -57,7 +57,7 @@ export function DashboardBookingPopover({
             <dt>Time</dt>
             <dd className="text-foreground">{time}</dd>
             <dt>Court</dt>
-            <dd className="text-foreground">{booking.courtLabel}</dd>
+            <dd className="text-foreground">{booking.courtLabel ?? "Not noted"}</dd>
             <dt>Format</dt>
             <dd className="text-foreground">{BOOKING_FORMAT_LABEL[booking.format]}</dd>
           </dl>

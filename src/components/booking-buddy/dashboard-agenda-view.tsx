@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { dayLabel, groupByLocalDay, upcomingBookings } from "@/lib/booking-buddy/calendar";
+import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 import { DashboardBookingPopover } from "@/components/booking-buddy/dashboard-booking-popover";
 
@@ -67,7 +68,7 @@ export function DashboardAgendaView({
                       {TIME_LABEL.format(new Date(booking.startsAt))}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                      {booking.orgName} · {booking.courtLabel}
+                      {booking.orgName} · {formatCourtLabel(booking.courtLabel)}
                     </span>
                   </DashboardBookingPopover>
                 </li>
