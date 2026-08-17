@@ -49,7 +49,7 @@ export async function logBooking(
   },
 ) {
   await page.goto("/booking-buddy/bookings");
-  await page.getByLabel("Where").selectOption({ label: booking.place });
+  await page.getByLabel("Facility").selectOption({ label: booking.place });
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
   // Half-hour slots only (issue #20 follow-up) — these are `<select>`s now,

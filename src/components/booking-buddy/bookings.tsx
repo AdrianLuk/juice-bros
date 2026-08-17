@@ -79,9 +79,9 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
     <form action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="booking-org">Where</Label>
+          <Label htmlFor="booking-facility">Facility</Label>
           <FormSelect
-            id="booking-org"
+            id="booking-facility"
             name="org_id"
             defaultValue={defaultOrgId}
             required
@@ -98,16 +98,14 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="booking-court">Court</Label>
-          <Input
-            id="booking-court"
-            name="court_label"
-            type="number"
-            inputMode="numeric"
-            placeholder="3"
-            maxLength={COURT_LABEL_MAX_LENGTH}
-            required
-          />
+          <Label htmlFor="booking-format">Format</Label>
+          <FormSelect id="booking-format" name="format" defaultValue={DEFAULT_BOOKING_FORMAT}>
+            {BOOKING_FORMATS.map((format) => (
+              <option key={format} value={format}>
+                {BOOKING_FORMAT_LABEL[format]}
+              </option>
+            ))}
+          </FormSelect>
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
@@ -126,14 +124,16 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="booking-format">Format</Label>
-          <FormSelect id="booking-format" name="format" defaultValue={DEFAULT_BOOKING_FORMAT}>
-            {BOOKING_FORMATS.map((format) => (
-              <option key={format} value={format}>
-                {BOOKING_FORMAT_LABEL[format]}
-              </option>
-            ))}
-          </FormSelect>
+          <Label htmlFor="booking-court">Court</Label>
+          <Input
+            id="booking-court"
+            name="court_label"
+            type="number"
+            inputMode="numeric"
+            placeholder="3"
+            maxLength={COURT_LABEL_MAX_LENGTH}
+            required
+          />
         </div>
       </div>
 

@@ -195,7 +195,7 @@ test("a picked place's time zone is derived from its coordinates, no question as
   // server-side. Logging a booking against this Org is the only way to
   // observe the result, since the Orgs list doesn't render a zone.
   await page.goto("/booking-buddy/bookings");
-  await page.getByLabel("Where").selectOption({ label: query });
+  await page.getByLabel("Facility").selectOption({ label: query });
   await page.getByLabel("Court").fill("Vancouver court");
   await page.getByLabel("Date").fill("2026-09-15");
   await page.getByLabel("Start").selectOption("18:00");
