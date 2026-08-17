@@ -4,24 +4,26 @@ import { SectionHeading } from "@/components/typography/section-heading";
 
 export function MeetTheBros() {
   return (
-    <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
       <SectionHeading eyebrow="The Two Behind the Mic" title="Meet the Bros" />
 
-      {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
-      <img
-        src="/pictures/adrian-dav.jpg"
-        alt="Daven and Adrian courtside, mid-match"
-        width={2000}
-        height={1333}
-        loading="lazy"
-        className="mx-auto mt-8 aspect-video w-full max-w-3xl rounded-2xl border object-cover"
-      />
+      <div className="mx-auto mt-8 max-w-3xl rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
+        <img
+          src="/pictures/adrian-dav.jpg"
+          alt="Daven and Adrian courtside, mid-match"
+          width={2000}
+          height={1333}
+          loading="lazy"
+          className="aspect-video w-full rounded-[1.25rem] object-cover"
+        />
+      </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        {team.map((member) => (
+        {team.map((member, index) => (
           <div
             key={member.name}
-            className="flex flex-col gap-2 rounded-xl border p-6"
+            className={`flex flex-col gap-2 rounded-[1.5rem] bg-card p-7 shadow-brand ${index % 2 === 1 ? "sm:mt-6" : ""}`}
           >
             <div className="flex items-baseline justify-between gap-2">
               <p className="font-heading text-xl font-bold">{member.name}</p>
@@ -33,7 +35,7 @@ export function MeetTheBros() {
               href={member.instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+              className="mt-3 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline-offset-4 transition-colors duration-300 hover:text-[#e1306c]"
             >
               <InstagramIcon className="size-4 text-[#e1306c]" />
               Follow {member.name}

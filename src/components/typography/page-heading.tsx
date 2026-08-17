@@ -13,13 +13,15 @@ export function PageHeading({ eyebrow, title, description }: PageHeadingProps) {
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
       <h1
         className={cn(
-          "font-heading text-3xl font-semibold tracking-tight",
-          eyebrow && "mt-1 sm:text-4xl",
+          "font-heading text-4xl font-semibold tracking-[-0.02em]",
+          eyebrow && "mt-3 sm:text-5xl",
         )}
       >
         {title}
       </h1>
-      {description && <p className="mt-2 text-muted-foreground">{description}</p>}
+      {description && (
+        <p className="mt-3 max-w-xl text-lg text-muted-foreground">{description}</p>
+      )}
     </>
   );
 }

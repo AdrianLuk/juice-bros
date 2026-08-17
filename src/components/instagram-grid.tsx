@@ -9,16 +9,16 @@ export function InstagramGrid({ posts }: { posts: InstagramPost[] }) {
           href={post.permalink}
           target="_blank"
           rel="noopener noreferrer"
-          className="group relative block aspect-square overflow-hidden rounded-xl border"
+          className="group relative block aspect-square overflow-hidden rounded-2xl"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- Instagram CDN thumbnail (signed, expiring URL), no next/image optimization */}
           <img
             src={post.thumbnail}
             alt={post.caption}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+          <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/20" />
         </a>
       ))}
     </div>

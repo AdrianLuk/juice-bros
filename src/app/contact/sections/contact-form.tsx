@@ -64,7 +64,7 @@ export function ContactForm() {
 
   if (status === "success") {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-2xl border bg-background p-6 shadow-sm sm:p-8">
+      <div className="flex flex-col items-start gap-3 rounded-[1.75rem] bg-card p-6 shadow-brand sm:p-8">
         <div className="flex size-10 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
           <CircleCheckBigIcon className="size-5" />
         </div>
@@ -74,7 +74,11 @@ export function ContactForm() {
             Thanks for reaching out - we read everything and will get back to you soon.
           </p>
         </div>
-        <Button variant="outline" className="mt-1" onClick={() => setStatus("idle")}>
+        <Button
+          variant="outline"
+          className="mt-1 rounded-full"
+          onClick={() => setStatus("idle")}
+        >
           Send another message
         </Button>
       </div>
@@ -82,7 +86,7 @@ export function ContactForm() {
   }
 
   return (
-    <div className="rounded-2xl border bg-background p-6 shadow-sm sm:p-8">
+    <div className="rounded-[1.75rem] bg-card p-6 shadow-brand sm:p-8">
       <form onSubmit={handleSubmit} noValidate>
         <FieldGroup>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -173,7 +177,7 @@ export function ContactForm() {
           <Button
             type="submit"
             disabled={status === "submitting"}
-            className="h-11 w-fit px-8 text-base"
+            className="h-12 w-fit rounded-full px-8 text-base"
           >
             {status === "submitting" ? (
               <Loader2Icon className="animate-spin" />
