@@ -102,7 +102,7 @@ export function DashboardWeekView({
   const hours = useMemo(() => Array.from({ length: 24 }, (_, hour) => hour), []);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden bb-card">
       <div className="flex border-b border-border bg-card">
         <div className="w-12 shrink-0 sm:w-14" />
         <div ref={headerRef} className="flex-1 overflow-hidden">

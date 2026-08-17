@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { MailCheckIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,23 +36,34 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
 
   if (magicState.sent) {
     return (
-      <p className="mt-8 text-sm">
-        Check your email — we&apos;ve sent you a sign-in link. You can close this tab.
-      </p>
+      <div className="flex flex-col items-center gap-3 py-4 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <MailCheckIcon className="size-6" />
+        </div>
+        <p className="text-sm">
+          Check your email — we&apos;ve sent you a sign-in link. You can close
+          this tab.
+        </p>
+      </div>
     );
   }
 
   if (signUpState.sent) {
     return (
-      <p className="mt-8 text-sm">
-        Almost there — confirm your email address using the link we just sent, then
-        sign in.
-      </p>
+      <div className="flex flex-col items-center gap-3 py-4 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <MailCheckIcon className="size-6" />
+        </div>
+        <p className="text-sm">
+          Almost there — confirm your email address using the link we just
+          sent, then sign in.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="mt-8">
+    <div>
       {error && (
         <p className="mb-4 text-sm text-destructive" role="alert">
           {error === "link_invalid"
@@ -182,11 +194,11 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         </Button>
       </form>
 
-      <div className="mt-6 flex flex-col gap-1 text-sm">
+      <div className="mt-6 flex flex-col gap-0.5 text-sm">
         {mode !== "magic-link" && (
           <button
             type="button"
-            className="rounded-sm text-left text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="-mx-2 rounded-md px-2 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => setMode("magic-link")}
           >
             Email me a link instead
@@ -195,7 +207,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         {mode !== "password" && (
           <button
             type="button"
-            className="rounded-sm text-left text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="-mx-2 rounded-md px-2 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => setMode("password")}
           >
             Sign in with a password
@@ -204,7 +216,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         {mode !== "sign-up" && (
           <button
             type="button"
-            className="rounded-sm text-left text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="-mx-2 rounded-md px-2 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => setMode("sign-up")}
           >
             Create an account with a password

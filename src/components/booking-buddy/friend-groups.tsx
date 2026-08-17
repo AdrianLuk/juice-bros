@@ -90,7 +90,7 @@ export function GroupCard({
   );
 
   return (
-    <section className="rounded-lg border border-border">
+    <section className="bb-card overflow-hidden">
       <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div className="min-w-0">
           <h3 className="truncate font-heading text-base font-semibold tracking-tight">
@@ -111,7 +111,7 @@ export function GroupCard({
         <GroupVisibilityForm group={group} />
 
         {group.members.length > 0 && (
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border/60 overflow-hidden rounded-lg bg-muted/30">
             {group.members.map((member) => (
               <li
                 key={member.connectionId}

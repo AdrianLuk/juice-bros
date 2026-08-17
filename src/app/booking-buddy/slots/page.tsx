@@ -48,11 +48,11 @@ export default async function SlotsPage() {
                 Your slots
               </h2>
               {own.length === 0 ? (
-                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                   Nothing posted yet.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {own.map((slot) => (
                     <SlotRow key={slot.id} slot={slot} href={slotPath(slot.id)} />
                   ))}
@@ -65,7 +65,7 @@ export default async function SlotsPage() {
                 From your friends
               </h2>
               {friends.length === 0 ? (
-                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                   Nothing here yet — this fills up once a friend with{" "}
                   <Link href="/booking-buddy/groups" className="underline underline-offset-4">
                     Slot Visibility into you
@@ -73,7 +73,7 @@ export default async function SlotsPage() {
                   posts one, or once you have that into them.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {friends.map((slot) => (
                     <SlotRow key={slot.id} slot={slot} href={slotPath(slot.id)} />
                   ))}

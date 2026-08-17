@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  CalendarClockIcon,
+  LogOutIcon,
+  MapPinIcon,
+  SettingsIcon,
+  UsersIcon,
+  UsersRoundIcon,
+} from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
@@ -36,30 +45,53 @@ export default async function BookingBuddyPage() {
       <section className="w-full px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-            <PageHeading
-              eyebrow="Booking Buddy"
-              title="Dashboard"
-              description="Your bookings and open time, at a glance."
-            />
+            <div>
+              <PageHeading
+                eyebrow="Booking Buddy"
+                title="Dashboard"
+                description="Your bookings and open time, at a glance."
+              />
+            </div>
 
-            <nav className="flex flex-wrap items-center gap-1 pt-1">
-              <Link href={SLOTS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <nav className="bb-card flex flex-wrap items-center gap-0.5 p-1.5">
+              <Link
+                href={SLOTS_PATH}
+                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
+              >
+                <CalendarClockIcon className="size-4 text-primary" />
                 Slots
               </Link>
-              <Link href={FRIENDS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <Link
+                href={FRIENDS_PATH}
+                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
+              >
+                <UsersIcon className="size-4 text-primary" />
                 Friends
               </Link>
-              <Link href={GROUPS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <Link
+                href={GROUPS_PATH}
+                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
+              >
+                <UsersRoundIcon className="size-4 text-primary" />
                 Friend groups
               </Link>
-              <Link href={ORGS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <Link
+                href={ORGS_PATH}
+                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
+              >
+                <MapPinIcon className="size-4 text-primary" />
                 Where you play
               </Link>
-              <Link href={SETTINGS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              <Link
+                href={SETTINGS_PATH}
+                className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
+              >
+                <SettingsIcon className="size-4 text-primary" />
                 Settings
               </Link>
               <form action={signOut} className="ml-1">
-                <Button type="submit" variant="outline" size="sm">
+                <Button type="submit" variant="outline" size="default" className="gap-1.5">
+                  <LogOutIcon className="size-4" />
                   Sign out
                 </Button>
               </form>

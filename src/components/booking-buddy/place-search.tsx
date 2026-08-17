@@ -70,7 +70,7 @@ export function SearchPlaceForm() {
 
       {state.candidates.length > 0 && (
         <div className="flex flex-col gap-2">
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-border/60 overflow-hidden bb-card">
             {state.candidates.map((candidate) => (
               <PlaceCandidateRow key={candidate.placeId} candidate={candidate} />
             ))}

@@ -39,7 +39,9 @@ export default async function SignInPage({
             description="Plan pickleball with your friends — open a time, see who's in."
           />
 
-          <SignInForm next={target} error={error} />
+          <div className="bb-card mt-8 p-6 sm:p-8">
+            <SignInForm next={target} error={error} />
+          </div>
         </div>
       </section>
     </div>

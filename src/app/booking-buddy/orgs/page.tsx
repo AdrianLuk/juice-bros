@@ -46,7 +46,7 @@ export default async function OrgsPage() {
                 <SearchPlaceForm />
               </div>
 
-              <details className="group mt-6 overflow-hidden rounded-lg border border-border">
+              <details className="group mt-6 overflow-hidden bb-card">
                 <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
                   Can&apos;t find your club?
                   <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -75,12 +75,12 @@ export default async function OrgsPage() {
               </h2>
 
               {orgs.length === 0 ? (
-                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                   Nothing here yet. Add the club you play at and you can start
                   logging court bookings.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {orgs.map((org) => (
                     <OrgRow key={org.id} org={org} />
                   ))}

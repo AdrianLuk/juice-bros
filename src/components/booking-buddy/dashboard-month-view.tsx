@@ -57,7 +57,7 @@ export function DashboardMonthView({
   }, [days, busyIntervals, windows]);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden bb-card">
       {/* Shared horizontal scroller for the weekday header and the day grid
           below it, same reasoning as the Week view's — 7 evenly-divided
           columns are too cramped on a phone to show a booking's time and

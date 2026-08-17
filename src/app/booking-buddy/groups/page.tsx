@@ -71,7 +71,7 @@ export default async function GroupsPage() {
                 </h2>
 
                 {groups.length === 0 ? (
-                  <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                     No groups yet. Groups grant visibility to several friends
                     at once — set it per friend instead below if you&apos;d
                     rather do that.
@@ -93,7 +93,7 @@ export default async function GroupsPage() {
                   What everyone actually sees. Setting someone here pins them —
                   it beats every group they&apos;re in, either way.
                 </p>
-                <ul className="mt-4 divide-y divide-border rounded-lg border border-border">
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {friends.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}

@@ -104,7 +104,7 @@ export function NotificationPreferencesForm({
           name="email_enabled"
           type="checkbox"
           defaultChecked={preferences.emailEnabled}
-          className="h-4 w-4 rounded border-input accent-foreground"
+          className="h-5 w-5 rounded border-input accent-primary"
         />
         <Label htmlFor="email-enabled" className="font-normal">
           Email me a reminder before slots I&apos;m in
@@ -154,7 +154,7 @@ export function BookingWindowPreferenceForm({
           name="booking_window_email_enabled"
           type="checkbox"
           defaultChecked={preferences.bookingWindowEmailEnabled}
-          className="h-4 w-4 rounded border-input accent-foreground"
+          className="h-5 w-5 rounded border-input accent-primary"
         />
         <Label htmlFor="booking-window-email-enabled" className="font-normal">
           Email me when it&apos;s time to book a court

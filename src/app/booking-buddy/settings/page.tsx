@@ -38,18 +38,24 @@ export default async function SettingsPage() {
             description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
           />
 
-          <div className="mt-10">
+          <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />
           </div>
 
-          <div className="mt-12">
+          <div className="mt-8">
             <h2 className="font-heading text-lg font-semibold tracking-tight">
               Reminders
             </h2>
-            <div className="mt-4 flex flex-col gap-6">
-              <NotificationPreferencesForm preferences={notificationPreferences} />
-              <BookingWindowPreferenceForm preferences={notificationPreferences} />
-              <PushNotificationsForm />
+            <div className="bb-card mt-4 flex flex-col divide-y divide-border/60 p-6">
+              <div className="pb-5">
+                <NotificationPreferencesForm preferences={notificationPreferences} />
+              </div>
+              <div className="py-5">
+                <BookingWindowPreferenceForm preferences={notificationPreferences} />
+              </div>
+              <div className="pt-5">
+                <PushNotificationsForm />
+              </div>
             </div>
           </div>
 

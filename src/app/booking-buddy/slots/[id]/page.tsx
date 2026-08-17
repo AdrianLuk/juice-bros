@@ -67,12 +67,26 @@ export default async function SlotDetailPage({
             }
           />
 
-          <div className="mt-10 flex flex-col gap-12">
+          <div className="mt-10 flex flex-col gap-8">
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Your response
+              </h2>
+              <div className="bb-card mt-4 p-6">
+                <ResponseButtons
+                  slotId={slot.id}
+                  viewerId={session.userId}
+                  viewerName={null}
+                  initial={{ responses, myAnswer }}
+                />
+              </div>
+            </section>
+
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
                 Capacity
               </h2>
-              <div className="mt-4">
+              <div className="bb-card mt-4 p-6">
                 <SlotCapacityPanel
                   slotId={slot.id}
                   isOwner={isOwner}
@@ -87,7 +101,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Courts
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <SlotCourts slotId={slot.id} capacity={capacity} />
                 </div>
               </section>
@@ -98,7 +112,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Invite link
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <SlotLinkPanel slotId={slot.id} slotLink={slotLink} />
                 </div>
               </section>
@@ -109,7 +123,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Reminder
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <ReminderOffsetForm
                     slotId={slot.id}
                     reminderOffsetMinutes={reminderOffsetMinutes}
@@ -123,7 +137,7 @@ export default async function SlotDetailPage({
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Booking reminder
                 </h2>
-                <div className="mt-4">
+                <div className="bb-card mt-4 p-6">
                   <IntendedOrgForm
                     slotId={slot.id}
                     orgs={ownedOrgs}
@@ -132,20 +146,6 @@ export default async function SlotDetailPage({
                 </div>
               </section>
             )}
-
-            <section>
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Your response
-              </h2>
-              <div className="mt-4">
-                <ResponseButtons
-                  slotId={slot.id}
-                  viewerId={session.userId}
-                  viewerName={null}
-                  initial={{ responses, myAnswer }}
-                />
-              </div>
-            </section>
           </div>
 
           <FooterNav>

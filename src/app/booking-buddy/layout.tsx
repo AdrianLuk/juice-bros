@@ -35,7 +35,9 @@ export default function BookingBuddyLayout({
   return (
     <QueryProvider>
       <ServiceWorkerRegistration />
-      {children}
+      <div className="bb-theme flex w-full flex-1 flex-col bg-background text-foreground">
+        {children}
+      </div>
     </QueryProvider>
   );
 }
