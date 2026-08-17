@@ -12,6 +12,7 @@
 
 import {
   HOUR_TIMES,
+  addHoursToTime,
   formatInstantRange,
   formatTimeLabel,
   isHourTime,
@@ -19,7 +20,12 @@ import {
 } from "./datetime.ts";
 import { isBookingFormat, type BookingFormat } from "./capacity.ts";
 
-export { HOUR_TIMES, formatTimeLabel };
+export { HOUR_TIMES, addHoursToTime, formatTimeLabel };
+
+/** Preset duration choices the Booking form offers before falling back to a custom hour count. */
+export const DURATION_PRESET_HOURS = [1, 2, 3] as const;
+
+export const DEFAULT_DURATION_HOURS = 2;
 
 export const COURT_LABEL_MAX_LENGTH = 40;
 

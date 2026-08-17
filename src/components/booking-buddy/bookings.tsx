@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,10 @@ import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import {
   COURT_LABEL_MAX_LENGTH,
   DEFAULT_BOOKING_FORMAT,
+  DEFAULT_DURATION_HOURS,
+  DURATION_PRESET_HOURS,
   HOUR_TIMES,
+  addHoursToTime,
   formatCourtLabel,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
@@ -33,6 +36,10 @@ import {
 } from "@/lib/booking-buddy/actions/bookings";
 
 const EMPTY: ActionResult = {};
+const DEFAULT_START_TIME = "18:00";
+
+/** A duration preset's hour count, or "custom" for a hand-typed one. */
+type DurationChoice = `${(typeof DURATION_PRESET_HOURS)[number]}` | "custom";
 
 function ActionError({ state }: { state: ActionResult }) {
   if (!state.error) {
@@ -53,20 +60,61 @@ function ActionError({ state }: { state: ActionResult }) {
 function HourTimeSelect({
   id,
   name,
-  defaultValue,
-}: {
-  id: string;
-  name: string;
-  defaultValue: string;
-}) {
+  ...props
+}: { id: string; name: string } & Omit<
+  React.ComponentProps<"select">,
+  "id" | "name" | "children"
+>) {
   return (
-    <FormSelect id={id} name={name} defaultValue={defaultValue} required>
+    <FormSelect id={id} name={name} required {...props}>
       {HOUR_TIMES.map((time) => (
         <option key={time} value={time}>
           {formatTimeLabel(time)}
         </option>
       ))}
     </FormSelect>
+  );
+}
+
+/**
+ * 1/2/3-hour presets plus a hand-typed custom count — same idea as
+ * CourtReserve's own Duration control, so the User picks how long they played
+ * instead of clicking through an End-time dropdown by hand.
+ */
+function DurationPicker({
+  value,
+  onChange,
+}: {
+  value: DurationChoice;
+  onChange: (choice: DurationChoice) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Duration">
+      {DURATION_PRESET_HOURS.map((hours) => {
+        const choice = String(hours) as DurationChoice;
+        return (
+          <Button
+            key={hours}
+            type="button"
+            variant={value === choice ? "default" : "outline"}
+            role="radio"
+            aria-checked={value === choice}
+            onClick={() => onChange(choice)}
+          >
+            {hours} hour{hours === 1 ? "" : "s"}
+          </Button>
+        );
+      })}
+      <Button
+        type="button"
+        variant={value === "custom" ? "default" : "outline"}
+        role="radio"
+        aria-checked={value === "custom"}
+        onClick={() => onChange("custom")}
+      >
+        Custom
+      </Button>
+    </div>
   );
 }
 
@@ -83,6 +131,37 @@ export function CreateBookingForm({
   // Falls back to the placeholder when nothing's marked default — same as
   // today's "force an explicit pick" behaviour (issue #47).
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
+
+  // Start and Duration are controlled — the End field is computed from them
+  // rather than picked, so both need a live value to derive it from.
+  const [startTime, setStartTime] = useState(DEFAULT_START_TIME);
+  const [durationChoice, setDurationChoice] = useState<DurationChoice>(
+    String(DEFAULT_DURATION_HOURS) as DurationChoice,
+  );
+  const [customHours, setCustomHours] = useState("");
+
+  // Blank while the User has "Custom" selected but hasn't typed a count yet —
+  // distinct from an actually-invalid count, which gets its own message below.
+  const hasDurationInput = durationChoice !== "custom" || customHours.trim() !== "";
+  const durationHours =
+    durationChoice === "custom" ? Number(customHours) : Number(durationChoice);
+  const endTime = hasDurationInput ? addHoursToTime(startTime, durationHours) : null;
+  const durationOverflows = hasDurationInput && endTime === null;
+
+  // Resets the controlled Start/Duration fields in lockstep with the form's
+  // own uncontrolled ones below — done here, during render, rather than in
+  // the effect: React state that needs to change in response to a prop/state
+  // transition is reset by comparing against the previous value mid-render,
+  // not as a side effect of one (https://react.dev/learn/you-might-not-need-an-effect).
+  const [resetForState, setResetForState] = useState(state);
+  if (resetForState !== state) {
+    setResetForState(state);
+    if (state.ok) {
+      setStartTime(DEFAULT_START_TIME);
+      setDurationChoice(String(DEFAULT_DURATION_HOURS) as DurationChoice);
+      setCustomHours("");
+    }
+  }
 
   // `<form action={formAction}>` resets the form's own uncontrolled fields
   // the instant the action settles, error or not — wiping exactly what the
@@ -143,12 +222,51 @@ export function CreateBookingForm({
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-start">Start</Label>
-          <HourTimeSelect id="booking-start" name="start_time" defaultValue="18:00" />
+          <HourTimeSelect
+            id="booking-start"
+            name="start_time"
+            value={startTime}
+            onChange={(event) => setStartTime(event.target.value)}
+          />
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+          <Label>Duration</Label>
+          <DurationPicker value={durationChoice} onChange={setDurationChoice} />
+          {durationChoice === "custom" && (
+            <div className="flex items-center gap-2 pt-0.5">
+              <Input
+                id="booking-duration-custom"
+                aria-label="Custom duration in hours"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={23}
+                step={1}
+                placeholder="Hours"
+                value={customHours}
+                onChange={(event) => setCustomHours(event.target.value)}
+                className="w-20"
+              />
+              <span className="text-xs text-muted-foreground">hours</span>
+            </div>
+          )}
+          {durationOverflows && (
+            <p className="text-xs text-destructive" role="alert">
+              That runs past midnight — pick fewer hours or an earlier start.
+            </p>
+          )}
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-end">End</Label>
-          <HourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
+          <Input
+            id="booking-end"
+            value={endTime ? formatTimeLabel(endTime) : "—"}
+            disabled
+            readOnly
+          />
+          <input type="hidden" name="end_time" value={endTime ?? ""} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
@@ -165,7 +283,7 @@ export function CreateBookingForm({
       </div>
 
       <div className="flex flex-col items-start gap-1">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || endTime === null}>
           {pending ? "Saving…" : "Log booking"}
         </Button>
         <ActionError state={state} />
