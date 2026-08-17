@@ -140,13 +140,31 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
 }
 
 export function BookingRow({ booking }: { booking: Booking }) {
+  // `when` is always the popover's date and time joined with " · " (see
+  // `formatInstantRange`) — split back apart so the time gets its own line
+  // instead of competing with the date for width next to the Remove button.
+  const [whenDate, whenTime] = booking.when.split(" · ");
+
   return (
     <li className="flex items-center justify-between gap-4 px-5 py-4">
       <div className="min-w-0">
-        <p className="truncate font-medium">{booking.when}</p>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {booking.orgName} · {booking.courtLabel} · {BOOKING_FORMAT_LABEL[booking.format]}
-        </p>
+        <div className="sm:hidden">
+          <p className="font-medium">{whenDate}</p>
+          <p className="font-medium">{whenTime}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            Court {booking.courtLabel} · {BOOKING_FORMAT_LABEL[booking.format]}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {booking.orgName}
+          </p>
+        </div>
+        <div className="hidden sm:block">
+          <p className="truncate font-medium">{booking.when}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {booking.orgName} · Court {booking.courtLabel} ·{" "}
+            {BOOKING_FORMAT_LABEL[booking.format]}
+          </p>
+        </div>
       </div>
       <DeleteBookingButton booking={booking} />
     </li>
