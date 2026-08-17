@@ -9,6 +9,7 @@ import {
   layoutMultiDaySpans,
   localDayKey,
   monthGridDays,
+  notEndedBefore,
   startOfWeek,
   upcomingBookings,
   weekRangeLabel,
@@ -166,4 +167,34 @@ test("layoutMultiDaySpans: a day outside every event's range is left out of the 
   ]);
 
   assert.deepEqual([...spans.keys()], []);
+});
+
+test("notEndedBefore: an item that ended before the floor is dropped, one still running or entirely ahead is kept", () => {
+  const floor = new Date("2026-08-20T00:00:00Z");
+
+  const result = notEndedBefore(
+    [
+      { id: "ended-yesterday", endsAt: "2026-08-19T23:00:00Z" },
+      { id: "straddles-the-floor", endsAt: "2026-08-20T06:00:00Z" },
+      { id: "later-today", endsAt: "2026-08-20T18:00:00Z" },
+      { id: "next-week", endsAt: "2026-08-27T18:00:00Z" },
+    ],
+    floor,
+  );
+
+  assert.deepEqual(
+    result.map((item) => item.id),
+    ["straddles-the-floor", "later-today", "next-week"],
+  );
+});
+
+test("notEndedBefore: an item ending exactly at the floor is dropped, not kept", () => {
+  const floor = new Date("2026-08-20T00:00:00Z");
+
+  const result = notEndedBefore(
+    [{ id: "ends-exactly-at-floor", endsAt: "2026-08-20T00:00:00Z" }],
+    floor,
+  );
+
+  assert.deepEqual(result, []);
 });

@@ -25,7 +25,8 @@ export function isRealDate(date: string): boolean {
   // pattern alone is happy with.
   const parsed = new Date(`${date}T00:00:00Z`);
   return (
-    !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === date
   );
 }
 
@@ -111,7 +112,10 @@ export const HOUR_TIMES: readonly string[] = Array.from(
  * a positive whole number or the result would run past `"23:00"`: a Booking
  * can't cross midnight (see `parseNewBooking`), so there's no valid End to show.
  */
-export function addHoursToTime(startTime: string, hours: number): string | null {
+export function addHoursToTime(
+  startTime: string,
+  hours: number,
+): string | null {
   if (!isHourTime(startTime) || !Number.isInteger(hours) || hours <= 0) {
     return null;
   }
@@ -127,6 +131,19 @@ export function formatTimeLabel(time: string): string {
   const period = hours < 12 ? "AM" : "PM";
   const twelveHour = hours % 12 === 0 ? 12 : hours % 12;
   return `${twelveHour}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+/**
+ * An instant, read in the browser's own local clock — what the dashboard
+ * calendar's grid (issue #23) positions events by, and the one shared clock
+ * label every calendar block/popover on both the owner's and a friend's
+ * calendar (issue #61) reads from, rather than each caller re-deriving its
+ * own `Intl.DateTimeFormat`/`getHours()` pair.
+ */
+export function formatTimeLabelFromMs(ms: number): string {
+  const date = new Date(ms);
+  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return formatTimeLabel(time);
 }
 
 /**

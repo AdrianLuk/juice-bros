@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
-import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
+import { OwnerDashboardCalendar } from "@/components/booking-buddy/owner-dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
 import { verifySession } from "@/lib/booking-buddy/dal";
@@ -41,7 +41,7 @@ export default async function BookingBuddyPage() {
           </div>
 
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
-            <DashboardCalendar
+            <OwnerDashboardCalendar
               bookings={bookings}
               availabilityWindows={availabilityWindows}
               orgs={orgs}

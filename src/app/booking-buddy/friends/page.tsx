@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { cn } from "@/lib/utils";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
+import { buttonVariants } from "@/components/ui/button";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
-import { listConnections } from "@/lib/booking-buddy/actions/connections";
-import { BOOKING_BUDDY_ROOT, GROUPS_PATH } from "@/lib/booking-buddy/routes";
+import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
+import {
+  BOOKING_BUDDY_ROOT,
+  GROUPS_PATH,
+  friendCalendarPath,
+} from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friends",
@@ -24,7 +31,12 @@ export default async function FriendsPage() {
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const { friends, received, sent } = await listConnections();
+  // `calendarVisibleFriendIds` gates the "View calendar" action below — a
+  // friend whose resolved Visibility doesn't include open_time gets no entry
+  // point at all (issue #61's own acceptance criterion), not a link that
+  // leads to an empty page.
+  const { friends, received, sent, calendarVisibleFriendIds } =
+    await getFriendsPageData();
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -88,18 +100,31 @@ export default async function FriendsPage() {
               people={friends}
               emptyMessage="No friends yet. Search above to find someone you play with."
               renderActions={(person) => (
-                <ConnectionActionButton
-                  connectionId={person.connectionId}
-                  action="remove"
-                  label="Remove"
-                  pendingLabel="Removing…"
-                  variant="destructive"
-                  confirm={{
-                    title: `Remove ${personLabel(person)}?`,
-                    description:
-                      "You'll both stop seeing each other's open time, and they aren't told. You can send a new request later, but they'd have to accept it again.",
-                  }}
-                />
+                <>
+                  {person.username &&
+                    calendarVisibleFriendIds.has(person.userId) && (
+                      <Link
+                        href={friendCalendarPath(person.username)}
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                        )}
+                      >
+                        View calendar
+                      </Link>
+                    )}
+                  <ConnectionActionButton
+                    connectionId={person.connectionId}
+                    action="remove"
+                    label="Remove"
+                    pendingLabel="Removing…"
+                    variant="destructive"
+                    confirm={{
+                      title: `Remove ${personLabel(person)}?`,
+                      description:
+                        "You'll both stop seeing each other's open time, and they aren't told. You can send a new request later, but they'd have to accept it again.",
+                    }}
+                  />
+                </>
               )}
             />
           </div>
