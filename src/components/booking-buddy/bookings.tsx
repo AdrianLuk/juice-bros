@@ -19,7 +19,7 @@ import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import {
   COURT_LABEL_MAX_LENGTH,
   DEFAULT_BOOKING_FORMAT,
-  HALF_HOUR_TIMES,
+  HOUR_TIMES,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMATS, BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
@@ -46,10 +46,10 @@ function ActionError({ state }: { state: ActionResult }) {
 }
 
 /**
- * Half-hour slots only — courts are booked in chunks, not whatever a
+ * On-the-hour slots only — courts are booked in chunks, not whatever a
  * free-typed or click-dragged time picker happens to land on.
  */
-function HalfHourTimeSelect({
+function HourTimeSelect({
   id,
   name,
   defaultValue,
@@ -60,7 +60,7 @@ function HalfHourTimeSelect({
 }) {
   return (
     <FormSelect id={id} name={name} defaultValue={defaultValue} required>
-      {HALF_HOUR_TIMES.map((time) => (
+      {HOUR_TIMES.map((time) => (
         <option key={time} value={time}>
           {formatTimeLabel(time)}
         </option>
@@ -115,12 +115,12 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-start">Start</Label>
-          <HalfHourTimeSelect id="booking-start" name="start_time" defaultValue="18:00" />
+          <HourTimeSelect id="booking-start" name="start_time" defaultValue="18:00" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-end">End</Label>
-          <HalfHourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
+          <HourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">

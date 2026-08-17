@@ -77,7 +77,7 @@ test("days before must be a whole number in bounds", () => {
   );
 });
 
-test("the time must be on the half-hour grid", () => {
+test("the time must be on the hour grid", () => {
   assert.ok(
     "error" in
       parseBookingWindow(

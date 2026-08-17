@@ -3,7 +3,7 @@ import test from "node:test";
 
 import {
   COURT_LABEL_MAX_LENGTH,
-  HALF_HOUR_TIMES,
+  HOUR_TIMES,
   bookingWriteMessage,
   formatBookingWhen,
   formatTimeLabel,
@@ -15,7 +15,7 @@ const VALID = {
   court_label: "Court 3",
   date: "2026-08-20",
   start_time: "18:00",
-  end_time: "19:30",
+  end_time: "19:00",
 };
 
 function form(fields: Record<string, string>): FormData {
@@ -38,7 +38,7 @@ test("a court, a date and a window become a Booking", () => {
     courtLabel: "Court 3",
     date: "2026-08-20",
     startTime: "18:00",
-    endTime: "19:30",
+    endTime: "19:00",
     format: "doubles",
   });
 });
@@ -91,25 +91,25 @@ test("a time that isn't a time is refused", () => {
   }
 });
 
-test("a time off the half-hour grid is refused", () => {
-  // Courts are booked in half-hour chunks. The `<select>` in the UI physically
+test("a time off the hour grid is refused", () => {
+  // Courts are booked in hour-long chunks. The `<select>` in the UI physically
   // can't produce one of these, but a hand-built request could.
-  for (const time of ["18:15", "18:45", "18:01", "18:29"]) {
+  for (const time of ["18:30", "18:15", "18:45", "18:01", "18:29"]) {
     assert.ok("error" in parse({ start_time: time }), `${time} should be refused`);
   }
 });
 
-test("every half-hour slot in a day is offered, and only those", () => {
-  assert.equal(HALF_HOUR_TIMES.length, 48);
-  assert.equal(HALF_HOUR_TIMES[0], "00:00");
-  assert.equal(HALF_HOUR_TIMES[1], "00:30");
-  assert.equal(HALF_HOUR_TIMES.at(-1), "23:30");
-  for (const time of HALF_HOUR_TIMES.slice(0, -1)) {
-    assert.ok(!("error" in parse({ start_time: time, end_time: "23:30" })), time);
+test("every hour slot in a day is offered, and only those", () => {
+  assert.equal(HOUR_TIMES.length, 24);
+  assert.equal(HOUR_TIMES[0], "00:00");
+  assert.equal(HOUR_TIMES[1], "01:00");
+  assert.equal(HOUR_TIMES.at(-1), "23:00");
+  for (const time of HOUR_TIMES.slice(0, -1)) {
+    assert.ok(!("error" in parse({ start_time: time, end_time: "23:00" })), time);
   }
 });
 
-test("a half-hour slot renders as a 12-hour label", () => {
+test("a time renders as a 12-hour label", () => {
   assert.equal(formatTimeLabel("00:00"), "12:00 AM");
   assert.equal(formatTimeLabel("06:30"), "6:30 AM");
   assert.equal(formatTimeLabel("12:00"), "12:00 PM");
@@ -120,7 +120,7 @@ test("a half-hour slot renders as a 12-hour label", () => {
 test("a Booking cannot end before it starts, or at the moment it starts", () => {
   // The database refuses this too. Catching it here is what turns a raw
   // constraint violation into a sentence about the form the User just filled in.
-  assert.ok("error" in parse({ start_time: "19:30", end_time: "18:00" }));
+  assert.ok("error" in parse({ start_time: "19:00", end_time: "18:00" }));
   assert.ok("error" in parse({ end_time: "18:00" }));
 });
 

@@ -11,15 +11,15 @@
  */
 
 import {
-  HALF_HOUR_TIMES,
+  HOUR_TIMES,
   formatInstantRange,
   formatTimeLabel,
-  isHalfHourTime,
+  isHourTime,
   isRealDate,
 } from "./datetime.ts";
 import { isBookingFormat, type BookingFormat } from "./capacity.ts";
 
-export { HALF_HOUR_TIMES, formatTimeLabel };
+export { HOUR_TIMES, formatTimeLabel };
 
 export const COURT_LABEL_MAX_LENGTH = 40;
 
@@ -62,7 +62,7 @@ export function parseNewBooking(
   const startTime = String(formData.get("start_time") ?? "").trim();
   const endTime = String(formData.get("end_time") ?? "").trim();
 
-  if (!isHalfHourTime(startTime) || !isHalfHourTime(endTime)) {
+  if (!isHourTime(startTime) || !isHourTime(endTime)) {
     return { error: "Pick a start and end time." };
   }
 

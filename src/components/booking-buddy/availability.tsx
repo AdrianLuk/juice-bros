@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
-import { HALF_HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/datetime";
+import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/datetime";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   createAvailabilityWindow,
@@ -33,8 +33,8 @@ function ActionError({ state }: { state: ActionResult }) {
   );
 }
 
-/** Half-hour slots only, same reasoning and picker as `CreateBookingForm`'s own — courts and calendars alike are read off in half-hour chunks, not whatever a free-typed time lands on. */
-function HalfHourTimeSelect({
+/** On-the-hour slots only, same reasoning and picker as `CreateBookingForm`'s own — courts and calendars alike are read off in hour-long chunks, not whatever a free-typed time lands on. */
+function HourTimeSelect({
   id,
   name,
   defaultValue,
@@ -45,7 +45,7 @@ function HalfHourTimeSelect({
 }) {
   return (
     <FormSelect id={id} name={name} defaultValue={defaultValue} required>
-      {HALF_HOUR_TIMES.map((time) => (
+      {HOUR_TIMES.map((time) => (
         <option key={time} value={time}>
           {formatTimeLabel(time)}
         </option>
@@ -95,7 +95,7 @@ export function CreateAvailabilityWindowForm() {
           <>
             <div className="flex min-w-0 flex-col gap-1.5">
               <Label htmlFor="availability-start-time">Start time</Label>
-              <HalfHourTimeSelect
+              <HourTimeSelect
                 id="availability-start-time"
                 name="start_time"
                 defaultValue="18:00"
@@ -104,7 +104,7 @@ export function CreateAvailabilityWindowForm() {
 
             <div className="flex min-w-0 flex-col gap-1.5">
               <Label htmlFor="availability-end-time">End time</Label>
-              <HalfHourTimeSelect
+              <HourTimeSelect
                 id="availability-end-time"
                 name="end_time"
                 defaultValue="21:00"

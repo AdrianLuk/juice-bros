@@ -6,7 +6,7 @@
  * `orgs`/`slots` migration — change one and you must change the other.
  */
 
-import { isHalfHourTime } from "./datetime.ts";
+import { isHourTime } from "./datetime.ts";
 import { formatTimeLabel } from "./bookings.ts";
 
 export const MIN_BOOKING_WINDOW_DAYS_BEFORE = 0;
@@ -63,8 +63,8 @@ export function parseBookingWindow(
     };
   }
 
-  if (!isHalfHourTime(rawTime)) {
-    return { error: "Pick a time on the half hour." };
+  if (!isHourTime(rawTime)) {
+    return { error: "Pick a time on the hour." };
   }
 
   return { orgId, window: { daysBefore, time: rawTime } };

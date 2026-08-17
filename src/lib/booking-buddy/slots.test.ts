@@ -6,7 +6,7 @@ import { formatSlotWhen, parseNewSlotProposal, slotWriteMessage } from "./slots.
 const VALID = {
   date: "2026-08-20",
   start_time: "09:00",
-  end_time: "10:30",
+  end_time: "10:00",
 };
 
 // Fixed rather than `new Date()`, so "2026-08-20" stays a valid future date
@@ -34,7 +34,7 @@ test("a date and a window become a bare-proposal Slot, defaulted to Toronto", ()
   assert.deepEqual(parse(), {
     date: "2026-08-20",
     startTime: "09:00",
-    endTime: "10:30",
+    endTime: "10:00",
     timeZone: "America/Toronto",
   });
 });
@@ -55,14 +55,14 @@ test("a date that isn't a date is refused", () => {
   }
 });
 
-test("a time off the half-hour grid is refused", () => {
-  for (const time of ["09:15", "09:45"]) {
+test("a time off the hour grid is refused", () => {
+  for (const time of ["09:30", "09:15", "09:45"]) {
     assert.ok("error" in parse({ start_time: time }), `${time} should be refused`);
   }
 });
 
 test("a Slot cannot end before it starts, or at the moment it starts", () => {
-  assert.ok("error" in parse({ start_time: "10:30", end_time: "09:00" }));
+  assert.ok("error" in parse({ start_time: "10:00", end_time: "09:00" }));
   assert.ok("error" in parse({ end_time: "09:00" }));
 });
 
@@ -83,7 +83,7 @@ test("the past-date check reads the date in the resolved zone, not UTC", () => {
   assert.ok(
     !(
       "error" in
-      parse({ date: "2026-07-31", start_time: "23:00", end_time: "23:30" }, earlyUtc)
+      parse({ date: "2026-07-31", start_time: "22:00", end_time: "23:00" }, earlyUtc)
     ),
   );
 });

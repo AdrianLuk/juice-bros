@@ -11,7 +11,7 @@
 import {
   clockInZone,
   formatTimeLabel,
-  isHalfHourTime,
+  isHourTime,
   isRealDate,
   previousCalendarDate,
   todayInZone,
@@ -113,7 +113,7 @@ function clamp(ms: number, min: number, max: number): number {
  *
  * Implemented as a plain sweep over every interval's own start/end (clamped
  * into range) rather than a fixed sampling grid, so a change that lands
- * between two half-hour marks is never missed and no interval is ever split
+ * between two hour marks is never missed and no interval is ever split
  * more finely than its own boundaries require.
  */
 export function resolveAvailabilitySegments({
@@ -180,7 +180,7 @@ export type NewAvailabilityWindow = {
   /** Both inclusive, `YYYY-MM-DD` — a whole week off is one window, `fromDate` through `toDate` (CONTEXT.md). */
   fromDate: string;
   toDate: string;
-  /** `null` for both means all day — `fromDate`'s zone-local midnight through the day after `toDate`'s. Otherwise `startTime` lands on `fromDate` and `endTime` on `toDate`, same shape as a Booking's own half-hour picker. */
+  /** `null` for both means all day — `fromDate`'s zone-local midnight through the day after `toDate`'s. Otherwise `startTime` lands on `fromDate` and `endTime` on `toDate`, same shape as a Booking's own hour picker. */
   startTime: string | null;
   endTime: string | null;
 };
@@ -224,7 +224,7 @@ export function parseNewAvailabilityWindow(
   const startTime = String(formData.get("start_time") ?? "").trim();
   const endTime = String(formData.get("end_time") ?? "").trim();
 
-  if (!isHalfHourTime(startTime) || !isHalfHourTime(endTime)) {
+  if (!isHourTime(startTime) || !isHourTime(endTime)) {
     return { error: "Pick a start and end time, or mark it all day." };
   }
 
