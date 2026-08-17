@@ -30,6 +30,7 @@ export function FeaturedEpisode({ video }: { video: YoutubeVideo }) {
             src={hostPhoto}
             alt=""
             aria-hidden
+            loading="lazy"
             className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-30"
           />
           <div
