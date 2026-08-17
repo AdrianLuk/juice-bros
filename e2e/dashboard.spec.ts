@@ -7,7 +7,7 @@ import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/a
 /**
  * The dashboard calendar (issue #23) — Month/Week/Agenda toggling, a
  * Booking's popover + confirm-before-remove, click-a-day-to-Week, the
- * quick-add sheet, and Availability rendering with ADR 0006's "Booking
+ * quick-add dialog/sheet, and Availability rendering with ADR 0006's "Booking
  * always wins" precedence proven in the browser, not just the resolver
  * (that half is availability.test.ts's).
  *
@@ -125,7 +125,7 @@ test("clicking a Month day switches to Week view centered on that day", async ({
   await expect(page.getByText("Aug 23 – 29, 2026")).toBeVisible();
 });
 
-test("the quick-add sheet logs a Booking without leaving the dashboard", async ({ page }) => {
+test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
   const place = placeName();
   await addPlace(page, place);
 
@@ -135,7 +135,7 @@ test("the quick-add sheet logs a Booking without leaving the dashboard", async (
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("Sheet Court");
+  await page.getByLabel("Court").fill("Dialog Court");
   await page.getByLabel("Date").fill("2026-08-20");
   // Exact matches: the calendar's own "Calendar view" toggle group label
   // fuzzy-matches "End" as a substring ("cal-END-ar"), and is also on this page.
@@ -143,11 +143,42 @@ test("the quick-add sheet logs a Booking without leaving the dashboard", async (
   await page.getByLabel("End", { exact: true }).selectOption("17:00");
   await page.getByRole("button", { name: "Log booking" }).click();
 
+  // A successful save closes the dialog itself — no manual "Close" needed.
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
   await expect(page.getByText("Aug 20, 2026")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Dialog Court/ })).toBeVisible();
   await expect(page).toHaveURL(/\/booking-buddy$/);
 
-  await page.getByRole("button", { name: "Close" }).click();
-  await expect(page.getByRole("button", { name: /Sheet Court/ })).toBeVisible();
+  await removePlace(page, place);
+});
+
+test("an invalid quick-add booking keeps the dialog open with the entered values intact", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy");
+
+  await page.getByRole("button", { name: "Add booking" }).click();
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
+
+  await page.getByLabel("Facility").selectOption({ label: place });
+  await page.getByLabel("Court").fill("Backwards Court");
+  await page.getByLabel("Date").fill("2026-08-20");
+  await page.getByLabel("Start", { exact: true }).selectOption("17:00");
+  await page.getByLabel("End", { exact: true }).selectOption("16:00");
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  // Refused (end before start) — the dialog stays open, and every field the
+  // User entered is still there to correct, not wiped back to blank.
+  await expect(
+    page.getByRole("alert").filter({ hasText: "after the start time" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
+  await expect(page.getByLabel("Court")).toHaveValue("Backwards Court");
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("17:00");
+  await expect(page.getByLabel("End", { exact: true })).toHaveValue("16:00");
 
   await removePlace(page, place);
 });
