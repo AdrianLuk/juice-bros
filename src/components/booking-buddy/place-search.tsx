@@ -55,7 +55,7 @@ export function SearchPlaceForm() {
             {pending ? "Searching…" : "Search"}
           </Button>
           {state.error && (
-            <p className="text-xs text-red-600" role="alert">
+            <p className="text-xs text-destructive" role="alert">
               {state.error}
             </p>
           )}
@@ -96,7 +96,7 @@ function PlaceCandidateRow({ candidate }: { candidate: PlaceCandidate }) {
           {pending ? "Adding…" : "Add this place"}
         </Button>
         {state.error && (
-          <p className="text-xs text-red-600" role="alert">
+          <p className="text-xs text-destructive" role="alert">
             {state.error}
           </p>
         )}

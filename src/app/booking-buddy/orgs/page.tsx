@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ChevronDownIcon } from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { CreateOrgForm, OrgRow } from "@/components/booking-buddy/orgs";
 import { SearchPlaceForm } from "@/components/booking-buddy/place-search";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
@@ -45,9 +46,10 @@ export default async function OrgsPage() {
                 <SearchPlaceForm />
               </div>
 
-              <details className="mt-6 rounded-lg border border-border">
-                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+              <details className="group mt-6 overflow-hidden rounded-lg border border-border">
+                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
                   Can&apos;t find your club?
+                  <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="border-t border-border px-4 py-4">
                   <p className="text-sm text-muted-foreground">
@@ -73,7 +75,7 @@ export default async function OrgsPage() {
               </h2>
 
               {orgs.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
                   Nothing here yet. Add the club you play at and you can start
                   logging court bookings.
                 </p>
@@ -87,17 +89,12 @@ export default async function OrgsPage() {
             </section>
           </div>
 
-          <p className="mt-14 flex gap-4 text-sm">
-            <Link href={BOOKINGS_PATH} className="underline underline-offset-4">
-              Your bookings
-            </Link>
-            <Link
-              href={BOOKING_BUDDY_ROOT}
-              className="underline underline-offset-4"
-            >
+          <FooterNav>
+            <FooterLink href={BOOKINGS_PATH}>Your bookings</FooterLink>
+            <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>

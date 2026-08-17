@@ -25,7 +25,7 @@ function ActionError({ state }: { state: ActionResult }) {
   }
 
   return (
-    <p className="text-xs text-red-600" role="alert">
+    <p className="text-xs text-destructive" role="alert">
       {state.error}
     </p>
   );
@@ -109,7 +109,7 @@ export function NotificationPreferencesForm({
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {state.error}
         </p>
       )}
@@ -159,7 +159,7 @@ export function BookingWindowPreferenceForm({
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {state.error}
         </p>
       )}

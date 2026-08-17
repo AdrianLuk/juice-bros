@@ -4,6 +4,7 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { CreateSlotForm, SlotRow } from "@/components/booking-buddy/slots";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listSlots } from "@/lib/booking-buddy/actions/slots";
 import { BOOKING_BUDDY_ROOT, slotPath } from "@/lib/booking-buddy/routes";
@@ -47,7 +48,7 @@ export default async function SlotsPage() {
                 Your slots
               </h2>
               {own.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
                   Nothing posted yet.
                 </p>
               ) : (
@@ -64,7 +65,7 @@ export default async function SlotsPage() {
                 From your friends
               </h2>
               {friends.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
                   Nothing here yet — this fills up once a friend with{" "}
                   <Link href="/booking-buddy/groups" className="underline underline-offset-4">
                     Slot Visibility into you
@@ -81,11 +82,11 @@ export default async function SlotsPage() {
             </section>
           </div>
 
-          <p className="mt-14">
-            <Link href={BOOKING_BUDDY_ROOT} className="text-sm underline underline-offset-4">
+          <FooterNav>
+            <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>
