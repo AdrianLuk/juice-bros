@@ -20,10 +20,10 @@ export function MeetTheBros() {
       </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        {team.map((member, index) => (
+        {team.map((member) => (
           <div
             key={member.name}
-            className={`flex flex-col gap-2 rounded-[1.5rem] bg-card p-7 shadow-brand ${index % 2 === 1 ? "sm:mt-6" : ""}`}
+            className="flex flex-col gap-2 rounded-[1.5rem] bg-card p-7 shadow-brand"
           >
             <div className="flex items-baseline justify-between gap-2">
               <p className="font-heading text-xl font-bold">{member.name}</p>
