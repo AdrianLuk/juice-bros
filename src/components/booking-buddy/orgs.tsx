@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ORG_NAME_MAX_LENGTH } from "@/lib/booking-buddy/orgs";
 import {
-  MAX_BOOKING_WINDOW_DAYS_BEFORE,
-  MIN_BOOKING_WINDOW_DAYS_BEFORE,
+  BOOKING_WINDOW_DAYS_OPTIONS,
   bookingWindowLabel,
+  daysBeforeOptionLabel,
 } from "@/lib/booking-buddy/booking-window";
 import { HALF_HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
@@ -137,19 +137,21 @@ function BookingWindowForm({ org }: { org: Org }) {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex items-center gap-2">
-          <Input
+          <FormSelect
             id={`booking-window-days-${org.id}`}
             name="booking_window_days_before"
-            type="number"
-            min={MIN_BOOKING_WINDOW_DAYS_BEFORE}
-            max={MAX_BOOKING_WINDOW_DAYS_BEFORE}
-            step={1}
             defaultValue={org.bookingWindow?.daysBefore ?? ""}
-            placeholder="Days"
-            className="w-20 bg-background"
+            className="w-auto bg-background"
             aria-label="Days before"
-          />
-          <span className="text-sm text-muted-foreground">days before, at</span>
+          >
+            <option value="">—</option>
+            {BOOKING_WINDOW_DAYS_OPTIONS.map((days) => (
+              <option key={days} value={days}>
+                {daysBeforeOptionLabel(days)}
+              </option>
+            ))}
+          </FormSelect>
+          <span className="text-sm text-muted-foreground">at</span>
           <FormSelect
             name="booking_window_time"
             defaultValue={org.bookingWindow?.time ?? ""}
