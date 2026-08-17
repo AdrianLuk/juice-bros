@@ -33,6 +33,8 @@ export type Org = {
   timeZone: string;
   /** When this facility opens court bookings, if the owner has said (issue #36). */
   bookingWindow: BookingWindow | null;
+  /** Pre-selects this Org in the Booking form (issue #47). At most one per owner. */
+  isDefault: boolean;
   createdAt: string;
 };
 
@@ -51,7 +53,7 @@ export async function listOrgs(): Promise<Org[]> {
   const { data: rows, error } = await supabase
     .from("orgs")
     .select(
-      "id, google_place_id, name, time_zone, booking_window_days_before, booking_window_time, created_at",
+      "id, google_place_id, name, time_zone, booking_window_days_before, booking_window_time, is_default, created_at",
     )
     .order("created_at", { ascending: false });
 
@@ -128,6 +130,7 @@ export async function listOrgs(): Promise<Org[]> {
         row.booking_window_days_before !== null && row.booking_window_time !== null
           ? { daysBefore: row.booking_window_days_before, time: row.booking_window_time }
           : null,
+      isDefault: row.is_default,
       createdAt: row.created_at,
     };
   });
@@ -240,5 +243,53 @@ export async function updateBookingWindow(
   }
 
   revalidatePath(ORGS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Make one Org the Booking form's default pick (issue #47).
+ *
+ * Two updates, in this order on purpose: clearing every other default first
+ * and only then setting this one means `orgs_one_default_per_owner` never
+ * sees two defaults at once. Flipping both in a single statement can't offer
+ * that guarantee — which row the database visits first isn't something this
+ * code gets to pick, and visiting the new default before the old one is
+ * cleared trips the same unique index this is trying to satisfy.
+ */
+export async function setDefaultFacility(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const orgId = String(formData.get("org_id") ?? "");
+
+  if (!orgId) {
+    return { error: "Pick a place to set as default." };
+  }
+
+  const supabase = await createClient();
+
+  const { error: clearError } = await supabase
+    .from("orgs")
+    .update({ is_default: false })
+    .eq("owner_id", session.userId)
+    .eq("is_default", true);
+
+  if (clearError) {
+    return { error: "Couldn't set that default. Try again." };
+  }
+
+  const { data, error } = await supabase
+    .from("orgs")
+    .update({ is_default: true })
+    .eq("id", orgId)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't set that default. Try again." };
+  }
+
+  revalidatePath(ORGS_PATH);
+  revalidatePath(BOOKINGS_PATH);
   return { ok: true };
 }
