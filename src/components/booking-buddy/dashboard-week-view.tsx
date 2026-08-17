@@ -9,7 +9,7 @@ import {
   type AvailabilityWindow,
   type BusyInterval,
 } from "@/lib/booking-buddy/availability";
-import { formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 import { DashboardBookingPopover } from "@/components/booking-buddy/dashboard-booking-popover";
 import { DashboardAvailabilityBlock } from "@/components/booking-buddy/dashboard-availability-block";
@@ -275,7 +275,7 @@ function DayColumn({
             <p className="truncate opacity-90">
               {formatTimeLabelFromMs(start)} – {formatTimeLabelFromMs(end)}
             </p>
-            <p className="truncate opacity-90">Court {booking.courtLabel}</p>
+            <p className="truncate opacity-90">{formatCourtLabel(booking.courtLabel)}</p>
           </DashboardBookingPopover>
         );
       })}

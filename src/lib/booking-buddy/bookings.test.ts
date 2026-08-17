@@ -6,6 +6,7 @@ import {
   HOUR_TIMES,
   bookingWriteMessage,
   formatBookingWhen,
+  formatCourtLabel,
   formatTimeLabel,
   parseNewBooking,
 } from "./bookings.ts";
@@ -66,10 +67,23 @@ test("a Booking with no Org is refused", () => {
   assert.ok("error" in parse({ org_id: "" }));
 });
 
-test("a blank court label is refused", () => {
+test("a court is optional — a blank or omitted label becomes null, not an error", () => {
   for (const court_label of ["", "   "]) {
-    assert.ok("error" in parse({ court_label }));
+    const parsed = parse({ court_label });
+    assert.ok(!("error" in parsed));
+    assert.equal(parsed.courtLabel, null);
   }
+
+  const withoutCourt = { ...VALID };
+  delete (withoutCourt as Partial<typeof VALID>).court_label;
+  const parsed = parseNewBooking(form(withoutCourt));
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.courtLabel, null);
+});
+
+test("a court label renders as 'Court <label>', and a missing one as a plain fallback", () => {
+  assert.equal(formatCourtLabel("3"), "Court 3");
+  assert.equal(formatCourtLabel(null), "No court noted");
 });
 
 test("an over-long court label is refused before the database has to", () => {

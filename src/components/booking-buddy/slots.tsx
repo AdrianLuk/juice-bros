@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
-import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import {
   BOOKING_FORMAT_LABEL,
   MAX_ROTATION_BUFFER,
@@ -376,7 +376,7 @@ export function SlotCourts({
               <div className="min-w-0">
                 <p className="truncate font-medium">{booking.when}</p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {booking.orgName} · {booking.courtLabel} ·{" "}
+                  {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
                   {BOOKING_FORMAT_LABEL[booking.format]}
                 </p>
               </div>
@@ -423,7 +423,7 @@ function AttachBookingForm({
           </option>
           {capacity.attachable.map((booking) => (
             <option key={booking.id} value={booking.id}>
-              {booking.when} — {booking.orgName} · {booking.courtLabel} ·{" "}
+              {booking.when} — {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
               {BOOKING_FORMAT_LABEL[booking.format]}
             </option>
           ))}
