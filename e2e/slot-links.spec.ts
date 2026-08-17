@@ -44,7 +44,7 @@ test("the owner can create an invite link and a guest can RSVP through it with n
   const slotId = await createSlot(page, {
     date: "2031-04-04",
     start: "18:00",
-    end: "19:30",
+    end: "19:00",
     label: "Apr 4, 2031",
   });
 
@@ -89,7 +89,7 @@ test("generating an invite link twice reuses the same one", async ({ page }) => 
   const slotId = await createSlot(page, {
     date: "2031-04-05",
     start: "09:00",
-    end: "10:30",
+    end: "10:00",
     label: "Apr 5, 2031",
   });
 

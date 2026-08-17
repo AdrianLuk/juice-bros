@@ -8,7 +8,7 @@
 import { isKnownTimeZone } from "./timezone.ts";
 import {
   formatInstantRange,
-  isHalfHourTime,
+  isHourTime,
   isPastDate,
   isRealDate,
 } from "./datetime.ts";
@@ -40,7 +40,7 @@ export function parseNewSlotProposal(
   const startTime = String(formData.get("start_time") ?? "").trim();
   const endTime = String(formData.get("end_time") ?? "").trim();
 
-  if (!isHalfHourTime(startTime) || !isHalfHourTime(endTime)) {
+  if (!isHourTime(startTime) || !isHourTime(endTime)) {
     return { error: "Pick a start and end time." };
   }
 

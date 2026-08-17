@@ -85,7 +85,7 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   const slotId = await createSlot(page, {
     date: "2031-03-03",
     start: "13:00",
-    end: "14:30",
+    end: "14:00",
     label: "Mar 3, 2031",
   });
 
@@ -107,7 +107,7 @@ test("a slot cannot be posted for a date that's already passed", async ({ page }
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2020-01-01");
   await page.getByLabel("Start").selectOption("13:00");
-  await page.getByLabel("End").selectOption("14:30");
+  await page.getByLabel("End").selectOption("14:00");
   await page.getByRole("button", { name: "Post slot" }).click();
 
   await expect(
@@ -207,14 +207,14 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     court: "Court 7",
     date: "2031-07-07",
     start: "09:00",
-    end: "10:30",
+    end: "10:00",
   });
   await logBooking(page, {
     place,
     court: "Court 8",
     date: "2031-07-07",
     start: "09:00",
-    end: "10:30",
+    end: "10:00",
     format: "Singles",
   });
   // The inserts have to land before the next navigation, or the picker this
@@ -225,7 +225,7 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
   const slotId = await createSlot(page, {
     date: "2031-07-07",
     start: "09:00",
-    end: "10:30",
+    end: "10:00",
     label: "Jul 7, 2031",
   });
 

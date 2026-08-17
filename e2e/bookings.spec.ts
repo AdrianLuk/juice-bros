@@ -58,14 +58,14 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
     court: "Court 3",
     date: "2026-09-15",
     start: "18:00",
-    end: "19:30",
+    end: "19:00",
   });
 
   const booking = row(page, "Court 3");
   await expect(booking).toContainText(place);
   await expect(booking).toContainText("Sep 15, 2026");
   await expect(booking).toContainText("6:00");
-  await expect(booking).toContainText("7:30");
+  await expect(booking).toContainText("7:00");
 
   // Removing the place takes the booking with it — the cascade is in the
   // schema, and this is the only place it gets clicked.
@@ -82,7 +82,7 @@ test("a booking cannot end before it starts", async ({ page }) => {
     place,
     court: "Backwards court",
     date: "2026-09-15",
-    start: "19:30",
+    start: "19:00",
     end: "18:00",
   });
 
@@ -159,7 +159,7 @@ test("another User sees none of it", async ({ page, browser }) => {
     court: "Private court",
     date: "2026-09-15",
     start: "18:00",
-    end: "19:30",
+    end: "19:00",
   });
   await expect(row(page, "Private court")).toBeVisible();
 

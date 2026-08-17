@@ -1,5 +1,5 @@
 /**
- * Date/half-hour-time parsing and formatting shared by anything that asks a
+ * Date/hour-time parsing and formatting shared by anything that asks a
  * User to pick a calendar date and a court-style time — currently Bookings
  * and Slots. Split out of `bookings.ts` when Slots needed the same rules
  * (issue #8), rather than a second copy of the regexes drifting from it.
@@ -10,10 +10,10 @@
 import { isKnownTimeZone } from "./timezone.ts";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-// Half-hour boundaries only. Courts are booked in half-hour chunks, not
+// On-the-hour boundaries only. Courts are booked in hour-long chunks, not
 // whatever a free-typed or click-dragged time picker happens to land on — a
 // "6:23 PM" reservation isn't a real one anyone could have made.
-const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):00$/;
 
 /** A calendar date, not merely four digits and two hyphens. */
 export function isRealDate(date: string): boolean {
@@ -29,7 +29,7 @@ export function isRealDate(date: string): boolean {
   );
 }
 
-export function isHalfHourTime(time: string): boolean {
+export function isHourTime(time: string): boolean {
   return TIME_PATTERN.test(time);
 }
 
@@ -94,15 +94,14 @@ export function isPastDate(date: string, zone: string, now: Date): boolean {
 }
 
 /**
- * Every half-hour slot in a day, `"00:00"` through `"23:30"` — what a start
+ * Every on-the-hour slot in a day, `"00:00"` through `"23:00"` — what a start
  * or end picker offers. A `<select>` rather than `<input type="time">` so a
- * User physically cannot choose anything off the half-hour grid; the pattern
+ * User physically cannot choose anything off the hour grid; the pattern
  * above is the server-side backstop for a request built by hand.
  */
-export const HALF_HOUR_TIMES: readonly string[] = Array.from(
-  { length: 48 },
-  (_, index) =>
-    `${String(Math.floor(index / 2)).padStart(2, "0")}:${index % 2 === 0 ? "00" : "30"}`,
+export const HOUR_TIMES: readonly string[] = Array.from(
+  { length: 24 },
+  (_, index) => `${String(index).padStart(2, "0")}:00`,
 );
 
 /** `"18:30"` → `"6:30 PM"`, for the option labels — the value posted is still 24-hour. */

@@ -52,8 +52,8 @@ export async function logBooking(
   await page.getByLabel("Facility").selectOption({ label: booking.place });
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
-  // Half-hour slots only (issue #20 follow-up) — these are `<select>`s now,
-  // not free-typed times, so a value off the half-hour grid isn't reachable.
+  // On-the-hour slots only (issue #20 follow-up) — these are `<select>`s now,
+  // not free-typed times, so a value off the hour grid isn't reachable.
   await page.getByLabel("Start").selectOption(booking.start);
   await page.getByLabel("End").selectOption(booking.end);
   if (booking.format) {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
-import { HALF_HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import {
   BOOKING_FORMAT_LABEL,
   MAX_ROTATION_BUFFER,
@@ -43,7 +43,7 @@ function ActionError({ state }: { state: ActionResult }) {
   );
 }
 
-function HalfHourTimeSelect({
+function HourTimeSelect({
   id,
   name,
   defaultValue,
@@ -54,7 +54,7 @@ function HalfHourTimeSelect({
 }) {
   return (
     <FormSelect id={id} name={name} defaultValue={defaultValue} required>
-      {HALF_HOUR_TIMES.map((time) => (
+      {HOUR_TIMES.map((time) => (
         <option key={time} value={time}>
           {formatTimeLabel(time)}
         </option>
@@ -76,12 +76,12 @@ export function CreateSlotForm() {
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-start">Start</Label>
-          <HalfHourTimeSelect id="slot-start" name="start_time" defaultValue="09:00" />
+          <HourTimeSelect id="slot-start" name="start_time" defaultValue="09:00" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-end">End</Label>
-          <HalfHourTimeSelect id="slot-end" name="end_time" defaultValue="10:30" />
+          <HourTimeSelect id="slot-end" name="end_time" defaultValue="10:00" />
         </div>
       </div>
 
