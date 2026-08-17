@@ -24,10 +24,16 @@ export function SiteHeader() {
   // space. Let it scroll away instead of staying pinned there.
   const isPicklePointPal = pathname?.startsWith("/tools/pickle-point-pal") ?? false;
 
+  // The homepage hero is full-bleed behind the nav, so the bar needs to sit
+  // outside document flow there instead of reserving its own row - every
+  // other page keeps it sticky so page headings aren't tucked underneath it.
+  const isHome = pathname === "/";
+
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex w-full justify-center px-3 pt-3 sm:px-4 sm:pt-4",
+        "z-40 flex w-full justify-center px-3 pt-3 sm:px-4 sm:pt-4",
+        isHome ? "fixed top-0" : "sticky top-0",
         isPicklePointPal &&
           "landscape-short:static tablet-width:static ref-landscape:static"
       )}
