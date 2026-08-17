@@ -167,7 +167,7 @@ export function DeleteAvailabilityWindowButton({ windowId }: { windowId: string 
   return (
     <form action={formAction} className="flex shrink-0 flex-col items-end gap-1">
       <input type="hidden" name="window_id" value={windowId} />
-      <Button type="submit" variant="ghost" size="sm" disabled={pending}>
+      <Button type="submit" variant="destructive" size="sm" disabled={pending}>
         {pending ? "Removing…" : "Remove"}
       </Button>
       <ActionError state={state} />
