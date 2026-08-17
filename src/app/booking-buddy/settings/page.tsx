@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
@@ -9,6 +8,7 @@ import {
   NotificationPreferencesForm,
 } from "@/components/booking-buddy/reminders";
 import { PushNotificationsForm } from "@/components/booking-buddy/push-notifications";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
@@ -53,14 +53,11 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <p className="mt-14 text-sm">
-            <Link
-              href={BOOKING_BUDDY_ROOT}
-              className="underline underline-offset-4"
-            >
+          <FooterNav>
+            <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>

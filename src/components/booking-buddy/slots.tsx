@@ -37,7 +37,7 @@ function ActionError({ state }: { state: ActionResult }) {
   }
 
   return (
-    <p className="text-xs text-red-600" role="alert">
+    <p className="text-xs text-destructive" role="alert">
       {state.error}
     </p>
   );
@@ -238,7 +238,7 @@ export function ResponseButtons({
         ))}
       </div>
       {mutation.isError && (
-        <p className="mt-1 text-xs text-red-600" role="alert">
+        <p className="mt-1 text-xs text-destructive" role="alert">
           {mutation.error instanceof Error
             ? mutation.error.message
             : "Couldn't save that response."}
@@ -330,7 +330,7 @@ export function SlotCapacityPanel({
 
       {over && isOwner && (
         <p
-          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm"
+          className="rounded-lg border border-accent-foreground/25 bg-accent/25 px-4 py-3 text-sm"
           role="status"
         >
           More yeses than spots. Nobody has been turned away — book another
@@ -473,7 +473,10 @@ function RotationBufferForm({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="rotation-buffer">Rotation buffer</Label>
+        {/* Keyed on the saved value so a successful save remounts the
+            field — see the note on BookingWindowForm in orgs.tsx. */}
         <Input
+          key={rotationBuffer}
           id="rotation-buffer"
           name="rotation_buffer"
           type="number"

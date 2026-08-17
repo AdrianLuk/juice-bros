@@ -135,7 +135,7 @@ export function DashboardMonthView({
                     <button
                       type="button"
                       onClick={() => onDayClick(day)}
-                      className="truncate rounded-sm px-1 py-0.5 text-left text-[10px] text-muted-foreground hover:text-foreground hover:underline"
+                      className="truncate rounded-sm px-1 py-0.5 text-left text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
                       +{overflow} more
                     </button>

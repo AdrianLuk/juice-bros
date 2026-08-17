@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
@@ -12,6 +11,7 @@ import {
 import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
 import { ReminderOffsetForm } from "@/components/booking-buddy/reminders";
 import { IntendedOrgForm } from "@/components/booking-buddy/booking-window";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
@@ -148,11 +148,11 @@ export default async function SlotDetailPage({
             </section>
           </div>
 
-          <p className="mt-14">
-            <Link href={SLOTS_PATH} className="text-sm underline underline-offset-4">
+          <FooterNav>
+            <FooterLink href={SLOTS_PATH} back>
               Back to slots
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>

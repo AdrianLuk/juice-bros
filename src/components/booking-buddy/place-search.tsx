@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { MapPinIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,7 @@ const EMPTY_RESULT: ActionResult = {};
  * list (`OrgRow` in `orgs.tsx`). Not optional; it's a term of the API key.
  */
 export function PoweredByGoogle() {
-  return <p className="text-xs text-muted-foreground">Powered by Google</p>;
+  return <p className="text-[11px] text-muted-foreground/70">Powered by Google</p>;
 }
 
 /**
@@ -42,7 +43,12 @@ export function SearchPlaceForm() {
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label htmlFor="place-query">Search for your club</Label>
+          {/* Keyed on the query so a completed search remounts the field —
+              it's uncontrolled (`defaultValue`), which only applies on
+              mount, and `state.query` can come back trimmed/normalized from
+              the server, different from what's still sitting in the DOM. */}
           <Input
+            key={state.query}
             id="place-query"
             name="query"
             defaultValue={state.query}
@@ -55,7 +61,7 @@ export function SearchPlaceForm() {
             {pending ? "Searching…" : "Search"}
           </Button>
           {state.error && (
-            <p className="text-xs text-red-600" role="alert">
+            <p className="text-xs text-destructive" role="alert">
               {state.error}
             </p>
           )}
@@ -80,12 +86,17 @@ function PlaceCandidateRow({ candidate }: { candidate: PlaceCandidate }) {
   const [state, formAction, pending] = useActionState(pickPlace, EMPTY_RESULT);
 
   return (
-    <li className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <p className="truncate font-medium">{candidate.name}</p>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {candidate.formattedAddress}
-        </p>
+    <li className="flex flex-col gap-2 px-5 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-accent/25 text-accent-foreground/70">
+          <MapPinIcon className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-medium">{candidate.name}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {candidate.formattedAddress}
+          </p>
+        </div>
       </div>
       <form
         action={formAction}
@@ -96,7 +107,7 @@ function PlaceCandidateRow({ candidate }: { candidate: PlaceCandidate }) {
           {pending ? "Adding…" : "Add this place"}
         </Button>
         {state.error && (
-          <p className="text-xs text-red-600" role="alert">
+          <p className="text-xs text-destructive" role="alert">
             {state.error}
           </p>
         )}

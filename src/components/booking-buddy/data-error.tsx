@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { CircleAlertIcon } from "lucide-react";
 
 import { PageHeading } from "@/components/typography/page-heading";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,10 @@ export function DataError({
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
+          <div className="mb-4 inline-flex size-10 items-center justify-center rounded-md bg-destructive/10 text-destructive">
+            <CircleAlertIcon className="size-5" />
+          </div>
+
           <PageHeading eyebrow="Booking Buddy" title={title} description={description} />
 
           <div className="mt-8 flex items-center gap-3">
