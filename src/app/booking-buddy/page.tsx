@@ -5,6 +5,7 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
+import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
 
@@ -21,6 +22,7 @@ export default async function BookingBuddyPage() {
   await verifySession();
 
   const { orgs, bookings, availabilityWindows } = await getDashboardPageData();
+  const now = new Date();
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -44,7 +46,13 @@ export default async function BookingBuddyPage() {
               availabilityWindows={availabilityWindows}
               orgs={orgs}
             />
-            <UpcomingBookingsSidebar bookings={bookings} now={new Date()} />
+            <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-72">
+              <UpcomingBookingsSidebar bookings={bookings} now={now} />
+              <DashboardAvailabilitySidebar
+                windows={availabilityWindows}
+                now={now}
+              />
+            </aside>
           </div>
         </div>
       </section>

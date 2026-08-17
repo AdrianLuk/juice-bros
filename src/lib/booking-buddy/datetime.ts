@@ -33,9 +33,50 @@ export function isHalfHourTime(time: string): boolean {
   return TIME_PATTERN.test(time);
 }
 
+/**
+ * `date` shifted by `deltaDays` calendar days — UTC-based like `isRealDate`'s
+ * own round-trip check, since this is calendar-day arithmetic on a date-only
+ * string, not an instant.
+ */
+function shiftCalendarDate(date: string, deltaDays: number): string {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  parsed.setUTCDate(parsed.getUTCDate() + deltaDays);
+  return parsed.toISOString().slice(0, 10);
+}
+
+/** Turns an inclusive "last day" a User picked into the exclusive end an `availability_windows` row actually stores. */
+export function nextCalendarDate(date: string): string {
+  return shiftCalendarDate(date, 1);
+}
+
+/** The inverse of `nextCalendarDate` — turns a stored exclusive end back into the inclusive last day to display. */
+export function previousCalendarDate(date: string): string {
+  return shiftCalendarDate(date, -1);
+}
+
 /** "Today" as a `YYYY-MM-DD` string in `zone`, at instant `now` — `en-CA` happens to format that way natively. */
 export function todayInZone(zone: string, now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);
+}
+
+/**
+ * The zone-local time of day for `at`, as a zero-padded 24-hour `"HH:MM"` —
+ * `todayInZone`'s time-of-day counterpart, used to tell an all-day
+ * Availability Window (zone-local midnight to zone-local midnight) apart from
+ * a timed one when rendering it back. `hourCycle: "h23"` is load-bearing:
+ * without it, some engines render midnight as `"24:00"` rather than `"00:00"`.
+ */
+export function clockInZone(zone: string, at: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(at);
+
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return `${hour}:${minute}`;
 }
 
 /**

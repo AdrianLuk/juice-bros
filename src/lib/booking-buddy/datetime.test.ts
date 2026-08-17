@@ -7,6 +7,8 @@ import {
   isHalfHourTime,
   isPastDate,
   isRealDate,
+  nextCalendarDate,
+  previousCalendarDate,
   todayInZone,
 } from "./datetime.ts";
 
@@ -51,4 +53,16 @@ test("isPastDate rejects yesterday and earlier, never today or later", () => {
   assert.equal(isPastDate("2020-01-01", "UTC", now), true);
   assert.equal(isPastDate("2026-08-15", "UTC", now), false);
   assert.equal(isPastDate("2026-08-16", "UTC", now), false);
+});
+
+test("nextCalendarDate steps forward one calendar day, including across a month/year boundary", () => {
+  assert.equal(nextCalendarDate("2026-08-24"), "2026-08-25");
+  assert.equal(nextCalendarDate("2026-08-31"), "2026-09-01");
+  assert.equal(nextCalendarDate("2026-12-31"), "2027-01-01");
+});
+
+test("previousCalendarDate is nextCalendarDate's inverse", () => {
+  assert.equal(previousCalendarDate("2026-08-25"), "2026-08-24");
+  assert.equal(previousCalendarDate("2026-09-01"), "2026-08-31");
+  assert.equal(previousCalendarDate("2027-01-01"), "2026-12-31");
 });
