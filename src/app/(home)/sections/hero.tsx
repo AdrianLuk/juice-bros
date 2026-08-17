@@ -26,25 +26,25 @@ const socialLinks = [
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-dvh flex-col overflow-hidden bg-brand-black text-white md:block md:min-h-0">
+    <section className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-brand-black text-white sm:block sm:min-h-0">
       {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
       <img
         src="/brand/JB_Banner_1920.jpeg"
         alt="Juice Bros Pickleball hosts"
         width={1600}
         height={901}
-        className="w-full object-cover object-center opacity-90 md:max-h-dvh md:min-h-160"
+        className="w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_10%)_0%,color-mix(in_oklch,var(--brand-black),transparent_60%)_55%,var(--brand-black)_100%)] md:block"
+        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_10%)_0%,color-mix(in_oklch,var(--brand-black),transparent_60%)_55%,var(--brand-black)_100%)] sm:block"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-brand-black to-transparent md:hidden"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-brand-black to-transparent sm:hidden"
       />
-      <div className="flex flex-1 items-center justify-center md:absolute md:inset-0 md:flex-none">
-        <div className="flex w-full flex-col items-center gap-6 px-4 py-14 text-center sm:px-6 md:py-10 md:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
+      <div className="flex flex-1 items-center justify-center sm:absolute sm:inset-0 sm:flex-none">
+        <div className="flex w-full flex-col items-center gap-6 px-4 py-14 text-center sm:px-6 sm:py-10 sm:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
           <Eyebrow color="yellow">For Everyday Pickleball Players</Eyebrow>
           <h1 className="max-w-3xl font-heading text-5xl font-black tracking-[-0.03em] text-balance sm:text-7xl">
             Juice Bros Pickleball
