@@ -55,20 +55,6 @@ export default async function BookingsPage() {
             <div className="mt-10 flex flex-col gap-12">
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
-                  Log a booking
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Copy it off the facility&apos;s own booking screen — Booking
-                  Buddy doesn&apos;t reserve courts, it remembers the ones you
-                  reserved.
-                </p>
-                <div className="mt-4">
-                  <CreateBookingForm orgs={orgs} />
-                </div>
-              </section>
-
-              <section>
-                <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Booked
                   {bookings.length > 0 && (
                     <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -88,6 +74,20 @@ export default async function BookingsPage() {
                     ))}
                   </ul>
                 )}
+              </section>
+
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Log a booking
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Copy it off the facility&apos;s own booking screen — Booking
+                  Buddy doesn&apos;t reserve courts, it remembers the ones you
+                  reserved.
+                </p>
+                <div className="mt-4">
+                  <CreateBookingForm orgs={orgs} />
+                </div>
               </section>
             </div>
           )}
