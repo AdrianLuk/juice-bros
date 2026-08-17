@@ -51,6 +51,7 @@ export function SearchPlaceForm() {
             key={state.query}
             id="place-query"
             name="query"
+            type="search"
             defaultValue={state.query}
             placeholder="PicklePlex Downsview"
             required

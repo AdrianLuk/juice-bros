@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { MapPinIcon } from "lucide-react";
+import { MapPinIcon, StarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   createOrg,
   deleteOrg,
+  setDefaultFacility,
   updateBookingWindow,
   type Org,
 } from "@/lib/booking-buddy/actions/orgs";
@@ -109,7 +110,10 @@ export function OrgRow({ org }: { org: Org }) {
             )}
           </div>
         </div>
-        <DeleteOrgButton org={org} />
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <DefaultFacilityControl org={org} />
+          <DeleteOrgButton org={org} />
+        </div>
       </div>
       {/* Keyed on the saved value so a successful save remounts the form —
           its selects are uncontrolled (`defaultValue`), which React only
@@ -190,13 +194,45 @@ function BookingWindowForm({ org }: { org: Org }) {
   );
 }
 
+/**
+ * Marks which Org the Booking form's picker should pre-select (issue #47).
+ * Already-default renders as a plain badge, not a button — there's no
+ * "unset" path in v1; picking a different facility as default is how you
+ * change your mind, which is what actually keeps at most one true.
+ */
+function DefaultFacilityControl({ org }: { org: Org }) {
+  const [state, formAction, pending] = useActionState(setDefaultFacility, EMPTY);
+
+  if (org.isDefault) {
+    return (
+      <span className="flex items-center gap-1 text-xs font-medium text-accent-foreground/80">
+        <StarIcon className="size-3.5 fill-current" />
+        Default
+      </span>
+    );
+  }
+
+  return (
+    <form action={formAction} className="flex flex-col items-end gap-1">
+      <input type="hidden" name="org_id" value={org.id} />
+      <Button type="submit" variant="ghost" size="sm" disabled={pending}>
+        {pending ? "Setting…" : "Set as default"}
+      </Button>
+      <ActionError state={state} />
+    </form>
+  );
+}
+
 function DeleteOrgButton({ org }: { org: Org }) {
   const [state, formAction, pending] = useActionState(deleteOrg, EMPTY);
 
   // The form lives inside the dialog so the confirm button is the only thing
   // that can submit it — the same shape as removing a friend or a group.
   const form = (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form
+      action={formAction}
+      className="flex flex-col items-stretch gap-1 sm:items-end"
+    >
       <input type="hidden" name="org_id" value={org.id} />
       <Button type="submit" variant="destructive" disabled={pending}>
         {pending ? "Removing…" : "Remove facility"}

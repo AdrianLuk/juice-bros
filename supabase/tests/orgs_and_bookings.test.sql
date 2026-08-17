@@ -18,7 +18,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(37);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
@@ -139,6 +139,25 @@ select throws_ok(
   '23514',
   null,
   'an Org cannot carry a time zone Postgres does not recognise'
+);
+
+-- At most one default Org per owner (issue #47) — Amy already has two, a
+-- Place-backed one and a hand-named one, from above.
+update public.orgs set is_default = true
+where id = 'aaaa0000-0000-0000-0000-000000000001';
+
+select is(
+  (select is_default from public.orgs where id = 'aaaa0000-0000-0000-0000-000000000001'),
+  true,
+  'a User can mark one of their own Orgs as the default'
+);
+
+select throws_ok(
+  $$update public.orgs set is_default = true
+    where id = 'aaaa0000-0000-0000-0000-000000000002'$$,
+  '23505',
+  null,
+  'the same owner cannot have two default Orgs at once'
 );
 
 -- Two rows for one club would be two indistinguishable entries in the Booking
@@ -293,6 +312,17 @@ select is(
   (select count(*)::int from public.orgs where owner_id <> 'bbbbbbbb-0000-0000-0000-000000000012'),
   0,
   'an accepted Connection of the owner sees none of their Orgs'
+);
+
+-- A second User marking their own default doesn't collide with Amy's — the
+-- unique index is scoped per owner, not global.
+update public.orgs set is_default = true
+where id = 'cccc0000-0000-0000-0000-000000000001';
+
+select is(
+  (select is_default from public.orgs where id = 'cccc0000-0000-0000-0000-000000000001'),
+  true,
+  'a second User can independently mark their own default without conflicting with the first'
 );
 
 -- Amy and Ben both have an Org for PicklePlex Downsview, under one place_id.
