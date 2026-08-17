@@ -24,9 +24,9 @@ export default async function BookingBuddyPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-10 sm:px-6 lg:px-8">
+      <section className="w-full px-4 pt-6 pb-10 sm:px-6 sm:pt-10 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
             <div>
               <PageHeading
                 eyebrow="Booking Buddy"

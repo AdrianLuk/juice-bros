@@ -140,7 +140,7 @@ export function DashboardWeekView({
       <div
         ref={bodyRef}
         onScroll={syncHeaderScroll}
-        className="bb-week-scroll max-h-136 overflow-auto"
+        className="bb-scroll-x max-h-136 overflow-auto"
       >
         {/* `w-fit` is load-bearing: a plain `flex` block child sizes to its
             *container's* width (the scroller's visible width) and lets its

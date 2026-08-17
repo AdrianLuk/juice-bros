@@ -47,7 +47,10 @@ const NAV_ITEMS: { key: BbNavKey; href: string; label: string; icon: LucideIcon 
  */
 export function BookingBuddyNav({ current }: { current?: BbNavKey }) {
   return (
-    <nav className="bb-card flex flex-wrap items-center gap-0.5 p-1.5" aria-label="Booking Buddy">
+    <nav
+      className="bb-card bb-scroll-x flex items-center gap-2 overflow-x-auto p-2 sm:flex-wrap sm:gap-1 sm:overflow-visible sm:p-1.5"
+      aria-label="Booking Buddy"
+    >
       {NAV_ITEMS.map(({ key, href, label, icon: Icon }) => (
         <Link
           key={key}
@@ -58,14 +61,14 @@ export function BookingBuddyNav({ current }: { current?: BbNavKey }) {
               variant: current === key ? "secondary" : "ghost",
               size: "default",
             }),
-            "gap-1.5",
+            "shrink-0 gap-1.5",
           )}
         >
           <Icon className="size-4 text-primary" />
           {label}
         </Link>
       ))}
-      <form action={signOut} className="ml-1">
+      <form action={signOut} className="ml-1 shrink-0">
         <Button type="submit" variant="outline" size="default" className="gap-1.5">
           <LogOutIcon className="size-4" />
           Sign out
