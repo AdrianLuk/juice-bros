@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -41,24 +41,57 @@ export function DashboardCalendar({
   // "Today" as of first render — a stable reference for the session rather
   // than something re-read on every keystroke, matching how the rest of this
   // app treats `now` as a value passed in, not a hidden clock read mid-render.
-  const [now] = useState(() => new Date());
-  const [anchor, setAnchor] = useState(() => startOfDay(now));
+  //
+  // Deliberately *not* a `useState(() => new Date())` lazy initializer: that
+  // initializer would run during SSR (in the server's timezone) and again
+  // during client hydration (in the browser's), and every date function in
+  // calendar.ts is intentionally browser-local — so near a local midnight the
+  // two runs can land on different calendar days and trip a hydration
+  // mismatch. Computing `now` in an effect instead means the first client
+  // render matches the server's placeholder exactly; the real date lands a
+  // tick later, client-only.
+  const [now, setNow] = useState<Date | null>(null);
+  const [anchor, setAnchor] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const clientNow = new Date();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of the client's clock on mount, not derived state
+    setNow(clientNow);
+    setAnchor(startOfDay(clientNow));
+  }, []);
 
   const busyIntervals = useMemo(
     () => bookings.map((booking) => ({ startsAt: booking.startsAt, endsAt: booking.endsAt })),
     [bookings],
   );
 
+  if (!now || !anchor) {
+    return (
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="h-9 w-48 animate-pulse rounded-md bg-muted" />
+        <div className="h-150 animate-pulse rounded-xl bg-muted" />
+      </div>
+    );
+  }
+
+  // Rebound to a non-nullable local: the `if (!now)` guard above narrows
+  // `now` itself, but that narrowing doesn't survive into the closures below.
+  const today = now;
+
   function goToday() {
-    setAnchor(startOfDay(now));
+    setAnchor(startOfDay(today));
   }
 
   function goBack() {
-    setAnchor((current) => (view === "month" ? addMonths(current, -1) : addDays(current, -7)));
+    setAnchor((current) =>
+      current ? (view === "month" ? addMonths(current, -1) : addDays(current, -7)) : current,
+    );
   }
 
   function goForward() {
-    setAnchor((current) => (view === "month" ? addMonths(current, 1) : addDays(current, 7)));
+    setAnchor((current) =>
+      current ? (view === "month" ? addMonths(current, 1) : addDays(current, 7)) : current,
+    );
   }
 
   function goToDay(day: Date) {
@@ -127,7 +160,7 @@ export function DashboardCalendar({
       {view === "week" && (
         <DashboardWeekView
           weekStart={weekStart}
-          today={now}
+          today={today}
           bookings={bookings}
           busyIntervals={busyIntervals}
           windows={availabilityWindows}
@@ -137,7 +170,7 @@ export function DashboardCalendar({
       {view === "month" && (
         <DashboardMonthView
           month={anchor}
-          today={now}
+          today={today}
           bookings={bookings}
           busyIntervals={busyIntervals}
           windows={availabilityWindows}
@@ -145,7 +178,7 @@ export function DashboardCalendar({
         />
       )}
       {view === "agenda" && (
-        <DashboardAgendaView bookings={bookings} now={now} onDayClick={goToDay} />
+        <DashboardAgendaView bookings={bookings} now={today} onDayClick={goToDay} />
       )}
 
       <DashboardQuickActions orgs={orgs} />
