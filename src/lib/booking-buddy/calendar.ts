@@ -40,9 +40,22 @@ export function addDays(date: Date, days: number): Date {
   return result;
 }
 
+/**
+ * Adds calendar months, clamping the day-of-month to the target month's last
+ * day instead of letting `Date.prototype.setMonth` roll it into the month
+ * after (issue #67) — e.g. Oct 31 + 1 month lands on Nov 30, not Dec 1.
+ */
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
+  const day = result.getDate();
+  result.setDate(1);
   result.setMonth(result.getMonth() + months);
+  const daysInTargetMonth = new Date(
+    result.getFullYear(),
+    result.getMonth() + 1,
+    0,
+  ).getDate();
+  result.setDate(Math.min(day, daysInTargetMonth));
   return result;
 }
 
