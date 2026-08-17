@@ -71,13 +71,21 @@ function HalfHourTimeSelect({
 
 export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
   const [state, formAction, pending] = useActionState(createBooking, EMPTY);
+  // Falls back to the placeholder when nothing's marked default — same as
+  // today's "force an explicit pick" behaviour (issue #47).
+  const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-org">Where</Label>
-          <FormSelect id="booking-org" name="org_id" defaultValue="" required>
+          <FormSelect
+            id="booking-org"
+            name="org_id"
+            defaultValue={defaultOrgId}
+            required
+          >
             <option value="" disabled>
               Pick a place
             </option>
