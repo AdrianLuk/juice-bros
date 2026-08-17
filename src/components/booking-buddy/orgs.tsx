@@ -111,7 +111,15 @@ export function OrgRow({ org }: { org: Org }) {
         </div>
         <DeleteOrgButton org={org} />
       </div>
-      <BookingWindowForm org={org} />
+      {/* Keyed on the saved value so a successful save remounts the form —
+          its selects are uncontrolled (`defaultValue`), which React only
+          applies on mount, so without this the dropdowns would keep showing
+          whatever was last picked even after `revalidatePath` refreshes
+          `org` with the new value. */}
+      <BookingWindowForm
+        key={`${org.bookingWindow?.daysBefore ?? "unset"}-${org.bookingWindow?.time ?? "unset"}`}
+        org={org}
+      />
     </li>
   );
 }
