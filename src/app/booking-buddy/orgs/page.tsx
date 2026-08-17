@@ -11,9 +11,9 @@ import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Where you play",
+  title: "Facilities",
   description:
-    "Keep the clubs and courts you play at in one place, so your bookings have somewhere to hang off.",
+    "Keep the facilities you play at in one place, so your bookings have somewhere to hang off.",
   path: "/booking-buddy/orgs",
 });
 
@@ -30,17 +30,17 @@ export default async function OrgsPage() {
         <div className="mx-auto max-w-3xl">
           <PageHeading
             eyebrow="Booking Buddy"
-            title="Where you play"
-            description="The clubs and courts you book at. Only you can see this list."
+            title="Facilities"
+            description="The facilities you book at. Only you can see this list."
           />
 
           <div className="mt-10 flex flex-col gap-12">
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Add a place
+                Add a facility
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Search for your club and pick it from Google&apos;s listing.
+                Search for your facility and pick it from Google&apos;s listing.
               </p>
               <div className="mt-4">
                 <SearchPlaceForm />
@@ -48,7 +48,7 @@ export default async function OrgsPage() {
 
               <details className="group mt-6 overflow-hidden bb-card">
                 <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">
-                  Can&apos;t find your club?
+                  Can&apos;t find your facility?
                   <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="border-t border-border px-4 py-4">
@@ -66,7 +66,7 @@ export default async function OrgsPage() {
 
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Your places
+                Your facilities
                 {orgs.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     {orgs.length}
@@ -76,8 +76,8 @@ export default async function OrgsPage() {
 
               {orgs.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-                  Nothing here yet. Add the club you play at and you can start
-                  logging court bookings.
+                  Nothing here yet. Add a facility you play at and you can
+                  start logging court bookings.
                 </p>
               ) : (
                 <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">

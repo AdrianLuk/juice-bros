@@ -42,7 +42,7 @@ export function SearchPlaceForm() {
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <Label htmlFor="place-query">Search for your club</Label>
+          <Label htmlFor="place-query">Search for your facility</Label>
           {/* Keyed on the query so a completed search remounts the field —
               it's uncontrolled (`defaultValue`), which only applies on
               mount, and `state.query` can come back trimmed/normalized from
@@ -104,7 +104,7 @@ function PlaceCandidateRow({ candidate }: { candidate: PlaceCandidate }) {
       >
         <input type="hidden" name="place_id" value={candidate.placeId} />
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Adding…" : "Add this place"}
+          {pending ? "Adding…" : "Add this facility"}
         </Button>
         {state.error && (
           <p className="text-xs text-destructive" role="alert">

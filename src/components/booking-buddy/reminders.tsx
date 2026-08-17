@@ -107,7 +107,7 @@ export function NotificationPreferencesForm({
           className="h-5 w-5 rounded border-input accent-primary"
         />
         <Label htmlFor="email-enabled" className="font-normal">
-          Email me a reminder before slots I&apos;m in
+          Email me a reminder before slots I&apos;ve said yes to, so I don&apos;t forget to show up
         </Label>
       </div>
 
@@ -157,7 +157,7 @@ export function BookingWindowPreferenceForm({
           className="h-5 w-5 rounded border-input accent-primary"
         />
         <Label htmlFor="booking-window-email-enabled" className="font-normal">
-          Email me when it&apos;s time to book a court
+          Email me once a facility&apos;s booking window opens, so I don&apos;t forget to reserve a court
         </Label>
       </div>
 

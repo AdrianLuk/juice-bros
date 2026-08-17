@@ -80,7 +80,7 @@ export default async function BookingBuddyPage() {
                 className={cn(buttonVariants({ variant: "ghost", size: "default" }), "gap-1.5")}
               >
                 <MapPinIcon className="size-4 text-primary" />
-                Where you play
+                Facilities
               </Link>
               <Link
                 href={SETTINGS_PATH}

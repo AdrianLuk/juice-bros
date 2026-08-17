@@ -86,7 +86,7 @@ export default async function BookingsPage() {
           )}
 
           <FooterNav>
-            <FooterLink href={ORGS_PATH}>Where you play</FooterLink>
+            <FooterLink href={ORGS_PATH}>Facilities</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>
