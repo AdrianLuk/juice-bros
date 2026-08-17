@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 import {
   groupByLocalDay,
   isSameDay,
+  layoutMultiDaySpans,
   localDayKey,
   monthGridDays,
 } from "@/lib/booking-buddy/calendar";
 import {
   resolveAvailabilitySegments,
+  type AvailabilitySegment,
   type AvailabilityWindow,
   type BusyInterval,
 } from "@/lib/booking-buddy/availability";
@@ -47,13 +49,19 @@ export function DashboardMonthView({
 
   // One sweep across the whole visible grid rather than 42 separate resolver
   // calls — `resolveAvailabilitySegments` already returns segments in range
-  // order, so grouping them by the day they fall on is enough.
-  const availabilityByDay = useMemo(() => {
+  // order, so laying them out across the grid days is enough.
+  //
+  // `layoutMultiDaySpans`, not `groupByLocalDay`: a segment spanning several
+  // days ("a whole week off is one window" — CONTEXT.md) has to render in
+  // every cell it crosses, connecting edge-to-edge, not just appear once on
+  // the day it started (see dashboard-availability-sidebar.tsx's own note on
+  // why the calendar overlay is the thing this bar exists to fix).
+  const availabilitySpansByDay = useMemo(() => {
     const rangeStart = days[0];
     const rangeEnd = new Date(days[days.length - 1]);
     rangeEnd.setDate(rangeEnd.getDate() + 1);
     const segments = resolveAvailabilitySegments({ rangeStart, rangeEnd, busyIntervals, windows });
-    return groupByLocalDay(segments, (segment) => new Date(segment.startsAt));
+    return layoutMultiDaySpans(days, segments);
   }, [days, busyIntervals, windows]);
 
   return (
@@ -77,9 +85,7 @@ export function DashboardMonthView({
             const dayBookings = (bookingsByDay.get(key) ?? []).sort(
               (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
             );
-            const availabilityTypes = new Set(
-              (availabilityByDay.get(key) ?? []).map((segment) => segment.type),
-            );
+            const availabilitySpans = availabilitySpansByDay.get(key) ?? [];
             const overflow = dayBookings.length - VISIBLE_PER_DAY;
 
             return (
@@ -90,36 +96,31 @@ export function DashboardMonthView({
                   day.getMonth() !== currentMonth && "bg-muted/40",
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => onDayClick(day)}
-                    aria-label={`Go to the week of ${day.toDateString()}`}
-                    className={cn(
-                      "flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted",
-                      day.getMonth() !== currentMonth && "text-muted-foreground",
-                      isSameDay(day, today) && "bg-primary text-primary-foreground hover:bg-primary/90",
-                    )}
-                  >
-                    {day.getDate()}
-                  </button>
-                  {availabilityTypes.size > 0 && (
-                    <span className="flex gap-0.5" aria-hidden>
-                      {availabilityTypes.has("open") && (
-                        <span
-                          title="Open time declared"
-                          className="size-1.5 rounded-full border border-accent-foreground/40"
-                        />
-                      )}
-                      {availabilityTypes.has("busy") && (
-                        <span
-                          title="Busy time declared"
-                          className="size-1.5 rounded-full bg-muted-foreground/50"
-                        />
-                      )}
-                    </span>
+                <button
+                  type="button"
+                  onClick={() => onDayClick(day)}
+                  aria-label={`Go to the week of ${day.toDateString()}`}
+                  className={cn(
+                    "flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted",
+                    day.getMonth() !== currentMonth && "text-muted-foreground",
+                    isSameDay(day, today) && "bg-primary text-primary-foreground hover:bg-primary/90",
                   )}
-                </div>
+                >
+                  {day.getDate()}
+                </button>
+
+                {availabilitySpans.length > 0 && (
+                  <div className="flex flex-col gap-0.5">
+                    {availabilitySpans.map(({ event: segment, isStart, isEnd }) => (
+                      <AvailabilitySpanBar
+                        key={`${segment.type}-${segment.startsAt}`}
+                        segment={segment}
+                        isStart={isStart}
+                        isEnd={isEnd}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-0.5">
                   {dayBookings.slice(0, VISIBLE_PER_DAY).map((booking) => (
@@ -146,6 +147,43 @@ export function DashboardMonthView({
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * One cell's worth of a Month-view Availability bar (Google Calendar's own
+ * multi-day all-day-event look) — a day the bar merely passes through bleeds
+ * full-width into its neighbours via a negative margin equal to the cell's
+ * own padding, so two adjacent cells' bars touch with no gap and read as one
+ * continuous strip; only the day the span actually starts or ends gets a
+ * rounded cap. The label renders once, on the start day, the same way a real
+ * cross-cell bar would only need to say "Busy" once.
+ */
+function AvailabilitySpanBar({
+  segment,
+  isStart,
+  isEnd,
+}: {
+  segment: AvailabilitySegment;
+  isStart: boolean;
+  isEnd: boolean;
+}) {
+  const label = segment.type === "busy" ? "Busy" : "Open";
+
+  return (
+    <div
+      aria-hidden={!isStart}
+      className={cn(
+        "h-4 truncate px-1 text-[10px] leading-4 font-medium",
+        isStart ? "rounded-l-sm" : "-ml-1 sm:-ml-1.5",
+        isEnd ? "rounded-r-sm" : "-mr-1 sm:-mr-1.5",
+        segment.type === "busy"
+          ? "bg-muted-foreground/20 text-foreground/70"
+          : "bg-accent/60 text-accent-foreground",
+      )}
+    >
+      {isStart ? label : null}
     </div>
   );
 }

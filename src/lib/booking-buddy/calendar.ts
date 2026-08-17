@@ -148,6 +148,54 @@ export function layoutDayEvents<T extends TimeSpan>(events: T[]): LaidOutEvent<T
   return results;
 }
 
+export type DaySpan<T extends TimeSpan> = {
+  event: T;
+  /** This grid day is the actual first day `event` covers — gets the rounded left cap and the visible label. */
+  isStart: boolean;
+  /** This grid day is the actual last day `event` covers — gets the rounded right cap. */
+  isEnd: boolean;
+};
+
+/**
+ * Every grid day an event's span touches, keyed by `localDayKey` — unlike
+ * `groupByLocalDay`, which only ever buckets an item under its own start day.
+ * What the Month view's multi-day Availability bars need: a bar spanning
+ * several cells has to render (and visually connect) in each one, not just
+ * appear once on the day it started.
+ *
+ * `isStart`/`isEnd` are what let the Month view tell a day the bar merely
+ * passes through apart from the day it actually begins or ends on — the
+ * former gets full-bleed edges that touch the next cell's bar with no gap
+ * (reading as one continuous strip), the latter gets a rounded cap and, for
+ * `isStart`, the visible label.
+ */
+export function layoutMultiDaySpans<T extends TimeSpan>(
+  days: Date[],
+  events: T[],
+): Map<string, DaySpan<T>[]> {
+  const result = new Map<string, DaySpan<T>[]>();
+
+  for (const day of days) {
+    const dayStartMs = startOfDay(day).getTime();
+    const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
+
+    const touching: DaySpan<T>[] = [];
+    for (const event of events) {
+      const startMs = new Date(event.startsAt).getTime();
+      const endMs = new Date(event.endsAt).getTime();
+      if (startMs < dayEndMs && endMs > dayStartMs) {
+        touching.push({ event, isStart: startMs >= dayStartMs, isEnd: endMs <= dayEndMs });
+      }
+    }
+
+    if (touching.length > 0) {
+      result.set(localDayKey(day), touching);
+    }
+  }
+
+  return result;
+}
+
 /** `"2026-08-16"`-style key for the browser-local calendar day a `Date` falls on — grouping key, not a display string. */
 export function localDayKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
