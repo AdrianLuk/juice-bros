@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { listConnections } from "@/lib/booking-buddy/actions/connections";
@@ -97,20 +97,12 @@ export default async function FriendsPage() {
             />
           </div>
 
-          <p className="mt-14 flex gap-4 text-sm">
-            <Link
-              href={GROUPS_PATH}
-              className="underline underline-offset-4"
-            >
-              Friend groups
-            </Link>
-            <Link
-              href={BOOKING_BUDDY_ROOT}
-              className="underline underline-offset-4"
-            >
+          <FooterNav>
+            <FooterLink href={GROUPS_PATH}>Friend groups</FooterLink>
+            <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>

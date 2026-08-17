@@ -84,7 +84,7 @@ export function FriendSearch() {
             "nobody matches that". */}
         {!tooShort && search.isError && (
           <div className="flex items-center gap-3" role="alert">
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-destructive">
               Search isn&apos;t working right now.
             </p>
             <Button
@@ -155,7 +155,7 @@ function SearchResultAction({ result }: { result: UserSearchResult }) {
         {pending ? "Sending…" : "Add friend"}
       </Button>
       {state.error && (
-        <p className="text-xs text-red-600" role="alert">
+        <p className="text-xs text-destructive" role="alert">
           {state.error}
         </p>
       )}

@@ -7,6 +7,7 @@ import {
   BookingRow,
   CreateBookingForm,
 } from "@/components/booking-buddy/bookings";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
 import { BOOKING_BUDDY_ROOT, ORGS_PATH } from "@/lib/booking-buddy/routes";
@@ -70,7 +71,7 @@ export default async function BookingsPage() {
                 </h2>
 
                 {bookings.length === 0 ? (
-                  <p className="mt-4 text-sm text-muted-foreground">
+                  <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
                     Nothing logged yet.
                   </p>
                 ) : (
@@ -84,17 +85,12 @@ export default async function BookingsPage() {
             </div>
           )}
 
-          <p className="mt-14 flex gap-4 text-sm">
-            <Link href={ORGS_PATH} className="underline underline-offset-4">
-              Where you play
-            </Link>
-            <Link
-              href={BOOKING_BUDDY_ROOT}
-              className="underline underline-offset-4"
-            >
+          <FooterNav>
+            <FooterLink href={ORGS_PATH}>Where you play</FooterLink>
+            <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>

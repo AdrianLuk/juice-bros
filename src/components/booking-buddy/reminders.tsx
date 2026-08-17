@@ -25,7 +25,7 @@ function ActionError({ state }: { state: ActionResult }) {
   }
 
   return (
-    <p className="text-xs text-red-600" role="alert">
+    <p className="text-xs text-destructive" role="alert">
       {state.error}
     </p>
   );
@@ -57,7 +57,10 @@ export function ReminderOffsetForm({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="reminder-offset">Remind attendees</Label>
+        {/* Keyed on the saved value so a successful save remounts the
+            select — see the note on BookingWindowForm in orgs.tsx. */}
         <FormSelect
+          key={reminderOffsetMinutes}
           id="reminder-offset"
           name="reminder_offset_minutes"
           defaultValue={reminderOffsetMinutes}
@@ -109,7 +112,7 @@ export function NotificationPreferencesForm({
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {state.error}
         </p>
       )}
@@ -159,7 +162,7 @@ export function BookingWindowPreferenceForm({
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {state.error}
         </p>
       )}

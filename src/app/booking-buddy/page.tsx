@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { verifySession } from "@/lib/booking-buddy/dal";
@@ -42,23 +42,23 @@ export default async function BookingBuddyPage() {
               description="Your bookings and open time, at a glance."
             />
 
-            <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 text-sm text-muted-foreground">
-              <Link href={SLOTS_PATH} className="underline underline-offset-4 hover:text-foreground">
+            <nav className="flex flex-wrap items-center gap-1 pt-1">
+              <Link href={SLOTS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Slots
               </Link>
-              <Link href={FRIENDS_PATH} className="underline underline-offset-4 hover:text-foreground">
+              <Link href={FRIENDS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Friends
               </Link>
-              <Link href={GROUPS_PATH} className="underline underline-offset-4 hover:text-foreground">
+              <Link href={GROUPS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Friend groups
               </Link>
-              <Link href={ORGS_PATH} className="underline underline-offset-4 hover:text-foreground">
+              <Link href={ORGS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Where you play
               </Link>
-              <Link href={SETTINGS_PATH} className="underline underline-offset-4 hover:text-foreground">
+              <Link href={SETTINGS_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                 Settings
               </Link>
-              <form action={signOut}>
+              <form action={signOut} className="ml-1">
                 <Button type="submit" variant="outline" size="sm">
                   Sign out
                 </Button>

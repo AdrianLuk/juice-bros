@@ -53,7 +53,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
   return (
     <div className="mt-8">
       {error && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-destructive" role="alert">
           {error === "link_invalid"
             ? "That sign-in link has expired or was already used. Request a new one."
             : error === "google_unavailable"
@@ -79,7 +79,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
             We&apos;ll email you a link — no password to remember.
           </p>
           {magicState.error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {magicState.error}
             </p>
           )}
@@ -113,7 +113,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
             />
           </div>
           {passwordState.error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {passwordState.error}
             </p>
           )}
@@ -157,7 +157,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
             />
           </div>
           {signUpState.error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {signUpState.error}
             </p>
           )}
@@ -186,7 +186,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         {mode !== "magic-link" && (
           <button
             type="button"
-            className="text-left underline underline-offset-4"
+            className="rounded-sm text-left text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => setMode("magic-link")}
           >
             Email me a link instead
@@ -195,7 +195,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         {mode !== "password" && (
           <button
             type="button"
-            className="text-left underline underline-offset-4"
+            className="rounded-sm text-left text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => setMode("password")}
           >
             Sign in with a password
@@ -204,7 +204,7 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         {mode !== "sign-up" && (
           <button
             type="button"
-            className="text-left underline underline-offset-4"
+            className="rounded-sm text-left text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => setMode("sign-up")}
           >
             Create an account with a password

@@ -14,6 +14,17 @@ export const MAX_BOOKING_WINDOW_DAYS_BEFORE = 30;
 
 export type BookingWindow = { daysBefore: number; time: string };
 
+/** Every valid "days before" value, for populating a select instead of a free-typed number. */
+export const BOOKING_WINDOW_DAYS_OPTIONS: readonly number[] = Array.from(
+  { length: MAX_BOOKING_WINDOW_DAYS_BEFORE - MIN_BOOKING_WINDOW_DAYS_BEFORE + 1 },
+  (_, i) => MIN_BOOKING_WINDOW_DAYS_BEFORE + i,
+);
+
+/** A standalone label for one "days before" option, e.g. a `<select>`'s option text. */
+export function daysBeforeOptionLabel(daysBefore: number): string {
+  return daysBefore === 0 ? "Same day" : `${daysBefore} day${daysBefore === 1 ? "" : "s"} before`;
+}
+
 /**
  * Both fields are optional together: an Org that has never had its Booking
  * Window set has neither, and this parses that as `null` (clearing it,

@@ -43,7 +43,7 @@ export function UpcomingBookingsSidebar({
         </h2>
         <Link
           href={BOOKINGS_PATH}
-          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary"
         >
           See all
         </Link>

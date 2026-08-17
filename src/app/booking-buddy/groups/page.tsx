@@ -8,6 +8,7 @@ import {
   FriendVisibilityRow,
   GroupCard,
 } from "@/components/booking-buddy/friend-groups";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getGroupsPageData } from "@/lib/booking-buddy/actions/friend-groups";
 import { BOOKING_BUDDY_ROOT, FRIENDS_PATH } from "@/lib/booking-buddy/routes";
@@ -70,7 +71,7 @@ export default async function GroupsPage() {
                 </h2>
 
                 {groups.length === 0 ? (
-                  <p className="mt-4 text-sm text-muted-foreground">
+                  <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
                     No groups yet. Groups grant visibility to several friends
                     at once — set it per friend instead below if you&apos;d
                     rather do that.
@@ -104,20 +105,12 @@ export default async function GroupsPage() {
             </div>
           )}
 
-          <p className="mt-14 flex gap-4 text-sm">
-            <Link
-              href={FRIENDS_PATH}
-              className="underline underline-offset-4"
-            >
-              Your friends
-            </Link>
-            <Link
-              href={BOOKING_BUDDY_ROOT}
-              className="underline underline-offset-4"
-            >
+          <FooterNav>
+            <FooterLink href={FRIENDS_PATH}>Your friends</FooterLink>
+            <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
-            </Link>
-          </p>
+            </FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>

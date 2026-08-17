@@ -20,7 +20,7 @@ function ActionError({ state }: { state: ActionResult }) {
   }
 
   return (
-    <p className="text-xs text-red-600" role="alert">
+    <p className="text-xs text-destructive" role="alert">
       {state.error}
     </p>
   );
@@ -62,7 +62,10 @@ export function IntendedOrgForm({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="intended-org">Planning to book at</Label>
+        {/* Keyed on the saved value so a successful save remounts the
+            select — see the note on BookingWindowForm in orgs.tsx. */}
         <FormSelect
+          key={intendedOrgId ?? ""}
           id="intended-org"
           name="org_id"
           defaultValue={intendedOrgId ?? ""}

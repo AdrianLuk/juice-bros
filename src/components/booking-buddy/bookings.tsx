@@ -39,7 +39,7 @@ function ActionError({ state }: { state: ActionResult }) {
   }
 
   return (
-    <p className="text-xs text-red-600" role="alert">
+    <p className="text-xs text-destructive" role="alert">
       {state.error}
     </p>
   );

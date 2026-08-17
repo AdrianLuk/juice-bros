@@ -25,7 +25,12 @@ export function UsernameForm({ username }: { username: string | null }) {
           <span aria-hidden className="text-muted-foreground">
             @
           </span>
+          {/* Keyed on the saved username so a successful rename remounts the
+              field — it's uncontrolled (`defaultValue`), which React only
+              applies on mount, so without this it would keep showing the old
+              handle even after the save above confirms the new one. */}
           <Input
+            key={username ?? ""}
             id="username"
             name="username"
             defaultValue={username ?? ""}
@@ -46,7 +51,7 @@ export function UsernameForm({ username }: { username: string | null }) {
       </p>
 
       {state.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {state.error}
         </p>
       )}
