@@ -94,7 +94,9 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
           <Input
             id="booking-court"
             name="court_label"
-            placeholder="Court 3"
+            type="number"
+            inputMode="numeric"
+            placeholder="3"
             maxLength={COURT_LABEL_MAX_LENGTH}
             required
           />
