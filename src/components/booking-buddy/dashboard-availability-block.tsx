@@ -29,9 +29,10 @@ export function DashboardAvailabilityBlock({
   return (
     <div
       title={label}
+      aria-label={label}
       aria-hidden={label ? undefined : true}
       className={cn(
-        "pointer-events-none rounded-sm border",
+        "pointer-events-none flex items-center justify-center overflow-hidden rounded-sm border px-1 py-0.5",
         type === "open"
           ? "border-dashed border-accent-foreground/25 bg-accent/25"
           : "border-border bg-muted",
@@ -47,7 +48,12 @@ export function DashboardAvailabilityBlock({
           : style
       }
     >
-      {label && <span className="sr-only">{label}</span>}
+      <span
+        aria-hidden="true"
+        className="truncate text-[10px] leading-tight font-bold text-foreground/70"
+      >
+        {type === "open" ? "Open" : "Busy"}
+      </span>
     </div>
   );
 }
