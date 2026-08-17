@@ -32,7 +32,7 @@ export default async function SettingsPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-3xl">
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
             <div>
               <PageHeading
@@ -45,11 +45,11 @@ export default async function SettingsPage() {
             <BookingBuddyNav current="settings" />
           </div>
 
-          <div className="bb-card mt-10 max-w-3xl p-6">
+          <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />
           </div>
 
-          <div className="mt-8 max-w-3xl">
+          <div className="mt-8">
             <h2 className="font-heading text-lg font-semibold tracking-tight">
               Reminders
             </h2>
@@ -66,7 +66,7 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <FooterNav className="max-w-3xl">
+          <FooterNav>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

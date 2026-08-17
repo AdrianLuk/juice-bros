@@ -28,7 +28,7 @@ export default async function OrgsPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-3xl">
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
             <div>
               <PageHeading
@@ -41,7 +41,7 @@ export default async function OrgsPage() {
             <BookingBuddyNav current="orgs" />
           </div>
 
-          <div className="mt-10 flex max-w-3xl flex-col gap-12">
+          <div className="mt-10 flex flex-col gap-12">
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
                 Add a facility
@@ -96,7 +96,7 @@ export default async function OrgsPage() {
             </section>
           </div>
 
-          <FooterNav className="max-w-3xl">
+          <FooterNav>
             <FooterLink href={BOOKINGS_PATH}>Your bookings</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy

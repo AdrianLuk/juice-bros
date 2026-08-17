@@ -30,7 +30,7 @@ export default async function BookingsPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-3xl">
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
             <div>
               <PageHeading
@@ -44,7 +44,7 @@ export default async function BookingsPage() {
           </div>
 
           {orgs.length === 0 ? (
-            <p className="mt-10 max-w-3xl text-sm text-muted-foreground">
+            <p className="mt-10 text-sm text-muted-foreground">
               Bookings need somewhere to be.{" "}
               <Link href={ORGS_PATH} className="underline underline-offset-4">
                 Add the place you play
@@ -52,7 +52,7 @@ export default async function BookingsPage() {
               , then come back.
             </p>
           ) : (
-            <div className="mt-10 flex max-w-3xl flex-col gap-12">
+            <div className="mt-10 flex flex-col gap-12">
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Log a booking
@@ -92,7 +92,7 @@ export default async function BookingsPage() {
             </div>
           )}
 
-          <FooterNav className="max-w-3xl">
+          <FooterNav>
             <FooterLink href={ORGS_PATH}>Facilities</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy

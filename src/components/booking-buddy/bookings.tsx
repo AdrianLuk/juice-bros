@@ -166,7 +166,7 @@ export function DeleteBookingButton({ booking }: { booking: Booking }) {
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
+      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </AlertDialogTrigger>
       <AlertDialogContent>

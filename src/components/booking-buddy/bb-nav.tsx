@@ -12,6 +12,16 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { signOut } from "@/lib/booking-buddy/actions/auth";
 import {
   BOOKING_BUDDY_ROOT,
@@ -68,12 +78,37 @@ export function BookingBuddyNav({ current }: { current?: BbNavKey }) {
           {label}
         </Link>
       ))}
-      <form action={signOut} className="ml-1 shrink-0">
-        <Button type="submit" variant="outline" size="default" className="gap-1.5">
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="outline"
+              size="default"
+              className="ml-1 shrink-0 gap-1.5"
+            />
+          }
+        >
           <LogOutIcon className="size-4" />
           Sign out
-        </Button>
-      </form>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out of Booking Buddy?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You&apos;ll need to sign in again to see your slots, friends,
+              and bookings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay signed in</AlertDialogCancel>
+            <form action={signOut}>
+              <Button type="submit" variant="destructive">
+                Sign out
+              </Button>
+            </form>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </nav>
   );
 }
