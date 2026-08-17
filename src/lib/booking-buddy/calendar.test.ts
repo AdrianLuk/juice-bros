@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   addDays,
+  addMonths,
   groupByLocalDay,
   isSameDay,
   layoutDayEvents,
@@ -20,6 +21,23 @@ test("startOfWeek rewinds to the preceding Sunday, or stays put if already one",
   assert.equal(startOfWeek(new Date(2026, 7, 19)).getDate(), 16);
   // Sunday 2026-08-16 itself
   assert.equal(startOfWeek(new Date(2026, 7, 16)).getDate(), 16);
+});
+
+test("addMonths clamps into a shorter target month instead of rolling over (issue #67)", () => {
+  // Oct 31 + 1 month should land in November, not roll into December.
+  const forward = addMonths(new Date(2026, 9, 31), 1);
+  assert.equal(forward.getMonth(), 10); // November
+  assert.equal(forward.getDate(), 30); // November's last day
+
+  // Mar 31 - 1 month should land in February, not roll into April.
+  const backward = addMonths(new Date(2026, 2, 31), -1);
+  assert.equal(backward.getMonth(), 1); // February
+  assert.equal(backward.getDate(), 28); // 2026 is not a leap year
+});
+
+test("addMonths behaves as plain month addition when the day-of-month fits", () => {
+  const result = addMonths(new Date(2026, 7, 15), 1);
+  assert.ok(isSameDay(result, new Date(2026, 8, 15)));
 });
 
 test("monthGridDays returns 42 days, starting on the Sunday on or before the 1st", () => {
