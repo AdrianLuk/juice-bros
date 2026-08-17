@@ -18,7 +18,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(39);
+select plan(41);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
@@ -47,7 +47,8 @@ select has_index(
 insert into auth.users (id, instance_id, aud, role, email) values
   ('aaaaaaaa-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'amy-orgs@example.com'),
   ('bbbbbbbb-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ben-orgs@example.com'),
-  ('cccccccc-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cal-orgs@example.com');
+  ('cccccccc-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cal-orgs@example.com'),
+  ('dddddddd-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'deb-orgs@example.com');
 
 insert into public.connections (id, requester_id, addressee_id, status) values
   ('33333333-0000-0000-0000-000000000011', 'aaaaaaaa-0000-0000-0000-000000000011', 'bbbbbbbb-0000-0000-0000-000000000012', 'accepted');
@@ -159,6 +160,42 @@ select throws_ok(
   null,
   'the same owner cannot have two default Orgs at once'
 );
+
+-- The first facility a User ever adds becomes their default with no explicit
+-- pick required (issue #55) — Deb has none yet, so hers should come out
+-- pre-marked.
+set local request.jwt.claims = '{"sub": "dddddddd-0000-0000-0000-000000000014", "role": "authenticated"}';
+
+insert into public.orgs (id, owner_id, name, time_zone)
+values (
+  'dddd0000-0000-0000-0000-000000000001',
+  'dddddddd-0000-0000-0000-000000000014',
+  'Deb''s first court',
+  'America/Toronto'
+);
+
+select is(
+  (select is_default from public.orgs where id = 'dddd0000-0000-0000-0000-000000000001'),
+  true,
+  'the first facility a User adds becomes their default automatically'
+);
+
+-- A second facility does not steal the mark from the first.
+insert into public.orgs (id, owner_id, name, time_zone)
+values (
+  'dddd0000-0000-0000-0000-000000000002',
+  'dddddddd-0000-0000-0000-000000000014',
+  'Deb''s second court',
+  'America/Toronto'
+);
+
+select is(
+  (select is_default from public.orgs where id = 'dddd0000-0000-0000-0000-000000000002'),
+  false,
+  'a facility added after the first is not automatically made default'
+);
+
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000011", "role": "authenticated"}';
 
 -- Two rows for one club would be two indistinguishable entries in the Booking
 -- form's picker.
