@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { MapPinIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,6 @@ import {
   updateBookingWindow,
   type Org,
 } from "@/lib/booking-buddy/actions/orgs";
-import { PoweredByGoogle } from "@/components/booking-buddy/place-search";
 
 const EMPTY: ActionResult = {};
 
@@ -86,24 +86,28 @@ export function CreateOrgForm() {
 
 export function OrgRow({ org }: { org: Org }) {
   return (
-    <li className="flex flex-col gap-3 px-5 py-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate font-medium">{org.displayName}</p>
-          {org.address && (
-            <>
+    <li className="flex flex-col gap-4 px-5 py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-accent/25 text-accent-foreground/70">
+            <MapPinIcon className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-medium">{org.displayName}</p>
+            {org.address && (
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 {org.address}
+                {" · "}
+                <span className="text-muted-foreground/70">Powered by Google</span>
               </p>
-              <PoweredByGoogle />
-            </>
-          )}
-          {org.googlePlaceId && !org.address && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              We couldn&apos;t reach Google for this one. Your bookings here are
-              fine.
-            </p>
-          )}
+            )}
+            {org.googlePlaceId && !org.address && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                We couldn&apos;t reach Google for this one. Your bookings here are
+                fine.
+              </p>
+            )}
+          </div>
         </div>
         <DeleteOrgButton org={org} />
       </div>
@@ -123,14 +127,15 @@ function BookingWindowForm({ org }: { org: Org }) {
   return (
     <form
       action={formAction}
-      className="flex flex-wrap items-end gap-3 border-t border-border pt-3"
+      className="flex flex-col gap-3 rounded-md bg-muted/40 p-3"
     >
       <input type="hidden" name="org_id" value={org.id} />
 
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor={`booking-window-days-${org.id}`} className="text-xs">
-          Booking window
-        </Label>
+      <Label htmlFor={`booking-window-days-${org.id}`} className="text-xs font-medium">
+        Booking window
+      </Label>
+
+      <div className="flex flex-wrap items-end gap-3">
         <div className="flex items-center gap-2">
           <Input
             id={`booking-window-days-${org.id}`}
@@ -141,14 +146,14 @@ function BookingWindowForm({ org }: { org: Org }) {
             step={1}
             defaultValue={org.bookingWindow?.daysBefore ?? ""}
             placeholder="Days"
-            className="w-20"
+            className="w-20 bg-background"
             aria-label="Days before"
           />
           <span className="text-sm text-muted-foreground">days before, at</span>
           <FormSelect
             name="booking_window_time"
             defaultValue={org.bookingWindow?.time ?? ""}
-            className="w-auto"
+            className="w-auto bg-background"
             aria-label="Time the window opens"
           >
             <option value="">—</option>
@@ -159,17 +164,18 @@ function BookingWindowForm({ org }: { org: Org }) {
             ))}
           </FormSelect>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {bookingWindowLabel(org.bookingWindow)}
-        </p>
+
+        <div className="flex flex-col items-start gap-1">
+          <Button type="submit" variant="outline" size="sm" disabled={pending}>
+            {pending ? "Saving…" : "Save"}
+          </Button>
+          <ActionError state={state} />
+        </div>
       </div>
 
-      <div className="flex flex-col items-start gap-1">
-        <Button type="submit" variant="outline" size="sm" disabled={pending}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
-        <ActionError state={state} />
-      </div>
+      <p className="text-xs text-muted-foreground">
+        {bookingWindowLabel(org.bookingWindow)}
+      </p>
     </form>
   );
 }
