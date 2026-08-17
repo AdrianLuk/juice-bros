@@ -50,7 +50,7 @@ export function DashboardAvailabilityBlock({
     >
       <span
         aria-hidden="true"
-        className="truncate text-[10px] leading-tight font-bold text-foreground/70"
+        className="truncate text-base leading-none font-bold text-foreground/70"
       >
         {type === "open" ? "Open" : "Busy"}
       </span>
