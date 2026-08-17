@@ -27,10 +27,11 @@ import type { Org } from "@/lib/booking-buddy/actions/orgs";
  */
 export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
     <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
-      <Dialog>
+      <Dialog open={availabilityDialogOpen} onOpenChange={setAvailabilityDialogOpen}>
         <DialogTrigger
           render={
             <Button
@@ -52,7 +53,9 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
               invite.
             </DialogDescription>
           </DialogHeader>
-          <CreateAvailabilityWindowForm />
+          <CreateAvailabilityWindowForm
+            onSaved={() => setAvailabilityDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 

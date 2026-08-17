@@ -118,10 +118,7 @@ export function GroupCard({
                 className="flex items-center justify-between gap-4 px-4 py-3"
               >
                 <PersonName person={member} />
-                <RemoveMemberForm
-                  groupId={group.id}
-                  connectionId={member.connectionId}
-                />
+                <RemoveMemberForm groupId={group.id} member={member} />
               </li>
             ))}
           </ul>
@@ -164,23 +161,46 @@ function GroupVisibilityForm({ group }: { group: FriendGroup }) {
 
 function RemoveMemberForm({
   groupId,
-  connectionId,
+  member,
 }: {
   groupId: string;
-  connectionId: string;
+  member: ConnectionPerson;
 }) {
   const [state, formAction, pending] = useActionState(setGroupMembership, EMPTY);
 
-  return (
+  // The form lives inside the dialog so the confirm button is the only thing
+  // that can submit it — the same shape as removing a friend or a group.
+  const form = (
     <form action={formAction} className="flex shrink-0 flex-col items-end gap-1">
       <input type="hidden" name="group_id" value={groupId} />
-      <input type="hidden" name="connection_id" value={connectionId} />
+      <input type="hidden" name="connection_id" value={member.connectionId} />
       <input type="hidden" name="member" value="no" />
       <Button type="submit" size="sm" variant="destructive" disabled={pending}>
         {pending ? "Removing…" : "Remove"}
       </Button>
       <ActionError state={state} />
     </form>
+  );
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
+        Remove
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove {personLabel(member)}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            They stay your friend, but drop out of this group and lose
+            whatever visibility it gave them. You can add them back anytime.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep in group</AlertDialogCancel>
+          {form}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
