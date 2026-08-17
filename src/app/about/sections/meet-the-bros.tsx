@@ -13,6 +13,7 @@ export function MeetTheBros() {
         alt="Daven and Adrian courtside, mid-match"
         width={2000}
         height={1333}
+        loading="lazy"
         className="mx-auto mt-8 aspect-video w-full max-w-3xl rounded-2xl border object-cover"
       />
 
