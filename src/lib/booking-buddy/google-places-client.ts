@@ -40,10 +40,10 @@ export type TextSearchOutcome =
   | { ok: false; reason: "unreachable" };
 
 export async function searchPlacesText(query: string): Promise<TextSearchOutcome> {
-  const apiKey = requireGoogleMapsApiKey();
-  const baseUrl = readGooglePlacesApiBaseUrl();
-
   try {
+    const apiKey = requireGoogleMapsApiKey();
+    const baseUrl = readGooglePlacesApiBaseUrl();
+
     const response = await fetch(`${baseUrl}/v1/places:searchText`, {
       method: "POST",
       headers: {
@@ -82,10 +82,10 @@ export type PlaceDetailsOutcome =
  * them differently — one is permanent, the other is worth trying again later.
  */
 export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetailsOutcome> {
-  const apiKey = requireGoogleMapsApiKey();
-  const baseUrl = readGooglePlacesApiBaseUrl();
-
   try {
+    const apiKey = requireGoogleMapsApiKey();
+    const baseUrl = readGooglePlacesApiBaseUrl();
+
     const response = await fetch(`${baseUrl}/v1/places/${encodeURIComponent(placeId)}`, {
       headers: {
         "X-Goog-Api-Key": apiKey,
