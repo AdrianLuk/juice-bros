@@ -22,7 +22,7 @@ import {
   bookingWindowLabel,
   daysBeforeOptionLabel,
 } from "@/lib/booking-buddy/booking-window";
-import { HALF_HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -171,7 +171,7 @@ function BookingWindowForm({ org }: { org: Org }) {
             aria-label="Time the window opens"
           >
             <option value="">—</option>
-            {HALF_HOUR_TIMES.map((time) => (
+            {HOUR_TIMES.map((time) => (
               <option key={time} value={time}>
                 {formatTimeLabel(time)}
               </option>

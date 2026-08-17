@@ -52,7 +52,7 @@ test("repeated guest RSVPs from the same IP past the soft threshold are flagged 
   const slotId = await createSlot(page, {
     date: "2031-04-06",
     start: "20:00",
-    end: "21:30",
+    end: "21:00",
     label: "Apr 6, 2031",
   });
 

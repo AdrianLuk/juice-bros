@@ -3,7 +3,7 @@
 -- not attendees that a confirmed game is coming up. Four things to prove:
 --
 --   * an Org's Booking Window fields are set together or not at all, and
---     the time is on the same half-hour grid every other time entry in this
+--     the time is on the same on-the-hour grid every other time entry in this
 --     app uses;
 --   * a Slot's `intended_org_id`, if set, must belong to the same owner —
 --     `assert_slot_intended_org_coherent`;
@@ -49,13 +49,13 @@ select throws_ok(
   'a booking window needs both fields, not just one'
 );
 
--- Off the half-hour grid.
+-- Off the hour grid.
 select throws_ok(
   $$insert into public.orgs (owner_id, name, time_zone, booking_window_days_before, booking_window_time) values
     ('aaaaaaaa-0000-0000-0000-000000000071', 'Off-Grid Club', 'America/Toronto', 3, '06:15')$$,
   '23514',
   null,
-  'a booking window time off the half-hour grid is refused'
+  'a booking window time off the hour grid is refused'
 );
 
 insert into public.orgs (id, owner_id, name, time_zone, booking_window_days_before, booking_window_time)

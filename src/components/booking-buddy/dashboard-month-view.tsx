@@ -179,7 +179,7 @@ function AvailabilitySpanBar({
     <div
       aria-hidden={!isStart}
       className={cn(
-        "h-4 truncate px-1 text-[10px] leading-4 font-medium",
+        "h-4 truncate px-1 text-left text-[10px] leading-4 font-medium",
         isStart ? "rounded-l-sm" : "-ml-1 sm:-ml-1.5",
         isEnd ? "rounded-r-sm" : "-mr-1 sm:-mr-1.5",
         segment.type === "busy"

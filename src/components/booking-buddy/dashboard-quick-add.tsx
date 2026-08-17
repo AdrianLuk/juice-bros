@@ -1,15 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { CalendarOffIcon, PlusIcon } from "lucide-react";
 
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CreateBookingForm } from "@/components/booking-buddy/bookings";
 import { CreateAvailabilityWindowForm } from "@/components/booking-buddy/availability";
@@ -25,10 +26,12 @@ import type { Org } from "@/lib/booking-buddy/actions/orgs";
  * held — with "Block off time" stacked above it as the secondary one.
  */
 export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+
   return (
     <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
-      <Sheet>
-        <SheetTrigger
+      <Dialog>
+        <DialogTrigger
           render={
             <Button
               size="sm"
@@ -39,51 +42,50 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
         >
           <CalendarOffIcon />
           Block off time
-        </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Set your availability</SheetTitle>
-            <SheetDescription>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set your availability</DialogTitle>
+            <DialogDescription>
               Mark a stretch as open or busy. It only shows on your calendar —
               friends can still ask about it, this doesn&apos;t stop a Slot
               invite.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-4">
-            <CreateAvailabilityWindowForm />
-          </div>
-        </SheetContent>
-      </Sheet>
+            </DialogDescription>
+          </DialogHeader>
+          <CreateAvailabilityWindowForm />
+        </DialogContent>
+      </Dialog>
 
-      <Sheet>
-        <SheetTrigger
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogTrigger
           render={
             <Button size="lg" className="gap-2 rounded-full shadow-lg" />
           }
         >
           <PlusIcon />
           Add booking
-        </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Log a booking</SheetTitle>
-            <SheetDescription>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log a booking</DialogTitle>
+            <DialogDescription>
               Copy it off the facility&apos;s own booking screen — it&apos;ll
               show up on the calendar right after.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-4">
-            {orgs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Bookings need somewhere to be — add a place you play first,
-                then come back.
-              </p>
-            ) : (
-              <CreateBookingForm orgs={orgs} />
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+            </DialogDescription>
+          </DialogHeader>
+          {orgs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Bookings need somewhere to be — add a place you play first,
+              then come back.
+            </p>
+          ) : (
+            <CreateBookingForm
+              orgs={orgs}
+              onLogged={() => setBookingDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

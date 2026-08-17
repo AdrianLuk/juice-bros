@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import {
   COURT_LABEL_MAX_LENGTH,
   DEFAULT_BOOKING_FORMAT,
-  HALF_HOUR_TIMES,
+  HOUR_TIMES,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMATS, BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
@@ -46,10 +46,10 @@ function ActionError({ state }: { state: ActionResult }) {
 }
 
 /**
- * Half-hour slots only — courts are booked in chunks, not whatever a
+ * On-the-hour slots only — courts are booked in chunks, not whatever a
  * free-typed or click-dragged time picker happens to land on.
  */
-function HalfHourTimeSelect({
+function HourTimeSelect({
   id,
   name,
   defaultValue,
@@ -60,7 +60,7 @@ function HalfHourTimeSelect({
 }) {
   return (
     <FormSelect id={id} name={name} defaultValue={defaultValue} required>
-      {HALF_HOUR_TIMES.map((time) => (
+      {HOUR_TIMES.map((time) => (
         <option key={time} value={time}>
           {formatTimeLabel(time)}
         </option>
@@ -69,14 +69,41 @@ function HalfHourTimeSelect({
   );
 }
 
-export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
+export function CreateBookingForm({
+  orgs,
+  onLogged,
+}: {
+  orgs: Org[];
+  /** Called once the Booking actually saves — e.g. to close whatever dialog this form sits in. */
+  onLogged?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(createBooking, EMPTY);
+  const formRef = useRef<HTMLFormElement>(null);
   // Falls back to the placeholder when nothing's marked default — same as
   // today's "force an explicit pick" behaviour (issue #47).
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
+  // `<form action={formAction}>` resets the form's own uncontrolled fields
+  // the instant the action settles, error or not — wiping exactly what the
+  // User needs to fix on a validation failure. Driving the submit by hand
+  // instead means the fields only clear once `state.ok` says the Booking
+  // actually saved.
+  useEffect(() => {
+    if (state.ok) {
+      formRef.current?.reset();
+      onLogged?.();
+    }
+  }, [state, onLogged]);
+
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      ref={formRef}
+      onSubmit={(event) => {
+        event.preventDefault();
+        formAction(new FormData(event.currentTarget));
+      }}
+      className="flex flex-col gap-4"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-facility">Facility</Label>
@@ -115,12 +142,12 @@ export function CreateBookingForm({ orgs }: { orgs: Org[] }) {
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-start">Start</Label>
-          <HalfHourTimeSelect id="booking-start" name="start_time" defaultValue="18:00" />
+          <HourTimeSelect id="booking-start" name="start_time" defaultValue="18:00" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-end">End</Label>
-          <HalfHourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
+          <HourTimeSelect id="booking-end" name="end_time" defaultValue="19:00" />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">

@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  HALF_HOUR_TIMES,
+  HOUR_TIMES,
   formatInstantDateAndTime,
   formatInstantRange,
   formatTimeLabel,
-  isHalfHourTime,
+  isHourTime,
   isPastDate,
   isRealDate,
   nextCalendarDate,
@@ -24,20 +24,20 @@ test("a date that isn't a date is rejected", () => {
   }
 });
 
-test("only half-hour boundaries are accepted", () => {
-  assert.equal(isHalfHourTime("18:00"), true);
-  assert.equal(isHalfHourTime("18:30"), true);
-  assert.equal(isHalfHourTime("18:15"), false);
-  assert.equal(isHalfHourTime("25:00"), false);
+test("only on-the-hour boundaries are accepted", () => {
+  assert.equal(isHourTime("18:00"), true);
+  assert.equal(isHourTime("18:30"), false);
+  assert.equal(isHourTime("18:15"), false);
+  assert.equal(isHourTime("25:00"), false);
 });
 
-test("every half-hour slot in a day is offered, and only those", () => {
-  assert.equal(HALF_HOUR_TIMES.length, 48);
-  assert.equal(HALF_HOUR_TIMES[0], "00:00");
-  assert.equal(HALF_HOUR_TIMES.at(-1), "23:30");
+test("every hour slot in a day is offered, and only those", () => {
+  assert.equal(HOUR_TIMES.length, 24);
+  assert.equal(HOUR_TIMES[0], "00:00");
+  assert.equal(HOUR_TIMES.at(-1), "23:00");
 });
 
-test("a half-hour slot renders as a 12-hour label", () => {
+test("an hour slot renders as a 12-hour label", () => {
   assert.equal(formatTimeLabel("00:00"), "12:00 AM");
   assert.equal(formatTimeLabel("18:30"), "6:30 PM");
 });
