@@ -134,7 +134,7 @@ test("the quick-add sheet logs a Booking without leaving the dashboard", async (
   await page.getByRole("button", { name: "Add booking" }).click();
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
-  await page.getByLabel("Where").selectOption({ label: place });
+  await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("Sheet Court");
   await page.getByLabel("Date").fill("2026-08-20");
   // Exact matches: the calendar's own "Calendar view" toggle group label
