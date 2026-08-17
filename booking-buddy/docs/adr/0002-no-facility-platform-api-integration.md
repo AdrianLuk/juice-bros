@@ -6,4 +6,4 @@ The original brief considered pulling bookings automatically from third-party fa
 
 **Why**: No free, member-scoped API exists on any platform surveyed; a real integration would require the facility's cooperation and likely payment, which isn't worth it to ship v1. Manual entry is unblocked today.
 
-**Status**: proposed for v1; revisit for a later phase via the CourtReserve iCal feed approach, which needs no facility partnership or payment.
+**Status**: proposed for v1; the direct facility-platform API integration ruled out here still stands. Revisited via a different path than originally flagged — see [ADR-0009](0009-email-sync-via-gmail-oauth.md), which reads the User's own Gmail inbox for CourtReserve confirmation/cancellation mail instead of the iCal feed approach this ADR anticipated.
