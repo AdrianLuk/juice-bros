@@ -26,14 +26,14 @@ const socialLinks = [
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[calc(100svh-4.5rem)] flex-col overflow-hidden bg-brand-black text-white md:block md:min-h-0">
+    <section className="relative flex min-h-dvh flex-col overflow-hidden bg-brand-black text-white md:block md:min-h-0">
       {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
       <img
         src="/brand/JB_Banner_1920.jpeg"
         alt="Juice Bros Pickleball hosts"
         width={1600}
         height={901}
-        className="w-full object-cover object-center opacity-90 md:max-h-[calc(100vh-4.5rem)] md:min-h-160"
+        className="w-full object-cover object-center opacity-90 md:max-h-dvh md:min-h-160"
       />
       <div
         aria-hidden
