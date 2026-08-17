@@ -127,9 +127,13 @@ export function DashboardMonthView({
                     <DashboardBookingPopover
                       key={booking.id}
                       booking={booking}
-                      className="block w-full truncate rounded-sm bg-primary/90 px-1 py-0.5 text-[10px] font-medium text-primary-foreground"
+                      className="block w-full overflow-hidden rounded-sm bg-primary/90 px-1 py-0.5 text-[10px] font-medium text-primary-foreground"
                     >
-                      {TIME_LABEL.format(new Date(booking.startsAt))} {booking.courtLabel}
+                      <p className="truncate">{booking.orgName}</p>
+                      <p className="truncate opacity-90">
+                        {TIME_LABEL.format(new Date(booking.startsAt))} –{" "}
+                        {TIME_LABEL.format(new Date(booking.endsAt))} · Court {booking.courtLabel}
+                      </p>
                     </DashboardBookingPopover>
                   ))}
                   {overflow > 0 && (
