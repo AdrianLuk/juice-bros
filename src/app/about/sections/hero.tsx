@@ -2,7 +2,7 @@ import { Eyebrow } from "@/components/typography/eyebrow";
 
 export function Hero() {
   return (
-    <section className="w-full bg-brand-orange px-4 py-20 text-white sm:px-6 lg:px-8">
+    <section className="w-full bg-brand-orange px-4 pt-28 pb-20 text-white sm:px-6 sm:pt-32 lg:px-8">
       <div className="mx-auto grid w-full max-w-6xl gap-12 sm:grid-cols-2 sm:items-center">
         <div className="flex flex-col gap-5">
           <Eyebrow color="yellow">Who We Are</Eyebrow>
