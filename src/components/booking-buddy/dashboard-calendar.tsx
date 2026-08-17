@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -9,18 +15,21 @@ import {
   addDays,
   addMonths,
   monthLabel,
+  notEndedBefore,
   startOfDay,
+  startOfMonth,
   startOfWeek,
   weekRangeLabel,
+  type CalendarEvent,
   type CalendarView,
 } from "@/lib/booking-buddy/calendar";
-import type { Booking } from "@/lib/booking-buddy/actions/bookings";
-import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import type { AvailabilityWindow } from "@/lib/booking-buddy/availability";
-import { DashboardWeekView } from "@/components/booking-buddy/dashboard-week-view";
+import {
+  DashboardWeekView,
+  type EventRange,
+} from "@/components/booking-buddy/dashboard-week-view";
 import { DashboardMonthView } from "@/components/booking-buddy/dashboard-month-view";
 import { DashboardAgendaView } from "@/components/booking-buddy/dashboard-agenda-view";
-import { DashboardQuickActions } from "@/components/booking-buddy/dashboard-quick-add";
 
 const VIEWS: { id: CalendarView; label: string }[] = [
   { id: "month", label: "Month" },
@@ -28,14 +37,58 @@ const VIEWS: { id: CalendarView; label: string }[] = [
   { id: "agenda", label: "Agenda" },
 ];
 
-export function DashboardCalendar({
-  bookings,
+/**
+ * The Month/Week/Agenda shell (issue #23): navigation chrome, view
+ * switching, and "today" resolution — reused as-is by the owner's own
+ * dashboard (`OwnerDashboardCalendar`) and the friend calendar (issue #61,
+ * `FriendDashboardCalendar`). Generic over what an "event" is; each caller
+ * supplies its own chip/detail rendering, so this file never needs to know
+ * whether an event is a Booking with a court label or a friend's stripped
+ * busy time.
+ *
+ * `quickActions` is a slot rather than a hardcoded `DashboardQuickActions`
+ * — the friend calendar has no creation affordances at all (issue #61),
+ * and `undefined` here simply renders nothing.
+ *
+ * `restrictToFuture`, when set, is two bounds sharing one floor
+ * (`minAnchor`, below), not one: navigation can't move the anchor earlier
+ * than today (`clampToMin`, applied everywhere the anchor can change), *and*
+ * `events`/`availabilityWindows` are pre-filtered to drop anything that
+ * ended before today — otherwise the currently-displayed week or month,
+ * which always renders as a full grid, would still show the friend's real
+ * past busy/open time on any day before today that happens to fall in the
+ * *current* week/month (e.g. Sunday–Tuesday of the week "today" sits in).
+ * Filtering the data is what actually satisfies "a friend cannot see your
+ * past," not just the navigation bound — issue #61's own acceptance
+ * criterion. Deliberately not a `minDate` prop taking an arbitrary caller-
+ * supplied `Date`: "today" here has to be the same client-resolved `now`
+ * this component already computes below (browser-local, read in an effect
+ * to dodge the SSR/hydration mismatch the comment above explains) — a
+ * second, independently-computed "today" handed down as a prop could disagree
+ * with it near a local midnight.
+ */
+export function DashboardCalendar<T extends CalendarEvent>({
+  events,
   availabilityWindows,
-  orgs,
+  quickActions,
+  restrictToFuture = false,
+  renderWeekEvent,
+  renderMonthEvent,
+  renderAgendaEvent,
+  agendaEmptyMessage,
 }: {
-  bookings: Booking[];
+  events: T[];
   availabilityWindows: AvailabilityWindow[];
-  orgs: Org[];
+  quickActions?: ReactNode;
+  restrictToFuture?: boolean;
+  renderWeekEvent: (
+    event: T,
+    style: CSSProperties,
+    range: EventRange,
+  ) => ReactNode;
+  renderMonthEvent: (event: T) => ReactNode;
+  renderAgendaEvent: (event: T) => ReactNode;
+  agendaEmptyMessage: string;
 }) {
   const [view, setView] = useState<CalendarView>("week");
   // "Today" as of first render — a stable reference for the session rather
@@ -60,9 +113,39 @@ export function DashboardCalendar({
     setAnchor(startOfDay(clientNow));
   }, []);
 
+  // `now` rather than the later-rebound `today`: this has to run unconditionally,
+  // before the loading-skeleton return below, so it can't depend on a value
+  // only defined past that guard. `null` until mount, same as `now` itself —
+  // harmless, since nothing downstream reads `visibleEvents`/`visibleWindows`
+  // before that guard passes either.
+  const minAnchor = restrictToFuture && now ? startOfDay(now) : null;
+
+  // The navigation clamp (`clampToMin`, below) only bounds where the anchor
+  // can move to — it doesn't stop the *currently displayed* week or month,
+  // which always renders as a full grid, from showing days before today that
+  // happen to fall in the current period (e.g. Sunday–Tuesday of the week
+  // "today" sits in). Filtering here is what actually keeps a friend's past
+  // busy/open time off the screen, not the navigation bound alone.
+  const visibleEvents = useMemo(
+    () => (minAnchor ? notEndedBefore(events, minAnchor) : events),
+    [events, minAnchor],
+  );
+
+  const visibleWindows = useMemo(
+    () =>
+      minAnchor
+        ? notEndedBefore(availabilityWindows, minAnchor)
+        : availabilityWindows,
+    [availabilityWindows, minAnchor],
+  );
+
   const busyIntervals = useMemo(
-    () => bookings.map((booking) => ({ startsAt: booking.startsAt, endsAt: booking.endsAt })),
-    [bookings],
+    () =>
+      visibleEvents.map((event) => ({
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+      })),
+    [visibleEvents],
   );
 
   if (!now || !anchor) {
@@ -76,26 +159,41 @@ export function DashboardCalendar({
 
   // Rebound to a non-nullable local: the `if (!now)` guard above narrows
   // `now` itself, but that narrowing doesn't survive into the closures below.
+  // `minAnchor` itself was already computed above (off `now`, not `today`) so
+  // it could feed the `visibleEvents`/`visibleWindows` memos ahead of this
+  // guard — reused here rather than recomputed.
   const today = now;
 
+  function clampToMin(date: Date): Date {
+    return minAnchor && date < minAnchor ? minAnchor : date;
+  }
+
   function goToday() {
-    setAnchor(startOfDay(today));
+    setAnchor(clampToMin(startOfDay(today)));
   }
 
   function goBack() {
     setAnchor((current) =>
-      current ? (view === "month" ? addMonths(current, -1) : addDays(current, -7)) : current,
+      current
+        ? clampToMin(
+            view === "month" ? addMonths(current, -1) : addDays(current, -7),
+          )
+        : current,
     );
   }
 
   function goForward() {
     setAnchor((current) =>
-      current ? (view === "month" ? addMonths(current, 1) : addDays(current, 7)) : current,
+      current
+        ? view === "month"
+          ? addMonths(current, 1)
+          : addDays(current, 7)
+        : current,
     );
   }
 
   function goToDay(day: Date) {
-    setAnchor(startOfDay(day));
+    setAnchor(clampToMin(startOfDay(day)));
     setView("week");
   }
 
@@ -106,6 +204,31 @@ export function DashboardCalendar({
       : view === "week"
         ? weekRangeLabel(weekStart)
         : "Coming up";
+
+  // "Previous" is disabled once the visible period already contains
+  // `minAnchor` — nothing earlier is reachable, so a live but no-op button
+  // would just be confusing. Not evaluated for the Agenda view, which has no
+  // navigation of its own and is already forward-looking only.
+  //
+  // Deliberately a *period-start* comparison, not a reuse of `clampToMin`'s
+  // day-level one: `clampToMin` answers "is this exact date before the
+  // floor," which is right for clamping an arbitrary target (`goToDay`'s
+  // `day`, `goToday`'s `today`) but wrong for gating this button — `anchor`
+  // itself can sit anywhere inside the floor's own week/month (e.g. today
+  // is Wednesday; `anchor` is Wednesday, not the week's Sunday) without
+  // being *equal* to `minAnchor`, and a day-level check would then read
+  // "still earlier than the floor" and leave Previous clickable one period
+  // too late. Comparing period starts is what correctly reads "we're
+  // already showing the floor's own week/month," which is the question
+  // this button actually needs answered.
+  const periodStart =
+    view === "month" ? startOfMonth(anchor) : startOfWeek(anchor);
+  const minPeriodStart = minAnchor
+    ? view === "month"
+      ? startOfMonth(minAnchor)
+      : startOfWeek(minAnchor)
+    : null;
+  const canGoBack = !minPeriodStart || periodStart > minPeriodStart;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -120,13 +243,24 @@ export function DashboardCalendar({
           </h2>
           {view !== "agenda" && (
             <div className="order-2 flex items-center gap-1.5 sm:order-1">
-              <Button variant="outline" size="icon-sm" onClick={goBack} aria-label="Previous">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={goBack}
+                disabled={!canGoBack}
+                aria-label="Previous"
+              >
                 <ChevronLeftIcon />
               </Button>
               <Button variant="outline" size="sm" onClick={goToday}>
                 Today
               </Button>
-              <Button variant="outline" size="icon-sm" onClick={goForward} aria-label="Next">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={goForward}
+                aria-label="Next"
+              >
                 <ChevronRightIcon />
               </Button>
             </div>
@@ -161,27 +295,37 @@ export function DashboardCalendar({
         <DashboardWeekView
           weekStart={weekStart}
           today={today}
-          bookings={bookings}
+          events={visibleEvents}
           busyIntervals={busyIntervals}
-          windows={availabilityWindows}
+          windows={visibleWindows}
           onDayClick={goToDay}
+          renderEvent={renderWeekEvent}
+          minDay={minAnchor}
         />
       )}
       {view === "month" && (
         <DashboardMonthView
           month={anchor}
           today={today}
-          bookings={bookings}
+          events={visibleEvents}
           busyIntervals={busyIntervals}
-          windows={availabilityWindows}
+          windows={visibleWindows}
           onDayClick={goToDay}
+          renderEvent={renderMonthEvent}
+          minDay={minAnchor}
         />
       )}
       {view === "agenda" && (
-        <DashboardAgendaView bookings={bookings} now={today} onDayClick={goToDay} />
+        <DashboardAgendaView
+          events={visibleEvents}
+          now={today}
+          onDayClick={goToDay}
+          renderEvent={renderAgendaEvent}
+          emptyMessage={agendaEmptyMessage}
+        />
       )}
 
-      <DashboardQuickActions orgs={orgs} />
+      {quickActions}
     </div>
   );
 }

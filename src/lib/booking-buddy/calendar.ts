@@ -79,6 +79,15 @@ export type TimeSpan = {
   endsAt: string;
 };
 
+/**
+ * What every calendar shell component (`DashboardCalendar` and its
+ * Week/Month/Agenda views, issue #23/#61) needs from an "event," regardless
+ * of whether it's a full owner Booking or a friend's stripped busy time — a
+ * single alias so the constraint lives in one place instead of being
+ * hand-repeated as `TimeSpan & { id: string }` in every generic signature.
+ */
+export type CalendarEvent = TimeSpan & { id: string };
+
 export type LaidOutEvent<T extends TimeSpan> = {
   event: T;
   /** 0-indexed column this event occupies among its overlap group. */
@@ -99,11 +108,15 @@ export type LaidOutEvent<T extends TimeSpan> = {
  * them with that run's column count. Deterministic given a stable input
  * order — ties at the same start time keep the order they arrived in.
  */
-export function layoutDayEvents<T extends TimeSpan>(events: T[]): LaidOutEvent<T>[] {
+export function layoutDayEvents<T extends TimeSpan>(
+  events: T[],
+): LaidOutEvent<T>[] {
   const sorted = [...events]
     .map((event, index) => ({ event, index }))
     .sort((a, b) => {
-      const byStart = new Date(a.event.startsAt).getTime() - new Date(b.event.startsAt).getTime();
+      const byStart =
+        new Date(a.event.startsAt).getTime() -
+        new Date(b.event.startsAt).getTime();
       return byStart !== 0 ? byStart : a.index - b.index;
     });
 
@@ -114,7 +127,8 @@ export function layoutDayEvents<T extends TimeSpan>(events: T[]): LaidOutEvent<T
   let openGroup: { result: LaidOutEvent<T>; endsAtMs: number }[] = [];
 
   const closeGroup = () => {
-    const columns = Math.max(0, ...openGroup.map((entry) => entry.result.column)) + 1;
+    const columns =
+      Math.max(0, ...openGroup.map((entry) => entry.result.column)) + 1;
     for (const entry of openGroup) {
       entry.result.columns = columns;
     }
@@ -184,7 +198,11 @@ export function layoutMultiDaySpans<T extends TimeSpan>(
       const startMs = new Date(event.startsAt).getTime();
       const endMs = new Date(event.endsAt).getTime();
       if (startMs < dayEndMs && endMs > dayStartMs) {
-        touching.push({ event, isStart: startMs >= dayStartMs, isEnd: endMs <= dayEndMs });
+        touching.push({
+          event,
+          isStart: startMs >= dayStartMs,
+          isEnd: endMs <= dayEndMs,
+        });
       }
     }
 
@@ -207,7 +225,10 @@ export function localDayKey(date: Date): string {
  * the Agenda view (which day-group does this row fall under), so the two
  * views agree on what "the same day" means without each re-deriving it.
  */
-export function groupByLocalDay<T>(items: T[], getDate: (item: T) => Date): Map<string, T[]> {
+export function groupByLocalDay<T>(
+  items: T[],
+  getDate: (item: T) => Date,
+): Map<string, T[]> {
   const groups = new Map<string, T[]>();
   for (const item of items) {
     const key = localDayKey(getDate(item));
@@ -230,8 +251,31 @@ export function upcomingBookings<T extends { startsAt: string }>(
   const nowMs = now.getTime();
   return bookings
     .filter((booking) => new Date(booking.startsAt).getTime() >= nowMs)
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+    .sort(
+      (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+    )
     .slice(0, limit);
+}
+
+/**
+ * Items that haven't fully ended before `floor` — what `DashboardCalendar`'s
+ * `restrictToFuture` (issue #61) filters both events and Availability
+ * Windows through, so a friend's calendar never renders busy/open time from
+ * before today, even within the currently-displayed week or month, which
+ * always renders as a full grid (past days included) regardless of how far
+ * back navigation itself is allowed to go.
+ *
+ * `endsAt`, not `startsAt`: an item straddling `floor` (started yesterday
+ * evening, still running this morning) is still relevant today and should
+ * stay — the same "any overlap counts" reasoning the Week view's own day-
+ * boundary filter already uses.
+ */
+export function notEndedBefore<T extends { endsAt: string }>(
+  items: T[],
+  floor: Date,
+): T[] {
+  const floorMs = floor.getTime();
+  return items.filter((item) => new Date(item.endsAt).getTime() > floorMs);
 }
 
 const WEEKDAY_MONTH_DAY = new Intl.DateTimeFormat("en-US", {
@@ -240,9 +284,15 @@ const WEEKDAY_MONTH_DAY = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
 });
 
-const MONTH_YEAR = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+const MONTH_YEAR = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  year: "numeric",
+});
 
-const MONTH_DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+const MONTH_DAY = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+});
 
 const MONTH_DAY_YEAR = new Intl.DateTimeFormat("en-US", {
   month: "short",

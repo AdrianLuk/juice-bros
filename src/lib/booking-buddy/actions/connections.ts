@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
-import { verifySession } from "../dal.ts";
+import { verifySession, type Session } from "../dal.ts";
 import { FRIENDS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
   groupConnections,
+  type ConnectionEntry,
   type ConnectionRow,
   type GroupedConnections,
 } from "../connections.ts";
@@ -22,9 +23,54 @@ export type ConnectionPerson = {
   username: string | null;
 };
 
-export type ConnectionLists = Record<keyof GroupedConnections, ConnectionPerson[]>;
+export type ConnectionLists = Record<
+  keyof GroupedConnections,
+  ConnectionPerson[]
+>;
 
 const NO_CONNECTIONS: ConnectionLists = { friends: [], received: [], sent: [] };
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** The `connections` read + grouping shared by `listConnections` and `getFriendsPageData`, so the two don't drift apart. */
+async function fetchGroupedConnections(
+  session: Session,
+  supabase: Supabase,
+): Promise<GroupedConnections> {
+  const { data: rows, error } = await supabase
+    .from("connections")
+    .select("id, requester_id, addressee_id, status, created_at");
+
+  if (error) {
+    readFailed("your connections", error);
+  }
+
+  return groupConnections((rows ?? []) as ConnectionRow[], session.userId);
+}
+
+/**
+ * Turns Connection entries into display-ready people, given a profile lookup
+ * map. A *missing* profile is different from a failed query and stays
+ * tolerated here: RLS can legitimately hide a profile, and an unnamed friend
+ * beats a crash.
+ */
+function peopleFromProfiles(
+  entries: ConnectionEntry[],
+  profileById: Map<
+    string,
+    { display_name: string | null; username: string | null }
+  >,
+): ConnectionPerson[] {
+  return entries.map((entry) => {
+    const profile = profileById.get(entry.otherUserId);
+    return {
+      connectionId: entry.connectionId,
+      userId: entry.otherUserId,
+      displayName: profile?.display_name ?? null,
+      username: profile?.username ?? null,
+    };
+  });
+}
 
 /**
  * The caller's Connections, split into friends, requests received and requests
@@ -39,15 +85,7 @@ export async function listConnections(): Promise<ConnectionLists> {
   const session = await verifySession();
   const supabase = await createClient();
 
-  const { data: rows, error } = await supabase
-    .from("connections")
-    .select("id, requester_id, addressee_id, status, created_at");
-
-  if (error) {
-    readFailed("your connections", error);
-  }
-
-  const grouped = groupConnections((rows ?? []) as ConnectionRow[], session.userId);
+  const grouped = await fetchGroupedConnections(session, supabase);
   const buckets = Object.values(grouped);
   const otherUserIds = buckets.flat().map((entry) => entry.otherUserId);
 
@@ -64,27 +102,76 @@ export async function listConnections(): Promise<ConnectionLists> {
     readFailed("who those connections are with", profilesError);
   }
 
-  // A *missing* row is different from a failed query and stays tolerated below:
-  // RLS can legitimately hide a profile, and an unnamed friend beats a crash.
   const profileById = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
 
-  const withPeople = (entries: (typeof buckets)[number]): ConnectionPerson[] =>
-    entries.map((entry) => {
-      const profile = profileById.get(entry.otherUserId);
-      return {
-        connectionId: entry.connectionId,
-        userId: entry.otherUserId,
-        displayName: profile?.display_name ?? null,
-        username: profile?.username ?? null,
-      };
-    });
+  return {
+    friends: peopleFromProfiles(grouped.friends, profileById),
+    received: peopleFromProfiles(grouped.received, profileById),
+    sent: peopleFromProfiles(grouped.sent, profileById),
+  };
+}
+
+export type FriendsPageData = ConnectionLists & {
+  /** Friends whose resolved Visibility currently grants the caller `open_time` — gates the "View calendar" action (issue #61). */
+  calendarVisibleFriendIds: Set<string>;
+};
+
+/**
+ * Everything `/booking-buddy/friends` needs: `listConnections`'s own three
+ * lists, plus which friends grant the caller `open_time` Visibility.
+ *
+ * A dedicated function rather than composing `listConnections()` and a
+ * separate visibility call one after the other: the profile lookup and the
+ * `open_time_visible_owners` RPC are independent of each other once the
+ * friends bucket's own ids are known — which happens right after grouping,
+ * before profiles are even fetched — so running them via `Promise.all`
+ * saves a full sequential round trip on every friends-page load.
+ * `listConnections()` itself stays untouched (and un-slowed) for its other
+ * caller, `getGroupsPageData`, which has no use for this RPC.
+ */
+export async function getFriendsPageData(): Promise<FriendsPageData> {
+  const session = await verifySession();
+  const supabase = await createClient();
+
+  const grouped = await fetchGroupedConnections(session, supabase);
+  const buckets = Object.values(grouped);
+  const otherUserIds = buckets.flat().map((entry) => entry.otherUserId);
+  const friendUserIds = grouped.friends.map((entry) => entry.otherUserId);
+
+  if (otherUserIds.length === 0) {
+    return { ...NO_CONNECTIONS, calendarVisibleFriendIds: new Set() };
+  }
+
+  const [profilesResult, visibleOwnersResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, username")
+      .in("id", otherUserIds),
+    friendUserIds.length > 0
+      ? supabase.rpc("open_time_visible_owners", { owner_users: friendUserIds })
+      : Promise.resolve({ data: [] as string[], error: null }),
+  ]);
+
+  if (profilesResult.error) {
+    readFailed("who those connections are with", profilesResult.error);
+  }
+  if (visibleOwnersResult.error) {
+    readFailed("who you can see the calendar of", visibleOwnersResult.error);
+  }
+
+  const profileById = new Map(
+    (profilesResult.data ?? []).map((profile) => [profile.id, profile]),
+  );
 
   return {
-    friends: withPeople(grouped.friends),
-    received: withPeople(grouped.received),
-    sent: withPeople(grouped.sent),
+    friends: peopleFromProfiles(grouped.friends, profileById),
+    received: peopleFromProfiles(grouped.received, profileById),
+    sent: peopleFromProfiles(grouped.sent, profileById),
+    calendarVisibleFriendIds: new Set(
+      (visibleOwnersResult.data ?? []) as string[],
+    ),
   };
 }
 
@@ -114,7 +201,9 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_users", { query: trimmed });
+  const { data, error } = await supabase.rpc("search_users", {
+    query: trimmed,
+  });
 
   if (error) {
     // Deliberately not an empty list. Returning one would render as "nobody

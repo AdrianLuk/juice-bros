@@ -1,18 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import { cn } from "@/lib/utils";
-import { isSameDay, layoutDayEvents, weekDays } from "@/lib/booking-buddy/calendar";
+import {
+  isSameDay,
+  layoutDayEvents,
+  weekDays,
+  type CalendarEvent,
+} from "@/lib/booking-buddy/calendar";
 import {
   resolveAvailabilitySegments,
   type AvailabilityWindow,
   type BusyInterval,
 } from "@/lib/booking-buddy/availability";
-import { formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
-import type { Booking } from "@/lib/booking-buddy/actions/bookings";
-import { DashboardBookingPopover } from "@/components/booking-buddy/dashboard-booking-popover";
 import { DashboardAvailabilityBlock } from "@/components/booking-buddy/dashboard-availability-block";
+import { formatTimeLabelFromMs } from "@/lib/booking-buddy/datetime";
 
 const HOUR_HEIGHT = 48;
 const DAY_HEIGHT = HOUR_HEIGHT * 24;
@@ -27,7 +39,8 @@ const WEEKDAY_LABEL = new Intl.DateTimeFormat("en-US", { weekday: "short" });
 // sideways (see the scroller comment below). At `lg` and up there's reliably
 // enough room for 7 columns, so they shrink-to-fit instead of forcing a
 // horizontal scrollbar.
-const DAY_GRID_COLS = "grid-cols-[repeat(7,minmax(7rem,1fr))] lg:grid-cols-[repeat(7,minmax(0,1fr))]";
+const DAY_GRID_COLS =
+  "grid-cols-[repeat(7,minmax(7rem,1fr))] lg:grid-cols-[repeat(7,minmax(0,1fr))]";
 
 /**
  * Pixels from the top of a day column for an instant `dayStartMs` +
@@ -39,25 +52,53 @@ function offsetFor(atMs: number, dayStartMs: number): number {
   return ((atMs - dayStartMs) / 60_000 / 60) * HOUR_HEIGHT;
 }
 
-/** Clips a span at the browser-local day boundary — see calendar.ts's own note on why a Booking is never split across two day columns. */
-function clampToDay(startMs: number, endMs: number, dayStartMs: number, dayEndMs: number): [number, number] {
+/** Clips a span at the browser-local day boundary — see calendar.ts's own note on why an event is never split across two day columns. */
+function clampToDay(
+  startMs: number,
+  endMs: number,
+  dayStartMs: number,
+  dayEndMs: number,
+): [number, number] {
   return [Math.max(startMs, dayStartMs), Math.min(endMs, dayEndMs)];
 }
 
-export function DashboardWeekView({
+/** The day-clamped start/end a laid-out event actually occupies — what a block's own time label should read, not the event's raw (possibly cross-day) instants. */
+export type EventRange = { startMs: number; endMs: number };
+
+/**
+ * The Week grid shell (issue #23), generic over what an "event" is — a
+ * Booking on the owner's own dashboard, a friend's busy time on the friend
+ * calendar (issue #61). The grid, scroll sync, and overlap layout
+ * (`layoutDayEvents`) are the reusable part; `renderEvent` is what turns a
+ * laid-out event into the actual popover block, entirely owned by the
+ * caller so the trigger's visual chip and the panel's detail content can
+ * differ per caller without this file knowing what either looks like.
+ *
+ * `minDay`, when set (the friend calendar, issue #61), disables a day
+ * header's own "go to this week" button for any day before it — without
+ * this, clicking a visible-but-already-past day (Sunday of the week
+ * "today" sits in, say) would silently no-op via `DashboardCalendar`'s own
+ * navigation clamp, which reads as broken rather than as "that's as far
+ * back as this goes."
+ */
+export function DashboardWeekView<T extends CalendarEvent>({
   weekStart,
   today,
-  bookings,
+  events,
   busyIntervals,
   windows,
   onDayClick,
+  renderEvent,
+  minDay,
 }: {
   weekStart: Date;
   today: Date;
-  bookings: Booking[];
+  events: T[];
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
   onDayClick: (day: Date) => void;
+  renderEvent: (event: T, style: CSSProperties, range: EventRange) => ReactNode;
+  minDay?: Date | null;
 }) {
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -74,7 +115,8 @@ export function DashboardWeekView({
   useLayoutEffect(() => {
     const body = bodyRef.current;
     if (!body) return;
-    const measure = () => setScrollbarWidth(body.offsetWidth - body.clientWidth);
+    const measure = () =>
+      setScrollbarWidth(body.offsetWidth - body.clientWidth);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(body);
@@ -99,7 +141,10 @@ export function DashboardWeekView({
     }
   }, []);
 
-  const hours = useMemo(() => Array.from({ length: 24 }, (_, hour) => hour), []);
+  const hours = useMemo(
+    () => Array.from({ length: 24 }, (_, hour) => hour),
+    [],
+  );
 
   return (
     <div className="overflow-hidden bb-card">
@@ -107,30 +152,42 @@ export function DashboardWeekView({
         <div className="w-12 shrink-0 sm:w-14" />
         <div ref={headerRef} className="flex-1 overflow-hidden">
           <div className={cn("grid", DAY_GRID_COLS)}>
-            {days.map((day) => (
-              <button
-                key={day.toISOString()}
-                type="button"
-                onClick={() => onDayClick(day)}
-                aria-label={`Go to the week of ${day.toDateString()}`}
-                className="flex flex-col items-center gap-1 border-l border-border py-2 first:border-l-0 hover:bg-muted"
-              >
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  {WEEKDAY_LABEL.format(day)}
-                </span>
-                <span
+            {days.map((day) => {
+              const disabled = Boolean(minDay && day < minDay);
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  onClick={() => onDayClick(day)}
+                  disabled={disabled}
+                  aria-label={`Go to the week of ${day.toDateString()}`}
                   className={cn(
-                    "flex size-6 items-center justify-center rounded-full text-sm font-medium",
-                    isSameDay(day, today) && "bg-primary text-primary-foreground",
+                    "flex flex-col items-center gap-1 border-l border-border py-2 first:border-l-0 hover:bg-muted",
+                    disabled && "pointer-events-none opacity-40",
                   )}
                 >
-                  {day.getDate()}
-                </span>
-              </button>
-            ))}
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {WEEKDAY_LABEL.format(day)}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex size-6 items-center justify-center rounded-full text-sm font-medium",
+                      isSameDay(day, today) &&
+                        "bg-primary text-primary-foreground",
+                    )}
+                  >
+                    {day.getDate()}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
-        <div aria-hidden style={{ width: scrollbarWidth }} className="shrink-0" />
+        <div
+          aria-hidden
+          style={{ width: scrollbarWidth }}
+          className="shrink-0"
+        />
       </div>
 
       {/* The one real scroller, both axes — cramped otherwise on a narrow
@@ -157,7 +214,11 @@ export function DashboardWeekView({
         <div className="flex w-fit lg:w-full">
           <div className="sticky left-0 z-10 w-12 shrink-0 bg-background sm:w-14">
             {hours.map((hour) => (
-              <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
+              <div
+                key={hour}
+                className="relative"
+                style={{ height: HOUR_HEIGHT }}
+              >
                 {hour > 0 && (
                   <span className="absolute -top-2 right-1.5 text-[10px] text-muted-foreground">
                     {HOUR_LABEL.format(new Date(2000, 0, 1, hour))}
@@ -173,9 +234,10 @@ export function DashboardWeekView({
                 key={day.toISOString()}
                 day={day}
                 hours={hours}
-                bookings={bookings}
+                events={events}
                 busyIntervals={busyIntervals}
                 windows={windows}
+                renderEvent={renderEvent}
               />
             ))}
           </div>
@@ -185,18 +247,20 @@ export function DashboardWeekView({
   );
 }
 
-function DayColumn({
+function DayColumn<T extends CalendarEvent>({
   day,
   hours,
-  bookings,
+  events,
   busyIntervals,
   windows,
+  renderEvent,
 }: {
   day: Date;
   hours: number[];
-  bookings: Booking[];
+  events: T[];
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
+  renderEvent: (event: T, style: CSSProperties, range: EventRange) => ReactNode;
 }) {
   const dayStart = new Date(day);
   dayStart.setHours(0, 0, 0, 0);
@@ -205,13 +269,13 @@ function DayColumn({
   const dayStartMs = dayStart.getTime();
   const dayEndMs = dayEnd.getTime();
 
-  const dayBookings = bookings.filter((booking) => {
-    const start = new Date(booking.startsAt).getTime();
-    const end = new Date(booking.endsAt).getTime();
+  const dayEvents = events.filter((event) => {
+    const start = new Date(event.startsAt).getTime();
+    const end = new Date(event.endsAt).getTime();
     return start < dayEndMs && end > dayStartMs;
   });
 
-  const laidOut = layoutDayEvents(dayBookings);
+  const laidOut = layoutDayEvents(dayEvents);
 
   const segments = resolveAvailabilitySegments({
     rangeStart: dayStart,
@@ -221,7 +285,10 @@ function DayColumn({
   });
 
   return (
-    <div className="relative border-l border-border first:border-l-0" style={{ height: DAY_HEIGHT }}>
+    <div
+      className="relative border-l border-border first:border-l-0"
+      style={{ height: DAY_HEIGHT }}
+    >
       {hours.map((hour) => (
         <div
           key={hour}
@@ -242,55 +309,37 @@ function DayColumn({
           <DashboardAvailabilityBlock
             key={`${segment.type}-${segment.startsAt}`}
             type={segment.type}
-            label={`${segment.type === "open" ? "Open" : "Busy"}: ${formatClock(start)} – ${formatClock(end)}`}
+            label={`${segment.type === "open" ? "Open" : "Busy"}: ${formatTimeLabelFromMs(start)} – ${formatTimeLabelFromMs(end)}`}
             className="absolute inset-x-0.5"
-            style={{ top, height: Math.max(offsetFor(end, dayStartMs) - top, 4) }}
+            style={{
+              top,
+              height: Math.max(offsetFor(end, dayStartMs) - top, 4),
+            }}
           />
         );
       })}
 
-      {laidOut.map(({ event: booking, column, columns }) => {
+      {laidOut.map(({ event, column, columns }) => {
         const [start, end] = clampToDay(
-          new Date(booking.startsAt).getTime(),
-          new Date(booking.endsAt).getTime(),
+          new Date(event.startsAt).getTime(),
+          new Date(event.endsAt).getTime(),
           dayStartMs,
           dayEndMs,
         );
         const top = offsetFor(start, dayStartMs);
         const width = 100 / columns;
 
-        return (
-          <DashboardBookingPopover
-            key={booking.id}
-            booking={booking}
-            className="absolute block overflow-hidden rounded-md bg-primary px-1.5 py-1 text-[11px] leading-tight text-primary-foreground shadow-sm ring-1 ring-black/5"
-            style={{
-              top,
-              height: Math.max(offsetFor(end, dayStartMs) - top, 18),
-              left: `calc(${column * width}% + 2px)`,
-              width: `calc(${width}% - 4px)`,
-            }}
-          >
-            <p className="truncate font-medium">{booking.orgName}</p>
-            <p className="truncate opacity-90">
-              {formatTimeLabelFromMs(start)} – {formatTimeLabelFromMs(end)}
-            </p>
-            <p className="truncate opacity-90">{formatCourtLabel(booking.courtLabel)}</p>
-          </DashboardBookingPopover>
+        return renderEvent(
+          event,
+          {
+            top,
+            height: Math.max(offsetFor(end, dayStartMs) - top, 18),
+            left: `calc(${column * width}% + 2px)`,
+            width: `calc(${width}% - 4px)`,
+          },
+          { startMs: start, endMs: end },
         );
       })}
     </div>
   );
-}
-
-function formatClock(ms: number): string {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(
-    new Date(ms),
-  );
-}
-
-function formatTimeLabelFromMs(ms: number): string {
-  const date = new Date(ms);
-  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-  return formatTimeLabel(time);
 }

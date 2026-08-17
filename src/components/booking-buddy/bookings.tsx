@@ -176,14 +176,7 @@ export function CreateBookingForm({
   }, [state, onLogged]);
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={(event) => {
-        event.preventDefault();
-        formAction(new FormData(event.currentTarget));
-      }}
-      className="flex flex-col gap-4"
-    >
+    <form ref={formRef} action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-facility">Facility</Label>
