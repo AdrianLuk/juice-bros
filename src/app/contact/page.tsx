@@ -15,7 +15,7 @@ export const metadata: Metadata = pageMetadata({
 export default function ContactPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+      <section className="w-full px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <PageHeading
             eyebrow="Get In Touch"

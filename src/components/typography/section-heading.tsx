@@ -23,9 +23,9 @@ export function SectionHeading({
       {eyebrow && <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>}
       <h2
         className={cn(
-          "font-heading text-2xl tracking-tight",
+          "font-heading text-2xl tracking-[-0.02em]",
           weight === "bold" ? "font-bold" : "font-semibold",
-          eyebrow && "mt-1",
+          eyebrow && "mt-3",
           responsive && "sm:text-3xl",
         )}
       >

@@ -9,12 +9,12 @@ export function AppCard({ app }: { app: AppItem }) {
       href={app.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col rounded-xl border p-4 transition-colors hover:border-brand-orange"
+      className="group flex flex-col rounded-[1.5rem] bg-black/3 p-4 ring-1 ring-black/5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-brand hover:ring-brand-orange/25"
     >
-      <div className="flex aspect-4/3 w-full items-center justify-center rounded-lg border bg-brand-orange/5">
+      <div className="flex aspect-4/3 w-full items-center justify-center rounded-[1.1rem] bg-brand-orange/5">
         <Icon className="size-30 text-brand-orange" />
       </div>
-      <p className="mt-4 font-heading text-lg font-semibold transition-colors group-hover:text-brand-orange">
+      <p className="mt-4 font-heading text-lg font-semibold transition-colors duration-300 group-hover:text-brand-orange">
         {app.title}
       </p>
       <p className="mt-2 flex-1 text-sm text-muted-foreground">

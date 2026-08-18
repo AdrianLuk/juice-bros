@@ -107,7 +107,13 @@ test("a group can be created, filled, and emptied again", async ({ page }) => {
   await expect(filled).toContainText("1 friend");
   await expect(filled).toContainText(`@${FRIEND}`);
 
+  // Confirm-before-remove, same shape as everywhere else in the app — but
+  // unlike Delete/"Delete group", this trigger and its confirm button share
+  // the exact same accessible name ("Remove"), so the confirm click has to
+  // be scoped to the dialog itself (portal-rendered outside `filled`) rather
+  // than disambiguated by text.
   await filled.getByRole("button", { name: "Remove" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Remove" }).click();
   await expect(groupCard(page, name)).toContainText("0 friends");
 
   await deleteGroup(page, name);
