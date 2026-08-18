@@ -1,17 +1,49 @@
 import { expect, test } from "@playwright/test";
 
 import { AMY, BEN, signIn } from "./support/sign-in.ts";
-import { GmailMock } from "./support/gmail-mock.ts";
+import { GmailMock, type MockGmailMessage } from "./support/gmail-mock.ts";
+import { addPlace, placeName, removePlace, row } from "./support/places.ts";
 
 /**
- * Connect/disconnect Gmail (issue #62). Only the OAuth pipe — no "Sync from
- * Email" button, candidates, or review screen yet (that's #64).
+ * Connect/disconnect Gmail (issue #62), and "Sync from Email" — the review
+ * screen that turns a matched CourtReserve confirmation into a real Booking
+ * (issue #64).
  *
  * `EMAIL_SYNC_ALLOWLIST` is fixed to `benbackhand` in `playwright.config.ts`,
  * so Ben stands in for an approved User throughout and Amy stands in for an
  * unapproved one — real allowlist config, not a per-test override, mirroring
  * how `GMAIL_API_BASE_URL` is fixed for the whole run rather than per test.
  */
+
+/**
+ * CourtReserve's real template shape (see courtreserve-email.ts's own header
+ * comment) — an `<img alt>` logo for the facility name, and an `<h4>`
+ * heading immediately followed by an `<h5>` value per field group. A fixed
+ * future date well past this suite's own "today" so the past-date filter
+ * never has to be timing-sensitive.
+ */
+function confirmationEmail(fields: {
+  id: string;
+  facility: string;
+  court?: string;
+}): MockGmailMessage {
+  const { id, facility, court = "Court 3" } = fields;
+  return {
+    id,
+    subject: "Booking Confirmation for Monday, 2027-03-15 6:00 PM - 7:00 PM",
+    html:
+      `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
+      `<h1>Confirmation</h1>` +
+      `<h4>Details</h4><h5>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
+      `<h4>Player(s)</h4><h5>Amy Ace, Ben Backhand</h5>` +
+      `<h4>Court(s)</h4><h5>${court}</h5>` +
+      `</body></html>`,
+  };
+}
+
+function messageId() {
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 let mock: GmailMock;
 
@@ -104,4 +136,129 @@ test("a failed token exchange reports it honestly, without creating a Mailbox Li
 
   await page.reload();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
+});
+
+/**
+ * "Sync from Email" (issue #64) lives on the Bookings page, not Settings —
+ * connecting still happens on Settings (above), so every test here starts
+ * with that same connect step before moving to Bookings.
+ */
+test.describe("Sync from Email", () => {
+  test.afterEach(async ({ page }) => {
+    await page.goto("/booking-buddy/orgs");
+    const strays = row(page, "Playwright");
+    for (let left = await strays.count(); left > 0; left--) {
+      await strays.first().getByRole("button", { name: "Remove" }).click();
+      await page.getByRole("button", { name: "Remove facility" }).click();
+      await expect(strays).toHaveCount(left - 1);
+    }
+  });
+
+  test("syncing shows a fixture candidate for a matched facility, and confirming it creates a real Booking", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    mock.registerMessages([confirmationEmail({ id: messageId(), facility })]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    // Scoped by its own "Confirm" button, not just the facility name — once
+    // confirmed, the facility name also appears in the "Booked" list below,
+    // which a plain text filter would otherwise still match.
+    const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText(facility);
+    // The facility name matched an existing Org exactly, so the picker is
+    // already prefilled rather than left on the "Pick a place" placeholder.
+    await expect(card.getByLabel("Facility")).not.toHaveValue("");
+
+    await card.getByRole("button", { name: "Confirm" }).click();
+    // insertValidatedBooking's own revalidatePath re-renders the server
+    // half of this same page (the "Booked" list below), which can take a
+    // moment longer than the default timeout under a cold dev-server compile.
+    await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+    await expect(card).toHaveCount(0);
+
+    const booking = row(page, "Court 3");
+    await expect(booking).toContainText(facility);
+
+    await removePlace(page, facility);
+  });
+
+  test("dismissing a candidate means a second sync never shows it again", async ({ page }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    mock.registerMessages([confirmationEmail({ id: messageId(), facility })]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    const card = page.getByRole("listitem").filter({ hasText: facility });
+    await expect(card).toBeVisible();
+    await card.getByRole("button", { name: "Dismiss" }).click();
+    await expect(card).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+    await removePlace(page, facility);
+  });
+
+  test("an expired Mailbox Link shows a reconnect prompt instead of a raw error when syncing", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    await signIn(page, BEN, "/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    // The Mailbox Link is still connected/active — Google's refresh grant
+    // itself is what fails now, exactly ADR-0009's 7-day Testing-mode expiry.
+    mock.registerTokenFailure("invalid_grant");
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    await expect(
+      page.getByText("Google needs you to reconnect Gmail before syncing again."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reconnect Gmail" })).toBeVisible();
+
+    // The Mailbox Link's own status flips to expired, same as Settings
+    // already renders for a link that expired between visits.
+    await page.goto("/booking-buddy/settings");
+    await expect(page.getByText("Google needs you to reconnect")).toBeVisible();
+  });
 });

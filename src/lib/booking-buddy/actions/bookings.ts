@@ -6,7 +6,12 @@ import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
-import { bookingWriteMessage, formatBookingWhen, parseNewBooking } from "../bookings.ts";
+import {
+  bookingWriteMessage,
+  formatBookingWhen,
+  parseNewBooking,
+  type NewBooking,
+} from "../bookings.ts";
 import { isPastDate } from "../datetime.ts";
 import type { BookingFormat } from "../capacity.ts";
 import { listOrgs, type Org } from "./orgs.ts";
@@ -89,36 +94,32 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
 }
 
 /**
- * Log a court reservation that already exists on the facility's own platform.
+ * The org-ownership check, past-date check, insert, and error translation
+ * shared by `createBooking`'s own form-parsed path and `confirmImportCandidate`
+ * (issue #64) — both start from an already-validated `NewBooking`, so
+ * everything below this point is identical either way.
  *
- * The zone comes from the Org, not the form (issue #20) — every Booking under
- * one Org is on the same clock, so there's nothing left for the User to pick.
- * This means a fresh read of the Org right before the insert, rather than
- * trusting whatever `orgs` list the form was rendered with: the read doubles
- * as the ownership check (a stale or tampered `org_id` fails here with a clear
+ * The zone comes from the Org, not the caller (issue #20) — every Booking
+ * under one Org is on the same clock, so there's nothing left to pick. This
+ * means a fresh read of the Org right before the insert, rather than trusting
+ * whatever `orgs` list the caller already had: the read doubles as the
+ * ownership check (a stale or tampered `org_id` fails here with a clear
  * message, ahead of the `bookings_coherent` trigger, which is still the
  * authority — the rule needs a subquery and RLS does not cover it, since the
  * insert is on `bookings`, a table the User may write, and nothing in that
  * policy looks at whose Org they named).
  */
-export async function createBooking(
-  _prev: ActionResult,
-  formData: FormData,
+export async function insertValidatedBooking(
+  ownerId: string,
+  parsed: NewBooking,
 ): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const parsed = parseNewBooking(formData);
-  if ("error" in parsed) {
-    return parsed;
-  }
-
   const supabase = await createClient();
 
   const { data: org, error: orgError } = await supabase
     .from("orgs")
     .select("time_zone")
     .eq("id", parsed.orgId)
-    .eq("owner_id", session.userId)
+    .eq("owner_id", ownerId)
     .maybeSingle();
 
   if (orgError || !org) {
@@ -137,7 +138,7 @@ export async function createBooking(
 
   const { error } = await supabase.from("bookings").insert({
     org_id: parsed.orgId,
-    owner_id: session.userId,
+    owner_id: ownerId,
     court_label: parsed.courtLabel,
     format: parsed.format,
     // Wall-clock strings carrying their own zone. Postgres does the DST-aware
@@ -156,6 +157,21 @@ export async function createBooking(
   // that posts here without navigating off `/booking-buddy`.
   revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
+}
+
+/** Log a court reservation that already exists on the facility's own platform. */
+export async function createBooking(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+
+  const parsed = parseNewBooking(formData);
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  return insertValidatedBooking(session.userId, parsed);
 }
 
 export async function deleteBooking(
