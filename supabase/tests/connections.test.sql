@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(14);
 
 select has_table('public', 'connections', 'connections table exists');
 
@@ -65,6 +65,26 @@ select is(
    where requester_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
   'accepted',
   'a request can be accepted'
+);
+
+-- Accepting seeds both sides straight to the most permissive Visibility —
+-- new friends should see each other immediately, not default to nothing.
+select is(
+  (select level::text from public.visibility_overrides
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+     and connection_id = (select id from public.connections
+       where requester_id = 'aaaaaaaa-0000-0000-0000-000000000001')),
+  'calendar',
+  'accepting a request grants the requester calendar visibility into the addressee'
+);
+
+select is(
+  (select level::text from public.visibility_overrides
+   where owner_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+     and connection_id = (select id from public.connections
+       where requester_id = 'aaaaaaaa-0000-0000-0000-000000000001')),
+  'calendar',
+  'and the addressee gets the same, in the other direction'
 );
 
 -- Row Level Security, as a real request arrives.
