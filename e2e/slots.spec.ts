@@ -204,14 +204,16 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
   await addPlace(page, place);
   await logBooking(page, {
     place,
-    court: "Court 7",
+    // formatCourtLabel prepends "Court " for display — the field itself is
+    // numbers-only (type="number"), so the row/option text is still "Court 7".
+    court: "7",
     date: "2031-07-07",
     start: "09:00",
     end: "10:00",
   });
   await logBooking(page, {
     place,
-    court: "Court 8",
+    court: "8",
     date: "2031-07-07",
     start: "09:00",
     end: "10:00",

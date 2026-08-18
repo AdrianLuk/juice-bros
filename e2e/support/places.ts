@@ -19,12 +19,12 @@ export function row(page: Page, text: string): Locator {
   return page.getByRole("listitem").filter({ hasText: text });
 }
 
-/** Opens the "Can't find your club?" disclosure first — the hand-typed form lives inside it. */
+/** Opens the "Can't find your facility?" disclosure first — the hand-typed form lives inside it. */
 export async function addPlace(page: Page, name: string) {
   await page.goto("/booking-buddy/orgs");
-  await page.getByText("Can't find your club?").click();
-  await page.getByLabel("Place name").fill(name);
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByText("Can't find your facility?").click();
+  await page.getByLabel("Facility name").fill(name);
+  await page.getByRole("button", { name: "Add facility" }).click();
   await expect(row(page, name)).toBeVisible();
 }
 
@@ -32,8 +32,29 @@ export async function addPlace(page: Page, name: string) {
 export async function removePlace(page: Page, name: string) {
   await page.goto("/booking-buddy/orgs");
   await row(page, name).getByRole("button", { name: "Remove" }).click();
-  await page.getByRole("button", { name: "Remove place" }).click();
+  await page.getByRole("button", { name: "Remove facility" }).click();
   await expect(row(page, name)).toHaveCount(0);
+}
+
+/**
+ * Clicks the Duration radiogroup (issue #57) to make End compute out to
+ * `end` — End itself is a disabled, read-only field derived from Start +
+ * Duration, not something a Playwright `.selectOption()` can reach anymore.
+ * Every fixture booking in this suite runs a whole number of hours, so this
+ * only ever needs the 1/2/3-hour presets; "Custom" exists for completeness.
+ */
+async function selectDuration(page: Page, start: string, end: string) {
+  const [startHour] = start.split(":").map(Number);
+  const [endHour] = end.split(":").map(Number);
+  const hours = endHour - startHour;
+
+  if (hours === 1 || hours === 2 || hours === 3) {
+    await page.getByRole("radio", { name: `${hours} hour${hours === 1 ? "" : "s"}` }).click();
+    return;
+  }
+
+  await page.getByRole("radio", { name: "Custom" }).click();
+  await page.getByLabel("Custom duration in hours").fill(String(hours));
 }
 
 export async function logBooking(
@@ -52,10 +73,10 @@ export async function logBooking(
   await page.getByLabel("Facility").selectOption({ label: booking.place });
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
-  // On-the-hour slots only (issue #20 follow-up) — these are `<select>`s now,
-  // not free-typed times, so a value off the hour grid isn't reachable.
+  // On-the-hour slots only (issue #20 follow-up) — this is a `<select>` now,
+  // not a free-typed time, so a value off the hour grid isn't reachable.
   await page.getByLabel("Start").selectOption(booking.start);
-  await page.getByLabel("End").selectOption(booking.end);
+  await selectDuration(page, booking.start, booking.end);
   if (booking.format) {
     await page.getByLabel("Format").selectOption({ label: booking.format });
   }
