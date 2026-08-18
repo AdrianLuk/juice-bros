@@ -2,20 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 
 import { createClient } from "../supabase/server.ts";
 import { BOOKING_BUDDY_ROOT, SIGN_IN_PATH, safeRedirectTarget } from "../routes.ts";
+import { absoluteAppUrl } from "../request-origin.ts";
 
 export type AuthFormState = { error?: string; sent?: boolean };
 
 async function callbackUrl(next: string): Promise<string> {
-  // Built from the request's own host so magic links work unchanged on
-  // localhost, Vercel previews and production without per-environment config.
-  const host = (await headers()).get("host") ?? "localhost:3000";
-  const protocol = host.startsWith("localhost") ? "http" : "https";
-
-  return `${protocol}://${host}/booking-buddy/auth/callback?next=${encodeURIComponent(next)}`;
+  return absoluteAppUrl(`/booking-buddy/auth/callback?next=${encodeURIComponent(next)}`);
 }
 
 /** Emails a one-time sign-in link. Creates the account if it's a new address. */

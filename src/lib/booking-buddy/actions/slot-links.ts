@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
@@ -8,18 +7,13 @@ import { verifySession } from "../dal.ts";
 import { slotPath, slotLinkPath } from "../routes.ts";
 import type { ActionResult } from "./result.ts";
 import { generateSlotLinkToken, slotLinkWriteMessage } from "../slot-links.ts";
+import { absoluteAppUrl } from "../request-origin.ts";
 
 export type { ActionResult } from "./result.ts";
 
-/**
- * The Slot's own absolute Slot Link, built from the request's own host —
- * same reasoning as `auth.ts`'s `callbackUrl`, so a pasted link works
- * unchanged on localhost, a Vercel preview, or production.
- */
+/** The Slot's own absolute Slot Link — see `request-origin.ts`. */
 async function absoluteSlotLinkUrl(token: string): Promise<string> {
-  const host = (await headers()).get("host") ?? "localhost:3000";
-  const protocol = host.startsWith("localhost") ? "http" : "https";
-  return `${protocol}://${host}${slotLinkPath(token)}`;
+  return absoluteAppUrl(slotLinkPath(token));
 }
 
 export type SlotLink = { token: string; url: string };

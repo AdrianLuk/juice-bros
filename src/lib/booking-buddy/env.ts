@@ -79,3 +79,65 @@ export function readGooglePlacesApiBaseUrl(
   const value = source.GOOGLE_PLACES_API_BASE_URL;
   return value && value.trim() !== "" ? value : DEFAULT_GOOGLE_PLACES_API_BASE_URL;
 }
+
+/**
+ * This app's own Gmail OAuth client (issue #62's "Sync from Email" —
+ * `gmail-client.ts`). Separate from the client id Supabase's Google
+ * sign-in provider holds internally (that one never reaches this repo's
+ * env at all — see PROGRESS.md's Phase 0 notes) — both reuse the same
+ * Cloud Console project per ADR-0009, but a Mailbox Link is its own OAuth
+ * grant, not a Supabase Auth session, so it needs its own credentials here.
+ */
+export function requireGoogleOAuthClientId(
+  source: EnvSource = { GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID },
+): string {
+  return requireEnv(source, "GOOGLE_OAUTH_CLIENT_ID");
+}
+
+/** Server-only. Never read this into anything that reaches the browser. */
+export function requireGoogleOAuthClientSecret(
+  source: EnvSource = {
+    GOOGLE_OAUTH_CLIENT_SECRET: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+  },
+): string {
+  return requireEnv(source, "GOOGLE_OAUTH_CLIENT_SECRET");
+}
+
+/**
+ * Encrypts `mailbox_links.encrypted_refresh_token` at rest (issue #62) —
+ * see `token-encryption.ts`. Treated as sensitively as
+ * `SUPABASE_SERVICE_ROLE_KEY`: server-only, never `NEXT_PUBLIC_*`.
+ */
+export function requireMailboxLinkEncryptionKey(
+  source: EnvSource = {
+    MAILBOX_LINK_ENCRYPTION_KEY: process.env.MAILBOX_LINK_ENCRYPTION_KEY,
+  },
+): string {
+  return requireEnv(source, "MAILBOX_LINK_ENCRYPTION_KEY");
+}
+
+/**
+ * Server-only. Comma-separated Usernames approved for issue #62's email-sync
+ * feature — see `email-sync-allowlist.ts` and ADR-0009's addendum. A
+ * deliberately separate list from Google's own Testing-mode test users, not
+ * a mirror of it. Unset/blank means nobody is allowed — see
+ * `isEmailSyncAllowed`, which fails closed rather than defaulting open.
+ */
+export function readEmailSyncAllowlist(
+  source: EnvSource = { EMAIL_SYNC_ALLOWLIST: process.env.EMAIL_SYNC_ALLOWLIST },
+): string | undefined {
+  return source.EMAIL_SYNC_ALLOWLIST;
+}
+
+/**
+ * Test-only override collapsing Google's three real OAuth-flow hosts
+ * (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`)
+ * onto one local mock (`e2e/support/gmail-mock.ts`) — mirrors
+ * `GOOGLE_PLACES_API_BASE_URL`. Blank/missing means "use the real hosts".
+ */
+export function readGmailApiBaseUrl(
+  source: EnvSource = { GMAIL_API_BASE_URL: process.env.GMAIL_API_BASE_URL },
+): string | undefined {
+  const value = source.GMAIL_API_BASE_URL;
+  return value && value.trim() !== "" ? value : undefined;
+}
