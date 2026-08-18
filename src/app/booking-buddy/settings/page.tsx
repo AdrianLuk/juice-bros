@@ -4,6 +4,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
+import { GenderForm } from "@/components/booking-buddy/gender-form";
 import {
   BookingWindowPreferenceForm,
   NotificationPreferencesForm,
@@ -65,6 +66,10 @@ export default async function SettingsPage({
 
           <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />
+          </div>
+
+          <div className="bb-card mt-8 p-6">
+            <GenderForm gender={profile.gender} />
           </div>
 
           <div className="mt-8">
