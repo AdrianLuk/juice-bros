@@ -5,19 +5,19 @@ import type { InstagramPost } from "@/lib/instagram";
 
 export function InstagramFeed({ posts }: { posts: InstagramPost[] }) {
   return (
-    <section className="w-full border-t px-4 py-20 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <SectionHeading eyebrow="Follow Along" title="On Instagram" />
         <a
           href={siteConfig.links.instagram}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
         >
           View profile &rarr;
         </a>
       </div>
-      <div className="mt-6">
+      <div className="mt-8">
         <InstagramGrid posts={posts} />
       </div>
     </section>

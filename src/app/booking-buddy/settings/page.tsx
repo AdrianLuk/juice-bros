@@ -9,10 +9,14 @@ import {
   NotificationPreferencesForm,
 } from "@/components/booking-buddy/reminders";
 import { PushNotificationsForm } from "@/components/booking-buddy/push-notifications";
+import { GmailSyncSection } from "@/components/booking-buddy/email-sync";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
+import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
+import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
+import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -21,13 +25,27 @@ export const metadata: Metadata = pageMetadata({
   path: "/booking-buddy/settings",
 });
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; gmail_connected?: string }>;
+}) {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
+  const { error, gmail_connected: justConnected } = await searchParams;
+
   const profile = await getOwnProfile();
   const notificationPreferences = await getNotificationPreferences();
+
+  // Optimistic half of ADR-0009's addendum: an unapproved User never even
+  // gets the section, not just a disabled one. connectGmail (and the OAuth
+  // callback) re-check this authoritatively. Reuses the profile already
+  // fetched above rather than calling isEmailSyncAllowedForCaller, which
+  // would fetch it a second time.
+  const emailSyncAllowed = isEmailSyncAllowed(profile.username, readEmailSyncAllowlist());
+  const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -65,6 +83,31 @@ export default async function SettingsPage() {
               </div>
             </div>
           </div>
+
+          {emailSyncAllowed ? (
+            <div className="mt-8">
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Sync from Email
+              </h2>
+              <div className="bb-card mt-4 p-6">
+                <GmailSyncSection
+                  mailboxLink={mailboxLink}
+                  error={error}
+                  justConnected={justConnected === "1"}
+                />
+              </div>
+            </div>
+          ) : (
+            error === "email_sync_not_allowed" && (
+              // The section itself stays absent (not just hidden) for an
+              // unapproved User, per ADR-0009's addendum — but a redirect
+              // that landed here specifically because of that check still
+              // deserves an explanation, not a silently-dropped query param.
+              <p className="mt-8 text-sm text-destructive" role="alert">
+                Your account isn&apos;t approved for email sync yet.
+              </p>
+            )
+          )}
 
           <FooterNav>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import { GOOGLE_PLACES_MOCK_URL } from "./e2e/support/google-places-mock.ts";
+import { GMAIL_MOCK_URL } from "./e2e/support/gmail-mock.ts";
 
 /**
  * Browser tests, kept apart from `npm test`.
@@ -41,6 +42,20 @@ export default defineConfig({
       // The mock never validates this; a placeholder keeps CI from needing a
       // real key provisioned just to run tests that never call Google.
       GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY ?? "test-key-for-e2e",
+      // Issue #62's Gmail sync (email-sync.spec.ts) — same collapsing-mock
+      // shape as Places above, see gmail-mock.ts.
+      GMAIL_API_BASE_URL: GMAIL_MOCK_URL,
+      GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID ?? "test-client-id-for-e2e",
+      GOOGLE_OAUTH_CLIENT_SECRET:
+        process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "test-client-secret-for-e2e",
+      // A throwaway 32-byte key — real ones are generated per docs in
+      // .env.example and never checked in.
+      MAILBOX_LINK_ENCRYPTION_KEY:
+        process.env.MAILBOX_LINK_ENCRYPTION_KEY ??
+        "AQLUlv/74SRdU//nBKzF5XhSna1Vm6jEdcbt5AplNuQ=",
+      // Only Ben is approved in this fixture list — email-sync.spec.ts relies
+      // on Amy being unlisted to prove the section stays absent for her.
+      EMAIL_SYNC_ALLOWLIST: process.env.EMAIL_SYNC_ALLOWLIST ?? "benbackhand",
     },
   },
 });

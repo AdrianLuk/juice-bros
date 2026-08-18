@@ -15,7 +15,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function GearPage() {
   return (
-    <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
       <PageHeading
         eyebrow="What We Play With"
         title="Gear"
@@ -28,7 +28,7 @@ export default function GearPage() {
 
       <PartnerCodesSection items={partnerCodes} />
 
-      <p className="mt-16 text-xs text-muted-foreground">
+      <p className="mt-20 text-xs text-muted-foreground">
         Affiliate disclosure: some products featured have ambassador discount codes
         available. We only share products we genuinely use and believe in.
       </p>

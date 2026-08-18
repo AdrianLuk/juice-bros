@@ -8,12 +8,12 @@ export function Header() {
       <div>
         <PageHeading title="Podcast" description="Every episode, straight from the channel." />
       </div>
-      <div className="flex gap-4 text-sm font-medium">
+      <div className="flex gap-3 text-sm font-medium">
         <a
           href={siteConfig.links.youtube}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-[#ff0000]"
+          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-muted-foreground transition-all duration-300 hover:border-[#ff0000]/30 hover:text-[#ff0000]"
         >
           <YoutubeIcon className="size-4 text-[#ff0000]" />
           YouTube
@@ -22,7 +22,7 @@ export function Header() {
           href={siteConfig.links.spotify}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-[#1db954]"
+          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-muted-foreground transition-all duration-300 hover:border-[#1db954]/30 hover:text-[#1db954]"
         >
           <SpotifyIcon className="size-4 text-[#1db954]" />
           Spotify
