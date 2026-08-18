@@ -93,6 +93,23 @@ export function formatCourtLabel(courtLabel: string | null): string {
 }
 
 /**
+ * Strips a leading "Court" word off a CourtReserve email's own Court(s) text
+ * (e.g. "Court #6 - Hard") before it becomes a candidate's `court_label`
+ * (issue #64) — without this, `formatCourtLabel` re-adding its own "Court "
+ * prefix at display time would double up to "Court Court #6 - Hard". A
+ * facility's own free text after that word (like "#6 - Hard") is kept as-is;
+ * only the word CourtReserve's template itself always prepends is removed.
+ */
+export function stripCourtLabelPrefix(courtLabel: string | null): string | null {
+  if (!courtLabel) {
+    return null;
+  }
+
+  const stripped = courtLabel.replace(/^court\s*/i, "").trim();
+  return stripped || null;
+}
+
+/**
  * When a Booking is, written as the facility's own clock read it.
  *
  * `starts_at` is an instant, so rendering it needs to be told which clock to

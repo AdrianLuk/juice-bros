@@ -9,6 +9,7 @@ import {
   formatCourtLabel,
   formatTimeLabel,
   parseNewBooking,
+  stripCourtLabelPrefix,
 } from "./bookings.ts";
 
 const VALID = {
@@ -84,6 +85,22 @@ test("a court is optional — a blank or omitted label becomes null, not an erro
 test("a court label renders as 'Court <label>', and a missing one as a plain fallback", () => {
   assert.equal(formatCourtLabel("3"), "Court 3");
   assert.equal(formatCourtLabel(null), "No court noted");
+});
+
+test("a leading 'Court' word is stripped from a CourtReserve email's own court text", () => {
+  assert.equal(stripCourtLabelPrefix("Court #6 - Hard"), "#6 - Hard");
+  assert.equal(stripCourtLabelPrefix("Court 3"), "3");
+  assert.equal(stripCourtLabelPrefix("COURT 3"), "3");
+});
+
+test("court text with no leading 'Court' word is left as-is", () => {
+  assert.equal(stripCourtLabelPrefix("#6 - Hard"), "#6 - Hard");
+});
+
+test("a null or blank-after-stripping court label stays null", () => {
+  assert.equal(stripCourtLabelPrefix(null), null);
+  assert.equal(stripCourtLabelPrefix("Court"), null);
+  assert.equal(stripCourtLabelPrefix("Court  "), null);
 });
 
 test("an over-long court label is refused before the database has to", () => {
