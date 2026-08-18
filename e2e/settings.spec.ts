@@ -30,6 +30,10 @@ const alertIn = (page: Page) => page.locator("form").getByRole("alert");
 const formWithField = (page: Page, labelText: string) =>
   page.locator("form").filter({ has: page.getByLabel(labelText) });
 
+/** Gender (issue #79) is a radiogroup, not a labelled field `formWithField` can find — scoped by its own "Prefer not to say" choice instead. */
+const genderForm = (page: Page) =>
+  page.locator("form").filter({ has: page.getByRole("radio", { name: "Prefer not to say" }) });
+
 test.beforeEach(async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy/settings");
 });
@@ -63,6 +67,15 @@ test.afterEach(async ({ page }) => {
       .getByRole("button", { name: "Save", exact: true })
       .click();
     await expect(page.getByRole("status")).toBeVisible();
+  }
+
+  // Same reasoning as Username above — Gender (issue #79) is unset by
+  // default for the seeded account, and a test that sets it has to unset it.
+  const genderUnset = page.getByRole("radio", { name: "Prefer not to say" });
+  if ((await genderUnset.getAttribute("aria-checked")) !== "true") {
+    await genderUnset.click();
+    await genderForm(page).getByRole("button", { name: "Save gender" }).click();
+    await expect(genderForm(page).getByRole("status")).toBeVisible();
   }
 });
 
@@ -170,4 +183,39 @@ test("turning booking window reminders off sticks, independently of the other to
   // The other preference is untouched — these are two separate settings,
   // not one control wearing two labels.
   await expect(emailReminders).toBeChecked();
+});
+
+test("gender is unset by default", async ({ page }) => {
+  await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});
+
+test("a gender can be chosen, and it sticks — independently of Username", async ({ page }) => {
+  await page.getByRole("radio", { name: "Male", exact: true }).click();
+  await genderForm(page).getByRole("button", { name: "Save gender" }).click();
+  await expect(genderForm(page).getByRole("status")).toContainText("Saved");
+
+  // Not just the optimistic form state — it survives a fresh read.
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "Male", exact: true })).toHaveAttribute("aria-checked", "true");
+  // Choosing a Gender never touched the Username saved right next to it.
+  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+});
+
+test("a gender can be cleared back to unset", async ({ page }) => {
+  await page.getByRole("radio", { name: "Female" }).click();
+  await genderForm(page).getByRole("button", { name: "Save gender" }).click();
+  await expect(genderForm(page).getByRole("status")).toBeVisible();
+
+  await page.getByRole("radio", { name: "Prefer not to say" }).click();
+  await genderForm(page).getByRole("button", { name: "Save gender" }).click();
+  await expect(genderForm(page).getByRole("status")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
 });
