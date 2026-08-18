@@ -1,23 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { cn } from "@/lib/utils";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
-import { buttonVariants } from "@/components/ui/button";
+import { FriendCalendarDialog } from "@/components/booking-buddy/friend-calendar-dialog";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
-import {
-  BOOKING_BUDDY_ROOT,
-  GROUPS_PATH,
-  friendCalendarPath,
-} from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, GROUPS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friends",
@@ -103,14 +97,10 @@ export default async function FriendsPage() {
                 <>
                   {person.username &&
                     calendarVisibleFriendIds.has(person.userId) && (
-                      <Link
-                        href={friendCalendarPath(person.username)}
-                        className={cn(
-                          buttonVariants({ variant: "outline", size: "sm" }),
-                        )}
-                      >
-                        View calendar
-                      </Link>
+                      <FriendCalendarDialog
+                        username={person.username}
+                        displayName={person.displayName}
+                      />
                     )}
                   <ConnectionActionButton
                     connectionId={person.connectionId}

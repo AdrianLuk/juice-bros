@@ -14,10 +14,6 @@ export const FRIENDS_PATH = `${BOOKING_BUDDY_ROOT}/friends`;
 
 export const GROUPS_PATH = `${BOOKING_BUDDY_ROOT}/groups`;
 
-export function friendCalendarPath(username: string): string {
-  return `${FRIENDS_PATH}/${username}/calendar`;
-}
-
 export const ORGS_PATH = `${BOOKING_BUDDY_ROOT}/orgs`;
 
 export const BOOKINGS_PATH = `${BOOKING_BUDDY_ROOT}/bookings`;
