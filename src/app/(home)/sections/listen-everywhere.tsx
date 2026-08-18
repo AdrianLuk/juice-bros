@@ -19,8 +19,8 @@ const listenLinks = [
 
 export function ListenEverywhere() {
   return (
-    <section className="border-y bg-muted/40">
-      <div className="w-full px-4 py-16 sm:px-6 lg:px-8">
+    <section className="bg-muted/50">
+      <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
         <SectionHeading title="Listen everywhere" align="center" responsive={false} />
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {listenLinks.map((social) => (
@@ -29,7 +29,7 @@ export function ListenEverywhere() {
               href={social.href}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white transition-colors ${social.cardClass}`}
+              className={`inline-flex items-center gap-2.5 rounded-full px-6 py-3 text-sm font-medium text-white shadow-brand transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:translate-y-0 ${social.cardClass}`}
             >
               <social.icon className="size-4" />
               {social.name}

@@ -14,14 +14,14 @@ export const metadata: Metadata = pageMetadata({
 
 export default function ToolsPage() {
   return (
-    <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
       <PageHeading
         eyebrow="Pickleball Tools"
         title="Tools"
         description="Free tools we're building for everyday players. More on the way."
       />
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {apps.map((app) => (
           <AppCard key={app.slug} app={app} />
         ))}

@@ -11,15 +11,15 @@ type EyebrowProps = {
 
 export function Eyebrow({ children, color = "orange", size = "sm", className }: EyebrowProps) {
   return (
-    <p
+    <span
       className={cn(
-        "font-semibold tracking-[0.2em] uppercase",
-        size === "sm" ? "text-sm" : "text-xs",
+        "inline-flex w-fit items-center rounded-full border border-current/25 bg-current/10 px-3 py-1 font-semibold tracking-[0.2em] uppercase",
+        size === "sm" ? "text-[11px]" : "text-[10px]",
         color === "orange" ? "text-brand-orange" : "text-brand-yellow",
         className,
       )}
     >
       {children}
-    </p>
+    </span>
   );
 }

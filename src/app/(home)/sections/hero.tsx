@@ -26,49 +26,57 @@ const socialLinks = [
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden bg-brand-black text-white md:block md:min-h-0">
+    <section className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-brand-black text-white sm:block sm:min-h-0">
       {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
       <img
         src="/brand/JB_Banner_1920.jpeg"
         alt="Juice Bros Pickleball hosts"
         width={1600}
         height={901}
-        className="w-full object-cover object-center md:max-h-[calc(100vh-4rem)] md:min-h-160"
+        className="w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_15%)_0%,color-mix(in_oklch,var(--brand-black),transparent_55%)_100%)] md:block"
+        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_10%)_0%,color-mix(in_oklch,var(--brand-black),transparent_60%)_55%,var(--brand-black)_100%)] sm:block"
       />
-      <div className="flex flex-1 items-center justify-center md:absolute md:inset-0 md:flex-none">
-        <div className="flex w-full flex-col items-center gap-5 px-4 py-12 text-center sm:px-6 md:py-10 md:drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] lg:px-8">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-brand-black to-transparent sm:hidden"
+      />
+      <div className="flex flex-1 items-center justify-center sm:absolute sm:inset-0 sm:flex-none">
+        <div className="flex w-full flex-col items-center gap-6 px-4 py-14 text-center sm:px-6 sm:py-10 sm:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
           <Eyebrow color="yellow">For Everyday Pickleball Players</Eyebrow>
-          <h1 className="max-w-2xl font-heading text-4xl font-black tracking-tight text-balance sm:text-6xl">
+          <h1 className="max-w-3xl font-heading text-5xl font-black tracking-[-0.03em] text-balance sm:text-7xl">
             Juice Bros Pickleball
           </h1>
-          <p className="max-w-xl text-lg text-white/90 text-balance">
+          <p className="max-w-xl text-lg text-white/80 text-balance">
             {siteConfig.description}
           </p>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
               nativeButton={false}
-              className="h-11 px-6 text-base"
+              className="group h-12 rounded-full pr-2 pl-6 text-base shadow-brand"
               render={<a href={siteConfig.links.youtube} target="_blank" rel="noopener noreferrer" />}
             >
-              <YoutubeIcon className="size-5" />
               Watch Latest Episode
+              <span className="flex size-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+                <YoutubeIcon className="size-4" />
+              </span>
             </Button>
             <Button
               size="lg"
               nativeButton={false}
-              className="h-11 bg-[#1db954] px-6 text-base text-white hover:bg-[#1db954]/90"
+              className="group h-12 rounded-full bg-[#1db954] pr-2 pl-6 text-base text-white hover:bg-[#1db954]/90"
               render={<a href={siteConfig.links.spotify} target="_blank" rel="noopener noreferrer" />}
             >
-              <SpotifyIcon className="size-5" />
               Listen on Spotify
+              <span className="flex size-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+                <SpotifyIcon className="size-4" />
+              </span>
             </Button>
           </div>
-          <div className="mt-4 flex items-center gap-5">
+          <div className="mt-5 flex items-center gap-5">
             {socialLinks.map((social) => (
               <a
                 key={social.name}
@@ -76,7 +84,7 @@ export function Hero() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={social.name}
-                className={`text-white/85 transition-colors ${social.hoverClass}`}
+                className={`text-white/70 transition-colors duration-300 ${social.hoverClass}`}
               >
                 <social.icon className="size-6" />
               </a>

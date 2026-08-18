@@ -6,7 +6,7 @@ function Subsection({ label, items }: { label: string; items: GearItem[] }) {
   if (items.length === 0) return null;
   return (
     <div className="mt-8">
-      <h3 className="text-sm font-semibold tracking-[0.15em] text-muted-foreground uppercase">
+      <h3 className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
         {label}
       </h3>
       <div className="mt-4">
@@ -18,7 +18,7 @@ function Subsection({ label, items }: { label: string; items: GearItem[] }) {
 
 export function HostGearSection({ host }: { host: HostGear }) {
   return (
-    <section className="mt-16">
+    <section className="mt-20">
       <SectionHeading title={`${host.name}'s Gear`} weight="semibold" />
       <Subsection label="Currently Using" items={host.current} />
       <Subsection label="What's in the Bag" items={host.bag} />

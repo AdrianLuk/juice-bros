@@ -17,7 +17,7 @@ export default async function PodcastPage() {
   const videos = await getLatestVideos();
 
   return (
-    <div className='flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8'>
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
       <Header />
       <Episodes videos={videos} />
       <SpotifyEmbed />
