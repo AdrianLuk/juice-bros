@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { OrgSelect } from "@/components/booking-buddy/org-select";
 import {
   COURT_LABEL_MAX_LENGTH,
   DEFAULT_BOOKING_FORMAT,
@@ -180,21 +181,7 @@ export function CreateBookingForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-facility">Facility</Label>
-          <FormSelect
-            id="booking-facility"
-            name="org_id"
-            defaultValue={defaultOrgId}
-            required
-          >
-            <option value="" disabled>
-              Pick a place
-            </option>
-            {orgs.map((org) => (
-              <option key={org.id} value={org.id}>
-                {org.displayName}
-              </option>
-            ))}
-          </FormSelect>
+          <OrgSelect id="booking-facility" orgs={orgs} defaultValue={defaultOrgId} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">

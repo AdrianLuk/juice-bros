@@ -16,6 +16,13 @@ export type MockGoogleAccount = {
   refreshToken: string;
 };
 
+/** One Gmail message a fixture inbox holds — what `registerMessages` seeds and `gmail-client.ts`'s search/fetch functions read back. */
+export type MockGmailMessage = {
+  id: string;
+  subject: string;
+  html: string;
+};
+
 type TokenFailure = "unreachable" | "invalid_grant";
 
 async function readFormBody(req: http.IncomingMessage): Promise<URLSearchParams> {
@@ -39,6 +46,7 @@ export class GmailMock {
   #account: MockGoogleAccount | null = null;
   #tokenFailure: TokenFailure | null = null;
   #issuedCode: string | null = null;
+  #messages: MockGmailMessage[] = [];
 
   constructor() {
     this.#server = http.createServer((req, res) => {
@@ -68,15 +76,27 @@ export class GmailMock {
     this.#tokenFailure = null;
   }
 
-  /** Makes the token exchange fail, to exercise the "couldn't connect" path. */
+  /**
+   * Makes the token exchange fail, to exercise the "couldn't connect" path
+   * (an `authorization_code` grant) or, for issue #64's sync flow, the
+   * "reconnect" path (a `refresh_token` grant) — the same `TokenFailure`
+   * reason covers both, since `/token` branches on the request's own
+   * `grant_type` to decide which one it's simulating.
+   */
   registerTokenFailure(reason: TokenFailure): void {
     this.#tokenFailure = reason;
+  }
+
+  /** What a live "Sync from Email" search finds (issue #64) — served back by the list/get endpoints below. */
+  registerMessages(messages: MockGmailMessage[]): void {
+    this.#messages = messages;
   }
 
   reset(): void {
     this.#account = null;
     this.#tokenFailure = null;
     this.#issuedCode = null;
+    this.#messages = [];
   }
 
   async #handle(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -107,6 +127,31 @@ export class GmailMock {
         res
           .writeHead(500, { "Content-Type": "application/json" })
           .end(JSON.stringify({ error: "server_error" }));
+        return;
+      }
+
+      // A refresh (issue #64's sync flow) carries a `refresh_token`, not a
+      // one-time `code` — checked against the account's own, not against
+      // `#issuedCode`, which only ever exists for the initial
+      // `authorization_code` exchange below.
+      if (body.get("grant_type") === "refresh_token") {
+        const account = this.#account;
+        const refreshTokenMatches = account !== null && body.get("refresh_token") === account.refreshToken;
+
+        if (this.#tokenFailure === "invalid_grant" || !account || !refreshTokenMatches) {
+          res
+            .writeHead(400, { "Content-Type": "application/json" })
+            .end(JSON.stringify({ error: "invalid_grant" }));
+          return;
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" }).end(
+          JSON.stringify({
+            access_token: account.accessToken,
+            expires_in: 3600,
+            token_type: "Bearer",
+          }),
+        );
         return;
       }
 
@@ -147,6 +192,58 @@ export class GmailMock {
       return;
     }
 
+    // Issue #64's "Sync from Email" — `gmail-client.ts`'s
+    // `searchGmailMessages`/`fetchGmailMessage` against the real Gmail API
+    // shape (`users.messages.list`/`.get`), reduced to what those two
+    // functions actually read.
+    if (req.method === "GET" && url.pathname === "/gmail/v1/users/me/messages") {
+      if (!this.#bearerTokenValid(req)) {
+        res
+          .writeHead(401, { "Content-Type": "application/json" })
+          .end(JSON.stringify({ error: "invalid_token" }));
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" }).end(
+        JSON.stringify({ messages: this.#messages.map((message) => ({ id: message.id, threadId: message.id })) }),
+      );
+      return;
+    }
+
+    const messageMatch = /^\/gmail\/v1\/users\/me\/messages\/([^/]+)$/.exec(url.pathname);
+    if (req.method === "GET" && messageMatch) {
+      if (!this.#bearerTokenValid(req)) {
+        res
+          .writeHead(401, { "Content-Type": "application/json" })
+          .end(JSON.stringify({ error: "invalid_token" }));
+        return;
+      }
+
+      const message = this.#messages.find((candidate) => candidate.id === messageMatch[1]);
+      if (!message) {
+        res.writeHead(404, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "not_found" }));
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" }).end(
+        JSON.stringify({
+          id: message.id,
+          payload: {
+            headers: [{ name: "Subject", value: message.subject }],
+            mimeType: "text/html",
+            body: { data: Buffer.from(message.html, "utf8").toString("base64url") },
+          },
+        }),
+      );
+      return;
+    }
+
     res.writeHead(404).end();
+  }
+
+  #bearerTokenValid(req: http.IncomingMessage): boolean {
+    const authHeader = req.headers.authorization ?? "";
+    const accessToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    return this.#account !== null && accessToken === this.#account.accessToken;
   }
 }

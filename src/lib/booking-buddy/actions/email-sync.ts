@@ -12,10 +12,35 @@ import { SETTINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { getOwnProfile } from "./profile.ts";
 import { isEmailSyncAllowed } from "../email-sync-allowlist.ts";
-import { readEmailSyncAllowlist } from "../env.ts";
-import { buildGoogleAuthorizeUrl } from "../gmail-client.ts";
+import { readEmailSyncAllowlist, requireMailboxLinkEncryptionKey } from "../env.ts";
+import {
+  buildGoogleAuthorizeUrl,
+  fetchGmailMessage,
+  refreshAccessToken,
+  searchGmailMessages,
+} from "../gmail-client.ts";
 import { GMAIL_OAUTH_STATE_COOKIE } from "../gmail-oauth.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
+import { decryptRefreshToken } from "../token-encryption.ts";
+import {
+  buildCourtReserveSearchQuery,
+  parseCourtReserveEmail,
+} from "../courtreserve-email.ts";
+import {
+  isDuplicateBooking,
+  isPastConfirmation,
+  matchOrgByExactName,
+  matchPlayerNamesToConnections,
+  type BookingIdentity,
+  type ConnectionCandidate,
+  type OrgCandidate,
+  type PlayerMatch,
+} from "../email-sync-matching.ts";
+import { parseNewBooking, stripCourtLabelPrefix } from "../bookings.ts";
+import { todayInZone, clockInZone } from "../datetime.ts";
+import type { BookingFormat } from "../capacity.ts";
+import { getBookingsPageData, insertValidatedBooking } from "./bookings.ts";
+import { listConnections } from "./connections.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -129,5 +154,296 @@ export async function disconnectGmail(): Promise<ActionResult> {
   }
 
   revalidatePath(SETTINGS_PATH);
+  return { ok: true };
+}
+
+/**
+ * One parsed CourtReserve confirmation, matched against the caller's own
+ * Orgs and Connections but not yet applied — CONTEXT.md's Import Candidate
+ * (issue #64). `endTime`/`format`/`date`/`startTime`/`courtLabel` are shown
+ * read-only on the review screen; `matchedOrgId` is the only field the User
+ * still has to pick when it's `null`.
+ */
+export type ImportCandidate = {
+  gmailMessageId: string;
+  facilityName: string;
+  /** Set only when the facility name exactly matched an existing Org (`matchOrgByExactName`). */
+  matchedOrgId: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
+  courtLabel: string | null;
+  format: BookingFormat;
+  /** Reference-only, per CONTEXT.md's Import Candidate entry — nothing is created or invited from a match. */
+  matchedPlayers: PlayerMatch[];
+};
+
+export type SyncFromEmailResult =
+  | { status: "ok"; candidates: ImportCandidate[] }
+  | { status: "reconnect_required" }
+  | { status: "error"; message: string };
+
+/**
+ * Runs a live Gmail search for CourtReserve confirmations, parses/matches
+ * whatever comes back, and returns the ones worth a User's review (issue
+ * #64). A plain async function rather than a `useActionState`-bound one: the
+ * caller (a click-triggered `useQuery`) wants a promise it can call by name,
+ * not a form to submit.
+ *
+ * Cancellations are issue #65's job — a `cancellation`-kind parse is simply
+ * skipped here, along with `not_a_booking`/`unparseable` ones, and none of
+ * the three are recorded in `processed_gmail_messages`, so a later sync (or
+ * #65 itself) still sees them fresh.
+ */
+export async function syncFromEmail(): Promise<SyncFromEmailResult> {
+  const session = await verifySession();
+
+  // Authoritative re-check (ADR-0009's addendum) — the Bookings page not
+  // rendering this section at all for a disallowed User is the optimistic
+  // half; a User removed from the allowlist after already connecting Gmail
+  // must not be able to keep syncing just by having a stale page open.
+  const allowed = await isEmailSyncAllowedForCaller();
+  if (!allowed) {
+    return { status: "error", message: "Your account isn't approved for email sync." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: link, error: linkError } = await supabase
+    .from("mailbox_links")
+    .select("encrypted_refresh_token, status")
+    .eq("owner_id", session.userId)
+    .maybeSingle();
+
+  if (linkError) {
+    console.error("booking-buddy: reading the Mailbox Link for sync failed", linkError);
+    return { status: "error", message: "Couldn't sync from email. Try again." };
+  }
+
+  if (!link || link.status === "expired") {
+    return { status: "reconnect_required" };
+  }
+
+  let encryptionKey: string;
+  try {
+    encryptionKey = requireMailboxLinkEncryptionKey();
+  } catch (error) {
+    console.error("booking-buddy: Mailbox Link encryption key isn't configured", error);
+    return { status: "error", message: "Couldn't sync from email. Try again." };
+  }
+
+  const decrypted = decryptRefreshToken(link.encrypted_refresh_token, encryptionKey);
+  if (!decrypted.ok) {
+    // A refresh token that no longer decrypts (a rotated encryption key, a
+    // corrupted row) is just as unusable as an expired one — the User's own
+    // fix is the same either way: reconnect.
+    console.error("booking-buddy: decrypting the Mailbox Link's refresh token failed");
+    return { status: "reconnect_required" };
+  }
+
+  const refreshed = await refreshAccessToken(decrypted.plainText);
+  if (!refreshed.ok) {
+    if (refreshed.reason === "invalid_grant") {
+      await supabase.from("mailbox_links").update({ status: "expired" }).eq("owner_id", session.userId);
+      revalidatePath(SETTINGS_PATH);
+      return { status: "reconnect_required" };
+    }
+    return { status: "error", message: "Couldn't reach Gmail. Try again." };
+  }
+
+  const searchResult = await searchGmailMessages(
+    refreshed.accessToken,
+    buildCourtReserveSearchQuery(new Date()),
+  );
+  if (!searchResult.ok) {
+    return { status: "error", message: "Couldn't reach Gmail. Try again." };
+  }
+
+  const { data: processedRows, error: processedError } = await supabase
+    .from("processed_gmail_messages")
+    .select("gmail_message_id")
+    .eq("owner_id", session.userId);
+
+  if (processedError) {
+    console.error("booking-buddy: reading processed Gmail messages failed", processedError);
+    return { status: "error", message: "Couldn't sync from email. Try again." };
+  }
+
+  const processedIds = new Set((processedRows ?? []).map((row) => row.gmail_message_id));
+  const unseenIds = searchResult.messageIds.filter((id) => !processedIds.has(id));
+
+  const [{ orgs, bookings }, connections] = await Promise.all([
+    getBookingsPageData(),
+    listConnections(),
+  ]);
+
+  const orgCandidates: OrgCandidate[] = orgs.map((org) => ({ orgId: org.id, displayName: org.displayName }));
+  const orgTimeZoneById = new Map(orgs.map((org) => [org.id, org.timeZone]));
+
+  // Each existing Booking's own wall-clock date/start time, read back in its
+  // own Org's zone — the same shape `isDuplicateBooking`/`isPastConfirmation`
+  // compare a candidate against. `todayInZone`/`clockInZone` work for any
+  // instant, not just "now", despite the name.
+  const existingBookings: BookingIdentity[] = bookings.map((booking) => ({
+    orgId: booking.orgId,
+    courtLabel: booking.courtLabel,
+    date: todayInZone(booking.timeZone, new Date(booking.startsAt)),
+    startTime: clockInZone(booking.timeZone, new Date(booking.startsAt)),
+  }));
+
+  const connectionCandidates: ConnectionCandidate[] = connections.friends
+    .filter((friend): friend is typeof friend & { displayName: string } => friend.displayName !== null)
+    .map((friend) => ({ userId: friend.userId, displayName: friend.displayName }));
+
+  const now = new Date();
+  const candidates: ImportCandidate[] = [];
+
+  for (const messageId of unseenIds) {
+    const fetched = await fetchGmailMessage(refreshed.accessToken, messageId);
+    if (!fetched.ok) {
+      // One unreadable message shouldn't sink the whole sync.
+      console.error("booking-buddy: fetching a Gmail message failed", messageId);
+      continue;
+    }
+
+    const parsed = parseCourtReserveEmail(fetched.email);
+    if (parsed.kind !== "confirmation") {
+      continue;
+    }
+
+    const { confirmation } = parsed;
+
+    // A malformed time range ("no end time" — see courtreserve-email.ts)
+    // isn't something the review screen has a field for fixing; treated the
+    // same as any other unparseable candidate: simply not shown.
+    if (!confirmation.endTime) {
+      continue;
+    }
+
+    const matchedOrgId = matchOrgByExactName(confirmation.facilityName, orgCandidates);
+    // No matched Org means no known zone yet either — the User hasn't added
+    // this facility, so there's nothing to ask it. UTC is a coarse stand-in
+    // for this calendar-day-only check, not a claim about the real zone.
+    const zone = matchedOrgId ? (orgTimeZoneById.get(matchedOrgId) ?? "UTC") : "UTC";
+
+    if (isPastConfirmation(confirmation, zone, now)) {
+      continue;
+    }
+
+    const courtLabel = stripCourtLabelPrefix(confirmation.courtLabel);
+
+    if (
+      matchedOrgId &&
+      isDuplicateBooking(
+        { orgId: matchedOrgId, courtLabel, date: confirmation.date, startTime: confirmation.startTime },
+        existingBookings,
+      )
+    ) {
+      continue;
+    }
+
+    candidates.push({
+      gmailMessageId: messageId,
+      facilityName: confirmation.facilityName,
+      matchedOrgId,
+      date: confirmation.date,
+      startTime: confirmation.startTime,
+      endTime: confirmation.endTime,
+      courtLabel,
+      format: confirmation.format,
+      matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, connectionCandidates),
+    });
+  }
+
+  return { status: "ok", candidates };
+}
+
+/**
+ * Confirming an Import Candidate creates a real Booking (issue #64) — the
+ * form posts the exact same field names `CreateBookingForm` does (`org_id`,
+ * `format`, `date`, `start_time`, `end_time`, `court_label`), plus
+ * `gmail_message_id`, so it reuses `parseNewBooking`'s validation as-is
+ * rather than trusting the candidate's already-parsed fields a second time.
+ */
+export async function confirmImportCandidate(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+
+  const allowed = await isEmailSyncAllowedForCaller();
+  if (!allowed) {
+    return { error: "Your account isn't approved for email sync." };
+  }
+
+  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
+  if (!gmailMessageId) {
+    return { error: "Couldn't confirm that booking. Try again." };
+  }
+
+  const parsed = parseNewBooking(formData);
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  const result = await insertValidatedBooking(session.userId, parsed);
+  if (!result.ok) {
+    return result;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("processed_gmail_messages").insert({
+    owner_id: session.userId,
+    gmail_message_id: gmailMessageId,
+    outcome: "confirmed",
+  });
+
+  if (error) {
+    // Not fatal — the Booking is real either way. Even if this record never
+    // lands, a later sync's own `isDuplicateBooking` filter catches a
+    // re-parse of the same email against the Booking just created.
+    console.error("booking-buddy: recording a confirmed Gmail message failed", error);
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Dismissing an Import Candidate never touches a Booking (CONTEXT.md's
+ * Import Candidate entry) — it only records that this Gmail message is
+ * settled, so a later sync's own `processed_gmail_messages` filter skips it.
+ */
+export async function dismissImportCandidate(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+
+  const allowed = await isEmailSyncAllowedForCaller();
+  if (!allowed) {
+    return { error: "Your account isn't approved for email sync." };
+  }
+
+  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
+  if (!gmailMessageId) {
+    return { error: "Couldn't dismiss that. Try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("processed_gmail_messages").insert({
+    owner_id: session.userId,
+    gmail_message_id: gmailMessageId,
+    outcome: "dismissed",
+  });
+
+  // A unique-violation here means this exact message was already recorded
+  // (a double-submit, or confirmed/dismissed from another tab) — the
+  // caller's own goal, "never show me this again," is already true either
+  // way, so this isn't a failure worth reporting.
+  if (error && (error as { code?: string }).code !== "23505") {
+    return { error: "Couldn't dismiss that. Try again." };
+  }
+
   return { ok: true };
 }
