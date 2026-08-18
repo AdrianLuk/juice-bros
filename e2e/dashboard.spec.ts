@@ -36,7 +36,7 @@ test.afterEach(async ({ page }) => {
   const strays = row(page, PREFIX);
   for (let left = await strays.count(); left > 0; left--) {
     await strays.first().getByRole("button", { name: "Remove" }).click();
-    await page.getByRole("button", { name: "Remove place" }).click();
+    await page.getByRole("button", { name: "Remove facility" }).click();
     await expect(strays).toHaveCount(left - 1);
   }
 });
@@ -73,31 +73,38 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
   await addPlace(page, place);
   await logBooking(page, {
     place,
-    court: "Dashboard Court",
+    // formatCourtLabel prepends "Court " for display — the field itself is
+    // numbers-only (type="number").
+    court: "94",
     date: "2026-08-20",
     start: "14:00",
     end: "15:00",
   });
   // `logBooking` only clicks — waiting for the logged row is what actually
   // waits out the Server Action's round trip before navigating away.
-  await page.getByRole("listitem").filter({ hasText: "Dashboard Court" }).waitFor();
+  await page.getByRole("listitem").filter({ hasText: "Court 94" }).waitFor();
 
   await page.goto("/booking-buddy");
 
   // Week view (default) — the block exists in the grid.
-  await expect(page.getByRole("button", { name: /Dashboard Court/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Court 94/ })).toBeVisible();
   // The sidebar lists it too, soonest-first alongside date/time/duration.
   await expect(page.getByText("Aug 20, 2026")).toBeVisible();
 
   // Month view — same Booking, as an inline row rather than a positioned block.
   await page.getByRole("button", { name: "Month", exact: true }).click();
-  const monthChip = page.getByRole("button", { name: /Dashboard Court/ });
+  const monthChip = page.getByRole("button", { name: /Court 94/ });
   await expect(monthChip).toBeVisible();
 
   // Clicking it opens the detail popover — full details, not navigating away.
+  // Scoped to the popover's own <dl>: "Court 94" also labels the chip
+  // trigger itself, which stays on screen (and matches /Court 94/)
+  // once the popover opens, so an unscoped locator would be ambiguous.
   await monthChip.click();
-  await expect(page.getByText("Facility clock")).toBeVisible();
-  await expect(page.getByText("America/Toronto")).toBeVisible();
+  const popoverDetails = page.locator("dl");
+  await expect(popoverDetails.getByText("Court")).toBeVisible();
+  await expect(popoverDetails.getByText("94")).toBeVisible();
+  await expect(popoverDetails.getByText("Doubles")).toBeVisible();
   await expect(page).toHaveURL(/\/booking-buddy$/);
 
   // Confirm-before-remove — same convention as Orgs/Bookings elsewhere.
@@ -105,7 +112,7 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
   await expect(page.getByRole("heading", { name: "Remove this booking?" })).toBeVisible();
   await page.getByRole("button", { name: "Remove booking" }).click();
 
-  await expect(page.getByRole("button", { name: /Dashboard Court/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Court 94/ })).toHaveCount(0);
   await expect(page.getByText("Aug 20, 2026")).toHaveCount(0);
 
   await removePlace(page, place);
@@ -135,26 +142,29 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("Dialog Court");
+  await page.getByLabel("Court").fill("95");
   await page.getByLabel("Date").fill("2026-08-20");
-  // Exact matches: the calendar's own "Calendar view" toggle group label
-  // fuzzy-matches "End" as a substring ("cal-END-ar"), and is also on this page.
   await page.getByLabel("Start", { exact: true }).selectOption("16:00");
-  await page.getByLabel("End", { exact: true }).selectOption("17:00");
+  // End is computed from Start + Duration (issue #57), not its own field.
+  await page.getByRole("radio", { name: "1 hour" }).click();
   await page.getByRole("button", { name: "Log booking" }).click();
 
   // A successful save closes the dialog itself — no manual "Close" needed.
   await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
   await expect(page.getByText("Aug 20, 2026")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Dialog Court/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Court 95/ })).toBeVisible();
   await expect(page).toHaveURL(/\/booking-buddy$/);
 
   await removePlace(page, place);
 });
 
-test("an invalid quick-add booking keeps the dialog open with the entered values intact", async ({
+test("a quick-add duration that would run past midnight is refused before it's ever submitted", async ({
   page,
 }) => {
+  // End is computed (Start + Duration, issue #57), so "end before start"
+  // isn't reachable through the UI anymore — this is the current equivalent
+  // invalid case, refused live rather than via a round trip that reopens
+  // the dialog.
   const place = placeName();
   await addPlace(page, place);
 
@@ -164,21 +174,21 @@ test("an invalid quick-add booking keeps the dialog open with the entered values
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("Backwards Court");
+  await page.getByLabel("Court").fill("96");
   await page.getByLabel("Date").fill("2026-08-20");
-  await page.getByLabel("Start", { exact: true }).selectOption("17:00");
-  await page.getByLabel("End", { exact: true }).selectOption("16:00");
-  await page.getByRole("button", { name: "Log booking" }).click();
+  await page.getByLabel("Start", { exact: true }).selectOption("22:00");
+  await page.getByRole("radio", { name: "Custom" }).click();
+  await page.getByLabel("Custom duration in hours").fill("3");
 
-  // Refused (end before start) — the dialog stays open, and every field the
-  // User entered is still there to correct, not wiped back to blank.
+  // Refused live, before any submit — the dialog was never asked to close,
+  // and every field the User entered is still there, not wiped back to blank.
   await expect(
-    page.getByRole("alert").filter({ hasText: "after the start time" }),
+    page.getByRole("alert").filter({ hasText: "past midnight" }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log booking" })).toBeDisabled();
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
-  await expect(page.getByLabel("Court")).toHaveValue("Backwards Court");
-  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("17:00");
-  await expect(page.getByLabel("End", { exact: true })).toHaveValue("16:00");
+  await expect(page.getByLabel("Court")).toHaveValue("96");
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("22:00");
 
   await removePlace(page, place);
 });
@@ -206,7 +216,7 @@ test("a Booking always renders as busy over an overlapping Availability Window",
   await addPlace(page, place);
   await logBooking(page, {
     place,
-    court: "Precedence Court",
+    court: "97",
     date: "2026-08-20",
     start: "13:00",
     end: "14:00",
@@ -215,7 +225,7 @@ test("a Booking always renders as busy over an overlapping Availability Window",
   await page.goto("/booking-buddy");
 
   // The Booking itself renders.
-  await expect(page.getByRole("button", { name: /Precedence Court/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Court 97/ })).toBeVisible();
   // Its own span is never also drawn as a Busy Availability block (ADR 0006 — never both).
   await expect(page.locator('[title*="Busy: 1:00 PM"]')).toHaveCount(0);
   // The Busy declaration still surfaces either side of the Booking it doesn't cover.
