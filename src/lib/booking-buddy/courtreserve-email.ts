@@ -5,19 +5,26 @@
  * that finds them.
  *
  * CourtReserve's template is a fixed, known shape (single-provider parsing
- * only, per ADR-0009) — a labelled table of fields — so this is plain
- * pattern-matching over the raw HTML, not a general HTML parser. Free of
- * Next.js/Supabase imports and of any Gmail API dependency, so it's unit
- * tested directly against fixture HTML rather than a live inbox.
+ * only, per ADR-0009) — so this is plain pattern-matching over the raw HTML,
+ * not a general HTML parser. Free of Next.js/Supabase imports and of any
+ * Gmail API dependency, so it's unit tested directly against fixture HTML
+ * rather than a live inbox.
  *
- * The fixture HTML/subject shapes this module is built and tested against
- * are this session's own best guess at CourtReserve's real template, not a
- * real sample — nobody working this ticket had access to an actual
- * CourtReserve confirmation/cancellation email. `classifyBySubject`'s
- * confirmation/cancellation heuristics in particular are worth re-verifying
- * against a real inbox once one is available (e.g. early in #64, which is
- * the first ticket to actually run this against live mail); until then,
- * treat the subject-classification boundary as reasonable-effort, not proven.
+ * Rebuilt against two real captured emails (a confirmation and a
+ * cancellation) after the first version — written against a best-guess
+ * reconstruction with no real sample available — turned out to assume the
+ * wrong template shape entirely: CourtReserve's real body has no labelled
+ * `<td>` rows at all. Each field group is an `<h4>` heading ("Details",
+ * "Player(s)", "Court(s)", or "Cancellation Details" for a cancellation)
+ * immediately followed by an `<h5>` value; the confirmation's "Details"
+ * value is format/date/time `<br>`-joined in one block, and the
+ * cancellation's "Cancellation Details" value prepends the player's own
+ * name to that same three-line block instead of carrying a separate
+ * Player(s)/Court(s) section at all. The facility name isn't a labelled
+ * field either — it's read off the template's own logo `<img alt>`. See
+ * `courtreserve-email.test.ts`'s real-fixture tests for the exact captured
+ * shape (facility/player names replaced with placeholders before commit,
+ * since this repo is public).
  */
 
 import { isBookingFormat, type BookingFormat } from "./capacity.ts";
@@ -145,63 +152,55 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
-function normalizeLabel(cellHtml: string): string {
-  return decodeHtmlEntities(stripTags(cellHtml))
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\s*:\s*$/, "")
-    .toLowerCase();
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-const ROW_PATTERN = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-// Excludes `<td`/`</td>` themselves from the cell body (a negative lookahead
-// per character, not `[\s\S]*?`) so a row can never accidentally swallow a
-// neighbouring cell's boundary into its own capture.
-const CELL_PATTERN = /<td[^>]*>((?:(?!<\/?td\b)[\s\S])*)<\/td>/gi;
+/**
+ * A field group's raw value HTML: the `<h5>` immediately following the
+ * `<h4>` heading named `heading` (e.g. "Details", "Player(s)", "Court(s)")
+ * — non-greedy across whatever divider markup CourtReserve puts between
+ * them, so it stops at that section's own `<h5>` rather than a later one.
+ * `null` when the heading itself isn't present (e.g. "Court(s)" on a
+ * cancellation, which never has that section at all).
+ */
+function extractSection(html: string, heading: string): string | null {
+  const pattern = new RegExp(
+    `<h4[^>]*>\\s*${escapeRegExp(heading)}\\s*<\\/h4>[\\s\\S]*?<h5[^>]*>([\\s\\S]*?)<\\/h5>`,
+    "i",
+  );
+  return pattern.exec(html)?.[1] ?? null;
+}
 
 /**
- * Every field row in the email, keyed by its label's normalised text — one
- * pass over the HTML rather than a separate scan per field a caller happens
- * to ask for. Scoped per `<tr>` rather than pairing any two adjacent `<td>`s
- * globally: a row with more than two cells (an icon/spacer column before the
- * label, common in real HTML email templates) still resolves correctly,
- * since the label/value pair is always a row's *last* two cells — and a row
- * with only one cell (a banner, a colspan notice) is skipped outright rather
- * than bleeding into whatever `<tr>` follows it. A real template wrapping
- * its label in `<strong>`/a `<span>` (ordinary styling, not malformed markup)
- * still matches: only the label's *text* has to equal the field name, not
- * its exact tag-for-tag markup.
+ * CourtReserve's own logo `<img alt="...">` near the top of the email is
+ * the facility name — there's no labelled "Facility:" field anywhere in the
+ * body. The tracking-pixel `<img>` in the footer has an empty `alt`, so the
+ * first *non-empty* one wins rather than the first `<img>` outright.
  */
-function extractFields(html: string): Map<string, string> {
-  const fields = new Map<string, string>();
-  ROW_PATTERN.lastIndex = 0;
-
-  let rowMatch: RegExpExecArray | null;
-  while ((rowMatch = ROW_PATTERN.exec(html)) !== null) {
-    const cells: string[] = [];
-    CELL_PATTERN.lastIndex = 0;
-
-    let cellMatch: RegExpExecArray | null;
-    while ((cellMatch = CELL_PATTERN.exec(rowMatch[1])) !== null) {
-      cells.push(cellMatch[1]);
-    }
-
-    if (cells.length < 2) {
-      continue;
-    }
-
-    const label = normalizeLabel(cells[cells.length - 2]);
-    const value = decodeHtmlEntities(stripTags(cells[cells.length - 1]))
-      .replace(/\s+/g, " ")
-      .trim();
-
-    // First match wins, matching how a caller reading top-to-bottom would.
-    if (value && !fields.has(label)) {
-      fields.set(label, value);
+function extractFacilityName(html: string): string | null {
+  const pattern = /<img[^>]*\balt="([^"]*)"[^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html)) !== null) {
+    const alt = decodeHtmlEntities(match[1]).replace(/\s+/g, " ").trim();
+    if (alt) {
+      return alt;
     }
   }
+  return null;
+}
 
-  return fields;
+/**
+ * A field group's value split into its `<br>`-separated lines (e.g.
+ * "Singles<br>Friday, 8-21-2026<br>2:00 PM - 4:00 PM" → three lines),
+ * each cleaned of tags/entities independently — unlike `stripTags`, `<br>`
+ * here is a real line boundary between distinct fields, not a
+ * comma-joinable list within one field.
+ */
+function splitSectionLines(html: string): string[] {
+  return html
+    .split(/<br\s*\/?>/gi)
+    .map((line) => decodeHtmlEntities(line.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim());
 }
 
 /** `"2026-09-15"` (`sep = "-"`) or `"2026/09/15"` (`sep = "/"`) from a `Date`'s own local year/month/day. */
@@ -213,14 +212,28 @@ function formatLocalDate(date: Date, sep: string): string {
 }
 
 /**
- * "September 15, 2026" → "2026-09-15". Relies on `Date`'s own parsing of a
- * bare "Month DD, YYYY" string rather than a hand-rolled month-name table —
- * both the parse and the read-back below happen in the same (arbitrary)
- * local zone, so which zone that is never affects the calendar date read out.
+ * "Friday, 8-21-2026" → "2026-08-21" — CourtReserve's own Details-block date
+ * format, confirmed against a real captured email: a leading weekday name
+ * (for a human reader only, not part of the actual date) followed by
+ * `M-D-YYYY`. Parsed explicitly with a regex rather than handed to `Date`,
+ * since ECMA-262 only guarantees consistent cross-engine parsing for ISO
+ * 8601 strings — a "Weekday, M-D-YYYY" string is implementation-defined and
+ * not safe to rely on `new Date()` for.
  */
 function parseHumanDate(text: string): string | null {
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? null : formatLocalDate(parsed, "-");
+  const match = /(\d{1,2})-(\d{1,2})-(\d{4})\s*$/.exec(text);
+  if (!match) {
+    return null;
+  }
+
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /** "6:00 PM" → "18:00". */
@@ -289,7 +302,12 @@ function parsePlayerNames(text: string | null): string[] {
     .filter((name) => name.length > 0);
 }
 
-const CONFIRMATION_SUBJECT_PATTERN = /reservation.*confirm|confirm.*reservation/i;
+// CourtReserve's real subject is "Booking Confirmation for ..." — "booking",
+// not "reservation" — so both nouns are accepted, still paired with
+// "confirm" rather than matching on either word alone (e.g. a lone
+// "Confirm your account" subject from some other CourtReserve email
+// shouldn't be read as a booking confirmation).
+const CONFIRMATION_SUBJECT_PATTERN = /(reservation|booking).*confirm|confirm.*(reservation|booking)/i;
 // Matches "cancelled"/"canceled"/"cancellation" — the verb (past tense, a
 // completed action) or the noun, either of which a real acknowledgement
 // subject might use — but deliberately *not* a bare "cancel" on its own,
@@ -335,11 +353,16 @@ export function parseCourtReserveEmail(email: {
       return { kind: "not_a_booking" };
     }
 
-    const fields = extractFields(email.html);
-    const facilityName = fields.get("facility") ?? null;
-    const dateText = fields.get("date") ?? null;
-    const timeText = fields.get("time") ?? null;
-    const courtLabel = fields.get("court") ?? null;
+    const facilityName = extractFacilityName(email.html);
+
+    const detailsHtml = extractSection(email.html, kind === "cancellation" ? "Cancellation Details" : "Details");
+    // The confirmation's Details block is exactly [format, date, time]; a
+    // cancellation's Cancellation Details block prepends the player's own
+    // name, making it [name, format, date, time] — the last three lines are
+    // the same shape either way, so the (optional) leading name is simply
+    // ignored rather than needing a separate cancellation-only field.
+    const detailsLines = detailsHtml ? splitSectionLines(detailsHtml) : [];
+    const [formatText, dateText, timeText] = detailsLines.slice(-3);
 
     const date = dateText ? parseHumanDate(dateText) : null;
     const timeRange = timeText ? parseTimeRange(timeText) : null;
@@ -348,6 +371,11 @@ export function parseCourtReserveEmail(email: {
       return { kind: "unparseable" };
     }
 
+    const courtSectionHtml = extractSection(email.html, "Court(s)");
+    const courtLabel = courtSectionHtml
+      ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
+      : null;
+
     if (kind === "cancellation") {
       return {
         kind: "cancellation",
@@ -355,8 +383,11 @@ export function parseCourtReserveEmail(email: {
       };
     }
 
-    const format = parseFormat(fields.get("type") ?? null);
-    const playerNames = parsePlayerNames(fields.get("players") ?? null);
+    const format = parseFormat(formatText ?? null);
+    const playersSectionHtml = extractSection(email.html, "Player(s)");
+    const playerNames = parsePlayerNames(
+      playersSectionHtml ? decodeHtmlEntities(stripTags(playersSectionHtml)).replace(/\s+/g, " ").trim() : null,
+    );
 
     return {
       kind: "confirmation",
