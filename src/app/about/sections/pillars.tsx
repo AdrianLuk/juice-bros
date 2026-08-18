@@ -22,14 +22,14 @@ const pillars = [
 
 export function Pillars() {
   return (
-    <section className="w-full bg-muted/40">
-      <div className="w-full px-4 py-16 sm:px-6 lg:px-8">
+    <section className="w-full bg-muted/50">
+      <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
         <SectionHeading eyebrow="What You'll Find Here" title="More than a podcast" align="center" />
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {pillars.map((pillar) => (
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {pillars.map((pillar, index) => (
             <div
               key={pillar.name}
-              className="flex flex-col gap-2 rounded-xl border bg-background p-6"
+              className={`flex flex-col gap-2 rounded-[1.5rem] bg-card p-6 shadow-brand ${index % 2 === 1 ? "lg:mt-5" : ""}`}
             >
               <p className="font-heading text-lg font-bold text-brand-orange">{pillar.name}</p>
               <p className="text-sm text-muted-foreground">{pillar.blurb}</p>
