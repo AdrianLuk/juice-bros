@@ -185,6 +185,8 @@ export type ImportCandidate = {
   /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
   courtLabel: string | null;
   format: BookingFormat;
+  /** The parsed email's own Details-section name (issue #95) — read-only on the review card, same as Format/date/time/court. */
+  name: string;
   /** Reference-only, per CONTEXT.md's Import Candidate entry — nothing is created or invited from a match. */
   matchedPlayers: PlayerMatch[];
 };
@@ -538,6 +540,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       endTime: confirmation.endTime,
       courtLabel,
       format: confirmation.format,
+      name: confirmation.name,
       matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, connectionCandidates),
     });
   }
@@ -552,7 +555,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 /**
  * Confirming an Import Candidate creates a real Booking (issue #64) — the
  * form posts the exact same field names `CreateBookingForm` does (`org_id`,
- * `format`, `date`, `start_time`, `end_time`, `court_label`), plus
+ * `name`, `format`, `date`, `start_time`, `end_time`, `court_label`), plus
  * `gmail_message_id`, so it reuses `parseNewBooking`'s validation as-is
  * rather than trusting the candidate's already-parsed fields a second time.
  */

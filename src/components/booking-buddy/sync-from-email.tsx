@@ -68,7 +68,7 @@ function ImportCandidateCard({
       <div>
         <p className="font-medium">{candidate.facilityName}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
+          {candidate.name} · {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
           {formatCourtLabel(candidate.courtLabel)} · {BOOKING_FORMAT_LABEL[candidate.format]}
         </p>
         {candidate.matchedPlayers.length > 0 && (
@@ -88,6 +88,7 @@ function ImportCandidateCard({
         </div>
 
         <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
+        <input type="hidden" name="name" value={candidate.name} />
         <input type="hidden" name="format" value={candidate.format} />
         <input type="hidden" name="date" value={candidate.date} />
         <input type="hidden" name="start_time" value={candidate.startTime} />

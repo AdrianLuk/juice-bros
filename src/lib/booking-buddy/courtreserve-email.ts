@@ -38,6 +38,8 @@ export type CourtReserveConfirmation = {
   /** Null when the facility doesn't label its courts — mirrors NewBooking's own courtLabel. */
   courtLabel: string | null;
   format: BookingFormat;
+  /** The Details section's own first line, raw — the same line `format` is derived from (issue #95). */
+  name: string;
   /** Raw names as the email lists them — matching against Connections is a later ticket's job. */
   playerNames: string[];
 };
@@ -432,6 +434,9 @@ export function parseCourtReserveEmail(email: {
       endTime: timeRange.end,
       courtLabel,
       format,
+      // Same raw line `format` was parsed from — not lowercased/normalized
+      // the way `format` is, since this is a display label, not an enum.
+      name: formatText ?? "",
       playerNames,
     };
 
