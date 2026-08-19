@@ -12,8 +12,12 @@ import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-bud
 import {
   BOOKING_FORMAT_LABEL,
   MAX_ROTATION_BUFFER,
+  computeGenderedCapacity,
+  isGenderBucketOverCapacity,
   isOverCapacity,
 } from "@/lib/booking-buddy/capacity";
+import { DEFAULT_DIVISION, DIVISIONS, DIVISION_LABEL } from "@/lib/booking-buddy/division";
+import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
 import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -85,6 +89,17 @@ export function CreateSlotForm() {
         </div>
       </div>
 
+      <div className="flex min-w-0 flex-col gap-1.5 sm:max-w-56">
+        <Label htmlFor="slot-division">Division</Label>
+        <FormSelect id="slot-division" name="division" defaultValue={DEFAULT_DIVISION}>
+          {DIVISIONS.map((division) => (
+            <option key={division} value={division}>
+              {DIVISION_LABEL[division]}
+            </option>
+          ))}
+        </FormSelect>
+      </div>
+
       <div className="flex flex-col items-start gap-1">
         <Button type="submit" disabled={pending}>
           {pending ? "Posting…" : "Post slot"}
@@ -147,7 +162,15 @@ function answerFormData(slotId: string, answer: ResponseAnswer): FormData {
   return data;
 }
 
-/** Optimistically applies one Response, replacing the responder's earlier one if they had one. */
+/**
+ * Optimistically applies one Response, replacing the responder's earlier one
+ * if they had one.
+ *
+ * `gender` is always `null` here, same as `displayName` above — this control
+ * isn't handed the viewer's own Gender, so a gendered Capacity breakdown
+ * shows the optimistic "yes" as unspecified until `onSettled`'s refetch
+ * brings back the real value. Never miscounted, just briefly uncategorized.
+ */
 function withResponse(
   current: SlotResponses,
   slotId: string,
@@ -155,7 +178,13 @@ function withResponse(
   viewerName: string | null,
   answer: ResponseAnswer,
 ): SlotResponses {
-  const mine: SlotResponse = { id: viewerId, userId: viewerId, displayName: viewerName, answer };
+  const mine: SlotResponse = {
+    id: viewerId,
+    userId: viewerId,
+    displayName: viewerName,
+    answer,
+    gender: null,
+  };
   return {
     myAnswer: answer,
     responses: [
@@ -302,9 +331,10 @@ export function SlotCapacityPanel({
   initial: SlotResponses;
 }) {
   const query = useQuery(slotResponsesQuery(slotId, initial));
-  const yesCount = query.data.responses.filter(
+  const yesResponses = query.data.responses.filter(
     (response) => response.answer === "yes",
-  ).length;
+  );
+  const yesCount = yesResponses.length;
 
   if (capacity.capacity === null) {
     return (
@@ -312,6 +342,46 @@ export function SlotCapacityPanel({
         {yesCount} in so far. No court attached yet, so there&apos;s no capacity
         to fill — this is still a proposal.
       </p>
+    );
+  }
+
+  const gendered = computeGenderedCapacity({
+    division: capacity.division,
+    capacity: capacity.capacity,
+    yesGenders: yesResponses.map((response) => response.gender),
+  });
+
+  if (gendered) {
+    const overBuckets = gendered.buckets.filter(isGenderBucketOverCapacity);
+
+    return (
+      <div className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-0.5">
+          {gendered.buckets.map((bucket) => (
+            <li key={bucket.gender} className="text-sm font-medium">
+              {GENDER_LABEL[bucket.gender]}: {bucket.yes} of {bucket.capacity} spots taken
+            </li>
+          ))}
+        </ul>
+        <p className="text-xs text-muted-foreground">
+          {courtsLabel(capacity.courtCount)}
+          {capacity.rotationBuffer > 0 && ` plus ${capacity.rotationBuffer} rotating`}
+          {gendered.unspecified > 0 &&
+            ` — ${gendered.unspecified} more responded yes without a gender set`}
+        </p>
+
+        {overBuckets.length > 0 && isOwner && (
+          <p
+            className="rounded-lg border border-accent-foreground/25 bg-accent/25 px-4 py-3 text-sm"
+            role="status"
+          >
+            More yeses than spots for{" "}
+            {overBuckets.map((bucket) => GENDER_LABEL[bucket.gender]).join(" and ")}. Nobody
+            has been turned away — book another court and attach it, raise the
+            rotation buffer, or leave it as is.
+          </p>
+        )}
+      </div>
     );
   }
 

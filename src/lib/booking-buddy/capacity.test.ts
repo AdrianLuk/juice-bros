@@ -6,7 +6,9 @@ import {
   MAX_ROTATION_BUFFER,
   bookingOverlapsSlot,
   computeCapacity,
+  computeGenderedCapacity,
   isBookingFormat,
+  isGenderBucketOverCapacity,
   isOverCapacity,
   parseRotationBuffer,
   slotBookingWriteMessage,
@@ -142,6 +144,85 @@ test("back-to-back windows that only touch at the boundary do not overlap", () =
     ),
     false,
   );
+});
+
+test("an open slot keeps the plain signal — no gendered breakdown at all", () => {
+  assert.equal(
+    computeGenderedCapacity({ division: "open", capacity: 4, yesGenders: ["male", "female"] }),
+    null,
+  );
+});
+
+test("a slot with no capacity yet has no gendered breakdown either, same as the plain signal", () => {
+  assert.equal(
+    computeGenderedCapacity({ division: "mixed", capacity: null, yesGenders: [] }),
+    null,
+  );
+});
+
+test("mixed splits an even capacity evenly between male and female", () => {
+  assert.deepEqual(
+    computeGenderedCapacity({ division: "mixed", capacity: 4, yesGenders: [] }),
+    {
+      buckets: [
+        { gender: "male", yes: 0, capacity: 2 },
+        { gender: "female", yes: 0, capacity: 2 },
+      ],
+      unspecified: 0,
+    },
+  );
+});
+
+test("mixed rounds an odd capacity down for male, up for female", () => {
+  const gendered = computeGenderedCapacity({ division: "mixed", capacity: 5, yesGenders: [] });
+  assert.equal(gendered?.buckets[0].capacity, 2);
+  assert.equal(gendered?.buckets[1].capacity, 3);
+});
+
+test("mixed counts each yes toward its own gender's bucket, and a missing gender as unspecified", () => {
+  assert.deepEqual(
+    computeGenderedCapacity({
+      division: "mixed",
+      capacity: 4,
+      yesGenders: ["male", "male", "female", null],
+    }),
+    {
+      buckets: [
+        { gender: "male", yes: 2, capacity: 2 },
+        { gender: "female", yes: 1, capacity: 2 },
+      ],
+      unspecified: 1,
+    },
+  );
+});
+
+test("mens is one bucket against the whole capacity — a female yes falls to unspecified, not the male bucket", () => {
+  assert.deepEqual(
+    computeGenderedCapacity({
+      division: "mens",
+      capacity: 4,
+      yesGenders: ["male", "female", null],
+    }),
+    {
+      buckets: [{ gender: "male", yes: 1, capacity: 4 }],
+      unspecified: 2,
+    },
+  );
+});
+
+test("womens mirrors mens for the other gender", () => {
+  assert.deepEqual(
+    computeGenderedCapacity({ division: "womens", capacity: 2, yesGenders: ["female", "female"] }),
+    {
+      buckets: [{ gender: "female", yes: 2, capacity: 2 }],
+      unspecified: 0,
+    },
+  );
+});
+
+test("a gender bucket is over capacity strictly past its own ceiling, not at it", () => {
+  assert.equal(isGenderBucketOverCapacity({ gender: "male", yes: 2, capacity: 2 }), false);
+  assert.equal(isGenderBucketOverCapacity({ gender: "male", yes: 3, capacity: 2 }), true);
 });
 
 test("attaching the same booking twice reads as already attached", () => {

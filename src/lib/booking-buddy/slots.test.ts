@@ -22,7 +22,7 @@ function form(fields: Record<string, string>): FormData {
 }
 
 function parse(
-  overrides: Partial<typeof VALID & { time_zone: string }> = {},
+  overrides: Partial<typeof VALID & { time_zone: string; division: string }> = {},
   now: Date = NOW,
 ) {
   return parseNewSlotProposal(form({ ...VALID, ...overrides }), now);
@@ -36,7 +36,20 @@ test("a date and a window become a bare-proposal Slot, defaulted to Toronto", ()
     startTime: "09:00",
     endTime: "10:00",
     timeZone: "America/Toronto",
+    division: "open",
   });
+});
+
+test("a real division is honoured", () => {
+  const parsed = parse({ division: "mixed" });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.division, "mixed");
+});
+
+test("a stray or missing division falls back to open, not an error", () => {
+  const parsed = parse({ division: "coed" });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.division, "open");
 });
 
 test("an explicit time zone is honoured over the default", () => {
