@@ -89,12 +89,25 @@ export function OwnerDashboardCalendar({
             <p className="truncate font-medium">{booking.name}</p>
           )}
           <p className="truncate font-medium">{booking.orgName}</p>
-          <p className="truncate opacity-90">
-            {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
-          </p>
-          <p className="truncate opacity-90">
-            {formatCourtLabel(booking.courtLabel)}
-          </p>
+          {/* Fixed-height, absolutely-positioned chip (WEEK_EVENT_CLASS) — a
+              1-hour booking barely fits the pre-existing 3 lines already, so
+              a name folds time and court onto one line to hold the line
+              count steady rather than clipping the court label out of view. */}
+          {booking.name ? (
+            <p className="truncate opacity-90">
+              {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)} ·{" "}
+              {formatCourtLabel(booking.courtLabel)}
+            </p>
+          ) : (
+            <>
+              <p className="truncate opacity-90">
+                {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
+              </p>
+              <p className="truncate opacity-90">
+                {formatCourtLabel(booking.courtLabel)}
+              </p>
+            </>
+          )}
         </CalendarEventPopover>
       )}
       renderMonthEvent={(booking) => (
