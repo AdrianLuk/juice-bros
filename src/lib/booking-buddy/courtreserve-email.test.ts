@@ -114,6 +114,7 @@ test("a confirmation email parses into facility, date/time, court, format and pl
       endTime: "19:00",
       courtLabel: "Court 3",
       format: "doubles",
+      name: "Doubles",
       playerNames: ["Amy Ace", "Ben Backhand"],
     },
   });
@@ -136,6 +137,15 @@ test("an unrecognised or missing format falls back to doubles, the app's own def
   });
 
   assert.equal(result.kind === "confirmation" && result.confirmation.format, "doubles");
+});
+
+test("name carries the Details section's raw first line, not the normalized format value", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Booking Confirmation for Tuesday, 2026-09-15 6:00 PM - 7:00 PM",
+    html: confirmationHtml({ format: "Mixed Doubles" }),
+  });
+
+  assert.equal(result.kind === "confirmation" && result.confirmation.name, "Mixed Doubles");
 });
 
 test("a facility that doesn't label its courts produces a null courtLabel, not an empty string", () => {
@@ -226,6 +236,7 @@ test("an update email parses into facility, date/time, court (bundled, not a sep
       endTime: "19:00",
       courtLabel: "Court 3",
       format: "doubles",
+      name: "Doubles",
       playerNames: ["Amy Ace", "Ben Backhand"],
     },
   });
@@ -473,6 +484,7 @@ test("a real captured confirmation email (facility/player names replaced with pl
       endTime: "16:00",
       courtLabel: "Court #6 - Hard",
       format: "singles",
+      name: "Singles",
       playerNames: ["Amy Ace", "Ben Backhand"],
     },
   });
@@ -504,6 +516,7 @@ test("a real captured update email (facility/player names replaced with placehol
       endTime: "14:00",
       courtLabel: "Court #9 - Hard",
       format: "doubles",
+      name: "Doubles",
       playerNames: ["Amy Ace", "Ben Backhand", "Cara Crosscourt", "Dave Dink"],
     },
   });
