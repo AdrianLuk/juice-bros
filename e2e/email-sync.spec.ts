@@ -507,9 +507,12 @@ test.describe("Sync from Email", () => {
 
     // No in-batch confirmation this time — the same shape as a User syncing,
     // confirming right away, and only getting the Update Notice on a later
-    // sync once the reservation was edited.
+    // sync once the reservation was edited. A different court too, not just
+    // format — proving `matchUpdateToBooking` really doesn't key on court
+    // (issue #91's own reason for excluding it from the match): a genuine
+    // court change still has to reach the Booking row, not just format.
     mock.registerMessages([
-      updateEmail({ id: messageId(), facility, format: "Doubles", court: "Court 3", players: "Amy Ace, Ben Backhand" }),
+      updateEmail({ id: messageId(), facility, format: "Doubles", court: "Court 5", players: "Amy Ace, Ben Backhand" }),
     ]);
 
     await page.goto("/booking-buddy/bookings");
@@ -526,7 +529,8 @@ test.describe("Sync from Email", () => {
 
     // Same Booking, edited in place — not a second row alongside the original.
     await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
-    await expect(row(page, "Court 3")).toContainText("Doubles");
+    await expect(row(page, "Court 5")).toContainText("Doubles");
+    await expect(row(page, "Court 3")).toHaveCount(0);
 
     await removePlace(page, facility);
   });

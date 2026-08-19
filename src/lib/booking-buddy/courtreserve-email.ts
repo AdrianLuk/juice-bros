@@ -202,6 +202,14 @@ function extractFacilityName(html: string): string | null {
   return null;
 }
 
+/** The "Court(s)" section's own value, cleaned the same way every other field's raw HTML is — `null` when the section (or a usable value inside it) isn't present at all. */
+function extractCourtSectionLabel(html: string): string | null {
+  const courtSectionHtml = extractSection(html, "Court(s)");
+  return courtSectionHtml
+    ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
+    : null;
+}
+
 /**
  * A field group's value split into its `<br>`-separated lines (e.g.
  * "Singles<br>Friday, 8-21-2026<br>2:00 PM - 4:00 PM" → three lines),
@@ -403,26 +411,13 @@ export function parseCourtReserveEmail(email: {
     }
 
     if (kind === "cancellation") {
-      const courtSectionHtml = extractSection(email.html, "Court(s)");
-      const courtLabel = courtSectionHtml
-        ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
-        : null;
-
       return {
         kind: "cancellation",
-        cancellation: { facilityName, date, startTime: timeRange.start, courtLabel },
+        cancellation: { facilityName, date, startTime: timeRange.start, courtLabel: extractCourtSectionLabel(email.html) },
       };
     }
 
-    let courtLabel: string | null;
-    if (kind === "update") {
-      courtLabel = inlineCourtText;
-    } else {
-      const courtSectionHtml = extractSection(email.html, "Court(s)");
-      courtLabel = courtSectionHtml
-        ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
-        : null;
-    }
+    const courtLabel = kind === "update" ? inlineCourtText : extractCourtSectionLabel(email.html);
 
     const format = parseFormat(formatText ?? null);
     const playersSectionHtml = extractSection(email.html, "Player(s)");
