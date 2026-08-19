@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { AMY, BEN, signIn } from "./support/sign-in.ts";
 import { GmailMock, type MockGmailMessage } from "./support/gmail-mock.ts";
-import { addPlace, placeName, removePlace, row } from "./support/places.ts";
+import { addPlace, logBooking, placeName, removePlace, row } from "./support/places.ts";
 
 /**
  * Connect/disconnect Gmail (issue #62), and "Sync from Email" — the review
@@ -37,6 +37,27 @@ function confirmationEmail(fields: {
       `<h4>Details</h4><h5>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
       `<h4>Player(s)</h4><h5>Amy Ace, Ben Backhand</h5>` +
       `<h4>Court(s)</h4><h5>${court}</h5>` +
+      `</body></html>`,
+  };
+}
+
+/**
+ * CourtReserve's real cancellation template (issue #65) — an "Cancellation
+ * Details" heading whose value bundles the player's own name in front of the
+ * same format/date/time lines a confirmation's "Details" block carries, and
+ * no Court(s) section at all (see courtreserve-email.ts's own header
+ * comment) — `matchCancellationToBooking` deliberately doesn't key on court
+ * for that reason.
+ */
+function cancellationEmail(fields: { id: string; facility: string }): MockGmailMessage {
+  const { id, facility } = fields;
+  return {
+    id,
+    subject: "Reservation Cancellation Notice",
+    html:
+      `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
+      `<h1>Reservation Cancellation</h1>` +
+      `<h4>Cancellation Details</h4><h5>Amy Ace<br>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
       `</body></html>`,
   };
 }
@@ -182,8 +203,8 @@ test.describe("Sync from Email", () => {
     const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Confirm" }) });
     await expect(card).toBeVisible();
     await expect(card).toContainText(facility);
-    // The facility name matched an existing Org exactly, so the picker is
-    // already prefilled rather than left on the "Pick a place" placeholder.
+    // The facility name matched an existing Org, so the picker is already
+    // prefilled rather than left on the "Pick a facility" placeholder.
     await expect(card.getByLabel("Facility")).not.toHaveValue("");
 
     await card.getByRole("button", { name: "Confirm" }).click();
@@ -229,6 +250,76 @@ test.describe("Sync from Email", () => {
     await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
 
     await removePlace(page, facility);
+  });
+
+  test("a cancellation matching a logged Booking appears as a candidate, and confirming it removes the Booking (issue #65)", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+    await logBooking(page, { place: facility, court: "3", date: "2027-03-15", start: "18:00", end: "19:00" });
+    await expect(row(page, "Court 3")).toContainText(facility);
+
+    await page.goto("/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    mock.registerMessages([cancellationEmail({ id: messageId(), facility })]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText(facility);
+    await expect(card).toContainText("Cancelled — matches a Booking you logged.");
+
+    await card.getByRole("button", { name: "Remove booking" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+    await expect(card).toHaveCount(0);
+    await expect(row(page, "Court 3")).toHaveCount(0);
+
+    await removePlace(page, facility);
+  });
+
+  test("a cancellation with no matching Booking shows a distinct notice, and dismissing it means a second sync never shows it again (issue #65)", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    mock.registerMessages([cancellationEmail({ id: messageId(), facility })]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    const card = page.getByRole("listitem").filter({ hasText: facility });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("No matching booking found. Your records may be out of sync.");
+    await expect(card.getByRole("button", { name: "Remove booking" })).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Dismiss" }).click();
+    await expect(card).toHaveCount(0);
+    await expect(page.getByText("No new bookings found.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
   });
 
   test("an expired Mailbox Link shows a reconnect prompt instead of a raw error when syncing", async ({

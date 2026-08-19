@@ -24,7 +24,7 @@ export function OrgSelect({
   return (
     <FormSelect id={id} name={name} defaultValue={defaultValue} required={required}>
       <option value="" disabled>
-        Pick a place
+        Pick a facility
       </option>
       {orgs.map((org) => (
         <option key={org.id} value={org.id}>
