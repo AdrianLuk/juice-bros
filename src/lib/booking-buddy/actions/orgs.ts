@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { BOOKINGS_PATH, ORGS_PATH } from "../routes.ts";
+import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, ORGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
   orgDisplayName,
@@ -170,6 +170,10 @@ export async function createOrg(
 
   revalidatePath(ORGS_PATH);
   revalidatePath(BOOKINGS_PATH);
+  // The dashboard's Onboarding modal (issue #103) and its Booking form's
+  // Facility picker both read Orgs too — a Facility added there should show
+  // up immediately, not just on the Facilities/Bookings pages.
+  revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
 }
 

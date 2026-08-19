@@ -6,8 +6,10 @@ import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { OwnerDashboardCalendar } from "@/components/booking-buddy/owner-dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
+import { OnboardingModal } from "@/components/booking-buddy/onboarding-modal";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
+import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 
 export const metadata: Metadata = pageMetadata({
   title: "Booking Buddy",
@@ -24,8 +26,17 @@ export default async function BookingBuddyPage() {
   const { orgs, bookings, availabilityWindows } = await getDashboardPageData();
   const now = new Date();
 
+  // Onboarding (issue #103) only ever opens for a zero-Facility caller, so
+  // its own Gender seed — reusing the same profile fetch Settings already
+  // makes — only has to run then. Past a caller's first Facility, every
+  // later dashboard load skips a profiles round trip it would otherwise pay
+  // on the app's most-visited route for a value the (now permanently
+  // closed) modal never renders.
+  const gender = orgs.length === 0 ? (await getOwnProfile()).gender : null;
+
   return (
     <div className="flex w-full flex-1 flex-col">
+      <OnboardingModal orgs={orgs} gender={gender} />
       <section className="w-full px-4 pt-6 pb-10 sm:px-6 sm:pt-10 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
