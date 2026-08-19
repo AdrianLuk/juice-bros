@@ -99,6 +99,104 @@ export function matchCancellationToBooking(
   return matches.length === 1 ? matches[0].id : null;
 }
 
+/**
+ * One parsed CourtReserve email, reduced to what reconciliation needs to
+ * group and order it — issue #88. `facilityName`/`date`/`startTime` are the
+ * same identity fields `matchCancellationToBooking` already keys a
+ * cancellation on (no court label, since a real cancellation email never
+ * carries one); `receivedAt` is the Gmail message's own `internalDate`, not
+ * fetch/search order, since Gmail doesn't promise either is chronological.
+ * `confirmation` rides along opaquely so this stays generic over whatever
+ * shape a caller's own confirmation payload is.
+ */
+export type ReconciliationEvent<TConfirmation> =
+  | {
+      kind: "confirmation";
+      gmailMessageId: string;
+      receivedAt: number;
+      facilityName: string;
+      date: string;
+      startTime: string;
+      confirmation: TConfirmation;
+    }
+  | {
+      kind: "cancellation";
+      gmailMessageId: string;
+      receivedAt: number;
+      facilityName: string;
+      date: string;
+      startTime: string;
+      /** Carried through for display only — not part of the identity a cancellation groups/nets on (see the module header comment). */
+      courtLabel: string | null;
+    };
+
+export type ReconciliationResult<TConfirmation> = {
+  confirmations: Extract<ReconciliationEvent<TConfirmation>, { kind: "confirmation" }>[];
+  cancellations: Extract<ReconciliationEvent<TConfirmation>, { kind: "cancellation" }>[];
+};
+
+function reconciliationKey(event: { facilityName: string; date: string; startTime: string }): string {
+  return `${normalizeFacilityName(event.facilityName)}|${event.date}|${event.startTime}`;
+}
+
+/**
+ * Nets a confirm/cancel/confirm/... chain for the same real-world slot down
+ * to its actual end state (issue #88) — editing a CourtReserve reservation
+ * (e.g. adding a player) resends both a cancellation and a fresh
+ * confirmation for the same Org/date/start-time, so a slot edited twice
+ * shows up as five raw emails even though nothing about it needs a User's
+ * review except the final state.
+ *
+ * Replays each identity group in received-time order: a cancellation with
+ * exactly one still-active confirmation ahead of it nets both away; a
+ * cancellation with zero or more-than-one active confirmation is left in
+ * `cancellations` untouched, for the caller's own existing per-email logic to
+ * resolve — zero because there's nothing in this batch for it to refer to
+ * (it might still match a *real* Booking from a previous sync), and more
+ * than one for the same reason `matchCancellationToBooking` itself refuses
+ * to guess between two simultaneous Bookings: there's no court label on a
+ * cancellation email to disambiguate which one it means.
+ */
+export function reconcileCourtReserveEvents<TConfirmation>(
+  events: readonly ReconciliationEvent<TConfirmation>[],
+): ReconciliationResult<TConfirmation> {
+  const groups = new Map<string, ReconciliationEvent<TConfirmation>[]>();
+  for (const event of events) {
+    const key = reconciliationKey(event);
+    const group = groups.get(key);
+    if (group) {
+      group.push(event);
+    } else {
+      groups.set(key, [event]);
+    }
+  }
+
+  const confirmations: Extract<ReconciliationEvent<TConfirmation>, { kind: "confirmation" }>[] = [];
+  const cancellations: Extract<ReconciliationEvent<TConfirmation>, { kind: "cancellation" }>[] = [];
+
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => a.receivedAt - b.receivedAt);
+    const active: Extract<ReconciliationEvent<TConfirmation>, { kind: "confirmation" }>[] = [];
+
+    for (const event of sorted) {
+      if (event.kind === "confirmation") {
+        active.push(event);
+        continue;
+      }
+
+      if (active.length === 1) {
+        active.pop();
+      } else {
+        cancellations.push(event);
+      }
+    }
+
+    confirmations.push(...active);
+  }
+
+  return { confirmations, cancellations };
+}
+
 export type ConnectionCandidate = { userId: string; displayName: string };
 
 export type PlayerMatch = {
