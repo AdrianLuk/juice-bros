@@ -11,18 +11,32 @@ import { isPastDate } from "./datetime.ts";
 export type OrgCandidate = { orgId: string; displayName: string };
 
 /**
- * Exact match only, per the ticket's own acceptance criterion — not
- * case-folded or fuzzy, unlike Username's lower(username) uniqueness.
- * Anything short of the email's facility name matching an Org's own
- * resolved display name (`orgDisplayName`) exactly leaves the Org picker for
- * the User to resolve by hand, which is the documented fallback (#59).
+ * Case-folded and separator-insensitive, since CourtReserve's own template
+ * and a User's hand-typed Org display name are two independent sources for
+ * what's nominally the same facility name — e.g. a confirmation email's
+ * "HISPORTS - Stouffville" should still resolve to an Org named "HISPORTS
+ * Stouffville". Collapses anything that isn't a letter or digit (spaces,
+ * hyphens, dashes, punctuation) down to a single space before comparing, so
+ * only the underlying words have to line up. Anything short of that still
+ * leaves the Org picker for the User to resolve by hand, the documented
+ * fallback (#59).
  */
-export function matchOrgByExactName(
+function normalizeFacilityName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function matchOrgByName(
   facilityName: string,
   orgs: readonly OrgCandidate[],
 ): string | null {
-  const trimmed = facilityName.trim();
-  const match = orgs.find((org) => org.displayName.trim() === trimmed);
+  const normalized = normalizeFacilityName(facilityName);
+  if (!normalized) {
+    return null;
+  }
+  const match = orgs.find((org) => normalizeFacilityName(org.displayName) === normalized);
   return match?.orgId ?? null;
 }
 
@@ -49,6 +63,40 @@ export function isDuplicateBooking(
       booking.date === candidate.date &&
       booking.startTime === candidate.startTime,
   );
+}
+
+export type CancellationIdentity = { orgId: string; date: string; startTime: string };
+
+/**
+ * The existing Booking a parsed cancellation refers to, or `null` if none —
+ * or more than one — matches (issue #65). The review screen surfaces `null`
+ * as a distinct "no match found" notice rather than silently dropping the
+ * cancellation, or, for the ambiguous case, rather than guessing which
+ * Booking to remove.
+ *
+ * Deliberately Org + date/time only, *not* + court like `isDuplicateBooking`:
+ * courtreserve-email.ts's own header documents that a real cancellation email
+ * carries no Court(s) section at all, so `CourtReserveCancellation.courtLabel`
+ * is always null. Matching on it too would mean a cancellation could never
+ * match a Booking that has a real court label logged — Org + date + start
+ * time is what the data actually supports. The cost is that two Bookings at
+ * the same Org, date and start time (e.g. two courts reserved for one group
+ * session) are indistinguishable from this cancellation's own fields — this
+ * function refuses to guess between them rather than risk deleting the
+ * wrong, still-valid one; the "no match found" notice leaves it for the User
+ * to resolve by hand.
+ */
+export function matchCancellationToBooking(
+  cancellation: CancellationIdentity,
+  existingBookings: readonly (CancellationIdentity & { id: string })[],
+): string | null {
+  const matches = existingBookings.filter(
+    (booking) =>
+      booking.orgId === cancellation.orgId &&
+      booking.date === cancellation.date &&
+      booking.startTime === cancellation.startTime,
+  );
+  return matches.length === 1 ? matches[0].id : null;
 }
 
 export type ConnectionCandidate = { userId: string; displayName: string };

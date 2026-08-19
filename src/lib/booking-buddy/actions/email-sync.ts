@@ -29,7 +29,8 @@ import {
 import {
   isDuplicateBooking,
   isPastConfirmation,
-  matchOrgByExactName,
+  matchCancellationToBooking,
+  matchOrgByName,
   matchPlayerNamesToConnections,
   type BookingIdentity,
   type ConnectionCandidate,
@@ -39,7 +40,7 @@ import {
 import { parseNewBooking, stripCourtLabelPrefix } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
 import type { BookingFormat } from "../capacity.ts";
-import { getBookingsPageData, insertValidatedBooking } from "./bookings.ts";
+import { deleteOwnedBooking, getBookingsPageData, insertValidatedBooking } from "./bookings.ts";
 import { listConnections } from "./connections.ts";
 
 export type { ActionResult } from "./result.ts";
@@ -167,7 +168,7 @@ export async function disconnectGmail(): Promise<ActionResult> {
 export type ImportCandidate = {
   gmailMessageId: string;
   facilityName: string;
-  /** Set only when the facility name exactly matched an existing Org (`matchOrgByExactName`). */
+  /** Set only when the facility name matched an existing Org (`matchOrgByName`). */
   matchedOrgId: string | null;
   date: string;
   startTime: string;
@@ -179,22 +180,37 @@ export type ImportCandidate = {
   matchedPlayers: PlayerMatch[];
 };
 
+/**
+ * One parsed CourtReserve cancellation, matched against the caller's own
+ * Bookings (issue #65). `matched: false` is CONTEXT.md's Import Candidate
+ * entry's own framing of a cancellation with no Booking on file — surfaced as
+ * a distinct notice rather than silently dropped, since it's a signal the
+ * User's records may be out of sync.
+ */
+export type CancellationCandidate = {
+  gmailMessageId: string;
+  facilityName: string;
+  date: string;
+  startTime: string;
+  /** Always null in practice — a real cancellation email carries no Court(s) section (see courtreserve-email.ts). Kept for display parity with a confirmation candidate. */
+  courtLabel: string | null;
+} & ({ matched: true; bookingId: string } | { matched: false });
+
 export type SyncFromEmailResult =
-  | { status: "ok"; candidates: ImportCandidate[] }
+  | { status: "ok"; candidates: ImportCandidate[]; cancellations: CancellationCandidate[] }
   | { status: "reconnect_required" }
   | { status: "error"; message: string };
 
 /**
- * Runs a live Gmail search for CourtReserve confirmations, parses/matches
- * whatever comes back, and returns the ones worth a User's review (issue
- * #64). A plain async function rather than a `useActionState`-bound one: the
- * caller (a click-triggered `useQuery`) wants a promise it can call by name,
- * not a form to submit.
+ * Runs a live Gmail search for CourtReserve confirmations and cancellations,
+ * parses/matches whatever comes back, and returns the ones worth a User's
+ * review (issues #64/#65). A plain async function rather than a
+ * `useActionState`-bound one: the caller (a click-triggered `useQuery`)
+ * wants a promise it can call by name, not a form to submit.
  *
- * Cancellations are issue #65's job — a `cancellation`-kind parse is simply
- * skipped here, along with `not_a_booking`/`unparseable` ones, and none of
- * the three are recorded in `processed_gmail_messages`, so a later sync (or
- * #65 itself) still sees them fresh.
+ * A `not_a_booking`/`unparseable` parse is simply skipped, and neither is
+ * recorded in `processed_gmail_messages`, so a later sync still sees it
+ * fresh — there's nothing actionable to remember either way.
  */
 export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   const session = await verifySession();
@@ -284,8 +300,11 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   // Each existing Booking's own wall-clock date/start time, read back in its
   // own Org's zone — the same shape `isDuplicateBooking`/`isPastConfirmation`
   // compare a candidate against. `todayInZone`/`clockInZone` work for any
-  // instant, not just "now", despite the name.
-  const existingBookings: BookingIdentity[] = bookings.map((booking) => ({
+  // instant, not just "now", despite the name. `id` rides along too, only
+  // for `matchCancellationToBooking`'s benefit (issue #65) — it's the thing
+  // `confirmCancellationCandidate` actually needs to delete.
+  const existingBookings: (BookingIdentity & { id: string })[] = bookings.map((booking) => ({
+    id: booking.id,
     orgId: booking.orgId,
     courtLabel: booking.courtLabel,
     date: todayInZone(booking.timeZone, new Date(booking.startsAt)),
@@ -298,6 +317,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 
   const now = new Date();
   const candidates: ImportCandidate[] = [];
+  const cancellations: CancellationCandidate[] = [];
 
   for (const messageId of unseenIds) {
     const fetched = await fetchGmailMessage(refreshed.accessToken, messageId);
@@ -308,6 +328,37 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     }
 
     const parsed = parseCourtReserveEmail(fetched.email);
+
+    if (parsed.kind === "cancellation") {
+      const { cancellation } = parsed;
+      const matchedOrgId = matchOrgByName(cancellation.facilityName, orgCandidates);
+
+      // No matched Org means there's nothing on file it could refer to
+      // either — same reasoning `matchCancellationToBooking` itself can't
+      // apply without one.
+      const bookingId = matchedOrgId
+        ? matchCancellationToBooking(
+            { orgId: matchedOrgId, date: cancellation.date, startTime: cancellation.startTime },
+            existingBookings,
+          )
+        : null;
+
+      const cancellationBase = {
+        gmailMessageId: messageId,
+        facilityName: cancellation.facilityName,
+        date: cancellation.date,
+        startTime: cancellation.startTime,
+        courtLabel: stripCourtLabelPrefix(cancellation.courtLabel),
+      };
+
+      cancellations.push(
+        bookingId
+          ? { ...cancellationBase, matched: true, bookingId }
+          : { ...cancellationBase, matched: false },
+      );
+      continue;
+    }
+
     if (parsed.kind !== "confirmation") {
       continue;
     }
@@ -321,7 +372,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       continue;
     }
 
-    const matchedOrgId = matchOrgByExactName(confirmation.facilityName, orgCandidates);
+    const matchedOrgId = matchOrgByName(confirmation.facilityName, orgCandidates);
     // No matched Org means no known zone yet either — the User hasn't added
     // this facility, so there's nothing to ask it. UTC is a coarse stand-in
     // for this calendar-day-only check, not a claim about the real zone.
@@ -356,7 +407,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     });
   }
 
-  return { status: "ok", candidates };
+  return { status: "ok", candidates, cancellations };
 }
 
 /**
@@ -410,9 +461,62 @@ export async function confirmImportCandidate(
 }
 
 /**
+ * Confirming a matched cancellation candidate removes the Booking it refers
+ * to (issue #65) — `bookingId` comes from the review screen's own hidden
+ * field, which only ever holds what `syncFromEmail`'s own
+ * `matchCancellationToBooking` resolved server-side, not anything the User
+ * (or a tampered request) picks.
+ */
+export async function confirmCancellationCandidate(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+
+  const allowed = await isEmailSyncAllowedForCaller();
+  if (!allowed) {
+    return { error: "Your account isn't approved for email sync." };
+  }
+
+  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+  if (!gmailMessageId || !bookingId) {
+    return { error: "Couldn't remove that booking. Try again." };
+  }
+
+  // The candidate's own `bookingId` was resolved against this same caller's
+  // Bookings a moment ago, so `deleteOwnedBooking`'s own empty-result error
+  // here only realistically means a race (deleted from another tab since).
+  const deleteResult = await deleteOwnedBooking(bookingId);
+  if (!deleteResult.ok) {
+    return deleteResult;
+  }
+
+  const supabase = await createClient();
+  const { error: recordError } = await supabase.from("processed_gmail_messages").insert({
+    owner_id: session.userId,
+    gmail_message_id: gmailMessageId,
+    outcome: "cancelled",
+  });
+
+  if (recordError) {
+    // Not fatal — the Booking is already gone either way. Even if this
+    // record never lands, the cancellation email simply won't have a
+    // matching Booking to resolve to on a later sync, and would instead
+    // surface as the "no match found" notice.
+    console.error("booking-buddy: recording a cancelled Gmail message failed", recordError);
+  }
+
+  return { ok: true };
+}
+
+/**
  * Dismissing an Import Candidate never touches a Booking (CONTEXT.md's
  * Import Candidate entry) — it only records that this Gmail message is
  * settled, so a later sync's own `processed_gmail_messages` filter skips it.
+ * Shape-generic (just a `gmail_message_id`), so it's reused as-is for a
+ * cancellation candidate — matched or the "no match found" notice (issue
+ * #65) — rather than needing its own near-identical action.
  */
 export async function dismissImportCandidate(
   _prev: ActionResult,

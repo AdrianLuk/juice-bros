@@ -174,17 +174,15 @@ export async function createBooking(
   return insertValidatedBooking(session.userId, parsed);
 }
 
-export async function deleteBooking(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  await verifySession();
-  const bookingId = String(formData.get("booking_id") ?? "");
-
-  if (!bookingId) {
-    return { error: "Pick a booking to remove." };
-  }
-
+/**
+ * The delete-by-id, RLS-empty-result-means-error, and revalidate sequence
+ * shared by `deleteBooking`'s own form-parsed path and
+ * `confirmCancellationCandidate` (issue #65) — both already know the exact
+ * `bookingId` to remove, so everything below that point is identical either
+ * way, the same shared-helper shape `insertValidatedBooking` already
+ * established for the create side.
+ */
+export async function deleteOwnedBooking(bookingId: string): Promise<ActionResult> {
   const supabase = await createClient();
   // Selected back for the same reason as everywhere else: RLS turns "that isn't
   // yours" into an empty result, not an error.
@@ -202,4 +200,18 @@ export async function deleteBooking(
   // The dashboard calendar's (#23) Booking popover can remove one too.
   revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
+}
+
+export async function deleteBooking(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+  const bookingId = String(formData.get("booking_id") ?? "");
+
+  if (!bookingId) {
+    return { error: "Pick a booking to remove." };
+  }
+
+  return deleteOwnedBooking(bookingId);
 }
