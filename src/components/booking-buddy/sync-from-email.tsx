@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
-import { formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { formatCandidateDate, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
@@ -66,7 +66,7 @@ function ImportCandidateCard({
       <div>
         <p className="font-medium">{candidate.facilityName}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {candidate.date} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
+          {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
           {formatCourtLabel(candidate.courtLabel)} · {BOOKING_FORMAT_LABEL[candidate.format]}
         </p>
         {candidate.matchedPlayers.length > 0 && (
@@ -138,7 +138,7 @@ function CancellationCandidateCard({
       <div>
         <p className="font-medium">{candidate.facilityName}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {candidate.date} · {formatTimeLabel(candidate.startTime)} · {formatCourtLabel(candidate.courtLabel)}
+          {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)} · {formatCourtLabel(candidate.courtLabel)}
         </p>
         {candidate.matched ? (
           <p className="mt-1 text-xs text-muted-foreground">Cancelled — matches a Booking you logged.</p>
