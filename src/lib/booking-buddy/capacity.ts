@@ -6,6 +6,9 @@
  * other.
  */
 
+import type { Gender } from "./gender.ts";
+import type { Division } from "./division.ts";
+
 /** What a Booking was reserved for — decides its own court's share of Capacity (ADR 0008). */
 export type BookingFormat = "singles" | "doubles";
 
@@ -65,6 +68,74 @@ export function isOverCapacity({
   yesCount: number;
 }): boolean {
   return capacity !== null && yesCount > capacity;
+}
+
+/** One gender's own share of a gender-broken-down Capacity signal (issue #80). */
+export type GenderCapacityBucket = {
+  gender: Gender;
+  yes: number;
+  capacity: number;
+};
+
+export type GenderedCapacity = {
+  /** One bucket for `mens`/`womens`, two (male, female) for `mixed`. */
+  buckets: GenderCapacityBucket[];
+  /** "Yes" Responses that aren't in any bucket — no Gender set, or (for `mens`/`womens`) the other gender. Still visible, just not reasoned about by side. */
+  unspecified: number;
+};
+
+/**
+ * The gender-broken-down version of the Capacity signal (issue #80) — `null`
+ * for an `open` Slot or one with no Capacity yet, both of which keep today's
+ * plain single-number signal unchanged (`isOverCapacity` still runs against
+ * the flat total in that case). Nothing here blocks a "yes" Response either
+ * way — this is ADR 0001's "signal, never block" posture, just a smarter
+ * version of the number the organizer already sees.
+ *
+ * `mixed` is always a fixed even split of the Slot's own Capacity between the
+ * two buckets — not something the organizer configures per Slot (decided
+ * while scoping this ticket). For `mens`/`womens`, the whole Capacity is one
+ * bucket for that gender; a "yes" from anyone else falls into `unspecified`
+ * rather than being silently counted toward a side they didn't say yes as.
+ */
+export function computeGenderedCapacity({
+  division,
+  capacity,
+  yesGenders,
+}: {
+  division: Division;
+  capacity: number | null;
+  yesGenders: (Gender | null)[];
+}): GenderedCapacity | null {
+  if (division === "open" || capacity === null) {
+    return null;
+  }
+
+  const countOf = (gender: Gender) =>
+    yesGenders.filter((g) => g === gender).length;
+
+  if (division === "mixed") {
+    const maleCapacity = Math.floor(capacity / 2);
+    const femaleCapacity = capacity - maleCapacity;
+    return {
+      buckets: [
+        { gender: "male", yes: countOf("male"), capacity: maleCapacity },
+        { gender: "female", yes: countOf("female"), capacity: femaleCapacity },
+      ],
+      unspecified: yesGenders.filter((g) => g === null).length,
+    };
+  }
+
+  const target: Gender = division === "mens" ? "male" : "female";
+  return {
+    buckets: [{ gender: target, yes: countOf(target), capacity }],
+    unspecified: yesGenders.filter((g) => g !== target).length,
+  };
+}
+
+/** Strictly past the ceiling, same rule as `isOverCapacity` — a bucket filled exactly to its own share is full, not over. */
+export function isGenderBucketOverCapacity(bucket: GenderCapacityBucket): boolean {
+  return bucket.yes > bucket.capacity;
 }
 
 /**

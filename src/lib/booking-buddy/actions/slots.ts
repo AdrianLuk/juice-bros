@@ -13,6 +13,8 @@ import {
   parseRotationBuffer,
   slotBookingWriteMessage,
 } from "../capacity.ts";
+import { isDivision, type Division } from "../division.ts";
+import type { Gender } from "../gender.ts";
 import type { ResponseAnswer } from "../responses.ts";
 import { getBookingsPageData, type Booking } from "./bookings.ts";
 import { listOrgs, type Org } from "./orgs.ts";
@@ -39,6 +41,8 @@ export type SlotResponse = {
    */
   displayName: string | null;
   answer: ResponseAnswer;
+  /** The responder's own Gender (issue #79) — `null` for a Guest, or a signed-in responder who hasn't set one. Feeds `computeGenderedCapacity` (issue #80). */
+  gender: Gender | null;
 };
 
 /**
@@ -54,6 +58,8 @@ export type SlotCapacity = {
   courtCount: number;
   rotationBuffer: number;
   capacity: number | null;
+  /** Set once at Slot creation (issue #80) — governs whether the Capacity signal is broken down by gender. */
+  division: Division;
   attached: Booking[];
   attachable: Booking[];
 };
@@ -106,7 +112,7 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
       ? { data: [], error: null }
       : await supabase
           .from("profiles")
-          .select("id, display_name")
+          .select("id, display_name, gender")
           .in("id", responderIds);
 
   if (profilesError) {
@@ -115,6 +121,9 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
 
   const nameById = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile.display_name]),
+  );
+  const genderById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile.gender as Gender | null]),
   );
 
   const responses: SlotResponse[] = (responseRows ?? []).map((row) => ({
@@ -125,6 +134,9 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
     // there's no profile to look up (issue #10).
     displayName: row.user_id ? (nameById.get(row.user_id) ?? null) : row.guest_name,
     answer: row.answer,
+    // Same reasoning as displayName: a Guest has no profile to read a Gender
+    // off, so they fall into the "unspecified" bucket, same as an unset one.
+    gender: row.user_id ? (genderById.get(row.user_id) ?? null) : null,
   }));
 
   const mine = responses.find((response) => response.userId === session.userId);
@@ -202,6 +214,7 @@ async function getSlotCapacity(
   slotId: string,
   slotWindow: { proposedStart: string; proposedEnd: string },
   rotationBuffer: number,
+  division: Division,
   isOwner: boolean,
 ): Promise<SlotCapacity> {
   const supabase = await createClient();
@@ -227,6 +240,7 @@ async function getSlotCapacity(
     courtCount,
     rotationBuffer,
     capacity: computeCapacity({ formats, rotationBuffer }),
+    division,
   };
 
   if (!isOwner) {
@@ -265,7 +279,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
     .select(
-      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id",
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, division",
     )
     .eq("id", slotId)
     .maybeSingle();
@@ -278,6 +292,10 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
   }
 
   const isOwner = slotRow.owner_id === session.userId;
+  // The check constraint guarantees this, but a stray value falls back to
+  // `open` rather than crashing the page — the same defensive posture the
+  // rest of this app takes with a value it doesn't fully trust the source of.
+  const division = isDivision(slotRow.division) ? slotRow.division : "open";
 
   const [{ responses, myAnswer }, ownerProfileResult, capacity, ownedOrgs] = await Promise.all([
     getSlotResponses(slotId),
@@ -286,6 +304,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
       slotId,
       { proposedStart: slotRow.proposed_start, proposedEnd: slotRow.proposed_end },
       slotRow.rotation_buffer,
+      division,
       isOwner,
     ),
     // Orgs are owner-only per RLS, so this would come back empty for a
@@ -344,6 +363,7 @@ export async function createSlot(
     proposed_start: `${parsed.date} ${parsed.startTime}:00 ${parsed.timeZone}`,
     proposed_end: `${parsed.date} ${parsed.endTime}:00 ${parsed.timeZone}`,
     time_zone: parsed.timeZone,
+    division: parsed.division,
   });
 
   if (error) {
