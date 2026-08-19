@@ -29,12 +29,16 @@ export const DEFAULT_DURATION_HOURS = 2;
 
 export const COURT_LABEL_MAX_LENGTH = 40;
 
+export const NAME_MAX_LENGTH = 60;
+
 export const DEFAULT_BOOKING_FORMAT: BookingFormat = "doubles";
 
 export type NewBooking = {
   orgId: string;
   /** Null when the User didn't note one down — not every facility labels its courts. */
   courtLabel: string | null;
+  /** Null when the User didn't give the Booking a name — a free-text label distinct from the court label. */
+  name: string | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -56,6 +60,15 @@ export function parseNewBooking(
   if (courtLabel && courtLabel.length > COURT_LABEL_MAX_LENGTH) {
     return {
       error: `That court name is too long — ${COURT_LABEL_MAX_LENGTH} characters at most.`,
+    };
+  }
+
+  const rawName = String(formData.get("name") ?? "").trim();
+  const name = rawName === "" ? null : rawName;
+
+  if (name && name.length > NAME_MAX_LENGTH) {
+    return {
+      error: `That name is too long — ${NAME_MAX_LENGTH} characters at most.`,
     };
   }
 
@@ -84,7 +97,7 @@ export function parseNewBooking(
   const rawFormat = formData.get("format");
   const format: BookingFormat = isBookingFormat(rawFormat) ? rawFormat : DEFAULT_BOOKING_FORMAT;
 
-  return { orgId, courtLabel, date, startTime, endTime, format };
+  return { orgId, courtLabel, name, date, startTime, endTime, format };
 }
 
 /** "Court 3" when the User noted one down, otherwise a plain fallback. */
@@ -162,8 +175,8 @@ export function bookingWriteMessage(error: {
     return "That time has already passed. Pick a time in the future.";
   }
 
-  // The three check constraints — court label blank or over-long, and an end
-  // that isn't after the start. `parseNewBooking` catches all of them first, so
-  // getting here means the form and the schema have drifted apart.
-  return "Something about that booking doesn't add up. Check the court and times.";
+  // The check constraints — court label or name blank or over-long, and an
+  // end that isn't after the start. `parseNewBooking` catches all of them
+  // first, so getting here means the form and the schema have drifted apart.
+  return "Something about that booking doesn't add up. Check the name, court, and times.";
 }

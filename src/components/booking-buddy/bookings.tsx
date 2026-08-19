@@ -23,6 +23,7 @@ import {
   DEFAULT_DURATION_HOURS,
   DURATION_PRESET_HOURS,
   HOUR_TIMES,
+  NAME_MAX_LENGTH,
   addHoursToTime,
   formatCourtLabel,
   formatTimeLabel,
@@ -196,6 +197,17 @@ export function CreateBookingForm({
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
+          <Label htmlFor="booking-name">Name (optional)</Label>
+          <Input
+            id="booking-name"
+            name="name"
+            type="text"
+            placeholder="Tuesday night rally"
+            maxLength={NAME_MAX_LENGTH}
+          />
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="booking-date">Date</Label>
           <Input id="booking-date" name="date" type="date" required />
         </div>
@@ -287,12 +299,18 @@ export function BookingRow({ booking }: { booking: Booking }) {
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {formatCourtLabel(booking.courtLabel)} · {BOOKING_FORMAT_LABEL[booking.format]}
           </p>
+          {booking.name && (
+            <p className="truncate text-xs font-medium">{booking.name}</p>
+          )}
           <p className="truncate text-xs text-muted-foreground">
             {booking.orgName}
           </p>
         </div>
         <div className="hidden sm:block">
           <p className="truncate font-medium">{booking.when}</p>
+          {booking.name && (
+            <p className="mt-0.5 truncate text-xs font-medium">{booking.name}</p>
+          )}
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
             {BOOKING_FORMAT_LABEL[booking.format]}

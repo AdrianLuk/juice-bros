@@ -62,6 +62,9 @@ export function UpcomingBookingsSidebar({
               className="bb-card bb-card-interactive p-3"
             >
               <p className="text-sm font-medium">{booking.when}</p>
+              {booking.name && (
+                <p className="mt-0.5 text-xs font-medium">{booking.name}</p>
+              )}
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {booking.orgName} · {formatCourtLabel(booking.courtLabel)}
               </p>

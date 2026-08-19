@@ -18,7 +18,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(41);
+select plan(44);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
@@ -325,6 +325,48 @@ select throws_ok(
   '23514',
   null,
   'an empty-string court label is still refused — only a genuinely omitted one is allowed'
+);
+
+-- name (issue #94) is optional the same way court_label is — a free-text
+-- label the User can attach, never required.
+select lives_ok(
+  $$insert into public.bookings (org_id, owner_id, name, starts_at, ends_at)
+    values (
+      'aaaa0000-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000011',
+      'Tuesday night rally',
+      '2031-08-24 18:00:00 America/Toronto',
+      '2031-08-24 19:00:00 America/Toronto'
+    )$$,
+  'a Booking can be logged with a name'
+);
+
+select throws_ok(
+  $$insert into public.bookings (org_id, owner_id, name, starts_at, ends_at)
+    values (
+      'aaaa0000-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000011',
+      '',
+      '2031-08-25 18:00:00 America/Toronto',
+      '2031-08-25 19:00:00 America/Toronto'
+    )$$,
+  '23514',
+  null,
+  'an empty-string name is refused — only a genuinely omitted one is allowed'
+);
+
+select throws_ok(
+  $$insert into public.bookings (org_id, owner_id, name, starts_at, ends_at)
+    values (
+      'aaaa0000-0000-0000-0000-000000000001',
+      'aaaaaaaa-0000-0000-0000-000000000011',
+      repeat('a', 61),
+      '2031-08-26 18:00:00 America/Toronto',
+      '2031-08-26 19:00:00 America/Toronto'
+    )$$,
+  '23514',
+  null,
+  'a name over 60 characters is refused'
 );
 
 -- Stored as an instant, so the same wall-clock reading in winter and summer are

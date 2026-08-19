@@ -25,6 +25,8 @@ export type Booking = {
   orgName: string;
   /** Null when the User didn't note one down — not every facility labels its courts. */
   courtLabel: string | null;
+  /** Null when the User didn't give the Booking a name. */
+  name: string | null;
   /** Already rendered in the Booking's own zone — see `formatBookingWhen`. */
   when: string;
   startsAt: string;
@@ -56,7 +58,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
     listOrgs(),
     supabase
       .from("bookings")
-      .select("id, org_id, court_label, starts_at, ends_at, format")
+      .select("id, org_id, court_label, name, starts_at, ends_at, format")
       .order("starts_at", { ascending: true }),
   ]);
 
@@ -79,6 +81,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
         // knowing rather than a guess.
         orgName: org?.displayName ?? "Somewhere you played",
         courtLabel: row.court_label,
+        name: row.name,
         when: formatBookingWhen({
           startsAt: row.starts_at,
           endsAt: row.ends_at,
@@ -140,6 +143,7 @@ export async function insertValidatedBooking(
     org_id: parsed.orgId,
     owner_id: ownerId,
     court_label: parsed.courtLabel,
+    name: parsed.name,
     format: parsed.format,
     // Wall-clock strings carrying their own zone. Postgres does the DST-aware
     // conversion to an instant, which is much harder to get wrong than doing it

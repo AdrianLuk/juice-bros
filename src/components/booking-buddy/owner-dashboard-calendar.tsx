@@ -27,6 +27,9 @@ function BookingPopoverDetails({ booking }: { booking: Booking }) {
 
   return (
     <div className="flex flex-col gap-2">
+      {booking.name && (
+        <p className="font-heading text-sm font-semibold">{booking.name}</p>
+      )}
       <p className="font-heading text-sm font-semibold">{booking.orgName}</p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <dt>Date</dt>
@@ -82,13 +85,29 @@ export function OwnerDashboardCalendar({
           style={style}
           renderDetails={(b) => <BookingPopoverDetails booking={b} />}
         >
+          {booking.name && (
+            <p className="truncate font-medium">{booking.name}</p>
+          )}
           <p className="truncate font-medium">{booking.orgName}</p>
-          <p className="truncate opacity-90">
-            {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
-          </p>
-          <p className="truncate opacity-90">
-            {formatCourtLabel(booking.courtLabel)}
-          </p>
+          {/* Fixed-height, absolutely-positioned chip (WEEK_EVENT_CLASS) — a
+              1-hour booking barely fits the pre-existing 3 lines already, so
+              a name folds time and court onto one line to hold the line
+              count steady rather than clipping the court label out of view. */}
+          {booking.name ? (
+            <p className="truncate opacity-90">
+              {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)} ·{" "}
+              {formatCourtLabel(booking.courtLabel)}
+            </p>
+          ) : (
+            <>
+              <p className="truncate opacity-90">
+                {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
+              </p>
+              <p className="truncate opacity-90">
+                {formatCourtLabel(booking.courtLabel)}
+              </p>
+            </>
+          )}
         </CalendarEventPopover>
       )}
       renderMonthEvent={(booking) => (
@@ -98,6 +117,7 @@ export function OwnerDashboardCalendar({
           className={MONTH_EVENT_CLASS}
           renderDetails={(b) => <BookingPopoverDetails booking={b} />}
         >
+          {booking.name && <p className="truncate">{booking.name}</p>}
           <p className="truncate">{booking.orgName}</p>
           <p className="truncate opacity-90">
             {formatTimeLabelFromMs(new Date(booking.startsAt).getTime())} –{" "}
@@ -116,8 +136,13 @@ export function OwnerDashboardCalendar({
           <span className="font-medium">
             {formatTimeLabelFromMs(new Date(booking.startsAt).getTime())}
           </span>
-          <span className="min-w-0 flex-1 truncate text-muted-foreground">
-            {booking.orgName} · {formatCourtLabel(booking.courtLabel)}
+          <span className="min-w-0 flex-1">
+            {booking.name && (
+              <span className="block truncate">{booking.name}</span>
+            )}
+            <span className="block truncate text-muted-foreground">
+              {booking.orgName} · {formatCourtLabel(booking.courtLabel)}
+            </span>
           </span>
         </CalendarEventPopover>
       )}
