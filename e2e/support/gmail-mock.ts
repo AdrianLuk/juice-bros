@@ -16,11 +16,19 @@ export type MockGoogleAccount = {
   refreshToken: string;
 };
 
-/** One Gmail message a fixture inbox holds — what `registerMessages` seeds and `gmail-client.ts`'s search/fetch functions read back. */
+/**
+ * One Gmail message a fixture inbox holds — what `registerMessages` seeds and
+ * `gmail-client.ts`'s search/fetch functions read back. `receivedAt` (epoch
+ * ms) stands in for Gmail's own `internalDate`, so a test can control the
+ * chronological order a confirm/cancel chain "arrived" in (issue #88's
+ * reconciliation keys on this, not registration order) — defaults to 0 when
+ * a test doesn't care about ordering.
+ */
 export type MockGmailMessage = {
   id: string;
   subject: string;
   html: string;
+  receivedAt?: number;
 };
 
 type TokenFailure = "unreachable" | "invalid_grant";
@@ -228,6 +236,7 @@ export class GmailMock {
       res.writeHead(200, { "Content-Type": "application/json" }).end(
         JSON.stringify({
           id: message.id,
+          internalDate: String(message.receivedAt ?? 0),
           payload: {
             headers: [{ name: "Subject", value: message.subject }],
             mimeType: "text/html",

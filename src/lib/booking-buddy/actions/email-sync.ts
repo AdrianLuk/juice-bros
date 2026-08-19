@@ -25,6 +25,7 @@ import { decryptRefreshToken } from "../token-encryption.ts";
 import {
   buildCourtReserveSearchQuery,
   parseCourtReserveEmail,
+  type CourtReserveConfirmation,
 } from "../courtreserve-email.ts";
 import {
   isDuplicateBooking,
@@ -32,10 +33,12 @@ import {
   matchCancellationToBooking,
   matchOrgByName,
   matchPlayerNamesToConnections,
+  reconcileCourtReserveEvents,
   type BookingIdentity,
   type ConnectionCandidate,
   type OrgCandidate,
   type PlayerMatch,
+  type ReconciliationEvent,
 } from "../email-sync-matching.ts";
 import { parseNewBooking, stripCourtLabelPrefix } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
@@ -316,8 +319,20 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     .map((friend) => ({ userId: friend.userId, displayName: friend.displayName }));
 
   const now = new Date();
-  const candidates: ImportCandidate[] = [];
-  const cancellations: CancellationCandidate[] = [];
+
+  // A malformed time range ("no end time" — see courtreserve-email.ts) isn't
+  // something the review screen has a field for fixing, so it's filtered out
+  // before reconciliation too — same as before, just narrowed here rather
+  // than after, so `endTime` reads as the non-null string it now always is
+  // downstream.
+  type ConfirmedEmail = CourtReserveConfirmation & { endTime: string };
+
+  // Phase 1: parse every unseen message into a plain event, carrying its own
+  // `receivedAt` — the raw material `reconcileCourtReserveEvents` needs to
+  // net a confirm/cancel/confirm/... chain for the same slot down to its
+  // real end state (issue #88) before any of the existing Org-matching/
+  // duplicate/past-date logic below ever runs on it.
+  const events: ReconciliationEvent<ConfirmedEmail>[] = [];
 
   for (const messageId of unseenIds) {
     const fetched = await fetchGmailMessage(refreshed.accessToken, messageId);
@@ -331,31 +346,15 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 
     if (parsed.kind === "cancellation") {
       const { cancellation } = parsed;
-      const matchedOrgId = matchOrgByName(cancellation.facilityName, orgCandidates);
-
-      // No matched Org means there's nothing on file it could refer to
-      // either — same reasoning `matchCancellationToBooking` itself can't
-      // apply without one.
-      const bookingId = matchedOrgId
-        ? matchCancellationToBooking(
-            { orgId: matchedOrgId, date: cancellation.date, startTime: cancellation.startTime },
-            existingBookings,
-          )
-        : null;
-
-      const cancellationBase = {
+      events.push({
+        kind: "cancellation",
         gmailMessageId: messageId,
+        receivedAt: fetched.email.receivedAt,
         facilityName: cancellation.facilityName,
         date: cancellation.date,
         startTime: cancellation.startTime,
         courtLabel: stripCourtLabelPrefix(cancellation.courtLabel),
-      };
-
-      cancellations.push(
-        bookingId
-          ? { ...cancellationBase, matched: true, bookingId }
-          : { ...cancellationBase, matched: false },
-      );
+      });
       continue;
     }
 
@@ -364,13 +363,58 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     }
 
     const { confirmation } = parsed;
-
-    // A malformed time range ("no end time" — see courtreserve-email.ts)
-    // isn't something the review screen has a field for fixing; treated the
-    // same as any other unparseable candidate: simply not shown.
     if (!confirmation.endTime) {
       continue;
     }
+
+    events.push({
+      kind: "confirmation",
+      gmailMessageId: messageId,
+      receivedAt: fetched.email.receivedAt,
+      facilityName: confirmation.facilityName,
+      date: confirmation.date,
+      startTime: confirmation.startTime,
+      confirmation: { ...confirmation, endTime: confirmation.endTime },
+    });
+  }
+
+  const reconciled = reconcileCourtReserveEvents(events);
+
+  const candidates: ImportCandidate[] = [];
+  const cancellations: CancellationCandidate[] = [];
+
+  // Phase 2: the exact same per-email logic as before, just applied to the
+  // reconciled survivors rather than every raw parsed email.
+  for (const event of reconciled.cancellations) {
+    const matchedOrgId = matchOrgByName(event.facilityName, orgCandidates);
+
+    // No matched Org means there's nothing on file it could refer to
+    // either — same reasoning `matchCancellationToBooking` itself can't
+    // apply without one.
+    const bookingId = matchedOrgId
+      ? matchCancellationToBooking(
+          { orgId: matchedOrgId, date: event.date, startTime: event.startTime },
+          existingBookings,
+        )
+      : null;
+
+    const cancellationBase = {
+      gmailMessageId: event.gmailMessageId,
+      facilityName: event.facilityName,
+      date: event.date,
+      startTime: event.startTime,
+      courtLabel: event.courtLabel,
+    };
+
+    cancellations.push(
+      bookingId
+        ? { ...cancellationBase, matched: true, bookingId }
+        : { ...cancellationBase, matched: false },
+    );
+  }
+
+  for (const event of reconciled.confirmations) {
+    const { confirmation } = event;
 
     const matchedOrgId = matchOrgByName(confirmation.facilityName, orgCandidates);
     // No matched Org means no known zone yet either — the User hasn't added
@@ -395,7 +439,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     }
 
     candidates.push({
-      gmailMessageId: messageId,
+      gmailMessageId: event.gmailMessageId,
       facilityName: confirmation.facilityName,
       matchedOrgId,
       date: confirmation.date,
