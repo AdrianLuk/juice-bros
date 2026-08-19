@@ -1,0 +1,13 @@
+# A Booking's Players are matched to Connections once, at add-time — not recomputed live
+
+Adding Players to a Booking (typed by hand, or carried through from a CourtReserve confirmation email's own "Player(s)" section) needed a rule for turning a plain name into an optional link to a Connection. The email-sync matcher this reuses (`matchPlayerNamesToConnections`) already existed, but only for a review screen — its match was thrown away the moment the User confirmed, never stored, explicitly "reference only... never creates anything." Persisting it onto a Booking for good raised two questions that mattered less when the match was disposable.
+
+**Decision**: A Player's `connection_user_id` is resolved once, when the Player is added, and stored — never recomputed from the current Connection list on a later read. Renaming a Connection, or re-typing a Player's name later, doesn't retroactively change what an old Booking shows. If the matched Connection later ends, the stored link is cleared (`on delete set null`) but the Player's name text is untouched — a Booking is a historical record and doesn't lose data because a friendship did.
+
+**Why not live**: display names aren't unique (two seeded local accounts deliberately share one), so a match is already a best-effort guess. Recomputing it live means a Booking's own record of who played can silently change — or a link can silently appear or vanish — with no edit and no signal, just because someone else's Connections changed shape. A stored match is stable by construction; recomputing it would make a supposedly-historical record actually mutable in a way nothing else about a Booking is.
+
+**Ambiguous names are stored unlinked, not guessed**: the email-review matcher's own tie-break for a name matching more than one Connection was "resolve to the first" — fine when the result was a disposable display hint on a review screen, resolved by the User approving what they saw. Persisted permanently instead, the same coin-flip becomes a standing misattribution nobody reviews again. A Player whose name is ambiguous is stored as a name only, no link — under-linking (a name that could show as "with Alice" doesn't) is recoverable by hand; over-linking (attached to the wrong Alice, forever) is not.
+
+## Consequences
+
+Two Connections can share a display name today (`docs/local-test-accounts.md`); a Player entered under that shared name will never auto-link to either, even manually re-typing the exact name again. There's no picker in v1 to disambiguate by hand — that's a real gap, left for a later ticket if it turns out to matter in practice rather than solved speculatively now.
