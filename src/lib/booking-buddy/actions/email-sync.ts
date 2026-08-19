@@ -204,6 +204,11 @@ export type SyncFromEmailResult =
   | { status: "reconnect_required" }
   | { status: "error"; message: string };
 
+/** Earliest slot first for display — `date` (`YYYY-MM-DD`) and `startTime` (`HH:MM`, 24-hour) both sort correctly as plain strings. */
+function byDateAndStartTime(a: { date: string; startTime: string }, b: { date: string; startTime: string }): number {
+  return a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date);
+}
+
 /**
  * Runs a live Gmail search for CourtReserve confirmations and cancellations,
  * parses/matches whatever comes back, and returns the ones worth a User's
@@ -450,6 +455,9 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, connectionCandidates),
     });
   }
+
+  candidates.sort(byDateAndStartTime);
+  cancellations.sort(byDateAndStartTime);
 
   return { status: "ok", candidates, cancellations };
 }
