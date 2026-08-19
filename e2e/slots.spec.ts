@@ -27,17 +27,36 @@ function row(page: Page, text: string): Locator {
  */
 async function createSlot(
   page: Page,
-  slot: { date: string; start: string; end: string; label: string },
+  slot: { date: string; start: string; end: string; label: string; division?: string },
 ): Promise<string> {
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill(slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
   await page.getByLabel("End").selectOption(slot.end);
+  if (slot.division) {
+    await page.getByLabel("Division").selectOption(slot.division);
+  }
   await page.getByRole("button", { name: "Post slot" }).click();
 
   await row(page, slot.label).getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
   return page.url().split("/").pop()!;
+}
+
+/** Sets the signed-in User's own Gender (issue #79) through Settings, so a Slot's gendered Capacity signal (issue #80) has something real to break down. */
+async function setGender(page: Page, label: "Male" | "Female") {
+  await page.goto("/booking-buddy/settings");
+  await page.getByRole("radio", { name: label, exact: true }).click();
+  await page.getByRole("button", { name: "Save gender" }).click();
+  await expect(page.getByRole("status")).toBeVisible();
+}
+
+/** Puts Gender back to unset — the seeded accounts' default, and what every other spec expects. */
+async function resetGender(page: Page) {
+  await page.goto("/booking-buddy/settings");
+  await page.getByRole("radio", { name: "Prefer not to say" }).click();
+  await page.getByRole("button", { name: "Save gender" }).click();
+  await expect(page.getByRole("status")).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -370,5 +389,93 @@ test("tapping a response shows an optimistic update before the server confirms i
     await expect(page.getByRole("button", { name: "Yes", pressed: true })).toBeVisible();
   } finally {
     await deleteSlots([slotId]);
+  }
+});
+
+test("a mixed-division slot with a real capacity breaks the signal down by gender — over on one side, under on the other", async ({
+  page,
+  browser,
+}) => {
+  const groupName = await grantBen2SlotsVisibility(page);
+  const place = placeName();
+  await addPlace(page, place);
+  await setGender(page, "Male");
+
+  // A singles court is capacity 2 — a mixed Slot splits that 1 male / 1
+  // female, small enough that two male "yes"es push the male side over
+  // while the female side stays untouched (the exact shape issue #80 asks
+  // for: "3/2 male, 1/2 female", not a misleading flat "2/2, full").
+  await logBooking(page, {
+    place,
+    court: "9",
+    date: "2031-10-10",
+    start: "09:00",
+    end: "10:00",
+    format: "Singles",
+  });
+  await expect(row(page, "Court 9")).toBeVisible();
+
+  const slotId = await createSlot(page, {
+    date: "2031-10-10",
+    start: "09:00",
+    end: "10:00",
+    label: "Oct 10, 2031",
+    division: "mixed",
+  });
+
+  try {
+    const picker = page.getByLabel("Add a court");
+    const value = await picker.locator("option", { hasText: "Court 9" }).getAttribute("value");
+    await picker.selectOption(value!);
+    await page.getByRole("button", { name: "Attach booking" }).click();
+
+    // exact: true throughout — "Female: ..." contains "male: ..." as a
+    // case-insensitive substring, the same collision settings.spec.ts's
+    // gender radios hit (issue #79).
+    await expect(page.getByText("Male: 0 of 1 spots taken", { exact: true })).toBeVisible();
+    await expect(page.getByText("Female: 0 of 1 spots taken", { exact: true })).toBeVisible();
+
+    await page
+      .getByRole("group", { name: "Your response" })
+      .getByRole("button", { name: "Yes" })
+      .click();
+    await expect(page.getByText("Male: 1 of 1 spots taken", { exact: true })).toBeVisible();
+
+    const ben2Context = await browser.newContext();
+    const ben2 = await ben2Context.newPage();
+    try {
+      await signIn(ben2, BEN2, "/booking-buddy/slots");
+      await setGender(ben2, "Male");
+
+      await ben2.goto(`/booking-buddy/slots/${slotId}`);
+      await ben2
+        .getByRole("group", { name: "Your response" })
+        .getByRole("button", { name: "Yes" })
+        .click();
+      await expect(
+        ben2.getByRole("button", { name: "Yes", pressed: true }),
+      ).toBeVisible();
+
+      // Two male yeses against a one-spot male bucket: over on that side.
+      // Female's own bucket is untouched — still 0 of 1, not folded into one
+      // misleadingly-full flat number. Asserted before resetting Ben2's
+      // gender below, which would otherwise erase the very thing under test —
+      // the breakdown reads each responder's *current* Gender at fetch time.
+      await page.reload();
+      await expect(page.getByText("Male: 2 of 1 spots taken", { exact: true })).toBeVisible();
+      await expect(page.getByText("Female: 0 of 1 spots taken", { exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("status").filter({ hasText: "More yeses than spots for Male" }),
+      ).toBeVisible();
+
+      await resetGender(ben2);
+    } finally {
+      await ben2Context.close();
+    }
+  } finally {
+    await resetGender(page);
+    await deleteSlots([slotId]);
+    await removePlace(page, place);
+    await revokeBen2SlotsVisibility(page, groupName);
   }
 });

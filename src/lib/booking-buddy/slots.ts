@@ -13,12 +13,14 @@ import {
   isRealDate,
 } from "./datetime.ts";
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "./orgs.ts";
+import { parseDivision, type Division } from "./division.ts";
 
 export type NewSlotProposal = {
   date: string;
   startTime: string;
   endTime: string;
   timeZone: string;
+  division: Division;
 };
 
 /**
@@ -68,7 +70,12 @@ export function parseNewSlotProposal(
     return { error: "That date has already passed. Pick a date in the future." };
   }
 
-  return { date, startTime, endTime, timeZone };
+  // Never refused for an odd value — a stray/tampered value just falls back
+  // to `open`, the same "default rather than error" posture the rest of this
+  // parser's siblings (`parseNewBooking`'s format) already take.
+  const division = parseDivision(String(formData.get("division") ?? ""));
+
+  return { date, startTime, endTime, timeZone, division };
 }
 
 /**
