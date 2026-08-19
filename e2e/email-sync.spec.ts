@@ -26,16 +26,19 @@ function confirmationEmail(fields: {
   id: string;
   facility: string;
   court?: string;
+  players?: string;
+  receivedAt?: number;
 }): MockGmailMessage {
-  const { id, facility, court = "Court 3" } = fields;
+  const { id, facility, court = "Court 3", players = "Amy Ace, Ben Backhand", receivedAt } = fields;
   return {
     id,
+    receivedAt,
     subject: "Booking Confirmation for Monday, 2027-03-15 6:00 PM - 7:00 PM",
     html:
       `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
       `<h1>Confirmation</h1>` +
       `<h4>Details</h4><h5>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
-      `<h4>Player(s)</h4><h5>Amy Ace, Ben Backhand</h5>` +
+      `<h4>Player(s)</h4><h5>${players}</h5>` +
       `<h4>Court(s)</h4><h5>${court}</h5>` +
       `</body></html>`,
   };
@@ -49,10 +52,11 @@ function confirmationEmail(fields: {
  * comment) — `matchCancellationToBooking` deliberately doesn't key on court
  * for that reason.
  */
-function cancellationEmail(fields: { id: string; facility: string }): MockGmailMessage {
-  const { id, facility } = fields;
+function cancellationEmail(fields: { id: string; facility: string; receivedAt?: number }): MockGmailMessage {
+  const { id, facility, receivedAt } = fields;
   return {
     id,
+    receivedAt,
     subject: "Reservation Cancellation Notice",
     html:
       `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
@@ -248,6 +252,73 @@ test.describe("Sync from Email", () => {
     await page.getByRole("button", { name: "Sync from Email" }).click();
     await expect(page.getByText("No new bookings found.")).toBeVisible();
     await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+    await removePlace(page, facility);
+  });
+
+  test("a confirm/cancel/confirm/cancel/confirm chain for the same slot nets down to a single candidate with the final player list (issue #88)", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    // The real-world shape (issue #88): editing a reservation twice (e.g.
+    // adding a player) resends a cancellation and a fresh confirmation each
+    // time. `receivedAt` fixes the chronological order — deliberately not
+    // the same as registration order below, so this also exercises that
+    // reconciliation sorts by the email's own timestamp, not array order.
+    mock.registerMessages([
+      confirmationEmail({
+        id: messageId(),
+        facility,
+        players: "Alice Tsang, Sam Wong, Adrian Luk, Janice Kwan, Calvin Yu",
+        receivedAt: 5,
+      }),
+      cancellationEmail({ id: messageId(), facility, receivedAt: 2 }),
+      confirmationEmail({
+        id: messageId(),
+        facility,
+        players: "Alice Tsang, Adrian Luk, Sam Wong, Calvin Yu",
+        receivedAt: 1,
+      }),
+      confirmationEmail({
+        id: messageId(),
+        facility,
+        players: "Alice Tsang, Sam Wong, Adrian Luk, Calvin Yu",
+        receivedAt: 3,
+      }),
+      cancellationEmail({ id: messageId(), facility, receivedAt: 4 }),
+    ]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    // Exactly one candidate — the two earlier confirm/cancel pairs net away
+    // entirely, not five separate cards (three confirms + two "no matching
+    // booking found" notices).
+    await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
+
+    const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("Alice Tsang, Sam Wong, Adrian Luk, Janice Kwan, Calvin Yu");
+    await expect(page.getByText("No matching booking found", { exact: false })).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Confirm" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+    const booking = row(page, "Court 3");
+    await expect(booking).toContainText(facility);
 
     await removePlace(page, facility);
   });

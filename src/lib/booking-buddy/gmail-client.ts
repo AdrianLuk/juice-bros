@@ -317,7 +317,7 @@ function findHtmlPart(part: GmailMessagePart | undefined): string | null {
 }
 
 export type FetchMessageOutcome =
-  | { ok: true; email: { subject: string; html: string } }
+  | { ok: true; email: { subject: string; html: string; receivedAt: number } }
   | { ok: false; reason: "unreachable" };
 
 /**
@@ -329,6 +329,15 @@ export type FetchMessageOutcome =
  * sender search) comes back as an empty body rather than a failure —
  * `parseCourtReserveEmail` already treats that as `unparseable`, the same
  * "never throws" posture it holds for every other malformed-body case.
+ *
+ * `receivedAt` is Gmail's own `internalDate` (epoch milliseconds, as a
+ * string on the message resource) — the actual chronological order a chain
+ * of confirm/cancel emails for the same slot arrived in, which
+ * `reconcileCourtReserveEvents` (issue #88) needs and neither Gmail search
+ * order nor this function's own fetch order promises. A missing/unparseable
+ * value (never seen from real Gmail, but not something to throw over) falls
+ * back to 0 — oldest possible — rather than "now", so a message with no
+ * timestamp can't masquerade as the most recent event in its chain.
  */
 export async function fetchGmailMessage(
   accessToken: string,
@@ -353,14 +362,16 @@ export async function fetchGmailMessage(
     }
 
     const json = (await response.json()) as {
+      internalDate?: string;
       payload?: { headers?: { name?: string; value?: string }[] } & GmailMessagePart;
     };
 
     const subject =
       json.payload?.headers?.find((header) => header.name?.toLowerCase() === "subject")?.value ?? "";
     const html = findHtmlPart(json.payload) ?? "";
+    const receivedAt = json.internalDate ? Number(json.internalDate) : NaN;
 
-    return { ok: true, email: { subject, html } };
+    return { ok: true, email: { subject, html, receivedAt: Number.isFinite(receivedAt) ? receivedAt : 0 } };
   } catch (error) {
     console.error("booking-buddy: fetching a Gmail message unreachable", error);
     return { ok: false, reason: "unreachable" };
