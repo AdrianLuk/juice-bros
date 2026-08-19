@@ -154,6 +154,42 @@ type ConnectionRow = {
   status: string;
 };
 
+/**
+ * Deletes both sides' own `visibility_overrides` row for one Connection, each
+ * as themselves — the same "made as the Users themselves" reasoning `connect`
+ * already follows, since this table is `authenticated`-only too.
+ *
+ * Accepting a Connection auto-grants `calendar` on both sides now (issue #76,
+ * `connections_seed_visibility_on_accept`) — real behavior for an actual new
+ * friendship, and covered where it belongs, in pgTAP (`connections.test.sql`).
+ * But the two friendships this script seeds predate that trigger by design:
+ * several browser specs (issue #83) were written expecting these specific
+ * pairs to sit at the visibility lattice's bottom — no group, no override —
+ * so a friend explicitly granted nothing stays exactly that. Clearing this
+ * every run, not just the run that first accepts, keeps a re-run idempotent
+ * regardless of which state a prior interrupted run left behind.
+ */
+async function clearVisibilityOverrides(
+  requesterToken: string,
+  addresseeToken: string,
+  requesterId: string,
+  addresseeId: string,
+  connectionId: string,
+): Promise<void> {
+  await Promise.all([
+    asUser(
+      requesterToken,
+      `visibility_overrides?owner_id=eq.${requesterId}&connection_id=eq.${connectionId}`,
+      { method: "DELETE" },
+    ),
+    asUser(
+      addresseeToken,
+      `visibility_overrides?owner_id=eq.${addresseeId}&connection_id=eq.${connectionId}`,
+      { method: "DELETE" },
+    ),
+  ]);
+}
+
 async function connect(requester: string, addressee: string): Promise<string> {
   const [requesterToken, addresseeToken] = await Promise.all([
     accessToken(requester),
@@ -176,6 +212,7 @@ async function connect(requester: string, addressee: string): Promise<string> {
   );
 
   if (existing?.status === "accepted") {
+    await clearVisibilityOverrides(requesterToken, addresseeToken, requesterId, addresseeId, existing.id);
     return "already friends";
   }
 
@@ -215,6 +252,8 @@ async function connect(requester: string, addressee: string): Promise<string> {
       `Accepting ${requester} ↔ ${addressee} changed no rows — the connection is still pending.`,
     );
   }
+
+  await clearVisibilityOverrides(requesterToken, addresseeToken, requesterId, addresseeId, pending.id);
 
   return "connected";
 }
