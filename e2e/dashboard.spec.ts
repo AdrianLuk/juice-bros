@@ -44,6 +44,13 @@ test.afterEach(async ({ page }) => {
 test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({
   page,
 }) => {
+  // A zero-Facility Amy would otherwise surface the Onboarding modal (issue
+  // #103) over the calendar — same reasoning as every other test in this
+  // file that touches the dashboard, all of which already start from a Place.
+  const place = placeName();
+  await addPlace(page, place);
+  await page.goto("/booking-buddy");
+
   await expect(page.getByRole("button", { name: "Week", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -64,6 +71,8 @@ test("the calendar defaults to Week view, and Month/Agenda toggle without naviga
   );
 
   await expect(page).toHaveURL(/\/booking-buddy$/);
+
+  await removePlace(page, place);
 });
 
 test("a Booking renders on the calendar and in the sidebar, and its popover can remove it", async ({
@@ -119,6 +128,12 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
 });
 
 test("clicking a Month day switches to Week view centered on that day", async ({ page }) => {
+  // Same reasoning as the view-toggle test above — a zero-Facility Amy would
+  // otherwise have the Onboarding modal (issue #103) up over the calendar.
+  const place = placeName();
+  await addPlace(page, place);
+  await page.goto("/booking-buddy");
+
   await page.getByRole("button", { name: "Month", exact: true }).click();
 
   // Aug 27 falls in the week after the one Week view opens on by default
@@ -130,6 +145,8 @@ test("clicking a Month day switches to Week view centered on that day", async ({
     "true",
   );
   await expect(page.getByText("Aug 23 – 29, 2026")).toBeVisible();
+
+  await removePlace(page, place);
 });
 
 test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
