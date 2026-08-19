@@ -4,7 +4,8 @@ import test from "node:test";
 import {
   isDuplicateBooking,
   isPastConfirmation,
-  matchOrgByExactName,
+  matchCancellationToBooking,
+  matchOrgByName,
   matchPlayerNamesToConnections,
 } from "./email-sync-matching.ts";
 
@@ -14,22 +15,32 @@ test("an exact facility-name match resolves to that Org's id", () => {
     { orgId: "org-2", displayName: "Vaughan Pickleball" },
   ];
 
-  assert.equal(matchOrgByExactName("PicklePlex Downsview", orgs), "org-1");
+  assert.equal(matchOrgByName("PicklePlex Downsview", orgs), "org-1");
 });
 
-test("a facility name that only differs in case is not a match — exact, not case-folded", () => {
+test("a facility name that only differs in case still matches — case-folded", () => {
   const orgs = [{ orgId: "org-1", displayName: "PicklePlex Downsview" }];
-  assert.equal(matchOrgByExactName("pickleplex downsview", orgs), null);
+  assert.equal(matchOrgByName("pickleplex downsview", orgs), "org-1");
+});
+
+test("a facility name that only differs by a separator (hyphen vs space) still matches", () => {
+  const orgs = [{ orgId: "org-1", displayName: "HISPORTS Stouffville" }];
+  assert.equal(matchOrgByName("HISPORTS - Stouffville", orgs), "org-1");
+});
+
+test("extra or repeated punctuation/whitespace doesn't defeat a match", () => {
+  const orgs = [{ orgId: "org-1", displayName: "HISPORTS Stouffville" }];
+  assert.equal(matchOrgByName("HISPORTS  --  Stouffville,", orgs), "org-1");
 });
 
 test("a facility name with no matching Org resolves to null", () => {
   const orgs = [{ orgId: "org-1", displayName: "PicklePlex Downsview" }];
-  assert.equal(matchOrgByExactName("Some Other Club", orgs), null);
+  assert.equal(matchOrgByName("Some Other Club", orgs), null);
 });
 
 test("surrounding whitespace on either side doesn't defeat an otherwise-exact match", () => {
   const orgs = [{ orgId: "org-1", displayName: "  PicklePlex Downsview  " }];
-  assert.equal(matchOrgByExactName("PicklePlex Downsview", orgs), "org-1");
+  assert.equal(matchOrgByName("PicklePlex Downsview", orgs), "org-1");
 });
 
 const SAME_SLOT = { orgId: "org-1", courtLabel: "Court 3", date: "2026-09-15", startTime: "18:00" };
@@ -97,6 +108,45 @@ test("two Connections sharing a display name resolve a matching name to the firs
   const result = matchPlayerNamesToConnections(["Amy Ace"], connections);
 
   assert.deepEqual(result, [{ name: "Amy Ace", userId: "user-1" }]);
+});
+
+const CANCELLED_SLOT = { orgId: "org-1", date: "2026-09-15", startTime: "18:00" };
+
+test("a cancellation matching Org + date/time on an existing Booking resolves to that Booking's id", () => {
+  const existing = { ...CANCELLED_SLOT, id: "booking-1" };
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, [existing]), "booking-1");
+});
+
+test("a cancellation matches even when the existing Booking has a real court label — courtLabel isn't part of the match", () => {
+  const existing = { ...CANCELLED_SLOT, id: "booking-1", courtLabel: "3" };
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, [existing]), "booking-1");
+});
+
+test("a different date is not a match", () => {
+  const existing = { ...CANCELLED_SLOT, date: "2026-09-16", id: "booking-1" };
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, [existing]), null);
+});
+
+test("a different start time is not a match", () => {
+  const existing = { ...CANCELLED_SLOT, startTime: "19:00", id: "booking-1" };
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, [existing]), null);
+});
+
+test("a different Org is not a match, even with everything else matching", () => {
+  const existing = { ...CANCELLED_SLOT, orgId: "org-2", id: "booking-1" };
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, [existing]), null);
+});
+
+test("no existing Bookings at all resolves to no match", () => {
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, []), null);
+});
+
+test("two Bookings at the same Org/date/start-time (different courts) resolve to no match, not a guess", () => {
+  const existing = [
+    { ...CANCELLED_SLOT, id: "booking-1", courtLabel: "3" },
+    { ...CANCELLED_SLOT, id: "booking-2", courtLabel: "4" },
+  ];
+  assert.equal(matchCancellationToBooking(CANCELLED_SLOT, existing), null);
 });
 
 test("a confirmation dated before today in its own zone is past", () => {

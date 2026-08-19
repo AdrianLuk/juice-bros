@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(14);
 
 select has_table('public', 'processed_gmail_messages', 'processed_gmail_messages table exists');
 select has_column('public', 'processed_gmail_messages', 'owner_id', 'processed_gmail_messages.owner_id exists');
@@ -44,7 +44,7 @@ select throws_ok(
      values ('55555555-5555-5555-5555-555555555555', 'msg-2', 'not-a-real-outcome') $$,
   '23514',
   null,
-  'outcome is constrained to confirmed/dismissed'
+  'outcome is constrained to confirmed/dismissed/cancelled'
 );
 
 select throws_ok(
@@ -85,6 +85,14 @@ select lives_ok(
   $$ insert into public.processed_gmail_messages (owner_id, gmail_message_id, outcome)
      values ('55555555-5555-5555-5555-555555555555', 'msg-3', 'confirmed') $$,
   'the owner can record a new outcome as themselves'
+);
+
+-- Issue #65: confirming a cancellation candidate removes a Booking rather
+-- than creating one, so it gets its own outcome value distinct from 'confirmed'.
+select lives_ok(
+  $$ insert into public.processed_gmail_messages (owner_id, gmail_message_id, outcome)
+     values ('55555555-5555-5555-5555-555555555555', 'msg-cancel-1', 'cancelled') $$,
+  'cancelled is an accepted outcome'
 );
 
 select throws_ok(
