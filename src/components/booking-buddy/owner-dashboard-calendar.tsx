@@ -11,7 +11,7 @@ import {
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
 import type { EventRange } from "@/components/booking-buddy/dashboard-week-view";
 import { DashboardQuickActions } from "@/components/booking-buddy/dashboard-quick-add";
-import { DeleteBookingButton } from "@/components/booking-buddy/bookings";
+import { DeleteBookingButton, EditBookingButton } from "@/components/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import {
   formatInstantDateAndTime,
@@ -22,7 +22,7 @@ import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import type { AvailabilityWindow } from "@/lib/booking-buddy/availability";
 
-function BookingPopoverDetails({ booking }: { booking: Booking }) {
+function BookingPopoverDetails({ booking, orgs }: { booking: Booking; orgs: Org[] }) {
   const { date, time } = formatInstantDateAndTime(booking);
 
   return (
@@ -43,7 +43,8 @@ function BookingPopoverDetails({ booking }: { booking: Booking }) {
           {BOOKING_FORMAT_LABEL[booking.format]}
         </dd>
       </dl>
-      <div className="mt-1 flex justify-end border-t border-border pt-2.5">
+      <div className="mt-1 flex justify-end gap-1.5 border-t border-border pt-2.5">
+        <EditBookingButton booking={booking} orgs={orgs} />
         <DeleteBookingButton booking={booking} />
       </div>
     </div>
@@ -83,7 +84,7 @@ export function OwnerDashboardCalendar({
           event={booking}
           className={WEEK_EVENT_CLASS}
           style={style}
-          renderDetails={(b) => <BookingPopoverDetails booking={b} />}
+          renderDetails={(b) => <BookingPopoverDetails booking={b} orgs={orgs} />}
         >
           {booking.name && (
             <p className="truncate font-medium">{booking.name}</p>
@@ -115,7 +116,7 @@ export function OwnerDashboardCalendar({
           key={booking.id}
           event={booking}
           className={MONTH_EVENT_CLASS}
-          renderDetails={(b) => <BookingPopoverDetails booking={b} />}
+          renderDetails={(b) => <BookingPopoverDetails booking={b} orgs={orgs} />}
         >
           {booking.name && <p className="truncate">{booking.name}</p>}
           <p className="truncate">{booking.orgName}</p>
@@ -131,7 +132,7 @@ export function OwnerDashboardCalendar({
           key={booking.id}
           event={booking}
           className={AGENDA_EVENT_CLASS}
-          renderDetails={(b) => <BookingPopoverDetails booking={b} />}
+          renderDetails={(b) => <BookingPopoverDetails booking={b} orgs={orgs} />}
         >
           <span className="font-medium">
             {formatTimeLabelFromMs(new Date(booking.startsAt).getTime())}
