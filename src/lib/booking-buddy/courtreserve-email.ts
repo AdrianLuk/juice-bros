@@ -25,6 +25,14 @@
  * `courtreserve-email.test.ts`'s real-fixture tests for the exact captured
  * shape (facility/player names replaced with placeholders before commit,
  * since this repo is public).
+ *
+ * A second real template — "Registration Confirmation", sent for
+ * program/tournament sign-ups rather than a plain court reservation (issue
+ * #96) — uses the same `<h4>`/`<h5>` field-group shape but its own heading
+ * names: "Event" in place of "Details" (its own first line becomes both
+ * `name` and, via the same fallback-to-doubles `parseFormat`, `format`) and
+ * "Registered Team(s)" in place of "Player(s)". Both templates still
+ * collapse into the exact same `CourtReserveConfirmation` result shape.
  */
 
 import { isBookingFormat, type BookingFormat } from "./capacity.ts";
@@ -324,12 +332,30 @@ function parsePlayerNames(text: string | null): string[] {
     .filter((name) => name.length > 0);
 }
 
+/**
+ * A Registration Confirmation's own "Registered Team(s)" value prefixes its
+ * name list with a "Team:" label (e.g. "Team: Amy Ace, Ben Backhand") —
+ * applied only to that section's own text (never to "Player(s)", which has
+ * no such label and could legitimately start with a name resembling one).
+ */
+function stripTeamLabel(text: string): string {
+  return text.replace(/^\s*team\s*:\s*/i, "");
+}
+
 // CourtReserve's real subject is "Booking Confirmation for ..." — "booking",
 // not "reservation" — so both nouns are accepted, still paired with
 // "confirm" rather than matching on either word alone (e.g. a lone
 // "Confirm your account" subject from some other CourtReserve email
 // shouldn't be read as a booking confirmation).
 const CONFIRMATION_SUBJECT_PATTERN = /(reservation|booking).*confirm|confirm.*(reservation|booking)/i;
+// CourtReserve's second template — used for program/tournament sign-ups
+// rather than a plain court reservation — has its own real subject,
+// "Registration Confirmation - <event name>", which contains neither
+// "reservation" nor "booking" and so wouldn't match the pattern above.
+// Checked as its own subject/body shape (issue #96) rather than folded into
+// CONFIRMATION_SUBJECT_PATTERN, since its body uses a different heading set
+// (see `classifyBySubject`'s "registration" result and its callers below).
+const REGISTRATION_CONFIRMATION_SUBJECT_PATTERN = /\bregistration\s+confirmation\b/i;
 // Matches "cancelled"/"canceled"/"cancellation" — the verb (past tense, a
 // completed action) or the noun, either of which a real acknowledgement
 // subject might use — but deliberately *not* a bare "cancel" on its own,
@@ -347,13 +373,36 @@ const CANCELLATION_POLICY_PATTERN = /cancellation\s+polic/i;
 // cancellation should stay a cancellation, not a guess between the two.
 const RESERVATION_UPDATE_SUBJECT_PATTERN = /\breservation\b.*\bupdate\b|\bupdate\b.*\breservation\b/i;
 
+type ParsedEmailKind = "confirmation" | "cancellation" | "update" | "registration";
+
+/**
+ * Each kind's own heading names — a lookup table rather than a per-field
+ * ternary chain, so a third template variant is one object literal edit
+ * instead of several scattered ternary branches, and TypeScript's `Record`
+ * requires every kind to have an entry (a missing one is a compile error,
+ * not a silent fallback to the wrong heading).
+ */
+const DETAILS_HEADING_BY_KIND: Record<ParsedEmailKind, string> = {
+  confirmation: "Details",
+  cancellation: "Cancellation Details",
+  update: "Reservation Details",
+  registration: "Event",
+};
+
+/** Cancellation has no Player(s)-equivalent section at all — its own branch returns before this is ever read. */
+const PLAYERS_HEADING_BY_KIND: Record<Exclude<ParsedEmailKind, "cancellation">, string> = {
+  confirmation: "Player(s)",
+  update: "Player(s)",
+  registration: "Registered Team(s)",
+};
+
 /**
  * The subject line is CourtReserve's own signal for which template an email
  * uses — cheaper and more reliable than inferring from body content, and it's
  * what lets a waitlist/membership email (this function's `null` result) be
  * recognized and skipped before ever trying to parse its body as one.
  */
-function classifyBySubject(subject: string): "confirmation" | "cancellation" | "update" | null {
+function classifyBySubject(subject: string): ParsedEmailKind | null {
   const looksLikeCancellation =
     CANCELLATION_WORD_PATTERN.test(subject) && !CANCELLATION_POLICY_PATTERN.test(subject);
 
@@ -362,6 +411,9 @@ function classifyBySubject(subject: string): "confirmation" | "cancellation" | "
   }
   if (RESERVATION_UPDATE_SUBJECT_PATTERN.test(subject)) {
     return "update";
+  }
+  if (REGISTRATION_CONFIRMATION_SUBJECT_PATTERN.test(subject)) {
+    return "registration";
   }
   if (CONFIRMATION_SUBJECT_PATTERN.test(subject)) {
     return "confirmation";
@@ -386,21 +438,22 @@ export function parseCourtReserveEmail(email: {
 
     const facilityName = extractFacilityName(email.html);
 
-    const detailsHeading =
-      kind === "cancellation" ? "Cancellation Details" : kind === "update" ? "Reservation Details" : "Details";
-    const detailsHtml = extractSection(email.html, detailsHeading);
+    const detailsHtml = extractSection(email.html, DETAILS_HEADING_BY_KIND[kind]);
     const detailsLines = detailsHtml ? splitSectionLines(detailsHtml) : [];
 
-    // A confirmation's Details block is exactly [format, date, time]; a
-    // cancellation's Cancellation Details block prepends the player's own
-    // name, making it [name, format, date, time] — the last three lines are
-    // the same shape either way, so the (optional) leading name is simply
-    // ignored. An update's own Reservation Details block instead *appends*
-    // the court label as a trailing line after time, with no separate
-    // Court(s) section at all (real captured "Reservation Update Notice"
-    // email — see the real-fixture test below) — so it's read from the
-    // front, not the back, and the court comes from whatever's left over
-    // rather than a second `extractSection` call.
+    // A confirmation's Details block is exactly [format, date, time] — a
+    // registration's own Event block is the same three-line shape, just
+    // under a different heading (its first line is the event's name rather
+    // than a literal "Singles"/"Doubles", but `name`/`format` are still read
+    // off it the same way below). A cancellation's Cancellation Details
+    // block prepends the player's own name, making it [name, format, date,
+    // time] — the last three lines are the same shape either way, so the
+    // (optional) leading name is simply ignored. An update's own Reservation
+    // Details block instead *appends* the court label as a trailing line
+    // after time, with no separate Court(s) section at all (real captured
+    // "Reservation Update Notice" email — see the real-fixture test below)
+    // — so it's read from the front, not the back, and the court comes from
+    // whatever's left over rather than a second `extractSection` call.
     const [formatText, dateText, timeText, ...inlineCourtLines] =
       kind === "update" ? detailsLines : [...detailsLines.slice(-3)];
     const inlineCourtText = inlineCourtLines.length > 0 ? inlineCourtLines.join(" ").trim() || null : null;
@@ -422,9 +475,16 @@ export function parseCourtReserveEmail(email: {
     const courtLabel = kind === "update" ? inlineCourtText : extractCourtSectionLabel(email.html);
 
     const format = parseFormat(formatText ?? null);
-    const playersSectionHtml = extractSection(email.html, "Player(s)");
+    // A registration's own "Registered Team(s)" section replaces "Player(s)"
+    // — same raw shape (a comma-joined name list, `<br>`-split when there's
+    // more than one team), read with the same extractor/parser either way,
+    // aside from its own "Team:" label (stripped below).
+    const playersSectionHtml = extractSection(email.html, PLAYERS_HEADING_BY_KIND[kind]);
+    const rawPlayerText = playersSectionHtml
+      ? decodeHtmlEntities(stripTags(playersSectionHtml)).replace(/\s+/g, " ").trim()
+      : null;
     const playerNames = parsePlayerNames(
-      playersSectionHtml ? decodeHtmlEntities(stripTags(playersSectionHtml)).replace(/\s+/g, " ").trim() : null,
+      kind === "registration" && rawPlayerText ? stripTeamLabel(rawPlayerText) : rawPlayerText,
     );
 
     const parsed = {
@@ -440,6 +500,11 @@ export function parseCourtReserveEmail(email: {
       playerNames,
     };
 
+    // A registration's own Event/Registered Team(s) fields collapse into the
+    // exact same CourtReserveConfirmation shape a "Details"/"Player(s)"
+    // confirmation already produces, so every downstream consumer (Import
+    // Candidate matching, review-card display, confirm/dismiss) needs no
+    // changes at all to support this second template.
     return kind === "update" ? { kind: "update", update: parsed } : { kind: "confirmation", confirmation: parsed };
   } catch {
     return { kind: "unparseable" };
