@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { BOOKINGS_PATH, ORGS_PATH } from "../routes.ts";
+import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, ORGS_PATH } from "../routes.ts";
 import type { ActionResult } from "./result.ts";
 import { orgWriteMessage } from "../orgs.ts";
 import { ensureFreshPlaceCache } from "../place-cache.ts";
@@ -128,5 +128,8 @@ export async function pickPlace(
 
   revalidatePath(ORGS_PATH);
   revalidatePath(BOOKINGS_PATH);
+  // Same reasoning as createOrg's own dashboard revalidation (issue #103): a
+  // Place-backed pick from the Onboarding modal should reflect immediately.
+  revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
 }
