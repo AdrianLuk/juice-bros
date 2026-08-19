@@ -53,7 +53,7 @@ export default async function BookingsPage() {
               />
             </div>
 
-            <BookingBuddyNav />
+            <BookingBuddyNav current="bookings" />
           </div>
 
           {emailSyncAllowed && (
