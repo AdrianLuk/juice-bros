@@ -7,7 +7,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(15);
 
 select has_table('public', 'processed_gmail_messages', 'processed_gmail_messages table exists');
 select has_column('public', 'processed_gmail_messages', 'owner_id', 'processed_gmail_messages.owner_id exists');
@@ -93,6 +93,15 @@ select lives_ok(
   $$ insert into public.processed_gmail_messages (owner_id, gmail_message_id, outcome)
      values ('55555555-5555-5555-5555-555555555555', 'msg-cancel-1', 'cancelled') $$,
   'cancelled is an accepted outcome'
+);
+
+-- Issue #91: applying a matched Reservation Update edits an existing
+-- Booking in place rather than creating or removing one, so it gets its own
+-- outcome value too, distinct from both 'confirmed' and 'cancelled'.
+select lives_ok(
+  $$ insert into public.processed_gmail_messages (owner_id, gmail_message_id, outcome)
+     values ('55555555-5555-5555-5555-555555555555', 'msg-update-1', 'updated') $$,
+  'updated is an accepted outcome'
 );
 
 select throws_ok(

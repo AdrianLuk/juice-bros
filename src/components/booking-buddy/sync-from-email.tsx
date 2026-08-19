@@ -13,12 +13,14 @@ import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
   confirmCancellationCandidate,
   confirmImportCandidate,
+  confirmUpdateCandidate,
   connectGmail,
   dismissImportCandidate,
   syncFromEmail,
   type CancellationCandidate,
   type ImportCandidate,
   type SyncFromEmailResult,
+  type UpdateCandidate,
 } from "@/lib/booking-buddy/actions/email-sync";
 
 const EMPTY: ActionResult = {};
@@ -174,6 +176,79 @@ function CancellationCandidateCard({
 }
 
 /**
+ * A parsed Reservation Update, matched or not (issue #91) — CourtReserve's
+ * own resend after a logged reservation's details changed. Unlike
+ * `ImportCandidateCard`, there's no Org picker: `matchUpdateToBooking`
+ * already resolved which Booking this refers to (or didn't), so the only
+ * choice left for the User is apply it or dismiss it.
+ */
+function UpdateCandidateCard({
+  candidate,
+  onResolved,
+}: {
+  candidate: UpdateCandidate;
+  onResolved: (gmailMessageId: string) => void;
+}) {
+  const [confirmState, confirmAction, confirmPending] = useActionState(confirmUpdateCandidate, EMPTY);
+  const [dismissState, dismissAction, dismissPending] = useActionState(dismissImportCandidate, EMPTY);
+  const busy = confirmPending || dismissPending;
+
+  useEffect(() => {
+    if (confirmState.ok || dismissState.ok) {
+      onResolved(candidate.gmailMessageId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmState, dismissState]);
+
+  return (
+    <li className="bb-card flex flex-col gap-3 p-4">
+      <div>
+        <p className="font-medium">{candidate.facilityName}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
+          {formatCourtLabel(candidate.courtLabel)} · {BOOKING_FORMAT_LABEL[candidate.format]}
+        </p>
+        {candidate.matchedPlayers.length > 0 && (
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            With: {candidate.matchedPlayers.map((player) => player.name).join(", ")}
+          </p>
+        )}
+        {candidate.matched ? (
+          <p className="mt-1 text-xs text-muted-foreground">Updates a booking you logged.</p>
+        ) : (
+          <p className="mt-1 text-xs text-destructive">
+            No matching booking found. Your records may be out of sync.
+          </p>
+        )}
+      </div>
+
+      {candidate.matched && (
+        <>
+          <form action={confirmAction} className="self-start">
+            <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
+            <input type="hidden" name="booking_id" value={candidate.bookingId} />
+            <input type="hidden" name="format" value={candidate.format} />
+            <input type="hidden" name="court_label" value={candidate.courtLabel ?? ""} />
+            <Button type="submit" disabled={busy}>
+              {confirmPending ? "Applying…" : "Apply update"}
+            </Button>
+          </form>
+          <ActionError state={confirmState} />
+        </>
+      )}
+
+      <form action={dismissAction} className="self-start">
+        <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
+        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
+          {dismissPending ? "Dismissing…" : "Dismiss"}
+        </Button>
+      </form>
+      <ActionError state={dismissState} />
+    </li>
+  );
+}
+
+/**
  * "Sync from Email" (issue #64) — a click-triggered live search rather than
  * something the page loads eagerly, same `enabled` pattern
  * `FriendCalendarDialog` uses for its own click-triggered fetch. Only
@@ -205,6 +280,7 @@ export function SyncFromEmailSection({
             ...previous,
             candidates: previous.candidates.filter((c) => c.gmailMessageId !== gmailMessageId),
             cancellations: previous.cancellations.filter((c) => c.gmailMessageId !== gmailMessageId),
+            updates: previous.updates.filter((c) => c.gmailMessageId !== gmailMessageId),
           }
         : previous,
     );
@@ -251,9 +327,10 @@ export function SyncFromEmailSection({
         </p>
       )}
 
-      {data?.status === "ok" && data.candidates.length === 0 && data.cancellations.length === 0 && (
-        <p className="text-sm text-muted-foreground">No new bookings found.</p>
-      )}
+      {data?.status === "ok" &&
+        data.candidates.length === 0 &&
+        data.cancellations.length === 0 &&
+        data.updates.length === 0 && <p className="text-sm text-muted-foreground">No new bookings found.</p>}
 
       {data?.status === "ok" && data.candidates.length > 0 && (
         <ul className="flex flex-col gap-4">
@@ -272,6 +349,18 @@ export function SyncFromEmailSection({
         <ul className="flex flex-col gap-4">
           {data.cancellations.map((candidate) => (
             <CancellationCandidateCard
+              key={candidate.gmailMessageId}
+              candidate={candidate}
+              onResolved={handleResolved}
+            />
+          ))}
+        </ul>
+      )}
+
+      {data?.status === "ok" && data.updates.length > 0 && (
+        <ul className="flex flex-col gap-4">
+          {data.updates.map((candidate) => (
+            <UpdateCandidateCard
               key={candidate.gmailMessageId}
               candidate={candidate}
               onResolved={handleResolved}
