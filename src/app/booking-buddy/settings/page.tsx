@@ -51,7 +51,7 @@ export default async function SettingsPage({
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-4xl">
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
             <div>
               <PageHeading
