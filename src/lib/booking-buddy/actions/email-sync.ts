@@ -33,6 +33,7 @@ import {
   matchCancellationToBooking,
   matchOrgByName,
   matchPlayerNamesToConnections,
+  matchUpdateToBooking,
   reconcileCourtReserveEvents,
   type BookingIdentity,
   type ConnectionCandidate,
@@ -42,8 +43,13 @@ import {
 } from "../email-sync-matching.ts";
 import { parseNewBooking, stripCourtLabelPrefix } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
-import type { BookingFormat } from "../capacity.ts";
-import { deleteOwnedBooking, getBookingsPageData, insertValidatedBooking } from "./bookings.ts";
+import { isBookingFormat, type BookingFormat } from "../capacity.ts";
+import {
+  deleteOwnedBooking,
+  getBookingsPageData,
+  insertValidatedBooking,
+  updateOwnedBookingFormatAndCourt,
+} from "./bookings.ts";
 import { listConnections } from "./connections.ts";
 
 export type { ActionResult } from "./result.ts";
@@ -199,8 +205,36 @@ export type CancellationCandidate = {
   courtLabel: string | null;
 } & ({ matched: true; bookingId: string } | { matched: false });
 
+/**
+ * One parsed Reservation Update Notice, matched against the caller's own
+ * Bookings the same way a cancellation is (issue #91) — reached only when
+ * `syncFromEmail`'s own reconciliation had nothing in this batch to net it
+ * against (see `reconcileCourtReserveEvents`'s own header comment); an update
+ * that *did* net against an in-batch confirmation never becomes one of these
+ * at all, it's folded into that confirmation's own `ImportCandidate`.
+ * `matched: false` mirrors `CancellationCandidate`'s own framing of "nothing
+ * on file this could refer to" as a distinct notice rather than a silent drop.
+ */
+export type UpdateCandidate = {
+  gmailMessageId: string;
+  facilityName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
+  courtLabel: string | null;
+  format: BookingFormat;
+  /** Reference-only, same posture as `ImportCandidate.matchedPlayers` — a Booking doesn't store players at all. */
+  matchedPlayers: PlayerMatch[];
+} & ({ matched: true; bookingId: string } | { matched: false });
+
 export type SyncFromEmailResult =
-  | { status: "ok"; candidates: ImportCandidate[]; cancellations: CancellationCandidate[] }
+  | {
+      status: "ok";
+      candidates: ImportCandidate[];
+      cancellations: CancellationCandidate[];
+      updates: UpdateCandidate[];
+    }
   | { status: "reconnect_required" }
   | { status: "error"; message: string };
 
@@ -363,6 +397,24 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       continue;
     }
 
+    if (parsed.kind === "update") {
+      const { update } = parsed;
+      if (!update.endTime) {
+        continue;
+      }
+
+      events.push({
+        kind: "update",
+        gmailMessageId: messageId,
+        receivedAt: fetched.email.receivedAt,
+        facilityName: update.facilityName,
+        date: update.date,
+        startTime: update.startTime,
+        update: { ...update, endTime: update.endTime },
+      });
+      continue;
+    }
+
     if (parsed.kind !== "confirmation") {
       continue;
     }
@@ -387,9 +439,43 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 
   const candidates: ImportCandidate[] = [];
   const cancellations: CancellationCandidate[] = [];
+  const updates: UpdateCandidate[] = [];
 
   // Phase 2: the exact same per-email logic as before, just applied to the
   // reconciled survivors rather than every raw parsed email.
+  for (const event of reconciled.updates) {
+    const { update } = event;
+
+    const matchedOrgId = matchOrgByName(update.facilityName, orgCandidates);
+    const zone = matchedOrgId ? (orgTimeZoneById.get(matchedOrgId) ?? "UTC") : "UTC";
+
+    // Same reasoning as a confirmation's own filter: a Reservation Update
+    // for a slot that's already passed isn't worth a User's review either.
+    if (isPastConfirmation(update, zone, now)) {
+      continue;
+    }
+
+    // No matched Org means there's nothing on file it could refer to either
+    // — same reasoning `matchCancellationToBooking` itself can't apply
+    // without one.
+    const bookingId = matchedOrgId
+      ? matchUpdateToBooking({ orgId: matchedOrgId, date: update.date, startTime: update.startTime }, existingBookings)
+      : null;
+
+    const updateBase = {
+      gmailMessageId: event.gmailMessageId,
+      facilityName: update.facilityName,
+      date: update.date,
+      startTime: update.startTime,
+      endTime: update.endTime,
+      courtLabel: stripCourtLabelPrefix(update.courtLabel),
+      format: update.format,
+      matchedPlayers: matchPlayerNamesToConnections(update.playerNames, connectionCandidates),
+    };
+
+    updates.push(bookingId ? { ...updateBase, matched: true, bookingId } : { ...updateBase, matched: false });
+  }
+
   for (const event of reconciled.cancellations) {
     const matchedOrgId = matchOrgByName(event.facilityName, orgCandidates);
 
@@ -458,8 +544,9 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 
   candidates.sort(byDateAndStartTime);
   cancellations.sort(byDateAndStartTime);
+  updates.sort(byDateAndStartTime);
 
-  return { status: "ok", candidates, cancellations };
+  return { status: "ok", candidates, cancellations, updates };
 }
 
 /**
@@ -557,6 +644,61 @@ export async function confirmCancellationCandidate(
     // matching Booking to resolve to on a later sync, and would instead
     // surface as the "no match found" notice.
     console.error("booking-buddy: recording a cancelled Gmail message failed", recordError);
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Applying a matched update candidate edits the Booking it refers to in
+ * place (issue #91) — `booking_id`, `format`, and `court_label` all come
+ * from the review screen's own hidden fields, which only ever hold what
+ * `syncFromEmail`'s own `matchUpdateToBooking` resolved server-side, not
+ * anything the User (or a tampered request) picks. `format`/`court_label`
+ * still travel as plain form fields rather than being re-derived from
+ * `bookingId` here, same reasoning `confirmCancellationCandidate` doesn't
+ * re-parse `formData` through `parseNewBooking` either — the review screen
+ * already showed the User exactly what they're about to apply.
+ */
+export async function confirmUpdateCandidate(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+
+  const allowed = await isEmailSyncAllowedForCaller();
+  if (!allowed) {
+    return { error: "Your account isn't approved for email sync." };
+  }
+
+  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+  const format = String(formData.get("format") ?? "");
+  const courtLabelRaw = String(formData.get("court_label") ?? "");
+  if (!gmailMessageId || !bookingId || !isBookingFormat(format)) {
+    return { error: "Couldn't update that booking. Try again." };
+  }
+
+  const updateResult = await updateOwnedBookingFormatAndCourt(bookingId, {
+    format,
+    courtLabel: courtLabelRaw || null,
+  });
+  if (!updateResult.ok) {
+    return updateResult;
+  }
+
+  const supabase = await createClient();
+  const { error: recordError } = await supabase.from("processed_gmail_messages").insert({
+    owner_id: session.userId,
+    gmail_message_id: gmailMessageId,
+    outcome: "updated",
+  });
+
+  if (recordError) {
+    // Not fatal — the Booking is already updated either way. Even if this
+    // record never lands, a later sync's own reconciliation/matching just
+    // re-derives the same end state from the raw emails again.
+    console.error("booking-buddy: recording an updated Gmail message failed", recordError);
   }
 
   return { ok: true };

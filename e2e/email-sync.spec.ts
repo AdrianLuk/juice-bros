@@ -66,6 +66,41 @@ function cancellationEmail(fields: { id: string; facility: string; receivedAt?: 
   };
 }
 
+/**
+ * CourtReserve's real Reservation Update template (issue #91) — a
+ * "Reservation Details" heading (not "Details") whose value bundles the
+ * court label in as a fourth `<br>`-joined line, with no separate Court(s)
+ * section at all (see courtreserve-email.ts's own header comment).
+ */
+function updateEmail(fields: {
+  id: string;
+  facility: string;
+  format?: string;
+  court?: string;
+  players?: string;
+  receivedAt?: number;
+}): MockGmailMessage {
+  const {
+    id,
+    facility,
+    format = "Doubles",
+    court = "Court 3",
+    players = "Amy Ace, Ben Backhand",
+    receivedAt,
+  } = fields;
+  return {
+    id,
+    receivedAt,
+    subject: "Reservation Update Notice",
+    html:
+      `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
+      `<h1>Reservation Update</h1>` +
+      `<h4>Reservation Details</h4><h5>${format}<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM<br>${court}</h5>` +
+      `<h4>Player(s)</h4><h5>${players}</h5>` +
+      `</body></html>`,
+  };
+}
+
 function messageId() {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -383,6 +418,146 @@ test.describe("Sync from Email", () => {
     await expect(card).toBeVisible();
     await expect(card).toContainText("No matching booking found. Your records may be out of sync.");
     await expect(card.getByRole("button", { name: "Remove booking" })).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Dismiss" }).click();
+    await expect(card).toHaveCount(0);
+    await expect(page.getByText("No new bookings found.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+  });
+
+  test("a Reservation Update Notice netted against its own in-batch confirmation shows one candidate carrying the update's own format/court/players (issue #91)", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    mock.registerMessages([
+      confirmationEmail({ id: messageId(), facility, players: "Amy Ace, Ben Backhand", receivedAt: 1 }),
+      updateEmail({
+        id: messageId(),
+        facility,
+        format: "Doubles",
+        players: "Amy Ace, Ben Backhand, Cara Crosscourt",
+        receivedAt: 2,
+      }),
+    ]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    // Exactly one candidate — the original confirmation nets away entirely,
+    // not a separate "no matching booking found" update notice alongside it.
+    await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
+
+    const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("Amy Ace, Ben Backhand, Cara Crosscourt");
+    await expect(page.getByText("No matching booking found", { exact: false })).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Confirm" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+    const booking = row(page, "Court 3");
+    await expect(booking).toContainText(facility);
+    await expect(booking).toContainText("Doubles");
+
+    await removePlace(page, facility);
+  });
+
+  test("a Reservation Update Notice matching a logged Booking appears as a candidate, and applying it updates that Booking's format/court in place (issue #91)", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+    await logBooking(page, {
+      place: facility,
+      court: "3",
+      date: "2027-03-15",
+      start: "18:00",
+      end: "19:00",
+      format: "Singles",
+    });
+    await expect(row(page, "Court 3")).toContainText(facility);
+    await expect(row(page, "Court 3")).toContainText("Singles");
+
+    await page.goto("/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    // No in-batch confirmation this time — the same shape as a User syncing,
+    // confirming right away, and only getting the Update Notice on a later
+    // sync once the reservation was edited. A different court too, not just
+    // format — proving `matchUpdateToBooking` really doesn't key on court
+    // (issue #91's own reason for excluding it from the match): a genuine
+    // court change still has to reach the Booking row, not just format.
+    mock.registerMessages([
+      updateEmail({ id: messageId(), facility, format: "Doubles", court: "Court 5", players: "Amy Ace, Ben Backhand" }),
+    ]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Apply update" }) });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText(facility);
+    await expect(card).toContainText("Updates a booking you logged.");
+
+    await card.getByRole("button", { name: "Apply update" }).click();
+    await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+    await expect(card).toHaveCount(0);
+
+    // Same Booking, edited in place — not a second row alongside the original.
+    await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
+    await expect(row(page, "Court 5")).toContainText("Doubles");
+    await expect(row(page, "Court 3")).toHaveCount(0);
+
+    await removePlace(page, facility);
+  });
+
+  test("a Reservation Update Notice with no matching Booking shows a distinct notice, and dismissing it means a second sync never shows it again (issue #91)", async ({
+    page,
+  }) => {
+    mock.registerAccount({
+      email: "ben.pickleball@gmail.com",
+      accessToken: "mock-access-token",
+      refreshToken: "mock-refresh-token",
+    });
+
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/settings");
+    await page.getByRole("button", { name: "Connect Gmail" }).click();
+    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+
+    mock.registerMessages([updateEmail({ id: messageId(), facility })]);
+
+    await page.goto("/booking-buddy/bookings");
+    await page.getByRole("button", { name: "Sync from Email" }).click();
+
+    const card = page.getByRole("listitem").filter({ hasText: facility });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("No matching booking found. Your records may be out of sync.");
+    await expect(card.getByRole("button", { name: "Apply update" })).toHaveCount(0);
 
     await card.getByRole("button", { name: "Dismiss" }).click();
     await expect(card).toHaveCount(0);

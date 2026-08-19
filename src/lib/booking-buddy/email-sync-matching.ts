@@ -100,6 +100,27 @@ export function matchCancellationToBooking(
 }
 
 /**
+ * The existing Booking a parsed Reservation Update refers to, or `null` if
+ * none — or more than one — matches. Deliberately Org + date/time only, same
+ * shape and same "refuse to guess" reasoning as `matchCancellationToBooking`
+ * above, even though an update *does* carry a real court label (unlike a
+ * cancellation): requiring court equality here would mean a genuine court
+ * change could never be matched at all, and the whole point of surfacing an
+ * update candidate is to let the User apply exactly that kind of change to
+ * the Booking already on file.
+ */
+export function matchUpdateToBooking(
+  update: CancellationIdentity,
+  existingBookings: readonly (CancellationIdentity & { id: string })[],
+): string | null {
+  const matches = existingBookings.filter(
+    (booking) =>
+      booking.orgId === update.orgId && booking.date === update.date && booking.startTime === update.startTime,
+  );
+  return matches.length === 1 ? matches[0].id : null;
+}
+
+/**
  * One parsed CourtReserve email, reduced to what reconciliation needs to
  * group and order it — issue #88. `facilityName`/`date`/`startTime` are the
  * same identity fields `matchCancellationToBooking` already keys a
@@ -128,11 +149,23 @@ export type ReconciliationEvent<TConfirmation> =
       startTime: string;
       /** Carried through for display only — not part of the identity a cancellation groups/nets on (see the module header comment). */
       courtLabel: string | null;
+    }
+  | {
+      kind: "update";
+      gmailMessageId: string;
+      receivedAt: number;
+      facilityName: string;
+      date: string;
+      startTime: string;
+      /** Same shape as `confirmation` above — a real "Reservation Update Notice" carries the complete current state, not a diff (courtreserve-email.ts's own `CourtReserveUpdate` header comment). */
+      update: TConfirmation;
     };
 
 export type ReconciliationResult<TConfirmation> = {
   confirmations: Extract<ReconciliationEvent<TConfirmation>, { kind: "confirmation" }>[];
   cancellations: Extract<ReconciliationEvent<TConfirmation>, { kind: "cancellation" }>[];
+  /** An update with no single in-batch confirmation to net against — left for the caller's own matching against real Bookings, same posture an unresolved cancellation already has. */
+  updates: Extract<ReconciliationEvent<TConfirmation>, { kind: "update" }>[];
 };
 
 function reconciliationKey(event: { facilityName: string; date: string; startTime: string }): string {
@@ -140,22 +173,27 @@ function reconciliationKey(event: { facilityName: string; date: string; startTim
 }
 
 /**
- * Nets a confirm/cancel/confirm/... chain for the same real-world slot down
- * to its actual end state (issue #88) — editing a CourtReserve reservation
- * (e.g. adding a player) resends both a cancellation and a fresh
- * confirmation for the same Org/date/start-time, so a slot edited twice
- * shows up as five raw emails even though nothing about it needs a User's
- * review except the final state.
+ * Nets a confirm/cancel/update/... chain for the same real-world slot down
+ * to its actual end state (issue #88, extended for updates) — editing a
+ * CourtReserve reservation (e.g. adding a player) resends both a
+ * cancellation and a fresh confirmation for the same Org/date/start-time,
+ * and a Reservation Update Notice resends a revised confirmation-shaped
+ * email in place of that pair for some kinds of edits, so a slot edited
+ * more than once can show up as several raw emails even though nothing
+ * about it needs a User's review except the final state.
  *
  * Replays each identity group in received-time order: a cancellation with
- * exactly one still-active confirmation ahead of it nets both away; a
- * cancellation with zero or more-than-one active confirmation is left in
- * `cancellations` untouched, for the caller's own existing per-email logic to
- * resolve — zero because there's nothing in this batch for it to refer to
- * (it might still match a *real* Booking from a previous sync), and more
- * than one for the same reason `matchCancellationToBooking` itself refuses
- * to guess between two simultaneous Bookings: there's no court label on a
- * cancellation email to disambiguate which one it means.
+ * exactly one still-active confirmation ahead of it nets both away; an
+ * update with exactly one still-active confirmation ahead of it *replaces*
+ * that confirmation's own fields with the update's (the update's own
+ * `gmailMessageId` becomes the survivor's, same "only the surviving id gets
+ * recorded" posture #88 already established for a netted cancel/confirm
+ * pair); either one with zero or more-than-one active confirmation is left
+ * in `cancellations`/`updates` untouched, for the caller's own existing
+ * per-email logic to resolve — zero because there's nothing in this batch
+ * for it to refer to (it might still match a *real* Booking from a previous
+ * sync), and more than one for the same reason `matchCancellationToBooking`
+ * itself refuses to guess between two simultaneous Bookings.
  */
 export function reconcileCourtReserveEvents<TConfirmation>(
   events: readonly ReconciliationEvent<TConfirmation>[],
@@ -173,6 +211,7 @@ export function reconcileCourtReserveEvents<TConfirmation>(
 
   const confirmations: Extract<ReconciliationEvent<TConfirmation>, { kind: "confirmation" }>[] = [];
   const cancellations: Extract<ReconciliationEvent<TConfirmation>, { kind: "cancellation" }>[] = [];
+  const updates: Extract<ReconciliationEvent<TConfirmation>, { kind: "update" }>[] = [];
 
   for (const group of groups.values()) {
     const sorted = [...group].sort((a, b) => a.receivedAt - b.receivedAt);
@@ -181,6 +220,16 @@ export function reconcileCourtReserveEvents<TConfirmation>(
     for (const event of sorted) {
       if (event.kind === "confirmation") {
         active.push(event);
+        continue;
+      }
+
+      if (event.kind === "update") {
+        if (active.length === 1) {
+          const { gmailMessageId, receivedAt, facilityName, date, startTime, update } = event;
+          active[0] = { kind: "confirmation", gmailMessageId, receivedAt, facilityName, date, startTime, confirmation: update };
+        } else {
+          updates.push(event);
+        }
         continue;
       }
 
@@ -194,7 +243,7 @@ export function reconcileCourtReserveEvents<TConfirmation>(
     confirmations.push(...active);
   }
 
-  return { confirmations, cancellations };
+  return { confirmations, cancellations, updates };
 }
 
 export type ConnectionCandidate = { userId: string; displayName: string };
