@@ -7,6 +7,7 @@ import {
   matchCancellationToBooking,
   matchOrgByName,
   matchPlayerNamesToConnections,
+  matchUpdateToBooking,
   reconcileCourtReserveEvents,
   type ReconciliationEvent,
 } from "./email-sync-matching.ts";
@@ -151,6 +152,33 @@ test("two Bookings at the same Org/date/start-time (different courts) resolve to
   assert.equal(matchCancellationToBooking(CANCELLED_SLOT, existing), null);
 });
 
+test("an update matching Org + date/time on an existing Booking resolves to that Booking's id, even when its own court label differs — a genuine court change is still applicable", () => {
+  const existing = { ...CANCELLED_SLOT, id: "booking-1", courtLabel: "3" };
+  assert.equal(matchUpdateToBooking({ ...CANCELLED_SLOT }, [existing]), "booking-1");
+});
+
+test("an update with a different date is not a match", () => {
+  const existing = { ...CANCELLED_SLOT, date: "2026-09-16", id: "booking-1" };
+  assert.equal(matchUpdateToBooking(CANCELLED_SLOT, [existing]), null);
+});
+
+test("an update with a different Org is not a match, even with everything else matching", () => {
+  const existing = { ...CANCELLED_SLOT, orgId: "org-2", id: "booking-1" };
+  assert.equal(matchUpdateToBooking(CANCELLED_SLOT, [existing]), null);
+});
+
+test("no existing Bookings at all resolves an update to no match", () => {
+  assert.equal(matchUpdateToBooking(CANCELLED_SLOT, []), null);
+});
+
+test("two Bookings at the same Org/date/start-time (different courts) resolve an update to no match, not a guess", () => {
+  const existing = [
+    { ...CANCELLED_SLOT, id: "booking-1", courtLabel: "3" },
+    { ...CANCELLED_SLOT, id: "booking-2", courtLabel: "4" },
+  ];
+  assert.equal(matchUpdateToBooking(CANCELLED_SLOT, existing), null);
+});
+
 test("a confirmation dated before today in its own zone is past", () => {
   const now = new Date("2026-09-20T12:00:00Z");
   assert.equal(isPastConfirmation({ date: "2026-09-15" }, "America/Toronto", now), true);
@@ -174,6 +202,14 @@ function confirmEvent(
 
 function cancelEvent(gmailMessageId: string, receivedAt: number): ReconciliationEvent<{ playerNames: string[] }> {
   return { kind: "cancellation", gmailMessageId, receivedAt, ...SLOT, courtLabel: null };
+}
+
+function updateEvent(
+  gmailMessageId: string,
+  receivedAt: number,
+  players: string[],
+): ReconciliationEvent<{ playerNames: string[] }> {
+  return { kind: "update", gmailMessageId, receivedAt, ...SLOT, update: { playerNames: players } };
 }
 
 test("a lone confirmation with nothing to net against survives reconciliation untouched", () => {
@@ -231,6 +267,56 @@ test("a cancellation with two equally plausible active confirmations doesn't gue
   assert.equal(result.confirmations.length, 2);
   assert.equal(result.cancellations.length, 1);
   assert.equal(result.cancellations[0].gmailMessageId, "cancel-1");
+});
+
+test("a lone update with nothing to net against falls through untouched, same posture as a lone cancellation", () => {
+  const result = reconcileCourtReserveEvents([updateEvent("update-1", 1, ["Amy"])]);
+  assert.deepEqual(result.confirmations, []);
+  assert.deepEqual(result.cancellations, []);
+  assert.equal(result.updates.length, 1);
+  assert.equal(result.updates[0].gmailMessageId, "update-1");
+});
+
+test("an update immediately following its own confirmation nets into a single confirmation carrying the update's own fields and message id", () => {
+  const result = reconcileCourtReserveEvents([
+    confirmEvent("confirm-1", 1, ["Amy"]),
+    updateEvent("update-1", 2, ["Amy", "Ben"]),
+  ]);
+
+  assert.equal(result.confirmations.length, 1);
+  assert.equal(result.confirmations[0].gmailMessageId, "update-1");
+  assert.deepEqual(result.confirmations[0].confirmation.playerNames, ["Amy", "Ben"]);
+  assert.deepEqual(result.cancellations, []);
+  assert.deepEqual(result.updates, []);
+});
+
+test("a confirm/update/update chain nets down to the last update's own fields only", () => {
+  const result = reconcileCourtReserveEvents([
+    confirmEvent("confirm-1", 1, ["Amy"]),
+    updateEvent("update-1", 2, ["Amy", "Ben"]),
+    updateEvent("update-2", 3, ["Amy", "Ben", "Cara"]),
+  ]);
+
+  assert.equal(result.confirmations.length, 1);
+  assert.equal(result.confirmations[0].gmailMessageId, "update-2");
+  assert.deepEqual(result.confirmations[0].confirmation.playerNames, ["Amy", "Ben", "Cara"]);
+  assert.deepEqual(result.updates, []);
+});
+
+test("an update with two equally plausible active confirmations doesn't guess which one to net, same refusal a cancellation already has", () => {
+  const events = [confirmEvent("confirm-1", 1, ["Amy"]), confirmEvent("confirm-2", 2, ["Ben"]), updateEvent("update-1", 3, ["Cara"])];
+
+  const result = reconcileCourtReserveEvents(events);
+
+  assert.equal(result.confirmations.length, 2);
+  assert.equal(result.updates.length, 1);
+  assert.equal(result.updates[0].gmailMessageId, "update-1");
+});
+
+test("an update with zero active confirmations (already confirmed in an earlier sync) is left for the caller's own matching, not silently dropped", () => {
+  const result = reconcileCourtReserveEvents([updateEvent("update-1", 1, ["Amy", "Ben"])]);
+  assert.equal(result.updates.length, 1);
+  assert.deepEqual(result.updates[0].update.playerNames, ["Amy", "Ben"]);
 });
 
 test("a different date/time is its own group, entirely unaffected by another slot's chain", () => {

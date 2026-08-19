@@ -49,12 +49,24 @@ export type CourtReserveCancellation = {
   courtLabel: string | null;
 };
 
+/**
+ * A "Reservation Update Notice" — CourtReserve's own resend of a reservation
+ * whose details changed (a player added, the format switched, a different
+ * court assigned). Same fields as a fresh confirmation, since a real captured
+ * one (`courtreserve-email.test.ts`'s own fixture) carries the complete
+ * current state, not a diff — the caller decides what to do with that
+ * (net it against an in-batch confirmation, or match it to an already-logged
+ * Booking) rather than this parser guessing.
+ */
+export type CourtReserveUpdate = CourtReserveConfirmation;
+
 export type CourtReserveEmailParseResult =
   | { kind: "confirmation"; confirmation: CourtReserveConfirmation }
   | { kind: "cancellation"; cancellation: CourtReserveCancellation }
+  | { kind: "update"; update: CourtReserveUpdate }
   /** A real CourtReserve email (waitlist/membership/etc.) that isn't a booking — expected, not an error. */
   | { kind: "not_a_booking" }
-  /** Looked like a confirmation/cancellation by its subject, but the body didn't parse — a real failure. */
+  /** Looked like a confirmation/cancellation/update by its subject, but the body didn't parse — a real failure. */
   | { kind: "unparseable" };
 
 /**
@@ -318,6 +330,12 @@ const CONFIRMATION_SUBJECT_PATTERN = /(reservation|booking).*confirm|confirm.*(r
 // kind of confirmation-subject hedge text using the noun form instead.
 const CANCELLATION_WORD_PATTERN = /\bcancell?(?:ed|ation)\b/i;
 const CANCELLATION_POLICY_PATTERN = /cancellation\s+polic/i;
+// CourtReserve's real subject is "Reservation Update Notice" — checked ahead
+// of CONFIRMATION_SUBJECT_PATTERN since neither word appears there, so
+// there's no ordering conflict, but checked after the cancellation check for
+// the same defensive reason: an update subject that somehow also read as a
+// cancellation should stay a cancellation, not a guess between the two.
+const RESERVATION_UPDATE_SUBJECT_PATTERN = /\breservation\b.*\bupdate\b|\bupdate\b.*\breservation\b/i;
 
 /**
  * The subject line is CourtReserve's own signal for which template an email
@@ -325,12 +343,15 @@ const CANCELLATION_POLICY_PATTERN = /cancellation\s+polic/i;
  * what lets a waitlist/membership email (this function's `null` result) be
  * recognized and skipped before ever trying to parse its body as one.
  */
-function classifyBySubject(subject: string): "confirmation" | "cancellation" | null {
+function classifyBySubject(subject: string): "confirmation" | "cancellation" | "update" | null {
   const looksLikeCancellation =
     CANCELLATION_WORD_PATTERN.test(subject) && !CANCELLATION_POLICY_PATTERN.test(subject);
 
   if (looksLikeCancellation) {
     return "cancellation";
+  }
+  if (RESERVATION_UPDATE_SUBJECT_PATTERN.test(subject)) {
+    return "update";
   }
   if (CONFIRMATION_SUBJECT_PATTERN.test(subject)) {
     return "confirmation";
@@ -355,14 +376,24 @@ export function parseCourtReserveEmail(email: {
 
     const facilityName = extractFacilityName(email.html);
 
-    const detailsHtml = extractSection(email.html, kind === "cancellation" ? "Cancellation Details" : "Details");
-    // The confirmation's Details block is exactly [format, date, time]; a
+    const detailsHeading =
+      kind === "cancellation" ? "Cancellation Details" : kind === "update" ? "Reservation Details" : "Details";
+    const detailsHtml = extractSection(email.html, detailsHeading);
+    const detailsLines = detailsHtml ? splitSectionLines(detailsHtml) : [];
+
+    // A confirmation's Details block is exactly [format, date, time]; a
     // cancellation's Cancellation Details block prepends the player's own
     // name, making it [name, format, date, time] — the last three lines are
     // the same shape either way, so the (optional) leading name is simply
-    // ignored rather than needing a separate cancellation-only field.
-    const detailsLines = detailsHtml ? splitSectionLines(detailsHtml) : [];
-    const [formatText, dateText, timeText] = detailsLines.slice(-3);
+    // ignored. An update's own Reservation Details block instead *appends*
+    // the court label as a trailing line after time, with no separate
+    // Court(s) section at all (real captured "Reservation Update Notice"
+    // email — see the real-fixture test below) — so it's read from the
+    // front, not the back, and the court comes from whatever's left over
+    // rather than a second `extractSection` call.
+    const [formatText, dateText, timeText, ...inlineCourtLines] =
+      kind === "update" ? detailsLines : [...detailsLines.slice(-3)];
+    const inlineCourtText = inlineCourtLines.length > 0 ? inlineCourtLines.join(" ").trim() || null : null;
 
     const date = dateText ? parseHumanDate(dateText) : null;
     const timeRange = timeText ? parseTimeRange(timeText) : null;
@@ -371,16 +402,26 @@ export function parseCourtReserveEmail(email: {
       return { kind: "unparseable" };
     }
 
-    const courtSectionHtml = extractSection(email.html, "Court(s)");
-    const courtLabel = courtSectionHtml
-      ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
-      : null;
-
     if (kind === "cancellation") {
+      const courtSectionHtml = extractSection(email.html, "Court(s)");
+      const courtLabel = courtSectionHtml
+        ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
+        : null;
+
       return {
         kind: "cancellation",
         cancellation: { facilityName, date, startTime: timeRange.start, courtLabel },
       };
+    }
+
+    let courtLabel: string | null;
+    if (kind === "update") {
+      courtLabel = inlineCourtText;
+    } else {
+      const courtSectionHtml = extractSection(email.html, "Court(s)");
+      courtLabel = courtSectionHtml
+        ? decodeHtmlEntities(courtSectionHtml.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim() || null
+        : null;
     }
 
     const format = parseFormat(formatText ?? null);
@@ -389,18 +430,17 @@ export function parseCourtReserveEmail(email: {
       playersSectionHtml ? decodeHtmlEntities(stripTags(playersSectionHtml)).replace(/\s+/g, " ").trim() : null,
     );
 
-    return {
-      kind: "confirmation",
-      confirmation: {
-        facilityName,
-        date,
-        startTime: timeRange.start,
-        endTime: timeRange.end,
-        courtLabel,
-        format,
-        playerNames,
-      },
+    const parsed = {
+      facilityName,
+      date,
+      startTime: timeRange.start,
+      endTime: timeRange.end,
+      courtLabel,
+      format,
+      playerNames,
     };
+
+    return kind === "update" ? { kind: "update", update: parsed } : { kind: "confirmation", confirmation: parsed };
   } catch {
     return { kind: "unparseable" };
   }

@@ -46,6 +46,37 @@ function confirmationHtml(
   return `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}"><h1>Confirmation</h1>${detailsSection}${playersSection}${courtSection}</body></html>`;
 }
 
+function updateHtml(
+  fields: {
+    facility?: string;
+    format?: string;
+    date?: string;
+    time?: string;
+    /** `null` omits the trailing court line entirely, matching a facility that doesn't label its courts. */
+    court?: string | null;
+    /** `null` omits the Player(s) section entirely. */
+    players?: string | null;
+  } = {},
+): string {
+  const {
+    facility = "PicklePlex Downsview",
+    format = "Doubles",
+    date = "Tuesday, 9-15-2026",
+    time = "6:00 PM - 7:00 PM",
+    court = "Court 3",
+    players = "Amy Ace, Ben Backhand",
+  } = fields;
+
+  // Unlike confirmationHtml's Details block, an update's Reservation Details
+  // value bundles the court label in as a trailing line, with no separate
+  // Court(s) section — see courtreserve-email.ts's own header comment for why.
+  const detailsValue = court !== null ? `${format}<br>${date}<br>${time}<br>${court}` : `${format}<br>${date}<br>${time}`;
+  const detailsSection = section("Reservation Details", detailsValue);
+  const playersSection = players !== null ? section("Player(s)", players) : "";
+
+  return `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}"><h1>Reservation Update</h1>${detailsSection}${playersSection}</body></html>`;
+}
+
 function cancellationHtml(
   fields: {
     facility?: string;
@@ -178,6 +209,53 @@ test("a cancellation email parses into facility/date/time — but never a court 
       courtLabel: null,
     },
   });
+});
+
+test("an update email parses into facility, date/time, court (bundled, not a separate section), format and players", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Reservation Update Notice",
+    html: updateHtml(),
+  });
+
+  assert.deepEqual(result, {
+    kind: "update",
+    update: {
+      facilityName: "PicklePlex Downsview",
+      date: "2026-09-15",
+      startTime: "18:00",
+      endTime: "19:00",
+      courtLabel: "Court 3",
+      format: "doubles",
+      playerNames: ["Amy Ace", "Ben Backhand"],
+    },
+  });
+});
+
+test("an update with no trailing court line produces a null courtLabel, not an empty string", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Reservation Update Notice",
+    html: updateHtml({ court: null }),
+  });
+
+  assert.equal(result.kind === "update" ? result.update.courtLabel : undefined, null);
+});
+
+test('"Reservation Update Notice" — CourtReserve\'s real subject — is recognized as an update, not confused with a confirmation or cancellation', () => {
+  const result = parseCourtReserveEmail({
+    subject: "Reservation Update Notice",
+    html: updateHtml(),
+  });
+
+  assert.equal(result.kind, "update");
+});
+
+test("an update subject is still checked after the cancellation check, so a genuine cancellation subject is never misread as an update", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Reservation Cancellation Notice",
+    html: cancellationHtml(),
+  });
+
+  assert.equal(result.kind, "cancellation");
 });
 
 test("a waitlist notice is recognized as not-a-booking, not mis-parsed as a confirmation", () => {
@@ -371,6 +449,18 @@ const REAL_CANCELLATION_SUBJECT = "Reservation Cancellation Notice";
 const REAL_CANCELLATION_HTML = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">  <html xmlns="http://www.w3.org/1999/xhtml">  <head>      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">      <meta name="viewport" content="width=device-width, initial-scale=1.0">      <link href="https://app.courtreserve.com/fonts/axiforma/stylesheet.css" rel="stylesheet">  </head>  <body style="margin: 0px; padding: 0px; background-color: #EEEEEE;">      <table cellpadding="0" cellspacing="0" border="0" width="100%" class="body" style="width: 100%;">          <tbody>              <tr>                  <td align="center" valign="top" style="vertical-align: top; line-height: 1; padding: clamp(12px, calc(100vw - 1060px), 60px);">                      <span style="display: inline-block; font-size: 0px; line-height: 0; vertical-align: top; max-width: 600px; background-color: white; width: 100%; padding-top: 16px;">                          <img border="0" src="https://tgcstorage.blob.core.windows.net/court-reserve-17681/86bd6b34-42c5-4cc2-82d7-a4d8ab6d8a7e.jpg" alt="PicklePlex Downsview " height='100' style="margin: 0px; padding: 0px; max-width: 100%; border: none; vertical-align: top; max-width: 420px;max-height:100px;object-fit:contain;">                      </span>                      <span style=" background-color: white;">                          <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head></head><body style="font-family: Inter, Axiforma, Roboto, Google Sans, Helvetica, Arial, sans-serif; margin: 0px; padding: 0px; background-color: #eeeeee;"><div style="background-color: #eeeeee;"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="body"><tbody><tr><td align="center" valign="top" style="vertical-align:top;line-height:1;padding:0px 0px"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="main container"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 32px 0px 10px; background-color: #ffffff;" bgcolor="#ffffff"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="block"><tr><td align="center" valign="top" style="vertical-align: top; line-height: 1; background-color: #ffffff;" bgcolor="#ffffff"><h1 class="h1" style="padding: 0px; margin: 0px; font-style: normal; font-family: Inter, Axiforma, Roboto, Google Sans, Helvetica, Arial, sans-serif; font-size: 28px; line-height: 36px; color: #111118; font-weight: bold;">Reservation Cancellation</h1><h3 class="h3" style="padding: 0px; margin: 4px 10px 7px; font-style: normal; font-family: Inter, Axiforma, Roboto, Google Sans, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 20px; color: #111118; font-weight: normal;">This&nbsp;Reservation has been cancelled</h3></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="block"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 10px 0px;"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="divider"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1px; padding: 0px; font-size: 1px; background-color: #e0e0e0;" bgcolor="#e0e0e0">&nbsp;</td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="block"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 0px;"><h5 class="h5" style="padding: 0px; margin: 6px 0px; font-style: normal; font-family: Inter, Axiforma, Roboto, Google Sans, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 400;" align="center">        </h5></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="block"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 10px 20px 0px;"><h4 class="h4" style="padding: 0px; margin: 0px 0px 4px; font-style: normal; font-family: Inter, Axiforma, Roboto, Google Sans, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 700;" align="left">Cancellation Details</h4><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" style="width: 100%; max-width: 600px; margin: auto;" class="divider"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1px; padding: 0px; font-size: 1px; background-color: #e0e0e0;" bgcolor="#e0e0e0">&nbsp;</td></tr></table><h5 class="h5" style="padding: 0px; margin: 12px 0px 6px; font-style: normal; font-family: Inter, Axiforma, Roboto, Google Sans, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 400;" align="left">Amy&nbsp;Ace<br>Singles<br>Friday, 8-21-2026<br>2:00 PM - 4:00 PM</h5></td></tr></table></td></tr></table></td></tr></tbody></table></div></body></html>                      </span>                      <table cellpadding="0" cellspacing="0" border="0" class="footer container" style="width: 100%; max-width: 600px; border-collapse: separate;">                          <tr>                              <td align="left" valign="top" bgcolor="#2960e9" style="vertical-align: top; line-height: 1; background-color: #2960e9; padding: 20px">                                  <table cellpadding="0" cellspacing="0" border="0" width="100%" class="block" style="width: 100%;">                                      <tr>                                          <td align="center" valign="top" style="vertical-align: top; line-height: 1;">                                              <p style="padding: 0px; margin: 0px; color: #fbf9f9; font-size: 20px; line-height: 18px; font-weight: 700;">                                                  PicklePlex Downsview                                               </p>                                              <p style="padding: 0px; padding-top: 16px; margin: 0px; color: #fbf9f9; font-size: 12px; line-height: 18px; ">                                                  <span>© 2026 All Rights Reserved</span>                                                  <a href="https://mobileapp.courtreserve.com/Online/MyProfile/MyProfile/17681?page=notifications">Notification Preferences</a>                                              </p>                                          </td>                                      </tr>                                  </table>                              </td>                          </tr>                      </table>                  </td>              </tr>          </tbody>      </table>  <img src="https://u2196282.ct.sendgrid.net/wf/open?upn=example-tracking-token" alt="" width="1" height="1" border="0" style="height:1px !important;width:1px !important;"/></body>  </html>`;
 
+const REAL_UPDATE_SUBJECT = "Reservation Update Notice";
+
+// Captured via Gmail's "Show original" from a real "Reservation Update
+// Notice" — CourtReserve's own resend after a logged reservation's details
+// changed (here: Singles -> Doubles, two players added). Confirms the design
+// difference from a confirmation email documented in courtreserve-email.ts's
+// own header: "Reservation Details" (not "Details") bundles the court label
+// in as a fourth `<br>`-joined line, with no separate Court(s) section at
+// all — the confirmation template's own boilerplate <style> block is trimmed
+// here as noise, same as the other two real fixtures above.
+const REAL_UPDATE_HTML = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">  <html xmlns="http://www.w3.org/1999/xhtml">  <head>      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">      <meta name="viewport" content="width=device-width, initial-scale=1.0">      <link href="https://app.courtreserve.com/fonts/axiforma/stylesheet.css" rel="stylesheet">        </head>  <body style="margin: 0px; padding: 0px; background-color: #EEEEEE;">      <table cellpadding="0" cellspacing="0" border="0" width="100%" class="body" style="width: 100%;">          <tbody>              <tr>                  <td align="center" valign="top" style="vertical-align: top; line-height: 1; padding: clamp(12px, calc(100vw - 1060px), 60px);">                      <span style="display: inline-block; font-size: 0px; line-height: 0; vertical-align: top; max-width: 600px; background-color: white; width: 100%; padding-top: 16px;">                          <img border="0" src="https://tgcstorage.blob.core.windows.net/court-reserve-17681/86bd6b34-42c5-4cc2-82d7-a4d8ab6d8a7e.jpg" alt="PicklePlex Downsview " height='100' style="margin: 0px; padding: 0px; max-width: 100%; border: none; vertical-align: top; max-width: 420px;max-height:100px;object-fit:contain;">                      </span>                      <span style=" background-color: white;">                          <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head></head><body style="font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; margin: 0px; padding: 0px; background-color: #eeeeee;"><div style="background-color: #eeeeee;"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="body" style="width: 100%; max-width: 600px; margin: auto;"><tbody><tr><td align="center" valign="top" style="vertical-align:top;line-height:1;padding:0px 0px"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="main container" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="left" valign="top" bgcolor="#ffffff" style="vertical-align: top; line-height: 1; padding: 32px 0px 10px; background-color: #ffffff;"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="block" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="center" valign="top" bgcolor="#ffffff" style="vertical-align: top; line-height: 1; background-color: #ffffff;"><h1 class="h1" style="padding: 0px; margin: 0px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 28px; line-height: 36px; color: #111118; font-weight: bold;">Reservation Update</h1><h3 class="h3" style="padding: 0px; margin: 4px 10px 7px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 20px; color: #111118; font-weight: normal;">Review the details of your&nbsp;Reservation below</h3></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="block" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 10px 0px;"><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="divider" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="left" valign="top" bgcolor="#e0e0e0" style="vertical-align: top; line-height: 1px; padding: 0px; font-size: 1px; background-color: #e0e0e0;">&nbsp;</td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" class="block" style="display: table; width: 100%;"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 0px 20px;"><h5 class="h5" align="center" style="padding: 0px; margin: 6px 0px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 400;"></h5></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="block" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 10px 20px 0px;"><h4 class="h4" align="left" style="padding: 0px; margin: 0px 0px 4px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 700;">Reservation Details</h4><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="divider" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="left" valign="top" bgcolor="#e0e0e0" style="vertical-align: top; line-height: 1px; padding: 0px; font-size: 1px; background-color: #e0e0e0;">&nbsp;</td></tr></table><h5 class="h5" align="left" style="padding: 0px; margin: 12px 0px 6px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 400;">Doubles<br>Tuesday, 8-18-2026<br>12:00 PM - 2:00 PM<br>Court #9 - Hard</h5></td></tr></table><table cellpadding="0" cellspacing="0" border="0" class="block" style="display: table; width: 100%;"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 10px 20px 0px;"><h4 class="h4" align="left" style="padding: 0px; margin: 0px 0px 4px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 700;">Player(s)</h4><table cellpadding="0" cellspacing="0" border="0" width="100%" max-width="600px" margin="auto" class="divider" style="width: 100%; max-width: 600px; margin: auto;"><tr><td align="left" valign="top" bgcolor="#e0e0e0" style="vertical-align: top; line-height: 1px; padding: 0px; font-size: 1px; background-color: #e0e0e0;">&nbsp;</td></tr></table><h5 class="h5" align="left" style="padding: 0px; margin: 12px 0px 6px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 400;">Amy Ace<br>Ben Backhand<br>Cara Crosscourt<br>Dave Dink</h5></td></tr></table><table cellpadding="0" cellspacing="0" border="0" class="block" style="display: table; width: 100%;"><tr><td align="left" valign="top" style="vertical-align: top; line-height: 1; padding: 0px 20px;"><h5 class="h5" align="center" style="padding: 0px; margin: 6px 0px; font-style: normal; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif; font-size: 14px; line-height: 21px; color: #111118; font-weight: 400;"></h5></td></tr></table></td></tr></table></td></tr></tbody></table></div></body></html>                      </span>                      <table cellpadding="0" cellspacing="0" border="0" class="footer container" style="width: 100%; max-width: 600px; border-collapse: separate;">                          <tr>                              <td align="left" valign="top" bgcolor="#2960e9" style="vertical-align: top; line-height: 1; background-color: #2960e9; padding: 20px">                                  <table cellpadding="0" cellspacing="0" border="0" width="100%" class="block" style="width: 100%;">                                      <tr>                                          <td align="center" valign="top" style="vertical-align: top; line-height: 1;">                                              <p style="padding: 0px; margin: 0px; color: #fbf9f9; font-size: 20px; line-height: 18px; font-weight: 700; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif;">                                                  PicklePlex Downsview                                               </p>                                              <footercr>                                                  <div class="social" style="padding-top: 16px; justify-content: center; display: inline-flex; color: #fbf9f9 ">                                                      <span>                                                          <a href="example.com" target="_blank" style="text-decoration: none; margin-right: 6px;margin-left: 6px">                                                              <img style="max-width: 36px" src="https://app.courtreserve.com/Content/Images/email/globe_white.png">                                                          </a>                                                      </span>                                                                                                                                                                                                                                                                            </div>                                              </footercr>                                              <span style="background-color: #fbf9f9; height: 1px; width: 100%; margin-top: 16px; width: 70%; display: block;"></span>                                                <p style="padding: 0px; padding-top: 16px; margin: 0px; color: #fbf9f9; font-size: 12px; line-height: 18px; ">                                                  <span style="font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif;color: #fbf9f9 ">© 2026 All Rights Reserved</span>                                                  <a href="https://mobileapp.courtreserve.com/Online/MyProfile/MyProfile/17681?page=notifications" style="text-decoration: underline; font-size: 10px; font-weight: 400; padding-top: 4px; color: #fbf9f9; display: block; font-family: Inter, Axiforma, Roboto, 'Google Sans', Helvetica, Arial, sans-serif;">Notification Preferences</a>                                              </p>                                          </td>                                      </tr>                                  </table>                              </td>                          </tr>                      </table>                  </td>              </tr>          </tbody>      </table>  <img src="https://u2196282.ct.sendgrid.net/wf/open?upn=example-tracking-token" alt="" width="1" height="1" border="0" style="height:1px !important;width:1px !important;border-width:0 !important;margin-top:0 !important;margin-bottom:0 !important;margin-right:0 !important;margin-left:0 !important;padding-top:0 !important;padding-bottom:0 !important;padding-right:0 !important;padding-left:0 !important;"/></body>  </html>`;
+
 test("a real captured confirmation email (facility/player names replaced with placeholders) parses correctly, including its nested doctype/html wrapper and footer", () => {
   const result = parseCourtReserveEmail({ subject: REAL_CONFIRMATION_SUBJECT, html: REAL_CONFIRMATION_HTML });
 
@@ -398,6 +488,23 @@ test("a real captured cancellation email (facility/player name replaced with pla
       date: "2026-08-21",
       startTime: "14:00",
       courtLabel: null,
+    },
+  });
+});
+
+test("a real captured update email (facility/player names replaced with placeholders) parses correctly, with the court label read off the bundled fourth line, not a separate section", () => {
+  const result = parseCourtReserveEmail({ subject: REAL_UPDATE_SUBJECT, html: REAL_UPDATE_HTML });
+
+  assert.deepEqual(result, {
+    kind: "update",
+    update: {
+      facilityName: "PicklePlex Downsview",
+      date: "2026-08-18",
+      startTime: "12:00",
+      endTime: "14:00",
+      courtLabel: "Court #9 - Hard",
+      format: "doubles",
+      playerNames: ["Amy Ace", "Ben Backhand", "Cara Crosscourt", "Dave Dink"],
     },
   });
 });

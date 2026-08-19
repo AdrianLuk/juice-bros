@@ -202,6 +202,40 @@ export async function deleteOwnedBooking(bookingId: string): Promise<ActionResul
   return { ok: true };
 }
 
+/**
+ * Applying a matched Reservation Update Notice (issue #91) edits the format
+ * and court label already on file for a Booking, rather than creating or
+ * removing one — `matchUpdateToBooking` (`email-sync-matching.ts`) already
+ * resolved `bookingId` against this same caller's own Bookings, so this is
+ * scoped by `id` alone, the same "RLS turns 'isn't yours' into an empty
+ * result" shape `deleteOwnedBooking` already established. `startsAt`/`endsAt`
+ * are never touched: matching is deliberately Org + date/start-time only
+ * (not court), so the slot the update refers to is already known to be
+ * unchanged — only its format and court label can differ.
+ */
+export async function updateOwnedBookingFormatAndCourt(
+  bookingId: string,
+  fields: { format: BookingFormat; courtLabel: string | null },
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({ format: fields.format, court_label: fields.courtLabel })
+    .eq("id", bookingId)
+    .select("id");
+
+  if (error) {
+    return { error: bookingWriteMessage(error) };
+  }
+  if (!data?.length) {
+    return { error: "Couldn't update that booking. Try again." };
+  }
+
+  revalidatePath(BOOKINGS_PATH);
+  revalidatePath(BOOKING_BUDDY_ROOT);
+  return { ok: true };
+}
+
 export async function deleteBooking(
   _prev: ActionResult,
   formData: FormData,
