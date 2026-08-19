@@ -77,6 +77,40 @@ function updateHtml(
   return `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}"><h1>Reservation Update</h1>${detailsSection}${playersSection}</body></html>`;
 }
 
+/**
+ * CourtReserve's second real template — "Registration Confirmation", sent
+ * for program/tournament sign-ups (issue #96) — same `<h4>`/`<h5>` field-group
+ * shape as `confirmationHtml`, but "Event" in place of "Details" and
+ * "Registered Team(s)" (its own value "Team:"-prefixed) in place of "Player(s)".
+ */
+function registrationHtml(
+  fields: {
+    facility?: string;
+    eventName?: string;
+    date?: string;
+    time?: string;
+    /** `null` omits the Court(s) section entirely, matching a facility that doesn't label its courts. */
+    court?: string | null;
+    /** `null` omits the Registered Team(s) section entirely. */
+    team?: string | null;
+  } = {},
+): string {
+  const {
+    facility = "PicklePlex Downsview",
+    eventName = "Men's Partners Play 3.5 and up Tourney Style",
+    date = "Friday, 8-21-2026",
+    time = "2:00 PM - 4:00 PM",
+    court = "Court 3",
+    team = "Team: Daven Wong, Adrian Luk",
+  } = fields;
+
+  const eventSection = section("Event", `${eventName}<br>${date}<br>${time}`);
+  const teamSection = team !== null ? section("Registered Team(s)", team) : "";
+  const courtSection = court !== null ? section("Court(s)", court) : "";
+
+  return `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}"><h1>Registration Confirmation</h1>${eventSection}${teamSection}${courtSection}</body></html>`;
+}
+
 function cancellationHtml(
   fields: {
     facility?: string;
@@ -146,6 +180,18 @@ test("name carries the Details section's raw first line, not the normalized form
   });
 
   assert.equal(result.kind === "confirmation" && result.confirmation.name, "Mixed Doubles");
+});
+
+test("a Player(s) name starting with the word \"Team\" is left untouched — the \"Team:\" label strip only ever applies to a Registration Confirmation's own Registered Team(s) section", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Booking Confirmation for Tuesday, 2026-09-15 6:00 PM - 7:00 PM",
+    html: confirmationHtml({ players: "Team Captain: Smith, Ben Backhand" }),
+  });
+
+  assert.deepEqual(
+    result.kind === "confirmation" ? result.confirmation.playerNames : null,
+    ["Team Captain: Smith", "Ben Backhand"],
+  );
 });
 
 test("a facility that doesn't label its courts produces a null courtLabel, not an empty string", () => {
@@ -267,6 +313,67 @@ test("an update subject is still checked after the cancellation check, so a genu
   });
 
   assert.equal(result.kind, "cancellation");
+});
+
+test("a Registration Confirmation parses into facility, date/time and court the same shape as a Booking Confirmation, with its Event name as both name and (defaulted) format", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Registration Confirmation - Men's Partners Play 3.5 and up Tourney Style",
+    html: registrationHtml(),
+  });
+
+  assert.deepEqual(result, {
+    kind: "confirmation",
+    confirmation: {
+      facilityName: "PicklePlex Downsview",
+      date: "2026-08-21",
+      startTime: "14:00",
+      endTime: "16:00",
+      courtLabel: "Court 3",
+      format: "doubles",
+      name: "Men's Partners Play 3.5 and up Tourney Style",
+      playerNames: ["Daven Wong", "Adrian Luk"],
+    },
+  });
+});
+
+test('a Registration Confirmation\'s "Registered Team(s)" value strips its leading "Team:" label before splitting into player names', () => {
+  const result = parseCourtReserveEmail({
+    subject: "Registration Confirmation - Men's Partners Play 3.5 and up Tourney Style",
+    html: registrationHtml({ team: "Team: Amy Ace, Ben Backhand" }),
+  });
+
+  assert.deepEqual(
+    result.kind === "confirmation" ? result.confirmation.playerNames : null,
+    ["Amy Ace", "Ben Backhand"],
+  );
+});
+
+test("a Registration Confirmation whose Event name is literally Singles/Doubles is still recognized as that format, not defaulted", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Registration Confirmation - Singles Ladder",
+    html: registrationHtml({ eventName: "Singles" }),
+  });
+
+  assert.equal(result.kind === "confirmation" && result.confirmation.format, "singles");
+  assert.equal(result.kind === "confirmation" && result.confirmation.name, "Singles");
+});
+
+test('"Registration Confirmation - ..." is recognized as a confirmation even though its subject contains neither "reservation" nor "booking"', () => {
+  const result = parseCourtReserveEmail({
+    subject: "Registration Confirmation - Men's Partners Play 3.5 and up Tourney Style",
+    html: registrationHtml(),
+  });
+
+  assert.equal(result.kind, "confirmation");
+});
+
+test("no team listed on a Registration Confirmation produces an empty playerNames array, not a failure", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Registration Confirmation - Men's Partners Play 3.5 and up Tourney Style",
+    html: registrationHtml({ team: null }),
+  });
+
+  assert.deepEqual(result.kind === "confirmation" ? result.confirmation.playerNames : null, []);
 });
 
 test("a waitlist notice is recognized as not-a-booking, not mis-parsed as a confirmation", () => {
