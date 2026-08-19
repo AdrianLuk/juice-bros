@@ -92,6 +92,12 @@ export function formatCourtLabel(courtLabel: string | null): string {
   return courtLabel ? `Court ${courtLabel}` : "No court noted";
 }
 
+/** `"2026-08-19"` → `"08-19-2026"` — a plain string reslice, not a `Date` round-trip, since the input already is a calendar date with no zone to misread. */
+export function formatCandidateDate(date: string): string {
+  const [year, month, day] = date.split("-");
+  return `${month}-${day}-${year}`;
+}
+
 /**
  * Strips a leading "Court" word off a CourtReserve email's own Court(s) text
  * (e.g. "Court #6 - Hard") before it becomes a candidate's `court_label`
