@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   CalendarClockIcon,
+  CalendarCheckIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   MapPinIcon,
@@ -25,6 +26,7 @@ import {
 import { signOut } from "@/lib/booking-buddy/actions/auth";
 import {
   BOOKING_BUDDY_ROOT,
+  BOOKINGS_PATH,
   FRIENDS_PATH,
   GROUPS_PATH,
   ORGS_PATH,
@@ -35,6 +37,7 @@ import {
 export type BbNavKey =
   | "dashboard"
   | "slots"
+  | "bookings"
   | "friends"
   | "groups"
   | "orgs"
@@ -43,8 +46,9 @@ export type BbNavKey =
 const NAV_ITEMS: { key: BbNavKey; href: string; label: string; icon: LucideIcon }[] = [
   { key: "dashboard", href: BOOKING_BUDDY_ROOT, label: "Dashboard", icon: LayoutDashboardIcon },
   { key: "slots", href: SLOTS_PATH, label: "Slots", icon: CalendarClockIcon },
+  { key: "bookings", href: BOOKINGS_PATH, label: "Bookings", icon: CalendarCheckIcon },
   { key: "friends", href: FRIENDS_PATH, label: "Friends", icon: UsersIcon },
-  { key: "groups", href: GROUPS_PATH, label: "Friend groups", icon: UsersRoundIcon },
+  { key: "groups", href: GROUPS_PATH, label: "Groups", icon: UsersRoundIcon },
   { key: "orgs", href: ORGS_PATH, label: "Facilities", icon: MapPinIcon },
   { key: "settings", href: SETTINGS_PATH, label: "Settings", icon: SettingsIcon },
 ];
