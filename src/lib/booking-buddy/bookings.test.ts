@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   COURT_LABEL_MAX_LENGTH,
   HOUR_TIMES,
+  NAME_MAX_LENGTH,
   bookingWriteMessage,
   formatBookingWhen,
   formatCourtLabel,
@@ -28,7 +29,9 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-function parse(overrides: Partial<typeof VALID & { format: string }> = {}) {
+function parse(
+  overrides: Partial<typeof VALID & { format: string; name: string }> = {},
+) {
   return parseNewBooking(form({ ...VALID, ...overrides }));
 }
 
@@ -38,6 +41,7 @@ test("a court, a date and a window become a Booking", () => {
   assert.deepEqual(parse(), {
     orgId: VALID.org_id,
     courtLabel: "Court 3",
+    name: null,
     date: "2026-08-20",
     startTime: "18:00",
     endTime: "19:00",
@@ -80,6 +84,31 @@ test("a court is optional — a blank or omitted label becomes null, not an erro
   const parsed = parseNewBooking(form(withoutCourt));
   assert.ok(!("error" in parsed));
   assert.equal(parsed.courtLabel, null);
+});
+
+test("surrounding space is trimmed off the name", () => {
+  const parsed = parse({ name: "  Tuesday Rally  " });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.name, "Tuesday Rally");
+});
+
+test("a name is optional — a blank or omitted name becomes null, not an error", () => {
+  for (const name of ["", "   "]) {
+    const parsed = parse({ name });
+    assert.ok(!("error" in parsed));
+    assert.equal(parsed.name, null);
+  }
+
+  const withoutName = { ...VALID };
+  const parsed = parseNewBooking(form(withoutName));
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.name, null);
+});
+
+test("an over-long name is refused before the database has to", () => {
+  const parsed = parse({ name: "a".repeat(NAME_MAX_LENGTH + 1) });
+  assert.ok("error" in parsed);
+  assert.match(parsed.error, new RegExp(String(NAME_MAX_LENGTH)));
 });
 
 test("a court label renders as 'Court <label>', and a missing one as a plain fallback", () => {

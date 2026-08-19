@@ -76,6 +76,27 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
   await expect(row(page, "Court 3")).toHaveCount(0);
 });
 
+test("a booking's name renders on the Bookings list row", async ({ page }) => {
+  const place = placeName();
+  const name = `${PREFIX} Rally ${Date.now()}`;
+
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    name,
+    court: "5",
+    date: "2026-09-15",
+    start: "18:00",
+    end: "19:00",
+  });
+
+  const booking = row(page, "Court 5");
+  await expect(booking).toContainText(name);
+  await expect(booking).toContainText(place);
+
+  await removePlace(page, place);
+});
+
 test("a duration that would run past midnight is refused before it's ever submitted", async ({
   page,
 }) => {

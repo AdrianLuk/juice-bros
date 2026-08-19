@@ -67,10 +67,15 @@ export async function logBooking(
     end: string;
     /** Defaults to whatever the form itself defaults to — doubles. */
     format?: "Doubles" | "Singles";
+    /** Left blank when omitted — the field is optional. */
+    name?: string;
   },
 ) {
   await page.goto("/booking-buddy/bookings");
   await page.getByLabel("Facility").selectOption({ label: booking.place });
+  if (booking.name) {
+    await page.getByLabel("Name").fill(booking.name);
+  }
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
   // On-the-hour slots only (issue #20 follow-up) — this is a `<select>` now,
