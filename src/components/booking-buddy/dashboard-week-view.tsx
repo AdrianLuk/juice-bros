@@ -9,6 +9,7 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from "react";
 
 import { cn } from "@/lib/utils";
@@ -103,6 +104,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const todayColumnRef = useRef<HTMLDivElement>(null);
   // The body always has a vertical scrollbar (24h of content never fits
   // `max-h-136`); the header never does. Left unaccounted for, the
   // scrollbar's own width narrows the body's day columns relative to the
@@ -125,6 +127,27 @@ export function DashboardWeekView<T extends CalendarEvent>({
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: DEFAULT_SCROLL_HOUR * HOUR_HEIGHT });
+  }, [weekStart]);
+
+  // Below `lg` the day columns keep a minimum width wider than a phone
+  // screen (see `DAY_GRID_COLS`), so only the first few days are visible
+  // without scrolling sideways — on a Thursday that leaves "today" off
+  // screen. When the visible week contains today, center its column in the
+  // scroller on mount/week change; no-ops at `lg`+ where columns shrink to
+  // fit and nothing overflows, and no-ops on other weeks where today's
+  // column doesn't exist.
+  useEffect(() => {
+    const body = bodyRef.current;
+    const column = todayColumnRef.current;
+    if (!body || !column) return;
+    if (body.scrollWidth <= body.clientWidth) return;
+
+    const bodyRect = body.getBoundingClientRect();
+    const columnRect = column.getBoundingClientRect();
+    const columnLeft = columnRect.left - bodyRect.left + body.scrollLeft;
+    const target = columnLeft + columnRect.width / 2 - body.clientWidth / 2;
+    const max = body.scrollWidth - body.clientWidth;
+    body.scrollLeft = Math.max(0, Math.min(target, max));
   }, [weekStart]);
 
   /**
@@ -238,6 +261,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
                 busyIntervals={busyIntervals}
                 windows={windows}
                 renderEvent={renderEvent}
+                columnRef={isSameDay(day, today) ? todayColumnRef : undefined}
               />
             ))}
           </div>
@@ -254,6 +278,7 @@ function DayColumn<T extends CalendarEvent>({
   busyIntervals,
   windows,
   renderEvent,
+  columnRef,
 }: {
   day: Date;
   hours: number[];
@@ -261,6 +286,7 @@ function DayColumn<T extends CalendarEvent>({
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
   renderEvent: (event: T, style: CSSProperties, range: EventRange) => ReactNode;
+  columnRef?: RefObject<HTMLDivElement | null>;
 }) {
   const dayStart = new Date(day);
   dayStart.setHours(0, 0, 0, 0);
@@ -286,6 +312,7 @@ function DayColumn<T extends CalendarEvent>({
 
   return (
     <div
+      ref={columnRef}
       className="relative border-l border-border first:border-l-0"
       style={{ height: DAY_HEIGHT }}
     >
