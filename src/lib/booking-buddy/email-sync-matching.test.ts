@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  diffBookingPlayers,
   isDuplicateBooking,
   isPastConfirmation,
   matchCancellationToBooking,
@@ -111,6 +112,74 @@ test("two Connections sharing a display name resolve the matching name unlinked,
   const result = matchPlayerNamesToConnections(["Amy Ace"], connections);
 
   assert.deepEqual(result, [{ name: "Amy Ace", userId: null }]);
+});
+
+test("a name that still appears among the existing Players is kept — its row untouched, no match needed", () => {
+  const existing = [{ id: "row-1", name: "Amy Ace", userId: "user-1" }];
+  const result = diffBookingPlayers(["Amy Ace"], existing);
+
+  assert.deepEqual(result, { keepIds: ["row-1"], toMatch: [], removeIds: [] });
+});
+
+test("a name with no matching existing Player is new or edited, and needs matching", () => {
+  const result = diffBookingPlayers(["Cal Crosscourt"], []);
+
+  assert.deepEqual(result, { keepIds: [], toMatch: ["Cal Crosscourt"], removeIds: [] });
+});
+
+test("an existing Player dropped from the submitted list is marked for removal", () => {
+  const existing = [
+    { id: "row-1", name: "Amy Ace", userId: "user-1" },
+    { id: "row-2", name: "Ben Backhand", userId: "user-2" },
+  ];
+  const result = diffBookingPlayers(["Amy Ace"], existing);
+
+  assert.deepEqual(result, { keepIds: ["row-1"], toMatch: [], removeIds: ["row-2"] });
+});
+
+test("an unlinked existing Player's row is still just kept when its name is unchanged, not re-matched", () => {
+  const existing = [{ id: "row-1", name: "Amy Ace", userId: null }];
+  const result = diffBookingPlayers(["Amy Ace"], existing);
+
+  assert.deepEqual(result, { keepIds: ["row-1"], toMatch: [], removeIds: [] });
+});
+
+test("a mix of unchanged, new and dropped names sorts into the right groups", () => {
+  const existing = [
+    { id: "row-1", name: "Amy Ace", userId: "user-1" },
+    { id: "row-2", name: "Ben Backhand", userId: null },
+  ];
+  const result = diffBookingPlayers(["Amy Ace", "Cal Crosscourt"], existing);
+
+  assert.deepEqual(result, {
+    keepIds: ["row-1"],
+    toMatch: ["Cal Crosscourt"],
+    removeIds: ["row-2"],
+  });
+});
+
+test("duplicate names pair off one-for-one with existing rows, in the order given — extras need matching, not the same link twice", () => {
+  const existing = [{ id: "row-1", name: "Amy Ace", userId: "user-1" }];
+  const result = diffBookingPlayers(["Amy Ace", "Amy Ace"], existing);
+
+  assert.deepEqual(result, { keepIds: ["row-1"], toMatch: ["Amy Ace"], removeIds: [] });
+});
+
+test("a submitted list shorter than the existing duplicates keeps the earliest-ordered rows and removes the rest", () => {
+  const existing = [
+    { id: "row-1", name: "Amy Ace", userId: "user-1" },
+    { id: "row-2", name: "Amy Ace", userId: null },
+  ];
+  const result = diffBookingPlayers(["Amy Ace"], existing);
+
+  assert.deepEqual(result, { keepIds: ["row-1"], toMatch: [], removeIds: ["row-2"] });
+});
+
+test("an empty submitted list needs no matching and marks every existing Player for removal", () => {
+  const existing = [{ id: "row-1", name: "Amy Ace", userId: "user-1" }];
+  const result = diffBookingPlayers([], existing);
+
+  assert.deepEqual(result, { keepIds: [], toMatch: [], removeIds: ["row-1"] });
 });
 
 const CANCELLED_SLOT = { orgId: "org-1", date: "2026-09-15", startTime: "18:00" };

@@ -69,12 +69,17 @@ export async function logBooking(
     format?: "Doubles" | "Singles";
     /** Left blank when omitted — the field is optional. */
     name?: string;
+    /** Comma-separated, same shape the Players field itself takes. Left blank when omitted. */
+    players?: string;
   },
 ) {
   await page.goto("/booking-buddy/bookings");
   await page.getByLabel("Facility").selectOption({ label: booking.place });
   if (booking.name) {
     await page.getByLabel("Name").fill(booking.name);
+  }
+  if (booking.players) {
+    await page.getByLabel("Players").fill(booking.players);
   }
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
@@ -90,15 +95,23 @@ export async function logBooking(
 
 /**
  * Opens the "Edit" dialog on the Bookings list row for `courtLabel` and
- * changes only the given fields (issue #97). Scoped to `page.getByRole("dialog")`,
- * the same disambiguation `onboarding.spec.ts`'s own modal helper uses —
- * `CreateBookingForm` sits on the same page below the list, so an unscoped
- * `getByLabel("Name")` would match both it and the dialog's own field.
+ * changes only the given fields (issue #97, extended to Players by #101).
+ * Scoped to `page.getByRole("dialog")`, the same disambiguation
+ * `onboarding.spec.ts`'s own modal helper uses — `CreateBookingForm` sits on
+ * the same page below the list, so an unscoped `getByLabel("Name")` would
+ * match both it and the dialog's own field.
  */
 export async function editBooking(
   page: Page,
   courtLabel: string,
-  edits: { name?: string; court?: string; date?: string; format?: "Doubles" | "Singles" },
+  edits: {
+    name?: string;
+    court?: string;
+    date?: string;
+    format?: "Doubles" | "Singles";
+    /** Comma-separated, same shape the Players field itself takes — replaces the existing list rather than appending. */
+    players?: string;
+  },
 ) {
   await row(page, courtLabel).getByRole("button", { name: "Edit" }).click();
   const dialog = page.getByRole("dialog");
@@ -114,6 +127,9 @@ export async function editBooking(
   }
   if (edits.format) {
     await dialog.getByLabel("Format").selectOption({ label: edits.format });
+  }
+  if (edits.players !== undefined) {
+    await dialog.getByLabel("Players").fill(edits.players);
   }
 
   await dialog.getByRole("button", { name: "Save changes" }).click();
