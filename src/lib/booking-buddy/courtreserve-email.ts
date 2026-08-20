@@ -36,7 +36,7 @@
  */
 
 import { isBookingFormat, type BookingFormat } from "./capacity.ts";
-import { DEFAULT_BOOKING_FORMAT } from "./bookings.ts";
+import { DEFAULT_BOOKING_FORMAT, splitPlayerNames } from "./bookings.ts";
 
 export type CourtReserveConfirmation = {
   facilityName: string;
@@ -322,16 +322,6 @@ function parseFormat(text: string | null): BookingFormat {
   return isBookingFormat(normalized) ? normalized : DEFAULT_BOOKING_FORMAT;
 }
 
-function parsePlayerNames(text: string | null): string[] {
-  if (!text) {
-    return [];
-  }
-  return text
-    .split(",")
-    .map((name) => name.trim())
-    .filter((name) => name.length > 0);
-}
-
 /**
  * A Registration Confirmation's own "Registered Team(s)" value prefixes its
  * name list with a "Team:" label (e.g. "Team: Amy Ace, Ben Backhand") —
@@ -483,7 +473,7 @@ export function parseCourtReserveEmail(email: {
     const rawPlayerText = playersSectionHtml
       ? decodeHtmlEntities(stripTags(playersSectionHtml)).replace(/\s+/g, " ").trim()
       : null;
-    const playerNames = parsePlayerNames(
+    const playerNames = splitPlayerNames(
       kind === "registration" && rawPlayerText ? stripTeamLabel(rawPlayerText) : rawPlayerText,
     );
 

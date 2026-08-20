@@ -364,6 +364,16 @@ export function CreateBookingForm({
         durationOverflows={durationOverflows}
       />
 
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="booking-players">Players (optional)</Label>
+        <Input
+          id="booking-players"
+          name="players"
+          type="text"
+          placeholder="Amy Ace, Ben Backhand"
+        />
+      </div>
+
       <div className="flex flex-col items-start gap-1">
         <Button type="submit" disabled={pending || endTime === null}>
           {pending ? "Saving…" : "Log booking"}
@@ -499,6 +509,11 @@ export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] })
           <p className="truncate text-xs text-muted-foreground">
             {booking.orgName}
           </p>
+          {booking.players.length > 0 && (
+            <p className="truncate text-xs text-muted-foreground">
+              With: {booking.players.join(", ")}
+            </p>
+          )}
         </div>
         <div className="hidden sm:block">
           <p className="truncate font-medium">{booking.when}</p>
@@ -509,6 +524,11 @@ export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] })
             {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
             {BOOKING_FORMAT_LABEL[booking.format]}
           </p>
+          {booking.players.length > 0 && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              With: {booking.players.join(", ")}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex flex-col items-end gap-1.5">

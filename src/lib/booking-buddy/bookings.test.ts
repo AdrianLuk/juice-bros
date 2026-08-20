@@ -5,6 +5,7 @@ import {
   COURT_LABEL_MAX_LENGTH,
   HOUR_TIMES,
   NAME_MAX_LENGTH,
+  PLAYER_NAME_MAX_LENGTH,
   bookingWriteMessage,
   formatBookingWhen,
   formatCourtLabel,
@@ -30,7 +31,7 @@ function form(fields: Record<string, string>): FormData {
 }
 
 function parse(
-  overrides: Partial<typeof VALID & { format: string; name: string }> = {},
+  overrides: Partial<typeof VALID & { format: string; name: string; players: string }> = {},
 ) {
   return parseNewBooking(form({ ...VALID, ...overrides }));
 }
@@ -46,7 +47,39 @@ test("a court, a date and a window become a Booking", () => {
     startTime: "18:00",
     endTime: "19:00",
     format: "doubles",
+    players: [],
   });
+});
+
+test("a comma-separated players field becomes a trimmed list of names", () => {
+  const parsed = parse({ players: "Amy Ace,  Ben Backhand ,Cal Crosscourt" });
+  assert.ok(!("error" in parsed));
+  assert.deepEqual(parsed.players, ["Amy Ace", "Ben Backhand", "Cal Crosscourt"]);
+});
+
+test("blank entries in the players field are filtered out", () => {
+  const parsed = parse({ players: "Amy Ace,, ,Ben Backhand" });
+  assert.ok(!("error" in parsed));
+  assert.deepEqual(parsed.players, ["Amy Ace", "Ben Backhand"]);
+});
+
+test("players are optional — a blank or omitted field becomes an empty list, not an error", () => {
+  for (const players of ["", "   "]) {
+    const parsed = parse({ players });
+    assert.ok(!("error" in parsed));
+    assert.deepEqual(parsed.players, []);
+  }
+
+  const withoutPlayers = { ...VALID };
+  const parsed = parseNewBooking(form(withoutPlayers));
+  assert.ok(!("error" in parsed));
+  assert.deepEqual(parsed.players, []);
+});
+
+test("an over-long player name is refused before the database has to", () => {
+  const parsed = parse({ players: `Amy Ace,${"a".repeat(PLAYER_NAME_MAX_LENGTH + 1)}` });
+  assert.ok("error" in parsed);
+  assert.match(parsed.error, new RegExp(String(PLAYER_NAME_MAX_LENGTH)));
 });
 
 test("a singles format is carried through", () => {

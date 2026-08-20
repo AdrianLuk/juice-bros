@@ -31,6 +31,9 @@ export const COURT_LABEL_MAX_LENGTH = 40;
 
 export const NAME_MAX_LENGTH = 60;
 
+/** Mirrors `booking_player_name_length` — the same cap `court_label` itself uses. */
+export const PLAYER_NAME_MAX_LENGTH = 40;
+
 export const DEFAULT_BOOKING_FORMAT: BookingFormat = "doubles";
 
 export type NewBooking = {
@@ -44,7 +47,24 @@ export type NewBooking = {
   endTime: string;
   /** What the court holds Capacity to (ADR 0008) — defaults to doubles, the common case. */
   format: BookingFormat;
+  /** Raw names, trimmed and blank-filtered — matching against Connections happens at write time (ADR 0011). Empty is valid; a Booking with zero Players is not an error. */
+  players: string[];
 };
+
+/**
+ * A comma-separated list of names into trimmed, non-blank entries — the same
+ * shape `courtreserve-email.ts` splits a CourtReserve "Player(s)" section
+ * into, shared so the two don't drift apart.
+ */
+export function splitPlayerNames(text: string | null): string[] {
+  if (!text) {
+    return [];
+  }
+  return text
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+}
 
 export function parseNewBooking(
   formData: FormData,
@@ -97,7 +117,15 @@ export function parseNewBooking(
   const rawFormat = formData.get("format");
   const format: BookingFormat = isBookingFormat(rawFormat) ? rawFormat : DEFAULT_BOOKING_FORMAT;
 
-  return { orgId, courtLabel, name, date, startTime, endTime, format };
+  const players = splitPlayerNames(String(formData.get("players") ?? ""));
+  const overLongPlayer = players.find((player) => player.length > PLAYER_NAME_MAX_LENGTH);
+  if (overLongPlayer) {
+    return {
+      error: `"${overLongPlayer}" is too long for a player name — ${PLAYER_NAME_MAX_LENGTH} characters at most.`,
+    };
+  }
+
+  return { orgId, courtLabel, name, date, startTime, endTime, format, players };
 }
 
 /** "Court 3" when the User noted one down, otherwise a plain fallback. */
