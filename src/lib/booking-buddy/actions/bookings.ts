@@ -174,8 +174,8 @@ async function resolveValidatedOrg(
  * Matches `players` against the caller's own Connections and writes them as
  * `booking_players` rows under `bookingId` — the match is resolved here, once,
  * and stored; nothing downstream recomputes it (ADR 0011). A no-op for zero
- * Players, the common case for `confirmImportCandidate` until issue #100
- * wires an Import Candidate's own parsed names through.
+ * Players, e.g. an Import Candidate whose parsed email carried no names
+ * (issue #100).
  */
 async function insertBookingPlayers(bookingId: string, players: readonly string[]): Promise<string | null> {
   if (players.length === 0) {

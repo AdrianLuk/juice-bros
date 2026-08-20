@@ -6,7 +6,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
-import { formatCandidateDate, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import {
+  formatCandidateDate,
+  formatCourtLabel,
+  formatTimeLabel,
+  PLAYER_NAME_MAX_LENGTH,
+} from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
@@ -94,6 +99,20 @@ function ImportCandidateCard({
         <input type="hidden" name="start_time" value={candidate.startTime} />
         <input type="hidden" name="end_time" value={candidate.endTime} />
         <input type="hidden" name="court_label" value={candidate.courtLabel ?? ""} />
+        {/* Re-matched at write time by `insertBookingPlayers` (ADR 0011) — this
+            carries the parsed names through, not `matchedPlayers`' own
+            review-time match. Not a new editable field: same hidden-input
+            shape as every other field on this form. Truncated defensively —
+            there's no field here for the User to fix an over-long parsed
+            name, and per issue #100 a parsing quirk shouldn't block
+            confirming the booking; it's recoverable via Edit Booking. */}
+        <input
+          type="hidden"
+          name="players"
+          value={candidate.matchedPlayers
+            .map((player) => player.name.slice(0, PLAYER_NAME_MAX_LENGTH))
+            .join(", ")}
+        />
 
         <Button type="submit" disabled={busy}>
           {confirmPending ? "Confirming…" : "Confirm"}
