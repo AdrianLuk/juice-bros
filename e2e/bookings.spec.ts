@@ -126,6 +126,38 @@ test("a booking's name and court can be edited, in place on the Bookings list ro
   await removePlace(page, place);
 });
 
+test("a booking's players can be added, edited, and removed via the Edit dialog (issue #101)", async ({
+  page,
+}) => {
+  const place = placeName();
+  const playerOne = `${PREFIX} Player One`;
+  const playerTwo = `${PREFIX} Player Two`;
+  const playerThree = `${PREFIX} Player Three`;
+
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    court: "97",
+    date: "2026-09-15",
+    start: "18:00",
+    end: "19:00",
+    players: `${playerOne}, ${playerTwo}`,
+  });
+
+  const booking = row(page, "Court 97");
+  await expect(booking).toContainText(playerOne);
+  await expect(booking).toContainText(playerTwo);
+
+  // Drops playerTwo, keeps playerOne unchanged, and adds a brand-new name.
+  await editBooking(page, "Court 97", { players: `${playerOne}, ${playerThree}` });
+
+  await expect(booking).toContainText(playerOne);
+  await expect(booking).toContainText(playerThree);
+  await expect(booking).not.toContainText(playerTwo);
+
+  await removePlace(page, place);
+});
+
 test("a duration that would run past midnight is refused before it's ever submitted", async ({
   page,
 }) => {

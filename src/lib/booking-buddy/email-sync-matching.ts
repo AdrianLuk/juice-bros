@@ -296,6 +296,55 @@ export function matchPlayerNamesToConnections(
   });
 }
 
+export type ExistingBookingPlayer = { id: string; name: string; userId: string | null };
+
+/**
+ * Splits a Booking edit's submitted player names against its existing
+ * `booking_players` rows (matched one-for-one by name, not id — a repeated
+ * name pairs off in whatever order the rows are given, so a caller ordering
+ * by `created_at` gets a deterministic "earliest-added duplicate keeps its
+ * link" rule rather than an arbitrary one) into a row-level diff:
+ * `keepIds`, existing rows an unchanged submitted name pairs with — left
+ * completely untouched, never even rewritten, so ADR 0011's "resolved once"
+ * link can't be lost to an unrelated failure; `toMatch`, names with no
+ * existing row left to pair with — newly added, or a Player's name edited —
+ * that still need running through `matchPlayerNamesToConnections` and then
+ * inserting; and `removeIds`, existing rows no submitted name claimed
+ * (dropped by the User, or an extra duplicate beyond what's kept), the only
+ * rows this edit deletes (issue #101).
+ */
+export function diffBookingPlayers(
+  submittedNames: readonly string[],
+  existing: readonly ExistingBookingPlayer[],
+): { keepIds: string[]; toMatch: string[]; removeIds: string[] } {
+  const remainingByName = new Map<string, ExistingBookingPlayer[]>();
+  for (const player of existing) {
+    const bucket = remainingByName.get(player.name);
+    if (bucket) {
+      bucket.push(player);
+    } else {
+      remainingByName.set(player.name, [player]);
+    }
+  }
+
+  const keepIds: string[] = [];
+  const toMatch: string[] = [];
+
+  for (const name of submittedNames) {
+    const bucket = remainingByName.get(name);
+    const paired = bucket?.shift();
+    if (paired) {
+      keepIds.push(paired.id);
+    } else {
+      toMatch.push(name);
+    }
+  }
+
+  const removeIds = [...remainingByName.values()].flat().map((player) => player.id);
+
+  return { keepIds, toMatch, removeIds };
+}
+
 /**
  * A confirmation for a date/time that's already passed, filtered out
  * automatically (#59) so a first sync doesn't dump irrelevant history into

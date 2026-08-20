@@ -14,7 +14,11 @@ import {
 } from "../bookings.ts";
 import { isPastDate } from "../datetime.ts";
 import type { BookingFormat } from "../capacity.ts";
-import { connectionCandidatesFromFriends, matchPlayerNamesToConnections } from "../email-sync-matching.ts";
+import {
+  connectionCandidatesFromFriends,
+  diffBookingPlayers,
+  matchPlayerNamesToConnections,
+} from "../email-sync-matching.ts";
 import { listOrgs, type Org } from "./orgs.ts";
 import { listConnections } from "./connections.ts";
 
@@ -171,21 +175,30 @@ async function resolveValidatedOrg(
 }
 
 /**
+ * Matches `names` against the caller's own current Connections — the one
+ * write-time resolution both `insertBookingPlayers` (a Booking's first
+ * Players) and `replaceBookingPlayers` (an edit's newly-added or
+ * newly-edited ones) run, so the two don't drift apart. Resolved once and
+ * stored by whichever caller inserts the result; nothing downstream
+ * recomputes it (ADR 0011).
+ */
+async function matchNewPlayers(names: readonly string[]) {
+  const connections = await listConnections();
+  const connectionCandidates = connectionCandidatesFromFriends(connections.friends);
+  return matchPlayerNamesToConnections(names, connectionCandidates);
+}
+
+/**
  * Matches `players` against the caller's own Connections and writes them as
- * `booking_players` rows under `bookingId` — the match is resolved here, once,
- * and stored; nothing downstream recomputes it (ADR 0011). A no-op for zero
- * Players, e.g. an Import Candidate whose parsed email carried no names
- * (issue #100).
+ * `booking_players` rows under `bookingId`. A no-op for zero Players, e.g. an
+ * Import Candidate whose parsed email carried no names (issue #100).
  */
 async function insertBookingPlayers(bookingId: string, players: readonly string[]): Promise<string | null> {
   if (players.length === 0) {
     return null;
   }
 
-  const connections = await listConnections();
-  const connectionCandidates = connectionCandidatesFromFriends(connections.friends);
-
-  const matches = matchPlayerNamesToConnections(players, connectionCandidates);
+  const matches = await matchNewPlayers(players);
 
   const supabase = await createClient();
   const { error } = await supabase.from("booking_players").insert(
@@ -200,6 +213,68 @@ async function insertBookingPlayers(bookingId: string, players: readonly string[
   // over-long name before this is reached — so there's nothing more specific
   // to translate the way bookingWriteMessage does for `bookings` itself.
   return error ? "Couldn't save the players on that booking." : null;
+}
+
+/**
+ * Replaces `bookingId`'s `booking_players` rows to match `players` on every
+ * edit save (issue #101) — as a row-level delta, not a wholesale
+ * delete-then-reinsert: `diffBookingPlayers` (ordered by `created_at` so a
+ * collapsed duplicate name deterministically keeps its earliest-added row's
+ * link) says which existing rows an unchanged submitted name pairs with —
+ * those are never written at all, so a failure elsewhere in this function
+ * can't lose an already-resolved Connection link ADR 0011 says must survive
+ * untouched — which existing rows have no submitted name left to claim them
+ * (dropped, or an extra duplicate) and get deleted, and which submitted
+ * names have no existing row to pair with (added, or a name edited) and need
+ * a fresh match before being inserted. Nothing at all is written when the
+ * Players list didn't actually change. The two writes aren't transactional,
+ * so the insert runs before the delete — a partial failure then leaves a
+ * stray extra row rather than losing one.
+ */
+async function replaceBookingPlayers(bookingId: string, players: readonly string[]): Promise<string | null> {
+  const supabase = await createClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from("booking_players")
+    .select("id, name, connection_user_id")
+    .eq("booking_id", bookingId)
+    .order("created_at", { ascending: true });
+
+  if (readError) {
+    return "Couldn't update the players on that booking.";
+  }
+
+  const { toMatch, removeIds } = diffBookingPlayers(
+    players,
+    (existing ?? []).map((row) => ({ id: row.id, name: row.name, userId: row.connection_user_id })),
+  );
+
+  // Insert before delete: these two writes aren't transactional, so if one of
+  // them fails partway, an extra row a User can see and remove by hand is a
+  // far cheaper mistake than a deleted Player — and their already-resolved
+  // Connection link — vanishing with no way to get it back.
+  if (toMatch.length > 0) {
+    const matches = await matchNewPlayers(toMatch);
+    const { error: insertError } = await supabase.from("booking_players").insert(
+      matches.map((match) => ({
+        booking_id: bookingId,
+        name: match.name,
+        connection_user_id: match.userId,
+      })),
+    );
+    if (insertError) {
+      return "Couldn't update the players on that booking.";
+    }
+  }
+
+  if (removeIds.length > 0) {
+    const { error: deleteError } = await supabase.from("booking_players").delete().in("id", removeIds);
+    if (deleteError) {
+      return "Couldn't update the players on that booking.";
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -313,12 +388,21 @@ export async function updateValidatedBooking(
     return { error: "Couldn't update that booking. Try again." };
   }
 
+  const playersError = await replaceBookingPlayers(bookingId, parsed.players);
+
   revalidatePath(BOOKINGS_PATH);
   revalidatePath(BOOKING_BUDDY_ROOT);
+
+  // The Booking itself already committed — same "still revalidate, but
+  // report the Players-only failure" posture insertValidatedBooking uses.
+  if (playersError) {
+    return { error: playersError };
+  }
+
   return { ok: true };
 }
 
-/** Edit an existing Booking — same validation as logging one (issue #97). */
+/** Edit an existing Booking — same validation as logging one (issue #97), now including Players (issue #101). */
 export async function updateBooking(
   _prev: ActionResult,
   formData: FormData,

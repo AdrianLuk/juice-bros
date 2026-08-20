@@ -385,8 +385,9 @@ export function CreateBookingForm({
 }
 
 /**
- * Edits an existing Booking in place (issue #97) — same field set as
- * `CreateBookingForm`, pre-filled from `booking`. Unlike the create form,
+ * Edits an existing Booking in place (issue #97), including its Players
+ * (issue #101) — same field set as `CreateBookingForm`, pre-filled from
+ * `booking`. Unlike the create form,
  * this component unmounts when its Dialog closes (`EditBookingButton`), so it
  * doesn't need the create form's own mid-render "reset after a successful
  * submit" dance: a fresh open just re-derives its initial state from
@@ -454,6 +455,17 @@ export function EditBookingForm({
         endTime={endTime}
         durationOverflows={durationOverflows}
       />
+
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor={`booking-edit-${booking.id}-players`}>Players (optional)</Label>
+        <Input
+          id={`booking-edit-${booking.id}-players`}
+          name="players"
+          type="text"
+          defaultValue={booking.players.join(", ")}
+          placeholder="Amy Ace, Ben Backhand"
+        />
+      </div>
 
       <div className="flex flex-col items-start gap-1">
         <Button type="submit" disabled={pending || endTime === null}>
