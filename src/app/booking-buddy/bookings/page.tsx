@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChevronDownIcon } from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
@@ -8,10 +9,16 @@ import {
   BookingRow,
   CreateBookingForm,
 } from "@/components/booking-buddy/bookings";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { SyncFromEmailSection } from "@/components/booking-buddy/sync-from-email";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
+import { notEndedBefore } from "@/lib/booking-buddy/calendar";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
@@ -31,6 +38,17 @@ export default async function BookingsPage() {
   await verifySession();
 
   const { orgs, bookings } = await getBookingsPageData();
+
+  // `bookings` comes back soonest-first (see `getBookingsPageData`), so an
+  // in-progress booking (started, not yet ended) still counts as "Booked" —
+  // same "any overlap counts" reasoning `notEndedBefore` already uses for the
+  // dashboard calendar (issue #61) — and everything else falls to History,
+  // most recent first.
+  const now = new Date();
+  const upcomingBookings = notEndedBefore(bookings, now);
+  const pastBookings = bookings
+    .filter((booking) => !upcomingBookings.includes(booking))
+    .reverse();
 
   // Optimistic half of ADR-0009's addendum, same gating Settings already
   // does — an unapproved User never sees "Sync from Email" at all.
@@ -78,23 +96,40 @@ export default async function BookingsPage() {
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Booked
-                  {bookings.length > 0 && (
+                  {upcomingBookings.length > 0 && (
                     <span className="ml-2 text-sm font-normal text-muted-foreground">
-                      {bookings.length}
+                      {upcomingBookings.length}
                     </span>
                   )}
                 </h2>
 
-                {bookings.length === 0 ? (
+                {upcomingBookings.length === 0 ? (
                   <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-                    Nothing logged yet.
+                    Nothing upcoming. Log a booking below, or check History for past ones.
                   </p>
                 ) : (
                   <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
-                    {bookings.map((booking) => (
+                    {upcomingBookings.map((booking) => (
                       <BookingRow key={booking.id} booking={booking} orgs={orgs} />
                     ))}
                   </ul>
+                )}
+
+                {pastBookings.length > 0 && (
+                  <Collapsible className="mt-6">
+                    <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                      <ChevronDownIcon className="size-4 transition-transform duration-200 group-data-panel-open:rotate-180" />
+                      History
+                      <span className="text-muted-foreground">{pastBookings.length}</span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                        {pastBookings.map((booking) => (
+                          <BookingRow key={booking.id} booking={booking} orgs={orgs} />
+                        ))}
+                      </ul>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </section>
 
