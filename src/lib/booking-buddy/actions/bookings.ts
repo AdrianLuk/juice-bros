@@ -97,25 +97,26 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
 }
 
 /**
- * The org-ownership check, past-date check, insert, and error translation
- * shared by `createBooking`'s own form-parsed path and `confirmImportCandidate`
- * (issue #64) — both start from an already-validated `NewBooking`, so
- * everything below this point is identical either way.
+ * The org-ownership re-check and past-date check shared by
+ * `insertValidatedBooking` and `updateValidatedBooking` — both start from an
+ * already-validated `NewBooking` and need the same answer to "is this
+ * actually one of the caller's own Orgs, and is the date still good", before
+ * either an insert or an update.
  *
  * The zone comes from the Org, not the caller (issue #20) — every Booking
  * under one Org is on the same clock, so there's nothing left to pick. This
- * means a fresh read of the Org right before the insert, rather than trusting
+ * means a fresh read of the Org right before the write, rather than trusting
  * whatever `orgs` list the caller already had: the read doubles as the
  * ownership check (a stale or tampered `org_id` fails here with a clear
  * message, ahead of the `bookings_coherent` trigger, which is still the
  * authority — the rule needs a subquery and RLS does not cover it, since the
- * insert is on `bookings`, a table the User may write, and nothing in that
+ * write is on `bookings`, a table the User may write, and nothing in that
  * policy looks at whose Org they named).
  */
-export async function insertValidatedBooking(
+async function resolveValidatedOrg(
   ownerId: string,
   parsed: NewBooking,
-): Promise<ActionResult> {
+): Promise<{ timeZone: string } | { error: string }> {
   const supabase = await createClient();
 
   const { data: org, error: orgError } = await supabase
@@ -139,6 +140,25 @@ export async function insertValidatedBooking(
     return { error: "That date has already passed. Pick a date in the future." };
   }
 
+  return { timeZone: org.time_zone };
+}
+
+/**
+ * The insert and error translation shared by `createBooking`'s own
+ * form-parsed path and `confirmImportCandidate` (issue #64) — both start
+ * from an already-validated `NewBooking`, so everything below this point is
+ * identical either way.
+ */
+export async function insertValidatedBooking(
+  ownerId: string,
+  parsed: NewBooking,
+): Promise<ActionResult> {
+  const org = await resolveValidatedOrg(ownerId, parsed);
+  if ("error" in org) {
+    return org;
+  }
+
+  const supabase = await createClient();
   const { error } = await supabase.from("bookings").insert({
     org_id: parsed.orgId,
     owner_id: ownerId,
@@ -148,8 +168,8 @@ export async function insertValidatedBooking(
     // Wall-clock strings carrying their own zone. Postgres does the DST-aware
     // conversion to an instant, which is much harder to get wrong than doing it
     // in JavaScript.
-    starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.time_zone}`,
-    ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.time_zone}`,
+    starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
+    ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
   });
 
   if (error) {
@@ -176,6 +196,73 @@ export async function createBooking(
   }
 
   return insertValidatedBooking(session.userId, parsed);
+}
+
+/**
+ * The update and error translation shared by `updateBooking`'s own
+ * form-parsed path with whatever else edits a full Booking later, mirroring
+ * `insertValidatedBooking`'s shape on the update side — same
+ * `resolveValidatedOrg` re-check, scoped to `bookingId` instead of a fresh
+ * row. No new migration needed: `bookings_coherent` already fires `before
+ * insert or update` (org-ownership + zone-validity), and RLS already turns
+ * "isn't yours" into an empty result rather than an error — the same shape
+ * `deleteOwnedBooking` and `updateOwnedBookingFormatAndCourt` already use, so
+ * `bookingId` isn't re-scoped by `owner_id` in the query itself.
+ */
+export async function updateValidatedBooking(
+  ownerId: string,
+  bookingId: string,
+  parsed: NewBooking,
+): Promise<ActionResult> {
+  const org = await resolveValidatedOrg(ownerId, parsed);
+  if ("error" in org) {
+    return org;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({
+      org_id: parsed.orgId,
+      court_label: parsed.courtLabel,
+      name: parsed.name,
+      format: parsed.format,
+      starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
+      ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
+    })
+    .eq("id", bookingId)
+    .select("id");
+
+  if (error) {
+    return { error: bookingWriteMessage(error) };
+  }
+  if (!data?.length) {
+    return { error: "Couldn't update that booking. Try again." };
+  }
+
+  revalidatePath(BOOKINGS_PATH);
+  revalidatePath(BOOKING_BUDDY_ROOT);
+  return { ok: true };
+}
+
+/** Edit an existing Booking — same validation as logging one (issue #97). */
+export async function updateBooking(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const bookingId = String(formData.get("booking_id") ?? "");
+
+  if (!bookingId) {
+    return { error: "Pick a booking to edit." };
+  }
+
+  const parsed = parseNewBooking(formData);
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  return updateValidatedBooking(session.userId, bookingId, parsed);
 }
 
 /**
