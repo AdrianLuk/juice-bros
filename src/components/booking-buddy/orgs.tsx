@@ -75,7 +75,7 @@ export function CreateOrgForm() {
           required
         />
       </div>
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>
           {pending ? "Adding…" : "Add facility"}
         </Button>
@@ -179,7 +179,7 @@ function BookingWindowForm({ org }: { org: Org }) {
           </FormSelect>
         </div>
 
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col items-end gap-1">
           <Button type="submit" variant="outline" size="sm" disabled={pending}>
             {pending ? "Saving…" : "Save"}
           </Button>
