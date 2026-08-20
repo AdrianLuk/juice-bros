@@ -374,7 +374,7 @@ export function CreateBookingForm({
         />
       </div>
 
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending || endTime === null}>
           {pending ? "Saving…" : "Log booking"}
         </Button>
@@ -467,7 +467,7 @@ export function EditBookingForm({
         />
       </div>
 
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending || endTime === null}>
           {pending ? "Saving…" : "Save changes"}
         </Button>

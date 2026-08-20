@@ -146,7 +146,7 @@ export function CreateAvailabilityWindowForm({
         All day
       </label>
 
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save"}
         </Button>

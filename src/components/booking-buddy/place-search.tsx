@@ -57,7 +57,7 @@ export function SearchPlaceForm() {
             required
           />
         </div>
-        <div className="flex flex-col items-start gap-1">
+        <div className="flex flex-col items-end gap-1">
           <Button type="submit" disabled={pending}>
             {pending ? "Searching…" : "Search"}
           </Button>
@@ -101,7 +101,7 @@ function PlaceCandidateRow({ candidate }: { candidate: PlaceCandidate }) {
       </div>
       <form
         action={formAction}
-        className="flex shrink-0 flex-col items-start gap-1 sm:items-end"
+        className="flex shrink-0 flex-col items-end gap-1"
       >
         <input type="hidden" name="place_id" value={candidate.placeId} />
         <Button type="submit" size="sm" disabled={pending}>

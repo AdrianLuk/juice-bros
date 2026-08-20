@@ -100,7 +100,7 @@ export function CreateSlotForm() {
         </FormSelect>
       </div>
 
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>
           {pending ? "Posting…" : "Post slot"}
         </Button>
@@ -500,7 +500,7 @@ function AttachBookingForm({
         </FormSelect>
       </div>
 
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>
           {pending ? "Attaching…" : "Attach booking"}
         </Button>
@@ -565,7 +565,7 @@ function RotationBufferForm({
         </p>
       </div>
 
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" variant="outline" disabled={pending}>
           {pending ? "Saving…" : "Save buffer"}
         </Button>
