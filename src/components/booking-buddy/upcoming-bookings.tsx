@@ -24,8 +24,9 @@ function durationLabel(startsAt: string, endsAt: string): string {
  * The persistent "what's coming up" list next to the calendar (issue #23) —
  * visible regardless of which calendar view is active, so it's a plain
  * server-rendered list rather than something the calendar client component
- * owns. Past Bookings never appear here; `/booking-buddy/bookings` is still
- * the full past+future history.
+ * owns. Past Bookings never appear here; `/booking-buddy/bookings` keeps the
+ * full past+future history too, with past ones tucked behind a collapsed
+ * "History" accordion.
  */
 export function UpcomingBookingsSidebar({
   bookings,
