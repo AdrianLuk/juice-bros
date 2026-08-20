@@ -22,7 +22,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(17);
 
 select has_table('public', 'slot_bookings', 'slot_bookings table exists');
 select has_column('public', 'slot_bookings', 'format', 'slot_bookings carries the attached booking''s format (ADR 0008)');
@@ -212,6 +212,24 @@ select is(
   1,
   'the owner can detach a booking, dropping the slot back to one court'
 );
+
+-- Issue #102: `format` could only drift out of sync while a Booking had no
+-- edit path at all. Editing the already-attached a1111111's own format
+-- (still doubles, its default) has to re-derive the copy on its
+-- slot_bookings row immediately, not just at attach time (ADR 0008's gap).
+update public.bookings set format = 'singles' where id = 'a1111111-0000-0000-0000-000000000041';
+
+select is(
+  (select format::text from public.slot_bookings
+   where slot_id = '77777777-0000-0000-0000-000000000041'
+     and booking_id = 'a1111111-0000-0000-0000-000000000041'),
+  'singles',
+  'editing an already-attached booking''s format re-derives the slot_bookings row''s own copy immediately'
+);
+
+-- Restored to its original format so the capacity test further down still
+-- counts a1111111 as the ordinary doubles court it actually is.
+update public.bookings set format = 'doubles' where id = 'a1111111-0000-0000-0000-000000000041';
 
 -- Attach the singles booking, deliberately claiming "doubles" in the insert
 -- itself — the trigger has to overwrite that with the Booking's true format,
