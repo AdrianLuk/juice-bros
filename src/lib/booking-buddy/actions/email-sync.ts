@@ -28,6 +28,7 @@ import {
   type CourtReserveConfirmation,
 } from "../courtreserve-email.ts";
 import {
+  connectionCandidatesFromFriends,
   isDuplicateBooking,
   isPastConfirmation,
   matchCancellationToBooking,
@@ -36,7 +37,6 @@ import {
   matchUpdateToBooking,
   reconcileCourtReserveEvents,
   type BookingIdentity,
-  type ConnectionCandidate,
   type OrgCandidate,
   type PlayerMatch,
   type ReconciliationEvent,
@@ -226,7 +226,7 @@ export type UpdateCandidate = {
   /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
   courtLabel: string | null;
   format: BookingFormat;
-  /** Reference-only, same posture as `ImportCandidate.matchedPlayers` — a Booking doesn't store players at all. */
+  /** Reference-only, same posture as `ImportCandidate.matchedPlayers` — applying an update edits format/court only, never Players (issue #99 stores them for manual entry; carrying an Import Candidate's own parsed names through is issue #100, not yet wired). */
   matchedPlayers: PlayerMatch[];
 } & ({ matched: true; bookingId: string } | { matched: false });
 
@@ -355,9 +355,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     startTime: clockInZone(booking.timeZone, new Date(booking.startsAt)),
   }));
 
-  const connectionCandidates: ConnectionCandidate[] = connections.friends
-    .filter((friend): friend is typeof friend & { displayName: string } => friend.displayName !== null)
-    .map((friend) => ({ userId: friend.userId, displayName: friend.displayName }));
+  const connectionCandidates = connectionCandidatesFromFriends(connections.friends);
 
   const now = new Date();
 

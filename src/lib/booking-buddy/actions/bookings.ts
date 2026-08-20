@@ -14,7 +14,9 @@ import {
 } from "../bookings.ts";
 import { isPastDate } from "../datetime.ts";
 import type { BookingFormat } from "../capacity.ts";
+import { connectionCandidatesFromFriends, matchPlayerNamesToConnections } from "../email-sync-matching.ts";
 import { listOrgs, type Org } from "./orgs.ts";
+import { listConnections } from "./connections.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -35,6 +37,8 @@ export type Booking = {
   timeZone: string;
   /** Doubles (4) or singles (2) — what this court's own share of Capacity is (ADR 0008). */
   format: BookingFormat;
+  /** Names only, alphabetical — the Connection link is write-time-only data (ADR 0011), not surfaced on this list. */
+  players: string[];
 };
 
 export type BookingsPageData = {
@@ -54,19 +58,41 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
   await verifySession();
   const supabase = await createClient();
 
-  const [orgs, bookingsResult] = await Promise.all([
+  const [orgs, bookingsResult, playersResult] = await Promise.all([
     listOrgs(),
     supabase
       .from("bookings")
       .select("id, org_id, court_label, name, starts_at, ends_at, format")
       .order("starts_at", { ascending: true }),
+    // A separate query rather than a PostgREST embed — this codebase avoids
+    // embedding (see PROGRESS.md's connections notes) and joins in
+    // application code instead.
+    //
+    // Ordered by name, not created_at: every Player from one Booking is
+    // written in a single insert (`insertBookingPlayers`), so they all share
+    // the exact same `now()` — Postgres gives no guarantee about the order of
+    // ties, so a real tiebreaker is what actually makes the list stable.
+    supabase
+      .from("booking_players")
+      .select("booking_id, name")
+      .order("name", { ascending: true }),
   ]);
 
   if (bookingsResult.error) {
     readFailed("your bookings", bookingsResult.error);
   }
+  if (playersResult.error) {
+    readFailed("your bookings' players", playersResult.error);
+  }
 
   const orgById = new Map(orgs.map((org) => [org.id, org]));
+
+  const playerNamesByBookingId = new Map<string, string[]>();
+  for (const row of playersResult.data ?? []) {
+    const names = playerNamesByBookingId.get(row.booking_id) ?? [];
+    names.push(row.name);
+    playerNamesByBookingId.set(row.booking_id, names);
+  }
 
   return {
     orgs,
@@ -91,6 +117,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
         endsAt: row.ends_at,
         timeZone: org?.timeZone ?? "UTC",
         format: row.format,
+        players: playerNamesByBookingId.get(row.id) ?? [],
       };
     }),
   };
@@ -144,6 +171,38 @@ async function resolveValidatedOrg(
 }
 
 /**
+ * Matches `players` against the caller's own Connections and writes them as
+ * `booking_players` rows under `bookingId` — the match is resolved here, once,
+ * and stored; nothing downstream recomputes it (ADR 0011). A no-op for zero
+ * Players, the common case for `confirmImportCandidate` until issue #100
+ * wires an Import Candidate's own parsed names through.
+ */
+async function insertBookingPlayers(bookingId: string, players: readonly string[]): Promise<string | null> {
+  if (players.length === 0) {
+    return null;
+  }
+
+  const connections = await listConnections();
+  const connectionCandidates = connectionCandidatesFromFriends(connections.friends);
+
+  const matches = matchPlayerNamesToConnections(players, connectionCandidates);
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("booking_players").insert(
+    matches.map((match) => ({
+      booking_id: bookingId,
+      name: match.name,
+      connection_user_id: match.userId,
+    })),
+  );
+
+  // Not expected in practice — parseNewBooking already refuses a blank or
+  // over-long name before this is reached — so there's nothing more specific
+  // to translate the way bookingWriteMessage does for `bookings` itself.
+  return error ? "Couldn't save the players on that booking." : null;
+}
+
+/**
  * The insert and error translation shared by `createBooking`'s own
  * form-parsed path and `confirmImportCandidate` (issue #64) — both start
  * from an already-validated `NewBooking`, so everything below this point is
@@ -159,27 +218,41 @@ export async function insertValidatedBooking(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("bookings").insert({
-    org_id: parsed.orgId,
-    owner_id: ownerId,
-    court_label: parsed.courtLabel,
-    name: parsed.name,
-    format: parsed.format,
-    // Wall-clock strings carrying their own zone. Postgres does the DST-aware
-    // conversion to an instant, which is much harder to get wrong than doing it
-    // in JavaScript.
-    starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
-    ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
-  });
+  const { data: booking, error } = await supabase
+    .from("bookings")
+    .insert({
+      org_id: parsed.orgId,
+      owner_id: ownerId,
+      court_label: parsed.courtLabel,
+      name: parsed.name,
+      format: parsed.format,
+      // Wall-clock strings carrying their own zone. Postgres does the DST-aware
+      // conversion to an instant, which is much harder to get wrong than doing it
+      // in JavaScript.
+      starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
+      ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    return { error: bookingWriteMessage(error) };
+  if (error || !booking) {
+    return { error: bookingWriteMessage(error ?? {}) };
   }
+
+  const playersError = await insertBookingPlayers(booking.id, parsed.players);
 
   revalidatePath(BOOKINGS_PATH);
   // The dashboard calendar (#23) renders these too, via a quick-add sheet
   // that posts here without navigating off `/booking-buddy`.
   revalidatePath(BOOKING_BUDDY_ROOT);
+
+  // The Booking itself already committed — a failure here is Players-only,
+  // so the two paths still revalidate above rather than leaving the User to
+  // resubmit and log a duplicate Booking on top of the one that already saved.
+  if (playersError) {
+    return { error: playersError };
+  }
+
   return { ok: true };
 }
 
