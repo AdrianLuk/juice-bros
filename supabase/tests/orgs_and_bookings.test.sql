@@ -18,7 +18,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(44);
+select plan(45);
 
 select has_table('public', 'orgs', 'orgs table exists');
 select has_table('public', 'bookings', 'bookings table exists');
@@ -293,6 +293,33 @@ select throws_ok(
   '23514',
   null,
   'a booking cannot start in the past'
+);
+
+-- A dedicated fixture, not a reuse of bbbb0000...0001 — that one still needs
+-- its original future date for the wall-clock and cascade-delete checks
+-- further down this same file.
+insert into public.bookings (id, org_id, owner_id, court_label, starts_at, ends_at)
+values (
+  'bbbb0000-0000-0000-0000-000000000099',
+  'aaaa0000-0000-0000-0000-000000000001',
+  'aaaaaaaa-0000-0000-0000-000000000011',
+  'Court 9',
+  '2031-08-25 18:00:00 America/Toronto',
+  '2031-08-25 19:00:00 America/Toronto'
+);
+
+-- `bookings_not_in_the_past` fires `before insert` only (issue #97, confirmed
+-- again by #102) — a rule meant to stop something being *logged* in the past
+-- has no business retroactively blocking an edit to a Booking already on
+-- file, whether that edit moves it further into the past on purpose (e.g.
+-- filling in a Player forgotten on a Booking from last week) or just happens
+-- to touch a Booking whose start time has since passed.
+select lives_ok(
+  $$update public.bookings
+    set starts_at = '2020-01-01 18:00:00 America/Toronto',
+        ends_at = '2020-01-01 19:00:00 America/Toronto'
+    where id = 'bbbb0000-0000-0000-0000-000000000099'$$,
+  'editing a Booking''s date into the past does not trip bookings_not_in_the_past'
 );
 
 -- Not every facility labels its courts, and not every User bothers to note
