@@ -248,6 +248,21 @@ export function reconcileCourtReserveEvents<TConfirmation>(
 
 export type ConnectionCandidate = { userId: string; displayName: string };
 
+/**
+ * `listConnections()`'s `friends` list, narrowed to what matching needs —
+ * shared by `actions/bookings.ts` and `actions/email-sync.ts` so the two
+ * don't drift apart. A friend with no display name (never set one) can't
+ * match anything by name, so it's dropped rather than matched against an
+ * empty string.
+ */
+export function connectionCandidatesFromFriends(
+  friends: readonly { userId: string; displayName: string | null }[],
+): ConnectionCandidate[] {
+  return friends
+    .filter((friend): friend is typeof friend & { displayName: string } => friend.displayName !== null)
+    .map((friend) => ({ userId: friend.userId, displayName: friend.displayName }));
+}
+
 export type PlayerMatch = {
   /** The raw name as the email listed it. */
   name: string;
@@ -256,13 +271,17 @@ export type PlayerMatch = {
 };
 
 /**
- * Matches parsed player names against a User's Connections, for reference
- * only (#59: never invites anyone, never creates anything from this match).
+ * Matches parsed player names against a User's Connections — originally for
+ * reference only on the email-review screen (#59), now also the write-time
+ * match a persisted Player's `connection_user_id` is resolved from and stored
+ * against for good (issue #99, ADR 0011).
+ *
  * Display names aren't unique — two seeded local accounts deliberately share
  * one (docs/local-test-accounts.md) — so a name matching more than one
- * Connection resolves to the first, the same "best-effort, informational"
- * posture the rest of this match already carries; nothing downstream acts on
- * it authoritatively enough for the ambiguity to matter.
+ * Connection resolves unlinked (`userId: null`) rather than guessed at.
+ * Disposable on a review screen, a guess here would be a standing, permanent
+ * misattribution nobody reviews again (ADR 0011); under-linking is
+ * recoverable by hand, over-linking is not.
  */
 export function matchPlayerNamesToConnections(
   playerNames: readonly string[],
@@ -270,10 +289,10 @@ export function matchPlayerNamesToConnections(
 ): PlayerMatch[] {
   return playerNames.map((name) => {
     const normalized = name.trim().toLowerCase();
-    const match = connections.find(
+    const matches = connections.filter(
       (connection) => connection.displayName.trim().toLowerCase() === normalized,
     );
-    return { name, userId: match?.userId ?? null };
+    return { name, userId: matches.length === 1 ? matches[0].userId : null };
   });
 }
 

@@ -103,14 +103,14 @@ test("an empty player list produces an empty result, not an error", () => {
   assert.deepEqual(matchPlayerNamesToConnections([], [{ userId: "user-1", displayName: "Ben" }]), []);
 });
 
-test("two Connections sharing a display name resolve a matching name to the first, not a crash", () => {
+test("two Connections sharing a display name resolve the matching name unlinked, not guessed at (ADR 0011)", () => {
   const connections = [
     { userId: "user-1", displayName: "Amy Ace" },
     { userId: "user-2", displayName: "Amy Ace" },
   ];
   const result = matchPlayerNamesToConnections(["Amy Ace"], connections);
 
-  assert.deepEqual(result, [{ name: "Amy Ace", userId: "user-1" }]);
+  assert.deepEqual(result, [{ name: "Amy Ace", userId: null }]);
 });
 
 const CANCELLED_SLOT = { orgId: "org-1", date: "2026-09-15", startTime: "18:00" };
