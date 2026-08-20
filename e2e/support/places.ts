@@ -87,3 +87,34 @@ export async function logBooking(
   }
   await page.getByRole("button", { name: "Log booking" }).click();
 }
+
+/**
+ * Opens the "Edit" dialog on the Bookings list row for `courtLabel` and
+ * changes only the given fields (issue #97). Scoped to `page.getByRole("dialog")`,
+ * the same disambiguation `onboarding.spec.ts`'s own modal helper uses —
+ * `CreateBookingForm` sits on the same page below the list, so an unscoped
+ * `getByLabel("Name")` would match both it and the dialog's own field.
+ */
+export async function editBooking(
+  page: Page,
+  courtLabel: string,
+  edits: { name?: string; court?: string; date?: string; format?: "Doubles" | "Singles" },
+) {
+  await row(page, courtLabel).getByRole("button", { name: "Edit" }).click();
+  const dialog = page.getByRole("dialog");
+
+  if (edits.name !== undefined) {
+    await dialog.getByLabel("Name").fill(edits.name);
+  }
+  if (edits.court !== undefined) {
+    await dialog.getByLabel("Court").fill(edits.court);
+  }
+  if (edits.date !== undefined) {
+    await dialog.getByLabel("Date").fill(edits.date);
+  }
+  if (edits.format) {
+    await dialog.getByLabel("Format").selectOption({ label: edits.format });
+  }
+
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+}

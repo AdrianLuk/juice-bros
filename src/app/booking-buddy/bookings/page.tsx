@@ -92,7 +92,7 @@ export default async function BookingsPage() {
                 ) : (
                   <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                     {bookings.map((booking) => (
-                      <BookingRow key={booking.id} booking={booking} />
+                      <BookingRow key={booking.id} booking={booking} orgs={orgs} />
                     ))}
                   </ul>
                 )}

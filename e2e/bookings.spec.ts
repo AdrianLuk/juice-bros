@@ -4,6 +4,7 @@ import { AMY, BEN, signIn } from "./support/sign-in.ts";
 import {
   PREFIX,
   addPlace,
+  editBooking,
   logBooking,
   placeName,
   removePlace,
@@ -92,6 +93,34 @@ test("a booking's name renders on the Bookings list row", async ({ page }) => {
 
   const booking = row(page, "Court 5");
   await expect(booking).toContainText(name);
+  await expect(booking).toContainText(place);
+
+  await removePlace(page, place);
+});
+
+test("a booking's name and court can be edited, in place on the Bookings list row", async ({
+  page,
+}) => {
+  const place = placeName();
+  const originalName = `${PREFIX} Rally ${Date.now()}`;
+  const updatedName = `${PREFIX} Updated ${Date.now()}`;
+
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    name: originalName,
+    court: "95",
+    date: "2026-09-15",
+    start: "18:00",
+    end: "19:00",
+  });
+
+  await editBooking(page, "Court 95", { name: updatedName, court: "96" });
+
+  await expect(row(page, "Court 95")).toHaveCount(0);
+  const booking = row(page, "Court 96");
+  await expect(booking).toContainText(updatedName);
+  await expect(booking).not.toContainText(originalName);
   await expect(booking).toContainText(place);
 
   await removePlace(page, place);
