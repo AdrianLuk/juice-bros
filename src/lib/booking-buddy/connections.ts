@@ -81,15 +81,14 @@ export function groupConnections(
  * Username is always assigned, so there is normally something better than the
  * last-resort placeholder.
  */
-export function personLabel(person: {
-  displayName: string | null;
-  username: string | null;
-}): string {
-  return (
-    person.displayName?.trim() ||
-    person.username?.trim() ||
-    "A Booking Buddy user"
-  );
+export function personLabel(
+  person: {
+    displayName: string | null;
+    username: string | null;
+  },
+  fallback = "A Booking Buddy user",
+): string {
+  return person.displayName?.trim() || person.username?.trim() || fallback;
 }
 
 /**

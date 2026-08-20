@@ -18,6 +18,7 @@ import type { Gender } from "../gender.ts";
 import type { ResponseAnswer } from "../responses.ts";
 import { getBookingsPageData, type Booking } from "./bookings.ts";
 import { listOrgs, type Org } from "./orgs.ts";
+import { personLabel } from "../connections.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -112,7 +113,7 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
       ? { data: [], error: null }
       : await supabase
           .from("profiles")
-          .select("id, display_name, gender")
+          .select("id, display_name, username, gender")
           .in("id", responderIds);
 
   if (profilesError) {
@@ -120,7 +121,13 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
   }
 
   const nameById = new Map(
-    (profiles ?? []).map((profile) => [profile.id, profile.display_name]),
+    (profiles ?? []).map((profile) => [
+      profile.id,
+      personLabel(
+        { displayName: profile.display_name, username: profile.username },
+        "A friend",
+      ),
+    ]),
   );
   const genderById = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile.gender as Gender | null]),
@@ -129,8 +136,9 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
   const responses: SlotResponse[] = (responseRows ?? []).map((row) => ({
     id: row.id,
     userId: row.user_id,
-    // A signed-in responder's name comes from their profile (unnamed if the
-    // viewer can't read it); a Guest's is exactly the name they typed in —
+    // A signed-in responder's name comes from their profile — their display
+    // name, falling back to their Username, or unnamed if the viewer can't
+    // read the profile at all; a Guest's is exactly the name they typed in —
     // there's no profile to look up (issue #10).
     displayName: row.user_id ? (nameById.get(row.user_id) ?? null) : row.guest_name,
     answer: row.answer,
@@ -166,7 +174,7 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
   const ownerIds = [...new Set((rows ?? []).map((row) => row.owner_id))];
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select("id, display_name, username")
     .in("id", ownerIds.length > 0 ? ownerIds : [session.userId]);
 
   if (profilesError) {
@@ -174,7 +182,13 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
   }
 
   const nameById = new Map(
-    (profiles ?? []).map((profile) => [profile.id, profile.display_name]),
+    (profiles ?? []).map((profile) => [
+      profile.id,
+      personLabel(
+        { displayName: profile.display_name, username: profile.username },
+        "A friend",
+      ),
+    ]),
   );
 
   const toSlot = (row: (typeof rows)[number]): Slot => ({
@@ -299,7 +313,11 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
 
   const [{ responses, myAnswer }, ownerProfileResult, capacity, ownedOrgs] = await Promise.all([
     getSlotResponses(slotId),
-    supabase.from("profiles").select("display_name").eq("id", slotRow.owner_id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("display_name, username")
+      .eq("id", slotRow.owner_id)
+      .maybeSingle(),
     getSlotCapacity(
       slotId,
       { proposedStart: slotRow.proposed_start, proposedEnd: slotRow.proposed_end },
@@ -321,7 +339,13 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
     slot: {
       id: slotRow.id,
       ownerId: slotRow.owner_id,
-      ownerName: ownerProfileResult.data?.display_name ?? "A friend",
+      ownerName: personLabel(
+        {
+          displayName: ownerProfileResult.data?.display_name ?? null,
+          username: ownerProfileResult.data?.username ?? null,
+        },
+        "A friend",
+      ),
       when: formatSlotWhen({
         proposedStart: slotRow.proposed_start,
         proposedEnd: slotRow.proposed_end,

@@ -14,6 +14,7 @@ import {
 import { slotLinkPath } from "../routes.ts";
 import type { ResponseAnswer } from "../responses.ts";
 import type { ActionResult } from "./result.ts";
+import { personLabel } from "../connections.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -80,7 +81,11 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
   }
 
   const [ownerProfileResult, bookingRowsResult, responseRowsResult] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", slotRow.owner_id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("display_name, username")
+      .eq("id", slotRow.owner_id)
+      .maybeSingle(),
     supabase.from("slot_bookings").select("format").eq("slot_id", slotRow.id),
     supabase.from("responses").select("user_id, guest_name, answer").eq("slot_id", slotRow.id),
   ]);
@@ -100,7 +105,7 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
   const { data: responderProfiles, error: responderProfilesError } =
     responderIds.length === 0
       ? { data: [], error: null }
-      : await supabase.from("profiles").select("id, display_name").in("id", responderIds);
+      : await supabase.from("profiles").select("id, display_name, username").in("id", responderIds);
 
   if (responderProfilesError) {
     console.error("booking-buddy: reading who's responded failed", responderProfilesError);
@@ -108,7 +113,13 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
   }
 
   const nameById = new Map(
-    (responderProfiles ?? []).map((profile) => [profile.id, profile.display_name]),
+    (responderProfiles ?? []).map((profile) => [
+      profile.id,
+      personLabel(
+        { displayName: profile.display_name, username: profile.username },
+        "A friend",
+      ),
+    ]),
   );
 
   const responses: GuestResponse[] = (responseRowsResult.data ?? []).map((row) => ({
@@ -128,7 +139,13 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
       proposedEnd: slotRow.proposed_end,
       timeZone: slotRow.time_zone,
     }),
-    ownerName: ownerProfileResult.data?.display_name ?? "A Juice Bros member",
+    ownerName: personLabel(
+      {
+        displayName: ownerProfileResult.data?.display_name ?? null,
+        username: ownerProfileResult.data?.username ?? null,
+      },
+      "A Juice Bros member",
+    ),
     capacity: {
       courtCount: formats.length,
       rotationBuffer: slotRow.rotation_buffer,
