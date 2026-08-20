@@ -67,7 +67,7 @@ export function CreateGroupForm() {
         <Label htmlFor="group-level">What they can see</Label>
         <VisibilitySelect id="group-level" defaultValue="slots" />
       </div>
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create group"}
         </Button>
