@@ -226,7 +226,7 @@ export type UpdateCandidate = {
   /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
   courtLabel: string | null;
   format: BookingFormat;
-  /** Reference-only, same posture as `ImportCandidate.matchedPlayers` — applying an update edits format/court only, never Players (issue #99 stores them for manual entry; carrying an Import Candidate's own parsed names through is issue #100, not yet wired). */
+  /** Reference-only — unlike `ImportCandidate.matchedPlayers` (wired through by issue #100), applying an update deliberately edits format/court only and never touches Players, since a Reservation Update Notice isn't a new Booking. */
   matchedPlayers: PlayerMatch[];
 } & ({ matched: true; bookingId: string } | { matched: false });
 
@@ -553,9 +553,14 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 /**
  * Confirming an Import Candidate creates a real Booking (issue #64) — the
  * form posts the exact same field names `CreateBookingForm` does (`org_id`,
- * `name`, `format`, `date`, `start_time`, `end_time`, `court_label`), plus
- * `gmail_message_id`, so it reuses `parseNewBooking`'s validation as-is
- * rather than trusting the candidate's already-parsed fields a second time.
+ * `name`, `format`, `date`, `start_time`, `end_time`, `court_label`,
+ * `players`), plus `gmail_message_id`, so it reuses `parseNewBooking`'s
+ * validation as-is rather than trusting the candidate's already-parsed
+ * fields a second time. `players` rides through as the same raw,
+ * comma-joined names `matchedPlayers` was built from — `insertValidatedBooking`
+ * re-runs the match against the caller's *current* Connections at this,
+ * the actual add-time (ADR 0011), rather than trusting the stale match
+ * computed back when the review screen was rendered (issue #100).
  */
 export async function confirmImportCandidate(
   _prev: ActionResult,
