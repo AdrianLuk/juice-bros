@@ -133,10 +133,20 @@ export function formatCourtLabel(courtLabel: string | null): string {
   return courtLabel ? `Court ${courtLabel}` : "No court noted";
 }
 
-/** `"2026-08-19"` → `"08-19-2026"` — a plain string reslice, not a `Date` round-trip, since the input already is a calendar date with no zone to misread. */
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/**
+ * `"2026-08-19"` → `"Wed 08-19-2026"` — the month/day/year part is a plain
+ * string reslice, not a `Date` round-trip, since the input already is a
+ * calendar date with no zone to misread. The weekday alone needs a `Date` to
+ * read off, so it's parsed as UTC midnight and read with `getUTCDay` — the
+ * same zoneless-string convention `isRealDate`/`shiftCalendarDate`
+ * (datetime.ts) already use for this exact date-only string shape.
+ */
 export function formatCandidateDate(date: string): string {
   const [year, month, day] = date.split("-");
-  return `${month}-${day}-${year}`;
+  const weekday = WEEKDAY_SHORT[new Date(`${date}T00:00:00Z`).getUTCDay()];
+  return `${weekday} ${month}-${day}-${year}`;
 }
 
 /**
