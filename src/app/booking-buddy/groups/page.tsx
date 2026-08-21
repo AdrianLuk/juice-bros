@@ -6,7 +6,6 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   CreateGroupForm,
-  FriendVisibilityRow,
   GroupCard,
 } from "@/components/booking-buddy/friend-groups";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
@@ -26,8 +25,7 @@ export default async function GroupsPage() {
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const { groups, friends } = await getGroupsPageData();
-  const people = friends.map((friend) => friend.person);
+  const { groups, friends: people } = await getGroupsPageData();
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -80,8 +78,14 @@ export default async function GroupsPage() {
                 {groups.length === 0 ? (
                   <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                     No groups yet. Groups grant visibility to several friends
-                    at once — set it per friend instead below if you&apos;d
-                    rather do that.
+                    at once — set it per friend instead on the{" "}
+                    <Link
+                      href={FRIENDS_PATH}
+                      className="underline underline-offset-4"
+                    >
+                      Friends
+                    </Link>{" "}
+                    page if you&apos;d rather do that.
                   </p>
                 ) : (
                   <div className="mt-4 flex flex-col gap-6">
@@ -90,24 +94,6 @@ export default async function GroupsPage() {
                     ))}
                   </div>
                 )}
-              </section>
-
-              <section>
-                <h2 className="font-heading text-lg font-semibold tracking-tight">
-                  Each friend
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  What everyone actually sees. Setting someone here pins them —
-                  it beats every group they&apos;re in, either way.
-                </p>
-                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
-                  {friends.map((friend) => (
-                    <FriendVisibilityRow
-                      key={friend.person.connectionId}
-                      friend={friend}
-                    />
-                  ))}
-                </ul>
               </section>
             </div>
           )}

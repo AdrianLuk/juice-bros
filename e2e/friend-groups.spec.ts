@@ -30,8 +30,9 @@ function groupCard(page: Page, name: string): Locator {
 /**
  * The "Each friend" row for one friend, found by their handle.
  *
- * Scoped to that section on purpose: the same handle also appears on the
- * member list inside every group card they belong to.
+ * Lives on the friends page, not the groups page — callers must navigate
+ * there first. Scoped to that section on purpose: the same handle also
+ * appears in the friends list above it.
  */
 function friendRow(page: Page, username: string): Locator {
   return (
@@ -127,6 +128,8 @@ test("a per-friend override beats the group default, and clearing it restores", 
   await createGroup(page, name, "calendar");
   await addFriend(page, name, FRIEND);
 
+  await page.goto("/booking-buddy/friends");
+
   // The group grants the most it can, so that is what the friend now sees.
   await expect(friendRow(page, FRIEND)).toContainText(
     "From your groups: Slots and my open time",
@@ -144,6 +147,7 @@ test("a per-friend override beats the group default, and clearing it restores", 
     "From your groups: Slots and my open time",
   );
 
+  await page.goto("/booking-buddy/groups");
   await deleteGroup(page, name);
 });
 
@@ -156,12 +160,15 @@ test("two groups resolve to the most permissive of them", async ({ page }) => {
   await addFriend(page, open, FRIEND);
   await addFriend(page, shut, FRIEND);
 
+  await page.goto("/booking-buddy/friends");
+
   // In one group showing everything and one showing nothing, the open one
   // wins — adding someone to a group can only ever expand what they see.
   await expect(friendRow(page, FRIEND)).toContainText(
     "From your groups: Slots and my open time",
   );
 
+  await page.goto("/booking-buddy/groups");
   await deleteGroup(page, open);
   await deleteGroup(page, shut);
 });
