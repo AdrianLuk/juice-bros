@@ -31,8 +31,9 @@ export default async function FriendsPage() {
   // friend whose resolved Visibility doesn't include open_time gets no entry
   // point at all (issue #61's own acceptance criterion), not a link that
   // leads to an empty page.
-  const [{ friends, received, sent, calendarVisibleFriendIds }, friendVisibility] =
-    await Promise.all([getFriendsPageData(), getFriendVisibilityList()]);
+  const { friends, received, sent, calendarVisibleFriendIds } =
+    await getFriendsPageData();
+  const friendVisibility = await getFriendVisibilityList(friends);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -91,54 +92,58 @@ export default async function FriendsPage() {
               )}
             />
 
-            <ConnectionList
-              title="Your friends"
-              people={friends}
-              emptyMessage="No friends yet. Search above to find someone you play with."
-              renderActions={(person) => (
-                <>
-                  {person.username &&
-                    calendarVisibleFriendIds.has(person.userId) && (
-                      <FriendCalendarDialog
-                        username={person.username}
-                        displayName={person.displayName}
-                      />
-                    )}
-                  <ConnectionActionButton
-                    connectionId={person.connectionId}
-                    action="remove"
-                    label="Remove"
-                    pendingLabel="Removing…"
-                    variant="destructive"
-                    confirm={{
-                      title: `Remove ${personLabel(person)}?`,
-                      description:
-                        "You'll both stop seeing each other's open time, and they aren't told. You can send a new request later, but they'd have to accept it again.",
-                    }}
-                  />
-                </>
-              )}
-            />
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Your friends
+                {friendVisibility.length > 0 && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {friendVisibility.length}
+                  </span>
+                )}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                What everyone actually sees. Setting someone here pins them —
+                it beats every group they&apos;re in, either way.
+              </p>
 
-            {friendVisibility.length > 0 && (
-              <section>
-                <h2 className="font-heading text-lg font-semibold tracking-tight">
-                  Each friend
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  What everyone actually sees. Setting someone here pins them —
-                  it beats every group they&apos;re in, either way.
+              {friendVisibility.length === 0 ? (
+                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                  No friends yet. Search above to find someone you play with.
                 </p>
+              ) : (
                 <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
                   {friendVisibility.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}
                       friend={friend}
+                      actions={
+                        <>
+                          {friend.person.username &&
+                            calendarVisibleFriendIds.has(friend.person.userId) && (
+                              <FriendCalendarDialog
+                                username={friend.person.username}
+                                displayName={friend.person.displayName}
+                              />
+                            )}
+                          <ConnectionActionButton
+                            connectionId={friend.person.connectionId}
+                            action="remove"
+                            label="Remove"
+                            pendingLabel="Removing…"
+                            variant="destructive"
+                            confirm={{
+                              title: `Remove ${personLabel(friend.person)}?`,
+                              description:
+                                "You'll both stop seeing each other's open time, and they aren't told. You can send a new request later, but they'd have to accept it again.",
+                            }}
+                          />
+                        </>
+                      }
                     />
                   ))}
                 </ul>
-              </section>
-            )}
+              )}
+            </section>
           </div>
 
           <FooterNav>

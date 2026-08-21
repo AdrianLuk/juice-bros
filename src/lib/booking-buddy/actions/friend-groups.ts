@@ -87,19 +87,23 @@ export async function getGroupsPageData(): Promise<GroupsPageData> {
 }
 
 /**
- * Every friend's resolved Visibility, for the friends page's "Each friend"
+ * Every friend's resolved Visibility, for the friends page's combined friends
  * list — what they actually see, after Friend Groups and any override are
  * applied.
+ *
+ * Takes the friends the caller already has (from `getFriendsPageData`) rather
+ * than fetching Connections again itself — the friends page renders one list
+ * merging both, so a second `connections` query here would be redundant.
  *
  * Read as three queries and joined here rather than in SQL, because the
  * precedence chain that turns them into a level lives in application code
  * (ADR 0003) and is unit tested there.
  */
-export async function getFriendVisibilityList(): Promise<FriendVisibility[]> {
+export async function getFriendVisibilityList(
+  friends: ConnectionPerson[],
+): Promise<FriendVisibility[]> {
   const session = await verifySession();
   const supabase = await createClient();
-
-  const { friends } = await listConnections();
 
   const [groupsResult, membersResult, overridesResult] = await Promise.all([
     supabase.from("friend_groups").select("id, default_visibility"),
