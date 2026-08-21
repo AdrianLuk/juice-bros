@@ -7,10 +7,12 @@ import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
 import { FriendCalendarDialog } from "@/components/booking-buddy/friend-calendar-dialog";
+import { FriendVisibilityRow } from "@/components/booking-buddy/friend-visibility";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
+import { getFriendVisibilityList } from "@/lib/booking-buddy/actions/friend-groups";
 import { BOOKING_BUDDY_ROOT, GROUPS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -29,8 +31,8 @@ export default async function FriendsPage() {
   // friend whose resolved Visibility doesn't include open_time gets no entry
   // point at all (issue #61's own acceptance criterion), not a link that
   // leads to an empty page.
-  const { friends, received, sent, calendarVisibleFriendIds } =
-    await getFriendsPageData();
+  const [{ friends, received, sent, calendarVisibleFriendIds }, friendVisibility] =
+    await Promise.all([getFriendsPageData(), getFriendVisibilityList()]);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -117,6 +119,26 @@ export default async function FriendsPage() {
                 </>
               )}
             />
+
+            {friendVisibility.length > 0 && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Each friend
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  What everyone actually sees. Setting someone here pins them —
+                  it beats every group they&apos;re in, either way.
+                </p>
+                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                  {friendVisibility.map((friend) => (
+                    <FriendVisibilityRow
+                      key={friend.person.connectionId}
+                      friend={friend}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
 
           <FooterNav>
