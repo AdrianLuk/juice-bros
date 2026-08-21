@@ -28,17 +28,17 @@ function groupCard(page: Page, name: string): Locator {
 }
 
 /**
- * The "Each friend" row for one friend, found by their handle.
+ * The "Your friends" row for one friend, found by their handle.
  *
  * Lives on the friends page, not the groups page — callers must navigate
  * there first. Scoped to that section on purpose: the same handle also
- * appears in the friends list above it.
+ * appears in the pending-request sections above it.
  */
 function friendRow(page: Page, username: string): Locator {
   return (
     page
       .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "Each friend" }) })
+      .filter({ has: page.getByRole("heading", { name: "Your friends" }) })
       // The page's own wrapper <section> contains that heading too; the
       // innermost match is the one that starts last in document order.
       .last()
