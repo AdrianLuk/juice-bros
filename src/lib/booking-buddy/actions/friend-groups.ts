@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { GROUPS_PATH } from "../routes.ts";
+import { FRIENDS_PATH, GROUPS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listConnections, type ConnectionPerson } from "./connections.ts";
 import { resolveVisibilityByConnection, type VisibilityLevel } from "../visibility.ts";
@@ -33,28 +33,76 @@ export type FriendVisibility = {
 
 export type GroupsPageData = {
   groups: FriendGroup[];
-  friends: FriendVisibility[];
+  friends: ConnectionPerson[];
 };
 
 /**
  * Everything the groups page renders: the owner's Friend Groups with their
- * members, and every friend's resolved Visibility.
+ * members, and the friends available to add to one.
+ *
+ * Per-friend resolved Visibility lives on the friends page instead — see
+ * `getFriendVisibilityList` — so this doesn't need the overrides table at all.
+ */
+export async function getGroupsPageData(): Promise<GroupsPageData> {
+  await verifySession();
+  const supabase = await createClient();
+
+  const { friends } = await listConnections();
+
+  const [groupsResult, membersResult] = await Promise.all([
+    supabase
+      .from("friend_groups")
+      .select("id, name, default_visibility")
+      .order("name"),
+    supabase.from("friend_group_members").select("group_id, connection_id"),
+  ]);
+
+  if (groupsResult.error) {
+    readFailed("your friend groups", groupsResult.error);
+  }
+  if (membersResult.error) {
+    readFailed("who is in your friend groups", membersResult.error);
+  }
+
+  const groupRows = groupsResult.data ?? [];
+  const memberRows = membersResult.data ?? [];
+
+  const personByConnection = new Map(
+    friends.map((person) => [person.connectionId, person]),
+  );
+
+  return {
+    groups: groupRows.map((group) => ({
+      id: group.id,
+      name: group.name,
+      defaultVisibility: group.default_visibility as VisibilityLevel,
+      members: memberRows
+        .filter((row) => row.group_id === group.id)
+        // A membership can outlive the friends list within one render if the
+        // Connection was just removed; dropping it beats rendering a blank row.
+        .flatMap((row) => personByConnection.get(row.connection_id) ?? []),
+    })),
+    friends,
+  };
+}
+
+/**
+ * Every friend's resolved Visibility, for the friends page's "Each friend"
+ * list — what they actually see, after Friend Groups and any override are
+ * applied.
  *
  * Read as three queries and joined here rather than in SQL, because the
  * precedence chain that turns them into a level lives in application code
  * (ADR 0003) and is unit tested there.
  */
-export async function getGroupsPageData(): Promise<GroupsPageData> {
+export async function getFriendVisibilityList(): Promise<FriendVisibility[]> {
   const session = await verifySession();
   const supabase = await createClient();
 
   const { friends } = await listConnections();
 
   const [groupsResult, membersResult, overridesResult] = await Promise.all([
-    supabase
-      .from("friend_groups")
-      .select("id, name, default_visibility")
-      .order("name"),
+    supabase.from("friend_groups").select("id, default_visibility"),
     supabase.from("friend_group_members").select("group_id, connection_id"),
     supabase
       .from("visibility_overrides")
@@ -79,10 +127,6 @@ export async function getGroupsPageData(): Promise<GroupsPageData> {
     level: row.level as VisibilityLevel,
   }));
 
-  const personByConnection = new Map(
-    friends.map((person) => [person.connectionId, person]),
-  );
-
   const resolved = resolveVisibilityByConnection({
     connectionIds: friends.map((person) => person.connectionId),
     groups: groupRows.map((group) => ({
@@ -100,23 +144,11 @@ export async function getGroupsPageData(): Promise<GroupsPageData> {
     overrideRows.map((row) => [row.connectionId, row.level]),
   );
 
-  return {
-    groups: groupRows.map((group) => ({
-      id: group.id,
-      name: group.name,
-      defaultVisibility: group.default_visibility as VisibilityLevel,
-      members: memberRows
-        .filter((row) => row.group_id === group.id)
-        // A membership can outlive the friends list within one render if the
-        // Connection was just removed; dropping it beats rendering a blank row.
-        .flatMap((row) => personByConnection.get(row.connection_id) ?? []),
-    })),
-    friends: friends.map((person) => ({
-      person,
-      resolved: resolved.get(person.connectionId) ?? "none",
-      override: overrideByConnection.get(person.connectionId) ?? null,
-    })),
-  };
+  return friends.map((person) => ({
+    person,
+    resolved: resolved.get(person.connectionId) ?? "none",
+    override: overrideByConnection.get(person.connectionId) ?? null,
+  }));
 }
 
 export async function createFriendGroup(
@@ -288,7 +320,7 @@ export async function setFriendVisibilityOverride(
       return { error: "Couldn't go back to the group default." };
     }
 
-    revalidatePath(GROUPS_PATH);
+    revalidatePath(FRIENDS_PATH);
     return { ok: true };
   }
 
@@ -301,6 +333,6 @@ export async function setFriendVisibilityOverride(
     return { error: "Couldn't set that. Try again." };
   }
 
-  revalidatePath(GROUPS_PATH);
+  revalidatePath(FRIENDS_PATH);
   return { ok: true };
 }

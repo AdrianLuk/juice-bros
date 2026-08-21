@@ -52,8 +52,9 @@ password**, and use one of the test accounts. Booking Buddy isn't linked from
 the main nav yet, so navigate by URL:
 
 - `/booking-buddy` — dashboard, with links to the pages below
-- `/booking-buddy/friends` — search, requests, your friends
-- `/booking-buddy/groups` — friend groups and per-friend visibility
+- `/booking-buddy/friends` — search, requests, your friends, and per-friend
+  visibility
+- `/booking-buddy/groups` — friend groups
 - `/booking-buddy/orgs` — the places you play
 - `/booking-buddy/bookings` — court reservations you've logged
 - `/booking-buddy/slots` — post a slot, then open one to find its "Invite
