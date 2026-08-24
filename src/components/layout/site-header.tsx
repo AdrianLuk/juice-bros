@@ -11,6 +11,7 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -92,16 +93,23 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* Mobile: a corner FAB opens the same full-screen menu, thumb-reachable
-          and never overlapping page content since it's a small fixed circle
-          rather than a bar. */}
+      {/* Mobile: a corner FAB opens a compact panel anchored to the same
+          corner, thumb-reachable and never overlapping page content since
+          it's a small fixed circle rather than a bar. The panel itself stays
+          sized to its content instead of taking the full screen, and both
+          its close button and its item animation are anchored to that same
+          bottom-right corner so the whole thing reads as growing out of the
+          FAB rather than a generic full-screen drawer. */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger
           render={
             <button
               type="button"
               aria-label="Open menu"
-              className="fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-full bg-brand-orange text-white shadow-brand-lg transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95 sm:hidden"
+              className={cn(
+                "fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-full bg-brand-orange text-white shadow-brand-lg transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95 sm:hidden",
+                open && "scale-0"
+              )}
             />
           }
         >
@@ -109,38 +117,45 @@ export function SiteHeader() {
         </SheetTrigger>
         <SheetContent
           side="right"
-          className="w-screen border-white/10 bg-brand-black/95 text-white backdrop-blur-2xl data-[side=right]:w-screen sm:hidden"
           showCloseButton={false}
+          className="inset-auto data-[side=right]:top-auto data-[side=right]:right-5 data-[side=right]:bottom-5 data-[side=right]:h-auto data-[side=right]:max-h-[70vh] data-[side=right]:w-72 data-[side=right]:max-w-[calc(100vw-2.5rem)] data-[side=right]:origin-bottom-right data-[side=right]:overflow-y-auto data-[side=right]:rounded-3xl data-[side=right]:border data-[side=right]:border-white/10 data-[side=right]:bg-brand-black/95 data-[side=right]:text-white data-[side=right]:shadow-brand-lg data-[side=right]:backdrop-blur-2xl data-[side=right]:data-starting-style:translate-x-4 data-[side=right]:data-starting-style:translate-y-4 data-[side=right]:data-ending-style:translate-x-4 data-[side=right]:data-ending-style:translate-y-4 data-starting-style:scale-90 data-ending-style:scale-90 sm:hidden"
         >
-          <SheetHeader className="flex-row items-center justify-between">
+          <SheetHeader className="pb-0">
             <SheetTitle className="text-white/60">{siteConfig.name}</SheetTitle>
+          </SheetHeader>
+          <nav className="flex flex-col gap-1 px-4 pt-2">
+            {siteConfig.nav.map((item, index) => {
+              const cornerIndex = siteConfig.nav.length - 1 - index;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  style={{
+                    transitionDelay: open ? `${cornerIndex * 40 + 60}ms` : "0ms",
+                  }}
+                  className={cn(
+                    "translate-x-3 translate-y-2 rounded-2xl px-4 py-2.5 font-heading text-lg font-semibold text-white/70 opacity-0 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/5 hover:text-white",
+                    open && "translate-x-0 translate-y-0 opacity-100",
+                    pathname === item.href && "text-brand-yellow"
+                  )}
+                >
+                  {item.title}
+                </Link>
+              );
+            })}
+          </nav>
+          <SheetFooter className="flex-row justify-end pt-0">
             <SheetClose
               aria-label="Close menu"
-              className="flex size-9 items-center justify-center rounded-full transition-colors duration-300 hover:bg-white/10"
+              className="flex size-11 items-center justify-center rounded-full bg-white/10 transition-colors duration-300 hover:bg-white/20"
             >
               <span className="relative flex h-3.5 w-3.5 items-center justify-center">
                 <span className="absolute h-px w-full rotate-45 bg-white" />
                 <span className="absolute h-px w-full -rotate-45 bg-white" />
               </span>
             </SheetClose>
-          </SheetHeader>
-          <nav className="flex flex-col gap-1 px-4 pt-4">
-            {siteConfig.nav.map((item, index) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                style={{ transitionDelay: open ? `${index * 40 + 60}ms` : "0ms" }}
-                className={cn(
-                  "translate-y-4 rounded-2xl px-4 py-3 font-heading text-2xl font-semibold text-white/70 opacity-0 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/5 hover:text-white",
-                  open && "translate-y-0 opacity-100",
-                  pathname === item.href && "text-brand-yellow"
-                )}
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>
