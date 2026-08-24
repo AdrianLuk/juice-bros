@@ -58,7 +58,7 @@ export default async function BookingBuddyPage() {
               orgs={orgs}
             />
             <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-72">
-              <UpcomingBookingsSidebar bookings={bookings} now={now} />
+              <UpcomingBookingsSidebar bookings={bookings} now={now} orgs={orgs} />
               <DashboardAvailabilitySidebar
                 windows={availabilityWindows}
                 now={now}

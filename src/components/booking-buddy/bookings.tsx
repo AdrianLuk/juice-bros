@@ -36,7 +36,11 @@ import {
   formatCourtLabel,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
-import { clockInZone, todayInZone } from "@/lib/booking-buddy/datetime";
+import {
+  clockInZone,
+  formatInstantDateAndTime,
+  todayInZone,
+} from "@/lib/booking-buddy/datetime";
 import {
   BOOKING_FORMATS,
   BOOKING_FORMAT_LABEL,
@@ -500,6 +504,66 @@ export function EditBookingButton({ booking, orgs }: { booking: Booking; orgs: O
   );
 }
 
+/**
+ * All of a Booking's details in one place — the Bookings list's "View"
+ * button and the dashboard's "Coming up" sidebar (both read-only entry
+ * points) share this instead of each growing its own popup, so Edit/Remove
+ * stay one tap away from wherever a Booking is first spotted.
+ */
+export function BookingDetailsModal({
+  booking,
+  orgs,
+  render,
+  children,
+  nativeButton = true,
+}: {
+  booking: Booking;
+  orgs: Org[];
+  render: React.ReactElement;
+  children: React.ReactNode;
+  /** Set to `false` when `render` isn't a real `<button>` (e.g. a clickable `<li>`) — see Base UI's Dialog Trigger docs. */
+  nativeButton?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const { date, time } = formatInstantDateAndTime(booking);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={render} nativeButton={nativeButton}>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{booking.name ?? booking.orgName}</DialogTitle>
+          {booking.name && <DialogDescription>{booking.orgName}</DialogDescription>}
+        </DialogHeader>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+          <dt className="text-muted-foreground">Date</dt>
+          <dd>{date}</dd>
+          <dt className="text-muted-foreground">Time</dt>
+          <dd>{time}</dd>
+          <dt className="text-muted-foreground">Facility</dt>
+          <dd>{booking.orgName}</dd>
+          <dt className="text-muted-foreground">Court</dt>
+          <dd>{formatCourtLabel(booking.courtLabel)}</dd>
+          <dt className="text-muted-foreground">Format</dt>
+          <dd>{BOOKING_FORMAT_LABEL[booking.format]}</dd>
+          {booking.players.length > 0 && (
+            <>
+              <dt className="text-muted-foreground">Players</dt>
+              <dd>{booking.players.join(", ")}</dd>
+            </>
+          )}
+        </dl>
+        <div className="-mx-4 -mb-4 flex justify-end gap-1.5 border-t border-border p-4">
+          <EditBookingButton booking={booking} orgs={orgs} />
+          <DeleteBookingButton booking={booking} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] }) {
   // `when` is always the popover's date and time joined with " · " (see
   // `formatInstantRange`) — split back apart so the time gets its own line
@@ -544,6 +608,9 @@ export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] })
         </div>
       </div>
       <div className="flex flex-col items-end gap-1.5">
+        <BookingDetailsModal booking={booking} orgs={orgs} render={<Button size="sm" variant="outline" />}>
+          View
+        </BookingDetailsModal>
         <EditBookingButton booking={booking} orgs={orgs} />
         <DeleteBookingButton booking={booking} />
       </div>
