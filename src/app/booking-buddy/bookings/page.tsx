@@ -120,7 +120,6 @@ export default async function BookingsPage() {
                     <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
                       <ChevronDownIcon className="size-4 transition-transform duration-200 group-data-panel-open:rotate-180" />
                       History
-                      <span className="text-muted-foreground">{pastBookings.length}</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
