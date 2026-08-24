@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { MenuIcon } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
@@ -104,8 +105,7 @@ export function SiteHeader() {
             />
           }
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
-          <img src="/brand/JB_Logo_White.svg" alt="" className="h-7 w-7" />
+          <MenuIcon className="size-6" />
         </SheetTrigger>
         <SheetContent
           side="right"
