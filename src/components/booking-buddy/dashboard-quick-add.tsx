@@ -30,7 +30,7 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
-    <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
+    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
       <Dialog open={availabilityDialogOpen} onOpenChange={setAvailabilityDialogOpen}>
         <DialogTrigger
           render={
