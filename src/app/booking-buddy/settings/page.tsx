@@ -18,7 +18,7 @@ import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminder
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
-import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Settings",
@@ -115,6 +115,7 @@ export default async function SettingsPage({
           )}
 
           <FooterNav>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

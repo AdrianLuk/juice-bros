@@ -9,7 +9,7 @@ import { SearchPlaceForm } from "@/components/booking-buddy/place-search";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
-import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
+import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Facilities",
@@ -98,6 +98,7 @@ export default async function OrgsPage() {
 
           <FooterNav>
             <FooterLink href={BOOKINGS_PATH}>Your bookings</FooterLink>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

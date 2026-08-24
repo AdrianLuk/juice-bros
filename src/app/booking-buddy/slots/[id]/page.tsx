@@ -17,7 +17,7 @@ import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
-import { SLOTS_PATH } from "@/lib/booking-buddy/routes";
+import { PRIVACY_PATH, SLOTS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Slot",
@@ -172,6 +172,7 @@ export default async function SlotDetailPage({
           </div>
 
           <FooterNav>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={SLOTS_PATH} back>
               Back to slots
             </FooterLink>

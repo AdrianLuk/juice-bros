@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { SignInForm } from "@/components/booking-buddy/sign-in-form";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
-import { safeRedirectTarget } from "@/lib/booking-buddy/routes";
+import { PRIVACY_PATH, safeRedirectTarget } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Sign in to Booking Buddy",
@@ -42,6 +43,10 @@ export default async function SignInPage({
           <div className="bb-card mt-8 p-6 sm:p-8">
             <SignInForm next={target} error={error} />
           </div>
+
+          <FooterNav>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>
