@@ -137,7 +137,7 @@ export function SiteHeader() {
                   className={cn(
                     "translate-x-3 translate-y-2 rounded-2xl px-4 py-2.5 font-heading text-lg font-semibold text-white/70 opacity-0 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/5 hover:text-white",
                     open && "translate-x-0 translate-y-0 opacity-100",
-                    pathname === item.href && "text-brand-yellow"
+                    pathname === item.href && "text-brand-orange"
                   )}
                 >
                   {item.title}
