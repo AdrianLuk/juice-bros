@@ -7,6 +7,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import {
@@ -23,6 +33,7 @@ import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   attachBookingToSlot,
   createSlot,
+  deleteSlot,
   detachBookingFromSlot,
   getSlotResponses,
   setRotationBuffer,
@@ -572,5 +583,46 @@ function RotationBufferForm({
         <ActionError state={state} />
       </div>
     </form>
+  );
+}
+
+export function DeleteSlotButton({ slotId, when }: { slotId: string; when: string }) {
+  const [state, formAction, pending] = useActionState(deleteSlot, EMPTY);
+
+  // The form lives inside the dialog so the confirm button is the only thing
+  // that can submit it — the same shape as removing a friend, group, or facility.
+  const form = (
+    <form
+      action={formAction}
+      className="flex flex-col items-stretch gap-1 sm:items-end"
+    >
+      <input type="hidden" name="slot_id" value={slotId} />
+      <Button type="submit" variant="destructive" disabled={pending}>
+        {pending ? "Deleting…" : "Delete slot"}
+      </Button>
+      <ActionError state={state} />
+    </form>
+  );
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
+        Delete slot
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this slot?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {when}. Every response, attached court, invite link, and reminder
+            for it goes with it — this can&apos;t be undone. Any Bookings
+            attached stay on your Bookings page, untouched.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep slot</AlertDialogCancel>
+          {form}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

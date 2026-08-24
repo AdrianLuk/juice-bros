@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
@@ -372,6 +373,45 @@ export async function createSlot(
 
   revalidatePath(SLOTS_PATH);
   return { ok: true };
+}
+
+/**
+ * Withdraw a Slot outright, not just detach a Booking from it — every
+ * Response, attached slot_booking, Slot Link, and Reminder send cascades with
+ * it (the migration's `on delete cascade`). The Bookings it was attached to
+ * are untouched, same "this app's records vs. the real reservation" split
+ * `detachBookingFromSlot` and `deleteOwnedBooking` already draw.
+ *
+ * The detail page this is called from stops existing the moment this
+ * succeeds, so unlike every other delete in this file there's nowhere left to
+ * revalidate back to — `redirect` takes the caller to the list instead.
+ */
+export async function deleteSlot(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const slotId = String(formData.get("slot_id") ?? "").trim();
+  if (!slotId) {
+    return { error: "Which slot is this?" };
+  }
+
+  const supabase = await createClient();
+  // Selected back for the same reason as every other delete here: RLS turns
+  // "that isn't yours" into an empty result, not an error.
+  const { data, error } = await supabase
+    .from("slots")
+    .delete()
+    .eq("id", slotId)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't delete that slot. Try again." };
+  }
+
+  revalidatePath(SLOTS_PATH);
+  redirect(SLOTS_PATH);
 }
 
 /**
