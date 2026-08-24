@@ -43,15 +43,6 @@ export default async function SlotsPage() {
           <div className="mt-10 flex flex-col gap-12">
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Post a slot
-              </h2>
-              <div className="mt-4">
-                <CreateSlotForm />
-              </div>
-            </section>
-
-            <section>
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
                 Your slots
               </h2>
               {own.length === 0 ? (
@@ -86,6 +77,15 @@ export default async function SlotsPage() {
                   ))}
                 </ul>
               )}
+            </section>
+
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Post a slot
+              </h2>
+              <div className="mt-4">
+                <CreateSlotForm />
+              </div>
             </section>
           </div>
 
