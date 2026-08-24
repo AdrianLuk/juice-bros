@@ -74,15 +74,6 @@ export default async function BookingsPage() {
             <BookingBuddyNav current="bookings" />
           </div>
 
-          {emailSyncAllowed && (
-            <div className="mt-10">
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Sync from Email
-              </h2>
-              <SyncFromEmailSection orgs={orgs} mailboxLinkConnected={mailboxLink !== null} />
-            </div>
-          )}
-
           {orgs.length === 0 ? (
             <p className="mt-10 text-sm text-muted-foreground">
               Bookings need somewhere to be.{" "}
@@ -131,6 +122,15 @@ export default async function BookingsPage() {
                   </Collapsible>
                 )}
               </section>
+
+              {emailSyncAllowed && (
+                <section>
+                  <h2 className="font-heading text-lg font-semibold tracking-tight">
+                    Sync from Email
+                  </h2>
+                  <SyncFromEmailSection orgs={orgs} mailboxLinkConnected={mailboxLink !== null} />
+                </section>
+              )}
 
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
