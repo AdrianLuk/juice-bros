@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
+  DeleteSlotButton,
   ResponseButtons,
   SlotCapacityPanel,
   SlotCourts,
@@ -150,6 +151,21 @@ export default async function SlotDetailPage({
                     orgs={ownedOrgs}
                     intendedOrgId={intendedOrgId}
                   />
+                </div>
+              </section>
+            )}
+
+            {isOwner && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Delete slot
+                </h2>
+                <div className="bb-card mt-4 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Withdraw this proposal for good. Anyone who&apos;s
+                    responded loses their spot.
+                  </p>
+                  <DeleteSlotButton slotId={slot.id} when={slot.when} />
                 </div>
               </section>
             )}
