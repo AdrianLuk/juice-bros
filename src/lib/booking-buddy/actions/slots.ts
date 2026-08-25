@@ -365,6 +365,7 @@ export async function createSlot(
     proposed_end: `${parsed.date} ${parsed.endTime}:00 ${parsed.timeZone}`,
     time_zone: parsed.timeZone,
     division: parsed.division,
+    intended_org_id: parsed.orgId,
   });
 
   if (error) {

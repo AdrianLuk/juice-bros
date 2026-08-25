@@ -8,6 +8,7 @@ import { CreateSlotForm, SlotRow } from "@/components/booking-buddy/slots";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listSlots } from "@/lib/booking-buddy/actions/slots";
+import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { BOOKING_BUDDY_ROOT, PRIVACY_PATH, slotPath } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -22,7 +23,7 @@ export default async function SlotsPage() {
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const { own, friends } = await listSlots();
+  const [{ own, friends }, orgs] = await Promise.all([listSlots(), listOrgs()]);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -84,7 +85,7 @@ export default async function SlotsPage() {
                 Post a slot
               </h2>
               <div className="mt-4">
-                <CreateSlotForm />
+                <CreateSlotForm orgs={orgs} />
               </div>
             </section>
           </div>

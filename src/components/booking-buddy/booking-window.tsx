@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
 import { bookingWindowLabel } from "@/lib/booking-buddy/booking-window";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -64,20 +64,13 @@ export function IntendedOrgForm({
         <Label htmlFor="intended-org">Planning to book at</Label>
         {/* Keyed on the saved value so a successful save remounts the
             select — see the note on BookingWindowForm in orgs.tsx. */}
-        <FormSelect
+        <OptionalOrgSelect
           key={intendedOrgId ?? ""}
           id="intended-org"
-          name="org_id"
+          orgs={orgs}
           defaultValue={intendedOrgId ?? ""}
           className="sm:max-w-64"
-        >
-          <option value="">Not set</option>
-          {orgs.map((org) => (
-            <option key={org.id} value={org.id}>
-              {org.displayName}
-            </option>
-          ))}
-        </FormSelect>
+        />
         <p className="text-xs text-muted-foreground">
           {selected
             ? bookingWindowLabel(selected.bookingWindow)
