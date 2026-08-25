@@ -2,12 +2,16 @@ import type { MetadataRoute } from "next";
 
 import { apps } from "@/data/apps";
 import { siteConfig } from "@/config/site";
+import { getEpisodes } from "@/lib/episodes";
 
-const routes: Array<{
+type Route = {
   path: string;
   changeFrequency: NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
   priority: number;
-}> = [
+  lastModified?: Date;
+};
+
+const routes: Route[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/podcast", changeFrequency: "weekly", priority: 0.9 },
   { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
@@ -21,10 +25,18 @@ const routes: Array<{
   { path: "/contact", changeFrequency: "yearly", priority: 0.3 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return routes.map((route) => ({
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const episodes = await getEpisodes();
+  const episodeRoutes: Route[] = episodes.map((episode) => ({
+    path: `/podcast/${episode.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.7,
+    lastModified: new Date(episode.published),
+  }));
+
+  return [...routes, ...episodeRoutes].map((route) => ({
     url: `${siteConfig.url}${route.path}`,
-    lastModified: new Date(),
+    lastModified: route.lastModified ?? new Date(),
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));

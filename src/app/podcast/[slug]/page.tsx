@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodeHook } from "@/lib/youtube";
 import { getEpisodes, type Episode } from "@/lib/episodes";
+import { buildEpisodeJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -50,6 +51,10 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildEpisodeJsonLd(episode)) }}
+      />
       <Link
         href="/podcast"
         className="w-fit text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"

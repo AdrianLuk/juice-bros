@@ -5,7 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 import { siteConfig } from "@/config/site";
-import { buildOrganizationJsonLd } from "@/lib/structured-data";
+import { buildOrganizationJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 
@@ -67,7 +67,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd()) }}
+          dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildOrganizationJsonLd()) }}
         />
         <div aria-hidden className="bg-noise" />
         <SiteHeader />
