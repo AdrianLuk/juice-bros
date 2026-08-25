@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -30,6 +31,7 @@ import {
   isOverCapacity,
 } from "@/lib/booking-buddy/capacity";
 import { DEFAULT_DIVISION, DIVISIONS, DIVISION_LABEL } from "@/lib/booking-buddy/division";
+import { NOTES_MAX_LENGTH } from "@/lib/booking-buddy/slots";
 import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
 import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -40,6 +42,7 @@ import {
   detachBookingFromSlot,
   getSlotResponses,
   setRotationBuffer,
+  setSlotNotes,
   type Slot,
   type SlotCapacity,
   type SlotResponse,
@@ -133,6 +136,16 @@ export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
           to say where this slot would be, or post it without one.
         </p>
       )}
+
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="slot-notes">Notes (optional)</Label>
+        <Textarea
+          id="slot-notes"
+          name="notes"
+          placeholder="Need 2 more players, bring your own paddle…"
+          maxLength={NOTES_MAX_LENGTH}
+        />
+      </div>
 
       <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>
@@ -602,6 +615,45 @@ function RotationBufferForm({
       <div className="flex flex-col items-end gap-1">
         <Button type="submit" variant="outline" disabled={pending}>
           {pending ? "Saving…" : "Save buffer"}
+        </Button>
+        <ActionError state={state} />
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Edit a Slot's own notes after it's been posted — the one full-text field
+ * editable outside the narrow `rotation_buffer`/`intended_org_id` pattern,
+ * since the rest of a Slot's proposal is fixed once posted. Same shape as
+ * `RotationBufferForm`, on its own so it can sit outside the owner-only
+ * `SlotCourts` section (visible to the owner regardless of whether any court
+ * is attached yet).
+ */
+export function NotesForm({ slotId, notes }: { slotId: string; notes: string | null }) {
+  const [state, formAction, pending] = useActionState(setSlotNotes, EMPTY);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="slot_id" value={slotId} />
+
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="slot-detail-notes">Notes</Label>
+        {/* Keyed on the saved value so a successful save remounts the field —
+            see the note on BookingWindowForm in orgs.tsx. */}
+        <Textarea
+          key={notes}
+          id="slot-detail-notes"
+          name="notes"
+          defaultValue={notes ?? ""}
+          placeholder="Need 2 more players, bring your own paddle…"
+          maxLength={NOTES_MAX_LENGTH}
+        />
+      </div>
+
+      <div className="flex flex-col items-end gap-1">
+        <Button type="submit" variant="outline" disabled={pending}>
+          {pending ? "Saving…" : "Save notes"}
         </Button>
         <ActionError state={state} />
       </div>

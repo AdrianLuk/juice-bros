@@ -5,6 +5,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -32,6 +33,7 @@ import {
   DURATION_PRESET_HOURS,
   HOUR_TIMES,
   NAME_MAX_LENGTH,
+  NOTES_MAX_LENGTH,
   addHoursToTime,
   formatCourtLabel,
   formatTimeLabel,
@@ -378,6 +380,16 @@ export function CreateBookingForm({
         />
       </div>
 
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor="booking-notes">Notes (optional)</Label>
+        <Textarea
+          id="booking-notes"
+          name="notes"
+          placeholder="Bring extra balls, meet at the north entrance…"
+          maxLength={NOTES_MAX_LENGTH}
+        />
+      </div>
+
       <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending || endTime === null}>
           {pending ? "Saving…" : "Log booking"}
@@ -471,6 +483,17 @@ export function EditBookingForm({
         />
       </div>
 
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <Label htmlFor={`booking-edit-${booking.id}-notes`}>Notes (optional)</Label>
+        <Textarea
+          id={`booking-edit-${booking.id}-notes`}
+          name="notes"
+          defaultValue={booking.notes ?? ""}
+          placeholder="Bring extra balls, meet at the north entrance…"
+          maxLength={NOTES_MAX_LENGTH}
+        />
+      </div>
+
       <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending || endTime === null}>
           {pending ? "Saving…" : "Save changes"}
@@ -552,6 +575,12 @@ export function BookingDetailsModal({
             <>
               <dt className="text-muted-foreground">Players</dt>
               <dd>{booking.players.join(", ")}</dd>
+            </>
+          )}
+          {booking.notes && (
+            <>
+              <dt className="text-muted-foreground">Notes</dt>
+              <dd className="whitespace-pre-wrap">{booking.notes}</dd>
             </>
           )}
         </dl>

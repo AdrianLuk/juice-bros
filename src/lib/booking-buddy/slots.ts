@@ -15,6 +15,9 @@ import {
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "./orgs.ts";
 import { parseDivision, type Division } from "./division.ts";
 
+/** Mirrors `slot_notes_length` — bigger than a Booking name's cap since notes is meant to hold more than a short label. */
+export const NOTES_MAX_LENGTH = 500;
+
 export type NewSlotProposal = {
   date: string;
   startTime: string;
@@ -23,7 +26,25 @@ export type NewSlotProposal = {
   division: Division;
   /** The organizer's own hint at which facility they plan to book (issue #36) — optional, same as `setIntendedOrg`. */
   orgId: string | null;
+  /** Null when the owner didn't add one — editable afterward via `setSlotNotes`. */
+  notes: string | null;
 };
+
+/**
+ * Trims to null when blank, and refuses anything over NOTES_MAX_LENGTH —
+ * shared by `parseNewSlotProposal` and `setSlotNotes` (actions/slots.ts) so
+ * create-time and edit-time validation can't drift apart.
+ */
+export function parseSlotNotes(raw: string): { notes: string | null } | { error: string } {
+  const trimmed = raw.trim();
+  const notes = trimmed === "" ? null : trimmed;
+
+  if (notes && notes.length > NOTES_MAX_LENGTH) {
+    return { error: `That note is too long — ${NOTES_MAX_LENGTH} characters at most.` };
+  }
+
+  return { notes };
+}
 
 /**
  * A bare-proposal Slot has no Org yet, so there is nothing to read a clock
@@ -83,7 +104,12 @@ export function parseNewSlotProposal(
   // it if that's ever untrue.
   const orgId = String(formData.get("org_id") ?? "").trim() || null;
 
-  return { date, startTime, endTime, timeZone, division, orgId };
+  const notesResult = parseSlotNotes(String(formData.get("notes") ?? ""));
+  if ("error" in notesResult) {
+    return notesResult;
+  }
+
+  return { date, startTime, endTime, timeZone, division, orgId, notes: notesResult.notes };
 }
 
 /**

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatSlotWhen, parseNewSlotProposal, slotWriteMessage } from "./slots.ts";
+import {
+  NOTES_MAX_LENGTH,
+  formatSlotWhen,
+  parseNewSlotProposal,
+  slotWriteMessage,
+} from "./slots.ts";
 
 const VALID = {
   date: "2026-08-20",
@@ -23,7 +28,7 @@ function form(fields: Record<string, string>): FormData {
 
 function parse(
   overrides: Partial<
-    typeof VALID & { time_zone: string; division: string; org_id: string }
+    typeof VALID & { time_zone: string; division: string; org_id: string; notes: string }
   > = {},
   now: Date = NOW,
 ) {
@@ -40,6 +45,7 @@ test("a date and a window become a bare-proposal Slot, defaulted to Toronto", ()
     timeZone: "America/Toronto",
     division: "open",
     orgId: null,
+    notes: null,
   });
 });
 
@@ -75,6 +81,31 @@ test("an explicit time zone is honoured over the default", () => {
 
 test("an unknown time zone is refused before the database has to", () => {
   assert.ok("error" in parse({ time_zone: "Mars/Olympus_Mons" }));
+});
+
+test("surrounding space is trimmed off notes", () => {
+  const parsed = parse({ notes: "  Need 2 more players  " });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.notes, "Need 2 more players");
+});
+
+test("notes is optional — a blank or omitted note becomes null, not an error", () => {
+  for (const notes of ["", "   "]) {
+    const parsed = parse({ notes });
+    assert.ok(!("error" in parsed));
+    assert.equal(parsed.notes, null);
+  }
+
+  const withoutNotes = { ...VALID };
+  const parsed = parseNewSlotProposal(form(withoutNotes), NOW);
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.notes, null);
+});
+
+test("an over-long note is refused before the database has to", () => {
+  const parsed = parse({ notes: "a".repeat(NOTES_MAX_LENGTH + 1) });
+  assert.ok("error" in parsed);
+  assert.match(parsed.error, new RegExp(String(NOTES_MAX_LENGTH)));
 });
 
 test("a date that isn't a date is refused", () => {

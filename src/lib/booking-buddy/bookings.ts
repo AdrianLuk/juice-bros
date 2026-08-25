@@ -31,6 +31,9 @@ export const COURT_LABEL_MAX_LENGTH = 40;
 
 export const NAME_MAX_LENGTH = 60;
 
+/** Bigger than NAME_MAX_LENGTH on purpose — notes is meant to hold more than a short label. */
+export const NOTES_MAX_LENGTH = 500;
+
 /** Mirrors `booking_player_name_length` — the same cap `court_label` itself uses. */
 export const PLAYER_NAME_MAX_LENGTH = 40;
 
@@ -42,6 +45,8 @@ export type NewBooking = {
   courtLabel: string | null;
   /** Null when the User didn't give the Booking a name — a free-text label distinct from the court label. */
   name: string | null;
+  /** Null when the User didn't add one — free-text detail distinct from the name (a label) and the court label (which court). */
+  notes: string | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -92,6 +97,15 @@ export function parseNewBooking(
     };
   }
 
+  const rawNotes = String(formData.get("notes") ?? "").trim();
+  const notes = rawNotes === "" ? null : rawNotes;
+
+  if (notes && notes.length > NOTES_MAX_LENGTH) {
+    return {
+      error: `That note is too long — ${NOTES_MAX_LENGTH} characters at most.`,
+    };
+  }
+
   const date = String(formData.get("date") ?? "").trim();
   if (!isRealDate(date)) {
     return { error: "Pick a date for the booking." };
@@ -125,7 +139,7 @@ export function parseNewBooking(
     };
   }
 
-  return { orgId, courtLabel, name, date, startTime, endTime, format, players };
+  return { orgId, courtLabel, name, notes, date, startTime, endTime, format, players };
 }
 
 /** "Court 3" when the User noted one down, otherwise a plain fallback. */
@@ -213,8 +227,9 @@ export function bookingWriteMessage(error: {
     return "That time has already passed. Pick a time in the future.";
   }
 
-  // The check constraints — court label or name blank or over-long, and an
-  // end that isn't after the start. `parseNewBooking` catches all of them
-  // first, so getting here means the form and the schema have drifted apart.
-  return "Something about that booking doesn't add up. Check the name, court, and times.";
+  // The check constraints — court label, name, or notes blank or over-long,
+  // and an end that isn't after the start. `parseNewBooking` catches all of
+  // them first, so getting here means the form and the schema have drifted
+  // apart.
+  return "Something about that booking doesn't add up. Check the name, notes, court, and times.";
 }

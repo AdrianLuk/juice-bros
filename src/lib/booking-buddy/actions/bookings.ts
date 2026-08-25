@@ -33,6 +33,8 @@ export type Booking = {
   courtLabel: string | null;
   /** Null when the User didn't give the Booking a name. */
   name: string | null;
+  /** Null when the User didn't add one. Shown only in the Booking's own detail view. */
+  notes: string | null;
   /** Already rendered in the Booking's own zone — see `formatBookingWhen`. */
   when: string;
   startsAt: string;
@@ -66,7 +68,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
     listOrgs(),
     supabase
       .from("bookings")
-      .select("id, org_id, court_label, name, starts_at, ends_at, format")
+      .select("id, org_id, court_label, name, notes, starts_at, ends_at, format")
       .order("starts_at", { ascending: true }),
     // A separate query rather than a PostgREST embed — this codebase avoids
     // embedding (see PROGRESS.md's connections notes) and joins in
@@ -112,6 +114,7 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
         orgName: org?.displayName ?? "Somewhere you played",
         courtLabel: row.court_label,
         name: row.name,
+        notes: row.notes,
         when: formatBookingWhen({
           startsAt: row.starts_at,
           endsAt: row.ends_at,
@@ -300,6 +303,7 @@ export async function insertValidatedBooking(
       owner_id: ownerId,
       court_label: parsed.courtLabel,
       name: parsed.name,
+      notes: parsed.notes,
       format: parsed.format,
       // Wall-clock strings carrying their own zone. Postgres does the DST-aware
       // conversion to an instant, which is much harder to get wrong than doing it
@@ -374,6 +378,7 @@ export async function updateValidatedBooking(
       org_id: parsed.orgId,
       court_label: parsed.courtLabel,
       name: parsed.name,
+      notes: parsed.notes,
       format: parsed.format,
       starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
       ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
