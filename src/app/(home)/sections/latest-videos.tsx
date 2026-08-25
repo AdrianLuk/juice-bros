@@ -1,9 +1,9 @@
 import { siteConfig } from "@/config/site";
 import { VideoGrid } from "@/components/video-grid";
 import { SectionHeading } from "@/components/typography/section-heading";
-import type { YoutubeVideo } from "@/lib/youtube";
+import type { Episode } from "@/lib/episodes";
 
-export function LatestVideos({ videos }: { videos: YoutubeVideo[] }) {
+export function LatestVideos({ videos }: { videos: Episode[] }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

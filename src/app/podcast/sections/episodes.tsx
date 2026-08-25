@@ -1,8 +1,8 @@
 import { siteConfig } from "@/config/site";
 import { VideoGrid } from "@/components/video-grid";
-import type { YoutubeVideo } from "@/lib/youtube";
+import type { Episode } from "@/lib/episodes";
 
-export function Episodes({ videos }: { videos: YoutubeVideo[] }) {
+export function Episodes({ videos }: { videos: Episode[] }) {
   return (
     <div className="mt-8">
       {videos.length > 0 ? (
