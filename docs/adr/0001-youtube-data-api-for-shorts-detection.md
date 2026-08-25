@@ -1,0 +1,5 @@
+# Switch from the YouTube RSS feed to the YouTube Data API
+
+The site fetched videos via YouTube's public, unauthenticated channel RSS feed (`feeds/videos.xml`), which exposes only title, description, and published date — no duration or aspect ratio. Once Episode pages needed to exclude Shorts (vertical, ≤3 min uploads, which the channel plans to start posting), there was no way to tell a Short apart from a full episode using that feed's data alone. We're switching to the authenticated YouTube Data API (`videos.list`), which exposes `contentDetails.duration` and video dimensions, so the Short/Episode split can be computed from real data instead of guessed.
+
+Trade-off accepted: this introduces an API key, quota limits, and a paid tier if exceeded, in exchange for accurate classification. Neither interface exposes a dedicated "this is a Short" flag — duration + aspect ratio is the best available signal on the API too — so this isn't a workaround for a feed limitation, it's the only viable signal either way.
