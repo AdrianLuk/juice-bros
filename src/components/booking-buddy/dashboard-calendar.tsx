@@ -293,7 +293,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
               className={cn(
                 "relative rounded-md px-2.5 py-1 text-xs font-medium transition-colors after:absolute after:-inset-1 after:content-['']",
                 view === option.id
-                  ? "bg-primary text-event-foreground"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
