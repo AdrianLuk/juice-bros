@@ -69,9 +69,17 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildOrganizationJsonLd()) }}
         />
+        <a
+          href="#main-content"
+          className="sr-only z-50 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
+        >
+          Skip to content
+        </a>
         <div aria-hidden className="bg-noise" />
         <SiteHeader />
-        <main className="flex flex-1 flex-col">{children}</main>
+        <main id="main-content" className="flex flex-1 flex-col">
+          {children}
+        </main>
         <SiteFooter />
         <Analytics />
         <SpeedInsights />
