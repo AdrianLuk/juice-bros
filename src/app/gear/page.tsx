@@ -29,8 +29,7 @@ export default function GearPage() {
       <PartnerCodesSection items={partnerCodes} />
 
       <p className="mt-20 text-xs text-muted-foreground">
-        Affiliate disclosure: some products featured have ambassador discount codes
-        available. We only share products we genuinely use and believe in.
+        Affiliate disclosure: some products featured include ambassador discount codes.
       </p>
     </div>
   );
