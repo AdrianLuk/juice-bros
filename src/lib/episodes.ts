@@ -1,5 +1,5 @@
-import type { EpisodeOverride } from "../../content/episode-overrides.ts";
-import type { VideoOrientation, YoutubeVideo } from "./youtube.ts";
+import { episodeOverrides, type EpisodeOverride } from "../../content/episode-overrides.ts";
+import { getLatestVideos, type VideoOrientation, type YoutubeVideo } from "./youtube.ts";
 
 // Short/Episode rule (see CONTEXT.md and docs/adr/0001-youtube-data-api-for-shorts-detection.md):
 // a video is a Short when it's vertical (9:16) AND its duration is <=3 minutes.
@@ -78,4 +78,16 @@ export function buildEpisode(video: YoutubeVideo, overrides: EpisodeOverride[]):
     orientation: video.orientation,
     redirectFrom: override?.redirectFrom ?? [],
   };
+}
+
+/**
+ * Every current Episode (Shorts excluded), built live from the latest videos
+ * plus content/episode-overrides.ts. The one async entry point the
+ * /podcast/[slug] route and its metadata both call.
+ */
+export async function getEpisodes(): Promise<Episode[]> {
+  const videos = await getLatestVideos();
+  return videos
+    .map((video) => buildEpisode(video, episodeOverrides))
+    .filter((episode): episode is Episode => episode !== null);
 }
