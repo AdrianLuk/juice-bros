@@ -245,12 +245,27 @@ function formatLocalDate(date: Date, sep: string): string {
  * "Friday, 8-21-2026" → "2026-08-21" — CourtReserve's own Details-block date
  * format, confirmed against a real captured email: a leading weekday name
  * (for a human reader only, not part of the actual date) followed by
- * `M-D-YYYY`. Parsed explicitly with a regex rather than handed to `Date`,
- * since ECMA-262 only guarantees consistent cross-engine parsing for ISO
- * 8601 strings — a "Weekday, M-D-YYYY" string is implementation-defined and
- * not safe to rely on `new Date()` for.
+ * `M-D-YYYY`. A Registration Confirmation's own Event block instead carries
+ * a bare `YYYY-MM-DD` with no weekday prefix at all (confirmed against a
+ * real captured tournament sign-up email — issue #101), so that shape is
+ * checked first. Both are parsed explicitly with a regex rather than handed
+ * to `Date`, since ECMA-262 only guarantees consistent cross-engine parsing
+ * for ISO 8601 strings — a "Weekday, M-D-YYYY" string is
+ * implementation-defined and not safe to rely on `new Date()` for, and
+ * `YYYY-MM-DD` is safe but explicit parsing keeps both branches consistent.
  */
 function parseHumanDate(text: string): string | null {
+  const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text.trim());
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]);
+    const day = Number(isoMatch[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null;
+    }
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
   const match = /(\d{1,2})-(\d{1,2})-(\d{4})\s*$/.exec(text);
   if (!match) {
     return null;
