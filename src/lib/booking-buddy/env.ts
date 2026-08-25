@@ -117,11 +117,12 @@ export function requireMailboxLinkEncryptionKey(
 }
 
 /**
- * Server-only. Comma-separated Usernames approved for issue #62's email-sync
- * feature — see `email-sync-allowlist.ts` and ADR-0009's addendum. A
- * deliberately separate list from Google's own Testing-mode test users, not
- * a mirror of it. Unset/blank means nobody is allowed — see
- * `isEmailSyncAllowed`, which fails closed rather than defaulting open.
+ * Server-only. Comma-separated Usernames and/or account emails approved for
+ * issue #62's email-sync feature — see `email-sync-allowlist.ts` and
+ * ADR-0009's addendum. A deliberately separate list from Google's own
+ * Testing-mode test users, not a mirror of it. Unset/blank means nobody is
+ * allowed — see `isEmailSyncAllowed`, which fails closed rather than
+ * defaulting open.
  */
 export function readEmailSyncAllowlist(
   source: EnvSource = { EMAIL_SYNC_ALLOWLIST: process.env.EMAIL_SYNC_ALLOWLIST },
