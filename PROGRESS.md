@@ -10,9 +10,12 @@ Tracking against the phases in the original implementation brief. Checked = done
 
 ## Phase 2 — Episode pages
 
-- [ ] **2.1 Create the episode route** — `/podcast/[slug]` + content layer (MDX or `content/episodes.ts`) not started.
-- [ ] **2.2 Rewire existing links to point internally** — Homepage grid, featured card, and `/podcast` list still link out to YouTube directly.
-- [ ] **2.3 Backfill content** — `scripts/import-episodes.ts` (scaffold episodes from the channel feed) and the caption-pull script not started.
+Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTEXT.md), [docs/adr/0001-youtube-data-api-for-shorts-detection.md](docs/adr/0001-youtube-data-api-for-shorts-detection.md), and [docs/adr/0002-episodes-generated-live-not-scaffolded.md](docs/adr/0002-episodes-generated-live-not-scaffolded.md). Episodes are generated live from YouTube data (no content layer, no scaffold script); the only persisted piece is a small hand-edited overrides file.
+
+- [ ] **2.1 Switch to the YouTube Data API** — Replace the RSS-feed-based `getLatestVideos()` with the YouTube Data API (`videos.list`) to get duration + dimensions, needed to identify Shorts (vertical + ≤3 min) and exclude them from Episodes and from every video grid.
+- [ ] **2.2 Create the episode route** — `/podcast/[slug]`, generated on request from the video data; slug is `slugify(currentTitle)` computed live, not stored. Not started.
+- [ ] **2.3 Rewire existing links to point internally** — Homepage grid, featured card, and `/podcast` list still link out to YouTube directly. Once 2.1/2.2 ship, every non-Short video always has a working internal page, so these can link to `/podcast/[slug]` unconditionally.
+- [ ] **2.4 Episode overrides file** — `content/episode-overrides.ts`: hand-maintained, keyed by videoId, with optional `redirectFrom` (for a deliberate post-publish title/slug rename) and `showNotes` (for future hand-written notes). Empty at launch. Replaces the previously-planned import/scaffold script (not needed — generation is live) and caption-pull script (deferred until show notes become real work).
 
 ## Phase 3 — Technical SEO
 
@@ -51,4 +54,4 @@ Tracking against the phases in the original implementation brief. Checked = done
 - [ ] Submit RSS feed to Apple Podcasts, Amazon Music, Pocket Casts, Overcast, iHeart, Podcast Index
 - [ ] Submit to podcast directories (Feedspot, MillionPodcasts)
 - [ ] Add site URL to YouTube video descriptions + pin a comment linking the episode page
-- [ ] Write real host bios and per-episode show notes
+- [ ] Write real host bios and per-episode show notes (the latter via the `showNotes` field in `content/episode-overrides.ts`, once Phase 2 ships)
