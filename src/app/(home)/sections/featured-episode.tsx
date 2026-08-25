@@ -1,14 +1,15 @@
 import Link from "next/link";
 
 import { getYoutubeEmbedUrl } from "@/lib/utils";
-import { getEpisodeHook, type YoutubeVideo } from "@/lib/youtube";
+import { getEpisodeHook } from "@/lib/youtube";
+import type { Episode } from "@/lib/episodes";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
 
 // TODO: Swap for a distinct candid shot of Daven & Adrian. Currently reuses the
 // hero banner, which shows the same faces already featured at the top of the page.
 const hostPhoto = "/pictures/adrian-dav-chatgpt-edited.png";
 
-export function FeaturedEpisode({ video }: { video: YoutubeVideo }) {
+export function FeaturedEpisode({ episode }: { episode: Episode }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
       <div className="rounded-[2.25rem] bg-black/3 p-2 ring-1 ring-black/5">
@@ -17,8 +18,8 @@ export function FeaturedEpisode({ video }: { video: YoutubeVideo }) {
           <div className="aspect-video lg:min-h-120">
             <iframe
               className="h-full w-full"
-              src={getYoutubeEmbedUrl(video.url)}
-              title={video.title}
+              src={getYoutubeEmbedUrl(episode.url)}
+              title={episode.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
@@ -48,16 +49,21 @@ export function FeaturedEpisode({ video }: { video: YoutubeVideo }) {
               </span>
               <div>
                 <h2 className="font-heading text-3xl font-black tracking-[-0.02em] text-balance sm:text-4xl">
-                  {video.title}
+                  <Link
+                    href={`/podcast/${episode.slug}`}
+                    className="transition-colors duration-300 hover:text-brand-orange"
+                  >
+                    {episode.title}
+                  </Link>
                 </h2>
-                {video.description && (
+                {episode.description && (
                   <p className="mt-3 text-lg text-white/85 text-balance">
-                    {getEpisodeHook(video.description)}
+                    {getEpisodeHook(episode.description)}
                   </p>
                 )}
               </div>
               <div className="mt-1 flex flex-col gap-3 sm:flex-row">
-                <WatchListenButtons youtubeUrl={video.url} />
+                <WatchListenButtons youtubeUrl={episode.url} />
               </div>
               <Link
                 href="/podcast"
