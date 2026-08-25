@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   // allowlist mid-flow, or a callback URL replayed by hand, must not still
   // be able to complete a connection.
   const profile = await getOwnProfile();
-  if (!isEmailSyncAllowed(profile.username, readEmailSyncAllowlist())) {
+  if (!isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist())) {
     return NextResponse.redirect(new URL(`${SETTINGS_PATH}?error=email_sync_not_allowed`, origin));
   }
 

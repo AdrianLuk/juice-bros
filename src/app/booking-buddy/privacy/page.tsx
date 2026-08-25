@@ -34,9 +34,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default async function BookingBuddyPrivacyPage() {
   const session = await getOptionalSession();
   const profile = session ? await getOwnProfile() : null;
-  const emailSyncAllowed = profile
-    ? isEmailSyncAllowed(profile.username, readEmailSyncAllowlist())
-    : false;
+  const emailSyncAllowed =
+    profile && session
+      ? isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist())
+      : false;
 
   return (
     <div className="flex w-full flex-1 flex-col">
