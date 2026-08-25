@@ -465,15 +465,26 @@ export async function deleteOwnedBooking(bookingId: string): Promise<ActionResul
  * are never touched: matching is deliberately Org + date/start-time only
  * (not court), so the slot the update refers to is already known to be
  * unchanged — only its format and court label can differ.
+ *
+ * `notes` is optional and, unlike `format`/`courtLabel`, left untouched
+ * (omitted from the update) when not given — it's only ever passed when the
+ * update's own court text overflowed `courtLabel`'s length limit
+ * (`splitOverlongCourtLabel`) and needs somewhere to land, not a field this
+ * update otherwise means to edit, so an ordinary apply can't clobber notes
+ * the User already wrote on this Booking for something unrelated.
  */
 export async function updateOwnedBookingFormatAndCourt(
   bookingId: string,
-  fields: { format: BookingFormat; courtLabel: string | null },
+  fields: { format: BookingFormat; courtLabel: string | null; notes?: string },
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bookings")
-    .update({ format: fields.format, court_label: fields.courtLabel })
+    .update({
+      format: fields.format,
+      court_label: fields.courtLabel,
+      ...(fields.notes !== undefined ? { notes: fields.notes } : {}),
+    })
     .eq("id", bookingId)
     .select("id");
 
