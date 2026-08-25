@@ -336,6 +336,34 @@ test("a Registration Confirmation parses into facility, date/time and court the 
   });
 });
 
+test("a Registration Confirmation whose Event date is a bare ISO date with no weekday prefix (a real captured tournament sign-up email) still parses, not unparseable", () => {
+  const result = parseCourtReserveEmail({
+    subject: "Registration Confirmation - Men's Partners Play 3.5+ Tourney Style",
+    html: registrationHtml({
+      facility: "HISPORTS - Stouffville",
+      eventName: "Men's Partners Play 3.5+ Tourney Style",
+      date: "2026-08-25",
+      time: "6:00 PM - 8:00 PM",
+      court: "Court #1 - Hard, Court #2 - Hard, Court #3 - Hard, Court #4 - Hard, Court #5 - Hard, Court #6 - Hard",
+      team: "Team: Daven Wong, Adrian Luk",
+    }),
+  });
+
+  assert.deepEqual(result, {
+    kind: "confirmation",
+    confirmation: {
+      facilityName: "HISPORTS - Stouffville",
+      date: "2026-08-25",
+      startTime: "18:00",
+      endTime: "20:00",
+      courtLabel: "Court #1 - Hard, Court #2 - Hard, Court #3 - Hard, Court #4 - Hard, Court #5 - Hard, Court #6 - Hard",
+      format: "doubles",
+      name: "Men's Partners Play 3.5+ Tourney Style",
+      playerNames: ["Daven Wong", "Adrian Luk"],
+    },
+  });
+});
+
 test('a Registration Confirmation\'s "Registered Team(s)" value strips its leading "Team:" label before splitting into player names', () => {
   const result = parseCourtReserveEmail({
     subject: "Registration Confirmation - Men's Partners Play 3.5 and up Tourney Style",
