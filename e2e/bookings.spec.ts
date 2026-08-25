@@ -126,6 +126,40 @@ test("a booking's name and court can be edited, in place on the Bookings list ro
   await removePlace(page, place);
 });
 
+test("a booking's notes can be added, shown in its details modal, and edited", async ({
+  page,
+}) => {
+  const place = placeName();
+  const originalNotes = `${PREFIX} bring extra balls`;
+  const updatedNotes = `${PREFIX} court has a wobbly net`;
+
+  await addPlace(page, place);
+  await logBooking(page, {
+    place,
+    court: "94",
+    date: "2026-09-15",
+    start: "18:00",
+    end: "19:00",
+    notes: originalNotes,
+  });
+
+  const booking = row(page, "Court 94");
+  // Not shown on the compact list row itself — only in the details modal.
+  await expect(booking).not.toContainText(originalNotes);
+
+  await booking.getByRole("button", { name: "View" }).click();
+  const modal = page.getByRole("dialog");
+  await expect(modal).toContainText(originalNotes);
+  await modal.getByRole("button", { name: "Close" }).click();
+
+  await editBooking(page, "Court 94", { notes: updatedNotes });
+  await booking.getByRole("button", { name: "View" }).click();
+  await expect(page.getByRole("dialog")).toContainText(updatedNotes);
+  await expect(page.getByRole("dialog")).not.toContainText(originalNotes);
+
+  await removePlace(page, place);
+});
+
 test("a booking's players can be added, edited, and removed via the Edit dialog (issue #101)", async ({
   page,
 }) => {

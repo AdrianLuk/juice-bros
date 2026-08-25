@@ -122,6 +122,40 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   }
 });
 
+test("a slot's notes can be set at posting time, and edited afterward", async ({ page }) => {
+  const originalNotes = "Playwright need 2 more players";
+  const updatedNotes = "Playwright bring your own paddle";
+
+  await page.goto("/booking-buddy/slots");
+  await page.getByLabel("Date").fill("2031-11-11");
+  await page.getByLabel("Start").selectOption("13:00");
+  await page.getByLabel("End").selectOption("14:00");
+  await page.getByLabel("Notes").fill(originalNotes);
+  await page.getByRole("button", { name: "Post slot" }).click();
+
+  await row(page, "Nov 11, 2031").getByRole("link").click();
+  await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
+  const slotId = page.url().split("/").pop()!;
+
+  try {
+    // Set at posting time, already showing in the owner's own edit control.
+    await expect(page.getByLabel("Notes")).toHaveValue(originalNotes);
+
+    await page.getByLabel("Notes").fill(updatedNotes);
+    await page.getByRole("button", { name: "Save notes" }).click();
+    // Waits for the round trip to actually resolve (button leaves its
+    // "Saving…" pending state) before reloading — otherwise the reload below
+    // can race the Server Action and read the database before it wrote.
+    await expect(page.getByRole("button", { name: "Save notes" })).toBeEnabled();
+
+    // Not just the optimistic form state — it survives a fresh read.
+    await page.reload();
+    await expect(page.getByLabel("Notes")).toHaveValue(updatedNotes);
+  } finally {
+    await deleteSlots([slotId]);
+  }
+});
+
 test("a slot cannot be posted for a date that's already passed", async ({ page }) => {
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2020-01-01");

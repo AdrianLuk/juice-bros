@@ -7,7 +7,7 @@ import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
 import { SLOTS_PATH, slotPath } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
-import { formatSlotWhen, parseNewSlotProposal, slotWriteMessage } from "../slots.ts";
+import { formatSlotWhen, parseNewSlotProposal, parseSlotNotes, slotWriteMessage } from "../slots.ts";
 import {
   bookingOverlapsSlot,
   computeCapacity,
@@ -78,6 +78,8 @@ export type SlotDetail = {
   intendedOrgId: string | null;
   /** The owner's own Orgs, to pick an intended one from — empty for a non-owner, same pattern as `capacity.attached`/`attachable`. */
   ownedOrgs: Org[];
+  /** Null when the owner hasn't added one. Set at posting time or afterward via `setSlotNotes`; shown on the Slot's own detail page only. */
+  notes: string | null;
 };
 
 export type SlotResponses = {
@@ -280,7 +282,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
     .select(
-      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, division",
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, division, notes",
     )
     .eq("id", slotId)
     .maybeSingle();
@@ -337,6 +339,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
     reminderOffsetMinutes: slotRow.reminder_offset_minutes,
     intendedOrgId: slotRow.intended_org_id,
     ownedOrgs,
+    notes: slotRow.notes,
   };
 }
 
@@ -366,6 +369,7 @@ export async function createSlot(
     time_zone: parsed.timeZone,
     division: parsed.division,
     intended_org_id: parsed.orgId,
+    notes: parsed.notes,
   });
 
   if (error) {
@@ -554,6 +558,44 @@ export async function setIntendedOrg(
 
   if (error || !data?.length) {
     return { error: "Couldn't save that. Try again." };
+  }
+
+  revalidatePath(slotPath(slotId));
+  return { ok: true };
+}
+
+/**
+ * Set or clear a Slot's own notes after it's been posted — the one full-text
+ * field editable outside the narrow `rotation_buffer`/`intended_org_id`
+ * pattern, since the rest of a Slot's proposal (date/time, division) is fixed
+ * once posted. Shares `parseSlotNotes` with `parseNewSlotProposal` so
+ * create-time and edit-time validation can't drift apart.
+ */
+export async function setSlotNotes(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  await verifySession();
+
+  const slotId = String(formData.get("slot_id") ?? "").trim();
+  if (!slotId) {
+    return { error: "Which slot is this for?" };
+  }
+
+  const parsed = parseSlotNotes(String(formData.get("notes") ?? ""));
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("slots")
+    .update({ notes: parsed.notes })
+    .eq("id", slotId)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: "Couldn't save that note. Try again." };
   }
 
   revalidatePath(slotPath(slotId));

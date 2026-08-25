@@ -71,6 +71,8 @@ export async function logBooking(
     name?: string;
     /** Comma-separated, same shape the Players field itself takes. Left blank when omitted. */
     players?: string;
+    /** Left blank when omitted — the field is optional. */
+    notes?: string;
   },
 ) {
   await page.goto("/booking-buddy/bookings");
@@ -80,6 +82,9 @@ export async function logBooking(
   }
   if (booking.players) {
     await page.getByLabel("Players").fill(booking.players);
+  }
+  if (booking.notes) {
+    await page.getByLabel("Notes").fill(booking.notes);
   }
   await page.getByLabel("Court").fill(booking.court);
   await page.getByLabel("Date").fill(booking.date);
@@ -111,6 +116,7 @@ export async function editBooking(
     format?: "Doubles" | "Singles";
     /** Comma-separated, same shape the Players field itself takes — replaces the existing list rather than appending. */
     players?: string;
+    notes?: string;
   },
 ) {
   await row(page, courtLabel).getByRole("button", { name: "Edit" }).click();
@@ -130,6 +136,9 @@ export async function editBooking(
   }
   if (edits.players !== undefined) {
     await dialog.getByLabel("Players").fill(edits.players);
+  }
+  if (edits.notes !== undefined) {
+    await dialog.getByLabel("Notes").fill(edits.notes);
   }
 
   await dialog.getByRole("button", { name: "Save changes" }).click();
