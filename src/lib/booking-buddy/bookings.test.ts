@@ -5,6 +5,7 @@ import {
   COURT_LABEL_MAX_LENGTH,
   HOUR_TIMES,
   NAME_MAX_LENGTH,
+  NOTES_MAX_LENGTH,
   PLAYER_NAME_MAX_LENGTH,
   bookingWriteMessage,
   formatBookingWhen,
@@ -31,7 +32,9 @@ function form(fields: Record<string, string>): FormData {
 }
 
 function parse(
-  overrides: Partial<typeof VALID & { format: string; name: string; players: string }> = {},
+  overrides: Partial<
+    typeof VALID & { format: string; name: string; notes: string; players: string }
+  > = {},
 ) {
   return parseNewBooking(form({ ...VALID, ...overrides }));
 }
@@ -43,6 +46,7 @@ test("a court, a date and a window become a Booking", () => {
     orgId: VALID.org_id,
     courtLabel: "Court 3",
     name: null,
+    notes: null,
     date: "2026-08-20",
     startTime: "18:00",
     endTime: "19:00",
@@ -142,6 +146,31 @@ test("an over-long name is refused before the database has to", () => {
   const parsed = parse({ name: "a".repeat(NAME_MAX_LENGTH + 1) });
   assert.ok("error" in parsed);
   assert.match(parsed.error, new RegExp(String(NAME_MAX_LENGTH)));
+});
+
+test("surrounding space is trimmed off notes", () => {
+  const parsed = parse({ notes: "  Bring extra balls  " });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.notes, "Bring extra balls");
+});
+
+test("notes is optional — a blank or omitted note becomes null, not an error", () => {
+  for (const notes of ["", "   "]) {
+    const parsed = parse({ notes });
+    assert.ok(!("error" in parsed));
+    assert.equal(parsed.notes, null);
+  }
+
+  const withoutNotes = { ...VALID };
+  const parsed = parseNewBooking(form(withoutNotes));
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.notes, null);
+});
+
+test("an over-long note is refused before the database has to", () => {
+  const parsed = parse({ notes: "a".repeat(NOTES_MAX_LENGTH + 1) });
+  assert.ok("error" in parsed);
+  assert.match(parsed.error, new RegExp(String(NOTES_MAX_LENGTH)));
 });
 
 test("a court label renders as 'Court <label>', and a missing one as a plain fallback", () => {

@@ -6,6 +6,7 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   DeleteSlotButton,
+  NotesForm,
   ResponseButtons,
   SlotCapacityPanel,
   SlotCourts,
@@ -54,6 +55,7 @@ export default async function SlotDetailPage({
     reminderOffsetMinutes,
     intendedOrgId,
     ownedOrgs,
+    notes,
   } = detail;
   const slotLink = isOwner ? await getSlotLink(slot.id) : null;
 
@@ -101,6 +103,25 @@ export default async function SlotDetailPage({
                   capacity={capacity}
                   initial={{ responses, myAnswer }}
                 />
+              </div>
+            </section>
+
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Notes
+              </h2>
+              <div className="bb-card mt-4 p-6">
+                {isOwner ? (
+                  <NotesForm slotId={slot.id} notes={notes} />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">
+                    {notes ?? (
+                      <span className="text-muted-foreground">
+                        No notes added yet.
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
             </section>
 
