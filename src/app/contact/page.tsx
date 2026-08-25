@@ -20,7 +20,7 @@ export default function ContactPage() {
           <PageHeading
             eyebrow="Get In Touch"
             title="Say hey"
-            description="Got a story from your local courts? A club we should know about? A hot take you need off your chest? We read everything. Yes, everything."
+            description="Got a story from your local courts? A club we should know about? A hot take you need to get off your chest? We read everything. Yes, everything."
           />
 
           <div className="mt-8">
