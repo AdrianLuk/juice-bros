@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(11);
 
 select has_column('public', 'profiles', 'username', 'profiles has a username');
 
@@ -29,6 +29,28 @@ select is(
   (select username from public.profiles where id = 'bbbbbbbb-0000-0000-0000-000000000002'),
   'benpgtap',
   'with no display name it falls back to the email local part'
+);
+
+-- A display name too short to slug on its own now falls back to the email
+-- rather than straight to "player" — the whole point of this migration.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data) values
+  ('dddddddd-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'jordan.pgtap@example.com', '{"display_name": "J"}'::jsonb);
+
+select is(
+  (select username from public.profiles where id = 'dddddddd-0000-0000-0000-000000000004'),
+  'jordanpgtap',
+  'an unusable display name falls back to the email local part rather than "player"'
+);
+
+-- Only when the email local part is *also* unusable does "player" still
+-- apply, as a true last resort.
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data) values
+  ('eeeeeeee-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'a@example.com', '{"display_name": "J"}'::jsonb);
+
+select matches(
+  (select username from public.profiles where id = 'eeeeeeee-0000-0000-0000-000000000005'),
+  '^player\d*$',
+  '"player" is still the last resort when neither the name nor the email leave anything usable'
 );
 
 -- Two Amy Aces must not collide.
