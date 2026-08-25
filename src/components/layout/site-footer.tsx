@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { siteConfig } from "@/config/site";
 import { YoutubeIcon, SpotifyIcon, InstagramIcon } from "@/components/icons";
 
@@ -44,19 +46,19 @@ export function SiteFooter() {
 
           <nav className="grid grid-cols-2 gap-x-8 gap-y-2 sm:flex sm:gap-6">
             {siteConfig.nav.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 className="text-sm text-white/60 transition-colors duration-300 hover:text-white"
               >
                 {item.title}
-              </a>
+              </Link>
             ))}
           </nav>
         </div>
 
         <div className="flex flex-col-reverse items-center gap-6 border-t border-white/10 pt-8 sm:flex-row sm:justify-between">
-          <p className="text-sm text-white/40">
+          <p className="text-sm text-white/60">
             &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-3">

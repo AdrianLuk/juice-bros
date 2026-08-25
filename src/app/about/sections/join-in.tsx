@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { InstagramIcon } from "@/components/icons";
@@ -38,7 +40,7 @@ export function JoinIn() {
             variant="outline"
             nativeButton={false}
             className="h-12 rounded-full border-white/15 bg-white/5 px-6 text-base text-white hover:bg-white/10 hover:text-white"
-            render={<a href="/contact" />}
+            render={<Link href="/contact" />}
           >
             Send Us a Message
           </Button>
