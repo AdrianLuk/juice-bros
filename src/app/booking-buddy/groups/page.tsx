@@ -11,7 +11,7 @@ import {
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getGroupsPageData } from "@/lib/booking-buddy/actions/friend-groups";
-import { BOOKING_BUDDY_ROOT, FRIENDS_PATH } from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, FRIENDS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friend groups",
@@ -100,6 +100,7 @@ export default async function GroupsPage() {
 
           <FooterNav>
             <FooterLink href={FRIENDS_PATH}>Your friends</FooterLink>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

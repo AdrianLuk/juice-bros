@@ -8,7 +8,7 @@ import { CreateSlotForm, SlotRow } from "@/components/booking-buddy/slots";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listSlots } from "@/lib/booking-buddy/actions/slots";
-import { BOOKING_BUDDY_ROOT, slotPath } from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, PRIVACY_PATH, slotPath } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Slots",
@@ -90,6 +90,7 @@ export default async function SlotsPage() {
           </div>
 
           <FooterNav>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

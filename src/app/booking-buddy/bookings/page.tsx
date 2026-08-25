@@ -23,7 +23,7 @@ import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
-import { BOOKING_BUDDY_ROOT, ORGS_PATH } from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, ORGS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Your bookings",
@@ -150,6 +150,7 @@ export default async function BookingsPage() {
 
           <FooterNav>
             <FooterLink href={ORGS_PATH}>Facilities</FooterLink>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

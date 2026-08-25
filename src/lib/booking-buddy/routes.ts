@@ -26,6 +26,8 @@ export function slotPath(slotId: string): string {
 
 export const SETTINGS_PATH = `${BOOKING_BUDDY_ROOT}/settings`;
 
+export const PRIVACY_PATH = `${BOOKING_BUDDY_ROOT}/privacy`;
+
 /**
  * A Guest's own view of one Slot (issue #10) — deliberately outside
  * `BOOKING_BUDDY_ROOT`, so `requiresSession` never gates it and a Guest is
@@ -37,8 +39,12 @@ export function slotLinkPath(token: string): string {
   return `${SLOT_LINK_ROOT}/${token}`;
 }
 
-/** Reachable while signed out, despite living under the Booking Buddy root. */
-const PUBLIC_SUBPATHS = ["/sign-in", "/auth"];
+/**
+ * Reachable while signed out, despite living under the Booking Buddy root.
+ * "/privacy" is here alongside "/sign-in" so the policy can be linked from
+ * the sign-in page itself, before there's a session to check.
+ */
+const PUBLIC_SUBPATHS = ["/sign-in", "/auth", "/privacy"];
 
 function isUnderRoot(pathname: string): boolean {
   // Exact match or a real path segment beneath it — `/booking-buddy-press-kit`

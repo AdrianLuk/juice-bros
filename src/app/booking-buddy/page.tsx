@@ -7,9 +7,11 @@ import { OwnerDashboardCalendar } from "@/components/booking-buddy/owner-dashboa
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
 import { OnboardingModal } from "@/components/booking-buddy/onboarding-modal";
+import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
+import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Booking Buddy",
@@ -65,6 +67,10 @@ export default async function BookingBuddyPage() {
               />
             </aside>
           </div>
+
+          <FooterNav>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
+          </FooterNav>
         </div>
       </section>
     </div>
