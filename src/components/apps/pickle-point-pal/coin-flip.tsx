@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { handleRadioKeyDown } from "@/components/apps/pickle-point-pal/lib/radio-keyboard";
 import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { otherTeam, TEAM_IDS, type MatchConfig, type TeamId } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
@@ -250,12 +251,20 @@ function TeamToggle({
       >
         {TEAM_IDS.map((team, index) => {
           const selected = team === value;
+          // Nothing is selected before the ref has made a call — the roving
+          // tabstop falls back to the first option so the group stays
+          // keyboard-reachable instead of vanishing from the Tab order.
+          const isTabStop = selected || (value === null && index === 0);
           return (
             <button
               key={team}
               type="button"
               role="radio"
               aria-checked={selected}
+              tabIndex={isTabStop ? 0 : -1}
+              onKeyDown={(e) =>
+                handleRadioKeyDown(e, TEAM_IDS.length, index, (i) => onChange(TEAM_IDS[i]))
+              }
               onClick={() => onChange(team)}
               className={cn(
                 "min-h-12 truncate rounded-lg px-2 text-sm font-semibold touch-manipulation ref-landscape:min-h-9 ref-landscape:text-xs",

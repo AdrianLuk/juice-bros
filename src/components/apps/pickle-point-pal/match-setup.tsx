@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { handleRadioKeyDown } from "@/components/apps/pickle-point-pal/lib/radio-keyboard";
 import {
   BEST_OF_OPTIONS,
   buildConfig,
@@ -207,6 +208,12 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
                           type="button"
                           role="radio"
                           aria-checked={selected}
+                          tabIndex={selected ? 0 : -1}
+                          onKeyDown={(e) =>
+                            handleRadioKeyDown(e, 2, index, (i) =>
+                              setTeamFirstServer(team, i as PlayerIndex)
+                            )
+                          }
                           onClick={() => setTeamFirstServer(team, index)}
                           className={cn(
                             "min-h-12 truncate rounded-md px-2 text-sm font-semibold touch-manipulation ref-landscape:min-h-9 ref-landscape:text-xs",
@@ -268,7 +275,7 @@ function Toggle<T extends string | number | boolean>({
           COLUMNS[options.length] ?? "grid-cols-2"
         )}
       >
-        {options.map((option) => {
+        {options.map((option, index) => {
           const selected = option.id === value;
           return (
             <button
@@ -276,6 +283,10 @@ function Toggle<T extends string | number | boolean>({
               type="button"
               role="radio"
               aria-checked={selected}
+              tabIndex={selected ? 0 : -1}
+              onKeyDown={(e) =>
+                handleRadioKeyDown(e, options.length, index, (i) => onChange(options[i].id))
+              }
               onClick={() => onChange(option.id)}
               className={cn(
                 "min-h-12 rounded-lg text-sm font-semibold touch-manipulation ref-landscape:min-h-9 ref-landscape:text-xs",

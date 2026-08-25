@@ -324,7 +324,12 @@ because it's entered first at setup.
 
 Visual direction: utility surface, not a brand surface. Orange stays as the accent on
 the active-server highlight and timeout state only. High-contrast for outdoor
-legibility.
+legibility. Every full-viewport screen shares one `.pp-surface` class
+(`globals.css`) rather than repeating `bg-white`/`text-neutral-950` per file - the
+surface is deliberately locked to light regardless of system/site theme; see
+PRODUCT.md's "Brand Commitments" for why. Brand-orange itself is used as
+white-on-orange/orange-on-white text below WCAG AA contrast on purpose (same
+doc) - that's a fixed brand decision, not an open a11y item.
 
 ---
 
@@ -346,6 +351,12 @@ legibility.
   used across `match-screen.tsx`, `action-bar.tsx`, and `court-diagram.tsx` for the case
   of a phone/tablet held sideways courtside, distinct from the manifest's portrait-locked
   installed-app orientation.
+- **Known gap:** the manifest's only icon is `JB_Logo.svg` (square, but a
+  detailed illustration with no maskable safe-zone padding). There's no 192×192
+  or 512×512 PNG, which some install flows (notably Chrome/Android) still
+  expect regardless of declared size — producing those needs an actual image
+  rasterizer (e.g. `sharp`, `pwa-asset-generator`, or an export from Daven),
+  which wasn't available when this was last touched.
 
 ---
 

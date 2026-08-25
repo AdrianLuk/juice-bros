@@ -74,6 +74,9 @@
 
 :root {
   --brand-black: #0b0a08;
+  /* Intentionally kept as-is against white (~3.15:1, below WCAG AA 4.5:1 for
+     text) - Adrian's call, not an oversight. See PRODUCT.md "Brand
+     Commitments" before "fixing" this by darkening the value. */
   --brand-orange: #f26522;
   --brand-yellow: #fbea03;
   --background: oklch(0.99 0.004 75);
@@ -190,6 +193,16 @@
   box-shadow:
     0 2px 4px oklch(0.25 0.03 45 / 0.08),
     0 40px 80px -24px oklch(0.55 0.18 40 / 0.4);
+}
+
+/* Pickle Point Pal is intentionally locked to a light, high-contrast surface
+   regardless of system/site theme - a ref reading it in direct sun needs
+   guaranteed white-on-dark contrast, not whatever theme happens to be active.
+   See PRODUCT.md's "Brand Commitments" for the full rationale. Apply this at
+   each full-viewport screen (route root, timeout overlay, game-over sheet)
+   instead of repeating bg-white/text-neutral-950 literally in each one. */
+.pp-surface {
+  @apply bg-white text-neutral-950;
 }
 
 /*

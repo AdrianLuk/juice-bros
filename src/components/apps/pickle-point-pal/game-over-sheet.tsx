@@ -26,7 +26,7 @@ export function GameOverSheet({
   const decidesMatch = winsAfter >= needed;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-center bg-white px-5 py-6">
+    <div className="pp-surface fixed inset-0 z-40 flex flex-col justify-center px-5 py-6">
       <p className="text-center font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
         Game {state.games.length} complete
       </p>
