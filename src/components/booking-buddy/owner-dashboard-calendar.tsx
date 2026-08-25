@@ -9,7 +9,10 @@ import {
   WEEK_EVENT_CLASS,
 } from "@/components/booking-buddy/calendar-event-popover";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
-import type { EventRange } from "@/components/booking-buddy/dashboard-week-view";
+import {
+  eventChipLineBudget,
+  type EventRange,
+} from "@/components/booking-buddy/dashboard-week-view";
 import { DashboardQuickActions } from "@/components/booking-buddy/dashboard-quick-add";
 import { DeleteBookingButton, EditBookingButton } from "@/components/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
@@ -78,39 +81,39 @@ export function OwnerDashboardCalendar({
         booking,
         style: CSSProperties,
         { startMs, endMs }: EventRange,
-      ) => (
-        <CalendarEventPopover
-          key={booking.id}
-          event={booking}
-          className={WEEK_EVENT_CLASS}
-          style={style}
-          renderDetails={(b) => <BookingPopoverDetails booking={b} orgs={orgs} />}
-        >
-          {booking.name && (
-            <p className="truncate font-medium">{booking.name}</p>
-          )}
-          <p className="truncate font-medium">{booking.orgName}</p>
-          {/* Fixed-height, absolutely-positioned chip (WEEK_EVENT_CLASS) — a
-              1-hour booking barely fits the pre-existing 3 lines already, so
-              a name folds time and court onto one line to hold the line
-              count steady rather than clipping the court label out of view. */}
-          {booking.name ? (
-            <p className="truncate opacity-90">
-              {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)} ·{" "}
-              {formatCourtLabel(booking.courtLabel)}
-            </p>
-          ) : (
-            <>
+      ) => {
+        // A short booking's chip is too short to hold all 3 lines without
+        // clipping one under `overflow-hidden` — see `eventChipLineBudget`.
+        // Drop the least essential line(s) first (court, then time) rather
+        // than let the box clip whichever line happens to fall last; the
+        // popover this chip opens always has the full detail.
+        const lines = eventChipLineBudget(Number(style.height) || 0);
+        const title = booking.name || booking.orgName;
+        const showOrgLine = booking.name && lines >= 2;
+        const showTimeLine = lines >= (booking.name ? 3 : 2);
+        const showCourtLine = lines >= 3;
+
+        return (
+          <CalendarEventPopover
+            key={booking.id}
+            event={booking}
+            className={WEEK_EVENT_CLASS}
+            style={style}
+            renderDetails={(b) => <BookingPopoverDetails booking={b} orgs={orgs} />}
+          >
+            <p className="truncate font-medium">{title}</p>
+            {showOrgLine && (
+              <p className="truncate font-medium">{booking.orgName}</p>
+            )}
+            {showTimeLine && (
               <p className="truncate opacity-90">
                 {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
+                {showCourtLine && ` · ${formatCourtLabel(booking.courtLabel)}`}
               </p>
-              <p className="truncate opacity-90">
-                {formatCourtLabel(booking.courtLabel)}
-              </p>
-            </>
-          )}
-        </CalendarEventPopover>
-      )}
+            )}
+          </CalendarEventPopover>
+        );
+      }}
       renderMonthEvent={(booking) => (
         <CalendarEventPopover
           key={booking.id}
