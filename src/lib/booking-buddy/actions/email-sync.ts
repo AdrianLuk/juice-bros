@@ -76,8 +76,8 @@ function gmailCallbackUrl(): Promise<string> {
  * top of one a caller already ran.
  */
 export async function isEmailSyncAllowedForCaller(): Promise<boolean> {
-  const profile = await getOwnProfile();
-  return isEmailSyncAllowed(profile.username, readEmailSyncAllowlist());
+  const [profile, session] = await Promise.all([getOwnProfile(), verifySession()]);
+  return isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
 }
 
 /** The signed-in User's own Mailbox Link, or `null` if Gmail isn't connected. */

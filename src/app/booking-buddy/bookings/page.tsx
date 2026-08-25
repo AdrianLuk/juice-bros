@@ -35,7 +35,7 @@ export const metadata: Metadata = pageMetadata({
 export default async function BookingsPage() {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
-  await verifySession();
+  const session = await verifySession();
 
   const { orgs, bookings } = await getBookingsPageData();
 
@@ -55,7 +55,7 @@ export default async function BookingsPage() {
   // syncFromEmail/confirmImportCandidate/dismissImportCandidate each
   // re-check this authoritatively.
   const profile = await getOwnProfile();
-  const emailSyncAllowed = isEmailSyncAllowed(profile.username, readEmailSyncAllowlist());
+  const emailSyncAllowed = isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
   const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
 
   return (

@@ -33,7 +33,7 @@ export default async function SettingsPage({
 }) {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
-  await verifySession();
+  const session = await verifySession();
 
   const { error, gmail_connected: justConnected } = await searchParams;
 
@@ -42,10 +42,10 @@ export default async function SettingsPage({
 
   // Optimistic half of ADR-0009's addendum: an unapproved User never even
   // gets the section, not just a disabled one. connectGmail (and the OAuth
-  // callback) re-check this authoritatively. Reuses the profile already
-  // fetched above rather than calling isEmailSyncAllowedForCaller, which
-  // would fetch it a second time.
-  const emailSyncAllowed = isEmailSyncAllowed(profile.username, readEmailSyncAllowlist());
+  // callback) re-check this authoritatively. Reuses the profile/session
+  // already fetched above rather than calling isEmailSyncAllowedForCaller,
+  // which would fetch them a second time.
+  const emailSyncAllowed = isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
   const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
 
   return (
