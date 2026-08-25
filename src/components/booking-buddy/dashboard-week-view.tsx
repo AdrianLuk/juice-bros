@@ -209,7 +209,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
                     className={cn(
                       "flex size-6 items-center justify-center rounded-full text-sm font-medium",
                       isSameDay(day, today) &&
-                        "bg-primary text-event-foreground",
+                        "bg-primary text-primary-foreground",
                     )}
                   >
                     {day.getDate()}

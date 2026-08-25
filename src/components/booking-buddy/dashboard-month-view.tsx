@@ -149,7 +149,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     "relative flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
                     day.getMonth() !== currentMonth && "text-muted-foreground",
                     isSameDay(day, today) &&
-                      "bg-primary text-event-foreground hover:bg-primary/90",
+                      "bg-primary text-primary-foreground hover:bg-primary/90",
                     disabled && "pointer-events-none opacity-40",
                   )}
                 >

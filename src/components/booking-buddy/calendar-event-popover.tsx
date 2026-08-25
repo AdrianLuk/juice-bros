@@ -63,10 +63,10 @@ export function CalendarEventPopover<T>({
  * files.
  */
 export const WEEK_EVENT_CLASS =
-  "absolute block overflow-hidden rounded-md bg-primary px-1.5 py-1 text-[11px] leading-tight text-event-foreground shadow-sm ring-1 ring-border";
+  "absolute block overflow-hidden rounded-md bg-primary px-1.5 py-1 text-[11px] leading-tight text-primary-foreground shadow-sm ring-1 ring-border";
 
 export const MONTH_EVENT_CLASS =
-  "block w-full overflow-hidden rounded-sm bg-primary/90 px-1 py-0.5 text-[10px] font-medium text-event-foreground";
+  "block w-full overflow-hidden rounded-sm bg-primary/90 px-1 py-0.5 text-[10px] font-medium text-primary-foreground";
 
 export const AGENDA_EVENT_CLASS =
   "flex w-full items-center gap-3 rounded-md bg-muted/60 px-3 py-2 text-sm hover:bg-muted";

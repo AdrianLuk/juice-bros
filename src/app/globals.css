@@ -70,7 +70,6 @@
   --color-brand-black: var(--brand-black);
   --color-brand-orange: var(--brand-orange);
   --color-brand-yellow: var(--brand-yellow);
-  --color-event-foreground: var(--event-foreground);
 }
 
 :root {
@@ -220,14 +219,6 @@
   --border: oklch(0.888 0.012 75);
   --input: oklch(0.888 0.012 75);
   --radius: 0.75rem;
-  /* `--primary-foreground` (white) reads ~3.15:1 on `--primary` — under the
-     4.5:1 AA floor for normal text — because that pairing is tuned for large,
-     bold button labels rather than the 10-11px calendar event chips this
-     token is for. A fixed dark ink, not the theme's flipping foreground
-     token: the chip background stays this same mid-lightness brand orange in
-     both light and dark mode, so the text needs a color that doesn't flip
-     with it. Clears AA (>=4.5:1) against --primary in both themes. */
-  --event-foreground: #2b1608;
 }
 
 .dark .bb-theme {
