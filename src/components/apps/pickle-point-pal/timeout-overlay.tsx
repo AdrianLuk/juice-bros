@@ -40,7 +40,7 @@ export function TimeoutOverlay({
     // section shrinks (smaller timer, tighter gaps, no growth) so the whole
     // stack fits comfortably inside a short landscape viewport and the
     // buttons never get pushed past the bottom edge.
-    <div className="fixed inset-0 z-40 flex flex-col bg-white px-5 py-6 ref-landscape:justify-center ref-landscape:gap-2 ref-landscape:px-4 ref-landscape:py-3">
+    <div className="pp-surface fixed inset-0 z-40 flex flex-col px-5 py-6 ref-landscape:justify-center ref-landscape:gap-2 ref-landscape:px-4 ref-landscape:py-3">
       <p className="text-center font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
         {active.kind} timeout
       </p>

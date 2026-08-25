@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ListOrdered, MoreHorizontal, Redo2, TriangleAlert, Undo2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -226,13 +226,19 @@ function SmallButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex flex-col items-center gap-1 rounded-lg border border-neutral-300 bg-white px-2 py-2 text-[0.65rem] font-medium text-neutral-700 touch-manipulation disabled:opacity-40 [&_svg]:size-4"
+      // min-h/min-w pin this to the same 44px touch-target floor as every
+      // other control in the app — the row's own content (icon + tiny label)
+      // would otherwise size it a few px under that.
+      className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-lg border border-neutral-300 bg-white px-2 py-2 text-[0.65rem] font-medium text-neutral-700 touch-manipulation disabled:opacity-40 [&_svg]:size-4"
     >
       {icon}
       {label}
     </button>
   );
 }
+
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Sheet({
   title,
@@ -243,6 +249,45 @@ export function Sheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+
+  // Dialog semantics for a modal that otherwise reads to assistive tech as
+  // plain page content: move focus in on open, trap Tab within the panel so
+  // it can never land on the (still-focusable) page behind the backdrop,
+  // close on Escape, and give focus back to whatever opened the sheet.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusables = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4"
@@ -255,14 +300,19 @@ export function Sheet({
           `min-h-0` because a flex child otherwise refuses to shrink below its
           content and the body's overflow never engages. */}
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-2xl bg-white p-4 shadow-xl"
       >
         <div className="flex shrink-0 items-center justify-between">
-          <h2 className="font-heading text-base font-semibold text-neutral-950">
+          <h2 id={titleId} className="font-heading text-base font-semibold text-neutral-950">
             {title}
           </h2>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="rounded-lg px-3 py-1 text-sm text-neutral-500"

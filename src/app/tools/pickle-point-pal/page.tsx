@@ -26,7 +26,7 @@ export default function PicklePointPalPage() {
   return (
     // The ref layout measures its fold against this top padding — keep the two
     // in step if either changes (see the fold sizing in `match-screen.tsx`).
-    <div className="flex w-full flex-1 flex-col bg-white px-4 py-6 text-neutral-950 sm:px-6 ref-landscape:px-3 ref-landscape:py-3">
+    <div className="pp-surface flex w-full flex-1 flex-col px-4 py-6 sm:px-6 ref-landscape:px-3 ref-landscape:py-3">
       <PicklePointPal />
     </div>
   );
