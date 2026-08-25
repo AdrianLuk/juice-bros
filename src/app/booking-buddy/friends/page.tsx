@@ -13,7 +13,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
 import { getFriendVisibilityList } from "@/lib/booking-buddy/actions/friend-groups";
-import { BOOKING_BUDDY_ROOT, GROUPS_PATH } from "@/lib/booking-buddy/routes";
+import { BOOKING_BUDDY_ROOT, GROUPS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friends",
@@ -148,6 +148,7 @@ export default async function FriendsPage() {
 
           <FooterNav>
             <FooterLink href={GROUPS_PATH}>Friend groups</FooterLink>
+            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
             <FooterLink href={BOOKING_BUDDY_ROOT} back>
               Back to Booking Buddy
             </FooterLink>

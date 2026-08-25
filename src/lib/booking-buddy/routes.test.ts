@@ -21,6 +21,11 @@ test("auth callback routes are reachable without a session", () => {
   assert.equal(requiresSession("/booking-buddy/auth/callback"), false);
 });
 
+test("the privacy policy is reachable without a session", () => {
+  // Linked from the sign-in page itself, before there's a session to check.
+  assert.equal(requiresSession("/booking-buddy/privacy"), false);
+});
+
 test("a trailing slash does not bypass the gate", () => {
   assert.equal(requiresSession("/booking-buddy/"), true);
 });
