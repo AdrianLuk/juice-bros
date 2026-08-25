@@ -10,9 +10,9 @@ export function Mission() {
         </p>
         <div className="flex flex-col gap-4 text-lg text-white/75 text-balance">
           <p>
-            We&apos;re not here to fix your third shot drop or rank the best paddles of
-            2026 - there are plenty of people already doing that, and doing it better
-            than we would.
+            We&apos;re not here to fix your third shot drop or rank the best paddles -
+            there are plenty of people already doing that, and doing it better than we
+            would.
           </p>
           <p>
             We&apos;re here for everything else: the psychology, the friendships, the
