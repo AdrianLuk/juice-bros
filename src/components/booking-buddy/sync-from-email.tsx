@@ -81,6 +81,11 @@ function ImportCandidateCard({
             With: {candidate.matchedPlayers.map((player) => player.name).join(", ")}
           </p>
         )}
+        {candidate.notes && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Court list was too long to fit — saved to Notes: &ldquo;{candidate.notes}&rdquo;
+          </p>
+        )}
       </div>
 
       <form
@@ -99,6 +104,7 @@ function ImportCandidateCard({
         <input type="hidden" name="start_time" value={candidate.startTime} />
         <input type="hidden" name="end_time" value={candidate.endTime} />
         <input type="hidden" name="court_label" value={candidate.courtLabel ?? ""} />
+        <input type="hidden" name="notes" value={candidate.notes ?? ""} />
         {/* Re-matched at write time by `insertBookingPlayers` (ADR 0011) — this
             carries the parsed names through, not `matchedPlayers`' own
             review-time match. Not a new editable field: same hidden-input
@@ -233,6 +239,11 @@ function UpdateCandidateCard({
             With: {candidate.matchedPlayers.map((player) => player.name).join(", ")}
           </p>
         )}
+        {candidate.notes && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Court list was too long to fit — will be saved to Notes: &ldquo;{candidate.notes}&rdquo;
+          </p>
+        )}
         {candidate.matched ? (
           <p className="mt-1 text-xs text-muted-foreground">Updates a booking you logged.</p>
         ) : (
@@ -249,6 +260,7 @@ function UpdateCandidateCard({
             <input type="hidden" name="booking_id" value={candidate.bookingId} />
             <input type="hidden" name="format" value={candidate.format} />
             <input type="hidden" name="court_label" value={candidate.courtLabel ?? ""} />
+            <input type="hidden" name="notes" value={candidate.notes ?? ""} />
             <Button type="submit" disabled={busy}>
               {confirmPending ? "Applying…" : "Apply update"}
             </Button>
