@@ -17,9 +17,24 @@ import {
   type AvailabilityWindow,
   type BusyInterval,
 } from "@/lib/booking-buddy/availability";
+import { formatTimeLabelFromMs } from "@/lib/booking-buddy/datetime";
 
 const WEEKDAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const VISIBLE_PER_DAY = 2;
+const SPAN_DATE_LABEL = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+});
+
+/** "Busy: Aug 3, 9:00 AM – Aug 5, 5:00 PM" — the Week view's block always
+ * builds a range label (`dashboard-week-view.tsx`); this bar previously read
+ * only "Busy"/"Open" to a screen reader, with no indication of when. */
+function formatSpanLabel(segment: AvailabilitySegment): string {
+  const startMs = new Date(segment.startsAt).getTime();
+  const endMs = new Date(segment.endsAt).getTime();
+  const label = segment.type === "busy" ? "Busy" : "Open";
+  return `${label}: ${SPAN_DATE_LABEL.format(startMs)}, ${formatTimeLabelFromMs(startMs)} – ${SPAN_DATE_LABEL.format(endMs)}, ${formatTimeLabelFromMs(endMs)}`;
+}
 
 /**
  * The Month grid shell (issue #23), generic over what an "event" is — see
@@ -89,7 +104,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
           columns are too cramped on a phone to show an event's time and
           detail, so each column gets a comfortable minimum width and the
           two rows scroll together as one unit. */}
-      <div className="overflow-x-auto">
+      <div role="group" aria-label="Month calendar" className="overflow-x-auto">
         <div className="grid grid-cols-[repeat(7,minmax(6rem,1fr))] border-b border-border bg-card text-center text-[11px] font-medium text-muted-foreground">
           {WEEKDAY_HEADERS.map((weekday) => (
             <div key={weekday} className="py-2">
@@ -121,11 +136,20 @@ export function DashboardMonthView<T extends CalendarEvent>({
                   onClick={() => onDayClick(day)}
                   disabled={disabled}
                   aria-label={`Go to the week of ${day.toDateString()}`}
+                  aria-current={isSameDay(day, today) ? "date" : undefined}
                   className={cn(
-                    "flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted",
+                    // `size-6` (24px) stays the deliberately compact visual
+                    // size a 7-column phone grid needs; `after:` pads the
+                    // actual tap target a further 6px per side (~36px total)
+                    // without growing the circle itself. Kept tighter than
+                    // the full 44px guideline on purpose — this cell also
+                    // stacks an availability bar and event chips a few px
+                    // below the button, and a bigger bleed would swallow taps
+                    // meant for those.
+                    "relative flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
                     day.getMonth() !== currentMonth && "text-muted-foreground",
                     isSameDay(day, today) &&
-                      "bg-primary text-primary-foreground hover:bg-primary/90",
+                      "bg-primary text-event-foreground hover:bg-primary/90",
                     disabled && "pointer-events-none opacity-40",
                   )}
                 >
@@ -155,7 +179,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     <button
                       type="button"
                       onClick={() => onDayClick(day)}
-                      className="truncate rounded-sm px-1 py-0.5 text-left text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      className="truncate rounded-sm px-1.5 py-1 text-left text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
                       +{overflow} more
                     </button>
@@ -193,12 +217,13 @@ function AvailabilitySpanBar({
   return (
     <div
       aria-hidden={!isStart}
+      aria-label={isStart ? formatSpanLabel(segment) : undefined}
       className={cn(
         "h-4 truncate px-1 text-left text-[10px] leading-4 font-medium",
         isStart ? "rounded-l-sm" : "-ml-1 sm:-ml-1.5",
         isEnd ? "rounded-r-sm" : "-mr-1 sm:-mr-1.5",
         segment.type === "busy"
-          ? "bg-muted-foreground/20 text-foreground/70"
+          ? "bg-muted-foreground/25 text-foreground"
           : "bg-accent/60 text-accent-foreground",
       )}
     >

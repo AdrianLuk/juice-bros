@@ -7,7 +7,10 @@ import {
   WEEK_EVENT_CLASS,
 } from "@/components/booking-buddy/calendar-event-popover";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
-import type { EventRange } from "@/components/booking-buddy/dashboard-week-view";
+import {
+  eventChipLineBudget,
+  type EventRange,
+} from "@/components/booking-buddy/dashboard-week-view";
 import { formatTimeLabelFromMs } from "@/lib/booking-buddy/datetime";
 import type { FriendVisibleBooking } from "@/lib/booking-buddy/actions/friend-calendar";
 import type { AvailabilityWindow } from "@/lib/booking-buddy/availability";
@@ -75,20 +78,28 @@ export function FriendDashboardCalendar({
       availabilityWindows={availabilityWindows}
       restrictToFuture
       agendaEmptyMessage="Nothing on the calendar yet."
-      renderWeekEvent={(booking, style, { startMs, endMs }: EventRange) => (
-        <CalendarEventPopover
-          key={booking.id}
-          event={booking}
-          className={WEEK_EVENT_CLASS}
-          style={style}
-          renderDetails={(b) => <FriendBookingDetails booking={b} />}
-        >
-          <p className="truncate font-medium">{booking.facilityName}</p>
-          <p className="truncate opacity-90">
-            {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
-          </p>
-        </CalendarEventPopover>
-      )}
+      renderWeekEvent={(booking, style, { startMs, endMs }: EventRange) => {
+        // See `eventChipLineBudget` — a short chip clips its second line
+        // under `overflow-hidden` rather than shrinking to fit it.
+        const lines = eventChipLineBudget(Number(style.height) || 0);
+
+        return (
+          <CalendarEventPopover
+            key={booking.id}
+            event={booking}
+            className={WEEK_EVENT_CLASS}
+            style={style}
+            renderDetails={(b) => <FriendBookingDetails booking={b} />}
+          >
+            <p className="truncate font-medium">{booking.facilityName}</p>
+            {lines >= 2 && (
+              <p className="truncate opacity-90">
+                {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
+              </p>
+            )}
+          </CalendarEventPopover>
+        );
+      }}
       renderMonthEvent={(booking) => (
         <CalendarEventPopover
           key={booking.id}

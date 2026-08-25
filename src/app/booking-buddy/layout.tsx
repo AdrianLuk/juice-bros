@@ -16,7 +16,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  // Matches `.bb-theme`'s actual `--background` (globals.css) rather than
+  // pure white. Not made dark-mode-aware here: nothing in the app ever adds
+  // the `.dark` class (no toggle, no `prefers-color-scheme` sync script), so
+  // a `(prefers-color-scheme: dark)` themeColor entry would paint the status
+  // bar dark while the page itself stays rendered in this light palette —
+  // swapping one mismatch (always-white) for a worse one (dark chrome over a
+  // light page) whenever the OS happens to be in dark mode.
+  themeColor: "oklch(0.972 0.008 75)",
 };
 
 /**

@@ -99,7 +99,7 @@ export function OrgRow({ org }: { org: Org }) {
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 {org.address}
                 {" · "}
-                <span className="text-muted-foreground/70">Powered by Google</span>
+                <span className="text-muted-foreground">Powered by Google</span>
               </p>
             )}
             {org.googlePlaceId && !org.address && (

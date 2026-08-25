@@ -151,8 +151,8 @@ export function DashboardCalendar<T extends CalendarEvent>({
   if (!now || !anchor) {
     return (
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="h-9 w-48 animate-pulse rounded-md bg-muted" />
-        <div className="h-150 animate-pulse rounded-xl bg-muted" />
+        <div className="h-9 w-48 animate-pulse rounded-md bg-muted motion-reduce:animate-none" />
+        <div className="h-150 animate-pulse rounded-xl bg-muted motion-reduce:animate-none" />
       </div>
     );
   }
@@ -243,16 +243,27 @@ export function DashboardCalendar<T extends CalendarEvent>({
           </h2>
           {view !== "agenda" && (
             <div className="order-2 flex items-center gap-1.5 sm:order-1">
+              {/* `icon-sm`/`sm` (28px) is the shared Button scale used
+                  site-wide — grown here per-instance with a padded tap
+                  target instead of touching that shared primitive, since
+                  these three sit close enough together (`gap-1.5`, 6px)
+                  that a bigger visual size would start crowding them. */}
               <Button
                 variant="outline"
                 size="icon-sm"
                 onClick={goBack}
                 disabled={!canGoBack}
                 aria-label="Previous"
+                className="relative after:absolute after:-inset-1 after:content-['']"
               >
                 <ChevronLeftIcon />
               </Button>
-              <Button variant="outline" size="sm" onClick={goToday}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToday}
+                className="relative after:absolute after:-inset-1 after:content-['']"
+              >
                 Today
               </Button>
               <Button
@@ -260,6 +271,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
                 size="icon-sm"
                 onClick={goForward}
                 aria-label="Next"
+                className="relative after:absolute after:-inset-1 after:content-['']"
               >
                 <ChevronRightIcon />
               </Button>
@@ -279,9 +291,9 @@ export function DashboardCalendar<T extends CalendarEvent>({
               aria-pressed={view === option.id}
               onClick={() => setView(option.id)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                "relative rounded-md px-2.5 py-1 text-xs font-medium transition-colors after:absolute after:-inset-1 after:content-['']",
                 view === option.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-event-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
