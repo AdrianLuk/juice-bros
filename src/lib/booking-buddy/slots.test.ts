@@ -22,7 +22,9 @@ function form(fields: Record<string, string>): FormData {
 }
 
 function parse(
-  overrides: Partial<typeof VALID & { time_zone: string; division: string }> = {},
+  overrides: Partial<
+    typeof VALID & { time_zone: string; division: string; org_id: string }
+  > = {},
   now: Date = NOW,
 ) {
   return parseNewSlotProposal(form({ ...VALID, ...overrides }), now);
@@ -37,7 +39,20 @@ test("a date and a window become a bare-proposal Slot, defaulted to Toronto", ()
     endTime: "10:00",
     timeZone: "America/Toronto",
     division: "open",
+    orgId: null,
   });
+});
+
+test("an intended facility is honoured when picked", () => {
+  const parsed = parse({ org_id: "11111111-1111-1111-1111-111111111111" });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.orgId, "11111111-1111-1111-1111-111111111111");
+});
+
+test("no facility picked leaves the Slot a bare proposal, not an error", () => {
+  const parsed = parse({ org_id: "" });
+  assert.ok(!("error" in parsed));
+  assert.equal(parsed.orgId, null);
 });
 
 test("a real division is honoured", () => {

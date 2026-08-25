@@ -18,7 +18,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
 import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import { ORGS_PATH } from "@/lib/booking-buddy/routes";
+import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
   BOOKING_FORMAT_LABEL,
   MAX_ROTATION_BUFFER,
@@ -78,8 +81,9 @@ function HourTimeSelect({
   );
 }
 
-export function CreateSlotForm() {
+export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
   const [state, formAction, pending] = useActionState(createSlot, EMPTY);
+  const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -100,16 +104,35 @@ export function CreateSlotForm() {
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-1.5 sm:max-w-56">
-        <Label htmlFor="slot-division">Division</Label>
-        <FormSelect id="slot-division" name="division" defaultValue={DEFAULT_DIVISION}>
-          {DIVISIONS.map((division) => (
-            <option key={division} value={division}>
-              {DIVISION_LABEL[division]}
-            </option>
-          ))}
-        </FormSelect>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label htmlFor="slot-division">Division</Label>
+          <FormSelect id="slot-division" name="division" defaultValue={DEFAULT_DIVISION}>
+            {DIVISIONS.map((division) => (
+              <option key={division} value={division}>
+                {DIVISION_LABEL[division]}
+              </option>
+            ))}
+          </FormSelect>
+        </div>
+
+        {orgs.length > 0 && (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <Label htmlFor="slot-org">Facility</Label>
+            <OptionalOrgSelect id="slot-org" orgs={orgs} defaultValue={defaultOrgId} />
+          </div>
+        )}
       </div>
+
+      {orgs.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Add a{" "}
+          <Link href={ORGS_PATH} className="underline underline-offset-4">
+            facility
+          </Link>{" "}
+          to say where this slot would be, or post it without one.
+        </p>
+      )}
 
       <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending}>

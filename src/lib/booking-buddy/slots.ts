@@ -21,6 +21,8 @@ export type NewSlotProposal = {
   endTime: string;
   timeZone: string;
   division: Division;
+  /** The organizer's own hint at which facility they plan to book (issue #36) — optional, same as `setIntendedOrg`. */
+  orgId: string | null;
 };
 
 /**
@@ -75,7 +77,13 @@ export function parseNewSlotProposal(
   // parser's siblings (`parseNewBooking`'s format) already take.
   const division = parseDivision(String(formData.get("division") ?? ""));
 
-  return { date, startTime, endTime, timeZone, division };
+  // Ownership isn't checked here — same posture as `setIntendedOrg`, which
+  // this reuses the column for. The picker only ever lists the caller's own
+  // Orgs, and `assert_slot_intended_org_coherent` is what actually enforces
+  // it if that's ever untrue.
+  const orgId = String(formData.get("org_id") ?? "").trim() || null;
+
+  return { date, startTime, endTime, timeZone, division, orgId };
 }
 
 /**
