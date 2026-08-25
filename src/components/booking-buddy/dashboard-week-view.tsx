@@ -66,15 +66,18 @@ function clampToDay(
 /** The day-clamped start/end a laid-out event actually occupies — what a block's own time label should read, not the event's raw (possibly cross-day) instants. */
 export type EventRange = { startMs: number; endMs: number };
 
-// WEEK_EVENT_CLASS renders at `text-[11px] leading-tight` with `py-1` — one
-// line needs ~22px (13.75px line + 8px padding), a second ~14px more, a
-// third ~14px more. A chip shorter than a line budget's floor clips that
-// line's text under `overflow-hidden` instead of showing it, so callers use
-// this to pick how many lines of detail to render rather than always
-// assuming all three fit.
+// WEEK_EVENT_CLASS renders at `text-[13px] leading-tight` with `py-1` — one
+// line needs ~25px (16.25px line + 8px padding), a second ~16px more, a
+// third ~16px more. (Bumped from 11px in the white-on-orange a11y pass —
+// still short of the 18.66px+bold "large text" AA threshold, which the
+// HOUR_HEIGHT=48 grid can't fit even for a 30-min slot; this is as far as
+// size goes without also rescaling the grid.) A chip shorter than a line
+// budget's floor clips that line's text under `overflow-hidden` instead of
+// showing it, so callers use this to pick how many lines of detail to
+// render rather than always assuming all three fit.
 export function eventChipLineBudget(heightPx: number): 1 | 2 | 3 {
-  if (heightPx >= 49) return 3;
-  if (heightPx >= 36) return 2;
+  if (heightPx >= 57) return 3;
+  if (heightPx >= 41) return 2;
   return 1;
 }
 
@@ -207,7 +210,11 @@ export function DashboardWeekView<T extends CalendarEvent>({
                   </span>
                   <span
                     className={cn(
-                      "flex size-6 items-center justify-center rounded-full text-sm font-medium",
+                      // size-8 + text-[19px] font-bold clears WCAG's
+                      // 18.66px+bold "large text" AA threshold, so the
+                      // white-on-orange today fill (~3.15:1) reads as
+                      // compliant at 3:1 without changing the brand color.
+                      "flex size-8 items-center justify-center rounded-full text-[19px] font-bold",
                       isSameDay(day, today) &&
                         "bg-primary text-primary-foreground",
                     )}
