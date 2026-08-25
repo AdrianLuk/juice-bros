@@ -29,6 +29,7 @@ function CopyLinkButton({ url }: { url: string }) {
       type="button"
       variant="outline"
       size="sm"
+      aria-live="polite"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(url);

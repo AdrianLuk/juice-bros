@@ -75,7 +75,11 @@ export function BookingBuddyNav({ current }: { current?: BbNavKey }) {
               variant: current === key ? "secondary" : "ghost",
               size: "default",
             }),
-            "shrink-0 gap-1.5",
+            // `size="default"` is only 32px tall; padded here (not in the
+            // shared `buttonVariants` scale, which the rest of the site also
+            // uses) since this nav is the one place every signed-in screen
+            // routes through.
+            "relative shrink-0 gap-1.5 after:absolute after:-inset-1 after:content-['']",
           )}
         >
           <Icon className="size-4 text-primary" />

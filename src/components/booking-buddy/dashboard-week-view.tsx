@@ -66,6 +66,18 @@ function clampToDay(
 /** The day-clamped start/end a laid-out event actually occupies — what a block's own time label should read, not the event's raw (possibly cross-day) instants. */
 export type EventRange = { startMs: number; endMs: number };
 
+// WEEK_EVENT_CLASS renders at `text-[11px] leading-tight` with `py-1` — one
+// line needs ~22px (13.75px line + 8px padding), a second ~14px more, a
+// third ~14px more. A chip shorter than a line budget's floor clips that
+// line's text under `overflow-hidden` instead of showing it, so callers use
+// this to pick how many lines of detail to render rather than always
+// assuming all three fit.
+export function eventChipLineBudget(heightPx: number): 1 | 2 | 3 {
+  if (heightPx >= 49) return 3;
+  if (heightPx >= 36) return 2;
+  return 1;
+}
+
 /**
  * The Week grid shell (issue #23), generic over what an "event" is — a
  * Booking on the owner's own dashboard, a friend's busy time on the friend
@@ -184,6 +196,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
                   onClick={() => onDayClick(day)}
                   disabled={disabled}
                   aria-label={`Go to the week of ${day.toDateString()}`}
+                  aria-current={isSameDay(day, today) ? "date" : undefined}
                   className={cn(
                     "flex flex-col items-center gap-1 border-l border-border py-2 first:border-l-0 hover:bg-muted",
                     disabled && "pointer-events-none opacity-40",
@@ -196,7 +209,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
                     className={cn(
                       "flex size-6 items-center justify-center rounded-full text-sm font-medium",
                       isSameDay(day, today) &&
-                        "bg-primary text-primary-foreground",
+                        "bg-primary text-event-foreground",
                     )}
                   >
                     {day.getDate()}
@@ -220,6 +233,8 @@ export function DashboardWeekView<T extends CalendarEvent>({
       <div
         ref={bodyRef}
         onScroll={syncHeaderScroll}
+        role="group"
+        aria-label="Week calendar"
         className="bb-scroll-x max-h-136 overflow-auto"
       >
         {/* `w-fit` is load-bearing: a plain `flex` block child sizes to its
@@ -360,7 +375,13 @@ function DayColumn<T extends CalendarEvent>({
           event,
           {
             top,
-            height: Math.max(offsetFor(end, dayStartMs) - top, 18),
+            // 22px, not 44px: this is a fixed-height time-grid, and a floor
+            // near the full touch-target guideline would make short bookings
+            // visually read as much longer than they are. 22px is the
+            // shortest a single truncated line (`eventChipLineBudget`) can
+            // render without clipping, and still a real improvement on the
+            // previous 18px floor.
+            height: Math.max(offsetFor(end, dayStartMs) - top, 22),
             left: `calc(${column * width}% + 2px)`,
             width: `calc(${width}% - 4px)`,
           },

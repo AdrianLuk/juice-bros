@@ -30,14 +30,14 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
-    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
+    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
       <Dialog open={availabilityDialogOpen} onOpenChange={setAvailabilityDialogOpen}>
         <DialogTrigger
           render={
             <Button
               size="sm"
               variant="secondary"
-              className="gap-2 rounded-full shadow-lg"
+              className="h-11 gap-2 rounded-full px-4 shadow-lg"
             />
           }
         >
@@ -62,7 +62,10 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
         <DialogTrigger
           render={
-            <Button size="lg" className="gap-2 rounded-full shadow-lg" />
+            <Button
+              size="lg"
+              className="h-11 gap-2 rounded-full px-5 shadow-lg"
+            />
           }
         >
           <PlusIcon />

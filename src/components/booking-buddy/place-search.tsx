@@ -23,7 +23,7 @@ const EMPTY_RESULT: ActionResult = {};
  * list (`OrgRow` in `orgs.tsx`). Not optional; it's a term of the API key.
  */
 export function PoweredByGoogle() {
-  return <p className="text-[11px] text-muted-foreground/70">Powered by Google</p>;
+  return <p className="text-[11px] text-muted-foreground">Powered by Google</p>;
 }
 
 /**

@@ -6,8 +6,8 @@
   "scope": "/booking-buddy",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#f8f5f0",
+  "theme_color": "#f8f5f0",
   "icons": [
     {
       "src": "/brand/JB_Logo.svg",

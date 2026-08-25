@@ -37,8 +37,10 @@ export default async function SettingsPage({
 
   const { error, gmail_connected: justConnected } = await searchParams;
 
-  const profile = await getOwnProfile();
-  const notificationPreferences = await getNotificationPreferences();
+  const [profile, notificationPreferences] = await Promise.all([
+    getOwnProfile(),
+    getNotificationPreferences(),
+  ]);
 
   // Optimistic half of ADR-0009's addendum: an unapproved User never even
   // gets the section, not just a disabled one. connectGmail (and the OAuth

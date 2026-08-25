@@ -636,7 +636,11 @@ export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] })
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1.5">
+      {/* `gap-2.5` (not the tighter `gap-1.5` these buttons default to)
+          keeps "Remove" from sitting right under "Edit" — confirmed behind
+          an AlertDialog either way, but a stray tap shouldn't land this
+          close to a destructive action's trigger. */}
+      <div className="flex flex-col items-end gap-2.5">
         <BookingDetailsModal booking={booking} orgs={orgs} render={<Button size="sm" variant="outline" />}>
           View
         </BookingDetailsModal>

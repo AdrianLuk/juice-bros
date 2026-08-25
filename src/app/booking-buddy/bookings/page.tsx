@@ -37,7 +37,10 @@ export default async function BookingsPage() {
   // that check is optimistic and must not be relied on alone.
   const session = await verifySession();
 
-  const { orgs, bookings } = await getBookingsPageData();
+  const [{ orgs, bookings }, profile] = await Promise.all([
+    getBookingsPageData(),
+    getOwnProfile(),
+  ]);
 
   // `bookings` comes back soonest-first (see `getBookingsPageData`), so an
   // in-progress booking (started, not yet ended) still counts as "Booked" —
@@ -54,7 +57,6 @@ export default async function BookingsPage() {
   // does — an unapproved User never sees "Sync from Email" at all.
   // syncFromEmail/confirmImportCandidate/dismissImportCandidate each
   // re-check this authoritatively.
-  const profile = await getOwnProfile();
   const emailSyncAllowed = isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
   const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
 
