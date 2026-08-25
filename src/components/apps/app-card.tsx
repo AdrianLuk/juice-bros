@@ -7,8 +7,6 @@ export function AppCard({ app }: { app: AppItem }) {
   return (
     <Link
       href={app.href}
-      target="_blank"
-      rel="noopener noreferrer"
       className="group flex flex-col rounded-[1.5rem] bg-black/3 p-4 ring-1 ring-black/5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-brand hover:ring-brand-orange/25"
     >
       <div className="flex aspect-4/3 w-full items-center justify-center rounded-[1.1rem] bg-brand-orange/5">

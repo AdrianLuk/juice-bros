@@ -42,7 +42,7 @@ export function FeaturedEpisode({ episode }: { episode: Episode }) {
             <div className="relative flex flex-col gap-5">
               <span className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-orange px-3 py-1 text-xs font-semibold tracking-[0.15em] text-white uppercase">
                 <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 motion-reduce:animate-none" />
                   <span className="relative inline-flex size-2 rounded-full bg-white" />
                 </span>
                 New Episode

@@ -5,9 +5,9 @@ export function Mission() {
     <section className="w-full bg-brand-black text-white">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 px-4 py-28 text-center sm:px-6 lg:px-8">
         <Eyebrow color="yellow">Why We Do This</Eyebrow>
-        <p className="font-heading text-3xl font-black tracking-[-0.02em] text-balance sm:text-5xl">
+        <h2 className="font-heading text-3xl font-black tracking-[-0.02em] text-balance sm:text-5xl">
           To create the most relatable pickleball conversations on the internet.
-        </p>
+        </h2>
         <div className="flex flex-col gap-4 text-lg text-white/75 text-balance">
           <p>
             We&apos;re not here to fix your third shot drop or rank the best paddles -
