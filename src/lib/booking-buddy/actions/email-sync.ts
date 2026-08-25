@@ -41,7 +41,7 @@ import {
   type PlayerMatch,
   type ReconciliationEvent,
 } from "../email-sync-matching.ts";
-import { parseNewBooking, stripCourtLabelPrefix } from "../bookings.ts";
+import { parseNewBooking, splitOverlongCourtLabel, stripCourtLabelPrefix } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
 import { isBookingFormat, type BookingFormat } from "../capacity.ts";
 import {
@@ -182,8 +182,10 @@ export type ImportCandidate = {
   date: string;
   startTime: string;
   endTime: string;
-  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
+  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
   courtLabel: string | null;
+  /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
+  notes: string | null;
   format: BookingFormat;
   /** The parsed email's own Details-section name (issue #95) — read-only on the review card, same as Format/date/time/court. */
   name: string;
@@ -223,8 +225,10 @@ export type UpdateCandidate = {
   date: string;
   startTime: string;
   endTime: string;
-  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. */
+  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
   courtLabel: string | null;
+  /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
+  notes: string | null;
   format: BookingFormat;
   /** Reference-only — unlike `ImportCandidate.matchedPlayers` (wired through by issue #100), applying an update deliberately edits format/court only and never touches Players, since a Reservation Update Notice isn't a new Booking. */
   matchedPlayers: PlayerMatch[];
@@ -462,13 +466,18 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       ? matchUpdateToBooking({ orgId: matchedOrgId, date: update.date, startTime: update.startTime }, existingBookings)
       : null;
 
+    const { courtLabel: updateCourtLabel, notes: updateNotes } = splitOverlongCourtLabel(
+      stripCourtLabelPrefix(update.courtLabel),
+    );
+
     const updateBase = {
       gmailMessageId: event.gmailMessageId,
       facilityName: update.facilityName,
       date: update.date,
       startTime: update.startTime,
       endTime: update.endTime,
-      courtLabel: stripCourtLabelPrefix(update.courtLabel),
+      courtLabel: updateCourtLabel,
+      notes: updateNotes,
       format: update.format,
       matchedPlayers: matchPlayerNamesToConnections(update.playerNames, connectionCandidates),
     };
@@ -517,7 +526,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       continue;
     }
 
-    const courtLabel = stripCourtLabelPrefix(confirmation.courtLabel);
+    const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(confirmation.courtLabel));
 
     if (
       matchedOrgId &&
@@ -537,6 +546,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       startTime: confirmation.startTime,
       endTime: confirmation.endTime,
       courtLabel,
+      notes,
       format: confirmation.format,
       name: confirmation.name,
       matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, connectionCandidates),
@@ -681,6 +691,7 @@ export async function confirmUpdateCandidate(
   const bookingId = String(formData.get("booking_id") ?? "").trim();
   const format = String(formData.get("format") ?? "");
   const courtLabelRaw = String(formData.get("court_label") ?? "");
+  const notesRaw = String(formData.get("notes") ?? "");
   if (!gmailMessageId || !bookingId || !isBookingFormat(format)) {
     return { error: "Couldn't update that booking. Try again." };
   }
@@ -688,6 +699,11 @@ export async function confirmUpdateCandidate(
   const updateResult = await updateOwnedBookingFormatAndCourt(bookingId, {
     format,
     courtLabel: courtLabelRaw || null,
+    // Only carried through when the review screen actually had a court
+    // label overflow to report (see `splitOverlongCourtLabel`) — omitted
+    // otherwise, so an ordinary update can't clobber notes the User already
+    // wrote on this Booking for something unrelated.
+    notes: notesRaw || undefined,
   });
   if (!updateResult.ok) {
     return updateResult;
