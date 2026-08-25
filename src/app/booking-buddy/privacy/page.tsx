@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
@@ -184,9 +185,9 @@ export default async function BookingBuddyPrivacyPage() {
               exists. There&apos;s no self-serve &quot;delete my account&quot; button
               yet &mdash; if you&apos;d like your data deleted, or have any question
               about this policy, reach out from the{" "}
-              <a href="/contact" className="text-foreground underline underline-offset-2">
+              <Link href="/contact" className="text-foreground underline underline-offset-2">
                 Contact page
-              </a>{" "}
+              </Link>{" "}
               and we&apos;ll take care of it.
             </p>
           </Section>
