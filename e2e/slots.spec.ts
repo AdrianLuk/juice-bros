@@ -349,6 +349,34 @@ test("the organizer can set an intended org for a still-bare-proposal slot", asy
   }
 });
 
+test("a facility picked at creation is already the slot's intended org", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy/slots");
+  await page.getByLabel("Date").fill("2031-10-10");
+  await page.getByLabel("Start").selectOption("09:00");
+  await page.getByLabel("End").selectOption("10:00");
+  await page.getByLabel("Facility").selectOption({ label: place });
+  await page.getByRole("button", { name: "Post slot" }).click();
+
+  await row(page, "Oct 10, 2031").getByRole("link").click();
+  await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
+  const slotId = page.url().split("/").pop()!;
+
+  try {
+    // No separate "Planning to book at" save needed — creation already set it.
+    await expect(
+      page.getByLabel("Planning to book at").locator("option:checked"),
+    ).toHaveText(place);
+  } finally {
+    await deleteSlots([slotId]);
+    await removePlace(page, place);
+  }
+});
+
 test("tapping a response shows an optimistic update before the server confirms it", async ({
   page,
 }) => {

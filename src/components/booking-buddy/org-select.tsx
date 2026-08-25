@@ -34,3 +34,35 @@ export function OrgSelect({
     </FormSelect>
   );
 }
+
+/**
+ * The same picker, for a field where no facility is a real, first-class
+ * choice rather than something still being decided — the Slot's own intended
+ * Org (issue #36), settable on the detail page and at creation alike. Unlike
+ * `OrgSelect`'s placeholder, "Not set" isn't `disabled`: it has to stay
+ * reachable so an already-set facility can be cleared back to unset.
+ */
+export function OptionalOrgSelect({
+  id,
+  name = "org_id",
+  orgs,
+  defaultValue = "",
+  className,
+}: {
+  id: string;
+  name?: string;
+  orgs: Org[];
+  defaultValue?: string;
+  className?: string;
+}) {
+  return (
+    <FormSelect id={id} name={name} defaultValue={defaultValue} className={className}>
+      <option value="">Not set</option>
+      {orgs.map((org) => (
+        <option key={org.id} value={org.id}>
+          {org.displayName}
+        </option>
+      ))}
+    </FormSelect>
+  );
+}
