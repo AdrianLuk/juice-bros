@@ -7,7 +7,13 @@ import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
 import { SLOTS_PATH, slotPath } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
-import { formatSlotWhen, parseNewSlotProposal, parseSlotNotes, slotWriteMessage } from "../slots.ts";
+import {
+  facilityLabel,
+  formatSlotWhen,
+  parseNewSlotProposal,
+  parseSlotNotes,
+  slotWriteMessage,
+} from "../slots.ts";
 import {
   bookingOverlapsSlot,
   computeCapacity,
@@ -30,6 +36,13 @@ export type Slot = {
   /** Already rendered in the Slot's own zone — see `formatSlotWhen`. */
   when: string;
   proposedStart: string;
+  /**
+   * The attached court(s)' facility, resolved for display — `null` for a
+   * bare proposal with nothing attached yet. Reads `slot_bookings.org_name`
+   * alone, so this is the same for the owner and for a friend; unlike
+   * `SlotCapacity.attached`, it never needs the owner-only `bookings` table.
+   */
+  facilityLabel: string | null;
 };
 
 export type SlotResponse = {
@@ -61,6 +74,8 @@ export type SlotCapacity = {
   capacity: number | null;
   /** Set once at Slot creation (issue #80) — governs whether the Capacity signal is broken down by gender. */
   division: Division;
+  /** Mirrors `Slot.facilityLabel` — see there for why it's computed once, off `slot_bookings.org_name` alone. */
+  facilityLabel: string | null;
   attached: Booking[];
   attachable: Booking[];
 };
@@ -180,6 +195,30 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
     (profiles ?? []).map((profile) => [profile.id, profile.display_name]),
   );
 
+  const slotIds = (rows ?? []).map((row) => row.id);
+  // One batched read rather than one per Slot: `slot_bookings` is exactly as
+  // friend-visible as `slots` itself (same `can_access_slot` policy), so this
+  // needs no ownership branch the way `getSlotCapacity`'s `attached`/
+  // `attachable` halves do.
+  const { data: attachedRows, error: attachedError } =
+    slotIds.length === 0
+      ? { data: [], error: null }
+      : await supabase
+          .from("slot_bookings")
+          .select("slot_id, org_name")
+          .in("slot_id", slotIds);
+
+  if (attachedError) {
+    readFailed("which facilities those slots are at", attachedError);
+  }
+
+  const orgNamesBySlotId = new Map<string, string[]>();
+  for (const row of attachedRows ?? []) {
+    const names = orgNamesBySlotId.get(row.slot_id) ?? [];
+    names.push(row.org_name);
+    orgNamesBySlotId.set(row.slot_id, names);
+  }
+
   const toSlot = (row: (typeof rows)[number]): Slot => ({
     id: row.id,
     ownerId: row.owner_id,
@@ -190,6 +229,7 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
       timeZone: row.time_zone,
     }),
     proposedStart: row.proposed_start,
+    facilityLabel: facilityLabel(orgNamesBySlotId.get(row.id) ?? []),
   });
 
   const own: Slot[] = [];
@@ -222,13 +262,14 @@ async function getSlotCapacity(
 ): Promise<SlotCapacity> {
   const supabase = await createClient();
 
-  // `format` is copied onto this row at attach time (the migration's
-  // trigger), which is what lets a friend — who can read `slot_bookings` but
-  // not the owner-only `bookings` table — compute the same Capacity the
-  // organizer sees, singles/doubles included.
+  // `format` and `org_name` are copied onto this row at attach time (the
+  // migration's trigger), which is what lets a friend — who can read
+  // `slot_bookings` but not the owner-only `bookings`/`orgs` tables — compute
+  // the same Capacity the organizer sees, and read the same facility, without
+  // either of those tables ever becoming friend-visible.
   const { data: attachedRows, error } = await supabase
     .from("slot_bookings")
-    .select("booking_id, format")
+    .select("booking_id, format, org_name")
     .eq("slot_id", slotId);
 
   if (error) {
@@ -244,6 +285,7 @@ async function getSlotCapacity(
     rotationBuffer,
     capacity: computeCapacity({ formats, rotationBuffer }),
     division,
+    facilityLabel: facilityLabel((attachedRows ?? []).map((row) => row.org_name)),
   };
 
   if (!isOwner) {
@@ -331,6 +373,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
         timeZone: slotRow.time_zone,
       }),
       proposedStart: slotRow.proposed_start,
+      facilityLabel: capacity.facilityLabel,
     },
     isOwner,
     responses,

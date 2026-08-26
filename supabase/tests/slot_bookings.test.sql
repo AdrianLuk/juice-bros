@@ -22,10 +22,11 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(20);
 
 select has_table('public', 'slot_bookings', 'slot_bookings table exists');
 select has_column('public', 'slot_bookings', 'format', 'slot_bookings carries the attached booking''s format (ADR 0008)');
+select has_column('public', 'slot_bookings', 'org_name', 'slot_bookings carries the attached booking''s resolved facility name, friend-visible unlike the booking itself');
 
 -- Doubles as the referencing side of the `bookings` cascade, which Postgres
 -- does not index for you — same reasoning as `bookings_org_id`.
@@ -86,6 +87,14 @@ select is(
    where slot_id = '77777777-0000-0000-0000-000000000041'),
   1,
   'the owner can attach their own booking to their own slot'
+);
+
+select is(
+  (select org_name from public.slot_bookings
+   where slot_id = '77777777-0000-0000-0000-000000000041'
+     and booking_id = 'a1111111-0000-0000-0000-000000000041'),
+  'Amy''s gym',
+  'the attached facility name is resolved and copied from the booking''s own org at attach time'
 );
 
 select throws_ok(
@@ -230,6 +239,26 @@ select is(
 -- Restored to its original format so the capacity test further down still
 -- counts a1111111 as the ordinary doubles court it actually is.
 update public.bookings set format = 'doubles' where id = 'a1111111-0000-0000-0000-000000000041';
+
+-- Same gap, for the Facility field on that same edit form (issue #97):
+-- reassigning an already-attached booking to a different Org has to
+-- re-derive the friend-visible org_name immediately too.
+insert into public.orgs (id, owner_id, name, time_zone)
+values ('99999999-0000-0000-0000-000000000042', 'aaaaaaaa-0000-0000-0000-000000000041', 'Amy''s second gym', 'America/Toronto');
+
+update public.bookings set org_id = '99999999-0000-0000-0000-000000000042' where id = 'a1111111-0000-0000-0000-000000000041';
+
+select is(
+  (select org_name from public.slot_bookings
+   where slot_id = '77777777-0000-0000-0000-000000000041'
+     and booking_id = 'a1111111-0000-0000-0000-000000000041'),
+  'Amy''s second gym',
+  'reassigning an already-attached booking''s org re-derives the slot_bookings row''s own facility name copy immediately'
+);
+
+-- Restored to its original org so nothing further down depends on the
+-- reassignment above.
+update public.bookings set org_id = '99999999-0000-0000-0000-000000000041' where id = 'a1111111-0000-0000-0000-000000000041';
 
 -- Attach the singles booking, deliberately claiming "doubles" in the insert
 -- itself — the trigger has to overwrite that with the Booking's true format,

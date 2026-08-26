@@ -171,7 +171,10 @@ export function SlotRow({
         href={href}
         className="block px-5 py-4 transition-colors hover:bg-muted/60 active:bg-muted"
       >
-        <p className="font-medium">{slot.when}</p>
+        <p className="font-medium">
+          {slot.when}
+          {slot.facilityLabel && ` — ${slot.facilityLabel}`}
+        </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Proposed by {slot.ownerName}
         </p>

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   NOTES_MAX_LENGTH,
+  facilityLabel,
   formatSlotWhen,
   parseNewSlotProposal,
   slotWriteMessage,
@@ -185,4 +186,20 @@ test("an unrenderable zone falls back to UTC and says so", () => {
 
   assert.match(when, /1:00 PM/);
   assert.match(when, /UTC/);
+});
+
+test("a bare proposal with no court attached has no facility to show", () => {
+  assert.equal(facilityLabel([]), null);
+});
+
+test("one attached court's facility is shown as-is", () => {
+  assert.equal(facilityLabel(["Amy's gym"]), "Amy's gym");
+});
+
+test("the same facility repeated across courts is shown once", () => {
+  assert.equal(facilityLabel(["Amy's gym", "Amy's gym"]), "Amy's gym");
+});
+
+test("courts at different facilities are joined, not picked from arbitrarily", () => {
+  assert.equal(facilityLabel(["Amy's gym", "Rally Point"]), "Amy's gym & Rally Point");
 });
