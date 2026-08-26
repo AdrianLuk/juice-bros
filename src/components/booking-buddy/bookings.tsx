@@ -19,14 +19,17 @@ import {
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import {
+  DurationPicker,
+  useDurationInput,
+  type DurationChoice,
+} from "@/components/booking-buddy/duration-picker";
+import {
   COURT_LABEL_MAX_LENGTH,
   DEFAULT_BOOKING_FORMAT,
   DEFAULT_DURATION_HOURS,
-  DURATION_PRESET_HOURS,
   HOUR_TIMES,
   NAME_MAX_LENGTH,
   NOTES_MAX_LENGTH,
-  addHoursToTime,
   formatCourtLabel,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
@@ -51,9 +54,6 @@ import {
 
 const EMPTY: ActionResult = {};
 const DEFAULT_START_TIME = "18:00";
-
-/** A duration preset's hour count, or "custom" for a hand-typed one. */
-type DurationChoice = `${(typeof DURATION_PRESET_HOURS)[number]}` | "custom";
 
 function ActionError({ state }: { state: ActionResult }) {
   if (!state.error) {
@@ -87,48 +87,6 @@ function HourTimeSelect({
         </option>
       ))}
     </FormSelect>
-  );
-}
-
-/**
- * 1/2/3-hour presets plus a hand-typed custom count — same idea as
- * CourtReserve's own Duration control, so the User picks how long they played
- * instead of clicking through an End-time dropdown by hand.
- */
-function DurationPicker({
-  value,
-  onChange,
-}: {
-  value: DurationChoice;
-  onChange: (choice: DurationChoice) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Duration">
-      {DURATION_PRESET_HOURS.map((hours) => {
-        const choice = String(hours) as DurationChoice;
-        return (
-          <Button
-            key={hours}
-            type="button"
-            variant={value === choice ? "default" : "outline"}
-            role="radio"
-            aria-checked={value === choice}
-            onClick={() => onChange(choice)}
-          >
-            {hours} hour{hours === 1 ? "" : "s"}
-          </Button>
-        );
-      })}
-      <Button
-        type="button"
-        variant={value === "custom" ? "default" : "outline"}
-        role="radio"
-        aria-checked={value === "custom"}
-        onClick={() => onChange("custom")}
-      >
-        Custom
-      </Button>
-    </div>
   );
 }
 
@@ -278,13 +236,6 @@ function BookingFieldSet({
   );
 }
 
-/** A duration choice matching `hours` if it's one of the presets, otherwise "custom". */
-function durationChoiceForHours(hours: number): DurationChoice {
-  return (DURATION_PRESET_HOURS as readonly number[]).includes(hours)
-    ? (String(hours) as DurationChoice)
-    : "custom";
-}
-
 export function CreateBookingForm({
   orgs,
   onLogged,
@@ -301,19 +252,7 @@ export function CreateBookingForm({
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, so both need a live value to derive it from.
-  const [startTime, setStartTime] = useState(DEFAULT_START_TIME);
-  const [durationChoice, setDurationChoice] = useState<DurationChoice>(
-    String(DEFAULT_DURATION_HOURS) as DurationChoice,
-  );
-  const [customHours, setCustomHours] = useState("");
-
-  // Blank while the User has "Custom" selected but hasn't typed a count yet —
-  // distinct from an actually-invalid count, which gets its own message below.
-  const hasDurationInput = durationChoice !== "custom" || customHours.trim() !== "";
-  const durationHours =
-    durationChoice === "custom" ? Number(customHours) : Number(durationChoice);
-  const endTime = hasDurationInput ? addHoursToTime(startTime, durationHours) : null;
-  const durationOverflows = hasDurationInput && endTime === null;
+  const duration = useDurationInput(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
 
   // Resets the controlled Start/Duration fields in lockstep with the form's
   // own uncontrolled ones below — done here, during render, rather than in
@@ -324,9 +263,7 @@ export function CreateBookingForm({
   if (resetForState !== state) {
     setResetForState(state);
     if (state.ok) {
-      setStartTime(DEFAULT_START_TIME);
-      setDurationChoice(String(DEFAULT_DURATION_HOURS) as DurationChoice);
-      setCustomHours("");
+      duration.reset(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
     }
   }
 
@@ -352,14 +289,14 @@ export function CreateBookingForm({
         defaultName=""
         defaultCourtLabel=""
         defaultDate=""
-        startTime={startTime}
-        onStartTimeChange={setStartTime}
-        durationChoice={durationChoice}
-        onDurationChange={setDurationChoice}
-        customHours={customHours}
-        onCustomHoursChange={setCustomHours}
-        endTime={endTime}
-        durationOverflows={durationOverflows}
+        startTime={duration.startTime}
+        onStartTimeChange={duration.setStartTime}
+        durationChoice={duration.durationChoice}
+        onDurationChange={duration.setDurationChoice}
+        customHours={duration.customHours}
+        onCustomHoursChange={duration.setCustomHours}
+        endTime={duration.endTime}
+        durationOverflows={duration.durationOverflows}
       />
 
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -383,7 +320,7 @@ export function CreateBookingForm({
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <Button type="submit" disabled={pending || endTime === null}>
+        <Button type="submit" disabled={pending || duration.endTime === null}>
           {pending ? "Saving…" : "Log booking"}
         </Button>
         <ActionError state={state} />
@@ -421,21 +358,8 @@ export function EditBookingForm({
   const initialEndTime = clockInZone(booking.timeZone, new Date(booking.endsAt));
   const initialHours =
     Number(initialEndTime.slice(0, 2)) - Number(initialStartTime.slice(0, 2));
-  const initialDurationChoice = durationChoiceForHours(initialHours);
 
-  const [startTime, setStartTime] = useState(initialStartTime);
-  const [durationChoice, setDurationChoice] = useState<DurationChoice>(
-    initialDurationChoice,
-  );
-  const [customHours, setCustomHours] = useState(
-    initialDurationChoice === "custom" ? String(initialHours) : "",
-  );
-
-  const hasDurationInput = durationChoice !== "custom" || customHours.trim() !== "";
-  const durationHours =
-    durationChoice === "custom" ? Number(customHours) : Number(durationChoice);
-  const endTime = hasDurationInput ? addHoursToTime(startTime, durationHours) : null;
-  const durationOverflows = hasDurationInput && endTime === null;
+  const duration = useDurationInput(initialStartTime, initialHours);
 
   useEffect(() => {
     if (state.ok) {
@@ -454,14 +378,14 @@ export function EditBookingForm({
         defaultName={booking.name ?? ""}
         defaultCourtLabel={booking.courtLabel ?? ""}
         defaultDate={initialDate}
-        startTime={startTime}
-        onStartTimeChange={setStartTime}
-        durationChoice={durationChoice}
-        onDurationChange={setDurationChoice}
-        customHours={customHours}
-        onCustomHoursChange={setCustomHours}
-        endTime={endTime}
-        durationOverflows={durationOverflows}
+        startTime={duration.startTime}
+        onStartTimeChange={duration.setStartTime}
+        durationChoice={duration.durationChoice}
+        onDurationChange={duration.setDurationChoice}
+        customHours={duration.customHours}
+        onCustomHoursChange={duration.setCustomHours}
+        endTime={duration.endTime}
+        durationOverflows={duration.durationOverflows}
       />
 
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -487,7 +411,7 @@ export function EditBookingForm({
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <Button type="submit" disabled={pending || endTime === null}>
+        <Button type="submit" disabled={pending || duration.endTime === null}>
           {pending ? "Saving…" : "Save changes"}
         </Button>
         <ActionError state={state} />
