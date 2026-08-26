@@ -113,6 +113,22 @@ export function parseNewSlotProposal(
 }
 
 /**
+ * A Slot's own title needs the facility without needing the Booking behind
+ * it — friend-visible, unlike the Booking itself, since it only ever reads
+ * `slot_bookings.org_name` (see the migration). Distinct names only, since
+ * two courts at the same facility shouldn't repeat it twice; more than one
+ * distinct facility is the multi-venue edge case, joined rather than picked
+ * arbitrarily from.
+ */
+export function facilityLabel(orgNames: Iterable<string>): string | null {
+  const distinct = [...new Set(orgNames)];
+  if (distinct.length === 0) {
+    return null;
+  }
+  return distinct.join(" & ");
+}
+
+/**
  * When a Slot is proposed for, written as the zone it was created in.
  *
  * `proposed_start` is an instant, and rendering it needs to be told which

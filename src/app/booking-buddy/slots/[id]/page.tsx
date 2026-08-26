@@ -67,7 +67,9 @@ export default async function SlotDetailPage({
             <div>
               <PageHeading
                 eyebrow="Booking Buddy"
-                title={slot.when}
+                title={
+                  slot.facilityLabel ? `${slot.when} — ${slot.facilityLabel}` : slot.when
+                }
                 description={
                   isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
                 }
