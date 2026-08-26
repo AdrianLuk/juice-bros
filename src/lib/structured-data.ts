@@ -1,5 +1,7 @@
 import { siteConfig } from "@/config/site";
 import type { Episode } from "@/lib/episodes";
+import type { GearItem, HostGear } from "@/data/gear";
+import type { AppItem } from "@/data/apps";
 
 /**
  * JSON.stringify doesn't escape "<", so a literal "</script>" inside a
@@ -97,6 +99,153 @@ export function buildEpisodeJsonLd(episode: Episode) {
           contentUrl: episode.url,
         },
       },
+    ],
+  };
+}
+
+/**
+ * BreadcrumbList + ItemList of episode links for the /podcast index. Each
+ * entry just points at the episode's own page - the full PodcastEpisode
+ * description already lives in buildEpisodeJsonLd there, no need to repeat it.
+ */
+export function buildPodcastListJsonLd(episodes: Episode[]) {
+  const podcastUrl = `${siteConfig.url}/podcast`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Podcast", item: podcastUrl },
+        ],
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${podcastUrl}#items`,
+        itemListElement: episodes.map((episode, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          url: `${podcastUrl}/${episode.slug}`,
+          name: episode.title,
+        })),
+      },
+    ],
+  };
+}
+
+/**
+ * BreadcrumbList + ItemList of Product entries for the Gear page. Deliberately
+ * omits `offers` (price/availability) - these are external affiliate links
+ * whose pricing we don't control, and stale price data risks a Search Console
+ * structured-data penalty.
+ */
+export function buildGearJsonLd(hosts: HostGear[], partnerCodes: GearItem[]) {
+  const gearUrl = `${siteConfig.url}/gear`;
+  const seen = new Set<string>();
+  const items = [...hosts.flatMap((host) => host.current), ...partnerCodes].filter((item) => {
+    if (seen.has(item.name)) return false;
+    seen.add(item.name);
+    return true;
+  });
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Gear", item: gearUrl },
+        ],
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${gearUrl}#items`,
+        itemListElement: items.map((item, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          item: {
+            "@type": "Product",
+            name: item.name,
+            category: item.category,
+            description: item.blurb,
+            image: item.image,
+            url: item.url,
+          },
+        })),
+      },
+    ],
+  };
+}
+
+function buildSoftwareApplicationJsonLd(app: AppItem) {
+  return {
+    "@type": "SoftwareApplication",
+    "@id": `${siteConfig.url}${app.href}#app`,
+    name: app.title,
+    description: app.description,
+    url: `${siteConfig.url}${app.href}`,
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Web",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+  };
+}
+
+/**
+ * BreadcrumbList + ItemList of SoftwareApplication entries for the Tools
+ * page. Only "live" apps get a full node - a "coming-soon" app has no page
+ * yet to describe.
+ */
+export function buildToolsJsonLd(apps: AppItem[]) {
+  const toolsUrl = `${siteConfig.url}/tools`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Tools", item: toolsUrl },
+        ],
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${toolsUrl}#items`,
+        itemListElement: apps
+          .filter((app) => app.status === "live")
+          .map((app, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: buildSoftwareApplicationJsonLd(app),
+          })),
+      },
+    ],
+  };
+}
+
+/** BreadcrumbList + SoftwareApplication for one tool's own page. */
+export function buildAppPageJsonLd(app: AppItem) {
+  const appUrl = `${siteConfig.url}${app.href}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Tools", item: `${siteConfig.url}/tools` },
+          { "@type": "ListItem", position: 3, name: app.title, item: appUrl },
+        ],
+      },
+      buildSoftwareApplicationJsonLd(app),
     ],
   };
 }

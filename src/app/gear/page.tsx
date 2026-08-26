@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { hosts, partnerCodes } from "@/data/gear";
 import { pageMetadata } from "@/lib/metadata";
+import { buildGearJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHeading } from "@/components/typography/page-heading";
 import { HostGearSection } from "./sections/host-gear-section";
 import { PartnerCodesSection } from "./sections/partner-codes-section";
@@ -16,6 +17,10 @@ export const metadata: Metadata = pageMetadata({
 export default function GearPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildGearJsonLd(hosts, partnerCodes)) }}
+      />
       <PageHeading
         eyebrow="What We Play With"
         title="Gear"
