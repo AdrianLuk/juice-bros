@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import { apps } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
+import { buildAppPageJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PicklePointPal } from "@/components/apps/pickle-point-pal/pickle-point-pal";
 
 const app = apps.find((item) => item.slug === "pickle-point-pal")!;
@@ -27,6 +28,10 @@ export default function PicklePointPalPage() {
     // The ref layout measures its fold against this top padding — keep the two
     // in step if either changes (see the fold sizing in `match-screen.tsx`).
     <div className="pp-surface flex w-full flex-1 flex-col px-4 py-6 sm:px-6 ref-landscape:px-3 ref-landscape:py-3">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppPageJsonLd(app)) }}
+      />
       <PicklePointPal />
     </div>
   );

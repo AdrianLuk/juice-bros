@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { apps } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
+import { buildToolsJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHeading } from "@/components/typography/page-heading";
 import { AppCard } from "@/components/apps/app-card";
 
@@ -15,6 +16,10 @@ export const metadata: Metadata = pageMetadata({
 export default function ToolsPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildToolsJsonLd(apps)) }}
+      />
       <PageHeading
         eyebrow="Pickleball Tools"
         title="Tools"
