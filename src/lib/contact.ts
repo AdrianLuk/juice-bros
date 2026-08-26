@@ -3,6 +3,7 @@ export const contactReasons = [
   { value: "guest-pitch", label: "Guest / interview pitch" },
   { value: "sponsorship", label: "Sponsorship or partnership" },
   { value: "club-feature", label: "Club or event feature" },
+  { value: "feature-request", label: "Feature request" },
   { value: "hi", label: "Just saying hi" },
 ] as const;
 

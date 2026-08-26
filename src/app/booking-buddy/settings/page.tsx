@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
@@ -91,11 +92,11 @@ export default async function SettingsPage({
             </div>
           </div>
 
-          {emailSyncAllowed ? (
-            <div className="mt-8">
-              <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Sync from Email
-              </h2>
+          <div className="mt-8">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">
+              Sync from Email
+            </h2>
+            {emailSyncAllowed ? (
               <div className="bb-card mt-4 p-6">
                 <GmailSyncSection
                   mailboxLink={mailboxLink}
@@ -103,18 +104,30 @@ export default async function SettingsPage({
                   justConnected={justConnected === "1"}
                 />
               </div>
-            </div>
-          ) : (
-            error === "email_sync_not_allowed" && (
-              // The section itself stays absent (not just hidden) for an
+            ) : error === "email_sync_not_allowed" ? (
+              // The working UI stays absent (not just hidden) for an
               // unapproved User, per ADR-0009's addendum — but a redirect
               // that landed here specifically because of that check still
               // deserves an explanation, not a silently-dropped query param.
-              <p className="mt-8 text-sm text-destructive" role="alert">
-                Your account isn&apos;t approved for email sync yet.
+              <p className="mt-4 text-sm text-destructive" role="alert">
+                Your account isn&apos;t approved for email sync yet.{" "}
+                <Link href="/contact" className="text-foreground underline underline-offset-2">
+                  Request access
+                </Link>
+                .
               </p>
-            )
-          )}
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Email sync reads your CourtReserve confirmation emails and pulls
+                those bookings in automatically &mdash; it&apos;s invite-only for
+                now. Want in?{" "}
+                <Link href="/contact" className="text-foreground underline underline-offset-2">
+                  Request access
+                </Link>
+                .
+              </p>
+            )}
+          </div>
 
           <FooterNav>
             <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
