@@ -655,7 +655,7 @@ export function DeleteBookingButton({ booking }: { booking: Booking }) {
   const [state, formAction, pending] = useActionState(deleteBooking, EMPTY);
 
   const form = (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form action={formAction} className="flex flex-col gap-1">
       <input type="hidden" name="booking_id" value={booking.id} />
       <Button type="submit" variant="destructive" disabled={pending}>
         {pending ? "Removing…" : "Remove booking"}
