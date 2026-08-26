@@ -24,7 +24,11 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
   - [x] `PodcastSeries` JSON-LD
   - [x] `PodcastEpisode` + `VideoObject` JSON-LD on each episode page (#141), `VideoObject` nested as the `PodcastEpisode`'s `associatedMedia`
   - [x] `BreadcrumbList` on each episode page (#141)
-  - [ ] Validated against Google's Rich Results Test — needs a live deployed URL; JSON-LD shape checked by hand against schema.org during #141, not yet run through Google's actual tool (moved to Manual below)
+  - [x] `BreadcrumbList` + `ItemList` of `Product` on `/gear` (#165) — no `offers`/price, since those are external affiliate links we don't control pricing or availability for
+  - [x] `BreadcrumbList` + `ItemList` of `SoftwareApplication` on `/tools`, plus a per-app `BreadcrumbList` + `SoftwareApplication` on `/tools/pickle-point-pal` (#165)
+  - [x] `BreadcrumbList` + lightweight `ItemList` linking to each episode page on `/podcast` (#165)
+  - [x] `/gear`, `/tools`, `/tools/pickle-point-pal`, and `/podcast` validated against Google's Rich Results Test by Adrian — clean (#165)
+  - [x] Episode page (`PodcastEpisode`/`VideoObject`/`BreadcrumbList`) validated against Google's Rich Results Test by Adrian — clean (#141)
 - [x] **3.2 Sitemap and robots**
   - [x] `app/sitemap.ts` exists, covers all current static pages with `lastModified`
   - [x] `app/robots.ts` exists, allows all, references the sitemap
@@ -51,7 +55,8 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
 ## Manual (Adrian, not Claude Code)
 
 - [ ] Google Search Console + Bing Webmaster Tools, submit sitemap
-- [ ] Run an episode page through Google's Rich Results Test once deployed, to validate the `PodcastEpisode`/`VideoObject`/`BreadcrumbList` JSON-LD (#141)
+- [x] Run an episode page through Google's Rich Results Test once deployed, to validate the `PodcastEpisode`/`VideoObject`/`BreadcrumbList` JSON-LD (#141) — done, clean
+- [x] Run `/gear`, `/tools`, `/tools/pickle-point-pal`, and `/podcast` through Google's Rich Results Test once deployed, to validate the `Product`/`SoftwareApplication`/`ItemList`/`BreadcrumbList` JSON-LD (#165) — done, clean
 - [ ] Submit RSS feed to Apple Podcasts, Amazon Music, Pocket Casts, Overcast, iHeart, Podcast Index
 - [ ] Submit to podcast directories (Feedspot, MillionPodcasts)
 - [ ] Add site URL to YouTube video descriptions + pin a comment linking the episode page
