@@ -21,16 +21,16 @@ export default function GearPage() {
         title="Gear"
         description="The paddles, apparel, and accessories we actually use - plus our ambassador codes for a discount. We only share products we genuinely play with and believe in."
       />
+      <p className="mt-3 max-w-xl text-sm text-muted-foreground">
+        Affiliate disclosure: some links below are ambassador codes that earn us a
+        commission at no extra cost to you.
+      </p>
 
       {hosts.map((host) => (
         <HostGearSection key={host.name} host={host} />
       ))}
 
       <PartnerCodesSection items={partnerCodes} />
-
-      <p className="mt-20 text-xs text-muted-foreground">
-        Affiliate disclosure: some products featured include ambassador discount codes.
-      </p>
     </div>
   );
 }
