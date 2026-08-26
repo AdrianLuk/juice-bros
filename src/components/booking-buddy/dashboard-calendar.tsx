@@ -291,7 +291,11 @@ export function DashboardCalendar<T extends CalendarEvent>({
               aria-pressed={view === option.id}
               onClick={() => setView(option.id)}
               className={cn(
-                "relative rounded-md px-2.5 py-1 text-xs font-medium transition-colors after:absolute after:-inset-1 after:content-['']",
+                // text-[19px] font-bold clears WCAG's 18.66px+bold "large
+                // text" AA threshold, so the active tab's white-on-orange
+                // fill (~3.15:1) is compliant at 3:1 without changing the
+                // brand color.
+                "relative rounded-md px-3.5 py-1.5 text-[19px] font-bold transition-colors after:absolute after:-inset-1 after:content-['']",
                 view === option.id
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",

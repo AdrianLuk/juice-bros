@@ -62,11 +62,18 @@ export function CalendarEventPopover<T>({
  * rather than being kept in sync by hand across two otherwise-unrelated
  * files.
  */
-export const WEEK_EVENT_CLASS =
-  "absolute block overflow-hidden rounded-md bg-primary px-1.5 py-1 text-[11px] leading-tight text-primary-foreground shadow-sm ring-1 ring-border";
+// Chip text sits on white-on-orange (bg-primary/text-primary-foreground),
+// which measures ~3.15:1 contrast — below WCAG AA's 4.5:1 normal-text floor.
+// The brand orange itself is a deliberate, standing decision (PRODUCT.md),
+// so these sizes/weights and the shadow are pushing legibility as far as the
+// grid allows rather than reaching for the 18.66px+bold "large text" AA
+// threshold, which the week grid's HOUR_HEIGHT can't accommodate without a
+// much bigger layout change (see the note on eventChipLineBudget below).
+const EVENT_TEXT_SHADOW = "[text-shadow:0_1px_1.5px_rgb(0_0_0_/_0.45)]";
 
-export const MONTH_EVENT_CLASS =
-  "block w-full overflow-hidden rounded-sm bg-primary/90 px-1 py-0.5 text-[10px] font-medium text-primary-foreground";
+export const WEEK_EVENT_CLASS = `absolute block overflow-hidden rounded-md bg-primary px-1.5 py-1 text-[13px] font-medium leading-tight text-primary-foreground shadow-sm ring-1 ring-border ${EVENT_TEXT_SHADOW}`;
+
+export const MONTH_EVENT_CLASS = `block w-full overflow-hidden rounded-sm bg-primary/90 px-1.5 py-1 text-[12px] font-medium text-primary-foreground ${EVENT_TEXT_SHADOW}`;
 
 export const AGENDA_EVENT_CLASS =
   "flex w-full items-center gap-3 rounded-md bg-muted/60 px-3 py-2 text-sm hover:bg-muted";
