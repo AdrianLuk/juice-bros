@@ -4,6 +4,7 @@ import { GUEST_RSVP_SOFT_THRESHOLD } from "../src/lib/booking-buddy/slot-links.t
 import { AMY, signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import { guestRsvpLogForSlotLink, slotLinkIdForToken } from "./support/guest-rsvp-log.ts";
+import { selectDuration } from "./support/places.ts";
 
 /**
  * Issue #13's 10.2: confirm the Guest-abuse soft-threshold logging (7.6) is
@@ -33,7 +34,7 @@ async function createSlot(
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill(slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
-  await page.getByLabel("End").selectOption(slot.end);
+  await selectDuration(page, slot.start, slot.end);
   await page.getByRole("button", { name: "Post slot" }).click();
 
   await row(page, slot.label).getByRole("link").click();

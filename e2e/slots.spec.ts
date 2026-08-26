@@ -2,7 +2,13 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { AMY, BEN2, signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
-import { addPlace, logBooking, placeName, removePlace } from "./support/places.ts";
+import {
+  addPlace,
+  logBooking,
+  placeName,
+  removePlace,
+  selectDuration,
+} from "./support/places.ts";
 
 /**
  * The Slot poll journey: post a bare proposal, a friend with slots Visibility
@@ -32,7 +38,7 @@ async function createSlot(
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill(slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
-  await page.getByLabel("End").selectOption(slot.end);
+  await selectDuration(page, slot.start, slot.end);
   if (slot.division) {
     await page.getByLabel("Division").selectOption(slot.division);
   }
@@ -129,7 +135,7 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2031-11-11");
   await page.getByLabel("Start").selectOption("13:00");
-  await page.getByLabel("End").selectOption("14:00");
+  await selectDuration(page, "13:00", "14:00");
   await page.getByLabel("Notes").fill(originalNotes);
   await page.getByRole("button", { name: "Post slot" }).click();
 
@@ -160,7 +166,7 @@ test("a slot cannot be posted for a date that's already passed", async ({ page }
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2020-01-01");
   await page.getByLabel("Start").selectOption("13:00");
-  await page.getByLabel("End").selectOption("14:00");
+  await selectDuration(page, "13:00", "14:00");
   await page.getByRole("button", { name: "Post slot" }).click();
 
   await expect(
@@ -397,7 +403,7 @@ test("a facility picked at creation is already the slot's intended org", async (
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2031-10-10");
   await page.getByLabel("Start").selectOption("09:00");
-  await page.getByLabel("End").selectOption("10:00");
+  await selectDuration(page, "09:00", "10:00");
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByRole("button", { name: "Post slot" }).click();
 
