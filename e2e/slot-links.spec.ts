@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { AMY, signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
+import { selectDuration } from "./support/places.ts";
 
 /**
  * The Slot Link + Guest RSVP journey (issue #10): the owner generates a
@@ -25,7 +26,7 @@ async function createSlot(
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill(slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
-  await page.getByLabel("End").selectOption(slot.end);
+  await selectDuration(page, slot.start, slot.end);
   await page.getByRole("button", { name: "Post slot" }).click();
 
   await row(page, slot.label).getByRole("link").click();

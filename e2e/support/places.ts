@@ -37,13 +37,14 @@ export async function removePlace(page: Page, name: string) {
 }
 
 /**
- * Clicks the Duration radiogroup (issue #57) to make End compute out to
- * `end` — End itself is a disabled, read-only field derived from Start +
- * Duration, not something a Playwright `.selectOption()` can reach anymore.
- * Every fixture booking in this suite runs a whole number of hours, so this
- * only ever needs the 1/2/3-hour presets; "Custom" exists for completeness.
+ * Clicks the Duration radiogroup (issue #57, extended to Slots' own posting
+ * form) to make End compute out to `end` — End itself is a disabled,
+ * read-only field derived from Start + Duration, not something a Playwright
+ * `.selectOption()` can reach anymore. Every fixture in this suite runs a
+ * whole number of hours, so this only ever needs the 1/2/3-hour presets;
+ * "Custom" exists for completeness.
  */
-async function selectDuration(page: Page, start: string, end: string) {
+export async function selectDuration(page: Page, start: string, end: string) {
   const [startHour] = start.split(":").map(Number);
   const [endHour] = end.split(":").map(Number);
   const hours = endHour - startHour;
