@@ -130,11 +130,13 @@ test.afterEach(async ({ page }) => {
   }
 });
 
-test("a non-allowlisted User never sees the Sync from Email section at all", async ({ page }) => {
+test("a non-allowlisted User sees an invite-only note instead of the working section", async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy/settings");
 
-  await expect(page.getByRole("heading", { name: "Sync from Email" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toHaveCount(0);
+  await expect(page.getByText("it's invite-only for now", { exact: false })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Request access" })).toHaveAttribute("href", "/contact");
 });
 
 test("an allowlisted User sees the section, with no Mailbox Link connected yet", async ({ page }) => {
