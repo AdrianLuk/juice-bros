@@ -11,11 +11,39 @@ import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/a
  * always wins" precedence proven in the browser, not just the resolver
  * (that half is availability.test.ts's).
  *
- * Every Booking here lands on 2026-08-20 (a Thursday inside the default
- * Week/Month range for this app's pinned "today", 2026-08-16) — the same
- * fixed-near-future-date convention `bookings.spec.ts`/`slots.spec.ts`
- * already use, rather than computing dates off a live clock.
+ * Unlike `bookings.spec.ts`/`slots.spec.ts` (which only need *any* future
+ * date and so can stay fixed for years), the tests here assert the dashboard's
+ * *default* Week view — the week containing real "today", per
+ * `dashboard-calendar.tsx`'s own live `new Date()` read on mount, not a
+ * pinned clock. A fixed date only stays inside that week for a few days
+ * before it rolls into the past week (and the `bookings_not_in_the_past`
+ * trigger starts rejecting it outright) — `requireTestBookingDate` below
+ * recomputes a valid one every run instead.
  */
+function isoDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+const MONTH_DAY_YEAR = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+/**
+ * Tomorrow — always in the future, and (Saturday aside) always still inside
+ * the current calendar week the dashboard defaults to. On a Saturday, no
+ * future day is left in that week at all, so the calling test skips rather
+ * than asserting something the app was never going to do.
+ */
+function requireTestBookingDate(): { iso: string; label: string } {
+  const now = new Date();
+  test.skip(now.getDay() === 6, "no future day is left in the current calendar week on a Saturday");
+
+  const date = new Date(now);
+  date.setDate(date.getDate() + 1);
+  return { iso: isoDate(date), label: MONTH_DAY_YEAR.format(date) };
+}
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy");
@@ -78,6 +106,7 @@ test("the calendar defaults to Week view, and Month/Agenda toggle without naviga
 test("a Booking renders on the calendar and in the sidebar, and its popover can remove it", async ({
   page,
 }) => {
+  const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
   await logBooking(page, {
@@ -85,7 +114,7 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
     // formatCourtLabel prepends "Court " for display — the field itself is
     // numbers-only (type="number").
     court: "94",
-    date: "2026-08-20",
+    date: bookingDate.iso,
     start: "14:00",
     end: "15:00",
   });
@@ -95,14 +124,20 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
 
   await page.goto("/booking-buddy");
 
-  // Week view (default) — the block exists in the grid.
-  await expect(page.getByRole("button", { name: /Court 94/ })).toBeVisible();
+  // Week view (default) — the block exists in the grid. Scoped with `.first()`:
+  // the "Coming up" sidebar (upcoming-bookings.tsx) is server-rendered
+  // alongside every view, not just Month, and its own row's accessible name
+  // also contains "Court 94" — the calendar grid renders before that sidebar
+  // in the DOM, so `.first()` is always the grid's own block, never the
+  // sidebar's row.
+  const gridChip = page.getByRole("button", { name: /Court 94/ }).first();
+  await expect(gridChip).toBeVisible();
   // The sidebar lists it too, soonest-first alongside date/time/duration.
-  await expect(page.getByText("Aug 20, 2026")).toBeVisible();
+  await expect(page.getByText(bookingDate.label)).toBeVisible();
 
   // Month view — same Booking, as an inline row rather than a positioned block.
   await page.getByRole("button", { name: "Month", exact: true }).click();
-  const monthChip = page.getByRole("button", { name: /Court 94/ });
+  const monthChip = page.getByRole("button", { name: /Court 94/ }).first();
   await expect(monthChip).toBeVisible();
 
   // Clicking it opens the detail popover — full details, not navigating away.
@@ -122,7 +157,7 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
   await page.getByRole("button", { name: "Remove booking" }).click();
 
   await expect(page.getByRole("button", { name: /Court 94/ })).toHaveCount(0);
-  await expect(page.getByText("Aug 20, 2026")).toHaveCount(0);
+  await expect(page.getByText(bookingDate.label)).toHaveCount(0);
 
   await removePlace(page, place);
 });
@@ -150,6 +185,7 @@ test("clicking a Month day switches to Week view centered on that day", async ({
 });
 
 test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
+  const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
 
@@ -160,7 +196,7 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
 
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("95");
-  await page.getByLabel("Date").fill("2026-08-20");
+  await page.getByLabel("Date").fill(bookingDate.iso);
   await page.getByLabel("Start", { exact: true }).selectOption("16:00");
   // End is computed from Start + Duration (issue #57), not its own field.
   await page.getByRole("radio", { name: "1 hour" }).click();
@@ -168,7 +204,7 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
 
   // A successful save closes the dialog itself — no manual "Close" needed.
   await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
-  await expect(page.getByText("Aug 20, 2026")).toBeVisible();
+  await expect(page.getByText(bookingDate.label)).toBeVisible();
   await expect(page.getByRole("button", { name: /Court 95/ })).toBeVisible();
   await expect(page).toHaveURL(/\/booking-buddy$/);
 
@@ -213,20 +249,21 @@ test("a quick-add duration that would run past midnight is refused before it's e
 test("a Booking always renders as busy over an overlapping Availability Window", async ({
   page,
 }) => {
+  const bookingDate = requireTestBookingDate();
   const user = { email: AMY, password: TEST_PASSWORD };
   await deleteAvailabilityWindows(user);
 
   // Busy declared noon-2pm local (EDT); a Booking then covers 1-2pm of it.
   await insertAvailabilityWindow(user, {
     type: "busy",
-    startsAt: "2026-08-20T16:00:00Z",
-    endsAt: "2026-08-20T18:00:00Z",
+    startsAt: `${bookingDate.iso}T16:00:00Z`,
+    endsAt: `${bookingDate.iso}T18:00:00Z`,
   });
   // Open declared 6-7pm local, with nothing booked over it — should render plainly.
   await insertAvailabilityWindow(user, {
     type: "open",
-    startsAt: "2026-08-20T22:00:00Z",
-    endsAt: "2026-08-20T23:00:00Z",
+    startsAt: `${bookingDate.iso}T22:00:00Z`,
+    endsAt: `${bookingDate.iso}T23:00:00Z`,
   });
 
   const place = placeName();
@@ -234,7 +271,7 @@ test("a Booking always renders as busy over an overlapping Availability Window",
   await logBooking(page, {
     place,
     court: "97",
-    date: "2026-08-20",
+    date: bookingDate.iso,
     start: "13:00",
     end: "14:00",
   });
