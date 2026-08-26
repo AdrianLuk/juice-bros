@@ -9,15 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
 import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
@@ -680,24 +680,24 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
   );
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
+    <Dialog>
+      <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Delete slot
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this slot?</AlertDialogTitle>
-          <AlertDialogDescription>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete this slot?</DialogTitle>
+          <DialogDescription>
             {when}. Every response, attached court, invite link, and reminder
             for it goes with it — this can&apos;t be undone. Any Bookings
             attached stay on your Bookings page, untouched.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Keep slot</AlertDialogCancel>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Keep slot</DialogClose>
           {form}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
