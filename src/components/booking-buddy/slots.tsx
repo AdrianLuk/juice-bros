@@ -21,7 +21,16 @@ import {
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
 import { BookingDetailsModal } from "@/components/booking-buddy/bookings";
-import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
+import {
+  DurationPicker,
+  useDurationInput,
+} from "@/components/booking-buddy/duration-picker";
+import {
+  DEFAULT_DURATION_HOURS,
+  HOUR_TIMES,
+  formatCourtLabel,
+  formatTimeLabel,
+} from "@/lib/booking-buddy/bookings";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -68,14 +77,13 @@ function ActionError({ state }: { state: ActionResult }) {
 function HourTimeSelect({
   id,
   name,
-  defaultValue,
-}: {
-  id: string;
-  name: string;
-  defaultValue: string;
-}) {
+  ...props
+}: { id: string; name: string } & Omit<
+  React.ComponentProps<"select">,
+  "id" | "name" | "children"
+>) {
   return (
-    <FormSelect id={id} name={name} defaultValue={defaultValue} required>
+    <FormSelect id={id} name={name} required {...props}>
       {HOUR_TIMES.map((time) => (
         <option key={time} value={time}>
           {formatTimeLabel(time)}
@@ -85,13 +93,19 @@ function HourTimeSelect({
   );
 }
 
+const DEFAULT_START_TIME = "20:00";
+
 export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
   const [state, formAction, pending] = useActionState(createSlot, EMPTY);
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
+  // Start and Duration are controlled — the End field is computed from them
+  // rather than picked, same as the Booking form's own duration picker.
+  const duration = useDurationInput(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-date">Date</Label>
           <Input id="slot-date" name="date" type="date" required />
@@ -99,12 +113,51 @@ export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-start">Start</Label>
-          <HourTimeSelect id="slot-start" name="start_time" defaultValue="09:00" />
+          <HourTimeSelect
+            id="slot-start"
+            name="start_time"
+            value={duration.startTime}
+            onChange={(event) => duration.setStartTime(event.target.value)}
+          />
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+          <Label>Duration</Label>
+          <DurationPicker value={duration.durationChoice} onChange={duration.setDurationChoice} />
+          {duration.durationChoice === "custom" && (
+            <div className="flex items-center gap-2 pt-0.5">
+              <Input
+                id="slot-duration-custom"
+                aria-label="Custom duration in hours"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={23}
+                step={1}
+                placeholder="Hours"
+                value={duration.customHours}
+                onChange={(event) => duration.setCustomHours(event.target.value)}
+                className="w-20"
+              />
+              <span className="text-xs text-muted-foreground">hours</span>
+            </div>
+          )}
+          {duration.durationOverflows && (
+            <p className="text-xs text-destructive" role="alert">
+              That runs past midnight — pick fewer hours or an earlier start.
+            </p>
+          )}
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-end">End</Label>
-          <HourTimeSelect id="slot-end" name="end_time" defaultValue="10:00" />
+          <Input
+            id="slot-end"
+            value={duration.endTime ? formatTimeLabel(duration.endTime) : "—"}
+            disabled
+            readOnly
+          />
+          <input type="hidden" name="end_time" value={duration.endTime ?? ""} />
         </div>
       </div>
 
@@ -149,7 +202,7 @@ export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || duration.endTime === null}>
           {pending ? "Posting…" : "Post slot"}
         </Button>
         <ActionError state={state} />
