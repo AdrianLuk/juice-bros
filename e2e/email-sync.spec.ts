@@ -406,8 +406,17 @@ test.describe("Sync from Email", () => {
       refreshToken: "mock-refresh-token",
     });
 
+    // Bookings' own "Sync from Email" section is absent entirely for a
+    // zero-Org User (bookings/page.tsx), so an Org has to exist even though
+    // this test deliberately never logs a Booking under it — that's the
+    // "no matching Booking" case under test. Matching keys on Org + date +
+    // start time against *Bookings*, not Orgs, so having one here doesn't
+    // turn this into a match.
     const facility = placeName();
-    await signIn(page, BEN, "/booking-buddy/settings");
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
     await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
 
@@ -428,6 +437,8 @@ test.describe("Sync from Email", () => {
     await page.getByRole("button", { name: "Sync from Email" }).click();
     await expect(page.getByText("No new bookings found.")).toBeVisible();
     await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+    await removePlace(page, facility);
   });
 
   test("a Reservation Update Notice netted against its own in-batch confirmation shows one candidate carrying the update's own format/court/players (issue #91)", async ({
@@ -546,8 +557,15 @@ test.describe("Sync from Email", () => {
       refreshToken: "mock-refresh-token",
     });
 
+    // Same reasoning as the cancellation "no matching Booking" test above —
+    // an Org has to exist for Bookings' own "Sync from Email" section to
+    // render at all, even though this test deliberately never logs a
+    // Booking under it.
     const facility = placeName();
-    await signIn(page, BEN, "/booking-buddy/settings");
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
     await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
 
@@ -568,6 +586,8 @@ test.describe("Sync from Email", () => {
     await page.getByRole("button", { name: "Sync from Email" }).click();
     await expect(page.getByText("No new bookings found.")).toBeVisible();
     await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+    await removePlace(page, facility);
   });
 
   test("an expired Mailbox Link shows a reconnect prompt instead of a raw error when syncing", async ({
@@ -579,7 +599,14 @@ test.describe("Sync from Email", () => {
       refreshToken: "mock-refresh-token",
     });
 
-    await signIn(page, BEN, "/booking-buddy/settings");
+    // Bookings' own "Sync from Email" section is absent entirely for a
+    // zero-Org User (bookings/page.tsx) — an Org has to exist for the
+    // "Sync from Email" button this test clicks to render at all.
+    const facility = placeName();
+    await signIn(page, BEN, "/booking-buddy/orgs");
+    await addPlace(page, facility);
+
+    await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
     await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
 
@@ -599,5 +626,7 @@ test.describe("Sync from Email", () => {
     // already renders for a link that expired between visits.
     await page.goto("/booking-buddy/settings");
     await expect(page.getByText("Google needs you to reconnect")).toBeVisible();
+
+    await removePlace(page, facility);
   });
 });
