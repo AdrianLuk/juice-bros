@@ -131,7 +131,7 @@ export default async function SlotDetailPage({
                   Courts
                 </h2>
                 <div className="bb-card mt-4 p-6">
-                  <SlotCourts slotId={slot.id} capacity={capacity} />
+                  <SlotCourts slotId={slot.id} capacity={capacity} orgs={ownedOrgs} />
                 </div>
               </section>
             )}
