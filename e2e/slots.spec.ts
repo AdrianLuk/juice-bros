@@ -316,10 +316,15 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     await expect(page.getByText("0 of 8 spots taken")).toBeVisible();
     await expect(page.getByText("2 courts")).toBeVisible();
 
+    // Confirm-before-detach, same convention as removing a booking or
+    // deleting a slot — the row's button opens the dialog, the dialog's own
+    // (differently-labelled) button is what actually detaches.
     const detachButtons = page.getByRole("button", { name: "Detach" });
     await detachButtons.first().click();
+    await page.getByRole("button", { name: "Detach booking" }).click();
     await expect(detachButtons).toHaveCount(1);
     await detachButtons.click();
+    await page.getByRole("button", { name: "Detach booking" }).click();
     await expect(page.getByText("still a proposal")).toBeVisible();
   } finally {
     await deleteSlots([slotId]);

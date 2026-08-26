@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
+import { BookingDetailsModal } from "@/components/booking-buddy/bookings";
 import { HOUR_TIMES, formatCourtLabel, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
@@ -472,9 +473,11 @@ export function SlotCapacityPanel({
 export function SlotCourts({
   slotId,
   capacity,
+  orgs,
 }: {
   slotId: string;
   capacity: SlotCapacity;
+  orgs: Org[];
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -490,13 +493,19 @@ export function SlotCourts({
               key={booking.id}
               className="flex items-center justify-between gap-4 px-5 py-4"
             >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{booking.when}</p>
+              <BookingDetailsModal
+                booking={booking}
+                orgs={orgs}
+                render={<button type="button" className="min-w-0 flex-1 text-left" />}
+              >
+                <p className="truncate font-medium">
+                  {booking.when} — {booking.orgName}
+                </p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
+                  {formatCourtLabel(booking.courtLabel)} ·{" "}
                   {BOOKING_FORMAT_LABEL[booking.format]}
                 </p>
-              </div>
+              </BookingDetailsModal>
               <DetachBookingButton slotId={slotId} booking={booking} />
             </li>
           ))}
@@ -566,15 +575,39 @@ function DetachBookingButton({
 }) {
   const [state, formAction, pending] = useActionState(detachBookingFromSlot, EMPTY);
 
-  return (
+  // The form lives inside the dialog so the confirm button is the only thing
+  // that can submit it — same shape as removing a booking or deleting a slot.
+  const form = (
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="slot_id" value={slotId} />
       <input type="hidden" name="booking_id" value={booking.id} />
-      <Button type="submit" size="sm" variant="ghost" disabled={pending}>
-        {pending ? "Detaching…" : "Detach"}
+      <Button type="submit" variant="destructive" disabled={pending}>
+        {pending ? "Detaching…" : "Detach booking"}
       </Button>
       <ActionError state={state} />
     </form>
+  );
+
+  return (
+    <Dialog>
+      <DialogTrigger render={<Button size="sm" variant="destructive" />}>
+        Detach
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Detach this court?</DialogTitle>
+          <DialogDescription>
+            {booking.when} at {booking.orgName}. This slot&apos;s capacity
+            drops by one court — your actual booking stays untouched on your
+            Bookings page.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Keep attached</DialogClose>
+          {form}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
