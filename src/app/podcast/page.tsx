@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
+import { buildPodcastListJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { Header } from "./sections/header";
 import { Episodes } from "./sections/episodes";
 import { SpotifyEmbed } from "./sections/spotify-embed";
@@ -18,6 +19,10 @@ export default async function PodcastPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildPodcastListJsonLd(videos)) }}
+      />
       <Header />
       <Episodes videos={videos} />
       <SpotifyEmbed />
