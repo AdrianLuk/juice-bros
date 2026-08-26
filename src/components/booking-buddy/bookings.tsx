@@ -7,19 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -638,8 +630,8 @@ export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] })
       </div>
       {/* `gap-2.5` (not the tighter `gap-1.5` these buttons default to)
           keeps "Remove" from sitting right under "Edit" — confirmed behind
-          an AlertDialog either way, but a stray tap shouldn't land this
-          close to a destructive action's trigger. */}
+          a confirmation dialog either way, but a stray tap shouldn't land
+          this close to a destructive action's trigger. */}
       <div className="flex flex-col items-end gap-2.5">
         <BookingDetailsModal booking={booking} orgs={orgs} render={<Button size="sm" variant="outline" />}>
           View
@@ -665,24 +657,24 @@ export function DeleteBookingButton({ booking }: { booking: Booking }) {
   );
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
+    <Dialog>
+      <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Remove this booking?</AlertDialogTitle>
-          <AlertDialogDescription>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remove this booking?</DialogTitle>
+          <DialogDescription>
             {booking.when} at {booking.orgName}. This only forgets it here —
             your actual court reservation is untouched, so cancel that on the
             facility&apos;s own site if you meant to.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Keep booking</AlertDialogCancel>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Keep booking</DialogClose>
           {form}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
