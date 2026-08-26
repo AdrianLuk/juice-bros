@@ -7,7 +7,7 @@ export function LatestVideos({ videos }: { videos: Episode[] }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <SectionHeading eyebrow="Freshly Squeezed" title="Latest Videos" />
+        <SectionHeading title="Freshly squeezed videos" />
         <a
           href={siteConfig.links.youtube}
           target="_blank"

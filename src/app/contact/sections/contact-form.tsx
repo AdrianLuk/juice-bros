@@ -177,7 +177,7 @@ export function ContactForm() {
           <Button
             type="submit"
             disabled={status === "submitting"}
-            className="h-12 w-fit rounded-full px-8 text-base"
+            className="h-12 w-fit rounded-full px-8 text-xl font-bold"
           >
             {status === "submitting" ? (
               <Loader2Icon className="animate-spin" />

@@ -16,7 +16,7 @@ export function InstagramGrid({ posts }: { posts: InstagramPost[] }) {
             src={post.thumbnail}
             alt={post.caption}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/20" />
         </a>

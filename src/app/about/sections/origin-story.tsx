@@ -8,7 +8,7 @@ const ORIGIN_EPISODE_URL = "https://youtu.be/J6gvgo_RKfo";
 export function OriginStory() {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
-      <SectionHeading eyebrow="Where It Started" title="How this whole thing started" />
+      <SectionHeading title="How this whole thing started" />
       <div className="mt-8 grid gap-8 sm:grid-cols-5 sm:items-center">
         <div className="rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5 sm:col-span-2">
           <div className="aspect-video overflow-hidden rounded-[1.25rem]">

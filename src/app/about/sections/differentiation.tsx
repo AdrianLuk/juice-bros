@@ -1,15 +1,11 @@
-import { Eyebrow } from "@/components/typography/eyebrow";
-
 export function Differentiation() {
   return (
     <section className="w-full bg-brand-black">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 py-20 text-center text-white sm:px-6 lg:px-8">
-        <div>
-          <Eyebrow color="yellow">Not Pros. Not Coaches.</Eyebrow>
-          <h2 className="mt-3 font-heading text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
-            We&apos;re not the guys who made it to the tour
-          </h2>
-        </div>
+        <h2 className="font-heading text-2xl font-bold tracking-[-0.02em] text-balance sm:text-3xl">
+          <span className="block text-brand-yellow">Not pros. Not coaches.</span>
+          We&apos;re not the guys who made it to the tour
+        </h2>
         <div className="flex flex-col gap-4 text-white/75">
           <p>
             Okay - we&apos;ve picked up a few things watching from the sidelines. But

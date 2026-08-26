@@ -1,10 +1,7 @@
-import { Eyebrow } from "@/components/typography/eyebrow";
-
 export function Mission() {
   return (
     <section className="w-full bg-brand-black text-white">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 px-4 py-28 text-center sm:px-6 lg:px-8">
-        <Eyebrow color="yellow">Why We Do This</Eyebrow>
         <h2 className="font-heading text-3xl font-black tracking-[-0.02em] text-balance sm:text-5xl">
           To create the most relatable pickleball conversations on the internet.
         </h2>

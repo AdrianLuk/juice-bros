@@ -33,7 +33,7 @@ export function ContactInfo() {
   return (
     <section className="w-full bg-muted/50 px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl">
-        <SectionHeading eyebrow="Stay In The Loop" title="Follow the Juice Bros" />
+        <SectionHeading title="Follow the Juice Bros" />
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {accounts.map((account) => (
             <AccountButton key={account.name} account={account} />

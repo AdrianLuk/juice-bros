@@ -1,7 +1,8 @@
+import Image from "next/image";
+
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { YoutubeIcon, SpotifyIcon, InstagramIcon } from "@/components/icons";
-import { Eyebrow } from "@/components/typography/eyebrow";
 
 const socialLinks = [
   {
@@ -26,37 +27,36 @@ const socialLinks = [
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-brand-black text-white sm:block sm:min-h-0">
-      {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
-      <img
+    <section className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-brand-black text-white sm:block sm:max-h-dvh sm:min-h-160">
+      <Image
         src="/brand/JB_Banner_1920.jpeg"
         alt="Juice Bros Pickleball hosts"
-        width={1600}
-        height={901}
-        className="w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center opacity-90"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_10%)_0%,color-mix(in_oklch,var(--brand-black),transparent_60%)_55%,var(--brand-black)_100%)] sm:block"
+        className="pointer-events-none absolute inset-0 hidden bg-[linear-gradient(to_bottom,color-mix(in_oklch,var(--brand-black),transparent_35%)_0%,color-mix(in_oklch,var(--brand-black),transparent_5%)_15%,color-mix(in_oklch,var(--brand-black),transparent_5%)_92%,color-mix(in_oklch,var(--brand-black),transparent_35%)_100%)] sm:block"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-brand-black to-transparent sm:hidden"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-brand-black via-brand-black/70 to-transparent sm:hidden"
       />
-      <div className="flex flex-1 items-center justify-center sm:absolute sm:inset-0 sm:flex-none">
-        <div className="flex w-full flex-col items-center gap-6 px-4 py-14 text-center sm:px-6 sm:py-10 sm:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
-          <Eyebrow color="yellow">For Everyday Pickleball Players</Eyebrow>
+      <div className="flex flex-1 items-end justify-center sm:absolute sm:inset-0 sm:flex-none sm:items-center">
+        <div className="flex w-full flex-col items-center gap-6 px-4 pb-10 text-center sm:px-6 sm:py-10 sm:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
           <h1 className="max-w-3xl font-heading text-5xl font-black tracking-[-0.03em] text-balance sm:text-7xl">
             Juice Bros Pickleball
           </h1>
-          <p className="max-w-xl text-lg text-white/80 text-balance">
+          <p className="max-w-xl text-lg text-white text-balance">
             {siteConfig.description}
           </p>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
               nativeButton={false}
-              className="group h-12 rounded-full pr-2 pl-6 text-base shadow-brand"
+              className="group h-12 rounded-full pr-2 pl-6 text-xl font-bold shadow-brand"
               render={<a href={siteConfig.links.youtube} target="_blank" rel="noopener noreferrer" />}
             >
               Watch Latest Episode
@@ -67,7 +67,7 @@ export function Hero() {
             <Button
               size="lg"
               nativeButton={false}
-              className="group h-12 rounded-full bg-[#1db954] pr-2 pl-6 text-base text-white hover:bg-[#1db954]/90"
+              className="group h-12 rounded-full bg-[#1db954] pr-2 pl-6 text-xl font-bold text-white hover:bg-[#1db954]/90"
               render={<a href={siteConfig.links.spotify} target="_blank" rel="noopener noreferrer" />}
             >
               Listen on Spotify

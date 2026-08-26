@@ -7,17 +7,9 @@ import { SectionHeading } from "@/components/typography/section-heading";
 
 export function JoinIn() {
   return (
-    <section className="relative overflow-hidden bg-brand-black text-white">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--brand-orange),transparent_88%)_0%,transparent_60%)]"
-      />
-      <div className="relative flex w-full flex-col items-center gap-4 px-4 py-24 text-center sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow="Join In"
-          title="This only works if you're part of it"
-          align="center"
-        />
+    <section className="bg-brand-black text-white">
+      <div className="flex w-full flex-col items-center gap-4 px-4 py-24 text-center sm:px-6 lg:px-8">
+        <SectionHeading title="This only works if you're part of it" align="center" />
         <p className="max-w-md text-white/60">
           Got a story from your local courts? A club we should know about? A hot take
           you need to get off your chest? We want to hear it. Follow along, send us a
@@ -27,7 +19,7 @@ export function JoinIn() {
           <Button
             size="lg"
             nativeButton={false}
-            className="group h-12 rounded-full bg-[#e1306c] pr-2 pl-6 text-base text-white hover:bg-[#e1306c]/90"
+            className="group h-12 rounded-full bg-[#e1306c] pr-2 pl-6 text-xl font-bold text-white hover:bg-[#e1306c]/90"
             render={<a href={siteConfig.links.instagram} target="_blank" rel="noopener noreferrer" />}
           >
             Follow on Instagram

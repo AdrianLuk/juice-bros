@@ -7,7 +7,7 @@ export function PartnerCodesSection({ items }: { items: GearItem[] }) {
   return (
     <section className="mt-20">
       <SectionHeading title="More Codes" weight="semibold" />
-      <p className="mt-2 text-muted-foreground">
+      <p className="mt-2 max-w-md text-muted-foreground">
         Brands we&apos;ve partnered with but don&apos;t currently game - our codes
         still work if you want to try them.
       </p>

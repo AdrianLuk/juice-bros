@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Hanken_Grotesk, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -9,8 +9,8 @@ import { buildOrganizationJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 
-const geist = Geist({
-  variable: "--font-geist",
+const hankenGrotesk = Hanken_Grotesk({
+  variable: "--font-body",
   subsets: ["latin"],
 });
 
@@ -62,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${hankenGrotesk.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <script
@@ -71,7 +71,7 @@ export default function RootLayout({
         />
         <a
           href="#main-content"
-          className="sr-only z-50 rounded-full bg-brand-orange px-5 py-2.5 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
+          className="sr-only z-50 rounded-full bg-brand-orange px-5 py-2.5 text-xl font-bold text-white focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
         >
           Skip to content
         </a>

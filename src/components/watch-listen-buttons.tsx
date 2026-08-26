@@ -8,7 +8,7 @@ export function WatchListenButtons({ youtubeUrl }: { youtubeUrl: string }) {
       <Button
         size="lg"
         nativeButton={false}
-        className="h-11 bg-[#ff0000] px-6 text-base text-white hover:bg-[#d90000]"
+        className="h-11 bg-[#ff0000] px-6 text-xl font-bold text-white hover:bg-[#d90000]"
         render={<a href={youtubeUrl} target="_blank" rel="noopener noreferrer" />}
       >
         <YoutubeIcon className="size-5" />
@@ -17,7 +17,7 @@ export function WatchListenButtons({ youtubeUrl }: { youtubeUrl: string }) {
       <Button
         size="lg"
         nativeButton={false}
-        className="h-11 bg-[#1db954] px-6 text-base text-white hover:bg-[#1aa64c]"
+        className="h-11 bg-[#1db954] px-6 text-xl font-bold text-white hover:bg-[#1db954]/90"
         render={<a href={siteConfig.links.spotify} target="_blank" rel="noopener noreferrer" />}
       >
         <SpotifyIcon className="size-5" />

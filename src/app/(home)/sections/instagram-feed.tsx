@@ -7,7 +7,7 @@ export function InstagramFeed({ posts }: { posts: InstagramPost[] }) {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <SectionHeading eyebrow="Follow Along" title="On Instagram" />
+        <SectionHeading title="On Instagram" />
         <a
           href={siteConfig.links.instagram}
           target="_blank"

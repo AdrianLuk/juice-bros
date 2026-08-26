@@ -17,7 +17,6 @@ export default function GearPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
       <PageHeading
-        eyebrow="What We Play With"
         title="Gear"
         description="The paddles, apparel, and accessories we actually use - plus our ambassador codes for a discount. We only share products we genuinely play with and believe in."
       />

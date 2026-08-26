@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
 import { SectionHeading } from "@/components/typography/section-heading";
@@ -5,16 +7,16 @@ import { SectionHeading } from "@/components/typography/section-heading";
 export function MeetTheBros() {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
-      <SectionHeading eyebrow="The Two Behind the Mic" title="Meet the Bros" />
+      <SectionHeading title="Meet the Bros" />
 
       <div className="mx-auto mt-8 max-w-3xl rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
-        <img
+        <Image
           src="/pictures/adrian-dav.jpg"
           alt="Daven and Adrian courtside, mid-match"
           width={2000}
           height={1333}
           loading="lazy"
+          sizes="(min-width: 640px) 48rem, 100vw"
           className="aspect-video w-full rounded-[1.25rem] object-cover"
         />
       </div>

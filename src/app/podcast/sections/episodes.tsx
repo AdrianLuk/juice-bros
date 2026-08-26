@@ -5,6 +5,7 @@ import type { Episode } from "@/lib/episodes";
 export function Episodes({ videos }: { videos: Episode[] }) {
   return (
     <div className="mt-8">
+      <h2 className="sr-only">Latest episodes</h2>
       {videos.length > 0 ? (
         <VideoGrid videos={videos} />
       ) : (

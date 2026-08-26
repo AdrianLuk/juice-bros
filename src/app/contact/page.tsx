@@ -18,7 +18,6 @@ export default function ContactPage() {
       <section className="w-full px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <PageHeading
-            eyebrow="Get In Touch"
             title="Say hey"
             description="Got a story from your local courts? A club we should know about? A hot take you need to get off your chest? We read everything. Yes, everything."
           />
@@ -26,7 +25,7 @@ export default function ContactPage() {
           <div className="mt-8">
             <ContactForm />
 
-            <p className="mt-8 text-sm text-muted-foreground">
+            <p className="mt-8 max-w-md text-sm text-muted-foreground">
               For sponsorships and partnerships, pick that option above and we&apos;ll
               get back to you fast. We&apos;re picky about who we work with - it has to
               be stuff we&apos;d actually use.

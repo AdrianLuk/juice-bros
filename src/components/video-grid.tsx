@@ -23,7 +23,7 @@ export function VideoGrid({ videos }: { videos: Episode[] }) {
               src={episode.thumbnail}
               alt=""
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+              className="h-full w-full object-cover"
             />
           </div>
           <div className="flex flex-1 flex-col gap-1 p-3.5">
