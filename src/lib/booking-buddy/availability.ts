@@ -175,6 +175,86 @@ export function resolveAvailabilitySegments({
   return segments;
 }
 
+/**
+ * The stretches over `[rangeStart, rangeEnd)` where *every* one of `people` is
+ * free — `resolveAvailability` returning anything but `"busy"` for them. What
+ * the "Find a time" view (issue #195) intersects to answer "when are we all
+ * open."
+ *
+ * "Free" here deliberately includes `"unspecified"`: someone who has declared
+ * nothing is counted available, so a time surfaces as soon as nobody is
+ * actually busy — you don't have to have painstakingly marked open time, only
+ * to not be busy. `busy` means a Booking/confirmed Slot covering the moment,
+ * or the Availability Window that wins ADR 0006 precedence there being `busy`.
+ *
+ * Same plain boundary sweep as `resolveAvailabilitySegments`: every person's
+ * busyInterval/window edges, clamped into range, become cut points; a
+ * sub-interval survives only if all people are non-busy at its midpoint;
+ * adjacent survivors merge. Returned segments are all `type: "open"`.
+ */
+export function resolveCommonOpenSegments({
+  rangeStart,
+  rangeEnd,
+  people,
+}: {
+  rangeStart: Date;
+  rangeEnd: Date;
+  people: { busyIntervals: BusyInterval[]; windows: AvailabilityWindow[] }[];
+}): AvailabilitySegment[] {
+  const rangeStartMs = rangeStart.getTime();
+  const rangeEndMs = rangeEnd.getTime();
+
+  if (rangeEndMs <= rangeStartMs || people.length === 0) {
+    return [];
+  }
+
+  const boundaries = new Set<number>([rangeStartMs, rangeEndMs]);
+  for (const person of people) {
+    for (const interval of [...person.busyIntervals, ...person.windows]) {
+      boundaries.add(clamp(new Date(interval.startsAt).getTime(), rangeStartMs, rangeEndMs));
+      boundaries.add(clamp(new Date(interval.endsAt).getTime(), rangeStartMs, rangeEndMs));
+    }
+  }
+
+  const sorted = [...boundaries].sort((a, b) => a - b);
+
+  const segments: AvailabilitySegment[] = [];
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const start = sorted[i];
+    const end = sorted[i + 1];
+    if (end <= start) {
+      continue;
+    }
+
+    const mid = new Date(start + (end - start) / 2);
+    const everyoneFree = people.every(
+      (person) =>
+        resolveAvailability({
+          at: mid,
+          busyIntervals: person.busyIntervals,
+          windows: person.windows,
+        }) !== "busy",
+    );
+    if (!everyoneFree) {
+      continue;
+    }
+
+    const last = segments.at(-1);
+    if (last && new Date(last.endsAt).getTime() === start) {
+      last.endsAt = new Date(end).toISOString();
+    } else {
+      segments.push({
+        type: "open",
+        startsAt: new Date(start).toISOString(),
+        endsAt: new Date(end).toISOString(),
+      });
+    }
+  }
+
+  return segments;
+}
+
 export type NewAvailabilityWindow = {
   type: AvailabilityType;
   /** Both inclusive, `YYYY-MM-DD` — a whole week off is one window, `fromDate` through `toDate` (CONTEXT.md). */

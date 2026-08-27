@@ -10,6 +10,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { listSlots } from "@/lib/booking-buddy/actions/slots";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { slotPath } from "@/lib/booking-buddy/routes";
+import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
 
 export const metadata: Metadata = pageMetadata({
   title: "Games",
@@ -18,12 +19,27 @@ export const metadata: Metadata = pageMetadata({
   path: "/booking-buddy/slots",
 });
 
-export default async function SlotsPage() {
+export default async function SlotsPage({
+  searchParams,
+}: {
+  // "Find a time" (#195) deep-links here with a free day/time to prefill.
+  searchParams: Promise<{ date?: string; start?: string }>;
+}) {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const [{ own, friends }, orgs] = await Promise.all([listSlots(), listOrgs()]);
+  const [{ own, friends }, orgs, { date, start }] = await Promise.all([
+    listSlots(),
+    listOrgs(),
+    searchParams,
+  ]);
+
+  // Just a shape check — a genuinely past date is caught by the form's own
+  // submit validation and the `slots_not_in_the_past` trigger, and the tighter
+  // "is it past" check here would need a time zone the deep-link doesn't carry.
+  const prefillDate = date && isRealDate(date) ? date : undefined;
+  const prefillStart = start && isHourTime(start) ? start : undefined;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -76,12 +92,16 @@ export default async function SlotsPage() {
               )}
             </section>
 
-            <section>
+            <section id="post-a-game" className="scroll-mt-24">
               <h2 className="font-heading text-lg font-semibold tracking-tight">
                 Post a game
               </h2>
               <div className="mt-4">
-                <CreateSlotForm orgs={orgs} />
+                <CreateSlotForm
+                  orgs={orgs}
+                  defaultDate={prefillDate}
+                  defaultStartTime={prefillStart}
+                />
               </div>
             </section>
           </div>

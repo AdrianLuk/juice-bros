@@ -99,11 +99,14 @@ const DEFAULT_START_TIME = "20:00";
 export function CreateSlotForm({
   orgs,
   defaultDate,
+  defaultStartTime,
   onPosted,
 }: {
   orgs: Org[];
-  /** Pre-fills the date field — the onboarding "coordinate" branch seeds next Monday (#176). */
+  /** Pre-fills the date field — the onboarding "coordinate" branch seeds next Monday (#176); "Find a time" seeds a free day (#195). */
   defaultDate?: string;
+  /** Pre-fills the start time — "Find a time" (#195) seeds the start of a free window. Ignored unless it's an on-the-hour `"HH:00"`. */
+  defaultStartTime?: string;
   /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
   onPosted?: (slotId: string) => void;
 }) {
@@ -115,7 +118,12 @@ export function CreateSlotForm({
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, same as the Booking form's own duration picker.
-  const duration = useDurationInput(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
+  const duration = useDurationInput(
+    defaultStartTime && HOUR_TIMES.includes(defaultStartTime)
+      ? defaultStartTime
+      : DEFAULT_START_TIME,
+    DEFAULT_DURATION_HOURS,
+  );
 
   useEffect(() => {
     if (state.ok && state.slotId) {
