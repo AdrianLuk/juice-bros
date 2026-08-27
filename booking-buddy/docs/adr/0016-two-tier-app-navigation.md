@@ -28,7 +28,7 @@ Five sections, each naming the child its tab / dropdown trigger navigates to:
 | Section  | Children                     | Routes                                    |
 | -------- | ---------------------------- | ----------------------------------------- |
 | Dashboard| —                            | `/booking-buddy`                          |
-| Plan     | Games (Open time is a follow-up) | `/booking-buddy/slots`                |
+| Plan     | Games, Open time             | `/booking-buddy/slots`, `/booking-buddy/availability` |
 | Bookings | Bookings, Facilities         | `/booking-buddy/bookings`, `/booking-buddy/orgs` |
 | Friends  | Friends, Groups              | `/booking-buddy/friends`, `/booking-buddy/groups` |
 | Settings | —                            | `/booking-buddy/settings`                 |
@@ -123,6 +123,5 @@ The marketing landing page, its mockups, and the FAQ block are a separate copy p
 - The mobile layout wrapper carries `pb-[calc(4rem+env(safe-area-inset-bottom))]` to clear
   the fixed bottom bar (the bar carries the same safe-area inset); the dashboard quick-add
   FAB already sits at `bottom-24`, above it.
-- "Open time" (the Plan section's second child) is a separate follow-up issue; Plan ships
-  with one child and renders as a plain link until it lands, at which point Plan becomes a
-  dropdown like Bookings and Friends.
+- "Open time" (`/booking-buddy/availability`) landed as Plan's second child in issue #197,
+  so Plan is now a dropdown like Bookings and Friends and carries its own pill row.
