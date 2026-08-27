@@ -162,10 +162,12 @@ export function BookingBuddyLanding() {
             </h2>
           </div>
           <p className="text-muted-foreground">
-            Daven and Adrian were always the ones organizing, so we made the thing
-            we wanted. It&apos;s free, there are no ads, and your schedule is only
-            ever visible to friends you&apos;ve connected with, at the level you
-            pick. Nothing here is public.
+            Keeping a regular game going meant a group-chat poll, a stack of
+            &ldquo;maybe&rdquo; replies, and bookings scattered across a few
+            different facility sites &mdash; more admin than pickleball. So we
+            built the one place we wanted for it. It&apos;s free, there are no
+            ads, and your schedule is only ever visible to the friends you
+            connect with, at the level you pick. Nothing here is public.
           </p>
         </div>
       </section>
