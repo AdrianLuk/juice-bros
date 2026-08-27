@@ -1,7 +1,8 @@
 import { siteConfig } from "@/config/site";
 import type { Episode } from "@/lib/episodes";
 import type { GearItem, HostGear } from "@/data/gear";
-import type { AppItem } from "@/data/apps";
+import { apps, type AppItem } from "@/data/apps";
+import type { Faq } from "@/lib/booking-buddy/landing-faqs";
 
 /**
  * JSON.stringify doesn't escape "<", so a literal "</script>" inside a
@@ -226,6 +227,40 @@ export function buildToolsJsonLd(apps: AppItem[]) {
             position: index + 1,
             item: buildSoftwareApplicationJsonLd(app),
           })),
+      },
+    ],
+  };
+}
+
+/**
+ * BreadcrumbList + SoftwareApplication + FAQPage for the Booking Buddy landing
+ * page. Reachable via /tools, so the breadcrumb runs Home > Tools > Booking
+ * Buddy even though the page itself sits at /booking-buddy.
+ */
+export function buildBookingBuddyLandingJsonLd(faqs: Faq[]) {
+  const app = apps.find((item) => item.slug === "booking-buddy")!;
+  const appUrl = `${siteConfig.url}${app.href}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Tools", item: `${siteConfig.url}/tools` },
+          { "@type": "ListItem", position: 3, name: app.title, item: appUrl },
+        ],
+      },
+      buildSoftwareApplicationJsonLd(app),
+      {
+        "@type": "FAQPage",
+        "@id": `${appUrl}#faq`,
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+        })),
       },
     ],
   };

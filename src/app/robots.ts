@@ -1,17 +1,34 @@
 import type { MetadataRoute } from "next";
 
 import { siteConfig } from "@/config/site";
+import {
+  BOOKINGS_PATH,
+  FRIENDS_PATH,
+  GROUPS_PATH,
+  ORGS_PATH,
+  SETTINGS_PATH,
+  SLOTS_PATH,
+  SLOT_LINK_ROOT,
+} from "@/lib/booking-buddy/routes";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      // Booking Buddy is an unlaunched, invite-only app: keep its account-gated
-      // routes and guest Slot Links out of the index, but leave the privacy
-      // policy crawlable (Google's OAuth review needs a reachable copy). Listed
-      // before the disallows so first-match crawlers honour the exception too.
-      allow: ["/", "/booking-buddy/privacy"],
-      disallow: ["/booking-buddy", "/s/"],
+      allow: "/",
+      // Booking Buddy's public pages (/booking-buddy landing, its sign-in and
+      // privacy pages) stay crawlable; its signed-in-only feature routes and
+      // the tokenised guest Slot Links do not - they're private and, for a
+      // crawler, just redirect to sign-in anyway.
+      disallow: [
+        FRIENDS_PATH,
+        GROUPS_PATH,
+        ORGS_PATH,
+        BOOKINGS_PATH,
+        SLOTS_PATH,
+        SETTINGS_PATH,
+        `${SLOT_LINK_ROOT}/`,
+      ],
     },
     sitemap: `${siteConfig.url}/sitemap.xml`,
   };
