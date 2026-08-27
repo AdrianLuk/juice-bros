@@ -1,4 +1,5 @@
 import { episodeOverrides, type EpisodeOverride } from "../../content/episode-overrides.ts";
+import { siteConfig } from "../config/site.ts";
 import { getLatestVideos, type VideoOrientation, type YoutubeVideo } from "./youtube.ts";
 
 // Short/Episode rule (see CONTEXT.md and docs/adr/0001-youtube-data-api-for-shorts-detection.md):
@@ -30,6 +31,22 @@ export function slugify(title: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+const BRAND_SUFFIX = new RegExp(
+  `\\s*[|\\-–—]\\s*${siteConfig.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
+  "i",
+);
+
+/**
+ * An episode title with a trailing "| Juice Bros Pickleball" stripped. This
+ * channel's YouTube titles often already carry the brand, and the metadata
+ * title template (`%s | Juice Bros Pickleball`) would otherwise brand it a
+ * second time. Only the page's metadata title uses this - the raw `title`
+ * still drives the slug, the <h1>, and structured-data names.
+ */
+export function episodeMetaTitle(title: string): string {
+  return title.replace(BRAND_SUFFIX, "").trim() || title;
 }
 
 /**

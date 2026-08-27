@@ -44,6 +44,7 @@ export function SiteHeader() {
           scrolls away like any other content once you pass it. */}
       <div className="flex h-14 w-full shrink-0 items-center bg-brand-orange px-4 text-white sm:hidden">
         <Link href="/" className="flex items-center gap-2">
+          {/* Decorative: the "Juice Bros Pickleball" wordmark sits right beside it. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
           <img src="/brand/JB_Logo_White.svg" alt="" className="h-7 w-7 shrink-0" />
           <span className="font-heading text-sm font-semibold tracking-tight">

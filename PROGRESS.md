@@ -31,10 +31,10 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
   - [x] Episode page (`PodcastEpisode`/`VideoObject`/`BreadcrumbList`) validated against Google's Rich Results Test by Adrian — clean (#141)
 - [x] **3.2 Sitemap and robots**
   - [x] `app/sitemap.ts` exists, covers all current static pages with `lastModified`
-  - [x] `app/robots.ts` exists, allows all, references the sitemap
+  - [x] `app/robots.ts` exists, references the sitemap; allows the marketing/podcast site, disallows the unlaunched Booking Buddy app (`/booking-buddy`) and guest Slot Links (`/s/`), with an explicit allow carve-out for `/booking-buddy/privacy`
   - [x] One entry per Episode, `lastModified` set from each episode's publish date (#141)
-- [x] **3.3 Metadata improvements** — Homepage title changed from bare "Juice Bros Pickleball" to "Juice Bros Pickleball | The Podcast for Everyday Players" (`siteConfig.tagline`, used in root layout + OG/Twitter tags). Canonical URLs and OG image were already correctly wired via `pageMetadata()`. Episode pages get their own title/description via `generateMetadata()` (#139).
-- [ ] **3.4 Image alt text audit** — Not swept yet. Found empty `alt=""` without an intentional-decorative comment on the homepage featured episode thumbnail, the video grid thumbnails (`src/components/video-grid.tsx`), and the header/footer logos.
+- [x] **3.3 Metadata improvements** — Homepage title changed from bare "Juice Bros Pickleball" to "Juice Bros Pickleball | The Podcast for Everyday Players" (`siteConfig.tagline`, used in root layout + OG/Twitter tags). Canonical URLs and OG image were already correctly wired via `pageMetadata()`. Episode pages get their own title/description via `generateMetadata()` (#139). Episode pages now also emit `og:type=video.other`, an `og:image` of the video's `maxresdefault` thumbnail (not the generic site card), and `og:video` embed tags, all via a new optional `image`/`video` arg on `pageMetadata()`. `/tools` got a fuller meta description. Episode-page `BreadcrumbList` JSON-LD now starts at "Home" like `/gear` and `/tools`.
+- [x] **3.4 Image alt text audit** — Swept. Content images (home/about hero photos) carry real `alt`; genuinely decorative images (video-grid + episode-page thumbnails, which sit next to the episode title as text; header/footer logos, which sit next to the wordmark) keep `alt=""` and now carry a comment explaining why, so a future sweep doesn't re-flag them. Homepage featured card is an `<iframe>` + an `aria-hidden` background wash now, not a thumbnail.
 - [ ] **3.5 Performance check** — No Lighthouse run yet on homepage or an episode page (episode pages don't exist).
 
 ## Phase 4 — Conversion

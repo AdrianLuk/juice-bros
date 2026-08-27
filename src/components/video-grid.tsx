@@ -18,6 +18,9 @@ export function VideoGrid({ videos }: { videos: Episode[] }) {
           className="group flex flex-col overflow-hidden rounded-3xl bg-black/3 p-1.5 shadow-brand ring-1 ring-black/5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-brand-lg"
         >
           <div className="aspect-video overflow-hidden rounded-[1.25rem]">
+            {/* Decorative: this thumbnail sits inside the same link as the
+                episode title below, so real alt text would just make a screen
+                reader announce the title twice for one link. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN thumbnail, no next/image optimization needed */}
             <img
               src={episode.thumbnail}

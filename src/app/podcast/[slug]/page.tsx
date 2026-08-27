@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodeHook } from "@/lib/youtube";
-import { getEpisodes, type Episode } from "@/lib/episodes";
+import { episodeMetaTitle, getEpisodes, type Episode } from "@/lib/episodes";
 import { buildEpisodeJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
 
@@ -39,9 +39,22 @@ export async function generateMetadata({
   const episode = await resolveEpisode(slug);
 
   return pageMetadata({
-    title: episode.title,
+    title: episodeMetaTitle(episode.title),
     description: getEpisodeHook(episode.description),
     path: `/podcast/${episode.slug}`,
+    // maxresdefault (1280x720) rather than the 480x360 hqdefault used in
+    // grids - social/video cards want a 16:9 image at OG's recommended size.
+    image: {
+      url: `https://i.ytimg.com/vi/${episode.id}/maxresdefault.jpg`,
+      alt: episode.title,
+      width: 1280,
+      height: 720,
+    },
+    video: {
+      url: `https://www.youtube.com/embed/${episode.id}`,
+      width: 1280,
+      height: 720,
+    },
   });
 }
 
@@ -64,6 +77,7 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
 
       <div className="mt-6 overflow-hidden rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
         <div className="aspect-video overflow-hidden rounded-[1.25rem]">
+          {/* Decorative: the episode title is the <h1> directly below this. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN thumbnail, no next/image optimization needed */}
           <img
             src={episode.thumbnail}

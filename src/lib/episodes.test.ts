@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { EpisodeOverride } from "../../content/episode-overrides.ts";
-import { buildEpisode, isShort, parseIsoDurationSeconds, slugify } from "./episodes.ts";
+import {
+  buildEpisode,
+  episodeMetaTitle,
+  isShort,
+  parseIsoDurationSeconds,
+  slugify,
+} from "./episodes.ts";
 import type { YoutubeVideo } from "./youtube.ts";
 
 function makeVideo(overrides: Partial<YoutubeVideo> = {}): YoutubeVideo {
@@ -28,6 +34,25 @@ test("slugify lowercases, collapses punctuation/whitespace to hyphens, and trims
 
 test("slugify trims leading/trailing separators produced by leading/trailing punctuation", () => {
   assert.equal(slugify("--Hello, World!--"), "hello-world");
+});
+
+test("episodeMetaTitle strips a trailing brand suffix so the title template doesn't double-brand", () => {
+  assert.equal(
+    episodeMetaTitle("Why Are We Always Looking for Better Partners? | Juice Bros Pickleball"),
+    "Why Are We Always Looking for Better Partners?",
+  );
+});
+
+test("episodeMetaTitle accepts a dash separator and is case-insensitive", () => {
+  assert.equal(episodeMetaTitle("Serve Rules Explained - juice bros pickleball"), "Serve Rules Explained");
+});
+
+test("episodeMetaTitle leaves a title without the brand suffix untouched", () => {
+  assert.equal(episodeMetaTitle("Serve Rules Explained"), "Serve Rules Explained");
+});
+
+test("episodeMetaTitle falls back to the raw title when stripping would leave it empty", () => {
+  assert.equal(episodeMetaTitle("Juice Bros Pickleball"), "Juice Bros Pickleball");
 });
 
 test("parseIsoDurationSeconds reads hours, minutes, and seconds", () => {

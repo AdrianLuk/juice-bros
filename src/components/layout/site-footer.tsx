@@ -34,6 +34,7 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
+            {/* Decorative: the "Juice Bros Pickleball" wordmark sits right beside it. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
             <img src="/brand/JB_Logo_White.svg" alt="" className="h-8 w-8" />
             <div>
