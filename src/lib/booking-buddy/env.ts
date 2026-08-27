@@ -47,6 +47,32 @@ export function readPublicSupabaseEnv(
 }
 
 /**
+ * The Google OAuth Client ID Google Identity Services uses to render the
+ * "Continue with Google" button (see `google-sign-in-button.tsx`) — safe to
+ * expose to the browser, same reasoning as `readPublicSupabaseEnv` above, and
+ * for the same reason a literal `process.env.NEXT_PUBLIC_*` reference rather
+ * than a dynamic lookup. Deliberately the *same* Client ID Supabase's Google
+ * provider already holds for the (now-removed) OAuth-redirect flow — see
+ * ADR-0013 for why this one is reused rather than split like the Gmail-sync
+ * client (`GOOGLE_OAUTH_CLIENT_ID` below) is.
+ *
+ * Optional, unlike `readPublicSupabaseEnv`: this only gates one button on the
+ * sign-in page, not the page itself, so a missing value means "don't render
+ * the Google option" rather than failing the whole page — magic link and
+ * password sign-in have to keep working regardless of whether the human-only
+ * Cloud Console / Supabase Dashboard setup (`google-sign-in-setup.md`) has
+ * been done yet in this environment.
+ */
+export function readGoogleSignInClientId(
+  source: EnvSource = {
+    NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID,
+  },
+): string | undefined {
+  const value = source.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID;
+  return value && value.trim() !== "" ? value : undefined;
+}
+
+/**
  * Bypasses Row Level Security entirely. First real use is `place_cache` (see
  * `supabase/admin.ts`) — PROGRESS.md expected Phase 8's Reminder job to need
  * this first, but writing the Place cache beat it there (ADR 0005).

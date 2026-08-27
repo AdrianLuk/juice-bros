@@ -10,15 +10,23 @@ import {
   signInWithMagicLink,
   signInWithPassword,
   signUpWithPassword,
-  signInWithGoogle,
   type AuthFormState,
 } from "@/lib/booking-buddy/actions/auth";
+import { GoogleSignInButton } from "@/components/booking-buddy/google-sign-in-button";
 
 const EMPTY: AuthFormState = {};
 
 type Mode = "magic-link" | "password" | "sign-up";
 
-export function SignInForm({ next, error }: { next: string; error?: string }) {
+export function SignInForm({
+  next,
+  error,
+  googleClientId,
+}: {
+  next: string;
+  error?: string;
+  googleClientId?: string;
+}) {
   const [mode, setMode] = useState<Mode>("magic-link");
 
   const [magicState, magicAction, magicPending] = useActionState(
@@ -179,20 +187,19 @@ export function SignInForm({ next, error }: { next: string; error?: string }) {
         </form>
       )}
 
-      <div className="my-6 flex items-center gap-3">
-        <span className="h-px flex-1 bg-border" />
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-          or
-        </span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
+      {googleClientId && (
+        <>
+          <div className="my-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              or
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
 
-      <form action={signInWithGoogle}>
-        <input type="hidden" name="next" value={next} />
-        <Button type="submit" variant="outline" className="w-full">
-          Continue with Google
-        </Button>
-      </form>
+          <GoogleSignInButton clientId={googleClientId} next={next} />
+        </>
+      )}
 
       <div className="mt-6 flex flex-col gap-0.5 text-sm">
         {mode !== "magic-link" && (
