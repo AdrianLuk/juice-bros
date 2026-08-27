@@ -1,13 +1,13 @@
 import Link from "next/link";
 
-import { getYoutubeEmbedUrl } from "@/lib/utils";
 import { getEpisodeHook } from "@/lib/youtube";
 import type { Episode } from "@/lib/episodes";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
+import { YoutubeEmbed } from "@/components/youtube-embed";
 
 // TODO: Swap for a distinct candid shot of Daven & Adrian. Currently reuses the
 // hero banner, which shows the same faces already featured at the top of the page.
-const hostPhoto = "/pictures/adrian-dav-chatgpt-edited.png";
+const hostPhoto = "/pictures/adrian-dav-chatgpt-edited.webp";
 
 export function FeaturedEpisode({ episode }: { episode: Episode }) {
   return (
@@ -16,13 +16,7 @@ export function FeaturedEpisode({ episode }: { episode: Episode }) {
         <div className="grid overflow-hidden rounded-[1.75rem] bg-brand-black text-white shadow-brand-lg lg:grid-cols-2">
           {/* Video */}
           <div className="aspect-video lg:min-h-120">
-            <iframe
-              className="h-full w-full"
-              src={getYoutubeEmbedUrl(episode.url)}
-              title={episode.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
+            <YoutubeEmbed videoId={episode.id} title={episode.title} />
           </div>
 
           {/* Host photo + episode details */}
