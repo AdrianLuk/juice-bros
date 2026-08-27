@@ -145,9 +145,10 @@ function proposedStartTime(block: DayBlock): string | null {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
-function proposeHref(day: FreeDay): string {
-  const start = proposedStartTime(day.blocks[0]);
-  const params = new URLSearchParams({ date: day.dateKey });
+/** Deep-links the Games form to one specific free window — a day split by a midday busy stretch gets a link per window, each seeding its own start. */
+function proposeHref(dateKey: string, block: DayBlock): string {
+  const start = proposedStartTime(block);
+  const params = new URLSearchParams({ date: dateKey });
   if (start) {
     params.set("start", start);
   }
@@ -367,25 +368,35 @@ export function GroupOverlapFinder({
               ) : (
                 <ul className="divide-y divide-border/60 overflow-hidden bb-card">
                   {freeDays.map((day) => (
-                    <li
-                      key={day.dateKey}
-                      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium">{dayLabel(new Date(day.dayStartMs))}</p>
-                        <p className="mt-0.5 text-sm text-muted-foreground">
-                          {day.blocks.map(blockLabel).join(", ")}
-                        </p>
-                      </div>
-                      <Link
-                        href={proposeHref(day)}
-                        className={cn(
-                          buttonVariants({ variant: "outline", size: "sm" }),
-                          "shrink-0",
-                        )}
-                      >
-                        Propose a game
-                      </Link>
+                    <li key={day.dateKey} className="px-5 py-4">
+                      <p className="font-medium">
+                        {dayLabel(new Date(day.dayStartMs))}
+                      </p>
+                      {/* One row per free window: a day split by a midday busy
+                          stretch shows a morning window and an evening one,
+                          each with its own "Propose a game" seeding that
+                          window's start time. */}
+                      <ul className="mt-1.5 flex flex-col gap-1.5">
+                        {day.blocks.map((block) => (
+                          <li
+                            key={block.startMs}
+                            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5"
+                          >
+                            <span className="text-sm text-muted-foreground">
+                              {blockLabel(block)}
+                            </span>
+                            <Link
+                              href={proposeHref(day.dateKey, block)}
+                              className={cn(
+                                buttonVariants({ variant: "outline", size: "sm" }),
+                                "shrink-0",
+                              )}
+                            >
+                              Propose a game
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
                     </li>
                   ))}
                 </ul>

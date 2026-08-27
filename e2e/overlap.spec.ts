@@ -142,3 +142,47 @@ test("free days appear, then a friend's busy window carves them away", async ({
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Propose a game" })).toHaveCount(0);
 });
+
+test("a day with a midday busy stretch splits into a window before and after, each proposable", async ({
+  page,
+  browser,
+}) => {
+  await grantAmyOpenTime(browser);
+
+  // BEN2 is busy 12:00-14:00 local, three days out.
+  const target = new Date();
+  target.setDate(target.getDate() + 3);
+  target.setHours(12, 0, 0, 0);
+  const end = new Date(target);
+  end.setHours(14, 0, 0, 0);
+  const targetDate = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+
+  await insertAvailabilityWindow(
+    { email: BEN2, password: TEST_PASSWORD },
+    { type: "busy", startsAt: target.toISOString(), endsAt: end.toISOString() },
+  );
+
+  await signIn(page, AMY, "/booking-buddy/overlap");
+  await friendCheckbox(page, "benbackhand2").check();
+  await expect(
+    page.getByRole("heading", { name: "When you're all free" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Propose a game" }).first()).toBeVisible();
+
+  // That one day carries two "Propose a game" links, seeding different start
+  // times — a window before the busy stretch and one after (14:00).
+  const starts = await page
+    .getByRole("link", { name: "Propose a game" })
+    .evaluateAll(
+      (links, date) =>
+        (links as HTMLAnchorElement[])
+          .map((a) => new URL(a.href))
+          .filter((u) => u.searchParams.get("date") === date)
+          .map((u) => u.searchParams.get("start")),
+      targetDate,
+    );
+
+  expect(starts).toHaveLength(2);
+  expect(new Set(starts).size).toBe(2);
+  expect(starts).toContain("14:00");
+});
