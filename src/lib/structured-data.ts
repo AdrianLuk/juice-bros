@@ -231,8 +231,15 @@ export function buildToolsJsonLd(apps: AppItem[]) {
   };
 }
 
-/** BreadcrumbList + SoftwareApplication for one tool's own page. */
-export function buildAppPageJsonLd(app: AppItem) {
+/**
+ * BreadcrumbList + SoftwareApplication for one tool's own page, plus an
+ * FAQPage node when the page carries a visible FAQ section (the questions and
+ * answers must match what's rendered — Google flags mismatched FAQ markup).
+ */
+export function buildAppPageJsonLd(
+  app: AppItem,
+  faqs: readonly { question: string; answer: string }[] = [],
+) {
   const appUrl = `${siteConfig.url}${app.href}`;
 
   return {
@@ -247,6 +254,19 @@ export function buildAppPageJsonLd(app: AppItem) {
         ],
       },
       buildSoftwareApplicationJsonLd(app),
+      ...(faqs.length > 0
+        ? [
+            {
+              "@type": "FAQPage",
+              "@id": `${appUrl}#faq`,
+              mainEntity: faqs.map((faq) => ({
+                "@type": "Question",
+                name: faq.question,
+                acceptedAnswer: { "@type": "Answer", text: faq.answer },
+              })),
+            },
+          ]
+        : []),
     ],
   };
 }
