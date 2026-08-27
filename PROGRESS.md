@@ -62,7 +62,7 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
 - [ ] Google Search Console + Bing Webmaster Tools, submit sitemap
 - [x] Run an episode page through Google's Rich Results Test once deployed, to validate the `PodcastEpisode`/`VideoObject`/`BreadcrumbList` JSON-LD (#141) — done, clean
 - [x] Run `/gear`, `/tools`, `/tools/pickle-point-pal`, and `/podcast` through Google's Rich Results Test once deployed, to validate the `Product`/`SoftwareApplication`/`ItemList`/`BreadcrumbList` JSON-LD (#165) — done, clean
-- [ ] Re-run `/tools/pickle-point-pal` through the Rich Results Test — it now also emits `FAQPage` JSON-LD alongside the existing nodes
+- [x] Re-run `/tools/pickle-point-pal` through the Rich Results Test — it now also emits `FAQPage` JSON-LD alongside the existing nodes — done by Adrian
 - [ ] Submit RSS feed to Apple Podcasts, Amazon Music, Pocket Casts, Overcast, iHeart, Podcast Index
 - [ ] Submit to podcast directories (Feedspot, MillionPodcasts)
 - [ ] Add site URL to YouTube video descriptions + pin a comment linking the episode page
