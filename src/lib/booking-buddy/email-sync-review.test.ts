@@ -116,6 +116,15 @@ function review(emails: RawCourtReserveEmail[], ctx: Partial<ReviewInput> = {}) 
   });
 }
 
+// `reviewCourtReserveEmails` returns one flat `items` list across all three
+// kinds; the review screen groups it back by `kind` for display, and so do
+// these helpers for the per-kind assertions below. `filter` preserves the
+// list's own date sort, so each group is date-sorted just like the screen's.
+type ReviewResult = ReturnType<typeof review>;
+const importsOf = (r: ReviewResult) => r.items.filter((item) => item.kind === "import");
+const cancellationsOf = (r: ReviewResult) => r.items.filter((item) => item.kind === "cancellation");
+const updatesOf = (r: ReviewResult) => r.items.filter((item) => item.kind === "update");
+
 test("a future confirmation becomes an import candidate with its Org and players matched", () => {
   const result = review(
     [
@@ -127,8 +136,9 @@ test("a future confirmation becomes an import candidate with its Org and players
     { connectionCandidates: [{ userId: "u-amy", displayName: "Amy Ace" }] },
   );
 
-  assert.equal(result.candidates.length, 1);
-  const candidate = result.candidates[0];
+  assert.equal(result.items.length, 1);
+  const candidate = importsOf(result)[0];
+  assert.equal(candidate.kind, "import");
   assert.equal(candidate.matchedOrgId, "org-pp");
   assert.equal(candidate.date, "2026-07-01");
   assert.equal(candidate.startTime, "18:00");
@@ -136,13 +146,13 @@ test("a future confirmation becomes an import candidate with its Org and players
   // stripCourtLabelPrefix drops the template's leading "Court" word.
   assert.equal(candidate.courtLabel, "5");
   assert.deepEqual(candidate.matchedPlayers, [{ name: "Amy Ace", userId: "u-amy" }]);
-  assert.deepEqual(result.cancellations, []);
-  assert.deepEqual(result.updates, []);
+  assert.deepEqual(cancellationsOf(result), []);
+  assert.deepEqual(updatesOf(result), []);
 });
 
 test("a confirmation for a date already past is dropped, never surfaced", () => {
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-01-01" }))]);
-  assert.deepEqual(result.candidates, []);
+  assert.deepEqual(result.items, []);
 });
 
 test("past-ness is judged in the matched Org's own zone", () => {
@@ -150,7 +160,7 @@ test("past-ness is judged in the matched Org's own zone", () => {
   // use the Org's zone, not the raw instant, so this same-day slot survives.
   const nearMidnight = new Date("2026-06-15T04:30:00Z");
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-06-15" }))], { now: nearMidnight });
-  assert.equal(result.candidates.length, 1);
+  assert.equal(importsOf(result).length, 1);
 });
 
 test("a confirmation that duplicates a booking already on file is dropped", () => {
@@ -162,22 +172,22 @@ test("a confirmation that duplicates a booking already on file is dropped", () =
       ],
     },
   );
-  assert.deepEqual(result.candidates, []);
+  assert.deepEqual(result.items, []);
 });
 
 test("a confirmation whose time range has no end is dropped before matching", () => {
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ end: null }))]);
-  assert.deepEqual(result, { candidates: [], cancellations: [], updates: [] });
+  assert.deepEqual(result, { items: [] });
 });
 
 test("an email that isn't a booking notification is ignored", () => {
   const result = review([email("Your CourtReserve waitlist spot opened up", confirmationHtml())]);
-  assert.deepEqual(result, { candidates: [], cancellations: [], updates: [] });
+  assert.deepEqual(result, { items: [] });
 });
 
 test("an email that looks like a confirmation but whose body doesn't parse is dropped", () => {
   const result = review([email(CONFIRM_SUBJECT, "<html><body>nothing here</body></html>")]);
-  assert.deepEqual(result, { candidates: [], cancellations: [], updates: [] });
+  assert.deepEqual(result, { items: [] });
 });
 
 test("a cancellation matched to a booking on file carries that booking's id", () => {
@@ -186,16 +196,17 @@ test("a cancellation matched to a booking on file carries that booking's id", ()
     { existingBookings: [{ id: "b7", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }] },
   );
 
-  assert.equal(result.cancellations.length, 1);
-  const cancellation = result.cancellations[0];
+  assert.equal(result.items.length, 1);
+  const cancellation = cancellationsOf(result)[0];
+  assert.equal(cancellation.kind, "cancellation");
   assert.equal(cancellation.matched, true);
   assert.equal(cancellation.matched && cancellation.bookingId, "b7");
 });
 
 test("a cancellation with nothing on file to match is surfaced as an unmatched notice, not dropped", () => {
   const result = review([email(CANCEL_SUBJECT, cancellationHtml())]);
-  assert.equal(result.cancellations.length, 1);
-  assert.equal(result.cancellations[0].matched, false);
+  assert.equal(cancellationsOf(result).length, 1);
+  assert.equal(cancellationsOf(result)[0].matched, false);
 });
 
 test("a reservation update matched to a booking on file carries its id and the revised fields", () => {
@@ -204,8 +215,9 @@ test("a reservation update matched to a booking on file carries its id and the r
     { existingBookings: [{ id: "b3", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }] },
   );
 
-  assert.equal(result.updates.length, 1);
-  const update = result.updates[0];
+  assert.equal(result.items.length, 1);
+  const update = updatesOf(result)[0];
+  assert.equal(update.kind, "update");
   assert.equal(update.matched, true);
   assert.equal(update.matched && update.bookingId, "b3");
   assert.equal(update.endTime, "20:00");
@@ -217,7 +229,7 @@ test("a confirmation and a later cancellation for the same slot net to nothing",
     email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-07-01", start: "18:00" }), { receivedAt: 1000 }),
     email(CANCEL_SUBJECT, cancellationHtml({ date: "2026-07-01", start: "18:00" }), { receivedAt: 2000 }),
   ]);
-  assert.deepEqual(result, { candidates: [], cancellations: [], updates: [] });
+  assert.deepEqual(result, { items: [] });
 });
 
 test("a confirmation then an update for the same slot yields one candidate carrying the update's fields and id", () => {
@@ -232,11 +244,11 @@ test("a confirmation then an update for the same slot yields one candidate carry
     }),
   ]);
 
-  assert.equal(result.updates.length, 0);
-  assert.equal(result.candidates.length, 1);
-  assert.equal(result.candidates[0].endTime, "21:00");
-  assert.equal(result.candidates[0].courtLabel, "8");
-  assert.equal(result.candidates[0].gmailMessageId, "m-update");
+  assert.equal(updatesOf(result).length, 0);
+  assert.equal(importsOf(result).length, 1);
+  assert.equal(importsOf(result)[0].endTime, "21:00");
+  assert.equal(importsOf(result)[0].courtLabel, "8");
+  assert.equal(importsOf(result)[0].gmailMessageId, "m-update");
 });
 
 test("candidates come back sorted by date, then start time", () => {
@@ -247,7 +259,7 @@ test("candidates come back sorted by date, then start time", () => {
   ]);
 
   assert.deepEqual(
-    result.candidates.map((candidate) => candidate.gmailMessageId),
+    importsOf(result).map((candidate) => candidate.gmailMessageId),
     ["jul1-0800", "jul1-2000", "jul5-0900"],
   );
 });
@@ -256,9 +268,9 @@ test("an overlong court label is carried in notes rather than dropped, with the 
   const longCourt = `Court ${"A".repeat(60)}`;
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-07-01", court: longCourt }))]);
 
-  assert.equal(result.candidates.length, 1);
-  assert.equal(result.candidates[0].courtLabel, null);
-  assert.equal(result.candidates[0].notes, "A".repeat(60));
+  assert.equal(importsOf(result).length, 1);
+  assert.equal(importsOf(result)[0].courtLabel, null);
+  assert.equal(importsOf(result)[0].notes, "A".repeat(60));
 });
 
 test("a confirmation whose facility matches no Org still surfaces, unmatched", () => {
@@ -267,8 +279,8 @@ test("a confirmation whose facility matches no Org still surfaces, unmatched", (
     { orgs: [] },
   );
 
-  assert.equal(result.candidates.length, 1);
-  assert.equal(result.candidates[0].matchedOrgId, null);
+  assert.equal(importsOf(result).length, 1);
+  assert.equal(importsOf(result)[0].matchedOrgId, null);
 });
 
 test("an unmatched confirmation is still date-filtered, in UTC", () => {
@@ -276,7 +288,7 @@ test("an unmatched confirmation is still date-filtered, in UTC", () => {
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ facility: "Some Other Club", date: "2026-01-01" }))], {
     orgs: [],
   });
-  assert.deepEqual(result.candidates, []);
+  assert.deepEqual(result.items, []);
 });
 
 test("confirmation, cancellation and update for three different slots each land in their own list", () => {
@@ -289,8 +301,9 @@ test("confirmation, cancellation and update for three different slots each land 
     { existingBookings: [{ id: "bx", orgId: "org-pp", courtLabel: null, date: "2026-07-03", startTime: "10:00" }] },
   );
 
-  assert.equal(result.candidates.length, 1);
-  assert.equal(result.cancellations.length, 1);
-  assert.equal(result.updates.length, 1);
-  assert.equal(result.updates[0].matched && result.updates[0].bookingId, "bx");
+  assert.equal(importsOf(result).length, 1);
+  assert.equal(cancellationsOf(result).length, 1);
+  assert.equal(updatesOf(result).length, 1);
+  const [update] = updatesOf(result);
+  assert.equal(update.matched && update.bookingId, "bx");
 });

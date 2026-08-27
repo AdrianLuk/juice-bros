@@ -20,17 +20,37 @@ import {
   confirmImportCandidate,
   confirmUpdateCandidate,
   connectGmail,
-  dismissImportCandidate,
+  dismissReviewItem,
   syncFromEmail,
-  type CancellationCandidate,
-  type ImportCandidate,
+  type ReviewItem,
   type SyncFromEmailResult,
-  type UpdateCandidate,
 } from "@/lib/booking-buddy/actions/email-sync";
 
 const EMPTY: ActionResult = {};
 
 const SYNC_QUERY_KEY = ["booking-buddy", "email-sync-candidates"] as const;
+
+/** The three kinds, in the order the review screen groups them for display. */
+const REVIEW_KINDS = ["import", "cancellation", "update"] as const;
+
+/** Confirming each kind stays its own action — the three re-validate down completely different paths (see `email-sync.ts`). */
+const CONFIRM_ACTION = {
+  import: confirmImportCandidate,
+  cancellation: confirmCancellationCandidate,
+  update: confirmUpdateCandidate,
+} as const;
+
+/** `onResolved` is idempotent, so a confirm and a dismiss each get their own effect rather than one watching both. */
+function useResolveOnSuccess(state: ActionResult, resolve: () => void) {
+  useEffect(() => {
+    if (state.ok) {
+      resolve();
+    }
+    // Only the action state should re-trigger this — `resolve` closes over
+    // values stable within one card's lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+}
 
 function ActionError({ state }: { state: ActionResult }) {
   if (!state.error) {
@@ -44,67 +64,110 @@ function ActionError({ state }: { state: ActionResult }) {
   );
 }
 
-function ImportCandidateCard({
-  candidate,
-  orgs,
-  onResolved,
-}: {
-  candidate: ImportCandidate;
-  orgs: Org[];
-  onResolved: (gmailMessageId: string) => void;
-}) {
-  const [confirmState, confirmAction, confirmPending] = useActionState(confirmImportCandidate, EMPTY);
-  const [dismissState, dismissAction, dismissPending] = useActionState(dismissImportCandidate, EMPTY);
-  const busy = confirmPending || dismissPending;
+/** The read-only detail lines under the facility name — the one part of the card that varies per kind but carries no form. */
+function ReviewItemDetails({ item }: { item: ReviewItem }) {
+  if (item.kind === "import") {
+    return (
+      <>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {item.name} · {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
+          {formatCourtLabel(item.courtLabel)} · {BOOKING_FORMAT_LABEL[item.format]}
+        </p>
+        {item.matchedPlayers.length > 0 && (
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            With: {item.matchedPlayers.map((player) => player.name).join(", ")}
+          </p>
+        )}
+        {item.notes && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}&rdquo;
+          </p>
+        )}
+      </>
+    );
+  }
 
-  useEffect(() => {
-    if (confirmState.ok || dismissState.ok) {
-      onResolved(candidate.gmailMessageId);
-    }
-    // Only the two action states should re-trigger this — `onResolved` and
-    // `candidate` are stable enough within one card's lifetime not to matter.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirmState, dismissState]);
-
-  const facilityFieldId = `sync-facility-${candidate.gmailMessageId}`;
+  if (item.kind === "cancellation") {
+    return (
+      <>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)} · {formatCourtLabel(item.courtLabel)}
+        </p>
+        {item.matched ? (
+          <p className="mt-1 text-xs text-muted-foreground">Cancelled. Matches a Booking you logged.</p>
+        ) : (
+          <p className="mt-1 text-xs text-destructive">
+            No matching booking found. Your records may be out of sync.
+          </p>
+        )}
+      </>
+    );
+  }
 
   return (
-    <li className="bb-card flex flex-col gap-3 p-4">
-      <div>
-        <p className="font-medium">{candidate.facilityName}</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          {candidate.name} · {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
-          {formatCourtLabel(candidate.courtLabel)} · {BOOKING_FORMAT_LABEL[candidate.format]}
+    <>
+      <p className="mt-0.5 text-sm text-muted-foreground">
+        {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
+        {formatCourtLabel(item.courtLabel)} · {BOOKING_FORMAT_LABEL[item.format]}
+      </p>
+      {item.matchedPlayers.length > 0 && (
+        <p className="mt-1 truncate text-xs text-muted-foreground">
+          With: {item.matchedPlayers.map((player) => player.name).join(", ")}
         </p>
-        {candidate.matchedPlayers.length > 0 && (
-          <p className="mt-1 truncate text-xs text-muted-foreground">
-            With: {candidate.matchedPlayers.map((player) => player.name).join(", ")}
-          </p>
-        )}
-        {candidate.notes && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit. Saved to Notes: &ldquo;{candidate.notes}&rdquo;
-          </p>
-        )}
-      </div>
+      )}
+      {item.notes && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Court list was too long to fit. Will be saved to Notes: &ldquo;{item.notes}&rdquo;
+        </p>
+      )}
+      {item.matched ? (
+        <p className="mt-1 text-xs text-muted-foreground">Updates a booking you logged.</p>
+      ) : (
+        <p className="mt-1 text-xs text-destructive">
+          No matching booking found. Your records may be out of sync.
+        </p>
+      )}
+    </>
+  );
+}
 
+type BodyProps<K extends ReviewItem["kind"]> = {
+  item: Extract<ReviewItem, { kind: K }>;
+  confirmAction: (payload: FormData) => void;
+  confirmState: ActionResult;
+  confirmPending: boolean;
+  busy: boolean;
+};
+
+/**
+ * The Import Candidate's Confirm form — the only kind with a field the User
+ * still edits (`<OrgSelect>` when the facility matched no Org). Every other
+ * value rides through as a hidden input so `confirmImportCandidate` re-runs
+ * `parseNewBooking` over the same field names `CreateBookingForm` posts,
+ * rather than trusting the already-parsed item a second time.
+ */
+function ImportBody({ item, orgs, confirmAction, confirmState, confirmPending, busy }: BodyProps<"import"> & { orgs: Org[] }) {
+  const facilityFieldId = `sync-facility-${item.gmailMessageId}`;
+
+  return (
+    <>
       <form
         action={confirmAction}
         className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label htmlFor={facilityFieldId}>Facility</Label>
-          <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={candidate.matchedOrgId ?? ""} />
+          <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={item.matchedOrgId ?? ""} />
         </div>
 
-        <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
-        <input type="hidden" name="name" value={candidate.name} />
-        <input type="hidden" name="format" value={candidate.format} />
-        <input type="hidden" name="date" value={candidate.date} />
-        <input type="hidden" name="start_time" value={candidate.startTime} />
-        <input type="hidden" name="end_time" value={candidate.endTime} />
-        <input type="hidden" name="court_label" value={candidate.courtLabel ?? ""} />
-        <input type="hidden" name="notes" value={candidate.notes ?? ""} />
+        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input type="hidden" name="name" value={item.name} />
+        <input type="hidden" name="format" value={item.format} />
+        <input type="hidden" name="date" value={item.date} />
+        <input type="hidden" name="start_time" value={item.startTime} />
+        <input type="hidden" name="end_time" value={item.endTime} />
+        <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
+        <input type="hidden" name="notes" value={item.notes ?? ""} />
         {/* Re-matched at write time by `insertBookingPlayers` (ADR 0011) — this
             carries the parsed names through, not `matchedPlayers`' own
             review-time match. Not a new editable field: same hidden-input
@@ -115,7 +178,7 @@ function ImportCandidateCard({
         <input
           type="hidden"
           name="players"
-          value={candidate.matchedPlayers
+          value={item.matchedPlayers
             .map((player) => player.name.slice(0, PLAYER_NAME_MAX_LENGTH))
             .join(", ")}
         />
@@ -125,9 +188,126 @@ function ImportCandidateCard({
         </Button>
       </form>
       <ActionError state={confirmState} />
+    </>
+  );
+}
+
+/**
+ * A parsed cancellation, matched or not (issue #65). No Org picker to fill in
+ * — a cancellation either resolved to a Booking already on file or it didn't,
+ * and there's nothing left for the User to correct either way, just remove or
+ * dismiss. The Remove form renders only for a matched item; otherwise the
+ * unmatched notice in `ReviewItemDetails` and the shared Dismiss button are
+ * all that's left.
+ */
+function CancellationBody({ item, confirmAction, confirmState, confirmPending, busy }: BodyProps<"cancellation">) {
+  if (!item.matched) {
+    return null;
+  }
+
+  return (
+    <>
+      <form action={confirmAction} className="self-start">
+        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input type="hidden" name="booking_id" value={item.bookingId} />
+        <Button type="submit" variant="destructive" disabled={busy}>
+          {confirmPending ? "Removing…" : "Remove booking"}
+        </Button>
+      </form>
+      <ActionError state={confirmState} />
+    </>
+  );
+}
+
+/**
+ * A parsed Reservation Update, matched or not (issue #91) — CourtReserve's own
+ * resend after a logged reservation's details changed. Like a cancellation,
+ * there's no Org picker: `matchUpdateToBooking` already resolved which Booking
+ * this refers to (or didn't), so the only choice left is apply it or dismiss
+ * it, and the Apply form renders only when it matched.
+ */
+function UpdateBody({ item, confirmAction, confirmState, confirmPending, busy }: BodyProps<"update">) {
+  if (!item.matched) {
+    return null;
+  }
+
+  return (
+    <>
+      <form action={confirmAction} className="self-start">
+        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input type="hidden" name="booking_id" value={item.bookingId} />
+        <input type="hidden" name="format" value={item.format} />
+        <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
+        <input type="hidden" name="notes" value={item.notes ?? ""} />
+        <Button type="submit" disabled={busy}>
+          {confirmPending ? "Applying…" : "Apply update"}
+        </Button>
+      </form>
+      <ActionError state={confirmState} />
+    </>
+  );
+}
+
+/**
+ * One review item on the "Sync from Email" screen (issues #64/#65/#91). Owns
+ * the card shell every kind shares — the `bb-card` wrapper, the facility line,
+ * the Dismiss form, and the resolve-on-success effects — and switches on
+ * `item.kind` for the detail lines and the kind-specific confirm form. The
+ * confirm action reference is picked by kind but bound through a single
+ * `useActionState` call so the shared `busy` gating stays in one place.
+ */
+export function ReviewItemCard({
+  item,
+  orgs,
+  onResolved,
+}: {
+  item: ReviewItem;
+  orgs: Org[];
+  onResolved: (gmailMessageId: string) => void;
+}) {
+  const [confirmState, confirmAction, confirmPending] = useActionState(CONFIRM_ACTION[item.kind], EMPTY);
+  const [dismissState, dismissAction, dismissPending] = useActionState(dismissReviewItem, EMPTY);
+  const busy = confirmPending || dismissPending;
+
+  useResolveOnSuccess(confirmState, () => onResolved(item.gmailMessageId));
+  useResolveOnSuccess(dismissState, () => onResolved(item.gmailMessageId));
+
+  return (
+    <li className="bb-card flex flex-col gap-3 p-4">
+      <div>
+        <p className="font-medium">{item.facilityName}</p>
+        <ReviewItemDetails item={item} />
+      </div>
+
+      {item.kind === "import" ? (
+        <ImportBody
+          item={item}
+          orgs={orgs}
+          confirmAction={confirmAction}
+          confirmState={confirmState}
+          confirmPending={confirmPending}
+          busy={busy}
+        />
+      ) : item.kind === "cancellation" ? (
+        <CancellationBody
+          item={item}
+          confirmAction={confirmAction}
+          confirmState={confirmState}
+          confirmPending={confirmPending}
+          busy={busy}
+        />
+      ) : (
+        <UpdateBody
+          item={item}
+          confirmAction={confirmAction}
+          confirmState={confirmState}
+          confirmPending={confirmPending}
+          busy={busy}
+        />
+      )}
 
       <form action={dismissAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
+        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>
@@ -138,145 +318,41 @@ function ImportCandidateCard({
 }
 
 /**
- * A parsed cancellation, matched or not (issue #65). Unlike
- * `ImportCandidateCard`, there's no Org picker to fill in — a cancellation
- * either resolved to a Booking already on file or it didn't, and there's
- * nothing left for the User to correct either way, just confirm or dismiss.
+ * The flat `ReviewItem` list grouped back into the same three `<ul>` blocks
+ * (import, then cancellation, then update) the screen has always shown. The
+ * list arrives `byDateAndStartTime`-sorted, and `filter` preserves that
+ * order, so each group stays date-sorted exactly as before.
  */
-function CancellationCandidateCard({
-  candidate,
+function ReviewItemGroups({
+  items,
+  orgs,
   onResolved,
 }: {
-  candidate: CancellationCandidate;
+  items: ReviewItem[];
+  orgs: Org[];
   onResolved: (gmailMessageId: string) => void;
 }) {
-  const [confirmState, confirmAction, confirmPending] = useActionState(confirmCancellationCandidate, EMPTY);
-  const [dismissState, dismissAction, dismissPending] = useActionState(dismissImportCandidate, EMPTY);
-  const busy = confirmPending || dismissPending;
-
-  useEffect(() => {
-    if (confirmState.ok || dismissState.ok) {
-      onResolved(candidate.gmailMessageId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirmState, dismissState]);
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">No new bookings found.</p>;
+  }
 
   return (
-    <li className="bb-card flex flex-col gap-3 p-4">
-      <div>
-        <p className="font-medium">{candidate.facilityName}</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)} · {formatCourtLabel(candidate.courtLabel)}
-        </p>
-        {candidate.matched ? (
-          <p className="mt-1 text-xs text-muted-foreground">Cancelled. Matches a Booking you logged.</p>
-        ) : (
-          <p className="mt-1 text-xs text-destructive">
-            No matching booking found. Your records may be out of sync.
-          </p>
-        )}
-      </div>
+    <>
+      {REVIEW_KINDS.map((kind) => {
+        const group = items.filter((item) => item.kind === kind);
+        if (group.length === 0) {
+          return null;
+        }
 
-      {candidate.matched && (
-        <>
-          <form action={confirmAction} className="self-start">
-            <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
-            <input type="hidden" name="booking_id" value={candidate.bookingId} />
-            <Button type="submit" variant="destructive" disabled={busy}>
-              {confirmPending ? "Removing…" : "Remove booking"}
-            </Button>
-          </form>
-          <ActionError state={confirmState} />
-        </>
-      )}
-
-      <form action={dismissAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
-        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
-          {dismissPending ? "Dismissing…" : "Dismiss"}
-        </Button>
-      </form>
-      <ActionError state={dismissState} />
-    </li>
-  );
-}
-
-/**
- * A parsed Reservation Update, matched or not (issue #91) — CourtReserve's
- * own resend after a logged reservation's details changed. Unlike
- * `ImportCandidateCard`, there's no Org picker: `matchUpdateToBooking`
- * already resolved which Booking this refers to (or didn't), so the only
- * choice left for the User is apply it or dismiss it.
- */
-function UpdateCandidateCard({
-  candidate,
-  onResolved,
-}: {
-  candidate: UpdateCandidate;
-  onResolved: (gmailMessageId: string) => void;
-}) {
-  const [confirmState, confirmAction, confirmPending] = useActionState(confirmUpdateCandidate, EMPTY);
-  const [dismissState, dismissAction, dismissPending] = useActionState(dismissImportCandidate, EMPTY);
-  const busy = confirmPending || dismissPending;
-
-  useEffect(() => {
-    if (confirmState.ok || dismissState.ok) {
-      onResolved(candidate.gmailMessageId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirmState, dismissState]);
-
-  return (
-    <li className="bb-card flex flex-col gap-3 p-4">
-      <div>
-        <p className="font-medium">{candidate.facilityName}</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)}–{formatTimeLabel(candidate.endTime)} ·{" "}
-          {formatCourtLabel(candidate.courtLabel)} · {BOOKING_FORMAT_LABEL[candidate.format]}
-        </p>
-        {candidate.matchedPlayers.length > 0 && (
-          <p className="mt-1 truncate text-xs text-muted-foreground">
-            With: {candidate.matchedPlayers.map((player) => player.name).join(", ")}
-          </p>
-        )}
-        {candidate.notes && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit. Will be saved to Notes: &ldquo;{candidate.notes}&rdquo;
-          </p>
-        )}
-        {candidate.matched ? (
-          <p className="mt-1 text-xs text-muted-foreground">Updates a booking you logged.</p>
-        ) : (
-          <p className="mt-1 text-xs text-destructive">
-            No matching booking found. Your records may be out of sync.
-          </p>
-        )}
-      </div>
-
-      {candidate.matched && (
-        <>
-          <form action={confirmAction} className="self-start">
-            <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
-            <input type="hidden" name="booking_id" value={candidate.bookingId} />
-            <input type="hidden" name="format" value={candidate.format} />
-            <input type="hidden" name="court_label" value={candidate.courtLabel ?? ""} />
-            <input type="hidden" name="notes" value={candidate.notes ?? ""} />
-            <Button type="submit" disabled={busy}>
-              {confirmPending ? "Applying…" : "Apply update"}
-            </Button>
-          </form>
-          <ActionError state={confirmState} />
-        </>
-      )}
-
-      <form action={dismissAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={candidate.gmailMessageId} />
-        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
-          {dismissPending ? "Dismissing…" : "Dismiss"}
-        </Button>
-      </form>
-      <ActionError state={dismissState} />
-    </li>
+        return (
+          <ul key={kind} className="flex flex-col gap-4">
+            {group.map((item) => (
+              <ReviewItemCard key={item.gmailMessageId} item={item} orgs={orgs} onResolved={onResolved} />
+            ))}
+          </ul>
+        );
+      })}
+    </>
   );
 }
 
@@ -308,12 +384,7 @@ export function SyncFromEmailSection({
   function handleResolved(gmailMessageId: string) {
     queryClient.setQueryData<SyncFromEmailResult>(SYNC_QUERY_KEY, (previous) =>
       previous?.status === "ok"
-        ? {
-            ...previous,
-            candidates: previous.candidates.filter((c) => c.gmailMessageId !== gmailMessageId),
-            cancellations: previous.cancellations.filter((c) => c.gmailMessageId !== gmailMessageId),
-            updates: previous.updates.filter((c) => c.gmailMessageId !== gmailMessageId),
-          }
+        ? { ...previous, items: previous.items.filter((item) => item.gmailMessageId !== gmailMessageId) }
         : previous,
     );
   }
@@ -359,46 +430,8 @@ export function SyncFromEmailSection({
         </p>
       )}
 
-      {data?.status === "ok" &&
-        data.candidates.length === 0 &&
-        data.cancellations.length === 0 &&
-        data.updates.length === 0 && <p className="text-sm text-muted-foreground">No new bookings found.</p>}
-
-      {data?.status === "ok" && data.candidates.length > 0 && (
-        <ul className="flex flex-col gap-4">
-          {data.candidates.map((candidate) => (
-            <ImportCandidateCard
-              key={candidate.gmailMessageId}
-              candidate={candidate}
-              orgs={orgs}
-              onResolved={handleResolved}
-            />
-          ))}
-        </ul>
-      )}
-
-      {data?.status === "ok" && data.cancellations.length > 0 && (
-        <ul className="flex flex-col gap-4">
-          {data.cancellations.map((candidate) => (
-            <CancellationCandidateCard
-              key={candidate.gmailMessageId}
-              candidate={candidate}
-              onResolved={handleResolved}
-            />
-          ))}
-        </ul>
-      )}
-
-      {data?.status === "ok" && data.updates.length > 0 && (
-        <ul className="flex flex-col gap-4">
-          {data.updates.map((candidate) => (
-            <UpdateCandidateCard
-              key={candidate.gmailMessageId}
-              candidate={candidate}
-              onResolved={handleResolved}
-            />
-          ))}
-        </ul>
+      {data?.status === "ok" && (
+        <ReviewItemGroups items={data.items} orgs={orgs} onResolved={handleResolved} />
       )}
     </div>
   );

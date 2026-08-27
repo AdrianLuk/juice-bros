@@ -27,11 +27,7 @@ import { connectionCandidatesFromFriends } from "../email-sync-matching.ts";
 import {
   reviewCourtReserveEmails,
   type RawCourtReserveEmail,
-} from "../email-sync-review.ts";
-import type {
-  CancellationCandidate,
-  ImportCandidate,
-  UpdateCandidate,
+  type ReviewItem,
 } from "../email-sync-review.ts";
 import { parseNewBooking } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
@@ -45,7 +41,7 @@ import {
 import { listConnections } from "./connections.ts";
 
 export type { ActionResult } from "./result.ts";
-export type { CancellationCandidate, ImportCandidate, UpdateCandidate };
+export type { ReviewItem };
 
 export type MailboxLink = {
   googleAccountEmail: string;
@@ -161,12 +157,7 @@ export async function disconnectGmail(): Promise<ActionResult> {
 }
 
 export type SyncFromEmailResult =
-  | {
-      status: "ok";
-      candidates: ImportCandidate[];
-      cancellations: CancellationCandidate[];
-      updates: UpdateCandidate[];
-    }
+  | { status: "ok"; items: ReviewItem[] }
   | { status: "reconnect_required" }
   | { status: "error"; message: string };
 
@@ -290,7 +281,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     rawEmails.push({ gmailMessageId: messageId, ...fetched.email });
   }
 
-  const { candidates, cancellations, updates } = reviewCourtReserveEmails({
+  const { items } = reviewCourtReserveEmails({
     emails: rawEmails,
     orgs: orgs.map((org) => ({
       orgId: org.id,
@@ -314,7 +305,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     now,
   });
 
-  return { status: "ok", candidates, cancellations, updates };
+  return { status: "ok", items };
 }
 
 /**
@@ -484,14 +475,14 @@ export async function confirmUpdateCandidate(
 }
 
 /**
- * Dismissing an Import Candidate never touches a Booking (CONTEXT.md's
- * Import Candidate entry) — it only records that this Gmail message is
- * settled, so a later sync's own `processed_gmail_messages` filter skips it.
- * Shape-generic (just a `gmail_message_id`), so it's reused as-is for a
- * cancellation candidate — matched or the "no match found" notice (issue
- * #65) — rather than needing its own near-identical action.
+ * Dismissing a review item never touches a Booking (CONTEXT.md's Import
+ * Candidate entry) — it only records that this Gmail message is settled, so a
+ * later sync's own `processed_gmail_messages` filter skips it. Already
+ * kind-generic (it reads only `gmail_message_id`), so one action covers an
+ * import, a cancellation, and an update alike — matched or the "no match
+ * found" notice.
  */
-export async function dismissImportCandidate(
+export async function dismissReviewItem(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
