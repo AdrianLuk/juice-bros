@@ -34,20 +34,27 @@ export default async function BookingBuddyPage() {
   // so this is not a second round trip.
   await verifySession();
 
-  const { orgs, bookings, availabilityWindows } = await getDashboardPageData();
+  const { orgs, bookings, availabilityWindows, hasSlot } =
+    await getDashboardPageData();
   const now = new Date();
+  const hasBooking = bookings.length > 0;
 
-  // Onboarding (issue #103) only ever opens for a zero-Facility caller, so
-  // its own Gender seed — reusing the same profile fetch Settings already
-  // makes — only has to run then. Past a caller's first Facility, every
-  // later dashboard load skips a profiles round trip it would otherwise pay
-  // on the app's most-visited route for a value the (now permanently
-  // closed) modal never renders.
-  const gender = orgs.length === 0 ? (await getOwnProfile()).gender : null;
+  // Onboarding (issue #103, reshaped in #176) can still open only while the
+  // caller has neither a Booking nor a Slot, and its "coordinate" branch is
+  // now the one place Gender is surfaced (ADR 0012) — so the profiles round
+  // trip that seeds it is paid only under that same condition, not on every
+  // later load of the app's most-visited route.
+  const gender =
+    !hasBooking && !hasSlot ? (await getOwnProfile()).gender : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <OnboardingModal orgs={orgs} gender={gender} />
+      <OnboardingModal
+        orgs={orgs}
+        gender={gender}
+        hasBooking={hasBooking}
+        hasSlot={hasSlot}
+      />
       <section className="w-full px-4 pt-6 pb-10 sm:px-6 sm:pt-10 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
