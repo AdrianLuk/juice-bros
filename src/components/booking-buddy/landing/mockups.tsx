@@ -170,6 +170,56 @@ export function AvailabilityPreview() {
   );
 }
 
+/** The overlap of a few friends' open time — the days a whole group can make. */
+export function OverlapPreview() {
+  const picked = ["You", "Daven", "Mo", "Priya"];
+  const days: { day: string; window: string }[] = [
+    { day: "Sat", window: "9:00 AM – 12:00 PM" },
+    { day: "Sun", window: "Any time" },
+    { day: "Wed", window: "6:00 PM – 10:00 PM" },
+  ];
+
+  return (
+    <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
+      <p className="font-heading text-base font-semibold tracking-tight">
+        When you&apos;re all free
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-1.5" aria-hidden>
+        {picked.map((name) => (
+          <span
+            key={name}
+            className="inline-flex h-6 items-center rounded-full bg-accent/25 px-2.5 text-[11px] font-medium text-foreground/70"
+          >
+            {name}
+          </span>
+        ))}
+      </div>
+
+      <ul className="mt-4 flex flex-col gap-2 text-sm">
+        {days.map((entry) => (
+          <li
+            key={entry.day}
+            className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3.5 py-2.5"
+          >
+            <div className="min-w-0">
+              <p className="font-medium">{entry.day}</p>
+              <p className="text-xs text-muted-foreground">{entry.window}</p>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-primary">
+              Propose a game
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 text-xs text-muted-foreground">
+        Days nobody&apos;s booked and nobody&apos;s marked busy.
+      </p>
+    </div>
+  );
+}
+
 /** A week at a glance: a booked game, a proposal without a court yet, busy time. */
 export function WeekPreview() {
   const rows: {
