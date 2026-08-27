@@ -15,9 +15,9 @@ const routes: Route[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/podcast", changeFrequency: "weekly", priority: 0.9 },
   { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
-  // Only apps that live under /tools. Booking Buddy sits on its own path and
-  // its entry point redirects signed-out visitors to sign-in, so it has no
-  // canonical URL worth listing - it's discovered via the /tools link instead.
+  { path: "/booking-buddy", changeFrequency: "monthly", priority: 0.7 },
+  // Apps under /tools get an entry from their data. Booking Buddy sits on its
+  // own path and is listed explicitly above.
   ...apps
     .filter((app) => app.href.startsWith("/tools/"))
     .map((app) => ({

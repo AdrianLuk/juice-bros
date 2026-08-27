@@ -75,7 +75,7 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Deferred follow-up
 
-- [x] Booking Buddy is now the first entry in `src/data/apps.ts` (launched 2026-08-26) — the lead card on `/tools`, linking to `/booking-buddy`. Deliberately kept out of `sitemap.xml` (its entry point redirects signed-out visitors to sign-in, so there's no canonical URL to list); `robots.ts` allows the public entry/sign-in/privacy pages and disallows the signed-in-only feature routes plus `/s/`.
+- [x] Booking Buddy is now the first entry in `src/data/apps.ts` (launched 2026-08-26) — the lead card on `/tools`, linking to `/booking-buddy`. `/booking-buddy` serves a public marketing page to signed-out visitors and the dashboard to signed-in ones (session branch in `page.tsx`; `requiresSession` returns false for the exact root, every nested route still gated, `verifySession` still runs before the dashboard renders). Landing page: `src/components/booking-buddy/landing/`, in `sitemap.xml` and crawlable via `robots.ts`. The signed-in-only feature routes and `/s/` stay disallowed.
 
 ## Where to pick up
 

@@ -8,21 +8,30 @@ import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-boo
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
 import { OnboardingModal } from "@/components/booking-buddy/onboarding-modal";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
-import { verifySession } from "@/lib/booking-buddy/dal";
+import { BookingBuddyLanding } from "@/components/booking-buddy/landing/booking-buddy-landing";
+import { getOptionalSession, verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Booking Buddy",
+  title: "Booking Buddy — plan pickleball with your friends",
   description:
-    "Plan pickleball with your friends — open a time, see who's in, and keep your court bookings in one place.",
+    "A free tool from the Juice Bros for friend groups: post an open time, see who's in, share availability, and keep your court bookings in one place.",
   path: "/booking-buddy",
 });
 
 export default async function BookingBuddyPage() {
-  // Authoritative check. The proxy already bounced signed-out visitors, but
-  // that check is optimistic and must not be relied on alone.
+  // This root path is public (the proxy no longer gates it): a signed-out
+  // visitor gets the marketing page, a signed-in one gets their dashboard.
+  const session = await getOptionalSession();
+  if (!session) {
+    return <BookingBuddyLanding />;
+  }
+
+  // Authoritative re-check — with the proxy out of the picture for this path,
+  // this is the dashboard's only gate. `getOptionalSession` above is cached,
+  // so this is not a second round trip.
   await verifySession();
 
   const { orgs, bookings, availabilityWindows } = await getDashboardPageData();
