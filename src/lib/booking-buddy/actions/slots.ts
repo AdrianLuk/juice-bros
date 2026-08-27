@@ -1,10 +1,12 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
+import { trackFirstSlot } from "../analytics.ts";
 import { SLOTS_PATH, slotPath } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
@@ -428,6 +430,10 @@ export async function createSlot(
   if (error) {
     return { error: slotWriteMessage(error) };
   }
+
+  // `bb_first_slot` (#179) — fired after the response only if this was the
+  // caller's first Slot.
+  after(() => trackFirstSlot(session.userId));
 
   revalidatePath(SLOTS_PATH);
   return { ok: true };
