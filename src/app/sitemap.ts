@@ -15,11 +15,16 @@ const routes: Route[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/podcast", changeFrequency: "weekly", priority: 0.9 },
   { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
-  ...apps.map((app) => ({
-    path: app.href,
-    changeFrequency: "monthly" as const,
-    priority: 0.4,
-  })),
+  { path: "/booking-buddy", changeFrequency: "monthly", priority: 0.7 },
+  // Apps under /tools get an entry from their data. Booking Buddy sits on its
+  // own path and is listed explicitly above.
+  ...apps
+    .filter((app) => app.href.startsWith("/tools/"))
+    .map((app) => ({
+      path: app.href,
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
+    })),
   { path: "/gear", changeFrequency: "monthly", priority: 0.6 },
   { path: "/about", changeFrequency: "yearly", priority: 0.5 },
   { path: "/contact", changeFrequency: "yearly", priority: 0.3 },

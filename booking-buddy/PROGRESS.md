@@ -75,7 +75,7 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 ### Deferred follow-up
 
-- [ ] Booking Buddy is not listed in `src/data/apps.ts`, so it doesn't appear on `/tools` or in the sitemap. Deliberate for now — there's nothing usable to link to yet. Add the entry once sign-in and a real dashboard exist, so the Apps section doesn't advertise a dead end.
+- [x] Booking Buddy is now the first entry in `src/data/apps.ts` (launched 2026-08-26) — the lead card on `/tools`, linking to `/booking-buddy`. `/booking-buddy` serves a public marketing page to signed-out visitors and the dashboard to signed-in ones (session branch in `page.tsx`; `requiresSession` returns false for the exact root, every nested route still gated, `verifySession` still runs before the dashboard renders). Landing page: `src/components/booking-buddy/landing/`, in `sitemap.xml` and crawlable via `robots.ts`. The signed-in-only feature routes and `/s/` stay disallowed.
 
 ## Where to pick up
 
@@ -90,7 +90,7 @@ Everything that was outstanding from #5 and #6 is now done:
 - [x] Username changes: `/booking-buddy/settings`, format rules mirroring the database, uniqueness left to the index (`e2e/settings.spec.ts`).
 - [x] `supabase db push` — done, confirmed against the hosted project.
 - [x] Test seam decision — see "Seams under test" at the top of this file and the Phase 3 notes below: pure functions get `node --test`, the database gets pgTAP, cross-action journeys get Playwright.
-- [ ] Booking Buddy still isn't in `src/data/apps.ts` (see "Deferred follow-up" above). The pages are only reachable via links on the dashboard, which is only reachable by typing the URL. Still deliberate — revisit once Slots give the Apps section something real to link to.
+- [x] Booking Buddy is in `src/data/apps.ts` and linked from `/tools` (launched 2026-08-26 — see "Deferred follow-up" above).
 
 ### Notes carried out of the friends page
 

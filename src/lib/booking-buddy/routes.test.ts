@@ -3,8 +3,8 @@ import test from "node:test";
 
 import { requiresSession, safeRedirectTarget } from "./routes.ts";
 
-test("the Booking Buddy dashboard requires a session", () => {
-  assert.equal(requiresSession("/booking-buddy"), true);
+test("the Booking Buddy section root is public (marketing page / dashboard branch)", () => {
+  assert.equal(requiresSession("/booking-buddy"), false);
 });
 
 test("nested Booking Buddy routes require a session", () => {
