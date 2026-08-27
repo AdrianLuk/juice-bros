@@ -35,8 +35,8 @@ test("an availability window can be blocked off, listed, and removed again", asy
 
   // All day is the default; a fixed, far-future range keeps this "upcoming"
   // for years and reads as "Jun 1 - Jun 7" (en dash) once saved.
-  await page.getByLabel("From").fill("2027-06-01");
-  await page.getByLabel("To").fill("2027-06-07");
+  await page.getByLabel("From", { exact: true }).fill("2027-06-01");
+  await page.getByLabel("To", { exact: true }).fill("2027-06-07");
   await page.getByRole("button", { name: "Save" }).click();
 
   const windowRow = page
