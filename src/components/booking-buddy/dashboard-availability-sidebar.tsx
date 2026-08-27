@@ -1,6 +1,9 @@
+import Link from "next/link";
+
 import { formatAvailabilityWindowRange } from "@/lib/booking-buddy/availability";
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "@/lib/booking-buddy/orgs";
 import { AvailabilityWindowRow } from "@/components/booking-buddy/availability";
+import { AVAILABILITY_PATH } from "@/lib/booking-buddy/routes";
 import type { DashboardAvailabilityWindow } from "@/lib/booking-buddy/actions/dashboard";
 
 /**
@@ -26,9 +29,17 @@ export function DashboardAvailabilitySidebar({
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-heading text-sm font-semibold tracking-tight">
-        Your availability
-      </h2>
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-heading text-sm font-semibold tracking-tight">
+          Your open time
+        </h2>
+        <Link
+          href={AVAILABILITY_PATH}
+          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary"
+        >
+          See all
+        </Link>
+      </div>
 
       {upcoming.length === 0 ? (
         <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">

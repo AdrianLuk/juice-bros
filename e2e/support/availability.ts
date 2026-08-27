@@ -4,14 +4,15 @@ const LOCAL_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
 /**
- * Availability Windows (issue #23's other half — rendering the resolved
- * result, ADR 0006) have no create/edit UI yet (deliberately, per the
- * ticket), so the only way to get one into the database for a test is
- * straight against PostgREST, the same posture `guest-rsvp-log.ts` already
- * takes for a table nothing in the app's own session-driven UI reaches.
- * Unlike `guest_rsvp_log`, though, `availability_windows` has no
- * `service_role` grant at all (owner-only, per its migration) — so this signs
- * in as the real User first and writes with *their* token, not the
+ * Availability Windows have a create/delete UI now (the "Open time" page,
+ * issue #197, and the dashboard quick-add), but the calendar-rendering tests
+ * in `dashboard.spec.ts` need windows at *precise* UTC instants relative to a
+ * Booking — something the day/hour-granularity form can't express — so those
+ * still seed straight against PostgREST here, the same posture
+ * `guest-rsvp-log.ts` takes for a table the app's own UI doesn't otherwise
+ * reach directly. Unlike `guest_rsvp_log`, though, `availability_windows` has
+ * no `service_role` grant at all (owner-only, per its migration) — so this
+ * signs in as the real User first and writes with *their* token, not the
  * service-role key.
  */
 async function sessionFor(email: string, password: string): Promise<{ accessToken: string; userId: string }> {
@@ -53,7 +54,7 @@ export async function insertAvailabilityWindow(
   }
 }
 
-/** Sweeps every Availability Window the given User owns — there's no delete UI either, so this is the only cleanup path. */
+/** Sweeps every Availability Window the given User owns — the safety-net cleanup for specs that seed them, faster than clicking each one away. */
 export async function deleteAvailabilityWindows(user: {
   email: string;
   password: string;

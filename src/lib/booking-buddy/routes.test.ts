@@ -119,9 +119,10 @@ test("the dashboard is its own section, only at the exact root", () => {
   assert.equal(sectionForPath("/booking-buddy"), "dashboard");
 });
 
-test("Games (still /slots) and a single game live under Plan", () => {
+test("Games (still /slots), a single game, and Open time all live under Plan", () => {
   assert.equal(sectionForPath("/booking-buddy/slots"), "plan");
   assert.equal(sectionForPath("/booking-buddy/slots/abc-123"), "plan");
+  assert.equal(sectionForPath("/booking-buddy/availability"), "plan");
 });
 
 test("Bookings and Facilities are siblings under the Bookings section", () => {
@@ -147,7 +148,16 @@ test("pre-auth and off-app paths belong to no section", () => {
 });
 
 test("the pill row shows siblings only where there's a choice", () => {
-  // Bookings + Facilities, Friends + Groups: two real peers → shown.
+  // Plan (Games + Open time), Bookings + Facilities, Friends + Groups: two real
+  // peers → shown.
+  assert.deepEqual(
+    siblingsForPath("/booking-buddy/slots").map((c) => c.label),
+    ["Games", "Open time"],
+  );
+  assert.deepEqual(
+    siblingsForPath("/booking-buddy/availability").map((c) => c.label),
+    ["Games", "Open time"],
+  );
   assert.deepEqual(
     siblingsForPath("/booking-buddy/orgs").map((c) => c.label),
     ["Bookings", "Facilities"],
@@ -156,9 +166,8 @@ test("the pill row shows siblings only where there's a choice", () => {
     siblingsForPath("/booking-buddy/groups").map((c) => c.label),
     ["Friends", "Groups"],
   );
-  // Dashboard, Plan (one child), Settings, pre-auth: nothing to choose between.
+  // Dashboard, Settings, pre-auth: nothing to choose between.
   assert.deepEqual(siblingsForPath("/booking-buddy"), []);
-  assert.deepEqual(siblingsForPath("/booking-buddy/slots"), []);
   assert.deepEqual(siblingsForPath("/booking-buddy/settings"), []);
   assert.deepEqual(siblingsForPath("/booking-buddy/sign-in"), []);
 });

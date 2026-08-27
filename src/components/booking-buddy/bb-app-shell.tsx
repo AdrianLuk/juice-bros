@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarCheckIcon,
   CalendarClockIcon,
+  CalendarRangeIcon,
   ChevronDownIcon,
   LayoutDashboardIcon,
   MapPinIcon,
@@ -46,6 +47,7 @@ const SECTION_ICON: Record<BbSectionId, LucideIcon> = {
 
 const CHILD_ICON: Record<string, LucideIcon> = {
   Games: CalendarClockIcon,
+  "Open time": CalendarRangeIcon,
   Bookings: CalendarCheckIcon,
   Facilities: MapPinIcon,
   Friends: UsersIcon,

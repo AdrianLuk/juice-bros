@@ -4,13 +4,54 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { BOOKING_BUDDY_ROOT } from "../routes.ts";
-import { type ActionResult } from "./result.ts";
-import { availabilityWriteMessage, parseNewAvailabilityWindow } from "../availability.ts";
+import { AVAILABILITY_PATH, BOOKING_BUDDY_ROOT } from "../routes.ts";
+import { readFailed, type ActionResult } from "./result.ts";
+import {
+  availabilityWriteMessage,
+  parseNewAvailabilityWindow,
+  type AvailabilityWindow,
+} from "../availability.ts";
 import { nextCalendarDate } from "../datetime.ts";
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "../orgs.ts";
 
 export type { ActionResult } from "./result.ts";
+
+/**
+ * An `AvailabilityWindow` plus the `id` a delete needs — the shape both the
+ * "Open time" page (`listAvailabilityWindows`) and the dashboard
+ * (`getDashboardPageData`) hand their windows over in.
+ */
+export type AvailabilityWindowRecord = AvailabilityWindow & { id: string };
+
+/**
+ * The caller's own Availability Windows, oldest first — the one read behind
+ * both the "Open time" page (issue #197) and the dashboard calendar/sidebar
+ * (ADR 0006). Raw rows: the "Open time" page splits them into upcoming/past
+ * and the dashboard resolves them against Bookings per visible range, so
+ * neither wants them pre-filtered here.
+ */
+export async function listAvailabilityWindows(): Promise<AvailabilityWindowRecord[]> {
+  const session = await verifySession();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("availability_windows")
+    .select("id, type, starts_at, ends_at, created_at")
+    .eq("owner_id", session.userId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    readFailed("your availability", error);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    type: row.type,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    createdAt: row.created_at,
+  }));
+}
 
 /**
  * Declare a stretch of open or busy time, entirely informational (ADR 0006 —
@@ -57,9 +98,10 @@ export async function createAvailabilityWindow(
     return { error: availabilityWriteMessage(error) };
   }
 
-  // The dashboard is the only place these render (calendar overlay + sidebar
-  // list) — same single revalidation as `createBooking`'s dashboard branch.
+  // Rendered on the dashboard (calendar overlay + sidebar list) and on the
+  // "Open time" page's own list (issue #197) — revalidate both.
   revalidatePath(BOOKING_BUDDY_ROOT);
+  revalidatePath(AVAILABILITY_PATH);
   return { ok: true };
 }
 
@@ -93,5 +135,6 @@ export async function deleteAvailabilityWindow(
   }
 
   revalidatePath(BOOKING_BUDDY_ROOT);
+  revalidatePath(AVAILABILITY_PATH);
   return { ok: true };
 }
