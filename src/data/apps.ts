@@ -18,7 +18,7 @@ export const apps: AppItem[] = [
     title: "Booking Buddy",
     href: "/booking-buddy",
     description:
-      "Plan pickleball with your friends — open a time, see who's in, and keep your court bookings in one place.",
+      "Plan pickleball with your friends. Open a time, see who's in, and keep your court bookings in one place.",
     icon: CalendarCheck,
     status: "live",
   },

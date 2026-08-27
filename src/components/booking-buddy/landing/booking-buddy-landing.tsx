@@ -126,8 +126,8 @@ export function BookingBuddyLanding() {
         visual={<SlotProposalPreview />}
       >
         Drop a day and time and let people say yes, no, or maybe. It starts as a
-        plain proposal &mdash; once someone grabs a court, attach it and Booking
-        Buddy tracks the spots so you know when you&apos;ve got a full game.
+        plain proposal. Once someone grabs a court, attach it and Booking Buddy
+        tracks the spots so you know when you&apos;ve got a full game.
       </FeatureRow>
 
       <FeatureRow
@@ -148,7 +148,7 @@ export function BookingBuddyLanding() {
         visual={<WeekPreview />}
       >
         Confirmed games, proposals still waiting on a court, and your own busy
-        time all land on one calendar &mdash; yours, plus a shared view of the
+        time all land on one calendar: your own, plus a shared view of the
         friends who&apos;ve shared back.
       </FeatureRow>
 
@@ -162,12 +162,12 @@ export function BookingBuddyLanding() {
             </h2>
           </div>
           <p className="text-muted-foreground">
-            Keeping a regular game going meant a group-chat poll, a stack of
+            Keeping a regular game going meant a group-chat poll, a pile of
             &ldquo;maybe&rdquo; replies, and bookings scattered across a few
-            different facility sites &mdash; more admin than pickleball. So we
-            built the one place we wanted for it. It&apos;s free, there are no
-            ads, and your schedule is only ever visible to the friends you
-            connect with, at the level you pick. Nothing here is public.
+            different facility sites. It was more admin than pickleball, so we
+            built the thing we actually wanted. It&apos;s free and has no ads,
+            and your schedule is only ever visible to the friends you connect
+            with, at the level you choose. Nothing here is public.
           </p>
         </div>
       </section>
@@ -185,7 +185,7 @@ export function BookingBuddyLanding() {
             align="center"
           />
           <p className="max-w-md text-white/60">
-            Free to use. Your friends will want accounts too &mdash; that&apos;s
+            Free to use. Your friends will want accounts too, since that&apos;s
             kind of the whole point.
           </p>
           <div className="mt-5 flex flex-col items-center gap-3">

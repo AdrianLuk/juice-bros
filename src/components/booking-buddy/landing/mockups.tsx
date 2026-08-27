@@ -37,7 +37,7 @@ export function SlotProposalPreview() {
 
       <p className="mt-4 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">3 in so far.</span> No court
-        yet &mdash; grab one and attach it to lock the game in.
+        yet. Grab one and attach it to lock the game in.
       </p>
 
       <ul className="mt-3 divide-y divide-border/60 overflow-hidden rounded-lg bg-muted/30 text-sm">
@@ -88,7 +88,7 @@ export function SlotResponsesPreview() {
 
       <p className="mt-4 text-sm">
         <span className="font-medium">3 of 4 spots taken</span>
-        <span className="text-muted-foreground"> &mdash; 1 court</span>
+        <span className="text-muted-foreground"> &middot; 1 court</span>
       </p>
 
       <ul className="mt-3 divide-y divide-border/60 overflow-hidden rounded-lg bg-muted/30 text-sm">

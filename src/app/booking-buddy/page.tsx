@@ -15,7 +15,7 @@ import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Booking Buddy — plan pickleball with your friends",
+  title: "Booking Buddy: plan pickleball with your friends",
   description:
     "A free tool from the Juice Bros for friend groups: post an open time, see who's in, share availability, and keep your court bookings in one place.",
   path: "/booking-buddy",

@@ -19,7 +19,7 @@ export const landingFaqs: Faq[] = [
   {
     question: "Who can see my calendar?",
     answer:
-      "Only the friends you've connected with, and only as much as you choose to share with each group — your open time, the games you invite them to, both, or nothing. None of it is public.",
+      "Only the friends you've connected with, and only as much as you choose to share with each group: your open time, the games you invite them to, both, or nothing. None of it is public.",
   },
   {
     question: "Does it book courts for me?",
