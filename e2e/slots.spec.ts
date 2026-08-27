@@ -117,12 +117,16 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   try {
     await expect(page.getByRole("heading", { name: /Mar 3, 2031/ })).toBeVisible();
     await expect(page.getByText("Proposed by you")).toBeVisible();
+    await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("group", { name: "Your response" }).getByRole("button"),
     ).toHaveCount(3);
 
     await page.goto("/booking-buddy/slots");
     await expect(row(page, "Mar 3, 2031")).toBeVisible();
+    await expect(
+      row(page, "Mar 3, 2031").getByText("Proposal", { exact: true }),
+    ).toBeVisible();
   } finally {
     await deleteSlots([slotId]);
   }
@@ -293,6 +297,7 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
   try {
     // A bare proposal: nothing to fill yet (ADR 0001).
     await expect(page.getByText("still a proposal")).toBeVisible();
+    await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
 
     // Picked by the option's own value: its label is the whole Booking
     // ("when — where · court"), which no exact-label match would survive.
@@ -306,6 +311,9 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     // One court, no buffer — four spots, and nobody has said yes.
     await expect(page.getByText("0 of 4 spots taken")).toBeVisible();
     await expect(page.getByText("1 court")).toBeVisible();
+    // The status chip flips once a court is behind the Slot.
+    await expect(page.getByText("Court booked")).toBeVisible();
+    await expect(page.getByText("Proposal", { exact: true })).toHaveCount(0);
 
     await page.getByLabel("Rotation buffer").fill("2");
     await page.getByRole("button", { name: "Save buffer" }).click();
@@ -332,6 +340,8 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     await detachButtons.click();
     await page.getByRole("button", { name: "Detach booking" }).click();
     await expect(page.getByText("still a proposal")).toBeVisible();
+    await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
+    await expect(page.getByText("Court booked")).toHaveCount(0);
   } finally {
     await deleteSlots([slotId]);
     await removePlace(page, place);

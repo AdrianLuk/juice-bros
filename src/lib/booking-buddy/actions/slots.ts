@@ -43,6 +43,12 @@ export type Slot = {
    * `SlotCapacity.attached`, it never needs the owner-only `bookings` table.
    */
   facilityLabel: string | null;
+  /**
+   * How many courts are attached — `0` is a bare proposal, anything higher
+   * means a court is booked. Same `slot_bookings` read as `facilityLabel`, so
+   * it's identical for the owner and a friend.
+   */
+  courtCount: number;
 };
 
 export type SlotResponse = {
@@ -213,10 +219,12 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
   }
 
   const orgNamesBySlotId = new Map<string, string[]>();
+  const courtCountBySlotId = new Map<string, number>();
   for (const row of attachedRows ?? []) {
     const names = orgNamesBySlotId.get(row.slot_id) ?? [];
     names.push(row.org_name);
     orgNamesBySlotId.set(row.slot_id, names);
+    courtCountBySlotId.set(row.slot_id, (courtCountBySlotId.get(row.slot_id) ?? 0) + 1);
   }
 
   const toSlot = (row: (typeof rows)[number]): Slot => ({
@@ -230,6 +238,7 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
     }),
     proposedStart: row.proposed_start,
     facilityLabel: facilityLabel(orgNamesBySlotId.get(row.id) ?? []),
+    courtCount: courtCountBySlotId.get(row.id) ?? 0,
   });
 
   const own: Slot[] = [];
@@ -374,6 +383,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
       }),
       proposedStart: slotRow.proposed_start,
       facilityLabel: capacity.facilityLabel,
+      courtCount: capacity.courtCount,
     },
     isOwner,
     responses,

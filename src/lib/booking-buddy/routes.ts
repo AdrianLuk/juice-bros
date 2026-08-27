@@ -91,6 +91,13 @@ export function requiresSession(pathname: string): boolean {
 
   const subpath = pathname.slice(BOOKING_BUDDY_ROOT.length);
 
+  // The section root is the public marketing page for signed-out visitors and
+  // the dashboard for signed-in ones — the page itself branches on the session,
+  // so the proxy must let it through either way. Every nested route stays gated.
+  if (subpath === "") {
+    return false;
+  }
+
   return !PUBLIC_SUBPATHS.some(
     (publicSubpath) =>
       subpath === publicSubpath || subpath.startsWith(`${publicSubpath}/`),

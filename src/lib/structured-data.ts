@@ -1,7 +1,8 @@
 import { siteConfig } from "@/config/site";
 import type { Episode } from "@/lib/episodes";
 import type { GearItem, HostGear } from "@/data/gear";
-import type { AppItem } from "@/data/apps";
+import { apps, type AppItem } from "@/data/apps";
+import type { Faq } from "@/lib/booking-buddy/landing-faqs";
 
 /**
  * JSON.stringify doesn't escape "<", so a literal "</script>" inside a
@@ -232,9 +233,43 @@ export function buildToolsJsonLd(apps: AppItem[]) {
 }
 
 /**
+ * BreadcrumbList + SoftwareApplication + FAQPage for the Booking Buddy landing
+ * page. Reachable via /tools, so the breadcrumb runs Home > Tools > Booking
+ * Buddy even though the page itself sits at /booking-buddy.
+ */
+export function buildBookingBuddyLandingJsonLd(faqs: Faq[]) {
+  const app = apps.find((item) => item.slug === "booking-buddy")!;
+  const appUrl = `${siteConfig.url}${app.href}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Tools", item: `${siteConfig.url}/tools` },
+          { "@type": "ListItem", position: 3, name: app.title, item: appUrl },
+        ],
+      },
+      buildSoftwareApplicationJsonLd(app),
+      {
+        "@type": "FAQPage",
+        "@id": `${appUrl}#faq`,
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: { "@type": "Answer", text: faq.answer },
+        })),
+      },
+    ],
+  };
+}
+
+/**
  * BreadcrumbList + SoftwareApplication for one tool's own page, plus an
- * FAQPage node when the page carries a visible FAQ section (the questions and
- * answers must match what's rendered — Google flags mismatched FAQ markup).
+ * FAQPage node when the page carries a visible FAQ section. The questions and
+ * answers must match what's rendered; Google flags FAQ markup that doesn't.
  */
 export function buildAppPageJsonLd(
   app: AppItem,
