@@ -80,6 +80,13 @@ export default async function BookingBuddyPrivacyPage() {
               explicitly connected with or shared a Slot Link with &mdash; it is never
               public and never shared outside Booking Buddy.
             </p>
+            <p>
+              Your personal invite link carries a random token tied to your
+              account. Anyone who has the link can see your name and username on
+              its landing page and, once they sign up, sends you a friend
+              request you still have to accept. Resetting the link from your
+              Friends page makes the old one stop working.
+            </p>
           </Section>
 
           <Section title="Push notifications">
