@@ -13,14 +13,18 @@ import { signUp } from "./support/sign-in.ts";
 const uniqueEmail = () =>
   `empty-states-playwright-${Date.now()}${Math.random().toString(36).slice(2, 8)}@example.com`;
 
-/** Clears onboarding by adding a Facility the hand-typed way, same flow onboarding.spec.ts drives. */
-async function addFacilityByHand(page: Page, name: string) {
-  await page.getByText("Can't find your facility?").click();
-  await page.getByLabel("Facility name").fill(name);
-  await page.getByRole("button", { name: "Add facility" }).click();
+/**
+ * Gets the onboarding modal (#176) out of the way so the dashboard beneath it
+ * is on screen — dismissing it snoozes it (localStorage), so a reload keeps it
+ * gone.
+ */
+async function dismissOnboarding(page: Page) {
+  const dialog = page.getByRole("dialog");
   await expect(
-    page.getByRole("dialog").getByRole("listitem").filter({ hasText: name }),
+    dialog.getByRole("heading", { name: "What do you want to start with?" }),
   ).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(dialog).toHaveCount(0);
 }
 
 test("the Slots page tells a User with nothing posted what Slots are for", async ({ page }) => {
@@ -38,17 +42,11 @@ test("the dashboard's empty calendar and sidebar point a new User at their first
 }) => {
   await signUp(page, uniqueEmail());
 
-  // Onboarding covers the dashboard until the User has a Facility — clear it
-  // so the calendar and sidebar underneath are actually on screen.
-  await expect(
-    page.getByRole("heading", { name: "Add your first facility" }),
-  ).toBeVisible();
-  await addFacilityByHand(page, `EmptyStates ${Date.now()}`);
-  await page.getByRole("dialog").getByRole("button", { name: "Done" }).click();
+  // Onboarding covers the dashboard until the User has a Booking or Slot —
+  // dismiss it so the calendar and sidebar underneath are actually on screen.
+  await dismissOnboarding(page);
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "Add your first facility" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 
   // "Coming up" sidebar — server-rendered alongside every calendar view.
   await expect(page.getByText("Nothing booked yet.")).toBeVisible();

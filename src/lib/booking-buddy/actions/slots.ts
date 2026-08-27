@@ -30,6 +30,15 @@ import { listOrgs, type Org } from "./orgs.ts";
 
 export type { ActionResult } from "./result.ts";
 
+/**
+ * `createSlot`'s result carries the new Slot's id on success, so a caller
+ * that posts a Slot inline (the onboarding modal's "coordinate" branch, #176)
+ * can move straight to sharing it — its Slot Link, a link to its detail page —
+ * without a navigation. Callers that don't need it (the Slots page's own form)
+ * just ignore the extra field.
+ */
+export type CreateSlotResult = ActionResult & { slotId?: string };
+
 export type Slot = {
   id: string;
   ownerId: string;
@@ -403,9 +412,9 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
  * Attaching a Booking is issue #9's.
  */
 export async function createSlot(
-  _prev: ActionResult,
+  _prev: CreateSlotResult,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<CreateSlotResult> {
   const session = await verifySession();
 
   const parsed = parseNewSlotProposal(formData);
@@ -415,20 +424,24 @@ export async function createSlot(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.from("slots").insert({
-    owner_id: session.userId,
-    // Wall-clock strings carrying their own zone, same as Bookings — Postgres
-    // does the DST-aware conversion to an instant.
-    proposed_start: `${parsed.date} ${parsed.startTime}:00 ${parsed.timeZone}`,
-    proposed_end: `${parsed.date} ${parsed.endTime}:00 ${parsed.timeZone}`,
-    time_zone: parsed.timeZone,
-    division: parsed.division,
-    intended_org_id: parsed.orgId,
-    notes: parsed.notes,
-  });
+  const { data: slot, error } = await supabase
+    .from("slots")
+    .insert({
+      owner_id: session.userId,
+      // Wall-clock strings carrying their own zone, same as Bookings — Postgres
+      // does the DST-aware conversion to an instant.
+      proposed_start: `${parsed.date} ${parsed.startTime}:00 ${parsed.timeZone}`,
+      proposed_end: `${parsed.date} ${parsed.endTime}:00 ${parsed.timeZone}`,
+      time_zone: parsed.timeZone,
+      division: parsed.division,
+      intended_org_id: parsed.orgId,
+      notes: parsed.notes,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    return { error: slotWriteMessage(error) };
+  if (error || !slot) {
+    return { error: slotWriteMessage(error ?? {}) };
   }
 
   // `bb_first_slot` (#179) — fired after the response only if this was the
@@ -436,7 +449,7 @@ export async function createSlot(
   after(() => trackFirstSlot(session.userId));
 
   revalidatePath(SLOTS_PATH);
-  return { ok: true };
+  return { ok: true, slotId: slot.id };
 }
 
 /**

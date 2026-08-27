@@ -5,9 +5,13 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
-import { generateSlotLink, type SlotLink } from "@/lib/booking-buddy/actions/slot-links";
+import {
+  generateSlotLink,
+  type GenerateSlotLinkResult,
+  type SlotLink,
+} from "@/lib/booking-buddy/actions/slot-links";
 
-const EMPTY: ActionResult = {};
+const EMPTY: GenerateSlotLinkResult = {};
 
 function ActionError({ state }: { state: ActionResult }) {
   if (!state.error) {
@@ -52,6 +56,11 @@ function CopyLinkButton({ url }: { url: string }) {
  *
  * Only ever renders for the owner — `getSlotLink` is owner-gated by RLS, so
  * a friend viewing the same Slot detail page never reaches this component.
+ *
+ * `slotLink` comes pre-fetched on the Slot detail page (which revalidates
+ * after `generateSlotLink`). Where there's no page re-render to bring it back
+ * — the onboarding "coordinate" branch's share step (#176) — the URL from the
+ * action's own result is used instead, so the link still shows.
  */
 export function SlotLinkPanel({
   slotId,
@@ -62,7 +71,9 @@ export function SlotLinkPanel({
 }) {
   const [state, formAction, pending] = useActionState(generateSlotLink, EMPTY);
 
-  if (!slotLink) {
+  const url = slotLink?.url ?? state.url ?? null;
+
+  if (!url) {
     return (
       <form action={formAction} className="flex flex-col items-start gap-2">
         <input type="hidden" name="slot_id" value={slotId} />
@@ -87,12 +98,12 @@ export function SlotLinkPanel({
       <div className="flex gap-2">
         <Input
           readOnly
-          value={slotLink.url}
+          value={url}
           onFocus={(event) => event.currentTarget.select()}
           className="font-mono text-xs"
           aria-label="Invite link"
         />
-        <CopyLinkButton url={slotLink.url} />
+        <CopyLinkButton url={url} />
       </div>
     </div>
   );

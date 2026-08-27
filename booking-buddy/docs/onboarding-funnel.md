@@ -14,7 +14,7 @@ All are emitted server-side, fire once on the 0 → 1 transition, and carry no p
 | Event | Fires when |
 |---|---|
 | `bb_signup` | first authenticated session for a new account (any sign-in method) |
-| `bb_onboarding_intent` | user picks "track bookings" vs "coordinate a time" — **not live yet**, arrives with #176, will carry `{ intent: "track" \| "coordinate" }` |
+| `bb_onboarding_intent` | user picks an intent in the onboarding modal — carries `{ intent: "track" \| "coordinate" }` (client-side, from `OnboardingModal`) |
 | `bb_first_facility` | user adds their first Facility (Place-backed or hand-typed) |
 | `bb_first_booking` | user logs their first Booking (manual or via Sync from Email) |
 | `bb_first_slot` | user posts their first Slot |
@@ -34,7 +34,7 @@ In the Vercel project → **Analytics** → **Events**:
    the date range, or export via the Analytics API (`/v1/analytics` — the events
    endpoint returns per-event timestamps) and compute `median(first_milestone_ts −
    bb_signup_ts)` per visitor id offline.
-4. **Segment by intent** (once #176 ships `bb_onboarding_intent`): filter the funnel to
+4. **Segment by intent**: filter the funnel to
    visitors who fired `bb_onboarding_intent` with `intent = track` vs `intent =
    coordinate` and compare the two conversion curves. The expectation from #176 is that
    "track" users convert on `bb_first_facility` → `bb_first_booking` and "coordinate"

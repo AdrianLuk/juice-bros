@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -53,6 +53,7 @@ import {
   getSlotResponses,
   setRotationBuffer,
   setSlotNotes,
+  type CreateSlotResult,
   type Slot,
   type SlotCapacity,
   type SlotResponse,
@@ -95,20 +96,45 @@ function HourTimeSelect({
 
 const DEFAULT_START_TIME = "20:00";
 
-export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
-  const [state, formAction, pending] = useActionState(createSlot, EMPTY);
+export function CreateSlotForm({
+  orgs,
+  defaultDate,
+  onPosted,
+}: {
+  orgs: Org[];
+  /** Pre-fills the date field — the onboarding "coordinate" branch seeds next Monday (#176). */
+  defaultDate?: string;
+  /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
+  onPosted?: (slotId: string) => void;
+}) {
+  const [state, formAction, pending] = useActionState<CreateSlotResult, FormData>(
+    createSlot,
+    EMPTY,
+  );
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, same as the Booking form's own duration picker.
   const duration = useDurationInput(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
 
+  useEffect(() => {
+    if (state.ok && state.slotId) {
+      onPosted?.(state.slotId);
+    }
+  }, [state, onPosted]);
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-date">Date</Label>
-          <Input id="slot-date" name="date" type="date" required />
+          <Input
+            id="slot-date"
+            name="date"
+            type="date"
+            defaultValue={defaultDate}
+            required
+          />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
