@@ -4,6 +4,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
+import { InviteLinkPanel } from "@/components/booking-buddy/invite-link-panel";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
 import { FriendCalendarDialog } from "@/components/booking-buddy/friend-calendar-dialog";
@@ -13,6 +14,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
 import { getFriendVisibilityList } from "@/lib/booking-buddy/actions/friend-groups";
+import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
 import { BOOKING_BUDDY_ROOT, GROUPS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -34,6 +36,7 @@ export default async function FriendsPage() {
   const { friends, received, sent, calendarVisibleFriendIds } =
     await getFriendsPageData();
   const friendVisibility = await getFriendVisibilityList(friends);
+  const inviteUrl = await getOwnInviteUrl();
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -52,6 +55,21 @@ export default async function FriendsPage() {
           </div>
 
           <div className="mt-10 flex flex-col gap-12">
+            {inviteUrl && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Invite a friend
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Not on Booking Buddy yet? Send them your link — it connects
+                  them to you when they sign up.
+                </p>
+                <div className="mt-4">
+                  <InviteLinkPanel url={inviteUrl} />
+                </div>
+              </section>
+            )}
+
             <FriendSearch />
 
             <ConnectionList

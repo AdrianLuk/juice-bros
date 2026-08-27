@@ -95,6 +95,10 @@ The organizer's own hint, on a still-bare-proposal Slot, at which Org they plan 
 **Slot Link**:
 A unique, shareable URL generated for a single Slot. Anyone holding the link can view that Slot's preview and RSVP, regardless of Connection status — it does not expose the organizer's broader calendar, only the one Slot it was generated for.
 
+**Invite Link**:
+A User's own personal, shareable URL — `/booking-buddy/join/<token>`, where the token is a stable-but-rotatable `profiles.invite_token` assigned automatically at signup. Its purpose is the cold start: every other way to connect (`search_users`) only finds people who already have an account, so a new User whose friends aren't on Booking Buddy yet has no way in. Opening the link resolves to a pending friend request back to the owner — never an accepted Connection, so the mutual-accept model (see Connection) is untouched. A signed-out visitor sees a "<Name> invited you" landing and is routed through normal sign-in/sign-up with the token carried across the round trip (a short-lived cookie); on the first signup through it, the request is auto-created. A signed-in visitor gets an explicit "send request" button, or a friendly no-op if already connected / it's their own link. Rotating the token invalidates the old URL, cutting off a link shared too widely. One token per User, no history — not to be confused with a Slot Link (one per Slot, Guest-facing, RSVP-only).
+_Avoid_: Referral link, Invite code (it's a link, and it carries identity, not a discount)
+
 **Guest**:
 Someone who RSVPs to a Slot via its Slot Link without holding a Booking Buddy account or being a Connection of the organizer. Identified by name only. RSVPing as a Guest does not create a Connection — becoming friends in the app is a separate, deliberate action.
 _Avoid_: Player (a Booking's own record of who was on the court, which can link to a Connection and belongs to a different list entirely — see Player)

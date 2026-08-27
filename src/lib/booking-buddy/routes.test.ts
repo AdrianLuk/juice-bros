@@ -46,6 +46,21 @@ test("the public Slot Link route is reachable without a session", () => {
   assert.equal(requiresSession("/s/abc123token"), false);
 });
 
+test("a personal invite link is reachable without a session", () => {
+  // The friend it's shared with isn't on Booking Buddy yet (issue #175).
+  assert.equal(requiresSession("/booking-buddy/join/On50PU-xRzWq5iKjnpJRXjil"), false);
+  assert.equal(requiresSession("/booking-buddy/join"), false);
+});
+
+test("the join route is never a post-sign-in redirect target", () => {
+  // It's public, so `safeRedirectTarget` drops it — a freshly-signed-in User
+  // is carried on by the invite cookie, not by bouncing back through /join.
+  assert.equal(
+    safeRedirectTarget("/booking-buddy/join/On50PU-xRzWq5iKjnpJRXjil"),
+    "/booking-buddy",
+  );
+});
+
 // `?next=` comes off the URL, so it is attacker-controllable: a crafted value
 // must never bounce a freshly-signed-in User off to another origin.
 

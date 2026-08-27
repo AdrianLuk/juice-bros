@@ -5,6 +5,7 @@ import {
   BOOKINGS_PATH,
   FRIENDS_PATH,
   GROUPS_PATH,
+  JOIN_PATH,
   ORGS_PATH,
   SETTINGS_PATH,
   SLOTS_PATH,
@@ -17,9 +18,10 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Booking Buddy's public pages (/booking-buddy landing, its sign-in and
-      // privacy pages) stay crawlable; its signed-in-only feature routes and
-      // the tokenised guest Slot Links do not - they're private and, for a
-      // crawler, just redirect to sign-in anyway.
+      // privacy pages) stay crawlable; its signed-in-only feature routes, the
+      // tokenised guest Slot Links, and the personal invite links do not -
+      // they're private and, for a crawler, either redirect to sign-in or are
+      // one person's link, not a page.
       disallow: [
         FRIENDS_PATH,
         GROUPS_PATH,
@@ -27,6 +29,7 @@ export default function robots(): MetadataRoute.Robots {
         BOOKINGS_PATH,
         SLOTS_PATH,
         SETTINGS_PATH,
+        `${JOIN_PATH}/`,
         `${SLOT_LINK_ROOT}/`,
       ],
     },
