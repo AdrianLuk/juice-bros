@@ -1,7 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { signUp } from "./support/sign-in.ts";
-import { GooglePlacesMock, deleteCachedPlaces } from "./support/google-places-mock.ts";
 
 /**
  * The intent-branched Onboarding modal (issue #176, reshaping #103) — shown on
@@ -9,6 +8,13 @@ import { GooglePlacesMock, deleteCachedPlaces } from "./support/google-places-mo
  * test signs up a brand-new throwaway account (`signUp`): a fresh signup
  * naturally starts with nothing, and localStorage (the dismissal snooze) is
  * per-context, so tests don't leak the snooze into each other.
+ *
+ * The Google-Places search path into "add a facility" is not re-tested here —
+ * `places.spec.ts` covers search → pick → Org end to end, and the branch-A
+ * "adding a facility swaps the panel" test below already covers the one
+ * onboarding-specific concern (that the modal advances to the booking step).
+ * Keeping the Places mock out of this file also keeps it free of `place_cache`
+ * cleanup and the reused-dev-server caveat that mock carries.
  */
 
 const uniqueEmail = () =>
@@ -38,21 +44,6 @@ async function addFacilityByHand(page: Page, name: string) {
   await page.getByLabel("Facility name").fill(name);
   await page.getByRole("button", { name: "Add facility" }).click();
 }
-
-let mock: GooglePlacesMock;
-
-test.beforeAll(async () => {
-  mock = new GooglePlacesMock();
-  await mock.start();
-});
-
-test.afterAll(async () => {
-  // The app can't evict a cached Place (ADR 0005), so anything this suite
-  // caches has to be cleaned up directly or place_cache row-count assertions
-  // elsewhere drift — same as places.spec.ts's own afterAll.
-  await deleteCachedPlaces(mock.cacheablePlaceIds());
-  await mock.stop();
-});
 
 test("a fresh account lands on the intent choice, not a form", async ({ page }) => {
   await signUp(page, uniqueEmail());
@@ -200,32 +191,4 @@ test("dismissing snoozes it — it doesn't reappear on the next load", async ({ 
   await page.evaluate(() => window.localStorage.removeItem("bb-onboarding-snoozed-until"));
   await page.reload();
   await expect(intentHeading(page)).toBeVisible();
-});
-
-test("the search flow adds a Facility the same way the hand-typed one does", async ({
-  page,
-}) => {
-  const query = uniqueName();
-  const placeId = `mock-${query}`;
-  const address = "123 Onboarding Street, Toronto, ON";
-
-  mock.registerSearch(query, [{ placeId, name: query, formattedAddress: address }]);
-  mock.registerDetails(placeId, {
-    placeId,
-    name: query,
-    formattedAddress: address,
-    latitude: 43.7,
-    longitude: -79.4,
-  });
-
-  await signUp(page, uniqueEmail());
-  await chooseTrack(page);
-
-  await page.getByLabel("Search for your facility").fill(query);
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await page.getByRole("button", { name: "Add this facility" }).click();
-
-  await expect(
-    page.getByRole("heading", { name: "Log your first booking" }),
-  ).toBeVisible();
 });
