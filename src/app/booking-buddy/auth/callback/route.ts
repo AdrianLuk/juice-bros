@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 
 import { createClient } from "@/lib/booking-buddy/supabase/server";
+import { trackSignupOnce } from "@/lib/booking-buddy/analytics";
 import { safeRedirectTarget, SIGN_IN_PATH } from "@/lib/booking-buddy/routes";
 
 /**
@@ -24,13 +25,20 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     // Most often an expired or already-used link.
     return NextResponse.redirect(
       new URL(`${SIGN_IN_PATH}?error=link_invalid`, origin),
     );
+  }
+
+  // Magic-link and OAuth sign-ins both land here; `trackSignupOnce` fires
+  // `bb_signup` only on the first authenticated session per account (#179).
+  const userId = data.user?.id;
+  if (userId) {
+    after(() => trackSignupOnce(userId));
   }
 
   return NextResponse.redirect(new URL(next, origin));

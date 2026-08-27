@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
+import { trackFirstBooking } from "../analytics.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
@@ -317,6 +319,12 @@ export async function insertValidatedBooking(
   if (error || !booking) {
     return { error: bookingWriteMessage(error ?? {}) };
   }
+
+  // `bb_first_booking` (#179) — fired after the response only if this was the
+  // caller's first Booking. Covers `createBooking` and `confirmImportCandidate`
+  // alike, since both land here. Placed ahead of the Players write so a
+  // Players-only failure below doesn't suppress it — the Booking has committed.
+  after(() => trackFirstBooking(ownerId));
 
   const playersError = await insertBookingPlayers(booking.id, parsed.players);
 

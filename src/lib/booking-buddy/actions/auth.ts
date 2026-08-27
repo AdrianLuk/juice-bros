@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
+import { trackSignupOnce } from "../analytics.ts";
 import { BOOKING_BUDDY_ROOT, SIGN_IN_PATH, safeRedirectTarget } from "../routes.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
 
@@ -53,12 +55,18 @@ export async function signInWithPassword(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     // Not echoed verbatim: Supabase distinguishes wrong password from unknown
     // address, which would confirm whether an address has an account.
     return { error: "That email and password don't match." };
+  }
+
+  // Fires `bb_signup` only on this account's first authenticated session (#179).
+  const userId = data.user?.id;
+  if (userId) {
+    after(() => trackSignupOnce(userId));
   }
 
   revalidatePath(BOOKING_BUDDY_ROOT, "layout");
@@ -114,7 +122,7 @@ export async function signInWithGoogleIdToken(
   next: string,
 ): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithIdToken({
+  const { data, error } = await supabase.auth.signInWithIdToken({
     provider: "google",
     token: idToken,
     nonce,
@@ -122,6 +130,12 @@ export async function signInWithGoogleIdToken(
 
   if (error) {
     redirect(`${SIGN_IN_PATH}?error=google_unavailable`);
+  }
+
+  // Fires `bb_signup` only on this account's first authenticated session (#179).
+  const userId = data.user?.id;
+  if (userId) {
+    after(() => trackSignupOnce(userId));
   }
 
   revalidatePath(BOOKING_BUDDY_ROOT, "layout");

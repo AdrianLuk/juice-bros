@@ -7,6 +7,7 @@ import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, ORGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
+import { trackFirstFacility } from "../analytics.ts";
 import {
   orgDisplayName,
   orgWriteMessage,
@@ -167,6 +168,10 @@ export async function createOrg(
   if (error) {
     return { error: orgWriteMessage(error, "create") };
   }
+
+  // `bb_first_facility` (#179), fired after the response only if this was the
+  // caller's first Facility — same for the Place-backed path in `pickPlace`.
+  after(() => trackFirstFacility(session.userId));
 
   revalidatePath(ORGS_PATH);
   revalidatePath(BOOKINGS_PATH);

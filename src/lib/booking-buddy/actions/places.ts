@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
+import { trackFirstFacility } from "../analytics.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, ORGS_PATH } from "../routes.ts";
 import type { ActionResult } from "./result.ts";
 import { orgWriteMessage } from "../orgs.ts";
@@ -125,6 +127,9 @@ export async function pickPlace(
   if (error) {
     return { error: orgWriteMessage(error, "create") };
   }
+
+  // `bb_first_facility` (#179) — see the matching call in `createOrg`.
+  after(() => trackFirstFacility(session.userId));
 
   revalidatePath(ORGS_PATH);
   revalidatePath(BOOKINGS_PATH);

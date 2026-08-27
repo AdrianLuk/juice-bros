@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "../supabase/admin.ts";
+import { slotHasNoResponsesYet, trackFunnelEvent } from "../analytics.ts";
 import { formatSlotWhen } from "../slots.ts";
 import { computeCapacity } from "../capacity.ts";
 import {
@@ -186,6 +188,10 @@ export async function guestRespondViaLink(
   const ip = clientIp(requestHeaders.get("x-forwarded-for"));
   const userAgent = requestHeaders.get("user-agent");
 
+  // Checked before the insert, same as the signed-in `respondToSlot` path, so
+  // `bb_slot_first_response` (#179) fires on the 0 -> 1 transition only.
+  const slotWasEmpty = await slotHasNoResponsesYet(supabase, link.slot_id);
+
   const { error: responseError } = await supabase.from("responses").insert({
     slot_id: link.slot_id,
     guest_name: parsed.guestName,
@@ -195,6 +201,10 @@ export async function guestRespondViaLink(
   if (responseError) {
     console.error("booking-buddy: recording a guest RSVP failed", responseError);
     return { error: guestRsvpMessage("write_failed") };
+  }
+
+  if (slotWasEmpty) {
+    after(() => trackFunnelEvent("bb_slot_first_response"));
   }
 
   // Best-effort: the RSVP itself already succeeded, and a logging hiccup
