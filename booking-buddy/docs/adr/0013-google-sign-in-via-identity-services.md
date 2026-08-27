@@ -65,8 +65,16 @@ use rather than a full-page OAuth redirect through the auth provider's own domai
 
 ## Consequences
 
-- Google's consent screen now shows this app's own domain, not the Supabase project
+- Google's sign-in prompt now shows this app's own domain, not the Supabase project
   URL — the whole point.
+- **The Cloud Console consent screen's publishing status no longer gates sign-in.**
+  GSI `signInWithIdToken` is pure OpenID Connect authentication (`openid`/`email`/
+  `profile`, no access token, no extra scopes) — it never hits the OAuth
+  authorization/consent path where "Testing" mode limits access to listed test users
+  and where the "unverified app" interstitial appears. Any Google account can sign in
+  regardless of whether that screen is Testing or In production. The Testing-mode
+  restriction still applies to the *Gmail-sync* client (`gmail.readonly`, a Restricted
+  Scope — see ADR-0009), which is a separate OAuth client and unaffected by this ADR.
 - The old redirect-based `signInWithGoogle` action and its `?error=google_unavailable`
   failure path are gone from that code path, replaced by `signInWithGoogleIdToken`
   (same error copy, reused, since the client component's failure path routes to the
