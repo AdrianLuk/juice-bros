@@ -12,6 +12,7 @@ import { BookingBuddyLanding } from "@/components/booking-buddy/landing/booking-
 import { getOptionalSession, verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
+import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
 import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -44,14 +45,19 @@ export default async function BookingBuddyPage() {
   // now the one place Gender is surfaced (ADR 0012) — so the profiles round
   // trip that seeds it is paid only under that same condition, not on every
   // later load of the app's most-visited route.
-  const gender =
-    !hasBooking && !hasSlot ? (await getOwnProfile()).gender : null;
+  // The modal only opens under this same condition, so its friend-footer
+  // invite link (#175) and the Gender seed are both paid only here, not on
+  // every later load of the app's most-visited route.
+  const onboardingCanShow = !hasBooking && !hasSlot;
+  const gender = onboardingCanShow ? (await getOwnProfile()).gender : null;
+  const inviteUrl = onboardingCanShow ? await getOwnInviteUrl() : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
       <OnboardingModal
         orgs={orgs}
         gender={gender}
+        inviteUrl={inviteUrl}
         hasBooking={hasBooking}
         hasSlot={hasSlot}
       />

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { trackSignupOnce } from "../analytics.ts";
+import { consumeInviteCookie } from "../invite-connection.ts";
 import { BOOKING_BUDDY_ROOT, SIGN_IN_PATH, safeRedirectTarget } from "../routes.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
 
@@ -66,6 +67,9 @@ export async function signInWithPassword(
   // Fires `bb_signup` only on this account's first authenticated session (#179).
   const userId = data.user?.id;
   if (userId) {
+    // Before the redirect, not in `after()`: it clears a cookie, which can
+    // only happen while the response is still being built.
+    await consumeInviteCookie(supabase, userId);
     after(() => trackSignupOnce(userId));
   }
 
@@ -87,7 +91,7 @@ export async function signUpWithPassword(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -99,6 +103,15 @@ export async function signUpWithPassword(
 
   if (error) {
     return { error: error.message };
+  }
+
+  // With email confirmation on (real deploys), there's no session yet and the
+  // invite cookie is consumed later at the callback route instead. With it
+  // off (local), `signUp` returns a live session — create the pending friend
+  // request now, so a token-carried signup connects here too (issue #175).
+  const userId = data.user?.id;
+  if (userId && data.session) {
+    await consumeInviteCookie(supabase, userId);
   }
 
   return { sent: true };
@@ -135,6 +148,7 @@ export async function signInWithGoogleIdToken(
   // Fires `bb_signup` only on this account's first authenticated session (#179).
   const userId = data.user?.id;
   if (userId) {
+    await consumeInviteCookie(supabase, userId);
     after(() => trackSignupOnce(userId));
   }
 

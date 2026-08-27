@@ -19,6 +19,7 @@ import { CreateBookingForm } from "@/components/booking-buddy/bookings";
 import { CreateSlotForm } from "@/components/booking-buddy/slots";
 import { GenderForm } from "@/components/booking-buddy/gender-form";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
+import { InviteLinkPanel } from "@/components/booking-buddy/invite-link-panel";
 import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
@@ -101,11 +102,14 @@ function nextMondayDate(): string {
 export function OnboardingModal({
   orgs,
   gender,
+  inviteUrl,
   hasBooking,
   hasSlot,
 }: {
   orgs: Org[];
   gender: Gender | null;
+  /** The caller's own personal invite link (#175), for the friend footer. Null when the modal can't open anyway. */
+  inviteUrl: string | null;
   hasBooking: boolean;
   hasSlot: boolean;
 }) {
@@ -156,7 +160,7 @@ export function OnboardingModal({
           />
         )}
 
-        {intent !== null && <FriendFooter />}
+        {intent !== null && <FriendFooter inviteUrl={inviteUrl} />}
       </DialogContent>
     </Dialog>
   );
@@ -328,7 +332,7 @@ function CoordinateBranch({
   );
 }
 
-function FriendFooter() {
+function FriendFooter({ inviteUrl }: { inviteUrl: string | null }) {
   return (
     <div className="border-t border-border pt-6">
       <p className="text-sm font-medium">Add the people you play with</p>
@@ -339,6 +343,18 @@ function FriendFooter() {
       <div className="mt-4">
         <FriendSearch />
       </div>
+
+      {inviteUrl && (
+        <div className="mt-6 border-t border-border pt-6">
+          <p className="text-sm font-medium">Or send them a link</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            For friends who aren&apos;t on Booking Buddy yet.
+          </p>
+          <div className="mt-4">
+            <InviteLinkPanel url={inviteUrl} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
