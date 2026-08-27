@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodeHook } from "@/lib/youtube";
-import { getEpisodes, type Episode } from "@/lib/episodes";
+import { episodeMetaTitle, getEpisodes, type Episode } from "@/lib/episodes";
 import { buildEpisodeJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
 
@@ -39,7 +39,7 @@ export async function generateMetadata({
   const episode = await resolveEpisode(slug);
 
   return pageMetadata({
-    title: episode.title,
+    title: episodeMetaTitle(episode.title),
     description: getEpisodeHook(episode.description),
     path: `/podcast/${episode.slug}`,
     // maxresdefault (1280x720) rather than the 480x360 hqdefault used in
