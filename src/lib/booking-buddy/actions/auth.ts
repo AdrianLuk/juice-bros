@@ -96,20 +96,36 @@ export async function signUpWithPassword(
   return { sent: true };
 }
 
-export async function signInWithGoogle(formData: FormData): Promise<void> {
-  const next = safeRedirectTarget(String(formData.get("next") ?? ""));
-
+/**
+ * Called directly from `GoogleSignInButton` (not a `<form action>`) — the ID
+ * token comes back from Google Identity Services' own callback, not a form
+ * submit. See ADR-0013 for why sign-in went this way instead of
+ * `signInWithOAuth`'s redirect (which showed Google's consent screen as
+ * Supabase's raw project URL, not this app's own domain).
+ *
+ * `nonce` is the *raw* value the button generated client-side — Supabase
+ * hashes it itself to compare against the ID token's `nonce` claim, so this
+ * must not be pre-hashed here (unlike the hashed nonce Google's `initialize`
+ * call was given).
+ */
+export async function signInWithGoogleIdToken(
+  idToken: string,
+  nonce: string,
+  next: string,
+): Promise<void> {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { error } = await supabase.auth.signInWithIdToken({
     provider: "google",
-    options: { redirectTo: await callbackUrl(next) },
+    token: idToken,
+    nonce,
   });
 
-  if (error || !data.url) {
+  if (error) {
     redirect(`${SIGN_IN_PATH}?error=google_unavailable`);
   }
 
-  redirect(data.url);
+  revalidatePath(BOOKING_BUDDY_ROOT, "layout");
+  redirect(safeRedirectTarget(next));
 }
 
 export async function signOut(): Promise<void> {

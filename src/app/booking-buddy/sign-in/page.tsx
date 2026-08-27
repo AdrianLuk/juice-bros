@@ -6,6 +6,7 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { SignInForm } from "@/components/booking-buddy/sign-in-form";
 import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
+import { readGoogleSignInClientId } from "@/lib/booking-buddy/env";
 import { PRIVACY_PATH, safeRedirectTarget } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -41,7 +42,11 @@ export default async function SignInPage({
           />
 
           <div className="bb-card mt-8 p-6 sm:p-8">
-            <SignInForm next={target} error={error} />
+            <SignInForm
+              next={target}
+              error={error}
+              googleClientId={readGoogleSignInClientId()}
+            />
           </div>
 
           <FooterNav>
