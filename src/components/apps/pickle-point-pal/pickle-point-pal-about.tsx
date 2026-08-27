@@ -17,34 +17,36 @@ export function PicklePointPalAbout() {
         A pickleball scorekeeper that thinks like a referee
       </h2>
       <p className="mt-4">
-        Pickle Point Pal is a free pickleball scorekeeping app for the person
-        holding the phone at the net. Set the format, run the coin toss, and tap
-        one button per rally &mdash; it does the rest: the full three-number
-        score call, server 1 and server 2 through every side-out, the mid-game
-        side switch, standard and medical timeouts with a clock that survives a
-        screen lock, and technical warnings and fouls. It works for singles and
-        doubles, side-out or rally scoring, one game or best of five.
+        Pickle Point Pal is a free pickleball scorekeeping app for whoever ends
+        up keeping score at the net. You set the format and run the coin toss,
+        then tap one button per rally. It tracks the full three-number score
+        call, server 1 and server 2 through every side-out, the mid-game side
+        switch, standard and medical timeouts on a clock that survives a screen
+        lock, and technical warnings and fouls. It works for singles and
+        doubles, side-out or rally scoring, a single game or best of five.
       </p>
       <p className="mt-4">
-        No account, no install, no ads. It runs in your browser and keeps
-        working offline once you&apos;ve loaded it, so a dead signal at the court
-        doesn&apos;t cost you the match. Every tap is undoable, and a running
-        match log records what happened if a score is ever questioned.
+        There&apos;s no account to make and nothing to install, and it
+        doesn&apos;t run ads. It works in your browser and keeps going offline
+        once the page has loaded, so a dead signal at the court won&apos;t cost
+        you the match. Every tap can be undone, and a running match log keeps a
+        record you can point to if a score is ever questioned.
       </p>
 
       <h3 className="mt-10 font-heading text-lg font-bold text-neutral-950">
         How pickleball scoring works
       </h3>
       <p className="mt-3">
-        In side-out (traditional) scoring, only the serving team can score a
-        point. A doubles score is called as three numbers &mdash; serving
-        team&apos;s score, receiving team&apos;s score, and whether the current
-        server is the first or second server for that team. Both players on a
-        team serve before the serve passes to the other side, except for the
-        very first service turn of the game. Rally scoring awards a point on
-        every rally regardless of who served, which makes games faster and the
-        math simpler. Pickle Point Pal keeps the call straight in either format
-        so you can watch the court instead of doing arithmetic.
+        In side-out scoring, the traditional format, only the serving team can
+        score a point. A doubles score is called as three numbers: the serving
+        team&apos;s score, the receiving team&apos;s score, and whether the
+        current server is that team&apos;s first or second server. Both players
+        on a team get a turn to serve before the serve passes to the other side,
+        with an exception for the first service turn of the game. Rally scoring
+        gives a point to the winner of every rally no matter who served, which
+        makes games quicker and the count easier to follow. Pickle Point Pal
+        keeps the call straight in either format so you can watch the court
+        instead of doing the arithmetic.
       </p>
 
       <h3 className="mt-10 font-heading text-lg font-bold text-neutral-950">
@@ -67,15 +69,15 @@ export function PicklePointPalAbout() {
         >
           pickleball tools
         </Link>{" "}
-        from Juice Bros Pickleball, a podcast for everyday players. New to the
-        show? Start with the{" "}
+        from Juice Bros Pickleball, a podcast for everyday players. If
+        you&apos;re new to the show, the{" "}
         <Link
           href="/podcast"
           className="font-medium text-brand-orange underline underline-offset-4"
         >
           episodes
-        </Link>
-        .
+        </Link>{" "}
+        are a good place to start.
       </p>
     </section>
   );

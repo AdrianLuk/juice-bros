@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   ...pageMetadata({
     title: app.title,
     description:
-      "Free pickleball scorekeeping app that tracks the score, server 1 and 2, side switches, and timeouts like a referee - side-out or rally scoring, works offline, no account.",
+      "Free pickleball scorekeeping app that tracks the score, server 1 and 2, side switches, and timeouts the way a referee would. Side-out or rally scoring, works offline, no account needed.",
     path: app.href,
   }),
   manifest: "/pickle-point-pal.webmanifest",
