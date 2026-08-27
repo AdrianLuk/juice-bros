@@ -9,7 +9,7 @@ import { AppCard } from "@/components/apps/app-card";
 export const metadata: Metadata = pageMetadata({
   title: "Tools",
   description:
-    "Free pickleball tools from Juice Bros Pickleball.",
+    "Free browser-based pickleball tools from Juice Bros Pickleball - live scorekeeping and serve tracking now, with more helpers for everyday players on the way.",
   path: "/tools",
 });
 
