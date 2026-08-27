@@ -76,16 +76,18 @@ function DesktopSectionItem({
       href={section.primary}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
         active
-          ? "bg-secondary text-secondary-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "bg-brand-orange text-white shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+          : "text-foreground/75 hover:bg-brand-orange/10 hover:text-brand-orange",
       )}
     >
-      <Icon className="size-4" />
+      <Icon
+        className={cn("size-4", active ? "text-white" : "text-brand-orange")}
+      />
       {section.label}
       {hasDropdown && (
-        <ChevronDownIcon className="size-3 opacity-60 transition-transform duration-200 group-hover/sec:rotate-180 group-focus-within/sec:rotate-180" />
+        <ChevronDownIcon className="size-3 opacity-70 transition-transform duration-200 group-hover/sec:rotate-180 group-focus-within/sec:rotate-180" />
       )}
     </Link>
   );
@@ -98,7 +100,7 @@ function DesktopSectionItem({
     <div className="group/sec relative">
       {trigger}
       <div className="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-opacity duration-150 group-hover/sec:visible group-hover/sec:opacity-100 group-focus-within/sec:visible group-focus-within/sec:opacity-100">
-        <div className="min-w-44 rounded-lg border border-border/60 bg-popover p-1 text-popover-foreground shadow-md">
+        <div className="min-w-44 rounded-xl border border-brand-orange/15 bg-popover p-1 text-popover-foreground shadow-[0_8px_28px_-12px_oklch(0.55_0.16_40/0.4)]">
           {section.children.map((child) => {
             const ChildIcon = CHILD_ICON[child.label];
             const childActive = isChildActive(pathname, child.href);
@@ -108,13 +110,13 @@ function DesktopSectionItem({
                 href={child.href}
                 aria-current={childActive ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors",
+                  "flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
                   childActive
-                    ? "bg-muted font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? "bg-brand-orange/15 font-medium text-brand-orange"
+                    : "text-foreground/75 hover:bg-brand-orange/10 hover:text-brand-orange",
                 )}
               >
-                {ChildIcon && <ChildIcon className="size-4" />}
+                {ChildIcon && <ChildIcon className="size-4 text-brand-orange" />}
                 {child.label}
               </Link>
             );
@@ -132,14 +134,14 @@ export function BbAppShell() {
   return (
     <>
       {/* Desktop: sticky full-width top bar. */}
-      <header className="sticky top-0 z-40 hidden w-full border-b border-border/60 bg-background/85 backdrop-blur-sm sm:block">
+      <header className="sticky top-0 z-40 hidden w-full border-b border-brand-orange/40 bg-secondary/85 backdrop-blur-sm sm:block">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:px-6 lg:px-8">
           <Link
             href={BOOKING_BUDDY_ROOT}
-            className="mr-3 flex items-center gap-2 rounded-md py-1 pr-1"
+            className="mr-3 flex items-center gap-2 rounded-lg py-1 pr-1.5 transition-colors hover:bg-brand-orange/10"
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
-            <img src="/brand/JB_Logo.svg" alt="" className="size-6 shrink-0" />
+            <img src="/brand/JB_Logo.svg" alt="" className="size-7 shrink-0" />
             <span className="font-heading text-sm font-semibold tracking-tight">
               Booking Buddy
             </span>
@@ -155,18 +157,23 @@ export function BbAppShell() {
           ))}
 
           <div className="ml-auto flex items-center gap-2">
-            <span aria-hidden className="h-5 w-px bg-border" />
+            <span aria-hidden className="h-5 w-px bg-brand-orange/30" />
             <Link
               href={SETTINGS_PATH}
               aria-current={activeSection === "settings" ? "page" : undefined}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                 activeSection === "settings"
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "bg-brand-orange text-white shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+                  : "text-foreground/75 hover:bg-brand-orange/10 hover:text-brand-orange",
               )}
             >
-              <SettingsIcon className="size-4" />
+              <SettingsIcon
+                className={cn(
+                  "size-4",
+                  activeSection === "settings" ? "text-white" : "text-brand-orange",
+                )}
+              />
               Settings
             </Link>
           </div>
@@ -176,7 +183,7 @@ export function BbAppShell() {
       {/* Mobile: fixed bottom tab bar. Not a bottom-right FAB — that corner is
           the dashboard's quick-add. */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-border/60 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-brand-orange/30 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:hidden"
         aria-label="Booking Buddy"
       >
         {BB_SECTIONS.map((section) => {
@@ -188,11 +195,15 @@ export function BbAppShell() {
               href={section.primary}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 text-[0.65rem] font-medium transition-colors",
-                active ? "text-primary" : "text-muted-foreground",
+                "relative flex flex-1 flex-col items-center justify-center gap-1 text-[0.65rem] font-medium transition-colors",
+                active
+                  ? "font-semibold text-brand-orange before:absolute before:inset-x-4 before:top-0 before:h-[3px] before:rounded-full before:bg-brand-orange"
+                  : "text-muted-foreground",
               )}
             >
-              <Icon className="size-5" />
+              <Icon
+                className={cn("size-5", active && "text-brand-orange")}
+              />
               {section.label}
             </Link>
           );

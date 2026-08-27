@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 import { siblingsForPath } from "@/lib/booking-buddy/routes";
 
 /**
@@ -38,11 +37,10 @@ export function BbSectionNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              buttonVariants({
-                variant: active ? "secondary" : "ghost",
-                size: "sm",
-              }),
-              "rounded-full",
+              "inline-flex h-7 items-center rounded-full px-3 text-[0.8rem] font-medium transition-colors",
+              active
+                ? "bg-brand-orange text-white shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+                : "text-foreground/70 hover:bg-brand-orange/10 hover:text-brand-orange",
             )}
           >
             {label}
