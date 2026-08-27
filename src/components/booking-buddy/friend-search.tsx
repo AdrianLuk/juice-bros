@@ -49,7 +49,7 @@ export function FriendSearch() {
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Search by name, or by their exact username or email. Booking Buddy
-        isn&apos;t a browsable directory — you need one of those to find someone.
+        isn&apos;t a browsable directory, so you need one of those to find someone.
       </p>
 
       {/* No form: results stream in as you type, and there is nothing to
@@ -71,7 +71,7 @@ export function FriendSearch() {
       <div className="mt-4" aria-live="polite">
         {term.trim().length > 0 && tooShort && (
           <p className="text-sm text-muted-foreground">
-            Keep typing — at least {MIN_QUERY_LENGTH} characters.
+            Keep typing. At least {MIN_QUERY_LENGTH} characters.
           </p>
         )}
 
@@ -100,7 +100,7 @@ export function FriendSearch() {
 
         {!tooShort && search.isSuccess && results.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Nobody matches that. Ask them for their username — searching part of
+            Nobody matches that. Ask them for their username. Searching part of
             an email or handle won&apos;t find them.
           </p>
         )}

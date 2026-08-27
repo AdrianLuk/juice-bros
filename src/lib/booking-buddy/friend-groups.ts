@@ -27,7 +27,7 @@ export function parseNewGroup(formData: FormData): NewGroup | { error: string } 
 
   if (name.length > GROUP_NAME_MAX_LENGTH) {
     return {
-      error: `That name is too long — ${GROUP_NAME_MAX_LENGTH} characters at most.`,
+      error: `That name is too long. ${GROUP_NAME_MAX_LENGTH} characters at most.`,
     };
   }
 

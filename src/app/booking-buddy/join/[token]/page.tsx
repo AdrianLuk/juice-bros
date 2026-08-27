@@ -92,7 +92,7 @@ export default async function JoinPage({
         <div className="bb-card mt-8 flex flex-col items-start gap-4 p-6">
           <p className="text-sm text-muted-foreground">
             Sign in or create an account and we&apos;ll send {ownerName} a
-            friend request from you. They&apos;ll need to accept it — an invite
+            friend request from you. They&apos;ll need to accept it. An invite
             link never connects you automatically.
           </p>
           <form action={startInviteSignIn}>
@@ -103,7 +103,7 @@ export default async function JoinPage({
             href={BOOKING_BUDDY_ROOT}
             className="text-sm underline underline-offset-4"
           >
-            Just looking — take me to Booking Buddy
+            Just looking? Take me to Booking Buddy
           </Link>
         </div>
       </Shell>

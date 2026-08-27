@@ -83,7 +83,7 @@ function ImportCandidateCard({
         )}
         {candidate.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit — saved to Notes: &ldquo;{candidate.notes}&rdquo;
+            Court list was too long to fit. Saved to Notes: &ldquo;{candidate.notes}&rdquo;
           </p>
         )}
       </div>
@@ -169,7 +169,7 @@ function CancellationCandidateCard({
           {formatCandidateDate(candidate.date)} · {formatTimeLabel(candidate.startTime)} · {formatCourtLabel(candidate.courtLabel)}
         </p>
         {candidate.matched ? (
-          <p className="mt-1 text-xs text-muted-foreground">Cancelled — matches a Booking you logged.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Cancelled. Matches a Booking you logged.</p>
         ) : (
           <p className="mt-1 text-xs text-destructive">
             No matching booking found. Your records may be out of sync.
@@ -241,7 +241,7 @@ function UpdateCandidateCard({
         )}
         {candidate.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit — will be saved to Notes: &ldquo;{candidate.notes}&rdquo;
+            Court list was too long to fit. Will be saved to Notes: &ldquo;{candidate.notes}&rdquo;
           </p>
         )}
         {candidate.matched ? (

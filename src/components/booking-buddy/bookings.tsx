@@ -204,7 +204,7 @@ function BookingFieldSet({
         )}
         {durationOverflows && (
           <p className="text-xs text-destructive" role="alert">
-            That runs past midnight — pick fewer hours or an earlier start.
+            That runs past midnight. Pick fewer hours or an earlier start.
           </p>
         )}
       </div>
@@ -589,8 +589,8 @@ export function DeleteBookingButton({ booking }: { booking: Booking }) {
         <DialogHeader>
           <DialogTitle>Remove this booking?</DialogTitle>
           <DialogDescription>
-            {booking.when} at {booking.orgName}. This only forgets it here —
-            your actual court reservation is untouched, so cancel that on the
+            {booking.when} at {booking.orgName}. This only forgets it here.
+            Your actual court reservation is untouched, so cancel that on the
             facility&apos;s own site if you meant to.
           </DialogDescription>
         </DialogHeader>

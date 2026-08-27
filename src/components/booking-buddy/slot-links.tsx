@@ -78,7 +78,7 @@ export function SlotLinkPanel({
       <form action={formAction} className="flex flex-col items-start gap-2">
         <input type="hidden" name="slot_id" value={slotId} />
         <p className="text-sm text-muted-foreground">
-          Anyone with this link can view the slot and RSVP by name — no account
+          Anyone with this link can view the slot and RSVP by name, no account
           needed. Paste it into WhatsApp, iMessage, wherever.
         </p>
         <Button type="submit" disabled={pending}>
@@ -92,7 +92,7 @@ export function SlotLinkPanel({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm text-muted-foreground">
-        Anyone with this link can view the slot and RSVP by name — no account
+        Anyone with this link can view the slot and RSVP by name, no account
         needed. Paste it into WhatsApp, iMessage, wherever.
       </p>
       <div className="flex gap-2">

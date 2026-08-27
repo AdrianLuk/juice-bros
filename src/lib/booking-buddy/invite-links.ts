@@ -74,6 +74,6 @@ export function inviteRelationMessage(
     case "request-sent":
       return `Your friend request to ${ownerName} is still pending.`;
     case "request-received":
-      return `${ownerName} already sent you a friend request — accept it on your Friends page.`;
+      return `${ownerName} already sent you a friend request. Accept it on your Friends page.`;
   }
 }

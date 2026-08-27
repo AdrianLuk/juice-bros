@@ -387,7 +387,7 @@ test.describe("Sync from Email", () => {
     const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) });
     await expect(card).toBeVisible();
     await expect(card).toContainText(facility);
-    await expect(card).toContainText("Cancelled — matches a Booking you logged.");
+    await expect(card).toContainText("Cancelled. Matches a Booking you logged.");
 
     await card.getByRole("button", { name: "Remove booking" }).click();
     await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });

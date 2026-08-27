@@ -172,7 +172,7 @@ function IntentChoice({ onChoose }: { onChoose: (intent: Intent) => void }) {
       <DialogHeader>
         <DialogTitle>What do you want to start with?</DialogTitle>
         <DialogDescription>
-          You can do both — this just sets up the first thing. Skippable, and
+          You can do both. This just sets up the first thing. Skippable, and
           you can always come back to it from your dashboard.
         </DialogDescription>
       </DialogHeader>
@@ -243,7 +243,7 @@ function TrackBranch({
           <DialogTitle>Add where you play</DialogTitle>
           <DialogDescription>
             Search for a place, or type it by hand if Google doesn&apos;t have
-            it — community-centre gyms and private courts usually aren&apos;t
+            it. Community-centre gyms and private courts usually aren&apos;t
             listed.
           </DialogDescription>
         </DialogHeader>
@@ -290,8 +290,8 @@ function CoordinateBranch({
         <DialogHeader>
           <DialogTitle>Send it to your group</DialogTitle>
           <DialogDescription>
-            Your time is posted. Share the link with anyone — no account needed
-            to reply — and add friends below so it shows up in their feed too.
+            Your time is posted. Share the link with anyone (no account needed
+            to reply), and add friends below so it shows up in their feed too.
           </DialogDescription>
         </DialogHeader>
 
@@ -312,7 +312,7 @@ function CoordinateBranch({
       <DialogHeader>
         <DialogTitle>Post a time</DialogTitle>
         <DialogDescription>
-          Like a group-chat poll — friends reply yes, no, or maybe before
+          Like a group-chat poll: friends reply yes, no, or maybe before
           anyone books a court. No facility needed yet.
         </DialogDescription>
       </DialogHeader>
@@ -338,7 +338,7 @@ function FriendFooter({ inviteUrl }: { inviteUrl: string | null }) {
       <p className="text-sm font-medium">Add the people you play with</p>
       <p className="mt-1 text-sm text-muted-foreground">
         Connecting one friend is what unlocks shared availability and Slot
-        invites — the rest of Booking Buddy.
+        invites, the rest of Booking Buddy.
       </p>
       <div className="mt-4">
         <FriendSearch />

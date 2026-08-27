@@ -68,7 +68,7 @@ test("the owner can create an invite link and a guest can RSVP through it with n
     await guestPage.getByLabel("Your name").fill("Priya Guest");
     await guestPage.getByRole("button", { name: "Yes" }).click();
 
-    await expect(guestPage.getByText("Thanks — your RSVP is in.")).toBeVisible();
+    await expect(guestPage.getByText("Thanks. Your RSVP is in.")).toBeVisible();
 
     await guestContext.close();
 

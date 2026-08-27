@@ -14,7 +14,7 @@ export default function GroupsError(props: {
   return (
     <DataError
       title="Couldn't load your groups"
-      description="Something went wrong reading your friend groups — this isn't you, and nothing has been changed."
+      description="Something went wrong reading your friend groups. This isn't you, and nothing has been changed."
       {...props}
     />
   );

@@ -177,7 +177,7 @@ export function parseRotationBuffer(
   }
 
   if (rotationBuffer > MAX_ROTATION_BUFFER) {
-    return { error: `That's a lot of rotation — ${MAX_ROTATION_BUFFER} extra players at most.` };
+    return { error: `That's a lot of rotation. ${MAX_ROTATION_BUFFER} extra players at most.` };
   }
 
   return { slotId, rotationBuffer };
