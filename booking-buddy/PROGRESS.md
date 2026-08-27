@@ -59,9 +59,9 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
 - [x] **Google Maps Platform API key for Places**, restricted to the Places API and to the app's own origins/IPs, exposed to the app as a server-only env var (never `NEXT_PUBLIC_*`). Provisioned 2026-08-14 (billing enabled on the existing Google Cloud project) and consumed by #18 — `GOOGLE_MAPS_API_KEY` in `.env.example`.
 
-- [x] Google Cloud OAuth credentials, wired into Supabase → Authentication → Providers → Google. Verified: `/auth/v1/authorize?provider=google` redirects to Google with a client id, the Supabase callback as `redirect_uri`, and `email profile` scopes.
+- [x] Google Cloud OAuth credentials, wired into Supabase → Authentication → Providers → Google.
 
-  The Google consent screen is in **Testing** mode, so only addresses listed as test users in the Cloud Console can sign in with Google. Magic link and email/password have no such restriction. Publishing the consent screen triggers Google's verification review — worth doing before real users arrive, not before.
+  **The consent screen's publishing status does not gate Google sign-in.** ADR-0013 moved "Continue with Google" to Google Identity Services (`signInWithIdToken`) — pure OpenID Connect authentication, no consent screen, no scope request. Any Google account can sign in whether the Cloud Console screen is in Testing or In production. (This was not true of the original `signInWithOAuth` redirect flow, which is where the "only test users can sign in" note below originally came from — it's obsolete.) The Testing-mode limit still applies to the separate **Gmail-sync** client (`gmail.readonly`, a Restricted Scope — ADR-0009); see `docs/gmail-oauth-setup.md`.
 
 - [x] **Auth URL configuration on the hosted project.** Site URL set to `https://juice-bros.vercel.app`, with `https://juice-bros.vercel.app/**`, `https://*-lukabaseballs-projects.vercel.app/**`, `http://localhost:3000/**` and `http://127.0.0.1:3000/**` on the redirect allow-list.
 
@@ -156,7 +156,7 @@ Confirm the local stack is current first: `supabase start` (Docker), `npx supaba
 
 - [x] 1.1 Schema: `public.profiles` (id references `auth.users`, display_name) + trigger to auto-create a profile row on signup. Also carries `username` — see `add_username`.
 - [x] 1.2 🔴 Test: inserting a row into `auth.users` results in a matching `profiles` row → 🟢 implemented as `handle_new_user()`
-- [x] 1.3 Auth UI: sign-in page offering magic link, Google OAuth, and email/password. All three verified; Google's consent screen is in Testing mode, so only listed test users can use it.
+- [x] 1.3 Auth UI: sign-in page offering magic link, Google sign-in, and email/password. All three verified. (Google sign-in later moved from the OAuth redirect flow to Identity Services — ADR-0013 — which is why the consent screen's Testing-mode status no longer restricts it to listed test users.)
 - [x] 1.4 `/booking-buddy/settings`: change your Username. Signup assigns one so nobody has to think about it, but the handle you hand out shouldn't be one an algorithm picked. Rules in `src/lib/booking-buddy/username.ts` mirror the database's; uniqueness is the index's job, not a check-then-write.
 
 ## Phase 2 — Connection ([#5](https://github.com/AdrianLuk/juice-bros/issues/5))

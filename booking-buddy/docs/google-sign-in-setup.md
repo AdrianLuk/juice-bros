@@ -60,3 +60,10 @@ minimum). Locally, add it to `.env`.
 - No new GCP OAuth client, no Client Secret, no redirect URI change.
 - No `supabase/config.toml` change — Google auth config stays Dashboard-only (see
   `PROGRESS.md`'s note on why that file carries no `[auth.external.google]` section).
+- **No consent-screen publishing or Google verification.** This flow is Identity
+  Services (`signInWithIdToken`) — OpenID Connect authentication only, no scope
+  request, so it never touches the OAuth consent screen. It works for any Google
+  account regardless of whether the Cloud Console screen is in Testing or In
+  production, and there's no "test users" list to maintain and no "unverified app"
+  interstitial. (That machinery only matters for the separate Gmail-sync client —
+  `gmail-oauth-setup.md`.)
