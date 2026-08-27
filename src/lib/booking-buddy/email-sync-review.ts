@@ -1,5 +1,5 @@
 /**
- * The composed "raw CourtReserve emails → Import Candidate review lists"
+ * The composed "raw CourtReserve emails → Import Candidate review list"
  * algorithm (issue #180) — everything `syncFromEmail` (`actions/email-sync.ts`)
  * does between fetching the messages and returning them, minus the I/O.
  *
@@ -7,9 +7,9 @@
  * primitives (parse one email, match one facility name, net one identity
  * chain, …), each unit tested in isolation. This module is the one place they
  * are wired together: parse → drop the unparseable → net the batch
- * (`reconcileCourtReserveEvents`) → shape each survivor into the exact
- * `ImportCandidate` / `CancellationCandidate` / `UpdateCandidate` the review
- * screen renders → sort. That wiring — filter ordering, which match drives the
+ * (`reconcileCourtReserveEvents`) → shape each survivor into a `kind`-tagged
+ * `ReviewItem` (`import` / `cancellation` / `update`) the review screen
+ * renders → sort. That wiring — filter ordering, which match drives the
  * time zone, the past-date and duplicate drops, the court-label overflow
  * split — is where the feature's bugs have lived (#88, #91, #96, #100, #166),
  * and until this module existed it could only run against a live Gmail inbox
@@ -45,77 +45,74 @@ import {
   type ReconciliationEvent,
 } from "./email-sync-matching.ts";
 
-/**
- * One parsed CourtReserve confirmation, matched against the caller's own
- * Orgs and Connections but not yet applied — CONTEXT.md's Import Candidate
- * (issue #64), assembled by `reviewCourtReserveEmails`.
- * `endTime`/`format`/`date`/`startTime`/`courtLabel` are shown read-only on
- * the review screen; `matchedOrgId` is the only field the User still has to
- * pick when it's `null`.
- */
-export type ImportCandidate = {
-  gmailMessageId: string;
-  facilityName: string;
-  /** Set only when the facility name matched an existing Org (`matchOrgByName`). */
-  matchedOrgId: string | null;
-  date: string;
-  startTime: string;
-  endTime: string;
-  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
-  courtLabel: string | null;
-  /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
-  notes: string | null;
-  format: BookingFormat;
-  /** The parsed email's own Details-section name (issue #95) — read-only on the review card, same as Format/date/time/court. */
-  name: string;
-  /** Reference-only, per CONTEXT.md's Import Candidate entry — nothing is created or invited from a match. */
-  matchedPlayers: PlayerMatch[];
-};
+/** A cancellation/update either resolved to a Booking already on file or it didn't — the branch the review card gates its confirm action on. */
+type MatchUnion = { matched: true; bookingId: string } | { matched: false };
 
 /**
- * One parsed CourtReserve cancellation, matched against the caller's own
- * Bookings (issue #65). `matched: false` is CONTEXT.md's Import Candidate
- * entry's own framing of a cancellation with no Booking on file — surfaced as
- * a distinct notice rather than silently dropped, since it's a signal the
- * User's records may be out of sync.
+ * One parsed CourtReserve email — a confirmation, cancellation, or Reservation
+ * Update Notice — matched against the caller's own Orgs and Bookings but not
+ * yet applied. CONTEXT.md's Import Candidate (issues #64/#65/#91), assembled
+ * by `reviewCourtReserveEmails` and rendered on the review screen.
+ *
+ * The common fields (`gmailMessageId`/`facilityName`/`date`/`startTime`) are
+ * shared; everything else hangs off the `kind` discriminant, because the three
+ * genuinely differ — an `import` creates a Booking and carries an editable
+ * `matchedOrgId`, a `cancellation` deletes one, an `update` edits one, and
+ * only the latter two can be unactionable (`matched: false`).
+ *
+ * A `cancellation`/`update` is reached only when `reconcileCourtReserveEvents`
+ * had nothing in the batch to net it against; an update that *did* net against
+ * an in-batch confirmation is folded into that confirmation's own `import`
+ * item instead. `matched: false` surfaces "nothing on file this could refer
+ * to" as a distinct notice rather than a silent drop — a signal the User's
+ * records may be out of sync.
  */
-export type CancellationCandidate = {
+export type ReviewItem = {
   gmailMessageId: string;
   facilityName: string;
   date: string;
   startTime: string;
-  /** Always null in practice — a real cancellation email carries no Court(s) section (see courtreserve-email.ts). Kept for display parity with a confirmation candidate. */
-  courtLabel: string | null;
-} & ({ matched: true; bookingId: string } | { matched: false });
+} & (
+  | {
+      kind: "import";
+      /** Set only when the facility name matched an existing Org (`matchOrgByName`); the one field the User still has to pick when it's `null`. */
+      matchedOrgId: string | null;
+      endTime: string;
+      /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
+      courtLabel: string | null;
+      /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
+      notes: string | null;
+      format: BookingFormat;
+      /** The parsed email's own Details-section name (issue #95) — read-only on the review card, same as Format/date/time/court. */
+      name: string;
+      /** Reference-only, per CONTEXT.md's Import Candidate entry — nothing is created or invited from a match. */
+      matchedPlayers: PlayerMatch[];
+    }
+  | ({
+      kind: "cancellation";
+      /** Always null in practice — a real cancellation email carries no Court(s) section (see courtreserve-email.ts). Kept for display parity with an `import` item. */
+      courtLabel: string | null;
+    } & MatchUnion)
+  | ({
+      kind: "update";
+      endTime: string;
+      /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
+      courtLabel: string | null;
+      /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
+      notes: string | null;
+      format: BookingFormat;
+      /** Reference-only — unlike an `import` item's `matchedPlayers` (wired through by issue #100), applying an update deliberately edits format/court only and never touches Players, since a Reservation Update Notice isn't a new Booking. */
+      matchedPlayers: PlayerMatch[];
+    } & MatchUnion)
+);
 
-/**
- * One parsed Reservation Update Notice, matched against the caller's own
- * Bookings the same way a cancellation is (issue #91) — reached only when
- * `reconcileCourtReserveEvents` had nothing in this batch to net it against;
- * an update that *did* net against an in-batch confirmation never becomes one
- * of these at all, it's folded into that confirmation's own `ImportCandidate`.
- * `matched: false` mirrors `CancellationCandidate`'s own framing of "nothing
- * on file this could refer to" as a distinct notice rather than a silent drop.
- */
-export type UpdateCandidate = {
-  gmailMessageId: string;
-  facilityName: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
-  courtLabel: string | null;
-  /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
-  notes: string | null;
-  format: BookingFormat;
-  /** Reference-only — unlike `ImportCandidate.matchedPlayers` (wired through by issue #100), applying an update deliberately edits format/court only and never touches Players, since a Reservation Update Notice isn't a new Booking. */
-  matchedPlayers: PlayerMatch[];
-} & ({ matched: true; bookingId: string } | { matched: false });
+type ImportReviewItem = Extract<ReviewItem, { kind: "import" }>;
+type CancellationReviewItem = Extract<ReviewItem, { kind: "cancellation" }>;
+type UpdateReviewItem = Extract<ReviewItem, { kind: "update" }>;
 
 export type ReviewedCourtReserveEmails = {
-  candidates: ImportCandidate[];
-  cancellations: CancellationCandidate[];
-  updates: UpdateCandidate[];
+  /** One flat list across all three kinds, `byDateAndStartTime`-sorted; the review screen groups it back by `kind` for display. */
+  items: ReviewItem[];
 };
 
 /** One raw Gmail message body, exactly what `fetchGmailMessage` returns plus its own id — the only thing the action has to fetch before this module can run. */
@@ -240,15 +237,15 @@ function zoneFor(matchedOrgId: string | null, ctx: ReviewContext): string {
 }
 
 /**
- * A reconciled confirmation → an `ImportCandidate`, or `null` when it
+ * A reconciled confirmation → an `import` `ReviewItem`, or `null` when it
  * shouldn't reach the review queue at all: a date/time already passed, or a
  * duplicate of a Booking already on file (same Org, court, date/time — the
  * fields a real second reservation would also share).
  */
-function shapeImportCandidate(
+function shapeImportReviewItem(
   event: Extract<ReconciliationEvent<ConfirmedEmail>, { kind: "confirmation" }>,
   ctx: ReviewContext,
-): ImportCandidate | null {
+): ImportReviewItem | null {
   const { confirmation } = event;
 
   const matchedOrgId = matchOrgByName(confirmation.facilityName, ctx.orgCandidates);
@@ -270,6 +267,7 @@ function shapeImportCandidate(
   }
 
   return {
+    kind: "import",
     gmailMessageId: event.gmailMessageId,
     facilityName: confirmation.facilityName,
     matchedOrgId,
@@ -284,11 +282,11 @@ function shapeImportCandidate(
   };
 }
 
-/** A reconciled cancellation → a `CancellationCandidate`, matched to a Booking on file or surfaced as the "no match found" notice. */
-function shapeCancellationCandidate(
+/** A reconciled cancellation → a `cancellation` `ReviewItem`, matched to a Booking on file or surfaced as the "no match found" notice. */
+function shapeCancellationReviewItem(
   event: Extract<ReconciliationEvent<ConfirmedEmail>, { kind: "cancellation" }>,
   ctx: ReviewContext,
-): CancellationCandidate {
+): CancellationReviewItem {
   const matchedOrgId = matchOrgByName(event.facilityName, ctx.orgCandidates);
 
   // No matched Org means there's nothing on file it could refer to either —
@@ -301,6 +299,7 @@ function shapeCancellationCandidate(
     : null;
 
   const base = {
+    kind: "cancellation" as const,
     gmailMessageId: event.gmailMessageId,
     facilityName: event.facilityName,
     date: event.date,
@@ -312,14 +311,14 @@ function shapeCancellationCandidate(
 }
 
 /**
- * A reconciled update → an `UpdateCandidate`, or `null` when its slot has
+ * A reconciled update → an `update` `ReviewItem`, or `null` when its slot has
  * already passed (same reasoning as a confirmation's own past-date filter — a
  * Reservation Update for a slot that's already happened isn't worth review).
  */
-function shapeUpdateCandidate(
+function shapeUpdateReviewItem(
   event: Extract<ReconciliationEvent<ConfirmedEmail>, { kind: "update" }>,
   ctx: ReviewContext,
-): UpdateCandidate | null {
+): UpdateReviewItem | null {
   const { update } = event;
 
   const matchedOrgId = matchOrgByName(update.facilityName, ctx.orgCandidates);
@@ -338,6 +337,7 @@ function shapeUpdateCandidate(
   const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(update.courtLabel));
 
   const base = {
+    kind: "update" as const,
     gmailMessageId: event.gmailMessageId,
     facilityName: update.facilityName,
     date: update.date,
@@ -353,8 +353,9 @@ function shapeUpdateCandidate(
 }
 
 /**
- * Turn a batch of raw CourtReserve message bodies into the three lists the
- * "Sync from Email" review screen renders (issues #64/#65/#91).
+ * Turn a batch of raw CourtReserve message bodies into the one flat list of
+ * `ReviewItem`s the "Sync from Email" review screen renders (issues
+ * #64/#65/#91).
  *
  * Pure: every decision is made from the message HTML and the plain data the
  * caller hands in. `syncFromEmail` does the Gmail search/fetch and the
@@ -378,19 +379,13 @@ export function reviewCourtReserveEmails({
 
   const reconciled = reconcileCourtReserveEvents(toReconciliationEvents(emails));
 
-  const candidates = reconciled.confirmations
-    .map((event) => shapeImportCandidate(event, ctx))
-    .filter((candidate): candidate is ImportCandidate => candidate !== null)
+  const items: ReviewItem[] = [
+    ...reconciled.confirmations.map((event) => shapeImportReviewItem(event, ctx)),
+    ...reconciled.cancellations.map((event) => shapeCancellationReviewItem(event, ctx)),
+    ...reconciled.updates.map((event) => shapeUpdateReviewItem(event, ctx)),
+  ]
+    .filter((item): item is ReviewItem => item !== null)
     .sort(byDateAndStartTime);
 
-  const cancellations = reconciled.cancellations
-    .map((event) => shapeCancellationCandidate(event, ctx))
-    .sort(byDateAndStartTime);
-
-  const updates = reconciled.updates
-    .map((event) => shapeUpdateCandidate(event, ctx))
-    .filter((candidate): candidate is UpdateCandidate => candidate !== null)
-    .sort(byDateAndStartTime);
-
-  return { candidates, cancellations, updates };
+  return { items };
 }

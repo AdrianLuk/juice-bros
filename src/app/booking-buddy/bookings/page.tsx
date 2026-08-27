@@ -55,7 +55,7 @@ export default async function BookingsPage() {
 
   // Optimistic half of ADR-0009's addendum, same gating Settings already
   // does — an unapproved User never sees "Sync from Email" at all.
-  // syncFromEmail/confirmImportCandidate/dismissImportCandidate each
+  // syncFromEmail/confirmImportCandidate/dismissReviewItem each
   // re-check this authoritatively.
   const emailSyncAllowed = isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
   const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
