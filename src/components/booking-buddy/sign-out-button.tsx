@@ -1,0 +1,49 @@
+import { LogOutIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { signOut } from "@/lib/booking-buddy/actions/auth";
+
+/**
+ * Sign out, with its confirm dialog — lifted out of the old per-page nav (ADR
+ * 0016) and dropped at the bottom of the Settings page instead. Out of the nav
+ * entirely: it was account chrome sitting among primary navigation.
+ */
+export function SignOutButton() {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={<Button variant="outline" className="gap-1.5" />}
+      >
+        <LogOutIcon className="size-4" />
+        Sign out
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sign out of Booking Buddy?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You&apos;ll need to sign in again to see your games, friends, and
+            bookings.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Stay signed in</AlertDialogCancel>
+          <form action={signOut}>
+            <Button type="submit" variant="destructive">
+              Sign out
+            </Button>
+          </form>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

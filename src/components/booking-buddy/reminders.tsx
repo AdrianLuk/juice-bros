@@ -82,6 +82,11 @@ export function ReminderOffsetForm({
         <Button type="submit" variant="outline" disabled={pending}>
           {pending ? "Saving…" : "Save reminder timing"}
         </Button>
+        {state.ok && (
+          <p className="text-sm text-muted-foreground" role="status">
+            Saved.
+          </p>
+        )}
         <ActionError state={state} />
       </div>
     </form>
@@ -107,7 +112,7 @@ export function NotificationPreferencesForm({
           className="h-5 w-5 rounded border-input accent-primary"
         />
         <Label htmlFor="email-enabled" className="font-normal">
-          Email me a reminder before slots I&apos;ve said yes to, so I don&apos;t forget to show up
+          Email me a reminder before games I&apos;ve said yes to, so I don&apos;t forget to show up
         </Label>
       </div>
 

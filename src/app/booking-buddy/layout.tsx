@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next";
 
 import { QueryProvider } from "@/components/booking-buddy/query-provider";
 import { ServiceWorkerRegistration } from "@/components/booking-buddy/service-worker-registration";
+import { BbAppShell } from "@/components/booking-buddy/bb-app-shell";
+import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { getOptionalSession } from "@/lib/booking-buddy/dal";
 
 /**
  * Installability metadata (issue #12) — set at the section layout, not any
@@ -29,21 +33,50 @@ export const viewport: Viewport = {
 /**
  * Booking Buddy's section layout.
  *
- * Deliberately does not call `verifySession` itself: the sign-in page lives
- * beneath this layout too, and gating here would lock people out of the very
- * page they need. The gate is the proxy (optimistic) plus `verifySession` in
- * each protected page and Server Action (authoritative) — see ADR 0003.
+ * Still does not *gate* here — the sign-in page lives beneath this layout too,
+ * and redirecting here would lock people out of the very page they need. The
+ * gate is the proxy (optimistic) plus `verifySession` in each protected page
+ * and Server Action (authoritative) — see ADR 0003. The `getOptionalSession`
+ * read below only chooses which chrome to render (ADR 0016), and it's `cache`d,
+ * so the pages beneath don't pay for it twice:
+ *
+ * - **Signed in** → the standalone app shell (`BbAppShell`), no global chrome.
+ *   The global `SiteHeader`/`SiteFooter` are suppressed across `/booking-buddy`
+ *   by `SiteChromeSlot` in the root layout.
+ * - **Signed out** → the pre-auth pages (landing, sign-in, privacy, join) are
+ *   marketing / auth surfaces, not the app: they keep the normal Juice Bros
+ *   chrome, rendered here since the root layout's copy is suppressed.
  */
-export default function BookingBuddyLayout({
+export default async function BookingBuddyLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getOptionalSession();
+
+  if (!session) {
+    return (
+      <QueryProvider>
+        <ServiceWorkerRegistration />
+        <SiteHeader />
+        <div className="bb-theme flex w-full flex-1 flex-col bg-background text-foreground">
+          {children}
+        </div>
+        <SiteFooter />
+      </QueryProvider>
+    );
+  }
+
   return (
     <QueryProvider>
       <ServiceWorkerRegistration />
       <div className="bb-theme flex w-full flex-1 flex-col bg-background text-foreground">
-        {children}
+        <BbAppShell />
+        {/* Clears the fixed mobile bottom tab bar (safe-area included); no bar
+            on desktop. */}
+        <div className="flex w-full flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">
+          {children}
+        </div>
       </div>
     </QueryProvider>
   );

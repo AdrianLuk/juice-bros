@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
+import { SignOutButton } from "@/components/booking-buddy/sign-out-button";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
 import { GenderForm } from "@/components/booking-buddy/gender-form";
 import {
@@ -12,14 +12,13 @@ import {
 } from "@/components/booking-buddy/reminders";
 import { PushNotificationsForm } from "@/components/booking-buddy/push-notifications";
 import { GmailSyncSection } from "@/components/booking-buddy/email-sync";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
-import { BOOKING_BUDDY_ROOT, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Settings",
@@ -55,17 +54,11 @@ export default async function SettingsPage({
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title="Settings"
-                description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
-              />
-            </div>
-
-            <BookingBuddyNav current="settings" />
-          </div>
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Settings"
+            description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
+          />
 
           <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />
@@ -129,12 +122,17 @@ export default async function SettingsPage({
             )}
           </div>
 
-          <FooterNav>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-            <FooterLink href={BOOKING_BUDDY_ROOT} back>
-              Back to Booking Buddy
-            </FooterLink>
-          </FooterNav>
+          <div className="mt-12 border-t border-border/60 pt-8">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">
+              Sign out
+            </h2>
+            <p className="mt-1 mb-4 text-sm text-muted-foreground">
+              You&apos;ll need to sign in again next time.
+            </p>
+            <SignOutButton />
+          </div>
+
+          <BbFooter />
         </div>
       </section>
     </div>

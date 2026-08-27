@@ -4,7 +4,7 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
+import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import {
   BookingRow,
   CreateBookingForm,
@@ -15,7 +15,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { SyncFromEmailSection } from "@/components/booking-buddy/sync-from-email";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
 import { notEndedBefore } from "@/lib/booking-buddy/calendar";
@@ -23,7 +23,7 @@ import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
-import { BOOKING_BUDDY_ROOT, ORGS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
+import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Your bookings",
@@ -64,17 +64,12 @@ export default async function BookingsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title="Your bookings"
-                description="Court reservations you've already made, typed in here so they're ready to share."
-              />
-            </div>
-
-            <BookingBuddyNav current="bookings" />
-          </div>
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Your bookings"
+            description="Court reservations you've already made, typed in here so they're ready to share."
+          />
+          <BbSectionNav />
 
           {orgs.length === 0 ? (
             <p className="mt-10 text-sm text-muted-foreground">
@@ -150,13 +145,7 @@ export default async function BookingsPage() {
             </div>
           )}
 
-          <FooterNav>
-            <FooterLink href={ORGS_PATH}>Facilities</FooterLink>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-            <FooterLink href={BOOKING_BUDDY_ROOT} back>
-              Back to Booking Buddy
-            </FooterLink>
-          </FooterNav>
+          <BbFooter />
         </div>
       </section>
     </div>

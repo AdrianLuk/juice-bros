@@ -301,7 +301,7 @@ function CoordinateBranch({
           href={slotPath(postedSlotId)}
           className="text-sm underline underline-offset-4"
         >
-          View your slot
+          View your game
         </Link>
       </>
     );
@@ -337,7 +337,7 @@ function FriendFooter({ inviteUrl }: { inviteUrl: string | null }) {
     <div className="border-t border-border pt-6">
       <p className="text-sm font-medium">Add the people you play with</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Connecting one friend is what unlocks shared availability and Slot
+        Connecting one friend is what unlocks shared availability and game
         invites, the rest of Booking Buddy.
       </p>
       <div className="mt-4">

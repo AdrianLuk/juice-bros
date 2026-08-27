@@ -35,7 +35,7 @@ async function createSlot(
   await page.getByLabel("Date").fill(slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
   await selectDuration(page, slot.start, slot.end);
-  await page.getByRole("button", { name: "Post slot" }).click();
+  await page.getByRole("button", { name: "Post game" }).click();
 
   await row(page, slot.label).getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);

@@ -3,13 +3,12 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
+import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import { CreateOrgForm, OrgRow } from "@/components/booking-buddy/orgs";
 import { SearchPlaceForm } from "@/components/booking-buddy/place-search";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
-import { BOOKINGS_PATH, BOOKING_BUDDY_ROOT, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Facilities",
@@ -29,17 +28,12 @@ export default async function OrgsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title="Facilities"
-                description="The facilities you book at. Only you can see this list."
-              />
-            </div>
-
-            <BookingBuddyNav current="orgs" />
-          </div>
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Facilities"
+            description="The facilities you book at. Only you can see this list."
+          />
+          <BbSectionNav />
 
           <div className="mt-10 flex flex-col gap-12">
             <section>
@@ -96,13 +90,7 @@ export default async function OrgsPage() {
             </section>
           </div>
 
-          <FooterNav>
-            <FooterLink href={BOOKINGS_PATH}>Your bookings</FooterLink>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-            <FooterLink href={BOOKING_BUDDY_ROOT} back>
-              Back to Booking Buddy
-            </FooterLink>
-          </FooterNav>
+          <BbFooter />
         </div>
       </section>
     </div>
