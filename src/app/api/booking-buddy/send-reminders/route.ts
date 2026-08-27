@@ -3,16 +3,13 @@ import { Resend } from "resend";
 import webpush from "web-push";
 
 import { createAdminClient } from "@/lib/booking-buddy/supabase/admin";
-import { slotPath } from "@/lib/booking-buddy/routes";
-import { formatSlotWhen } from "@/lib/booking-buddy/slots";
+import { MAX_REMINDER_OFFSET_MINUTES, type ReminderResponder } from "@/lib/booking-buddy/reminders";
 import {
-  MAX_REMINDER_OFFSET_MINUTES,
-  formatReminderEmail,
-  formatReminderPush,
-  getReminderRecipients,
-  isReminderDue,
-  shouldSendReminder,
-} from "@/lib/booking-buddy/reminders";
+  dueReminderSlots,
+  planAttendeeReminderRun,
+  type CandidateSlot,
+  type StoredPushSubscription,
+} from "@/lib/booking-buddy/reminder-run";
 
 export const runtime = "nodejs";
 
@@ -24,6 +21,11 @@ export const runtime = "nodejs";
  * to the Slot's own start, and `reminder_sends` is what makes a re-run safe,
  * so running this more or less often only changes how promptly a Reminder
  * goes out, never whether it's sent twice.
+ *
+ * Which sends actually go out is `planAttendeeReminderRun` (`reminder-run.ts`),
+ * unit tested. This route is the I/O around it: the `service_role` reads, the
+ * per-recipient email-address lookup, the Resend / web-push calls, pruning a
+ * dead push subscription, and the `reminder_sends` log writes.
  *
  * Push is additive, not a replacement: a User with no push subscription (or
  * `push_enabled: false`) simply gets nothing on that channel, same as
@@ -92,7 +94,7 @@ export async function GET(request: NextRequest) {
   // its own offset is.
   const lookaheadEnd = new Date(now.getTime() + MAX_REMINDER_OFFSET_MINUTES * 60_000);
 
-  const { data: candidates, error: slotsError } = await supabase
+  const { data: candidateRows, error: slotsError } = await supabase
     .from("slots")
     .select("id, proposed_start, proposed_end, time_zone, reminder_offset_minutes")
     .gt("proposed_start", now.toISOString())
@@ -103,12 +105,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Read failed." }, { status: 502 });
   }
 
-  const dueSlots = (candidates ?? []).filter((slot) =>
-    isReminderDue({
-      proposedStart: new Date(slot.proposed_start),
-      reminderOffsetMinutes: slot.reminder_offset_minutes,
-      now,
-    }),
+  const dueSlots: CandidateSlot[] = dueReminderSlots(
+    (candidateRows ?? []).map((row) => ({
+      id: row.id,
+      proposedStart: row.proposed_start,
+      proposedEnd: row.proposed_end,
+      timeZone: row.time_zone,
+      reminderOffsetMinutes: row.reminder_offset_minutes,
+    })),
+    now,
   );
 
   let sent = 0;
@@ -141,27 +146,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Read failed." }, { status: 502 });
     }
 
-    const responsesBySlot = new Map<string, { userId: string | null; answer: "yes" | "no" | "maybe" }[]>();
+    const responsesBySlot = new Map<string, ReminderResponder[]>();
     for (const row of responseRows ?? []) {
       const list = responsesBySlot.get(row.slot_id) ?? [];
       list.push({ userId: row.user_id, answer: row.answer });
       responsesBySlot.set(row.slot_id, list);
     }
 
-    const recipientsBySlot = new Map<string, string[]>();
-    const allRecipientIds = new Set<string>();
-    for (const slot of dueSlots) {
-      const recipients = getReminderRecipients(
-        responsesBySlot.get(slot.id) ?? [],
-        confirmedSlotIds.has(slot.id),
-      );
-      recipientsBySlot.set(slot.id, recipients);
-      recipients.forEach((id) => allRecipientIds.add(id));
-    }
+    // Everyone who responded to a due Slot — a superset of the actual
+    // recipients (`getReminderRecipients` drops "no"/"maybe" and Guests),
+    // which is all the preference and subscription reads need to be scoped to.
+    const responderIds = [
+      ...new Set(
+        (responseRows ?? [])
+          .map((row) => row.user_id)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
 
-    if (allRecipientIds.size > 0) {
-      const recipientIds = [...allRecipientIds];
-
+    if (responderIds.length > 0) {
       const [
         { data: preferenceRows, error: preferencesError },
         { data: sentRows, error: sentError },
@@ -170,7 +173,7 @@ export async function GET(request: NextRequest) {
         supabase
           .from("notification_preferences")
           .select("user_id, email_enabled, push_enabled")
-          .in("user_id", recipientIds),
+          .in("user_id", responderIds),
         supabase
           .from("reminder_sends")
           .select("slot_id, user_id, channel")
@@ -179,7 +182,7 @@ export async function GET(request: NextRequest) {
           ? supabase
               .from("push_subscriptions")
               .select("id, user_id, endpoint, p256dh, auth")
-              .in("user_id", recipientIds)
+              .in("user_id", responderIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -197,138 +200,107 @@ export async function GET(request: NextRequest) {
       }
 
       // A missing row means the defaults — see getNotificationPreferences.
-      const emailEnabledById = new Map(
+      const emailEnabledByUser = new Map(
         (preferenceRows ?? []).map((row) => [row.user_id, row.email_enabled]),
       );
-      const pushEnabledById = new Map(
+      const pushEnabledByUser = new Map(
         (preferenceRows ?? []).map((row) => [row.user_id, row.push_enabled]),
       );
       const alreadySent = new Set(
         (sentRows ?? []).map((row) => `${row.slot_id}:${row.user_id}:${row.channel}`),
       );
 
-      const subscriptionsByUser = new Map<
-        string,
-        { id: string; endpoint: string; p256dh: string; auth: string }[]
-      >();
+      const subscriptionsByUser = new Map<string, StoredPushSubscription[]>();
       for (const row of subscriptionRows ?? []) {
         const list = subscriptionsByUser.get(row.user_id) ?? [];
         list.push({ id: row.id, endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth });
         subscriptionsByUser.set(row.user_id, list);
       }
 
-      for (const slot of dueSlots) {
-        const recipients = recipientsBySlot.get(slot.id) ?? [];
-        if (recipients.length === 0) {
+      const { sends } = planAttendeeReminderRun({
+        dueSlots,
+        confirmedSlotIds,
+        responsesBySlot,
+        emailEnabledByUser,
+        pushEnabledByUser,
+        alreadySent,
+        subscriptionsByUser,
+        pushConfigured,
+        origin: request.nextUrl.origin,
+      });
+
+      for (const send of sends) {
+        if (send.channel === "email") {
+          // The `service_role` admin API, not a table read — no table anywhere
+          // in this schema is granted an email column to read one from.
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
+            send.userId,
+          );
+          if (userError || !userData?.user?.email) {
+            console.error("send-reminders: no email for recipient", send.userId, userError);
+            failed += 1;
+            continue;
+          }
+
+          const { error: sendError } = await resend.emails.send({
+            from,
+            to: userData.user.email,
+            subject: send.subject,
+            html: send.html,
+          });
+          if (sendError) {
+            console.error("send-reminders: Resend error", sendError);
+            failed += 1;
+            continue;
+          }
+
+          // Best-effort — the email is already sent; a duplicate log row (a
+          // race with another run) is caught by the table's own unique
+          // constraint and is not itself a failure worth reporting.
+          const { error: logError } = await supabase
+            .from("reminder_sends")
+            .insert({ slot_id: send.slotId, user_id: send.userId, channel: "email" });
+          if (logError && logError.code !== "23505") {
+            console.error("send-reminders: logging the send failed", logError);
+          }
+          sent += 1;
           continue;
         }
 
-        const slotWhen = formatSlotWhen({
-          proposedStart: slot.proposed_start,
-          proposedEnd: slot.proposed_end,
-          timeZone: slot.time_zone,
-        });
-        const slotUrl = new URL(slotPath(slot.id), request.nextUrl.origin).toString();
-        const { subject, html } = formatReminderEmail({ slotWhen, slotUrl });
-        const pushPayload = formatReminderPush({ slotWhen, slotUrl });
-
-        for (const userId of recipients) {
-          const shouldSendEmail = shouldSendReminder({
-            channel: "email",
-            emailEnabled: emailEnabledById.get(userId) ?? true,
-            pushEnabled: false,
-            alreadySent: alreadySent.has(`${slot.id}:${userId}:email`),
-          });
-          if (shouldSendEmail) {
-            // The `service_role` admin API, not a table read — no table
-            // anywhere in this schema is granted an email column to read one
-            // from.
-            const { data: userData, error: userError } =
-              await supabase.auth.admin.getUserById(userId);
-            if (userError || !userData?.user?.email) {
-              console.error("send-reminders: no email for recipient", userId, userError);
-              failed += 1;
+        let anyPushSucceeded = false;
+        for (const subscription of send.subscriptions) {
+          try {
+            await webpush.sendNotification(
+              {
+                endpoint: subscription.endpoint,
+                keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+              },
+              JSON.stringify(send.payload),
+            );
+            anyPushSucceeded = true;
+          } catch (error) {
+            const statusCode = (error as { statusCode?: number }).statusCode;
+            if (statusCode === 404 || statusCode === 410) {
+              // The push service reports this registration is gone — standard
+              // web-push practice is to prune it so future runs stop retrying
+              // a device that will never receive anything.
+              await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
             } else {
-              const { error: sendError } = await resend.emails.send({
-                from,
-                to: userData.user.email,
-                subject,
-                html,
-              });
-
-              if (sendError) {
-                console.error("send-reminders: Resend error", sendError);
-                failed += 1;
-              } else {
-                // Best-effort — the email is already sent; a duplicate log row
-                // (a race with another run) is caught by the table's own
-                // unique constraint and is not itself a failure worth
-                // reporting.
-                const { error: logError } = await supabase
-                  .from("reminder_sends")
-                  .insert({ slot_id: slot.id, user_id: userId, channel: "email" });
-                if (logError && logError.code !== "23505") {
-                  console.error("send-reminders: logging the send failed", logError);
-                }
-                sent += 1;
-              }
+              console.error("send-reminders: web-push error", error);
             }
           }
+        }
 
-          const shouldSendPush =
-            pushConfigured &&
-            shouldSendReminder({
-              channel: "push",
-              emailEnabled: false,
-              pushEnabled: pushEnabledById.get(userId) ?? false,
-              alreadySent: alreadySent.has(`${slot.id}:${userId}:push`),
-            });
-          if (!shouldSendPush) {
-            continue;
+        if (anyPushSucceeded) {
+          const { error: logError } = await supabase
+            .from("reminder_sends")
+            .insert({ slot_id: send.slotId, user_id: send.userId, channel: "push" });
+          if (logError && logError.code !== "23505") {
+            console.error("send-reminders: logging the push send failed", logError);
           }
-
-          // No subscription on file is the graceful-skip case (issue #12's
-          // last acceptance criterion) — not a failure, nothing to send to.
-          const subscriptions = subscriptionsByUser.get(userId) ?? [];
-          if (subscriptions.length === 0) {
-            continue;
-          }
-
-          let anyPushSucceeded = false;
-          for (const subscription of subscriptions) {
-            try {
-              await webpush.sendNotification(
-                {
-                  endpoint: subscription.endpoint,
-                  keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-                },
-                JSON.stringify(pushPayload),
-              );
-              anyPushSucceeded = true;
-            } catch (error) {
-              const statusCode = (error as { statusCode?: number }).statusCode;
-              if (statusCode === 404 || statusCode === 410) {
-                // The push service reports this registration is gone —
-                // standard web-push practice is to prune it so future runs
-                // stop retrying a device that will never receive anything.
-                await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
-              } else {
-                console.error("send-reminders: web-push error", error);
-              }
-            }
-          }
-
-          if (anyPushSucceeded) {
-            const { error: logError } = await supabase
-              .from("reminder_sends")
-              .insert({ slot_id: slot.id, user_id: userId, channel: "push" });
-            if (logError && logError.code !== "23505") {
-              console.error("send-reminders: logging the push send failed", logError);
-            }
-            sent += 1;
-          } else {
-            failed += 1;
-          }
+          sent += 1;
+        } else {
+          failed += 1;
         }
       }
     }

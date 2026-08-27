@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
 
 import { createAdminClient } from "@/lib/booking-buddy/supabase/admin";
-import { slotPath } from "@/lib/booking-buddy/routes";
-import { formatSlotWhen } from "@/lib/booking-buddy/slots";
-import { orgDisplayName, type CachedPlace } from "@/lib/booking-buddy/orgs";
-import { formatBookingReminderEmail } from "@/lib/booking-buddy/booking-window";
-import { shouldSendReminder } from "@/lib/booking-buddy/reminders";
+import type { CachedPlace } from "@/lib/booking-buddy/orgs";
+import {
+  planBookingWindowReminderRun,
+  type DueBookingWindow,
+} from "@/lib/booking-buddy/reminder-run";
 
 export const runtime = "nodejs";
 
@@ -18,6 +18,9 @@ export const runtime = "nodejs";
  * recipient, trigger and eligibility logic are all different — same
  * reasoning `slot-links.ts`/`guest-rsvp.ts` stayed separate action files
  * despite being related.
+ *
+ * Which sends actually go out is `planBookingWindowReminderRun`
+ * (`reminder-run.ts`), unit tested; this route is the I/O around it.
  *
  * `slot_booking_windows` (the migration) already computes `window_opens_at`
  * as a real instant in Postgres, so unlike the attendee Reminder there's no
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
   const resend = new Resend(apiKey);
   const now = new Date();
 
-  const { data: dueWindows, error: windowsError } = await supabase
+  const { data: windowRows, error: windowsError } = await supabase
     .from("slot_booking_windows")
     .select(
       "slot_id, owner_id, proposed_start, proposed_end, time_zone, org_id, org_name, org_google_place_id",
@@ -80,12 +83,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Read failed." }, { status: 502 });
   }
 
-  let candidates = dueWindows ?? [];
+  const dueWindows: DueBookingWindow[] = (windowRows ?? []).map((row) => ({
+    slotId: row.slot_id,
+    ownerId: row.owner_id,
+    proposedStart: row.proposed_start,
+    proposedEnd: row.proposed_end,
+    timeZone: row.time_zone,
+    orgName: row.org_name,
+    orgGooglePlaceId: row.org_google_place_id,
+  }));
+
+  let checked = 0;
   let sent = 0;
   let failed = 0;
 
-  if (candidates.length > 0) {
-    const slotIds = candidates.map((row) => row.slot_id);
+  if (dueWindows.length > 0) {
+    const slotIds = dueWindows.map((window) => window.slotId);
+    const ownerIds = [...new Set(dueWindows.map((window) => window.ownerId))];
+    const placeIds = [
+      ...new Set(
+        dueWindows
+          .map((window) => window.orgGooglePlaceId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
 
     // Stops being relevant the moment a real Booking is attached — there's
     // nothing left to remind the organizer to go do.
@@ -103,19 +124,6 @@ export async function GET(request: NextRequest) {
     }
 
     const confirmedSlotIds = new Set((bookingRows ?? []).map((row) => row.slot_id));
-    candidates = candidates.filter((row) => !confirmedSlotIds.has(row.slot_id));
-  }
-
-  if (candidates.length > 0) {
-    const slotIds = candidates.map((row) => row.slot_id);
-    const ownerIds = [...new Set(candidates.map((row) => row.owner_id))];
-    const placeIds = [
-      ...new Set(
-        candidates
-          .map((row) => row.org_google_place_id)
-          .filter((id): id is string => id !== null),
-      ),
-    ];
 
     const [
       { data: preferenceRows, error: preferencesError },
@@ -169,47 +177,35 @@ export async function GET(request: NextRequest) {
       ]),
     );
 
-    for (const row of candidates) {
-      const shouldSend = shouldSendReminder({
-        channel: "email",
-        emailEnabled: emailEnabledByOwner.get(row.owner_id) ?? true,
-        pushEnabled: false,
-        alreadySent: alreadySent.has(row.slot_id),
-      });
-      if (!shouldSend) {
-        continue;
-      }
+    const plan = planBookingWindowReminderRun({
+      dueWindows,
+      confirmedSlotIds,
+      emailEnabledByOwner,
+      alreadySent,
+      placeById,
+      origin: request.nextUrl.origin,
+    });
+    checked = plan.checked;
 
+    for (const send of plan.sends) {
       const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-        row.owner_id,
+        send.userId,
       );
       if (userError || !userData?.user?.email) {
         console.error(
           "send-booking-window-reminders: no email for recipient",
-          row.owner_id,
+          send.userId,
           userError,
         );
         failed += 1;
         continue;
       }
 
-      const orgName = orgDisplayName(
-        { name: row.org_name, googlePlaceId: row.org_google_place_id },
-        row.org_google_place_id ? (placeById.get(row.org_google_place_id) ?? null) : null,
-      );
-      const slotWhen = formatSlotWhen({
-        proposedStart: row.proposed_start,
-        proposedEnd: row.proposed_end,
-        timeZone: row.time_zone,
-      });
-      const slotUrl = new URL(slotPath(row.slot_id), request.nextUrl.origin).toString();
-      const { subject, html } = formatBookingReminderEmail({ orgName, slotWhen, slotUrl });
-
       const { error: sendError } = await resend.emails.send({
         from,
         to: userData.user.email,
-        subject,
-        html,
+        subject: send.subject,
+        html: send.html,
       });
 
       if (sendError) {
@@ -223,7 +219,7 @@ export async function GET(request: NextRequest) {
       // is not itself a failure worth reporting.
       const { error: logError } = await supabase
         .from("booking_window_reminder_sends")
-        .insert({ slot_id: row.slot_id });
+        .insert({ slot_id: send.slotId });
       if (logError && logError.code !== "23505") {
         console.error("send-booking-window-reminders: logging the send failed", logError);
       }
@@ -232,5 +228,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, checked: candidates.length, sent, failed });
+  return NextResponse.json({ ok: true, checked, sent, failed });
 }
