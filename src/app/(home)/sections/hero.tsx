@@ -27,14 +27,25 @@ const socialLinks = [
 export function Hero() {
   return (
     <section className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-brand-black text-white sm:block sm:min-h-0">
-      {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
-      <img
-        src="/brand/JB_Banner_1920.jpeg"
-        alt="Juice Bros Pickleball hosts"
-        width={1600}
-        height={901}
-        className="w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
-      />
+      {/* LCP element - hand-optimized WebP variants (see PROGRESS.md Phase 3.5),
+          eager + high priority so it paints as fast as possible. The .jpeg src
+          is the fallback for anything that ignores <source>. */}
+      <picture>
+        <source
+          type="image/webp"
+          srcSet="/brand/JB_Banner-768.webp 768w, /brand/JB_Banner-1280.webp 1280w, /brand/JB_Banner-1600.webp 1600w"
+          sizes="100vw"
+        />
+        <img
+          src="/brand/JB_Banner_1920.jpeg"
+          alt="Juice Bros Pickleball hosts"
+          width={1600}
+          height={901}
+          fetchPriority="high"
+          decoding="async"
+          className="w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
+        />
+      </picture>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_10%)_0%,color-mix(in_oklch,var(--brand-black),transparent_60%)_55%,var(--brand-black)_100%)] sm:block"
