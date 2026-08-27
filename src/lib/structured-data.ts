@@ -66,15 +66,16 @@ export function buildEpisodeJsonLd(episode: Episode) {
       {
         "@type": "BreadcrumbList",
         itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
           {
             "@type": "ListItem",
-            position: 1,
+            position: 2,
             name: "Podcast",
             item: `${siteConfig.url}/podcast`,
           },
           {
             "@type": "ListItem",
-            position: 2,
+            position: 3,
             name: episode.title,
             item: episodeUrl,
           },

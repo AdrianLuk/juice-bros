@@ -16,7 +16,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // Booking Buddy's public entry points (/booking-buddy, its sign-in and
+      // Booking Buddy's public pages (/booking-buddy landing, its sign-in and
       // privacy pages) stay crawlable; its signed-in-only feature routes and
       // the tokenised guest Slot Links do not - they're private and, for a
       // crawler, just redirect to sign-in anyway.
