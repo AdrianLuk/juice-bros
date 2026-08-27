@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { apps } from "@/data/apps";
+import { apps, type AppItem } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { ComingSoon } from "@/components/apps/coming-soon";
 
-// Apps with their own dedicated route folder (e.g. src/app/tools/pickle-point-pal)
-// are excluded here so this catch-all doesn't also prerender their slug.
+// Slugs Next resolves through a dedicated route folder
+// (e.g. src/app/tools/pickle-point-pal) rather than this catch-all.
 const DEDICATED_ROUTE_SLUGS = new Set(["pickle-point-pal"]);
 
+// This catch-all only renders the "coming soon" stub for apps whose canonical
+// route is /tools/<slug>. An app hosted on its own path (Booking Buddy at
+// /booking-buddy) is still matched by slug below, then redirected to where it
+// actually lives.
+function isCatchAllApp(app: AppItem): boolean {
+  return app.href === `/tools/${app.slug}` && !DEDICATED_ROUTE_SLUGS.has(app.slug);
+}
+
 export function generateStaticParams() {
-  return apps
-    .filter((app) => !DEDICATED_ROUTE_SLUGS.has(app.slug))
-    .map((app) => ({ slug: app.slug }));
+  return apps.filter(isCatchAllApp).map((app) => ({ slug: app.slug }));
 }
 
 export async function generateMetadata({
@@ -22,6 +28,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const app = apps.find((item) => item.slug === slug);
   if (!app) notFound();
+  if (app.href !== `/tools/${slug}`) redirect(app.href);
 
   return pageMetadata({
     title: app.title,
@@ -34,6 +41,7 @@ export default async function AppPage({ params }: PageProps<"/tools/[slug]">) {
   const { slug } = await params;
   const app = apps.find((item) => item.slug === slug);
   if (!app) notFound();
+  if (app.href !== `/tools/${slug}`) redirect(app.href);
 
   return (
     <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
