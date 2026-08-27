@@ -47,7 +47,7 @@ export default async function BookingBuddyPrivacyPage() {
           <PageHeading
             eyebrow="Booking Buddy"
             title="Privacy Policy"
-            description="What this app collects, why, and who it's shared with. This covers Booking Buddy specifically — the podcast and marketing site collect nothing and have no accounts."
+            description="What this app collects, why, and who it's shared with. This covers Booking Buddy specifically. The podcast and marketing site collect nothing and have no accounts."
           />
 
           <Section title="The short version">

@@ -47,7 +47,7 @@ export default async function FriendsPage() {
               <PageHeading
                 eyebrow="Booking Buddy"
                 title="Friends"
-                description="Connections are mutual — once you're both in, you can see each other's open time."
+                description="Connections are mutual. Once you're both in, you can see each other's open time."
               />
             </div>
 
@@ -61,7 +61,7 @@ export default async function FriendsPage() {
                   Invite a friend
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Not on Booking Buddy yet? Send them your link — it connects
+                  Not on Booking Buddy yet? Send them your link. It connects
                   them to you when they sign up.
                 </p>
                 <div className="mt-4">
@@ -120,7 +120,7 @@ export default async function FriendsPage() {
                 )}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                What everyone actually sees. Setting someone here pins them —
+                What everyone actually sees. Setting someone here pins them:
                 it beats every group they&apos;re in, either way.
               </p>
 

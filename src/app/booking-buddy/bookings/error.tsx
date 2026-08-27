@@ -13,7 +13,7 @@ export default function BookingsError(props: {
   return (
     <DataError
       title="Couldn't load your bookings"
-      description="Something went wrong reading your court bookings — this isn't you, and nothing has been changed."
+      description="Something went wrong reading your court bookings. This isn't you, and nothing has been changed."
       {...props}
     />
   );

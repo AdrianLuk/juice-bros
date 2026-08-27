@@ -14,7 +14,7 @@ export default function DashboardError(props: {
   return (
     <DataError
       title="Couldn't load your dashboard"
-      description="Something went wrong reading your bookings and availability — this isn't you, and nothing has been changed."
+      description="Something went wrong reading your bookings and availability. This isn't you, and nothing has been changed."
       {...props}
     />
   );

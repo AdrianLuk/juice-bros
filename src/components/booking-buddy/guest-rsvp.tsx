@@ -48,7 +48,7 @@ export function GuestRsvpForm({ token }: { token: string }) {
   if (state.ok) {
     return (
       <p className="bb-card px-4 py-3 text-sm" role="status">
-        Thanks — your RSVP is in.
+        Thanks. Your RSVP is in.
       </p>
     );
   }

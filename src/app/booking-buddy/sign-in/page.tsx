@@ -38,7 +38,7 @@ export default async function SignInPage({
           <PageHeading
             eyebrow="Booking Buddy"
             title="Sign in"
-            description="Plan pickleball with your friends — open a time, see who's in."
+            description="Plan pickleball with your friends: open a time, see who's in."
           />
 
           <div className="bb-card mt-8 p-6 sm:p-8">

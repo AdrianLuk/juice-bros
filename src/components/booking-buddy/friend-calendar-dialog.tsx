@@ -50,7 +50,7 @@ export function FriendCalendarDialog({
         <DialogHeader>
           <DialogTitle>{name}&apos;s calendar</DialogTitle>
           <DialogDescription>
-            Busy and open time only — no Slots, and nothing before today.
+            Busy and open time only. No Slots, and nothing before today.
           </DialogDescription>
         </DialogHeader>
         {calendar.isPending ? (

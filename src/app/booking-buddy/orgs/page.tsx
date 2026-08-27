@@ -61,7 +61,7 @@ export default async function OrgsPage() {
                 <div className="border-t border-border px-4 py-4">
                   <p className="text-sm text-muted-foreground">
                     Community-centre gyms and private courts usually aren&apos;t
-                    on Google. Type the name instead — this is the permanent way
+                    on Google. Type the name instead. This is the permanent way
                     in for those.
                   </p>
                   <div className="mt-4">

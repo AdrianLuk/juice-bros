@@ -56,7 +56,7 @@ export function GenderForm({ gender }: { gender: Gender | null }) {
 
       <p className="text-sm text-muted-foreground">
         Used to show a gender-aware sign-up count on mixed/men&apos;s/women&apos;s
-        games. Optional — leaving this unset is fine.
+        games. Optional, and leaving this unset is fine.
       </p>
 
       {state.error && (

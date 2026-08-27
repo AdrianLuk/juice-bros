@@ -48,8 +48,8 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
           <DialogHeader>
             <DialogTitle>Set your availability</DialogTitle>
             <DialogDescription>
-              Mark a stretch as open or busy. It only shows on your calendar —
-              friends can still ask about it, this doesn&apos;t stop a Slot
+              Mark a stretch as open or busy. It only shows on your calendar.
+              Friends can still ask about it, this doesn&apos;t stop a Slot
               invite.
             </DialogDescription>
           </DialogHeader>
@@ -75,13 +75,13 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
           <DialogHeader>
             <DialogTitle>Log a booking</DialogTitle>
             <DialogDescription>
-              Copy it off the facility&apos;s own booking screen — it&apos;ll
+              Copy it off the facility&apos;s own booking screen. It&apos;ll
               show up on the calendar right after.
             </DialogDescription>
           </DialogHeader>
           {orgs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Bookings need somewhere to be — add a place you play first,
+              Bookings need somewhere to be. Add a place you play first,
               then come back.
             </p>
           ) : (
