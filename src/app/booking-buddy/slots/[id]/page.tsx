@@ -10,6 +10,7 @@ import {
   ResponseButtons,
   SlotCapacityPanel,
   SlotCourts,
+  SlotStatusBadge,
 } from "@/components/booking-buddy/slots";
 import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
 import { ReminderOffsetForm } from "@/components/booking-buddy/reminders";
@@ -74,6 +75,9 @@ export default async function SlotDetailPage({
                   isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
                 }
               />
+              <div className="mt-4">
+                <SlotStatusBadge courtCount={slot.courtCount} />
+              </div>
             </div>
 
             <BookingBuddyNav current="slots" />

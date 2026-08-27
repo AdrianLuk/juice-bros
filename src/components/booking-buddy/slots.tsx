@@ -211,6 +211,22 @@ export function CreateSlotForm({ orgs }: { orgs: Org[] }) {
   );
 }
 
+/**
+ * Whether a Slot is still a bare proposal or has a court behind it — the same
+ * distinction the Capacity panel spells out in prose, as a glanceable chip.
+ */
+export function SlotStatusBadge({ courtCount }: { courtCount: number }) {
+  return courtCount > 0 ? (
+    <span className="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+      Court booked
+    </span>
+  ) : (
+    <span className="inline-flex shrink-0 items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+      Proposal
+    </span>
+  );
+}
+
 export function SlotRow({
   slot,
   href,
@@ -224,10 +240,13 @@ export function SlotRow({
         href={href}
         className="block px-5 py-4 transition-colors hover:bg-muted/60 active:bg-muted"
       >
-        <p className="font-medium">
-          {slot.when}
-          {slot.facilityLabel && ` — ${slot.facilityLabel}`}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="font-medium">
+            {slot.when}
+            {slot.facilityLabel && ` — ${slot.facilityLabel}`}
+          </p>
+          <SlotStatusBadge courtCount={slot.courtCount} />
+        </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Proposed by {slot.ownerName}
         </p>
