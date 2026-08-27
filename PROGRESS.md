@@ -25,7 +25,7 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
   - [x] `PodcastEpisode` + `VideoObject` JSON-LD on each episode page (#141), `VideoObject` nested as the `PodcastEpisode`'s `associatedMedia`
   - [x] `BreadcrumbList` on each episode page (#141)
   - [x] `BreadcrumbList` + `ItemList` of `Product` on `/gear` (#165) — no `offers`/price, since those are external affiliate links we don't control pricing or availability for
-  - [x] `BreadcrumbList` + `ItemList` of `SoftwareApplication` on `/tools`, plus a per-app `BreadcrumbList` + `SoftwareApplication` on `/tools/pickle-point-pal` (#165)
+  - [x] `BreadcrumbList` + `ItemList` of `SoftwareApplication` on `/tools`, plus a per-app `BreadcrumbList` + `SoftwareApplication` on `/tools/pickle-point-pal` (#165). `/tools/pickle-point-pal` also emits `FAQPage` now, off the same source as the visible explainer/FAQ block below the tool.
   - [x] `BreadcrumbList` + lightweight `ItemList` linking to each episode page on `/podcast` (#165)
   - [x] `/gear`, `/tools`, `/tools/pickle-point-pal`, and `/podcast` validated against Google's Rich Results Test by Adrian — clean (#165)
   - [x] Episode page (`PodcastEpisode`/`VideoObject`/`BreadcrumbList`) validated against Google's Rich Results Test by Adrian — clean (#141)
@@ -49,7 +49,7 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
 - [ ] Club spotlight pages
 - [ ] Gear page write-ups
 - [ ] Round Robin Generator — removed from the live `/tools` listing (`src/data/apps.ts`) and put on the backburner; brief still at `briefs/juice-bros-round-robin-brief.md` if it gets picked back up.
-- [x] Pickleball Referee scorekeeper — shipped as "Pickle Point Pal" at `/tools/pickle-point-pal`. Mostly done; Adrian may still add to it.
+- [x] Pickleball Referee scorekeeper — shipped as "Pickle Point Pal" at `/tools/pickle-point-pal`. Mostly done; Adrian may still add to it. A crawlable explainer + FAQ block now sits below the tool (server-rendered, `.pp-surface` palette) for SEO — targets "pickleball scorekeeper / scorekeeping app", "how pickleball scoring works", server rotation; feeds `FAQPage` JSON-LD.
 - [x] Booking Buddy — friend-group scheduling app (Apps section), Supabase-backed per CLAUDE.md's carve-out. Fully implemented and deployed: auth, friend connections/visibility, Facilities, Bookings (with Players, editable name/notes, full in-place editing), Slots (poll → confirmed lifecycle, gendered Capacity, Slot Links/Guest RSVP), Availability Windows, a dashboard calendar with a friend-calendar view, email/push Reminders, PWA installability, Sync from Email (CourtReserve parsing), and a privacy policy. Every ticket in the tracker is shipped, zero open issues as of 2026-08-25 — see [booking-buddy/CONTEXT.md](booking-buddy/CONTEXT.md), [booking-buddy/docs/adr/](booking-buddy/docs/adr/), and [booking-buddy/PROGRESS.md](booking-buddy/PROGRESS.md). **Launched on the public site 2026-08-26**: first entry in `src/data/apps.ts`, so it's the lead card on `/tools`. `/booking-buddy` is now a public marketing page for signed-out visitors and the dashboard for signed-in ones — a server-side session branch in `page.tsx`, with the proxy no longer gating the root path (`requiresSession` returns false for the exact `/booking-buddy`; every nested route stays gated, and the page still calls `verifySession` before rendering the dashboard). The landing page (`src/components/booking-buddy/landing/`) inherits the JB marketing section rhythm inside `.bb-theme`, with hand-authored illustrative mockups of real surfaces (a Slot's responses, friends' availability, a week view) and a shared FAQ list that also feeds `FAQPage` JSON-LD. `/booking-buddy` is in `sitemap.xml` and `robots.ts` (the disallow list still covers the signed-in-only feature routes and `/s/`). Sign-in still has a Gmail allowlist for the email-sync feature, but sign-in itself is open.
 
 ## Manual (Adrian, not Claude Code)
@@ -57,6 +57,7 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
 - [ ] Google Search Console + Bing Webmaster Tools, submit sitemap
 - [x] Run an episode page through Google's Rich Results Test once deployed, to validate the `PodcastEpisode`/`VideoObject`/`BreadcrumbList` JSON-LD (#141) — done, clean
 - [x] Run `/gear`, `/tools`, `/tools/pickle-point-pal`, and `/podcast` through Google's Rich Results Test once deployed, to validate the `Product`/`SoftwareApplication`/`ItemList`/`BreadcrumbList` JSON-LD (#165) — done, clean
+- [ ] Re-run `/tools/pickle-point-pal` through the Rich Results Test — it now also emits `FAQPage` JSON-LD alongside the existing nodes
 - [ ] Submit RSS feed to Apple Podcasts, Amazon Music, Pocket Casts, Overcast, iHeart, Podcast Index
 - [ ] Submit to podcast directories (Feedspot, MillionPodcasts)
 - [ ] Add site URL to YouTube video descriptions + pin a comment linking the episode page
