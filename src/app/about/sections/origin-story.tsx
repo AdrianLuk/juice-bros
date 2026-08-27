@@ -40,6 +40,25 @@ export function OriginStory() {
           </div>
         </div>
       </div>
+      <div className="mt-12 max-w-3xl sm:mt-16">
+        <h3 className="font-heading text-xl font-bold tracking-[-0.02em]">
+          How we got the name
+        </h3>
+        <div className="mt-4 flex flex-col gap-4 text-lg text-muted-foreground">
+          <p>
+            Back when we first started, we both played at the same local park.
+            Adrian&apos;s shot has always been the backhand roll. One day Daven watched
+            him hit one and said, &ldquo;that backhand roll is so juicy.&rdquo; It stuck.
+            After that, whenever the roll landed, Daven would yell &ldquo;juuuice&rdquo;
+            from the other side of the court.
+          </p>
+          <p>
+            Then Adrian started calling it back every time Daven hit something clean, and
+            &ldquo;juice&rdquo; stopped being about one shot. It was just the thing we
+            said to each other out there. And thus the Juice Bros were born.
+          </p>
+        </div>
+      </div>
     </section>
   );
 }
