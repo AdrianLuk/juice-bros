@@ -75,8 +75,11 @@ export function BookingBuddyLanding() {
         }}
       />
 
-      {/* Hero */}
-      <section className="w-full bg-brand-orange px-4 py-16 text-white sm:px-6 sm:py-24 lg:px-8">
+      {/* Hero. Bleeds up under the desktop sticky nav (negative top margin ≈
+          nav height) so the orange runs unbroken behind the pill instead of
+          leaving a strip of page background above it. Mobile keeps its in-flow
+          orange identity strip, so no pull-up there. */}
+      <section className="w-full bg-brand-orange px-4 py-16 text-white sm:-mt-16 sm:px-6 sm:pt-32 sm:pb-24 lg:px-8">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-5">
             <Eyebrow color="yellow">Booking Buddy</Eyebrow>
