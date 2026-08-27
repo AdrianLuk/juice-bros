@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
@@ -7,6 +8,7 @@ import { verifySession } from "../dal.ts";
 import { slotPath } from "../routes.ts";
 import type { ActionResult } from "./result.ts";
 import { parseAnswer, responseWriteMessage } from "../responses.ts";
+import { slotHasNoResponsesYet, trackFunnelEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
 
@@ -37,6 +39,11 @@ export async function respondToSlot(
   }
 
   const supabase = await createClient();
+
+  // Checked before the write so the upsert path (a responder changing their
+  // own answer) can't re-fire `bb_slot_first_response` (#179).
+  const slotWasEmpty = await slotHasNoResponsesYet(supabase, parsed.slotId);
+
   const { data, error } = await supabase
     .from("responses")
     .upsert(
@@ -47,6 +54,10 @@ export async function respondToSlot(
 
   if (error || !data?.length) {
     return { error: responseWriteMessage(error) };
+  }
+
+  if (slotWasEmpty) {
+    after(() => trackFunnelEvent("bb_slot_first_response"));
   }
 
   revalidatePath(slotPath(parsed.slotId));

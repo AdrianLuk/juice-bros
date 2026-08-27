@@ -98,3 +98,6 @@ A unique, shareable URL generated for a single Slot. Anyone holding the link can
 **Guest**:
 Someone who RSVPs to a Slot via its Slot Link without holding a Booking Buddy account or being a Connection of the organizer. Identified by name only. RSVPing as a Guest does not create a Connection — becoming friends in the app is a separate, deliberate action.
 _Avoid_: Player (a Booking's own record of who was on the court, which can link to a Connection and belongs to a different list entirely — see Player)
+
+**Funnel Event**:
+One of a small set of Vercel Analytics events marking a User's progress from signup to first value (issue #179): `bb_signup`, `bb_first_facility`, `bb_first_booking`, `bb_first_slot`, `bb_first_friend`, `bb_slot_first_response` (and `bb_onboarding_intent`, once #176 adds the intent choice). Emitted server-side from `src/lib/booking-buddy/analytics.ts`, each fires once on the 0→1 transition (checked against the database, not the client) and carries no PII. Read from the Vercel Analytics console, not a dashboard in the app — see [docs/onboarding-funnel.md](docs/onboarding-funnel.md) and [adr/0014-onboarding-funnel-analytics.md](docs/adr/0014-onboarding-funnel-analytics.md).

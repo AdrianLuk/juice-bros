@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession, type Session } from "../dal.ts";
+import { trackFirstFriend } from "../analytics.ts";
 import { FRIENDS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
@@ -259,7 +261,7 @@ export async function acceptConnectionRequest(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
-  await verifySession();
+  const session = await verifySession();
   const connectionId = String(formData.get("connection_id") ?? "");
 
   const supabase = await createClient();
@@ -273,6 +275,11 @@ export async function acceptConnectionRequest(
   if (error || !data?.length) {
     return { error: "Couldn't accept that request." };
   }
+
+  // `bb_first_friend` (#179) — fired after the response only if this is the
+  // accepter's first accepted Connection. The requester's own first-friend
+  // moment isn't tracked; see the ADR.
+  after(() => trackFirstFriend(session.userId));
 
   revalidatePath(FRIENDS_PATH);
   return { ok: true };
