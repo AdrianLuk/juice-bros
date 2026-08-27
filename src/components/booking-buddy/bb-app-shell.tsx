@@ -134,7 +134,7 @@ export function BbAppShell() {
   return (
     <>
       {/* Desktop: sticky full-width top bar. */}
-      <header className="sticky top-0 z-40 hidden w-full border-b border-brand-orange/40 bg-secondary/85 backdrop-blur-sm sm:block">
+      <header className="sticky top-0 z-40 hidden w-full border-b border-brand-orange/40 bg-background/85 backdrop-blur-sm sm:block">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:px-6 lg:px-8">
           <Link
             href={BOOKING_BUDDY_ROOT}
