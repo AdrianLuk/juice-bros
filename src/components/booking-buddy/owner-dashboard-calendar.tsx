@@ -1,7 +1,11 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import Link from "next/link";
 
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { BOOKINGS_PATH, SLOTS_PATH } from "@/lib/booking-buddy/routes";
 import {
   CalendarEventPopover,
   AGENDA_EVENT_CLASS,
@@ -76,7 +80,28 @@ export function OwnerDashboardCalendar({
       events={bookings}
       availabilityWindows={availabilityWindows}
       quickActions={<DashboardQuickActions orgs={orgs} />}
-      agendaEmptyMessage="Nothing coming up. Bookings you log will show up here, grouped by day."
+      agendaEmptyMessage={
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-4">
+          <p>
+            Your games and bookings show up here. Log a court reservation, or
+            post a time for your group to respond to.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Link
+              href={BOOKINGS_PATH}
+              className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+            >
+              Log a booking
+            </Link>
+            <Link
+              href={SLOTS_PATH}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Post a time
+            </Link>
+          </div>
+        </div>
+      }
       renderWeekEvent={(
         booking,
         style: CSSProperties,

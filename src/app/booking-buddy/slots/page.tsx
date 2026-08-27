@@ -48,7 +48,8 @@ export default async function SlotsPage() {
               </h2>
               {own.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-                  Nothing posted yet.
+                  Proposed times live here. Post one below and friends reply
+                  yes, no, or maybe, before anyone books a court.
                 </p>
               ) : (
                 <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
