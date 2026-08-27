@@ -30,7 +30,7 @@ export function DashboardAgendaView<T extends CalendarEvent>({
   now: Date;
   onDayClick: (day: Date) => void;
   renderEvent: (event: T) => ReactNode;
-  emptyMessage: string;
+  emptyMessage: ReactNode;
 }) {
   const upcoming = useMemo(
     () => upcomingBookings(events, now, Number.POSITIVE_INFINITY),
@@ -43,9 +43,9 @@ export function DashboardAgendaView<T extends CalendarEvent>({
 
   if (upcoming.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
         {emptyMessage}
-      </p>
+      </div>
     );
   }
 

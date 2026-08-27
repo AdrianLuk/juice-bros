@@ -88,7 +88,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
   ) => ReactNode;
   renderMonthEvent: (event: T) => ReactNode;
   renderAgendaEvent: (event: T) => ReactNode;
-  agendaEmptyMessage: string;
+  agendaEmptyMessage: ReactNode;
 }) {
   const [view, setView] = useState<CalendarView>("week");
   // "Today" as of first render — a stable reference for the session rather
