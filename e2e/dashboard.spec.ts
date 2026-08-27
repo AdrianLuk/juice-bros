@@ -45,7 +45,29 @@ function requireTestBookingDate(): { iso: string; label: string } {
   return { iso: isoDate(date), label: MONTH_DAY_YEAR.format(date) };
 }
 
+/**
+ * Post-#176 (PR #192) the onboarding modal (`OnboardingModal`) opens on the
+ * dashboard for anyone with **no Booking and no Slot** — which AMY is, straight
+ * out of `npm run seed:users` (the seed creates accounts and friendships only).
+ * Its "What do you want to start with?" dialog then sits over the calendar and
+ * intercepts every click. These tests are about the calendar, not onboarding
+ * (`onboarding.spec.ts` owns that), so write the `localStorage` key
+ * `OnboardingModal`'s dismissal snooze uses (`bb-onboarding-snoozed-until`,
+ * any future timestamp) before the first paint — the modal reads it in a mount
+ * effect, which `addInitScript` (runs before page scripts on every navigation)
+ * reliably beats — rather than racing to dismiss the dialog per test.
+ */
+const ONBOARDING_SNOOZE_KEY = "bb-onboarding-snoozed-until";
+
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript((key) => {
+    try {
+      window.localStorage.setItem(key, String(Date.now() + 60 * 60 * 1000));
+    } catch {
+      // Storage disabled — the tests that need the modal gone will surface it.
+    }
+  }, ONBOARDING_SNOOZE_KEY);
+
   await signIn(page, AMY, "/booking-buddy");
 });
 
@@ -72,11 +94,6 @@ test.afterEach(async ({ page }) => {
 test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({
   page,
 }) => {
-  // A zero-Facility Amy would otherwise surface the Onboarding modal (issue
-  // #103) over the calendar — same reasoning as every other test in this
-  // file that touches the dashboard, all of which already start from a Place.
-  const place = placeName();
-  await addPlace(page, place);
   await page.goto("/booking-buddy");
 
   await expect(page.getByRole("button", { name: "Week", exact: true })).toHaveAttribute(
@@ -99,8 +116,6 @@ test("the calendar defaults to Week view, and Month/Agenda toggle without naviga
   );
 
   await expect(page).toHaveURL(/\/booking-buddy$/);
-
-  await removePlace(page, place);
 });
 
 test("a Booking renders on the calendar and in the sidebar, and its popover can remove it", async ({
@@ -163,10 +178,6 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
 });
 
 test("clicking a Month day switches to Week view centered on that day", async ({ page }) => {
-  // Same reasoning as the view-toggle test above — a zero-Facility Amy would
-  // otherwise have the Onboarding modal (issue #103) up over the calendar.
-  const place = placeName();
-  await addPlace(page, place);
   await page.goto("/booking-buddy");
 
   await page.getByRole("button", { name: "Month", exact: true }).click();
@@ -180,8 +191,6 @@ test("clicking a Month day switches to Week view centered on that day", async ({
     "true",
   );
   await expect(page.getByText("Aug 23 – 29, 2026")).toBeVisible();
-
-  await removePlace(page, place);
 });
 
 test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
