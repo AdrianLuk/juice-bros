@@ -22,28 +22,20 @@ import {
 import { GMAIL_OAUTH_STATE_COOKIE } from "../gmail-oauth.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
 import { decryptRefreshToken } from "../token-encryption.ts";
+import { buildCourtReserveSearchQuery } from "../courtreserve-email.ts";
+import { connectionCandidatesFromFriends } from "../email-sync-matching.ts";
 import {
-  buildCourtReserveSearchQuery,
-  parseCourtReserveEmail,
-  type CourtReserveConfirmation,
-} from "../courtreserve-email.ts";
-import {
-  connectionCandidatesFromFriends,
-  isDuplicateBooking,
-  isPastConfirmation,
-  matchCancellationToBooking,
-  matchOrgByName,
-  matchPlayerNamesToConnections,
-  matchUpdateToBooking,
-  reconcileCourtReserveEvents,
-  type BookingIdentity,
-  type OrgCandidate,
-  type PlayerMatch,
-  type ReconciliationEvent,
-} from "../email-sync-matching.ts";
-import { parseNewBooking, splitOverlongCourtLabel, stripCourtLabelPrefix } from "../bookings.ts";
+  reviewCourtReserveEmails,
+  type RawCourtReserveEmail,
+} from "../email-sync-review.ts";
+import type {
+  CancellationCandidate,
+  ImportCandidate,
+  UpdateCandidate,
+} from "../email-sync-review.ts";
+import { parseNewBooking } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
-import { isBookingFormat, type BookingFormat } from "../capacity.ts";
+import { isBookingFormat } from "../capacity.ts";
 import {
   deleteOwnedBooking,
   getBookingsPageData,
@@ -53,6 +45,7 @@ import {
 import { listConnections } from "./connections.ts";
 
 export type { ActionResult } from "./result.ts";
+export type { CancellationCandidate, ImportCandidate, UpdateCandidate };
 
 export type MailboxLink = {
   googleAccountEmail: string;
@@ -167,73 +160,6 @@ export async function disconnectGmail(): Promise<ActionResult> {
   return { ok: true };
 }
 
-/**
- * One parsed CourtReserve confirmation, matched against the caller's own
- * Orgs and Connections but not yet applied — CONTEXT.md's Import Candidate
- * (issue #64). `endTime`/`format`/`date`/`startTime`/`courtLabel` are shown
- * read-only on the review screen; `matchedOrgId` is the only field the User
- * still has to pick when it's `null`.
- */
-export type ImportCandidate = {
-  gmailMessageId: string;
-  facilityName: string;
-  /** Set only when the facility name matched an existing Org (`matchOrgByName`). */
-  matchedOrgId: string | null;
-  date: string;
-  startTime: string;
-  endTime: string;
-  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
-  courtLabel: string | null;
-  /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
-  notes: string | null;
-  format: BookingFormat;
-  /** The parsed email's own Details-section name (issue #95) — read-only on the review card, same as Format/date/time/court. */
-  name: string;
-  /** Reference-only, per CONTEXT.md's Import Candidate entry — nothing is created or invited from a match. */
-  matchedPlayers: PlayerMatch[];
-};
-
-/**
- * One parsed CourtReserve cancellation, matched against the caller's own
- * Bookings (issue #65). `matched: false` is CONTEXT.md's Import Candidate
- * entry's own framing of a cancellation with no Booking on file — surfaced as
- * a distinct notice rather than silently dropped, since it's a signal the
- * User's records may be out of sync.
- */
-export type CancellationCandidate = {
-  gmailMessageId: string;
-  facilityName: string;
-  date: string;
-  startTime: string;
-  /** Always null in practice — a real cancellation email carries no Court(s) section (see courtreserve-email.ts). Kept for display parity with a confirmation candidate. */
-  courtLabel: string | null;
-} & ({ matched: true; bookingId: string } | { matched: false });
-
-/**
- * One parsed Reservation Update Notice, matched against the caller's own
- * Bookings the same way a cancellation is (issue #91) — reached only when
- * `syncFromEmail`'s own reconciliation had nothing in this batch to net it
- * against (see `reconcileCourtReserveEvents`'s own header comment); an update
- * that *did* net against an in-batch confirmation never becomes one of these
- * at all, it's folded into that confirmation's own `ImportCandidate`.
- * `matched: false` mirrors `CancellationCandidate`'s own framing of "nothing
- * on file this could refer to" as a distinct notice rather than a silent drop.
- */
-export type UpdateCandidate = {
-  gmailMessageId: string;
-  facilityName: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  /** Already stripped of its leading "Court" word — see `stripCourtLabelPrefix`. Null when the raw text ran over the court-label length limit; the full text lands in `notes` instead (see `splitOverlongCourtLabel`). */
-  courtLabel: string | null;
-  /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
-  notes: string | null;
-  format: BookingFormat;
-  /** Reference-only — unlike `ImportCandidate.matchedPlayers` (wired through by issue #100), applying an update deliberately edits format/court only and never touches Players, since a Reservation Update Notice isn't a new Booking. */
-  matchedPlayers: PlayerMatch[];
-} & ({ matched: true; bookingId: string } | { matched: false });
-
 export type SyncFromEmailResult =
   | {
       status: "ok";
@@ -244,21 +170,26 @@ export type SyncFromEmailResult =
   | { status: "reconnect_required" }
   | { status: "error"; message: string };
 
-/** Earliest slot first for display — `date` (`YYYY-MM-DD`) and `startTime` (`HH:MM`, 24-hour) both sort correctly as plain strings. */
-function byDateAndStartTime(a: { date: string; startTime: string }, b: { date: string; startTime: string }): number {
-  return a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date);
-}
-
 /**
- * Runs a live Gmail search for CourtReserve confirmations and cancellations,
- * parses/matches whatever comes back, and returns the ones worth a User's
- * review (issues #64/#65). A plain async function rather than a
- * `useActionState`-bound one: the caller (a click-triggered `useQuery`)
- * wants a promise it can call by name, not a form to submit.
+ * Runs a live Gmail search for CourtReserve confirmations and cancellations
+ * and returns the ones worth a User's review (issues #64/#65). A plain async
+ * function rather than a `useActionState`-bound one: the caller (a
+ * click-triggered `useQuery`) wants a promise it can call by name, not a form
+ * to submit.
  *
- * A `not_a_booking`/`unparseable` parse is simply skipped, and neither is
- * recorded in `processed_gmail_messages`, so a later sync still sees it
- * fresh — there's nothing actionable to remember either way.
+ * Everything decidable from the message bodies down — parse, batch netting,
+ * facility/Booking/player matching, the past-date and duplicate drops, the
+ * court-label overflow split, ordering — is `reviewCourtReserveEmails`
+ * (`email-sync-review.ts`), unit tested against fixture HTML. This function is
+ * only the I/O around it: token refresh, the Gmail search + fetch, the
+ * Supabase reads that resolve the caller's own Orgs/Bookings/Connections, and
+ * the `processed_gmail_messages` "already seen" filter that keeps a fetch from
+ * happening for a message a past sync already settled.
+ *
+ * A `not_a_booking`/`unparseable`/malformed-time parse is dropped by the
+ * review module and, since it produces no candidate, is never recorded in
+ * `processed_gmail_messages` here — so a later sync still sees it fresh, which
+ * is fine: there's nothing actionable to remember either way.
  */
 export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   const session = await verifySession();
@@ -342,220 +273,46 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     listConnections(),
   ]);
 
-  const orgCandidates: OrgCandidate[] = orgs.map((org) => ({ orgId: org.id, displayName: org.displayName }));
-  const orgTimeZoneById = new Map(orgs.map((org) => [org.id, org.timeZone]));
-
-  // Each existing Booking's own wall-clock date/start time, read back in its
-  // own Org's zone — the same shape `isDuplicateBooking`/`isPastConfirmation`
-  // compare a candidate against. `todayInZone`/`clockInZone` work for any
-  // instant, not just "now", despite the name. `id` rides along too, only
-  // for `matchCancellationToBooking`'s benefit (issue #65) — it's the thing
-  // `confirmCancellationCandidate` actually needs to delete.
-  const existingBookings: (BookingIdentity & { id: string })[] = bookings.map((booking) => ({
-    id: booking.id,
-    orgId: booking.orgId,
-    courtLabel: booking.courtLabel,
-    date: todayInZone(booking.timeZone, new Date(booking.startsAt)),
-    startTime: clockInZone(booking.timeZone, new Date(booking.startsAt)),
-  }));
-
-  const connectionCandidates = connectionCandidatesFromFriends(connections.friends);
-
+  // Captured once, ahead of the per-message fetch, so every past-date check
+  // in this sync shares one "now" regardless of how long the fetch loop runs.
   const now = new Date();
 
-  // A malformed time range ("no end time" — see courtreserve-email.ts) isn't
-  // something the review screen has a field for fixing, so it's filtered out
-  // before reconciliation too — same as before, just narrowed here rather
-  // than after, so `endTime` reads as the non-null string it now always is
-  // downstream.
-  type ConfirmedEmail = CourtReserveConfirmation & { endTime: string };
-
-  // Phase 1: parse every unseen message into a plain event, carrying its own
-  // `receivedAt` — the raw material `reconcileCourtReserveEvents` needs to
-  // net a confirm/cancel/confirm/... chain for the same slot down to its
-  // real end state (issue #88) before any of the existing Org-matching/
-  // duplicate/past-date logic below ever runs on it.
-  const events: ReconciliationEvent<ConfirmedEmail>[] = [];
-
+  // The Gmail fetch is the only per-message I/O left here — one unreadable
+  // message shouldn't sink the whole sync. Everything decidable from the
+  // bodies down is `reviewCourtReserveEmails`.
+  const rawEmails: RawCourtReserveEmail[] = [];
   for (const messageId of unseenIds) {
     const fetched = await fetchGmailMessage(refreshed.accessToken, messageId);
     if (!fetched.ok) {
-      // One unreadable message shouldn't sink the whole sync.
       console.error("booking-buddy: fetching a Gmail message failed", messageId);
       continue;
     }
-
-    const parsed = parseCourtReserveEmail(fetched.email);
-
-    if (parsed.kind === "cancellation") {
-      const { cancellation } = parsed;
-      events.push({
-        kind: "cancellation",
-        gmailMessageId: messageId,
-        receivedAt: fetched.email.receivedAt,
-        facilityName: cancellation.facilityName,
-        date: cancellation.date,
-        startTime: cancellation.startTime,
-        courtLabel: stripCourtLabelPrefix(cancellation.courtLabel),
-      });
-      continue;
-    }
-
-    if (parsed.kind === "update") {
-      const { update } = parsed;
-      if (!update.endTime) {
-        continue;
-      }
-
-      events.push({
-        kind: "update",
-        gmailMessageId: messageId,
-        receivedAt: fetched.email.receivedAt,
-        facilityName: update.facilityName,
-        date: update.date,
-        startTime: update.startTime,
-        update: { ...update, endTime: update.endTime },
-      });
-      continue;
-    }
-
-    if (parsed.kind !== "confirmation") {
-      continue;
-    }
-
-    const { confirmation } = parsed;
-    if (!confirmation.endTime) {
-      continue;
-    }
-
-    events.push({
-      kind: "confirmation",
-      gmailMessageId: messageId,
-      receivedAt: fetched.email.receivedAt,
-      facilityName: confirmation.facilityName,
-      date: confirmation.date,
-      startTime: confirmation.startTime,
-      confirmation: { ...confirmation, endTime: confirmation.endTime },
-    });
+    rawEmails.push({ gmailMessageId: messageId, ...fetched.email });
   }
 
-  const reconciled = reconcileCourtReserveEvents(events);
-
-  const candidates: ImportCandidate[] = [];
-  const cancellations: CancellationCandidate[] = [];
-  const updates: UpdateCandidate[] = [];
-
-  // Phase 2: the exact same per-email logic as before, just applied to the
-  // reconciled survivors rather than every raw parsed email.
-  for (const event of reconciled.updates) {
-    const { update } = event;
-
-    const matchedOrgId = matchOrgByName(update.facilityName, orgCandidates);
-    const zone = matchedOrgId ? (orgTimeZoneById.get(matchedOrgId) ?? "UTC") : "UTC";
-
-    // Same reasoning as a confirmation's own filter: a Reservation Update
-    // for a slot that's already passed isn't worth a User's review either.
-    if (isPastConfirmation(update, zone, now)) {
-      continue;
-    }
-
-    // No matched Org means there's nothing on file it could refer to either
-    // — same reasoning `matchCancellationToBooking` itself can't apply
-    // without one.
-    const bookingId = matchedOrgId
-      ? matchUpdateToBooking({ orgId: matchedOrgId, date: update.date, startTime: update.startTime }, existingBookings)
-      : null;
-
-    const { courtLabel: updateCourtLabel, notes: updateNotes } = splitOverlongCourtLabel(
-      stripCourtLabelPrefix(update.courtLabel),
-    );
-
-    const updateBase = {
-      gmailMessageId: event.gmailMessageId,
-      facilityName: update.facilityName,
-      date: update.date,
-      startTime: update.startTime,
-      endTime: update.endTime,
-      courtLabel: updateCourtLabel,
-      notes: updateNotes,
-      format: update.format,
-      matchedPlayers: matchPlayerNamesToConnections(update.playerNames, connectionCandidates),
-    };
-
-    updates.push(bookingId ? { ...updateBase, matched: true, bookingId } : { ...updateBase, matched: false });
-  }
-
-  for (const event of reconciled.cancellations) {
-    const matchedOrgId = matchOrgByName(event.facilityName, orgCandidates);
-
-    // No matched Org means there's nothing on file it could refer to
-    // either — same reasoning `matchCancellationToBooking` itself can't
-    // apply without one.
-    const bookingId = matchedOrgId
-      ? matchCancellationToBooking(
-          { orgId: matchedOrgId, date: event.date, startTime: event.startTime },
-          existingBookings,
-        )
-      : null;
-
-    const cancellationBase = {
-      gmailMessageId: event.gmailMessageId,
-      facilityName: event.facilityName,
-      date: event.date,
-      startTime: event.startTime,
-      courtLabel: event.courtLabel,
-    };
-
-    cancellations.push(
-      bookingId
-        ? { ...cancellationBase, matched: true, bookingId }
-        : { ...cancellationBase, matched: false },
-    );
-  }
-
-  for (const event of reconciled.confirmations) {
-    const { confirmation } = event;
-
-    const matchedOrgId = matchOrgByName(confirmation.facilityName, orgCandidates);
-    // No matched Org means no known zone yet either — the User hasn't added
-    // this facility, so there's nothing to ask it. UTC is a coarse stand-in
-    // for this calendar-day-only check, not a claim about the real zone.
-    const zone = matchedOrgId ? (orgTimeZoneById.get(matchedOrgId) ?? "UTC") : "UTC";
-
-    if (isPastConfirmation(confirmation, zone, now)) {
-      continue;
-    }
-
-    const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(confirmation.courtLabel));
-
-    if (
-      matchedOrgId &&
-      isDuplicateBooking(
-        { orgId: matchedOrgId, courtLabel, date: confirmation.date, startTime: confirmation.startTime },
-        existingBookings,
-      )
-    ) {
-      continue;
-    }
-
-    candidates.push({
-      gmailMessageId: event.gmailMessageId,
-      facilityName: confirmation.facilityName,
-      matchedOrgId,
-      date: confirmation.date,
-      startTime: confirmation.startTime,
-      endTime: confirmation.endTime,
-      courtLabel,
-      notes,
-      format: confirmation.format,
-      name: confirmation.name,
-      matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, connectionCandidates),
-    });
-  }
-
-  candidates.sort(byDateAndStartTime);
-  cancellations.sort(byDateAndStartTime);
-  updates.sort(byDateAndStartTime);
+  const { candidates, cancellations, updates } = reviewCourtReserveEmails({
+    emails: rawEmails,
+    orgs: orgs.map((org) => ({
+      orgId: org.id,
+      displayName: org.displayName,
+      timeZone: org.timeZone,
+    })),
+    // Each existing Booking's own wall-clock date/start time, read back in its
+    // own Org's zone — the shape the review module's own duplicate/past-date
+    // checks compare a candidate against. `todayInZone`/`clockInZone` work for
+    // any instant, not just "now", despite the name. `id` rides along for
+    // `matchCancellationToBooking`/`matchUpdateToBooking` — it's what
+    // `confirmCancellationCandidate`/`confirmUpdateCandidate` actually act on.
+    existingBookings: bookings.map((booking) => ({
+      id: booking.id,
+      orgId: booking.orgId,
+      courtLabel: booking.courtLabel,
+      date: todayInZone(booking.timeZone, new Date(booking.startsAt)),
+      startTime: clockInZone(booking.timeZone, new Date(booking.startsAt)),
+    })),
+    connectionCandidates: connectionCandidatesFromFriends(connections.friends),
+    now,
+  });
 
   return { status: "ok", candidates, cancellations, updates };
 }
