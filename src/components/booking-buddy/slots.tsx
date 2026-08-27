@@ -213,7 +213,7 @@ export function CreateSlotForm({
           <Link href={ORGS_PATH} className="underline underline-offset-4">
             facility
           </Link>{" "}
-          to say where this slot would be, or post it without one.
+          to say where this game would be, or post it without one.
         </p>
       )}
 
@@ -229,7 +229,7 @@ export function CreateSlotForm({
 
       <div className="flex flex-col items-end gap-1">
         <Button type="submit" disabled={pending || duration.endTime === null}>
-          {pending ? "Posting…" : "Post slot"}
+          {pending ? "Posting…" : "Post game"}
         </Button>
         <ActionError state={state} />
       </div>
@@ -633,7 +633,7 @@ function AttachBookingForm({
       <p className="text-sm text-muted-foreground">
         {capacity.attached.length === 0
           ? "You haven't logged any bookings yet. Log one first, then attach it here."
-          : "Every booking you've logged is already on this slot."}
+          : "Every booking you've logged is already on this game."}
       </p>
     );
   }
@@ -698,7 +698,7 @@ function DetachBookingButton({
         <DialogHeader>
           <DialogTitle>Detach this court?</DialogTitle>
           <DialogDescription>
-            {booking.when} at {booking.orgName}. This slot&apos;s capacity
+            {booking.when} at {booking.orgName}. This game&apos;s capacity
             drops by one court. Your actual booking stays untouched on your
             Bookings page.
           </DialogDescription>
@@ -807,7 +807,7 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
     >
       <input type="hidden" name="slot_id" value={slotId} />
       <Button type="submit" variant="destructive" disabled={pending}>
-        {pending ? "Deleting…" : "Delete slot"}
+        {pending ? "Deleting…" : "Delete game"}
       </Button>
       <ActionError state={state} />
     </form>
@@ -816,11 +816,11 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
   return (
     <Dialog>
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
-        Delete slot
+        Delete game
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete this slot?</DialogTitle>
+          <DialogTitle>Delete this game?</DialogTitle>
           <DialogDescription>
             {when}. Every response, attached court, invite link, and reminder
             for it goes with it, and this can&apos;t be undone. Any Bookings
@@ -828,7 +828,7 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Keep slot</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>Keep game</DialogClose>
           {form}
         </DialogFooter>
       </DialogContent>

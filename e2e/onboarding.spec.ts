@@ -135,13 +135,13 @@ test("coordinate branch: posting a slot moves to the share step, and the modal s
   await chooseCoordinate(page);
 
   await expect(page.getByRole("heading", { name: "Post a time" })).toBeVisible();
-  await page.getByRole("button", { name: "Post slot" }).click();
+  await page.getByRole("button", { name: "Post game" }).click();
 
   await expect(
     page.getByRole("heading", { name: "Send it to your group" }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Create invite link" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "View your slot" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View your game" })).toBeVisible();
 
   await page.reload();
   await expect(modal(page)).toHaveCount(0);

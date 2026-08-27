@@ -2,18 +2,16 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import { OwnerDashboardCalendar } from "@/components/booking-buddy/owner-dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
 import { OnboardingModal } from "@/components/booking-buddy/onboarding-modal";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { BookingBuddyLanding } from "@/components/booking-buddy/landing/booking-buddy-landing";
 import { getOptionalSession, verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
-import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Booking Buddy: plan pickleball with your friends",
@@ -63,17 +61,11 @@ export default async function BookingBuddyPage() {
       />
       <section className="w-full px-4 pt-6 pb-10 sm:px-6 sm:pt-10 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title="Dashboard"
-                description="Your bookings and open time, at a glance."
-              />
-            </div>
-
-            <BookingBuddyNav current="dashboard" />
-          </div>
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Dashboard"
+            description="Your bookings and open time, at a glance."
+          />
 
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
             <OwnerDashboardCalendar
@@ -90,9 +82,7 @@ export default async function BookingBuddyPage() {
             </aside>
           </div>
 
-          <FooterNav>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-          </FooterNav>
+          <BbFooter />
         </div>
       </section>
     </div>

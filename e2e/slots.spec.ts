@@ -42,7 +42,7 @@ async function createSlot(
   if (slot.division) {
     await page.getByLabel("Division").selectOption(slot.division);
   }
-  await page.getByRole("button", { name: "Post slot" }).click();
+  await page.getByRole("button", { name: "Post game" }).click();
 
   await row(page, slot.label).getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
@@ -141,7 +141,7 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
   await page.getByLabel("Start").selectOption("13:00");
   await selectDuration(page, "13:00", "14:00");
   await page.getByLabel("Notes").fill(originalNotes);
-  await page.getByRole("button", { name: "Post slot" }).click();
+  await page.getByRole("button", { name: "Post game" }).click();
 
   await row(page, "Nov 11, 2031").getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
@@ -171,7 +171,7 @@ test("a slot cannot be posted for a date that's already passed", async ({ page }
   await page.getByLabel("Date").fill("2020-01-01");
   await page.getByLabel("Start").selectOption("13:00");
   await selectDuration(page, "13:00", "14:00");
-  await page.getByRole("button", { name: "Post slot" }).click();
+  await page.getByRole("button", { name: "Post game" }).click();
 
   await expect(
     page.getByRole("alert").filter({ hasText: "already passed" }),
@@ -364,6 +364,9 @@ test("the reminder timing defaults to 60 minutes and the owner can change it", a
 
     await reminderSelect.selectOption("120");
     await page.getByRole("button", { name: "Save reminder timing" }).click();
+    // Wait for the server write to confirm before reloading, or the reload
+    // races the revalidation.
+    await expect(page.getByText("Saved.")).toBeVisible();
 
     // Not just the optimistic form state — it survives a fresh read.
     await page.reload();
@@ -415,7 +418,7 @@ test("a facility picked at creation is already the slot's intended org", async (
   await page.getByLabel("Start").selectOption("09:00");
   await selectDuration(page, "09:00", "10:00");
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByRole("button", { name: "Post slot" }).click();
+  await page.getByRole("button", { name: "Post game" }).click();
 
   await row(page, "Oct 10, 2031").getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);

@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
 import {
   DeleteSlotButton,
   NotesForm,
@@ -15,14 +14,13 @@ import {
 import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
 import { ReminderOffsetForm } from "@/components/booking-buddy/reminders";
 import { IntendedOrgForm } from "@/components/booking-buddy/booking-window";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
-import { PRIVACY_PATH, SLOTS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Slot",
+  title: "Game",
   description: "See who's in, and add your own response.",
   path: "/booking-buddy/slots",
 });
@@ -64,23 +62,17 @@ export default async function SlotDetailPage({
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title={
-                  slot.facilityLabel ? `${slot.when} · ${slot.facilityLabel}` : slot.when
-                }
-                description={
-                  isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
-                }
-              />
-              <div className="mt-4">
-                <SlotStatusBadge courtCount={slot.courtCount} />
-              </div>
-            </div>
-
-            <BookingBuddyNav current="slots" />
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title={
+              slot.facilityLabel ? `${slot.when} · ${slot.facilityLabel}` : slot.when
+            }
+            description={
+              isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
+            }
+          />
+          <div className="mt-4">
+            <SlotStatusBadge courtCount={slot.courtCount} />
           </div>
 
           <div className="mt-10 flex flex-col gap-8">
@@ -185,7 +177,7 @@ export default async function SlotDetailPage({
             {isOwner && (
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
-                  Delete slot
+                  Delete game
                 </h2>
                 <div className="bb-card mt-4 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
@@ -198,12 +190,7 @@ export default async function SlotDetailPage({
             )}
           </div>
 
-          <FooterNav>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-            <FooterLink href={SLOTS_PATH} back>
-              Back to slots
-            </FooterLink>
-          </FooterNav>
+          <BbFooter />
         </div>
       </section>
     </div>

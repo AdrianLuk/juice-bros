@@ -3,15 +3,15 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
+import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import {
   CreateGroupForm,
   GroupCard,
 } from "@/components/booking-buddy/friend-groups";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getGroupsPageData } from "@/lib/booking-buddy/actions/friend-groups";
-import { BOOKING_BUDDY_ROOT, FRIENDS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
+import { FRIENDS_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friend groups",
@@ -31,17 +31,12 @@ export default async function GroupsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title="Friend groups"
-                description="Groups are yours alone. Nobody is told which one they're in, or what they can see."
-              />
-            </div>
-
-            <BookingBuddyNav current="groups" />
-          </div>
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Friend groups"
+            description="Groups are yours alone. Nobody is told which one they're in, or what they can see."
+          />
+          <BbSectionNav />
 
           {people.length === 0 ? (
             <p className="mt-10 text-sm text-muted-foreground">
@@ -98,13 +93,7 @@ export default async function GroupsPage() {
             </div>
           )}
 
-          <FooterNav>
-            <FooterLink href={FRIENDS_PATH}>Your friends</FooterLink>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-            <FooterLink href={BOOKING_BUDDY_ROOT} back>
-              Back to Booking Buddy
-            </FooterLink>
-          </FooterNav>
+          <BbFooter />
         </div>
       </section>
     </div>
