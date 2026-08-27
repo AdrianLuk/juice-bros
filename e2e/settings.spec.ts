@@ -51,10 +51,10 @@ test.afterEach(async ({ page }) => {
   // Same reasoning as the username reset above: the seed script won't put
   // these back on their own, so a test that flips either off has to flip it
   // back.
-  const emailReminders = page.getByLabel("Email me a reminder before slots I've said yes to, so I don't forget to show up");
+  const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
   if (!(await emailReminders.isChecked())) {
     await emailReminders.check();
-    await formWithField(page, "Email me a reminder before slots I've said yes to, so I don't forget to show up")
+    await formWithField(page, "Email me a reminder before games I've said yes to, so I don't forget to show up")
       .getByRole("button", { name: "Save", exact: true })
       .click();
     await expect(page.getByRole("status")).toBeVisible();
@@ -140,15 +140,15 @@ test("punctuation is refused with a reason, not silently stripped", async ({
 
 test("email reminders default to enabled", async ({ page }) => {
   await expect(
-    page.getByLabel("Email me a reminder before slots I've said yes to, so I don't forget to show up"),
+    page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up"),
   ).toBeChecked();
 });
 
 test("turning email reminders off sticks", async ({ page }) => {
-  const emailReminders = page.getByLabel("Email me a reminder before slots I've said yes to, so I don't forget to show up");
+  const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
 
   await emailReminders.uncheck();
-  await formWithField(page, "Email me a reminder before slots I've said yes to, so I don't forget to show up")
+  await formWithField(page, "Email me a reminder before games I've said yes to, so I don't forget to show up")
     .getByRole("button", { name: "Save", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("Saved");
@@ -168,7 +168,7 @@ test("turning booking window reminders off sticks, independently of the other to
   page,
 }) => {
   const bookingWindowReminders = page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court");
-  const emailReminders = page.getByLabel("Email me a reminder before slots I've said yes to, so I don't forget to show up");
+  const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
 
   await bookingWindowReminders.uncheck();
   await formWithField(page, "Email me once a facility's booking window opens, so I don't forget to reserve a court")

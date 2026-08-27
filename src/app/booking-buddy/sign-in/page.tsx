@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import Link from "next/link";
+
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 import { SignInForm } from "@/components/booking-buddy/sign-in-form";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
 import { readGoogleSignInClientId } from "@/lib/booking-buddy/env";
 import { PRIVACY_PATH, safeRedirectTarget } from "@/lib/booking-buddy/routes";
@@ -49,9 +52,14 @@ export default async function SignInPage({
             />
           </div>
 
-          <FooterNav>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-          </FooterNav>
+          <nav className="mt-14 flex flex-wrap items-center gap-2">
+            <Link
+              href={PRIVACY_PATH}
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Privacy
+            </Link>
+          </nav>
         </div>
       </section>
     </div>

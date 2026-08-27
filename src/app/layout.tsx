@@ -8,6 +8,7 @@ import { siteConfig } from "@/config/site";
 import { buildOrganizationJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteChromeSlot } from "@/components/layout/site-chrome-slot";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -76,11 +77,17 @@ export default function RootLayout({
           Skip to content
         </a>
         <div aria-hidden className="bg-noise" />
-        <SiteHeader />
+        {/* Suppressed on /booking-buddy — a standalone app shell with its own
+            nav (ADR 0016). Still shown on /s/[token], the Guest Slot Link. */}
+        <SiteChromeSlot>
+          <SiteHeader />
+        </SiteChromeSlot>
         <main id="main-content" className="flex flex-1 flex-col">
           {children}
         </main>
-        <SiteFooter />
+        <SiteChromeSlot>
+          <SiteFooter />
+        </SiteChromeSlot>
         <Analytics />
         <SpeedInsights />
       </body>

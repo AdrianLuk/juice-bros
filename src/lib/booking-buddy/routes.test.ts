@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { requiresSession, safeRedirectTarget } from "./routes.ts";
+import {
+  requiresSession,
+  safeRedirectTarget,
+  sectionForPath,
+  siblingsForPath,
+} from "./routes.ts";
 
 test("the Booking Buddy section root is public (marketing page / dashboard branch)", () => {
   assert.equal(requiresSession("/booking-buddy"), false);
@@ -105,4 +110,55 @@ test("targets outside Booking Buddy are rejected", () => {
 test("the sign-in page itself is never a redirect target", () => {
   // Otherwise a signed-in User bounces back to sign-in forever.
   assert.equal(safeRedirectTarget("/booking-buddy/sign-in"), "/booking-buddy");
+});
+
+// Two-tier navigation (ADR 0016): the layout nav and the sibling pill row both
+// key off `sectionForPath`, so it has to agree with the route table exactly.
+
+test("the dashboard is its own section, only at the exact root", () => {
+  assert.equal(sectionForPath("/booking-buddy"), "dashboard");
+});
+
+test("Games (still /slots) and a single game live under Plan", () => {
+  assert.equal(sectionForPath("/booking-buddy/slots"), "plan");
+  assert.equal(sectionForPath("/booking-buddy/slots/abc-123"), "plan");
+});
+
+test("Bookings and Facilities are siblings under the Bookings section", () => {
+  assert.equal(sectionForPath("/booking-buddy/bookings"), "bookings");
+  assert.equal(sectionForPath("/booking-buddy/orgs"), "bookings");
+});
+
+test("Friends and Groups are siblings under the Friends section", () => {
+  assert.equal(sectionForPath("/booking-buddy/friends"), "friends");
+  assert.equal(sectionForPath("/booking-buddy/groups"), "friends");
+});
+
+test("Settings is its own section", () => {
+  assert.equal(sectionForPath("/booking-buddy/settings"), "settings");
+});
+
+test("pre-auth and off-app paths belong to no section", () => {
+  assert.equal(sectionForPath("/booking-buddy/sign-in"), null);
+  assert.equal(sectionForPath("/booking-buddy/privacy"), null);
+  assert.equal(sectionForPath("/booking-buddy/join/token123"), null);
+  assert.equal(sectionForPath("/s/token123"), null);
+  assert.equal(sectionForPath("/podcast"), null);
+});
+
+test("the pill row shows siblings only where there's a choice", () => {
+  // Bookings + Facilities, Friends + Groups: two real peers → shown.
+  assert.deepEqual(
+    siblingsForPath("/booking-buddy/orgs").map((c) => c.label),
+    ["Bookings", "Facilities"],
+  );
+  assert.deepEqual(
+    siblingsForPath("/booking-buddy/groups").map((c) => c.label),
+    ["Friends", "Groups"],
+  );
+  // Dashboard, Plan (one child), Settings, pre-auth: nothing to choose between.
+  assert.deepEqual(siblingsForPath("/booking-buddy"), []);
+  assert.deepEqual(siblingsForPath("/booking-buddy/slots"), []);
+  assert.deepEqual(siblingsForPath("/booking-buddy/settings"), []);
+  assert.deepEqual(siblingsForPath("/booking-buddy/sign-in"), []);
 });

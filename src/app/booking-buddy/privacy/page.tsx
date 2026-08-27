@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
@@ -208,11 +209,23 @@ export default async function BookingBuddyPrivacyPage() {
             </p>
           </Section>
 
-          <FooterNav>
-            <FooterLink href={BOOKING_BUDDY_ROOT} back>
-              Back to Booking Buddy
-            </FooterLink>
-          </FooterNav>
+          <nav className="mt-14 flex flex-wrap items-center gap-2">
+            <Link
+              href={BOOKING_BUDDY_ROOT}
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Booking Buddy
+            </Link>
+            <Link
+              href="/"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "text-muted-foreground",
+              )}
+            >
+              Juice Bros Pickleball
+            </Link>
+          </nav>
         </div>
       </section>
     </div>

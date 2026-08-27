@@ -2,20 +2,19 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { BookingBuddyNav } from "@/components/booking-buddy/bb-nav";
+import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import { FriendSearch } from "@/components/booking-buddy/friend-search";
 import { InviteLinkPanel } from "@/components/booking-buddy/invite-link-panel";
 import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
 import { FriendCalendarDialog } from "@/components/booking-buddy/friend-calendar-dialog";
 import { FriendVisibilityRow } from "@/components/booking-buddy/friend-visibility";
-import { FooterNav, FooterLink } from "@/components/booking-buddy/footer-nav";
+import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
 import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
 import { getFriendVisibilityList } from "@/lib/booking-buddy/actions/friend-groups";
 import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
-import { BOOKING_BUDDY_ROOT, GROUPS_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Friends",
@@ -42,17 +41,12 @@ export default async function FriendsPage() {
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-8 sm:gap-y-4">
-            <div>
-              <PageHeading
-                eyebrow="Booking Buddy"
-                title="Friends"
-                description="Connections are mutual. Once you're both in, you can see each other's open time."
-              />
-            </div>
-
-            <BookingBuddyNav current="friends" />
-          </div>
+          <PageHeading
+            eyebrow="Booking Buddy"
+            title="Friends"
+            description="Connections are mutual. Once you're both in, you can see each other's open time."
+          />
+          <BbSectionNav />
 
           <div className="mt-10 flex flex-col gap-12">
             {inviteUrl && (
@@ -164,13 +158,7 @@ export default async function FriendsPage() {
             </section>
           </div>
 
-          <FooterNav>
-            <FooterLink href={GROUPS_PATH}>Friend groups</FooterLink>
-            <FooterLink href={PRIVACY_PATH}>Privacy</FooterLink>
-            <FooterLink href={BOOKING_BUDDY_ROOT} back>
-              Back to Booking Buddy
-            </FooterLink>
-          </FooterNav>
+          <BbFooter />
         </div>
       </section>
     </div>
