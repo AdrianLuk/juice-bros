@@ -82,7 +82,7 @@ export function InviteLinkPanel({ url: initialUrl }: { url: string }) {
         {confirming ? (
           <form action={formAction} className="flex flex-wrap items-center gap-2">
             <Button type="submit" variant="destructive" size="sm" disabled={pending}>
-              {pending ? "Resetting…" : "Reset — the old link stops working"}
+              {pending ? "Resetting…" : "Reset (the old link stops working)"}
             </Button>
             <Button
               type="button"

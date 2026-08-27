@@ -40,7 +40,7 @@ export function parseSlotNotes(raw: string): { notes: string | null } | { error:
   const notes = trimmed === "" ? null : trimmed;
 
   if (notes && notes.length > NOTES_MAX_LENGTH) {
-    return { error: `That note is too long — ${NOTES_MAX_LENGTH} characters at most.` };
+    return { error: `That note is too long. ${NOTES_MAX_LENGTH} characters at most.` };
   }
 
   return { notes };

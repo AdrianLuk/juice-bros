@@ -9,7 +9,7 @@ export default function SettingsError(props: {
   return (
     <DataError
       title="Couldn't load your settings"
-      description="Something went wrong reading your profile — this isn't you, and nothing has been changed."
+      description="Something went wrong reading your profile. This isn't you, and nothing has been changed."
       {...props}
     />
   );

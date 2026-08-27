@@ -253,7 +253,7 @@ function DeleteOrgButton({ org }: { org: Org }) {
           </AlertDialogTitle>
           <AlertDialogDescription>
             Every booking you&apos;ve logged here goes with it. That only
-            changes what Booking Buddy knows — your actual court reservations
+            changes what Booking Buddy knows. Your actual court reservations
             are unaffected.
           </AlertDialogDescription>
         </AlertDialogHeader>

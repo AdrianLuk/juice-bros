@@ -84,7 +84,7 @@ export function parseNewBooking(
 
   if (courtLabel && courtLabel.length > COURT_LABEL_MAX_LENGTH) {
     return {
-      error: `That court name is too long — ${COURT_LABEL_MAX_LENGTH} characters at most.`,
+      error: `That court name is too long. ${COURT_LABEL_MAX_LENGTH} characters at most.`,
     };
   }
 
@@ -93,7 +93,7 @@ export function parseNewBooking(
 
   if (name && name.length > NAME_MAX_LENGTH) {
     return {
-      error: `That name is too long — ${NAME_MAX_LENGTH} characters at most.`,
+      error: `That name is too long. ${NAME_MAX_LENGTH} characters at most.`,
     };
   }
 
@@ -102,7 +102,7 @@ export function parseNewBooking(
 
   if (notes && notes.length > NOTES_MAX_LENGTH) {
     return {
-      error: `That note is too long — ${NOTES_MAX_LENGTH} characters at most.`,
+      error: `That note is too long. ${NOTES_MAX_LENGTH} characters at most.`,
     };
   }
 
@@ -135,7 +135,7 @@ export function parseNewBooking(
   const overLongPlayer = players.find((player) => player.length > PLAYER_NAME_MAX_LENGTH);
   if (overLongPlayer) {
     return {
-      error: `"${overLongPlayer}" is too long for a player name — ${PLAYER_NAME_MAX_LENGTH} characters at most.`,
+      error: `"${overLongPlayer}" is too long for a player name. ${PLAYER_NAME_MAX_LENGTH} characters at most.`,
     };
   }
 

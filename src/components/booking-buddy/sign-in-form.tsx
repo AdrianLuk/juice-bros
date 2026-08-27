@@ -49,7 +49,7 @@ export function SignInForm({
           <MailCheckIcon className="size-6" />
         </div>
         <p className="text-sm">
-          Check your email — we&apos;ve sent you a sign-in link. You can close
+          Check your email. We&apos;ve sent you a sign-in link. You can close
           this tab.
         </p>
       </div>
@@ -63,7 +63,7 @@ export function SignInForm({
           <MailCheckIcon className="size-6" />
         </div>
         <p className="text-sm">
-          Almost there — confirm your email address using the link we just
+          Almost there. Confirm your email address using the link we just
           sent, then sign in.
         </p>
       </div>
@@ -96,7 +96,7 @@ export function SignInForm({
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            We&apos;ll email you a link — no password to remember.
+            We&apos;ll email you a link. No password to remember.
           </p>
           {magicState.error && (
             <p className="text-sm text-destructive" role="alert">

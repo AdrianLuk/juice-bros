@@ -48,7 +48,7 @@ export function parseHandNamedOrg(
 
   if (name.length > ORG_NAME_MAX_LENGTH) {
     return {
-      error: `That name is too long — ${ORG_NAME_MAX_LENGTH} characters at most.`,
+      error: `That name is too long. ${ORG_NAME_MAX_LENGTH} characters at most.`,
     };
   }
 

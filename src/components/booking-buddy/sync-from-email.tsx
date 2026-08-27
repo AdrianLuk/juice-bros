@@ -80,7 +80,7 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
         )}
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit — saved to Notes: &ldquo;{item.notes}&rdquo;
+            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}&rdquo;
           </p>
         )}
       </>
@@ -94,7 +94,7 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
           {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)} · {formatCourtLabel(item.courtLabel)}
         </p>
         {item.matched ? (
-          <p className="mt-1 text-xs text-muted-foreground">Cancelled — matches a Booking you logged.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Cancelled. Matches a Booking you logged.</p>
         ) : (
           <p className="mt-1 text-xs text-destructive">
             No matching booking found. Your records may be out of sync.
@@ -117,7 +117,7 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
       )}
       {item.notes && (
         <p className="mt-1 text-xs text-muted-foreground">
-          Court list was too long to fit — will be saved to Notes: &ldquo;{item.notes}&rdquo;
+          Court list was too long to fit. Will be saved to Notes: &ldquo;{item.notes}&rdquo;
         </p>
       )}
       {item.matched ? (

@@ -150,7 +150,7 @@ function GroupVisibilityForm({ group }: { group: FriendGroup }) {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Anyone here with their own setting below keeps it — that always wins.
+        Anyone here with their own setting below keeps it. That always wins.
       </p>
       <ActionError state={state} />
     </form>
@@ -276,7 +276,7 @@ function DeleteGroupButton({ group }: { group: FriendGroup }) {
           <AlertDialogTitle>Delete &ldquo;{group.name}&rdquo;?</AlertDialogTitle>
           <AlertDialogDescription>
             Everyone in it stays your friend, but they&apos;ll drop back to
-            whatever your other groups give them — which may be nothing.
+            whatever your other groups give them, which may be nothing.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

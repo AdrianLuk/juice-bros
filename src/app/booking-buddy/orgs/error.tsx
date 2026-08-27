@@ -14,7 +14,7 @@ export default function OrgsError(props: {
   return (
     <DataError
       title="Couldn't load your places"
-      description="Something went wrong reading the places you play — this isn't you, and nothing has been changed."
+      description="Something went wrong reading the places you play. This isn't you, and nothing has been changed."
       {...props}
     />
   );

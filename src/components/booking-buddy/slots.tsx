@@ -170,7 +170,7 @@ export function CreateSlotForm({
           )}
           {duration.durationOverflows && (
             <p className="text-xs text-destructive" role="alert">
-              That runs past midnight — pick fewer hours or an earlier start.
+              That runs past midnight. Pick fewer hours or an earlier start.
             </p>
           )}
         </div>
@@ -269,7 +269,7 @@ export function SlotRow({
         <div className="flex items-start justify-between gap-3">
           <p className="font-medium">
             {slot.when}
-            {slot.facilityLabel && ` — ${slot.facilityLabel}`}
+            {slot.facilityLabel && ` · ${slot.facilityLabel}`}
           </p>
           <SlotStatusBadge courtCount={slot.courtCount} />
         </div>
@@ -489,7 +489,7 @@ export function SlotCapacityPanel({
     return (
       <p className="text-sm text-muted-foreground">
         {yesCount} in so far. No court attached yet, so there&apos;s no capacity
-        to fill — this is still a proposal.
+        to fill. This is still a proposal.
       </p>
     );
   }
@@ -516,7 +516,7 @@ export function SlotCapacityPanel({
           {courtsLabel(capacity.courtCount)}
           {capacity.rotationBuffer > 0 && ` plus ${capacity.rotationBuffer} rotating`}
           {gendered.unspecified > 0 &&
-            ` — ${gendered.unspecified} more responded yes without a gender set`}
+            ` (${gendered.unspecified} more responded yes without a gender set)`}
         </p>
 
         {overBuckets.length > 0 && isOwner && (
@@ -526,7 +526,7 @@ export function SlotCapacityPanel({
           >
             More yeses than spots for{" "}
             {overBuckets.map((bucket) => GENDER_LABEL[bucket.gender]).join(" and ")}. Nobody
-            has been turned away — book another court and attach it, raise the
+            has been turned away. Book another court and attach it, raise the
             rotation buffer, or leave it as is.
           </p>
         )}
@@ -543,7 +543,7 @@ export function SlotCapacityPanel({
           {yesCount} of {capacity.capacity} spots taken
         </span>
         <span className="text-muted-foreground">
-          {" — "}
+          {" · "}
           {courtsLabel(capacity.courtCount)}
           {capacity.rotationBuffer > 0 &&
             ` plus ${capacity.rotationBuffer} rotating`}
@@ -555,7 +555,7 @@ export function SlotCapacityPanel({
           className="rounded-lg border border-accent-foreground/25 bg-accent/25 px-4 py-3 text-sm"
           role="status"
         >
-          More yeses than spots. Nobody has been turned away — book another
+          More yeses than spots. Nobody has been turned away. Book another
           court and attach it, raise the rotation buffer, or leave it as is.
         </p>
       )}
@@ -600,7 +600,7 @@ export function SlotCourts({
                 render={<button type="button" className="min-w-0 flex-1 text-left" />}
               >
                 <p className="truncate font-medium">
-                  {booking.when} — {booking.orgName}
+                  {booking.when} · {booking.orgName}
                 </p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
                   {formatCourtLabel(booking.courtLabel)} ·{" "}
@@ -632,7 +632,7 @@ function AttachBookingForm({
     return (
       <p className="text-sm text-muted-foreground">
         {capacity.attached.length === 0
-          ? "You haven't logged any bookings yet — log one first, then attach it here."
+          ? "You haven't logged any bookings yet. Log one first, then attach it here."
           : "Every booking you've logged is already on this slot."}
       </p>
     );
@@ -650,7 +650,7 @@ function AttachBookingForm({
           </option>
           {capacity.attachable.map((booking) => (
             <option key={booking.id} value={booking.id}>
-              {booking.when} — {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
+              {booking.when} · {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
               {BOOKING_FORMAT_LABEL[booking.format]}
             </option>
           ))}
@@ -699,7 +699,7 @@ function DetachBookingButton({
           <DialogTitle>Detach this court?</DialogTitle>
           <DialogDescription>
             {booking.when} at {booking.orgName}. This slot&apos;s capacity
-            drops by one court — your actual booking stays untouched on your
+            drops by one court. Your actual booking stays untouched on your
             Bookings page.
           </DialogDescription>
         </DialogHeader>
@@ -823,7 +823,7 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
           <DialogTitle>Delete this slot?</DialogTitle>
           <DialogDescription>
             {when}. Every response, attached court, invite link, and reminder
-            for it goes with it — this can&apos;t be undone. Any Bookings
+            for it goes with it, and this can&apos;t be undone. Any Bookings
             attached stay on your Bookings page, untouched.
           </DialogDescription>
         </DialogHeader>

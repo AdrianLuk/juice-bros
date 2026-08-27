@@ -164,7 +164,7 @@ export function PushNotificationsForm() {
   if (support === "unsupported") {
     return (
       <p className="text-sm text-muted-foreground">
-        Push notifications aren&apos;t supported in this browser — email
+        Push notifications aren&apos;t supported in this browser. Email
         reminders still work.
       </p>
     );
@@ -188,7 +188,7 @@ export function PushNotificationsForm() {
 
       <p className="text-xs text-muted-foreground">
         On iPhone/iPad, add Booking Buddy to your home screen first (Share →
-        Add to Home Screen) — Safari only allows push notifications for
+        Add to Home Screen). Safari only allows push notifications for
         installed apps.
       </p>
 

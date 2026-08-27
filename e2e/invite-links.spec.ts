@@ -164,7 +164,7 @@ test("resetting the link mints a new URL and kills the old one", async ({
 
   await page.getByRole("button", { name: "Reset link" }).click();
   await page
-    .getByRole("button", { name: /Reset — the old link stops working/ })
+    .getByRole("button", { name: /Reset \(the old link stops working\)/ })
     .click();
 
   await expect

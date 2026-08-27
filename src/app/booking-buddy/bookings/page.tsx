@@ -139,7 +139,7 @@ export default async function BookingsPage() {
                   Log a booking
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Copy it off the facility&apos;s own booking screen — Booking
+                  Copy it off the facility&apos;s own booking screen. Booking
                   Buddy doesn&apos;t reserve courts, it remembers the ones you
                   reserved.
                 </p>

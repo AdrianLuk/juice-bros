@@ -64,7 +64,7 @@ export function parseGuestRsvp(formData: FormData): GuestRsvp | { error: string 
 
   if (guestName.length > GUEST_NAME_MAX_LENGTH) {
     return {
-      error: `That name is too long — ${GUEST_NAME_MAX_LENGTH} characters at most.`,
+      error: `That name is too long. ${GUEST_NAME_MAX_LENGTH} characters at most.`,
     };
   }
 

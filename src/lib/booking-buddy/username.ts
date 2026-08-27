@@ -33,7 +33,7 @@ export function parseUsername(raw: string): ParsedUsername {
   const username = raw.trim().toLowerCase();
 
   if (!username) {
-    return { error: "Pick a username — it's how friends find you." };
+    return { error: "Pick a username. It's how friends find you." };
   }
 
   if (username.length < USERNAME_MIN_LENGTH) {

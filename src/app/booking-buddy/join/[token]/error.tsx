@@ -9,7 +9,7 @@ export default function JoinError(props: {
   return (
     <DataError
       title="Couldn't open this invite"
-      description="Something went wrong reading the invite link — this isn't you. Try again in a moment."
+      description="Something went wrong reading the invite link. This isn't you. Try again in a moment."
       {...props}
     />
   );

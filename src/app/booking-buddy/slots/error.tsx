@@ -14,7 +14,7 @@ export default function SlotsError(props: {
   return (
     <DataError
       title="Couldn't load slots"
-      description="Something went wrong reading slots — this isn't you, and nothing has been changed."
+      description="Something went wrong reading slots. This isn't you, and nothing has been changed."
       {...props}
     />
   );

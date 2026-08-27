@@ -9,7 +9,7 @@ export default function FriendsError(props: {
   return (
     <DataError
       title="Couldn't load your friends"
-      description="Something went wrong reading your connections — this isn't you, and nothing has been lost."
+      description="Something went wrong reading your connections. This isn't you, and nothing has been lost."
       {...props}
     />
   );

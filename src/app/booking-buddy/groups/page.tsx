@@ -36,7 +36,7 @@ export default async function GroupsPage() {
               <PageHeading
                 eyebrow="Booking Buddy"
                 title="Friend groups"
-                description="Groups are yours alone — nobody is told which one they're in, or what they can see."
+                description="Groups are yours alone. Nobody is told which one they're in, or what they can see."
               />
             </div>
 
@@ -78,7 +78,7 @@ export default async function GroupsPage() {
                 {groups.length === 0 ? (
                   <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
                     No groups yet. Groups grant visibility to several friends
-                    at once — set it per friend instead on the{" "}
+                    at once. Set it per friend instead on the{" "}
                     <Link
                       href={FRIENDS_PATH}
                       className="underline underline-offset-4"

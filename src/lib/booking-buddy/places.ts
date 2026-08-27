@@ -24,7 +24,7 @@ export function parsePlaceSearchQuery(
 
   if (query.length > PLACE_SEARCH_QUERY_MAX_LENGTH) {
     return {
-      error: `That search is too long — ${PLACE_SEARCH_QUERY_MAX_LENGTH} characters at most.`,
+      error: `That search is too long. ${PLACE_SEARCH_QUERY_MAX_LENGTH} characters at most.`,
     };
   }
 

@@ -65,7 +65,7 @@ export function GmailSyncSection({
             Connected as <span className="font-medium">{mailboxLink.googleAccountEmail}</span>
             {mailboxLink.status === "expired" && (
               <span className="ml-2 text-destructive">
-                — Google needs you to reconnect
+                (Google needs you to reconnect)
               </span>
             )}
           </p>

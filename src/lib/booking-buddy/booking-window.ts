@@ -47,7 +47,7 @@ export function parseBookingWindow(
   }
 
   if (rawDays === "" || rawTime === "") {
-    return { error: "Set both how many days before, and what time — or leave both blank." };
+    return { error: "Set both how many days before, and what time. Or leave both blank." };
   }
 
   const daysBefore = Number(rawDays);
