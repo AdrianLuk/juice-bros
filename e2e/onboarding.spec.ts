@@ -1,184 +1,194 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { signUp } from "./support/sign-in.ts";
-import { GooglePlacesMock, deleteCachedPlaces } from "./support/google-places-mock.ts";
 
 /**
- * The Onboarding modal (issue #103) — shown on the dashboard whenever the
- * signed-in User has zero Orgs. Every test here signs up a brand-new,
- * throwaway account (`signUp`) rather than reusing one of the fixed seeded
- * accounts: a fresh signup naturally starts at zero Facilities, with no risk
- * of another suite's Facility-count drift against a shared fixture
- * (places.spec.ts/dashboard.spec.ts/bookings.spec.ts all add and remove Orgs
- * against the seeded accounts, sometimes mid-test).
+ * The intent-branched Onboarding modal (issue #176, reshaping #103) — shown on
+ * the dashboard while the signed-in User has no Booking and no Slot. Every
+ * test signs up a brand-new throwaway account (`signUp`): a fresh signup
+ * naturally starts with nothing, and localStorage (the dismissal snooze) is
+ * per-context, so tests don't leak the snooze into each other.
+ *
+ * The Google-Places search path into "add a facility" is not re-tested here —
+ * `places.spec.ts` covers search → pick → Org end to end, and the branch-A
+ * "adding a facility swaps the panel" test below already covers the one
+ * onboarding-specific concern (that the modal advances to the booking step).
+ * Keeping the Places mock out of this file also keeps it free of `place_cache`
+ * cleanup and the reused-dev-server caveat that mock carries.
  */
-
-const PREFIX = "OnboardingPlaywright";
 
 const uniqueEmail = () =>
   `onboarding-playwright-${Date.now()}${Math.random().toString(36).slice(2, 8)}@example.com`;
 
 const uniqueName = (suffix = "") =>
-  `${PREFIX} ${Date.now()}${Math.random().toString(36).slice(2, 6)}${suffix}`;
+  `OnboardingPlaywright ${Date.now()}${Math.random().toString(36).slice(2, 6)}${suffix}`;
 
 function modal(page: Page): Locator {
   return page.getByRole("dialog");
 }
 
-function modalHeading(page: Page) {
-  return page.getByRole("heading", { name: "Add your first facility" });
+function intentHeading(page: Page) {
+  return page.getByRole("heading", { name: "What do you want to start with?" });
 }
 
-/**
- * A row in the modal's own "Added so far" list — distinguished from a still-
- * on-screen search-candidate row (also a `listitem`, same text) by the
- * absence of its "Add this facility" button, same disambiguation
- * `places.spec.ts`'s `orgRow`/`candidateRow` use for the same reason.
- */
-function addedRow(page: Page, text: string): Locator {
-  return modal(page)
-    .getByRole("listitem")
-    .filter({ hasText: text })
-    .filter({ hasNot: page.getByRole("button", { name: "Add this facility" }) });
+async function chooseTrack(page: Page) {
+  await page.getByRole("button", { name: "Track my court bookings" }).click();
 }
 
-async function addByHand(page: Page, name: string) {
-  // The disclosure is a plain HTML <details>, not React state — clicking its
-  // summary a second time (adding a second Facility in one sitting) would
-  // toggle it shut again, so only open it if it isn't already.
-  const facilityName = page.getByLabel("Facility name");
-  if (!(await facilityName.isVisible())) {
-    await page.getByText("Can't find your facility?").click();
-  }
-  await facilityName.fill(name);
+async function chooseCoordinate(page: Page) {
+  await page.getByRole("button", { name: "Get my group on a time" }).click();
+}
+
+/** Adds a Facility the hand-typed way, from the "track" branch's first step. */
+async function addFacilityByHand(page: Page, name: string) {
+  await page.getByLabel("Facility name").fill(name);
   await page.getByRole("button", { name: "Add facility" }).click();
-  await expect(addedRow(page, name)).toBeVisible();
 }
 
-let mock: GooglePlacesMock;
-
-test.beforeAll(async () => {
-  mock = new GooglePlacesMock();
-  await mock.start();
-});
-
-test.afterAll(async () => {
-  // Same reasoning as places.spec.ts's own afterAll: the app has no way to
-  // evict a cached Place (ADR 0005), so anything this suite caches has to be
-  // cleaned up directly or pgTAP's row-count assertions on place_cache drift.
-  await deleteCachedPlaces(mock.cacheablePlaceIds());
-  await mock.stop();
-});
-
-test("the modal appears on the dashboard for a zero-Facility User", async ({ page }) => {
+test("a fresh account lands on the intent choice, not a form", async ({ page }) => {
   await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
+
+  await expect(intentHeading(page)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Track my court bookings" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Get my group on a time" }),
+  ).toBeVisible();
+  // No data-entry form until an intent is picked.
+  await expect(page.getByLabel("Facility name")).toHaveCount(0);
+  await expect(page.getByLabel("Search for your facility")).toHaveCount(0);
 });
 
-test("adding a Facility by hand appends it to the modal's own list, and Done closes the modal", async ({
+test("choosing an intent reveals the persistent friend-search footer", async ({ page }) => {
+  await signUp(page, uniqueEmail());
+  await chooseCoordinate(page);
+
+  await expect(page.getByText("Add the people you play with")).toBeVisible();
+  await expect(modal(page).getByRole("heading", { name: "Find a friend" })).toBeVisible();
+});
+
+test("track branch: adding a Facility swaps the panel to the booking form", async ({
   page,
 }) => {
   await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
+  await chooseTrack(page);
 
-  await addByHand(page, uniqueName());
+  // Search and hand-typed both on screen, equal weight — no disclosure.
+  await expect(page.getByRole("heading", { name: "Add where you play" })).toBeVisible();
+  await expect(page.getByLabel("Search for your facility")).toBeVisible();
+  await expect(page.getByLabel("Facility name")).toBeVisible();
 
-  await modal(page).getByRole("button", { name: "Done" }).click();
-  await expect(modalHeading(page)).toHaveCount(0);
+  await addFacilityByHand(page, uniqueName());
+
+  await expect(
+    page.getByRole("heading", { name: "Log your first booking" }),
+  ).toBeVisible();
 });
 
-test("adding a Facility via the search flow appends it identically", async ({ page }) => {
-  const query = uniqueName();
-  const placeId = `mock-${query}`;
-  const address = "123 Onboarding Street, Toronto, ON";
+test("track branch: logging a booking confirms, and the modal stays gone after", async ({
+  page,
+}) => {
+  await signUp(page, uniqueEmail());
+  await chooseTrack(page);
+  await addFacilityByHand(page, uniqueName());
 
-  mock.registerSearch(query, [{ placeId, name: query, formattedAddress: address }]);
-  mock.registerDetails(placeId, {
-    placeId,
-    name: query,
-    formattedAddress: address,
-    latitude: 43.7,
-    longitude: -79.4,
+  await expect(
+    page.getByRole("heading", { name: "Log your first booking" }),
+  ).toBeVisible();
+
+  // Facility is preselected (first Org is auto-default). Just a future date.
+  await page.getByLabel("Date").fill("2030-06-03");
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "It's on your calendar" }),
+  ).toBeVisible();
+  await modal(page).getByRole("button", { name: "Done" }).click();
+  await expect(modal(page)).toHaveCount(0);
+
+  await page.reload();
+  await expect(modal(page)).toHaveCount(0);
+});
+
+test("coordinate branch: the slot form is prefilled to next Monday 8pm", async ({ page }) => {
+  await signUp(page, uniqueEmail());
+  await chooseCoordinate(page);
+
+  await expect(page.getByRole("heading", { name: "Post a time" })).toBeVisible();
+
+  const date = page.getByLabel("Date");
+  const value = await date.inputValue();
+  expect(value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  // Whatever "next Monday" resolves to, it's a Monday and it's in the future.
+  const parsed = new Date(`${value}T00:00:00`);
+  expect(parsed.getDay()).toBe(1);
+  expect(parsed.getTime()).toBeGreaterThan(Date.now());
+
+  await expect(page.getByLabel("Start")).toHaveValue("20:00");
+});
+
+test("coordinate branch: posting a slot moves to the share step, and the modal stays gone", async ({
+  page,
+}) => {
+  await signUp(page, uniqueEmail());
+  await chooseCoordinate(page);
+
+  await expect(page.getByRole("heading", { name: "Post a time" })).toBeVisible();
+  await page.getByRole("button", { name: "Post slot" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Send it to your group" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create invite link" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View your slot" })).toBeVisible();
+
+  await page.reload();
+  await expect(modal(page)).toHaveCount(0);
+});
+
+test("Gender lives in the coordinate branch only, collapsed", async ({ page }) => {
+  await signUp(page, uniqueEmail());
+
+  // Not in the track branch at all.
+  await chooseTrack(page);
+  await expect(
+    page.getByText("Show men's / women's / mixed sign-up counts"),
+  ).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: "Female" })).toHaveCount(0);
+
+  await page.reload();
+  await expect(intentHeading(page)).toBeVisible();
+  await chooseCoordinate(page);
+
+  // Present in the coordinate branch, but collapsed — the radios are in the
+  // DOM (native <details>) yet not visible until the disclosure is opened.
+  const disclosure = page.locator("summary", {
+    hasText: "Show men's / women's / mixed sign-up counts",
   });
+  await expect(disclosure).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Female" })).toBeHidden();
 
-  await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
-
-  await page.getByLabel("Search for your facility").fill(query);
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await page.getByRole("button", { name: "Add this facility" }).click();
-
-  await expect(addedRow(page, query)).toBeVisible();
+  // Toggle it open via the keyboard — the modal is tall enough that a hit-
+  // tested click on an element at the scroll boundary is flaky, and this is
+  // native <details> behaviour, not app logic under test.
+  await disclosure.focus();
+  await disclosure.press("Enter");
+  await expect(page.getByRole("radio", { name: "Female" })).toBeVisible();
 });
 
-test("more than one Facility can be added in the same sitting before Done", async ({ page }) => {
+test("dismissing snoozes it — it doesn't reappear on the next load", async ({ page }) => {
   await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
+  await expect(intentHeading(page)).toBeVisible();
 
-  const first = uniqueName("-a");
-  const second = uniqueName("-b");
-
-  await addByHand(page, first);
-  await addByHand(page, second);
-
-  await expect(addedRow(page, first)).toBeVisible();
-  await expect(addedRow(page, second)).toBeVisible();
-
-  await modal(page).getByRole("button", { name: "Done" }).click();
-  await expect(modalHeading(page)).toHaveCount(0);
-});
-
-test("Gender can be set from the modal, and it sticks the same way Settings' does", async ({ page }) => {
-  await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
-
-  await modal(page).getByRole("radio", { name: "Female" }).click();
-  await modal(page).getByRole("button", { name: "Save gender" }).click();
-  await expect(modal(page).getByRole("status")).toContainText("Saved");
-
-  // Not just the optimistic form state — it survives a fresh read, exactly
-  // like the Settings gender form's own equivalent assertion.
-  await page.reload();
-  await expect(modal(page).getByRole("radio", { name: "Female" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
-});
-
-test("finishing with zero Facilities added is allowed, via the same explicit Done", async ({ page }) => {
-  await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
-
-  await modal(page).getByRole("button", { name: "Done" }).click();
-  await expect(modalHeading(page)).toHaveCount(0);
-});
-
-test("dismissing with zero Facilities added still shows the modal on the next dashboard load", async ({
-  page,
-}) => {
-  await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
-
-  await modal(page).getByRole("button", { name: "Done" }).click();
-  await expect(modalHeading(page)).toHaveCount(0);
+  await modal(page).getByRole("button", { name: "Close" }).click();
+  await expect(modal(page)).toHaveCount(0);
 
   await page.reload();
-  await expect(modalHeading(page)).toBeVisible();
-});
+  await expect(modal(page)).toHaveCount(0);
 
-test("once a Facility exists, the modal no longer appears on a later dashboard load", async ({ page }) => {
-  await signUp(page, uniqueEmail());
-  await expect(modalHeading(page)).toBeVisible();
-
-  await addByHand(page, uniqueName());
-  await modal(page).getByRole("button", { name: "Done" }).click();
-
+  // Clearing the snooze brings it back — proving it was the snooze suppressing it.
+  await page.evaluate(() => window.localStorage.removeItem("bb-onboarding-snoozed-until"));
   await page.reload();
-  await expect(modalHeading(page)).toHaveCount(0);
-
-  // The Log-a-Booking fallback is untouched by this feature — sanity-check
-  // that the dashboard's quick-add no longer shows the "add a place first"
-  // message either, now that a Facility actually exists.
-  await page.getByRole("button", { name: "Add booking" }).click();
-  await expect(page.getByText("add a place you play first")).toHaveCount(0);
+  await expect(intentHeading(page)).toBeVisible();
 });

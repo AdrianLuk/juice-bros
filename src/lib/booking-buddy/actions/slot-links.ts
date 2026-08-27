@@ -18,6 +18,14 @@ async function absoluteSlotLinkUrl(token: string): Promise<string> {
 
 export type SlotLink = { token: string; url: string };
 
+/**
+ * `generateSlotLink`'s result carries the link URL on success, so a caller
+ * that isn't a full page re-render — the onboarding "coordinate" branch's
+ * share step (#176) — can show the link straight from the action state
+ * instead of waiting for a revalidated `slotLink` prop that never arrives.
+ */
+export type GenerateSlotLinkResult = ActionResult & { url?: string };
+
 /** The Slot's Slot Link, if the owner has generated one — owner-only, per RLS. */
 export async function getSlotLink(slotId: string): Promise<SlotLink | null> {
   await verifySession();
@@ -53,9 +61,9 @@ export async function getSlotLink(slotId: string): Promise<SlotLink | null> {
  * `slotLinkWriteMessage` reads that as an ownership failure.
  */
 export async function generateSlotLink(
-  _prev: ActionResult,
+  _prev: GenerateSlotLinkResult,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<GenerateSlotLinkResult> {
   await verifySession();
 
   const slotId = String(formData.get("slot_id") ?? "").trim();
@@ -67,7 +75,7 @@ export async function generateSlotLink(
 
   const { data: existing, error: existingError } = await supabase
     .from("slot_links")
-    .select("id")
+    .select("token")
     .eq("slot_id", slotId)
     .maybeSingle();
 
@@ -75,17 +83,18 @@ export async function generateSlotLink(
     return { error: slotLinkWriteMessage(existingError) };
   }
   if (existing) {
-    return { ok: true };
+    return { ok: true, url: await absoluteSlotLinkUrl(existing.token) };
   }
 
+  const token = generateSlotLinkToken();
   const { error } = await supabase
     .from("slot_links")
-    .insert({ slot_id: slotId, token: generateSlotLinkToken() });
+    .insert({ slot_id: slotId, token });
 
   if (error) {
     return { error: slotLinkWriteMessage(error) };
   }
 
   revalidatePath(slotPath(slotId));
-  return { ok: true };
+  return { ok: true, url: await absoluteSlotLinkUrl(token) };
 }

@@ -15,6 +15,8 @@ export type DashboardPageData = {
   bookings: Booking[];
   /** Raw rows — the client component resolves these against Bookings itself, per visible range (ADR 0006). */
   availabilityWindows: DashboardAvailabilityWindow[];
+  /** Whether the caller owns at least one Slot — half of the Onboarding trigger (#176), alongside `bookings.length`. */
+  hasSlot: boolean;
 };
 
 /**
@@ -32,17 +34,27 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
   const session = await verifySession();
   const supabase = await createClient();
 
-  const [{ orgs, bookings }, windowsResult] = await Promise.all([
+  const [{ orgs, bookings }, windowsResult, slotCountResult] = await Promise.all([
     getBookingsPageData(),
     supabase
       .from("availability_windows")
       .select("id, type, starts_at, ends_at, created_at")
       .eq("owner_id", session.userId)
       .order("created_at", { ascending: true }),
+    // Own Slots only — `slots` RLS also returns friends' visible ones, so the
+    // `owner_id` filter is load-bearing here (same reason `trackFirstSlot` in
+    // analytics.ts filters).
+    supabase
+      .from("slots")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", session.userId),
   ]);
 
   if (windowsResult.error) {
     readFailed("your availability", windowsResult.error);
+  }
+  if (slotCountResult.error) {
+    readFailed("whether you have any slots", slotCountResult.error);
   }
 
   return {
@@ -55,5 +67,6 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
       endsAt: row.ends_at,
       createdAt: row.created_at,
     })),
+    hasSlot: (slotCountResult.count ?? 0) > 0,
   };
 }
