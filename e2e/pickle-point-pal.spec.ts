@@ -169,9 +169,10 @@ test("a technical foul scores the opponent without changing serve, and warnings 
 
   await page.getByRole("button", { name: "Technical" }).click();
   await page.getByRole("button", { name: /^Warning — Ben/ }).click();
-  await expect(page.getByText("Technical warnings", { exact: false })).toContainText(
-    "Amy: 0 · Ben: 1"
-  );
+  // Anchored to the tally line's own leading text — the explainer copy below
+  // the tool (`pickle-point-pal-about.tsx`, added in #174) also contains the
+  // words "technical warnings", so a bare substring match is ambiguous.
+  await expect(page.getByText(/^Technical warnings ·/)).toContainText("Amy: 0 · Ben: 1");
 
   // A foul on Ben scores the opponent (Amy) without a side out — Amy was
   // already serving, so a point here is the whole visible effect.
