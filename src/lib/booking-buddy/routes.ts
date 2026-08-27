@@ -24,6 +24,13 @@ export function slotPath(slotId: string): string {
   return `${SLOTS_PATH}/${slotId}`;
 }
 
+/**
+ * Availability Windows ("open time") — Plan's second child. The user-facing
+ * label is "Open time", not "Availability" (CONTEXT.md's own steer), but the
+ * path keeps the entity's informal name.
+ */
+export const AVAILABILITY_PATH = `${BOOKING_BUDDY_ROOT}/availability`;
+
 export const SETTINGS_PATH = `${BOOKING_BUDDY_ROOT}/settings`;
 
 export const PRIVACY_PATH = `${BOOKING_BUDDY_ROOT}/privacy`;
@@ -46,7 +53,7 @@ export function joinPath(token: string): string {
  * more than one, the siblings shown in the desktop dropdown and in the pill row
  * under the page heading. Section labels repeat the primary child's label
  * (GitHub's "Code" tab pattern) except where a section genuinely spans two
- * peers ("Plan" over Games, "Bookings" over Bookings + Facilities).
+ * peers ("Plan" over Games + Open time, "Bookings" over Bookings + Facilities).
  *
  * Kept here beside the path constants and free of Next / icon imports, so the
  * layout nav and the pill row share one definition of the tree — unit-tested
@@ -69,9 +76,11 @@ export const BB_SECTIONS: readonly BbSection[] = [
   {
     id: "plan",
     label: "Plan",
-    // The "Open time" child is a separate follow-up issue; Plan ships with one.
     primary: SLOTS_PATH,
-    children: [{ label: "Games", href: SLOTS_PATH }],
+    children: [
+      { label: "Games", href: SLOTS_PATH },
+      { label: "Open time", href: AVAILABILITY_PATH },
+    ],
   },
   {
     id: "bookings",
@@ -107,7 +116,7 @@ export function sectionForPath(pathname: string): BbSectionId | null {
   if (pathname === BOOKING_BUDDY_ROOT) {
     return "dashboard";
   }
-  if (isWithin(pathname, SLOTS_PATH)) {
+  if (isWithin(pathname, SLOTS_PATH) || isWithin(pathname, AVAILABILITY_PATH)) {
     return "plan";
   }
   if (isWithin(pathname, BOOKINGS_PATH) || isWithin(pathname, ORGS_PATH)) {
@@ -124,8 +133,8 @@ export function sectionForPath(pathname: string): BbSectionId | null {
 
 /**
  * The siblings to show for a pathname's section — only when there's a real
- * choice to make (two or more), so a one-child section like Plan renders no
- * pill row. Empty otherwise.
+ * choice to make (two or more), so a childless section like Dashboard renders
+ * no pill row. Empty otherwise.
  */
 export function siblingsForPath(pathname: string): BbSectionChild[] {
   const id = sectionForPath(pathname);
