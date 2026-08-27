@@ -34,7 +34,7 @@ export default async function SlotsPage() {
               <PageHeading
                 eyebrow="Booking Buddy"
                 title="Slots"
-                description="Propose a time before you've reserved a court — friends respond yes, no, or maybe, same as a poll."
+                description="Propose a time before you've reserved a court. Friends respond yes, no, or maybe, same as a poll."
               />
             </div>
 
@@ -48,7 +48,8 @@ export default async function SlotsPage() {
               </h2>
               {own.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-                  Nothing posted yet.
+                  Proposed times live here. Post one below and friends reply
+                  yes, no, or maybe, before anyone books a court.
                 </p>
               ) : (
                 <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
@@ -65,7 +66,7 @@ export default async function SlotsPage() {
               </h2>
               {friends.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-                  Nothing here yet — this fills up once a friend with{" "}
+                  Nothing here yet. This fills up once a friend with{" "}
                   <Link href="/booking-buddy/groups" className="underline underline-offset-4">
                     Slot Visibility into you
                   </Link>{" "}

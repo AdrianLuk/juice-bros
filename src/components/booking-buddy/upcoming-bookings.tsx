@@ -43,7 +43,14 @@ export function UpcomingBookingsSidebar({
 
       {upcoming.length === 0 ? (
         <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-          Nothing booked yet. Log one to see it here.
+          Nothing booked yet.{" "}
+          <Link
+            href={BOOKINGS_PATH}
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Log a court reservation
+          </Link>{" "}
+          to see it here.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
