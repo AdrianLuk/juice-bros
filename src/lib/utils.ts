@@ -5,11 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getYoutubeEmbedUrl(youtubeUrl: string) {
+/** The 11-char video ID from a watch (`?v=`) or short (`youtu.be/`) URL, or null. */
+export function getYoutubeVideoId(youtubeUrl: string): string | null {
   const url = new URL(youtubeUrl);
-  const videoId =
-    url.hostname === "youtu.be"
-      ? url.pathname.slice(1)
-      : url.searchParams.get("v");
-  return videoId ? `https://www.youtube.com/embed/${videoId}` : youtubeUrl;
+  return url.hostname === "youtu.be"
+    ? url.pathname.slice(1) || null
+    : url.searchParams.get("v");
 }
