@@ -210,11 +210,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
                   </span>
                   <span
                     className={cn(
-                      // size-8 + text-[19px] font-bold clears WCAG's
-                      // 18.66px+bold "large text" AA threshold, so the
-                      // white-on-orange today fill (~3.15:1) reads as
-                      // compliant at 3:1 without changing the brand color.
-                      "flex size-8 items-center justify-center rounded-full text-[19px] font-bold",
+                      "flex size-6 items-center justify-center rounded-full text-sm font-medium",
                       isSameDay(day, today) &&
                         "bg-primary text-primary-foreground",
                     )}

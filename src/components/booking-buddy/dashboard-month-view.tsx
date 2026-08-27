@@ -138,16 +138,15 @@ export function DashboardMonthView<T extends CalendarEvent>({
                   aria-label={`Go to the week of ${day.toDateString()}`}
                   aria-current={isSameDay(day, today) ? "date" : undefined}
                   className={cn(
-                    // `size-8` (32px) + `text-[19px] font-bold` clears WCAG's
-                    // 18.66px+bold "large text" AA threshold, so the
-                    // white-on-orange today fill (~3.15:1) is compliant at
-                    // 3:1 without changing the brand color. Grown from the
-                    // original size-6/24px in the white-on-orange a11y pass;
-                    // `after:` still pads the tap target 6px per side (~44px
-                    // total, same absolute inset as before) without eating
-                    // further into the availability bar and event chips
-                    // stacked a few px below the button.
-                    "relative flex size-8 items-center justify-center rounded-full text-[19px] font-bold hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
+                    // `size-6` (24px) stays the deliberately compact visual
+                    // size a 7-column phone grid needs; `after:` pads the
+                    // actual tap target a further 6px per side (~36px total)
+                    // without growing the circle itself. Kept tighter than
+                    // the full 44px guideline on purpose — this cell also
+                    // stacks an availability bar and event chips a few px
+                    // below the button, and a bigger bleed would swallow taps
+                    // meant for those.
+                    "relative flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
                     day.getMonth() !== currentMonth && "text-muted-foreground",
                     isSameDay(day, today) &&
                       "bg-primary text-primary-foreground hover:bg-primary/90",
