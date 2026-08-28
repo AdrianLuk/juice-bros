@@ -2,11 +2,13 @@ import type { MetadataRoute } from "next";
 
 import { siteConfig } from "@/config/site";
 import {
+  AVAILABILITY_PATH,
   BOOKINGS_PATH,
   FRIENDS_PATH,
   GROUPS_PATH,
   JOIN_PATH,
   ORGS_PATH,
+  OVERLAP_PATH,
   SETTINGS_PATH,
   SLOTS_PATH,
   SLOT_LINK_ROOT,
@@ -28,6 +30,8 @@ export default function robots(): MetadataRoute.Robots {
         ORGS_PATH,
         BOOKINGS_PATH,
         SLOTS_PATH,
+        AVAILABILITY_PATH,
+        OVERLAP_PATH,
         SETTINGS_PATH,
         `${JOIN_PATH}/`,
         `${SLOT_LINK_ROOT}/`,

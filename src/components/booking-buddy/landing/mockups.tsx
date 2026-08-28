@@ -16,9 +16,9 @@ const pill =
 export function SlotProposalPreview() {
   const responses: [string, string][] = [
     ["You", "Yes"],
-    ["Sam", "Yes"],
-    ["Priya", "Yes"],
-    ["Mo", "Maybe"],
+    ["Adrian", "Yes"],
+    ["Daven", "Yes"],
+    ["Ben", "Maybe"],
   ];
 
   return (
@@ -65,9 +65,9 @@ export function SlotProposalPreview() {
 export function SlotResponsesPreview() {
   const responses: [string, string][] = [
     ["You", "Yes"],
-    ["Daven", "Yes"],
-    ["Mo", "Yes"],
-    ["Priya", "Maybe"],
+    ["Adrian", "Yes"],
+    ["Ben", "Yes"],
+    ["Daven", "Maybe"],
   ];
 
   return (
@@ -116,9 +116,9 @@ export function SlotResponsesPreview() {
 export function AvailabilityPreview() {
   const days = ["Thu", "Fri", "Sat", "Sun", "Mon"];
   const rows: { name: string; cells: (null | "open" | "busy")[] }[] = [
-    { name: "Daven", cells: [null, null, "open", "open", null] },
-    { name: "Mo", cells: ["busy", "busy", null, null, "open"] },
-    { name: "Priya", cells: [null, "open", "open", null, null] },
+    { name: "Adrian", cells: [null, null, "open", "open", null] },
+    { name: "Ben", cells: ["busy", "busy", null, null, "open"] },
+    { name: "Daven", cells: [null, "open", "open", null, null] },
   ];
 
   return (
@@ -164,7 +164,63 @@ export function AvailabilityPreview() {
         ))}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Daven and Priya are both free Saturday.
+        Adrian and Daven are both free Saturday.
+      </p>
+    </div>
+  );
+}
+
+/** The overlap of a few friends' open time — the days a whole group can make. */
+export function OverlapPreview() {
+  const picked = ["You", "Adrian", "Daven", "Ben"];
+  // A day split by someone's midday busy stretch shows a window either side,
+  // each proposable on its own — mirrors the real result list.
+  const days: { day: string; windows: string[] }[] = [
+    { day: "Sat", windows: ["9:00 AM – 12:00 PM", "2:00 PM – 6:00 PM"] },
+    { day: "Sun", windows: ["Any time"] },
+    { day: "Wed", windows: ["6:00 PM – 10:00 PM"] },
+  ];
+
+  return (
+    <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
+      <p className="font-heading text-base font-semibold tracking-tight">
+        When you&apos;re all free
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-1.5" aria-hidden>
+        {picked.map((name) => (
+          <span
+            key={name}
+            className="inline-flex h-6 items-center rounded-full bg-accent/25 px-2.5 text-[11px] font-medium text-foreground/70"
+          >
+            {name}
+          </span>
+        ))}
+      </div>
+
+      <ul className="mt-4 flex flex-col gap-3 text-sm">
+        {days.map((entry) => (
+          <li key={entry.day} className="rounded-lg bg-muted/30 px-3.5 py-2.5">
+            <p className="font-medium">{entry.day}</p>
+            <ul className="mt-1 flex flex-col gap-1">
+              {entry.windows.map((window) => (
+                <li
+                  key={window}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="text-xs text-muted-foreground">{window}</span>
+                  <span className="shrink-0 text-xs font-semibold text-primary">
+                    Propose a game
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 text-xs text-muted-foreground">
+        Days nobody&apos;s booked and nobody&apos;s marked busy.
       </p>
     </div>
   );

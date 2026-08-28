@@ -31,6 +31,13 @@ export function slotPath(slotId: string): string {
  */
 export const AVAILABILITY_PATH = `${BOOKING_BUDDY_ROOT}/availability`;
 
+/**
+ * Group availability overlap ("Find a time", issue #195) — Plan's third child.
+ * The user-facing label is "Find a time" (task-framed, matching "Open time"
+ * over "Availability"); the path keeps the shorter internal name.
+ */
+export const OVERLAP_PATH = `${BOOKING_BUDDY_ROOT}/overlap`;
+
 export const SETTINGS_PATH = `${BOOKING_BUDDY_ROOT}/settings`;
 
 export const PRIVACY_PATH = `${BOOKING_BUDDY_ROOT}/privacy`;
@@ -80,6 +87,7 @@ export const BB_SECTIONS: readonly BbSection[] = [
     children: [
       { label: "Games", href: SLOTS_PATH },
       { label: "Open time", href: AVAILABILITY_PATH },
+      { label: "Find a time", href: OVERLAP_PATH },
     ],
   },
   {
@@ -116,7 +124,11 @@ export function sectionForPath(pathname: string): BbSectionId | null {
   if (pathname === BOOKING_BUDDY_ROOT) {
     return "dashboard";
   }
-  if (isWithin(pathname, SLOTS_PATH) || isWithin(pathname, AVAILABILITY_PATH)) {
+  if (
+    isWithin(pathname, SLOTS_PATH) ||
+    isWithin(pathname, AVAILABILITY_PATH) ||
+    isWithin(pathname, OVERLAP_PATH)
+  ) {
     return "plan";
   }
   if (isWithin(pathname, BOOKINGS_PATH) || isWithin(pathname, ORGS_PATH)) {

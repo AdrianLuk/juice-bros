@@ -17,6 +17,11 @@ export const landingFaqs: Faq[] = [
       "To share availability and RSVP to each other's games, yes. If you just want a one-off headcount, you can send anyone a Slot Link and they can RSVP as a guest without signing up.",
   },
   {
+    question: "How do I find a time that works for everyone?",
+    answer:
+      "Pick the friends you want to play with and Booking Buddy shows the days and times you're all free, based on the open time each of them shares with you. You can propose a game for any of those slots without leaving the page.",
+  },
+  {
     question: "Who can see my calendar?",
     answer:
       "Only the friends you've connected with, and only as much as you choose to share with each group: your open time, the games you invite them to, both, or nothing. None of it is public.",
