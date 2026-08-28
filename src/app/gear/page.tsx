@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { hosts, partnerCodes } from "@/data/gear";
 import { pageMetadata } from "@/lib/metadata";
 import { buildGearJsonLd, toJsonLdScript } from "@/lib/structured-data";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeading } from "@/components/typography/page-heading";
 import { HostGearSection } from "./sections/host-gear-section";
 import { PartnerCodesSection } from "./sections/partner-codes-section";
@@ -32,10 +33,14 @@ export default function GearPage() {
       </p>
 
       {hosts.map((host) => (
-        <HostGearSection key={host.name} host={host} />
+        <Reveal key={host.name}>
+          <HostGearSection host={host} />
+        </Reveal>
       ))}
 
-      <PartnerCodesSection items={partnerCodes} />
+      <Reveal>
+        <PartnerCodesSection items={partnerCodes} />
+      </Reveal>
     </div>
   );
 }

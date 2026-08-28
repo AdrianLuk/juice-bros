@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { apps, type AppItem } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeading } from "@/components/typography/page-heading";
 import { ComingSoon } from "@/components/apps/coming-soon";
 
@@ -50,7 +51,9 @@ export default async function AppPage({ params }: PageProps<"/tools/[slug]">) {
         title={app.title}
         description={app.description}
       />
-      <ComingSoon icon={app.icon} />
+      <Reveal variant="scale">
+        <ComingSoon icon={app.icon} />
+      </Reveal>
     </div>
   );
 }

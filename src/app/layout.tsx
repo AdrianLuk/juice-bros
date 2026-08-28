@@ -64,8 +64,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
+        {/* Mark JS as live before first paint so scroll-reveal sections can
+            start hidden without a no-JS render ever hiding content. */}
+        <script
+          dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add("js")` }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildOrganizationJsonLd()) }}

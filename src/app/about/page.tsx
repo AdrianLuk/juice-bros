@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
+import { Reveal } from "@/components/motion/reveal";
 import { Hero } from "./sections/hero";
 import { OriginStory } from "./sections/origin-story";
 import { Mission } from "./sections/mission";
@@ -21,11 +22,21 @@ export default function AboutPage() {
     <div className="flex w-full flex-1 flex-col">
       <Hero />
       <OriginStory />
-      <Mission />
-      <MeetTheBros />
-      <Differentiation />
-      <Pillars />
-      <JoinIn />
+      <Reveal variant="scale">
+        <Mission />
+      </Reveal>
+      <Reveal>
+        <MeetTheBros />
+      </Reveal>
+      <Reveal variant="scale">
+        <Differentiation />
+      </Reveal>
+      <Reveal>
+        <Pillars />
+      </Reveal>
+      <Reveal variant="scale">
+        <JoinIn />
+      </Reveal>
     </div>
   );
 }

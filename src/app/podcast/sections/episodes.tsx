@@ -6,7 +6,7 @@ export function Episodes({ videos }: { videos: Episode[] }) {
   return (
     <div className="mt-8">
       {videos.length > 0 ? (
-        <VideoGrid videos={videos} />
+        <VideoGrid videos={videos} stagger />
       ) : (
         <p className="text-muted-foreground">
           Couldn&apos;t load episodes right now - catch us on{" "}

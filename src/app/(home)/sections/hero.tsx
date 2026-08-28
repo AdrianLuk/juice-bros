@@ -43,7 +43,7 @@ export function Hero() {
           height={901}
           fetchPriority="high"
           decoding="async"
-          className="w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
+          className="jb-hero-img w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
         />
       </picture>
       <div
@@ -56,14 +56,14 @@ export function Hero() {
       />
       <div className="flex flex-1 items-center justify-center sm:absolute sm:inset-0 sm:flex-none">
         <div className="flex w-full flex-col items-center gap-6 px-4 py-14 text-center sm:px-6 sm:py-10 sm:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
-          <Eyebrow color="yellow">For Everyday Pickleball Players</Eyebrow>
-          <h1 className="max-w-3xl font-heading text-5xl font-black tracking-[-0.03em] text-balance sm:text-7xl">
+          <Eyebrow color="yellow" className="jb-in">For Everyday Pickleball Players</Eyebrow>
+          <h1 className="jb-in jb-in-2 max-w-3xl font-heading text-5xl font-black tracking-[-0.03em] text-balance sm:text-7xl">
             Juice Bros Pickleball
           </h1>
-          <p className="max-w-xl text-lg text-white/80 text-balance">
+          <p className="jb-in jb-in-3 max-w-xl text-lg text-white/80 text-balance">
             {siteConfig.description}
           </p>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+          <div className="jb-in jb-in-4 mt-3 flex flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
               nativeButton={false}
@@ -87,7 +87,7 @@ export function Hero() {
               </span>
             </Button>
           </div>
-          <div className="mt-5 flex items-center gap-5">
+          <div className="jb-in jb-in-5 mt-5 flex items-center gap-5">
             {socialLinks.map((social) => (
               <a
                 key={social.name}

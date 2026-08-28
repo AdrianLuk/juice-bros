@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
 import { buildPodcastListJsonLd, toJsonLdScript } from "@/lib/structured-data";
+import { Reveal } from "@/components/motion/reveal";
 import { Header } from "./sections/header";
 import { Episodes } from "./sections/episodes";
 import { SpotifyEmbed } from "./sections/spotify-embed";
@@ -23,9 +24,13 @@ export default async function PodcastPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildPodcastListJsonLd(videos)) }}
       />
-      <Header />
+      <Reveal>
+        <Header />
+      </Reveal>
       <Episodes videos={videos} />
-      <SpotifyEmbed />
+      <Reveal variant="scale">
+        <SpotifyEmbed />
+      </Reveal>
     </div>
   );
 }
