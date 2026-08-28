@@ -7,6 +7,7 @@ import {
   appearanceStartDate,
   describePlayers,
   formatAppearanceDates,
+  formatShortDay,
   splitAppearances,
 } from "./appearances.ts";
 
@@ -69,6 +70,11 @@ test("formatAppearanceDates: single day, same-month range, cross-month range", (
     formatAppearanceDates(make({ date: undefined, startDate: "2026-09-30", endDate: "2026-10-04" })),
     "Sep 30 - Oct 4, 2026",
   );
+});
+
+test("formatShortDay gives a month + day label with no year", () => {
+  assert.equal(formatShortDay("2026-08-29"), "Aug 29");
+  assert.equal(formatShortDay("2026-09-01"), "Sep 1");
 });
 
 test("describePlayers covers both, solo, and an explicit name list", () => {

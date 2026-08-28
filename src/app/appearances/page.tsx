@@ -25,7 +25,7 @@ export default function AppearancesPage() {
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppearancesJsonLd()) }}
       />
       <PageHeading
-        eyebrow="On The Road"
+        eyebrow="In The Wild"
         title="Appearances"
         description="Where to catch us in person. If you're playing one of these tournaments, come say hi."
       />

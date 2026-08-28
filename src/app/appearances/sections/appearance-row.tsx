@@ -1,13 +1,46 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import type { Appearance } from "@/lib/appearances";
-import { describePlayers, formatAppearanceDates } from "@/lib/appearances";
+import { describePlayers, formatAppearanceDates, formatShortDay } from "@/lib/appearances";
 import { cn } from "@/lib/utils";
 
-function recapHref(appearance: Appearance): string | null {
-  if (appearance.recapUrl) return appearance.recapUrl;
-  if (appearance.recapSlug) return `/appearances/${appearance.recapSlug}`;
+const FALLBACK_IMAGE = "/brand/JB_Logo_White.svg";
+
+type Target = { href: string; external: boolean };
+
+function rowTarget(appearance: Appearance, isPast: boolean): Target | null {
+  if (isPast) {
+    if (appearance.recapUrl) return { href: appearance.recapUrl, external: true };
+    if (appearance.recapSlug) return { href: `/appearances/${appearance.recapSlug}`, external: false };
+  }
+  if (appearance.url) return { href: appearance.url, external: true };
   return null;
+}
+
+function RowShell({
+  target,
+  className,
+  children,
+}: {
+  target: Target | null;
+  className: string;
+  children: ReactNode;
+}) {
+  if (!target) return <div className={className}>{children}</div>;
+  if (target.external) {
+    return (
+      <a href={target.href} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={target.href} className={className}>
+      {children}
+    </Link>
+  );
 }
 
 export function AppearanceRow({
@@ -18,55 +51,97 @@ export function AppearanceRow({
   tone?: "upcoming" | "past";
 }) {
   const isPast = tone === "past";
-  const recap = recapHref(appearance);
+  const target = rowTarget(appearance, isPast);
+  const hasImage = Boolean(appearance.image);
+  const showRecap = isPast && Boolean(appearance.recapUrl || appearance.recapSlug);
 
   return (
-    <li className={cn("py-5", isPast && "text-muted-foreground")}>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className={cn("font-heading text-lg font-semibold", isPast && "font-medium")}>
-          {appearance.url ? (
-            <a
-              href={appearance.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-brand-orange"
+    <li>
+      <RowShell
+        target={target}
+        className={cn(
+          "group flex items-start gap-4 rounded-2xl border border-border p-3 transition-colors duration-300 sm:gap-5 sm:p-4",
+          target && "hover:border-brand-orange/40 hover:bg-brand-orange/3",
+          isPast && "text-muted-foreground",
+        )}
+      >
+        <div
+          className={cn(
+            "flex aspect-16/10 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl sm:w-32",
+            hasImage ? "bg-muted p-1.5" : "bg-brand-orange",
+          )}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- local asset, no next/image optimization needed */}
+          <img
+            src={appearance.image ?? FALLBACK_IMAGE}
+            alt=""
+            loading="lazy"
+            className={cn(
+              "object-contain",
+              hasImage ? "h-full w-full" : "w-12 sm:w-16",
+            )}
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <h3
+              className={cn(
+                "font-heading text-lg font-semibold text-foreground",
+                isPast && "font-medium text-muted-foreground",
+                target && "group-hover:text-brand-orange",
+              )}
             >
               {appearance.name}
-              <ArrowUpRight aria-hidden className="size-4 shrink-0 opacity-60" />
-            </a>
-          ) : (
-            appearance.name
+            </h3>
+            {appearance.status === "tentative" && (
+              <span
+                className="inline-flex items-center rounded-full border border-brand-orange/40 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-brand-orange uppercase"
+                title="Not locked in yet"
+              >
+                Tentative
+              </span>
+            )}
+            {target?.external && (
+              <ArrowUpRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            )}
+          </div>
+
+          <p className="mt-1 text-sm">
+            {formatAppearanceDates(appearance)}
+            <span aria-hidden> &middot; </span>
+            {appearance.location}
+          </p>
+          <p className="mt-0.5 text-sm">Playing: {describePlayers(appearance.players)}</p>
+
+          {appearance.divisions && appearance.divisions.length > 0 && (
+            <div className="mt-2.5">
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                Divisions
+              </p>
+              <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                {appearance.divisions.map((division) => (
+                  <li key={division.name}>
+                    {division.name}
+                    {division.date && (
+                      <span aria-hidden> &middot; {formatShortDay(division.date)}</span>
+                    )}
+                    <span aria-hidden> &middot; </span>
+                    {describePlayers(division.players)}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
-        </h3>
-        {appearance.status === "tentative" && (
-          <span
-            className="inline-flex items-center rounded-full border border-brand-orange/40 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-brand-orange uppercase"
-            title="Not locked in yet"
-          >
-            Tentative
-          </span>
-        )}
-      </div>
 
-      <p className="mt-1 text-sm">
-        {formatAppearanceDates(appearance)}
-        <span aria-hidden> &middot; </span>
-        {appearance.location}
-      </p>
-      <p className="mt-0.5 text-sm">Playing: {describePlayers(appearance.players)}</p>
-
-      {isPast && recap && (
-        <a
-          href={recap}
-          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-orange hover:underline"
-          {...(appearance.recapUrl
-            ? { target: "_blank", rel: "noopener noreferrer" }
-            : {})}
-        >
-          Read our recap
-          <ArrowUpRight aria-hidden className="size-3.5 shrink-0" />
-        </a>
-      )}
+          {showRecap && (
+            <span className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-orange group-hover:underline">
+              Read our recap
+              <ArrowUpRight aria-hidden className="size-3.5 shrink-0" />
+            </span>
+          )}
+        </div>
+      </RowShell>
     </li>
   );
 }

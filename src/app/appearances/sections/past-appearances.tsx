@@ -28,7 +28,7 @@ export function PastAppearances({ appearances }: { appearances: Appearance[] }) 
           ({appearances.length})
         </span>
       </summary>
-      <ul className="mt-2 divide-y divide-border">
+      <ul className="mt-4 flex flex-col gap-3">
         {appearances.map((appearance) => (
           <AppearanceRow key={appearance.name} appearance={appearance} tone="past" />
         ))}

@@ -12,7 +12,7 @@ export function UpcomingAppearances({ appearances }: { appearances: Appearance[]
           sign up, so check back.
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-border">
+        <ul className="mt-4 flex flex-col gap-3">
           {appearances.map((appearance) => (
             <AppearanceRow key={appearance.name} appearance={appearance} />
           ))}

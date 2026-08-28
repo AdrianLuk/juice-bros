@@ -1,6 +1,11 @@
 import type { Appearance } from "../../content/appearances.ts";
 
-export type { Appearance, AppearancePlayers, AppearanceStatus } from "../../content/appearances.ts";
+export type {
+  Appearance,
+  AppearanceDivision,
+  AppearancePlayers,
+  AppearanceStatus,
+} from "../../content/appearances.ts";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -60,6 +65,13 @@ export function formatAppearanceDates(appearance: Appearance): string {
   if (sy === ey && sm === em) return `${MONTHS[sm - 1]} ${sd}-${ed}, ${ey}`;
   if (sy === ey) return `${MONTHS[sm - 1]} ${sd} - ${MONTHS[em - 1]} ${ed}, ${ey}`;
   return `${MONTHS[sm - 1]} ${sd}, ${sy} - ${MONTHS[em - 1]} ${ed}, ${ey}`;
+}
+
+/** Short day label from an ISO `yyyy-mm-dd`, e.g. "Aug 29". For division rows,
+ *  where the year is already on the appearance's main date line. */
+export function formatShortDay(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${d}`;
 }
 
 /** "Adrian and Daven" / "Adrian" / "Daven" for the "who's playing" line. */
