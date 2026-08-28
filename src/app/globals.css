@@ -555,6 +555,20 @@
   animation: none;
 }
 
+/* Podcast archive → episode page: the clicked grid thumbnail is tagged
+   `jb-episode-hero` on click (episode-card.tsx) and the episode page's hero
+   <img> carries the same name, so the image grows from its tile into the hero
+   as the rest of the page cross-fades. Retimed to the site signature; the two
+   snapshots are the same YouTube thumbnail at the same aspect ratio, so the
+   kept UA cross-fade of old↔new is invisible on the way in and just softens
+   the lone hero on the way back out (no match in the grid then). */
+::view-transition-group(jb-episode-hero),
+::view-transition-old(jb-episode-hero),
+::view-transition-new(jb-episode-hero) {
+  animation-duration: 340ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Keep a plain cross-fade, drop every translate. */
   ::view-transition-old(.page-exit) {
@@ -564,6 +578,11 @@
     animation: 160ms linear both jb-fade-in;
   }
   ::view-transition-group(nav-active-pill) {
+    animation-duration: 1ms;
+  }
+  ::view-transition-group(jb-episode-hero),
+  ::view-transition-old(jb-episode-hero),
+  ::view-transition-new(jb-episode-hero) {
     animation-duration: 1ms;
   }
 }

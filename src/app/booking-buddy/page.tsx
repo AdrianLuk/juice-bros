@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
@@ -7,6 +8,7 @@ import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-boo
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
 import { OnboardingModal } from "@/components/booking-buddy/onboarding-modal";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
+import { BbPageSkeleton } from "@/components/booking-buddy/bb-page-skeleton";
 import { BookingBuddyLanding } from "@/components/booking-buddy/landing/booking-buddy-landing";
 import { getOptionalSession, verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
@@ -33,6 +35,20 @@ export default async function BookingBuddyPage() {
   // so this is not a second round trip.
   await verifySession();
 
+  // The dashboard's own data is the slow part (`getDashboardPageData`, plus the
+  // onboarding reads). Behind its own Suspense boundary so the directional route
+  // transition into `/booking-buddy` can commit against the skeleton at once
+  // rather than hanging on the Supabase round trip — the signed-out `<Landing>`
+  // above is untouched, so no `loading.tsx` at this shared segment (it would
+  // flash the app skeleton at signed-out visitors arriving from `/apps`).
+  return (
+    <Suspense fallback={<BbPageSkeleton variant="dashboard" />}>
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+async function Dashboard() {
   const { orgs, bookings, availabilityWindows, hasSlot } =
     await getDashboardPageData();
   const now = new Date();
