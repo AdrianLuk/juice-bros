@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import type { Appearance } from "@/lib/appearances";
@@ -8,61 +7,34 @@ import { cn } from "@/lib/utils";
 
 const FALLBACK_IMAGE = "/brand/JB_Logo_White.svg";
 
-type Target = { href: string; external: boolean };
-
-function rowTarget(appearance: Appearance, isPast: boolean): Target | null {
-  if (isPast) {
-    if (appearance.recapUrl) return { href: appearance.recapUrl, external: true };
-    if (appearance.recapSlug) return { href: `/appearances/${appearance.recapSlug}`, external: false };
-  }
-  if (appearance.url) return { href: appearance.url, external: true };
-  return null;
-}
-
 function RowShell({
-  target,
+  href,
   className,
   children,
 }: {
-  target: Target | null;
+  href: string | null;
   className: string;
   children: ReactNode;
 }) {
-  if (!target) return <div className={className}>{children}</div>;
-  if (target.external) {
-    return (
-      <a href={target.href} target="_blank" rel="noopener noreferrer" className={className}>
-        {children}
-      </a>
-    );
-  }
+  if (!href) return <div className={className}>{children}</div>;
   return (
-    <Link href={target.href} className={className}>
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
       {children}
-    </Link>
+    </a>
   );
 }
 
-export function AppearanceRow({
-  appearance,
-  tone = "upcoming",
-}: {
-  appearance: Appearance;
-  tone?: "upcoming" | "past";
-}) {
-  const isPast = tone === "past";
-  const target = rowTarget(appearance, isPast);
+export function AppearanceRow({ appearance }: { appearance: Appearance }) {
+  const href = appearance.url ?? null;
   const hasImage = Boolean(appearance.image);
-  const showRecap = isPast && Boolean(appearance.recapUrl || appearance.recapSlug);
 
   return (
     <li>
       <RowShell
-        target={target}
+        href={href}
         className={cn(
           "group flex items-start gap-4 rounded-2xl border border-border p-3 transition-colors duration-300 sm:gap-5 sm:p-4",
-          target && "hover:border-brand-orange/40 hover:bg-brand-orange/3",
-          isPast && "text-muted-foreground",
+          href && "hover:border-brand-orange/40 hover:bg-brand-orange/3",
         )}
       >
         <div
@@ -76,10 +48,7 @@ export function AppearanceRow({
             src={appearance.image ?? FALLBACK_IMAGE}
             alt=""
             loading="lazy"
-            className={cn(
-              "object-contain",
-              hasImage ? "h-full w-full" : "w-12 sm:w-16",
-            )}
+            className={cn("object-contain", hasImage ? "h-full w-full" : "w-12 sm:w-16")}
           />
         </div>
 
@@ -88,8 +57,7 @@ export function AppearanceRow({
             <h3
               className={cn(
                 "font-heading text-lg font-semibold text-foreground",
-                isPast && "font-medium text-muted-foreground",
-                target && "group-hover:text-brand-orange",
+                href && "group-hover:text-brand-orange",
               )}
             >
               {appearance.name}
@@ -102,7 +70,7 @@ export function AppearanceRow({
                 Tentative
               </span>
             )}
-            {target?.external && (
+            {href && (
               <ArrowUpRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
             )}
           </div>
@@ -132,13 +100,6 @@ export function AppearanceRow({
                 ))}
               </ul>
             </div>
-          )}
-
-          {showRecap && (
-            <span className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-orange group-hover:underline">
-              Read our recap
-              <ArrowUpRight aria-hidden className="size-3.5 shrink-0" />
-            </span>
           )}
         </div>
       </RowShell>

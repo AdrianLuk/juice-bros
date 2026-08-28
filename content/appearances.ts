@@ -32,20 +32,15 @@ export type Appearance = {
   players: AppearancePlayers;
   /** Brackets entered, if known. Fine to leave off tentative entries. */
   divisions?: AppearanceDivision[];
-  /** Slug for a future per-tournament recap page under /appearances. The recap
-   *  page isn't built yet; past entries carry this so they can link out later. */
-  recapSlug?: string;
-  /** External recap link, if the write-up lives off-site instead. */
-  recapUrl?: string;
 };
 
 // Hand-edited, like content/team.ts. Order doesn't matter here - the page
-// splits and sorts these by date. Adrian keeps the dates/players/divisions in
-// sync as registrations firm up; flip `status` to "confirmed" once a spot is
-// locked.
+// shows upcoming entries sorted soonest-first and drops past ones. Adrian keeps
+// the dates/players/divisions in sync as registrations firm up; flip `status`
+// to "confirmed" once a spot is locked.
 export const appearances: Appearance[] = [
   {
-    name: "IG Wealth Management National Championships",
+    name: "2026 IG Wealth Management National Championships presented by Hearing Life",
     startDate: "2026-08-28",
     endDate: "2026-08-29",
     location: "Pickleplex Social Club, Toronto, ON",
@@ -60,7 +55,7 @@ export const appearances: Appearance[] = [
     ],
   },
   {
-    name: "APA Admiral Cup",
+    name: "APA - The Admiral Cup - Powered By Dink Monsters",
     startDate: "2026-09-17",
     endDate: "2026-09-20",
     location: "The Backyard Club, Vaughan, ON",
