@@ -22,9 +22,14 @@ export function SignOutButton() {
   return (
     <AlertDialog>
       <AlertDialogTrigger
-        render={<Button variant="outline" className="gap-1.5" />}
+        render={
+          <Button
+            variant="destructive"
+            className="h-12 gap-2 px-6 text-base font-semibold"
+          />
+        }
       >
-        <LogOutIcon className="size-4" />
+        <LogOutIcon className="size-5" />
         Sign out
       </AlertDialogTrigger>
       <AlertDialogContent>
