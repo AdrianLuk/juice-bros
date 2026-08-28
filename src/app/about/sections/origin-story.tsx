@@ -1,4 +1,5 @@
 import { getYoutubeVideoId } from "@/lib/utils";
+import { Reveal } from "@/components/motion/reveal";
 import { SectionHeading } from "@/components/typography/section-heading";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
 import { YoutubeEmbed } from "@/components/youtube-embed";
@@ -10,17 +11,25 @@ const ORIGIN_EPISODE_ID = getYoutubeVideoId(ORIGIN_EPISODE_URL) ?? "";
 export function OriginStory() {
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
-      <SectionHeading eyebrow="Where It Started" title="How this whole thing started" />
+      <Reveal>
+        <SectionHeading eyebrow="Where It Started" title="How this whole thing started" />
+      </Reveal>
       <div className="mt-8 grid gap-8 sm:grid-cols-5 sm:items-center">
-        <div className="rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5 sm:col-span-2">
+        <Reveal
+          variant="left"
+          className="rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5 sm:col-span-2"
+        >
           <div className="aspect-video overflow-hidden rounded-[1.25rem]">
             <YoutubeEmbed
               videoId={ORIGIN_EPISODE_ID}
               title="Welcome to Juice Bros Pickleball"
             />
           </div>
-        </div>
-        <div className="flex flex-col gap-4 text-lg text-muted-foreground sm:col-span-3">
+        </Reveal>
+        <Reveal
+          variant="right"
+          className="flex flex-col gap-4 text-lg text-muted-foreground sm:col-span-3"
+        >
           <p>
             It started on the sidelines, the way most good ideas do. Daven and Adrian
             were two regulars at their local courts - always the last two still talking
@@ -38,9 +47,9 @@ export function OriginStory() {
           <div className="flex flex-wrap gap-3">
             <WatchListenButtons youtubeUrl={ORIGIN_EPISODE_URL} />
           </div>
-        </div>
+        </Reveal>
       </div>
-      <div className="mt-12 max-w-3xl sm:mt-16">
+      <Reveal className="mt-12 max-w-3xl sm:mt-16">
         <h3 className="font-heading text-xl font-bold tracking-[-0.02em]">
           How we got the name
         </h3>
@@ -58,7 +67,7 @@ export function OriginStory() {
             said to each other out there. And thus the Juice Bros were born.
           </p>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

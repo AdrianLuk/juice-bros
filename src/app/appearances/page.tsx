@@ -4,6 +4,7 @@ import { appearances } from "@/content/appearances";
 import { splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeading } from "@/components/typography/page-heading";
 import { UpcomingAppearances } from "./sections/upcoming-appearances";
 import { PastAppearances } from "./sections/past-appearances";
@@ -30,8 +31,12 @@ export default function AppearancesPage() {
         description="Where to catch us in person. If you're playing one of these tournaments, come say hi."
       />
 
-      <UpcomingAppearances appearances={upcoming} />
-      <PastAppearances appearances={past} />
+      <Reveal>
+        <UpcomingAppearances appearances={upcoming} />
+      </Reveal>
+      <Reveal>
+        <PastAppearances appearances={past} />
+      </Reveal>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { apps } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
 import { buildToolsJsonLd, toJsonLdScript } from "@/lib/structured-data";
+import { RevealGroup } from "@/components/motion/reveal";
 import { PageHeading } from "@/components/typography/page-heading";
 import { AppCard } from "@/components/apps/app-card";
 
@@ -26,11 +27,11 @@ export default function ToolsPage() {
         description="Free tools we're building for everyday players. More on the way."
       />
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <RevealGroup className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {apps.map((app) => (
           <AppCard key={app.slug} app={app} />
         ))}
-      </div>
+      </RevealGroup>
     </div>
   );
 }
