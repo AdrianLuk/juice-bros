@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
+import { getLatestInstagramPosts } from "@/lib/instagram";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { InstagramFeed } from "@/components/instagram-feed";
 import { ContactForm } from "./sections/contact-form";
 import { ContactInfo } from "./sections/contact-info";
 
@@ -12,7 +14,9 @@ export const metadata: Metadata = pageMetadata({
   path: "/contact",
 });
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const instagramPosts = await getLatestInstagramPosts();
+
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-20 sm:px-6 lg:px-8">
@@ -35,6 +39,7 @@ export default function ContactPage() {
         </div>
       </section>
 
+      {instagramPosts.length > 0 && <InstagramFeed posts={instagramPosts} />}
       <ContactInfo />
     </div>
   );
