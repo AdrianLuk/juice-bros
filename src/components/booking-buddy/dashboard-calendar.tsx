@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -106,6 +107,36 @@ export function DashboardCalendar<T extends CalendarEvent>({
   const [now, setNow] = useState<Date | null>(null);
   const [anchor, setAnchor] = useState<Date | null>(null);
 
+  // While true, the grid body and its day-number cells carry
+  // `view-transition-name`s (see `dashboard-week-view` / `dashboard-month-view`)
+  // so a Week↔Month switch reflows through a View Transition: the shared day
+  // cells travel between their two positions, the rest of the grid cross-fades,
+  // the box tweens its height. The names are only present for the length of the
+  // transition — left on permanently they'd pull the calendar out of the page's
+  // own route transition into a separate group.
+  //
+  // Reserved for the switches where the reflow *is* the point (Month↔Week, and
+  // click-a-day-into-Week). Period navigation (prev/next/today) is deliberately
+  // instant: it's the most-repeated calendar action, it shares no cells to
+  // travel, and `flushSync`-ing a full grid re-render on every arrow press is
+  // exactly the "laggy on click" feel to avoid.
+  const [gridTransitioning, setGridTransitioning] = useState(false);
+
+  function animateGrid(update: () => void) {
+    if (
+      typeof document === "undefined" ||
+      typeof document.startViewTransition !== "function" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      update();
+      return;
+    }
+
+    flushSync(() => setGridTransitioning(true));
+    const transition = document.startViewTransition(() => flushSync(update));
+    transition.finished.finally(() => setGridTransitioning(false));
+  }
+
   useEffect(() => {
     const clientNow = new Date();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of the client's clock on mount, not derived state
@@ -193,8 +224,10 @@ export function DashboardCalendar<T extends CalendarEvent>({
   }
 
   function goToDay(day: Date) {
-    setAnchor(clampToMin(startOfDay(day)));
-    setView("week");
+    animateGrid(() => {
+      setAnchor(clampToMin(startOfDay(day)));
+      setView("week");
+    });
   }
 
   const weekStart = startOfWeek(anchor);
@@ -289,7 +322,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
               key={option.id}
               type="button"
               aria-pressed={view === option.id}
-              onClick={() => setView(option.id)}
+              onClick={() => animateGrid(() => setView(option.id))}
               className={cn(
                 "relative rounded-md px-2.5 py-1 text-xs font-medium transition-colors after:absolute after:-inset-1 after:content-['']",
                 view === option.id
@@ -303,39 +336,47 @@ export function DashboardCalendar<T extends CalendarEvent>({
         </div>
       </div>
 
-      {view === "week" && (
-        <DashboardWeekView
-          weekStart={weekStart}
-          today={today}
-          events={visibleEvents}
-          busyIntervals={busyIntervals}
-          windows={visibleWindows}
-          onDayClick={goToDay}
-          renderEvent={renderWeekEvent}
-          minDay={minAnchor}
-        />
-      )}
-      {view === "month" && (
-        <DashboardMonthView
-          month={anchor}
-          today={today}
-          events={visibleEvents}
-          busyIntervals={busyIntervals}
-          windows={visibleWindows}
-          onDayClick={goToDay}
-          renderEvent={renderMonthEvent}
-          minDay={minAnchor}
-        />
-      )}
-      {view === "agenda" && (
-        <DashboardAgendaView
-          events={visibleEvents}
-          now={today}
-          onDayClick={goToDay}
-          renderEvent={renderAgendaEvent}
-          emptyMessage={agendaEmptyMessage}
-        />
-      )}
+      <div
+        style={
+          gridTransitioning ? { viewTransitionName: "bb-cal-body" } : undefined
+        }
+      >
+        {view === "week" && (
+          <DashboardWeekView
+            weekStart={weekStart}
+            today={today}
+            events={visibleEvents}
+            busyIntervals={busyIntervals}
+            windows={visibleWindows}
+            onDayClick={goToDay}
+            renderEvent={renderWeekEvent}
+            minDay={minAnchor}
+            sharedDayNames={gridTransitioning}
+          />
+        )}
+        {view === "month" && (
+          <DashboardMonthView
+            month={anchor}
+            today={today}
+            events={visibleEvents}
+            busyIntervals={busyIntervals}
+            windows={visibleWindows}
+            onDayClick={goToDay}
+            renderEvent={renderMonthEvent}
+            minDay={minAnchor}
+            sharedDayNames={gridTransitioning}
+          />
+        )}
+        {view === "agenda" && (
+          <DashboardAgendaView
+            events={visibleEvents}
+            now={today}
+            onDayClick={goToDay}
+            renderEvent={renderAgendaEvent}
+            emptyMessage={agendaEmptyMessage}
+          />
+        )}
+      </div>
 
       {quickActions}
     </div>

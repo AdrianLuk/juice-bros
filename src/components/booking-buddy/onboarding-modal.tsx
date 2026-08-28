@@ -137,30 +137,42 @@ export function OnboardingModal({
     track("bb_onboarding_intent", { intent: next });
   }
 
+  // A key that changes once per visible step, so the wrapper below remounts
+  // and its `bb-anim-in` entrance replays as the modal walks its branch —
+  // choose → (facility →) booking → done, or post → share.
+  const stepKey = [
+    intent ?? "choose",
+    bookingLogged ? "logged" : "",
+    postedSlotId ? "shared" : "",
+    orgs.length === 0 ? "no-facility" : "",
+  ].join(":");
+
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : dismiss())}>
       <DialogContent className="sm:max-w-lg">
-        {intent === null && <IntentChoice onChoose={chooseIntent} />}
+        <div key={stepKey} className="bb-anim-in flex flex-col gap-4">
+          {intent === null && <IntentChoice onChoose={chooseIntent} />}
 
-        {intent === "track" && (
-          <TrackBranch
-            orgs={orgs}
-            bookingLogged={bookingLogged}
-            onBookingLogged={() => setBookingLogged(true)}
-            onDone={() => setOpen(false)}
-          />
-        )}
+          {intent === "track" && (
+            <TrackBranch
+              orgs={orgs}
+              bookingLogged={bookingLogged}
+              onBookingLogged={() => setBookingLogged(true)}
+              onDone={() => setOpen(false)}
+            />
+          )}
 
-        {intent === "coordinate" && (
-          <CoordinateBranch
-            orgs={orgs}
-            gender={gender}
-            postedSlotId={postedSlotId}
-            onPosted={setPostedSlotId}
-          />
-        )}
+          {intent === "coordinate" && (
+            <CoordinateBranch
+              orgs={orgs}
+              gender={gender}
+              postedSlotId={postedSlotId}
+              onPosted={setPostedSlotId}
+            />
+          )}
 
-        {intent !== null && <FriendFooter inviteUrl={inviteUrl} />}
+          {intent !== null && <FriendFooter inviteUrl={inviteUrl} />}
+        </div>
       </DialogContent>
     </Dialog>
   );

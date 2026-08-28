@@ -80,12 +80,23 @@ function DesktopSectionItem({
       href={section.primary}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        "relative isolate flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
         active
-          ? "bg-brand-orange text-white shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+          ? "text-white"
           : "text-foreground/75 hover:bg-brand-orange/10 hover:text-brand-orange",
       )}
     >
+      {/* The orange fill is a separate element carrying `bb-nav-pill` so it
+          slides between sections on navigation (globals.css) rather than
+          cross-fading in place. Only one section is ever active, so the name
+          is unique per snapshot. */}
+      {active && (
+        <span
+          aria-hidden
+          style={{ viewTransitionName: "bb-nav-pill" }}
+          className="absolute inset-0 -z-10 rounded-lg bg-brand-orange shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+        />
+      )}
       <Icon
         className={cn("size-4", active ? "text-white" : "text-brand-orange")}
       />
@@ -103,7 +114,7 @@ function DesktopSectionItem({
   return (
     <div className="group/sec relative">
       {trigger}
-      <div className="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-opacity duration-150 group-hover/sec:visible group-hover/sec:opacity-100 group-focus-within/sec:visible group-focus-within/sec:opacity-100">
+      <div className="invisible absolute left-0 top-full z-50 translate-y-1 pt-2 opacity-0 transition-[opacity,transform,visibility] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/sec:visible group-hover/sec:translate-y-0 group-hover/sec:opacity-100 group-focus-within/sec:visible group-focus-within/sec:translate-y-0 group-focus-within/sec:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-none">
         <div className="min-w-44 rounded-xl border border-brand-orange/15 bg-popover p-1 text-popover-foreground shadow-[0_8px_28px_-12px_oklch(0.55_0.16_40/0.4)]">
           {section.children.map((child) => {
             const ChildIcon = CHILD_ICON[child.label];
@@ -137,8 +148,12 @@ export function BbAppShell() {
 
   return (
     <>
-      {/* Desktop: sticky full-width top bar. */}
-      <header className="sticky top-0 z-40 hidden w-full border-b border-brand-orange/40 bg-background/85 backdrop-blur-sm sm:block">
+      {/* Desktop: sticky full-width top bar. Frozen during a route transition
+          (globals.css) so the moving page slides underneath it. */}
+      <header
+        style={{ viewTransitionName: "bb-chrome-header" }}
+        className="sticky top-0 z-40 hidden w-full border-b border-brand-orange/40 bg-background/85 backdrop-blur-sm sm:block"
+      >
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:px-6 lg:px-8">
           <Link
             href={BOOKING_BUDDY_ROOT}
@@ -166,12 +181,19 @@ export function BbAppShell() {
               href={SETTINGS_PATH}
               aria-current={activeSection === "settings" ? "page" : undefined}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                "relative isolate flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                 activeSection === "settings"
-                  ? "bg-brand-orange text-white shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+                  ? "text-white"
                   : "text-foreground/75 hover:bg-brand-orange/10 hover:text-brand-orange",
               )}
             >
+              {activeSection === "settings" && (
+                <span
+                  aria-hidden
+                  style={{ viewTransitionName: "bb-nav-pill" }}
+                  className="absolute inset-0 -z-10 rounded-lg bg-brand-orange shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+                />
+              )}
               <SettingsIcon
                 className={cn(
                   "size-4",
@@ -187,6 +209,7 @@ export function BbAppShell() {
       {/* Mobile: fixed bottom tab bar. Not a bottom-right FAB — that corner is
           the dashboard's quick-add. */}
       <nav
+        style={{ viewTransitionName: "bb-chrome-tabs" }}
         className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t border-brand-orange/30 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:hidden"
         aria-label="Booking Buddy"
       >
@@ -201,10 +224,19 @@ export function BbAppShell() {
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-1 text-[0.65rem] font-medium transition-colors",
                 active
-                  ? "font-semibold text-brand-orange before:absolute before:inset-x-4 before:top-0 before:h-[3px] before:rounded-full before:bg-brand-orange"
+                  ? "font-semibold text-brand-orange"
                   : "text-muted-foreground",
               )}
             >
+              {/* The top accent bar is its own element carrying `bb-tab-pill`
+                  so it slides between tabs on navigation (globals.css). */}
+              {active && (
+                <span
+                  aria-hidden
+                  style={{ viewTransitionName: "bb-tab-pill" }}
+                  className="absolute inset-x-4 top-0 h-0.75 rounded-full bg-brand-orange"
+                />
+              )}
               <Icon
                 className={cn("size-5", active && "text-brand-orange")}
               />

@@ -57,6 +57,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
   onDayClick,
   renderEvent,
   minDay,
+  sharedDayNames = false,
 }: {
   month: Date;
   today: Date;
@@ -66,6 +67,11 @@ export function DashboardMonthView<T extends CalendarEvent>({
   onDayClick: (day: Date) => void;
   renderEvent: (event: T) => ReactNode;
   minDay?: Date | null;
+  /** During a Week/Month switch, the day-number cells carry a
+   * `bb-cal-day-<iso>` `view-transition-name` so the ones this grid shares
+   * with the Week row travel to their new spot instead of cross-fading —
+   * see `dashboard-calendar.tsx`. */
+  sharedDayNames?: boolean;
 }) {
   const days = useMemo(() => monthGridDays(month), [month]);
   const currentMonth = month.getMonth();
@@ -137,6 +143,11 @@ export function DashboardMonthView<T extends CalendarEvent>({
                   disabled={disabled}
                   aria-label={`Go to the week of ${day.toDateString()}`}
                   aria-current={isSameDay(day, today) ? "date" : undefined}
+                  style={
+                    sharedDayNames
+                      ? { viewTransitionName: `bb-cal-day-${key}` }
+                      : undefined
+                  }
                   className={cn(
                     // `size-6` (24px) stays the deliberately compact visual
                     // size a 7-column phone grid needs; `after:` pads the
