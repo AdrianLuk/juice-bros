@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { GuestResponseList, GuestRsvpForm } from "@/components/booking-buddy/guest-rsvp";
+import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
 import { getSlotByToken } from "@/lib/booking-buddy/actions/guest-rsvp";
 
 export async function generateMetadata({
@@ -59,6 +60,11 @@ export default async function GuestSlotPage({
   }
 
   const { when, ownerName, capacity, responses } = preview;
+  const yesCount = responses.filter((response) => response.answer === "yes").length;
+  // A Guest has no organizer context to act on an overflow, so the readout
+  // stops at "full" rather than showing a bare "5 of 4" — the owner's own
+  // page keeps the exact over-capacity signal.
+  const spotsFull = capacity.capacity !== null && yesCount >= capacity.capacity;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -74,13 +80,23 @@ export default async function GuestSlotPage({
             <section>
               <div className="bb-card p-6">
                 {capacity.capacity !== null && (
-                  <p className="mb-4 text-sm font-medium text-primary">
-                    {courtsLabel(capacity.courtCount)}
-                    {capacity.rotationBuffer > 0 &&
-                      ` plus ${capacity.rotationBuffer} rotating`}
-                    {" — "}
-                    {capacity.capacity} spots
-                  </p>
+                  <div className="mb-5 flex flex-col gap-2">
+                    <SpotsMeter
+                      filled={Math.min(yesCount, capacity.capacity)}
+                      capacity={capacity.capacity}
+                    />
+                    <p className="text-sm font-medium">
+                      {spotsFull
+                        ? `Full · ${capacity.capacity} spots`
+                        : `${yesCount} of ${capacity.capacity} spots taken`}
+                      <span className="font-normal text-muted-foreground">
+                        {" · "}
+                        {courtsLabel(capacity.courtCount)}
+                        {capacity.rotationBuffer > 0 &&
+                          ` plus ${capacity.rotationBuffer} rotating`}
+                      </span>
+                    </p>
+                  </div>
                 )}
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
                   Are you in?
