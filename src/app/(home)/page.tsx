@@ -9,8 +9,10 @@ import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
 import { NextAppearance } from "./sections/next-appearance";
 import { InstagramFeed } from "./sections/instagram-feed";
-import { ListenEverywhere } from "./sections/listen-everywhere";
-import { Newsletter } from "./sections/newsletter";
+// Hidden for now: <ListenEverywhere /> just repeated the hero's YouTube +
+// Spotify links, and the newsletter isn't a current priority. The section
+// components are kept in ./sections - re-add the imports and the JSX below to
+// bring either back.
 
 export const metadata: Metadata = pageMetadata({
   description: siteConfig.description,
@@ -29,8 +31,6 @@ export default async function Home() {
       {restEpisodes.length > 0 && <LatestVideos videos={restEpisodes} />}
       <NextAppearance />
       {instagramPosts.length > 0 && <InstagramFeed posts={instagramPosts} />}
-      <ListenEverywhere />
-      <Newsletter />
     </div>
   );
 }
