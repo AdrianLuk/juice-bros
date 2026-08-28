@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import {
   isSameDay,
   layoutDayEvents,
+  localDayKey,
   weekDays,
   type CalendarEvent,
 } from "@/lib/booking-buddy/calendar";
@@ -106,6 +107,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
   onDayClick,
   renderEvent,
   minDay,
+  sharedDayNames = false,
 }: {
   weekStart: Date;
   today: Date;
@@ -115,6 +117,11 @@ export function DashboardWeekView<T extends CalendarEvent>({
   onDayClick: (day: Date) => void;
   renderEvent: (event: T, style: CSSProperties, range: EventRange) => ReactNode;
   minDay?: Date | null;
+  /** During a Week/Month switch, the day-number cells carry a
+   * `bb-cal-day-<iso>` `view-transition-name` so the ones this view shares
+   * with the Month grid travel to their new spot instead of cross-fading —
+   * see `dashboard-calendar.tsx`. */
+  sharedDayNames?: boolean;
 }) {
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -209,6 +216,11 @@ export function DashboardWeekView<T extends CalendarEvent>({
                     {WEEKDAY_LABEL.format(day)}
                   </span>
                   <span
+                    style={
+                      sharedDayNames
+                        ? { viewTransitionName: `bb-cal-day-${localDayKey(day)}` }
+                        : undefined
+                    }
                     className={cn(
                       "flex size-6 items-center justify-center rounded-full text-sm font-medium",
                       isSameDay(day, today) &&

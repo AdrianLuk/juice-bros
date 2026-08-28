@@ -335,27 +335,26 @@
  * content with no movement. Same easing as the rest of the site.
  */
 @media (prefers-reduced-motion: no-preference) {
+  /* Transform + opacity only — no `filter: blur()`. Animating blur re-
+     rasterises the element every frame and stutters the reveal on a long
+     page; the scale / slide / fade carries the gesture on its own. */
   .js [data-reveal] {
     opacity: 0;
     transition:
-      opacity 640ms cubic-bezier(0.32, 0.72, 0, 1),
-      transform 720ms cubic-bezier(0.32, 0.72, 0, 1),
-      filter 640ms cubic-bezier(0.32, 0.72, 0, 1);
+      opacity 460ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 520ms cubic-bezier(0.32, 0.72, 0, 1);
   }
   .js [data-reveal="rise"] {
-    transform: translateY(26px);
+    transform: translateY(22px);
   }
   .js [data-reveal="scale"] {
-    transform: scale(0.965) translateY(14px);
-    filter: blur(4px);
+    transform: scale(0.97) translateY(12px);
   }
   .js [data-reveal="left"] {
-    transform: translateX(-32px);
-    filter: blur(3px);
+    transform: translateX(-28px);
   }
   .js [data-reveal="right"] {
-    transform: translateX(32px);
-    filter: blur(3px);
+    transform: translateX(28px);
   }
   /* left/right slide in from outside their own box - clip so the page never
      gains a sideways scrollbar mid-reveal. */
@@ -366,17 +365,16 @@
   .js [data-reveal][data-shown] {
     opacity: 1;
     transform: none;
-    filter: none;
   }
 
   /* Grid / list cascade: children settle in a short wave as the group enters,
      capped so a long archive never turns into a slow drip. */
   .js [data-reveal-group] > * {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(20px);
     transition:
-      opacity 600ms cubic-bezier(0.32, 0.72, 0, 1),
-      transform 640ms cubic-bezier(0.32, 0.72, 0, 1);
+      opacity 440ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 480ms cubic-bezier(0.32, 0.72, 0, 1);
   }
   .js [data-reveal-group][data-shown] > * {
     opacity: 1;
@@ -487,6 +485,10 @@
  *
  * Same easing as the rest of the site: cubic-bezier(0.32,0.72,0,1) for the
  * arrival, a quicker ease-in for the exit. Browsers without the API just cut.
+ *
+ * Transform + opacity only — no `filter: blur()`, which re-rasterises the
+ * whole-page snapshot every frame and drops the transition to ~30fps. No
+ * entrance delay either: the gap before the first motion reads as lag.
  */
 ::view-transition {
   /* Let clicks through to the live page while the overlay is up. */
@@ -520,29 +522,26 @@
 }
 
 ::view-transition-old(.page-exit) {
-  animation: 150ms cubic-bezier(0.4, 0, 1, 1) both jb-page-exit;
+  animation: 120ms cubic-bezier(0.4, 0, 1, 1) both jb-page-exit;
 }
 ::view-transition-new(.page-enter) {
-  animation: 340ms cubic-bezier(0.32, 0.72, 0, 1) 110ms both jb-page-enter;
+  animation: 280ms cubic-bezier(0.32, 0.72, 0, 1) both jb-page-enter;
 }
 
 @keyframes jb-page-exit {
   to {
     opacity: 0;
     transform: translateY(6px);
-    filter: blur(2px);
   }
 }
 @keyframes jb-page-enter {
   from {
     opacity: 0;
     transform: translateY(12px);
-    filter: blur(3px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
@@ -557,7 +556,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Keep a plain cross-fade, drop every translate and blur. */
+  /* Keep a plain cross-fade, drop every translate. */
   ::view-transition-old(.page-exit) {
     animation: 1ms linear both jb-fade-out;
   }
@@ -580,5 +579,193 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+/*
+ * ─── Booking Buddy: in-app motion ───────────────────────────────────────────
+ *
+ * The signed-in app (`/booking-buddy/*`) runs its own directional route
+ * transition — `src/app/booking-buddy/template.tsx` wraps each page in React's
+ * <ViewTransition>; `nav-order.ts` picks `forward` / `back` / `lateral` from
+ * the app's own reading order. The shell chrome is the spatial anchor: the
+ * desktop top bar (`bb-chrome-header`) and mobile tab bar (`bb-chrome-tabs`)
+ * are frozen, and the active nav indicator (`bb-nav-pill`, `bb-tab-pill`,
+ * `bb-section-pill`) slides between destinations underneath the moving page.
+ *
+ * Same signature easing as the rest of the site —
+ * cubic-bezier(0.32,0.72,0,1) for arrivals, a quicker ease-in for exits — but
+ * a touch faster than the marketing transition: this is a task surface,
+ * navigated over and over, not a page read once. Browsers without the View
+ * Transitions API just cut.
+ *
+ * Deliberately transform + opacity ONLY on these full-viewport snapshots — no
+ * `filter: blur()`, which re-rasterises the whole page every frame and drops
+ * the transition to ~20-30fps on anything but a fast GPU. No entrance delay
+ * either: the gap between the click and the first motion is what reads as lag.
+ *
+ * `document.startViewTransition` is also used imperatively for the dashboard
+ * calendar's view switch (`bb-cal-*` below); the same `::view-transition`
+ * rules cover both.
+ */
+
+/* Pin the app-shell chrome above the animating content and hold it still. */
+::view-transition-group(bb-chrome-header),
+::view-transition-group(bb-chrome-tabs) {
+  z-index: 100;
+  animation: none;
+}
+::view-transition-old(bb-chrome-header),
+::view-transition-old(bb-chrome-tabs) {
+  /* Identical old/new — drop the old snapshot so there's no double image. */
+  display: none;
+}
+::view-transition-new(bb-chrome-header),
+::view-transition-new(bb-chrome-tabs) {
+  animation: none;
+}
+
+/* The active nav indicators: a magic-move between destinations, no cross-fade
+   of the fill itself — same treatment as the marketing nav pill. */
+::view-transition-group(bb-nav-pill),
+::view-transition-group(bb-tab-pill),
+::view-transition-group(bb-section-pill) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-old(bb-nav-pill),
+::view-transition-new(bb-nav-pill),
+::view-transition-old(bb-tab-pill),
+::view-transition-new(bb-tab-pill),
+::view-transition-old(bb-section-pill),
+::view-transition-new(bb-section-pill) {
+  animation: none;
+}
+
+/* Content column. The exit is one quick fade + sink for every direction; the
+   entrance carries the direction — the new page slides in over the gap the
+   old one left. Exit is shorter than entrance so the outgoing page is gone
+   before the incoming one lands. */
+::view-transition-old(.bb-page-exit) {
+  animation: 120ms cubic-bezier(0.4, 0, 1, 1) both bb-page-exit;
+}
+::view-transition-new(.bb-page-enter-forward) {
+  animation: 260ms cubic-bezier(0.32, 0.72, 0, 1) both bb-page-enter-forward;
+}
+::view-transition-new(.bb-page-enter-back) {
+  animation: 260ms cubic-bezier(0.32, 0.72, 0, 1) both bb-page-enter-back;
+}
+::view-transition-new(.bb-page-enter-lateral) {
+  animation: 240ms cubic-bezier(0.32, 0.72, 0, 1) both bb-page-enter-lateral;
+}
+
+@keyframes bb-page-exit {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes bb-page-enter-forward {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bb-page-enter-back {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bb-page-enter-lateral {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Dashboard calendar: the Month / Week / Agenda switch and click-a-day-into-
+   Week (`dashboard-calendar.tsx` wraps just those in
+   `document.startViewTransition` — period navigation stays instant). The grid
+   body (`bb-cal-body`) box tweens its height and cross-fades its contents; the
+   day-number cells shared by Week and Month (`bb-cal-day-<iso>`) travel between
+   their two positions. Kept short so the size-morph of a ~600px grid is over
+   quickly. */
+::view-transition-group(bb-cal-body) {
+  animation-duration: 240ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-old(bb-cal-body),
+::view-transition-new(bb-cal-body) {
+  animation-duration: 200ms;
+}
+
+/*
+ * Small in-app entrances — an optimistic list row landing, an onboarding-modal
+ * step swapping in. `@starting-style` fires only when the element is inserted
+ * (and once on first paint, which for these short below-the-fold lists reads
+ * as the panel settling, not a page-load sequence). Gated on no-preference;
+ * reduced motion gets the content with no movement.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .bb-anim-in {
+    transition:
+      opacity 260ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @starting-style {
+    .bb-anim-in {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  /* A confident settle on the response button you just pressed — added on
+     click, removed on animationend (slots.tsx). */
+  .bb-press {
+    animation: bb-press 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+@keyframes bb-press {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.93);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Plain cross-fade for the route transition; freeze every shared-element
+     magic-move. The imperative calendar transition is skipped in JS under
+     reduced motion, so it needs nothing here. */
+  ::view-transition-old(.bb-page-exit) {
+    animation: 1ms linear both jb-fade-out;
+  }
+  ::view-transition-new(.bb-page-enter-forward),
+  ::view-transition-new(.bb-page-enter-back),
+  ::view-transition-new(.bb-page-enter-lateral) {
+    animation: 160ms linear both jb-fade-in;
+  }
+  ::view-transition-group(bb-nav-pill),
+  ::view-transition-group(bb-tab-pill),
+  ::view-transition-group(bb-section-pill) {
+    animation-duration: 1ms;
   }
 }

@@ -63,6 +63,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      // `globals.css` sets `scroll-behavior: smooth` on <html>; this tells
+      // Next to suspend it for the scroll-restoration jump on a route change
+      // so it doesn't animate against the page/View Transition.
+      data-scroll-behavior="smooth"
       className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >

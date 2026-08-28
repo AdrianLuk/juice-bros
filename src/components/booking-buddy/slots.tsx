@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -272,10 +272,13 @@ export function SlotRow({
     <li>
       <Link
         href={href}
-        className="block px-5 py-4 transition-colors hover:bg-muted/60 active:bg-muted"
+        className="group/row block px-5 py-4 transition-colors hover:bg-muted/60 active:bg-muted"
       >
-        <div className="flex items-start justify-between gap-3">
-          <p className="font-medium">
+        <div className="flex items-start justify-between gap-3 transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/row:translate-x-0.5 motion-reduce:transform-none">
+          <p
+            className="font-medium"
+            style={{ viewTransitionName: `bb-slot-title-${slot.id}` }}
+          >
             {slot.when}
             {slot.facilityLabel && ` · ${slot.facilityLabel}`}
           </p>
@@ -379,6 +382,11 @@ export function ResponseButtons({
 
   const query = useQuery(slotResponsesQuery(slotId, initial));
 
+  // A one-shot scale settle on the button just tapped — cleared on
+  // animationend so tapping the same answer twice replays it. Purely
+  // confirmatory; the highlighted state is what actually communicates.
+  const [pressed, setPressed] = useState<ResponseAnswer | null>(null);
+
   const mutation = useMutation({
     mutationFn: async (answer: ResponseAnswer) => {
       const result = await respondToSlot(EMPTY, answerFormData(slotId, answer));
@@ -420,7 +428,12 @@ export function ResponseButtons({
             variant={myAnswer === answer ? "default" : "outline"}
             aria-pressed={myAnswer === answer}
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate(answer)}
+            className={pressed === answer ? "bb-press" : undefined}
+            onClick={() => {
+              setPressed(answer);
+              mutation.mutate(answer);
+            }}
+            onAnimationEnd={() => setPressed((c) => (c === answer ? null : c))}
           >
             {ANSWER_LABEL[answer]}
           </Button>
@@ -443,7 +456,7 @@ export function ResponseButtons({
         {query.data.responses.map((response) => (
           <li
             key={response.id}
-            className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+            className="bb-anim-in flex items-center justify-between gap-4 px-4 py-3 text-sm"
           >
             <span>
               {response.userId === viewerId
@@ -600,7 +613,7 @@ export function SlotCourts({
           {capacity.attached.map((booking) => (
             <li
               key={booking.id}
-              className="flex items-center justify-between gap-4 px-5 py-4"
+              className="bb-anim-in flex items-center justify-between gap-4 px-5 py-4"
             >
               <BookingDetailsModal
                 booking={booking}
