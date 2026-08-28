@@ -732,6 +732,31 @@
 }
 
 /*
+ * Route-loading skeleton (`loading.tsx` + `BbPageSkeleton`). The shell — page
+ * heading, section pills — is real and paints at once; only the content
+ * placeholders sit in `.bb-skeleton-body`, held hidden for a beat so a quick
+ * navigation swaps straight to real content and never flashes a stack of grey
+ * blocks. A slow read fades them in. The delay is kept under reduced motion
+ * (it's what stops the flash); only the fade is dropped.
+ */
+.bb-skeleton-body {
+  animation: bb-skeleton-in 200ms ease 480ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb-skeleton-body {
+    animation-duration: 1ms;
+  }
+}
+@keyframes bb-skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
  * Small in-app entrances — an optimistic list row landing, an onboarding-modal
  * step swapping in. `@starting-style` fires only when the element is inserted
  * (and once on first paint, which for these short below-the-fold lists reads

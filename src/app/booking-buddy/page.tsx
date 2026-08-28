@@ -42,7 +42,15 @@ export default async function BookingBuddyPage() {
   // above is untouched, so no `loading.tsx` at this shared segment (it would
   // flash the app skeleton at signed-out visitors arriving from `/apps`).
   return (
-    <Suspense fallback={<BbPageSkeleton variant="dashboard" />}>
+    <Suspense
+      fallback={
+        <BbPageSkeleton
+          variant="dashboard"
+          title="Dashboard"
+          description="Your bookings and open time, at a glance."
+        />
+      }
+    >
       <Dashboard />
     </Suspense>
   );
