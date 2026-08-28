@@ -10,17 +10,18 @@ import { Eyebrow } from "@/components/typography/eyebrow";
  * on the calendar. The primary nav already marks Dashboard as the active
  * section, so the h1 is free to be warmer than a repeat of that word.
  *
- * The greeting word is the browser's local hour, so it's resolved in an
- * effect and rendered as a plain "Hey" until then — same reason
- * `dashboard-calendar.tsx` reads `now` post-mount rather than during render
- * (SSR runs in the server's zone, hydration in the browser's, and the two can
- * disagree across a local hour boundary). The status line underneath comes
- * from props and is identical on the server and client, so it never flashes.
+ * "Good " is static; only the time-of-day word depends on the browser's local
+ * hour, so it's resolved in an effect and rendered as "day" until then — same
+ * reason `dashboard-calendar.tsx` reads `now` post-mount rather than during
+ * render (SSR runs in the server's zone, hydration in the browser's, and the
+ * two can disagree across a local hour boundary). The status line underneath
+ * comes from props and is identical on the server and client, so it never
+ * flashes.
  */
-function greetingForHour(hour: number): string {
-  if (hour >= 5 && hour < 12) return "Morning";
-  if (hour >= 12 && hour < 17) return "Afternoon";
-  return "Evening";
+function timeWordForHour(hour: number): string {
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  return "evening";
 }
 
 const COUNT_WORD = ["no", "one", "two", "three", "four", "five"] as const;
@@ -44,11 +45,11 @@ export function DashboardGreeting({
   /** Whether the caller has ever logged a booking (past ones included). */
   hasAnyBooking: boolean;
 }) {
-  const [greeting, setGreeting] = useState("Hey");
+  const [timeWord, setTimeWord] = useState("day");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of the client's clock on mount, matching dashboard-calendar.tsx
-    setGreeting(greetingForHour(new Date().getHours()));
+    setTimeWord(timeWordForHour(new Date().getHours()));
   }, []);
 
   let status: string;
@@ -67,10 +68,11 @@ export function DashboardGreeting({
     <>
       <Eyebrow>Booking Buddy</Eyebrow>
       <h1 className="mt-3 font-heading text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
-        {/* Keyed so the swap from the "Hey" placeholder to the real
+        Good{" "}
+        {/* Keyed so the swap from the "day" placeholder to the real
             time-of-day word fades in (bb-anim-in) rather than snapping. */}
-        <span key={greeting} className="bb-anim-in inline-block">
-          {greeting}
+        <span key={timeWord} className="bb-anim-in inline-block">
+          {timeWord}
         </span>
       </h1>
       <p className="mt-3 max-w-xl text-lg text-muted-foreground">{status}</p>
