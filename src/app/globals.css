@@ -794,6 +794,27 @@
   .bb-yes {
     animation: bb-yes 320ms cubic-bezier(0.32, 0.72, 0, 1);
   }
+
+  /* The check that lands next to "Locked in." when a booking saves
+     (bookings.tsx) — pops from nothing with a small overshoot, same family
+     as bb-spots-lock / bb-yes. */
+  .bb-check-pop {
+    animation: bb-check-pop 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+@keyframes bb-check-pop {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes bb-press {

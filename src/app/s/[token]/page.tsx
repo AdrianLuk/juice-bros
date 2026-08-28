@@ -59,7 +59,7 @@ export default async function GuestSlotPage({
     );
   }
 
-  const { when, ownerName, capacity, responses } = preview;
+  const { when, facilityLabel, ownerName, capacity, responses } = preview;
   const yesCount = responses.filter((response) => response.answer === "yes").length;
   // A Guest has no organizer context to act on an overflow, so the readout
   // stops at "full" rather than showing a bare "5 of 4" — the owner's own
@@ -72,7 +72,7 @@ export default async function GuestSlotPage({
         <div className="mx-auto max-w-3xl">
           <PageHeading
             eyebrow="Booking Buddy"
-            title={when}
+            title={facilityLabel ? `${when} · ${facilityLabel}` : when}
             description={`Proposed by ${ownerName}`}
           />
 

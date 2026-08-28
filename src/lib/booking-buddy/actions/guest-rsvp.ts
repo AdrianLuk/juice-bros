@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "../supabase/admin.ts";
 import { slotHasNoResponsesYet, trackFunnelEvent } from "../analytics.ts";
-import { formatSlotWhen } from "../slots.ts";
+import { facilityLabel, formatSlotWhen } from "../slots.ts";
 import { computeCapacity } from "../capacity.ts";
 import {
   GUEST_RSVP_SOFT_THRESHOLD,
@@ -28,6 +28,15 @@ export type GuestResponse = {
 export type GuestSlotPreview = {
   slotId: string;
   when: string;
+  /**
+   * The facility this game is at — the attached court's, or the organizer's
+   * Intended Org for a bare proposal, same fallback as `Slot.facilityLabel`.
+   * `null` when neither is set. Both are already-resolved display snapshots
+   * (`slot_bookings.org_name` / `slots.intended_org_name`), so a Guest — who
+   * reads through the admin client, not a session — gets the same text a
+   * friend would without `orgs` or `bookings` being touched.
+   */
+  facilityLabel: string | null;
   ownerName: string;
   capacity: {
     courtCount: number;
@@ -69,7 +78,9 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
-    .select("id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer")
+    .select(
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, intended_org_name",
+    )
     .eq("id", link.slot_id)
     .maybeSingle();
 
@@ -83,7 +94,7 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
 
   const [ownerProfileResult, bookingRowsResult, responseRowsResult] = await Promise.all([
     supabase.from("profiles").select("display_name").eq("id", slotRow.owner_id).maybeSingle(),
-    supabase.from("slot_bookings").select("format").eq("slot_id", slotRow.id),
+    supabase.from("slot_bookings").select("format, org_name").eq("slot_id", slotRow.id),
     supabase.from("responses").select("user_id, guest_name, answer").eq("slot_id", slotRow.id),
   ]);
 
@@ -121,7 +132,8 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
     answer: row.answer,
   }));
 
-  const formats = (bookingRowsResult.data ?? []).map((row) => row.format);
+  const bookingRows = bookingRowsResult.data ?? [];
+  const formats = bookingRows.map((row) => row.format);
 
   return {
     slotId: slotRow.id,
@@ -130,6 +142,10 @@ export async function getSlotByToken(token: string): Promise<GuestSlotPreview | 
       proposedEnd: slotRow.proposed_end,
       timeZone: slotRow.time_zone,
     }),
+    // Booked court's facility wins; a bare proposal falls back to the
+    // Intended Org, same as the signed-in game row and detail page.
+    facilityLabel:
+      facilityLabel(bookingRows.map((row) => row.org_name)) ?? slotRow.intended_org_name,
     ownerName: ownerProfileResult.data?.display_name ?? "A Juice Bros member",
     capacity: {
       courtCount: formats.length,

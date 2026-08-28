@@ -55,7 +55,12 @@ export function UpcomingBookingsSidebar({
       ) : (
         <ul className="flex flex-col gap-2">
           {upcoming.map((booking) => (
-            <UpcomingBookingItem key={booking.id} booking={booking} orgs={orgs} />
+            <UpcomingBookingItem
+              key={booking.id}
+              booking={booking}
+              orgs={orgs}
+              nowIso={now.toISOString()}
+            />
           ))}
         </ul>
       )}
