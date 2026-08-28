@@ -109,13 +109,17 @@ export function DashboardCalendar<T extends CalendarEvent>({
 
   // While true, the grid body and its day-number cells carry
   // `view-transition-name`s (see `dashboard-week-view` / `dashboard-month-view`)
-  // so a Week/Month switch reflows through a View Transition instead of a hard
-  // cut — the shared day cells travel between their two positions, the rest of
-  // the grid cross-fades, and the card box tweens its height. The names are
-  // only present for the length of the transition: left on permanently they'd
-  // pull the calendar out of the page's own route transition into a separate
-  // group. `goToDay` and the period nav flow through here too, for a gentle
-  // cross-fade rather than the FLIP.
+  // so a Week↔Month switch reflows through a View Transition: the shared day
+  // cells travel between their two positions, the rest of the grid cross-fades,
+  // the box tweens its height. The names are only present for the length of the
+  // transition — left on permanently they'd pull the calendar out of the page's
+  // own route transition into a separate group.
+  //
+  // Reserved for the switches where the reflow *is* the point (Month↔Week, and
+  // click-a-day-into-Week). Period navigation (prev/next/today) is deliberately
+  // instant: it's the most-repeated calendar action, it shares no cells to
+  // travel, and `flushSync`-ing a full grid re-render on every arrow press is
+  // exactly the "laggy on click" feel to avoid.
   const [gridTransitioning, setGridTransitioning] = useState(false);
 
   function animateGrid(update: () => void) {
@@ -196,30 +200,26 @@ export function DashboardCalendar<T extends CalendarEvent>({
   }
 
   function goToday() {
-    animateGrid(() => setAnchor(clampToMin(startOfDay(today))));
+    setAnchor(clampToMin(startOfDay(today)));
   }
 
   function goBack() {
-    animateGrid(() =>
-      setAnchor((current) =>
-        current
-          ? clampToMin(
-              view === "month" ? addMonths(current, -1) : addDays(current, -7),
-            )
-          : current,
-      ),
+    setAnchor((current) =>
+      current
+        ? clampToMin(
+            view === "month" ? addMonths(current, -1) : addDays(current, -7),
+          )
+        : current,
     );
   }
 
   function goForward() {
-    animateGrid(() =>
-      setAnchor((current) =>
-        current
-          ? view === "month"
-            ? addMonths(current, 1)
-            : addDays(current, 7)
-          : current,
-      ),
+    setAnchor((current) =>
+      current
+        ? view === "month"
+          ? addMonths(current, 1)
+          : addDays(current, 7)
+        : current,
     );
   }
 

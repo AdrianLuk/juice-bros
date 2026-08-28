@@ -600,6 +600,11 @@
  * navigated over and over, not a page read once. Browsers without the View
  * Transitions API just cut.
  *
+ * Deliberately transform + opacity ONLY on these full-viewport snapshots — no
+ * `filter: blur()`, which re-rasterises the whole page every frame and drops
+ * the transition to ~20-30fps on anything but a fast GPU. No entrance delay
+ * either: the gap between the click and the first motion is what reads as lag.
+ *
  * `document.startViewTransition` is also used imperatively for the dashboard
  * calendar's view switch (`bb-cal-*` below); the same `::view-transition`
  * rules cover both.
@@ -643,72 +648,69 @@
    old one left. Exit is shorter than entrance so the outgoing page is gone
    before the incoming one lands. */
 ::view-transition-old(.bb-page-exit) {
-  animation: 150ms cubic-bezier(0.4, 0, 1, 1) both bb-page-exit;
+  animation: 120ms cubic-bezier(0.4, 0, 1, 1) both bb-page-exit;
 }
 ::view-transition-new(.bb-page-enter-forward) {
-  animation: 360ms cubic-bezier(0.32, 0.72, 0, 1) 80ms both bb-page-enter-forward;
+  animation: 260ms cubic-bezier(0.32, 0.72, 0, 1) both bb-page-enter-forward;
 }
 ::view-transition-new(.bb-page-enter-back) {
-  animation: 360ms cubic-bezier(0.32, 0.72, 0, 1) 80ms both bb-page-enter-back;
+  animation: 260ms cubic-bezier(0.32, 0.72, 0, 1) both bb-page-enter-back;
 }
 ::view-transition-new(.bb-page-enter-lateral) {
-  animation: 300ms cubic-bezier(0.32, 0.72, 0, 1) 60ms both bb-page-enter-lateral;
+  animation: 240ms cubic-bezier(0.32, 0.72, 0, 1) both bb-page-enter-lateral;
 }
 
 @keyframes bb-page-exit {
   to {
     opacity: 0;
     transform: translateY(4px);
-    filter: blur(2px);
   }
 }
 @keyframes bb-page-enter-forward {
   from {
     opacity: 0;
-    transform: translateX(26px);
-    filter: blur(3px);
+    transform: translateX(20px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: blur(0);
   }
 }
 @keyframes bb-page-enter-back {
   from {
     opacity: 0;
-    transform: translateX(-26px);
-    filter: blur(3px);
+    transform: translateX(-20px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: blur(0);
   }
 }
 @keyframes bb-page-enter-lateral {
   from {
     opacity: 0;
-    transform: translateY(10px);
-    filter: blur(3px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: blur(0);
   }
 }
 
-/* Dashboard calendar: the Month / Week / Agenda switch and period navigation
-   (`dashboard-calendar.tsx` wraps the state change in
-   `document.startViewTransition`). The card box (`bb-cal-surface`) tweens its
-   own height between views; the day-number cells shared by Week and Month
-   (`bb-cal-day-<iso>`) travel between their two positions; the grid body
-   (`bb-cal-body`) cross-fades its contents. */
-::view-transition-group(bb-cal-surface),
+/* Dashboard calendar: the Month / Week / Agenda switch and click-a-day-into-
+   Week (`dashboard-calendar.tsx` wraps just those in
+   `document.startViewTransition` — period navigation stays instant). The grid
+   body (`bb-cal-body`) box tweens its height and cross-fades its contents; the
+   day-number cells shared by Week and Month (`bb-cal-day-<iso>`) travel between
+   their two positions. Kept short so the size-morph of a ~600px grid is over
+   quickly. */
 ::view-transition-group(bb-cal-body) {
-  animation-duration: 320ms;
+  animation-duration: 240ms;
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-old(bb-cal-body),
+::view-transition-new(bb-cal-body) {
+  animation-duration: 200ms;
 }
 
 /*
