@@ -9,6 +9,7 @@ import { toJsonLdScript, buildBookingBuddyLandingJsonLd } from "@/lib/structured
 import { landingFaqs } from "@/lib/booking-buddy/landing-faqs";
 import {
   AvailabilityPreview,
+  OverlapPreview,
   SlotProposalPreview,
   SlotResponsesPreview,
   WeekPreview,
@@ -30,7 +31,7 @@ import {
  *   replaces the "who's free Tuesday?" thread, watches it work, signs in.
  * FIRST VIEWPORT: orange hero, copy left / a live-looking Slot card right
  *   (stacked on mobile), primary "Get started" → sign-in.
- * FORM: hero → 3 alternating feature rows each with one honest mockup →
+ * FORM: hero → 4 alternating feature rows each with one honest mockup →
  *   "made by rec players" beat → dark CTA close → FAQ. The established site
  *   composition; no alternative ranked.
  */
@@ -143,17 +144,30 @@ export function BookingBuddyLanding() {
       </FeatureRow>
 
       <FeatureRow
+        eyebrow="Find a Time"
+        title="See when the whole group is free"
+        visual={<OverlapPreview />}
+      >
+        Pick the friends you want in, and Booking Buddy checks everyone&apos;s
+        open time against yours. It shows the days you can all actually make,
+        with a button to float a game for one without leaving the page.
+      </FeatureRow>
+
+      <FeatureRow
         eyebrow="Your Week"
         title="Games and bookings in one place"
         visual={<WeekPreview />}
+        flip
+        muted
       >
         Confirmed games, proposals still waiting on a court, and your own busy
         time all land on one calendar: your own, plus a shared view of the
         friends who&apos;ve shared back.
       </FeatureRow>
 
-      {/* Made by rec players */}
-      <section className="w-full bg-muted/50">
+      {/* Made by rec players. Left un-muted so it reads as its own light beat
+          between the muted "Your Week" row and the dark CTA close. */}
+      <section className="w-full">
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 lg:px-8">
           <div>
             <Eyebrow>Not a Startup</Eyebrow>
