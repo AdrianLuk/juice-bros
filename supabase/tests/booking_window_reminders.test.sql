@@ -17,11 +17,12 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(16);
 
 select has_column('public', 'orgs', 'booking_window_days_before', 'orgs.booking_window_days_before exists');
 select has_column('public', 'orgs', 'booking_window_time', 'orgs.booking_window_time exists');
 select has_column('public', 'slots', 'intended_org_id', 'slots.intended_org_id exists');
+select has_column('public', 'slots', 'intended_org_name', 'slots.intended_org_name exists — the friend-visible resolved snapshot of intended_org_id');
 select has_table('public', 'booking_window_reminder_sends', 'booking_window_reminder_sends table exists');
 select has_view('public', 'slot_booking_windows', 'slot_booking_windows view exists');
 
@@ -106,6 +107,29 @@ select is(
   '55555555-0000-0000-0000-000000000071'::uuid,
   'a slot can point its intended org at one of the owner''s own orgs'
 );
+
+-- The resolved facility name is stamped alongside the id, so a friend who
+-- can read the `slots` row but not `orgs` still sees where the proposal is
+-- headed (issue: facility in the game title even for a bare proposal).
+select is(
+  (select intended_org_name from public.slots where id = '77777777-0000-0000-0000-000000000071'),
+  'Rally Point',
+  'setting intended_org_id stamps the resolved facility name onto the slot'
+);
+
+-- Clearing the intended org clears its snapshot too — no dangling name.
+update public.slots set intended_org_id = null
+  where id = '77777777-0000-0000-0000-000000000071';
+
+select is(
+  (select intended_org_name from public.slots where id = '77777777-0000-0000-0000-000000000071'),
+  null,
+  'clearing intended_org_id clears intended_org_name with it'
+);
+
+-- Put it back for the view's date-math assertion below.
+update public.slots set intended_org_id = '55555555-0000-0000-0000-000000000071'
+  where id = '77777777-0000-0000-0000-000000000071';
 
 -- service_role-only objects: unreachable via authenticated, same posture as
 -- reminder_sends/guest_rsvp_log.
