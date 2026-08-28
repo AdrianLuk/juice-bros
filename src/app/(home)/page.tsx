@@ -7,6 +7,7 @@ import { getLatestInstagramPosts } from "@/lib/instagram";
 import { Hero } from "./sections/hero";
 import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
+import { NextAppearance } from "./sections/next-appearance";
 import { InstagramFeed } from "./sections/instagram-feed";
 import { ListenEverywhere } from "./sections/listen-everywhere";
 import { Newsletter } from "./sections/newsletter";
@@ -26,6 +27,7 @@ export default async function Home() {
       <Hero />
       {featuredEpisode && <FeaturedEpisode episode={featuredEpisode} />}
       {restEpisodes.length > 0 && <LatestVideos videos={restEpisodes} />}
+      <NextAppearance />
       {instagramPosts.length > 0 && <InstagramFeed posts={instagramPosts} />}
       <ListenEverywhere />
       <Newsletter />

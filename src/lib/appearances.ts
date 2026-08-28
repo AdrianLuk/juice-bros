@@ -51,6 +51,15 @@ export function splitAppearances(
   return { upcoming, past };
 }
 
+/** The soonest confirmed upcoming appearance, or null. Used by the home-page
+ *  teaser (#190), which ignores tentative entries. */
+export function nextConfirmedAppearance(
+  list: readonly Appearance[],
+  now: Date = new Date(),
+): Appearance | null {
+  return splitAppearances(list, now).upcoming.find((a) => a.status === "confirmed") ?? null;
+}
+
 /**
  * Human date for a row: "Sep 26, 2026" for a single day, "Aug 28-29, 2026"
  * for a same-month range, "Sep 30 - Oct 4, 2026" across months.
