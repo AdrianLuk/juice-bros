@@ -1,5 +1,7 @@
 import { siteConfig } from "@/config/site";
 import type { Episode } from "@/lib/episodes";
+import type { Appearance } from "@/lib/appearances";
+import { confirmedUpcomingEvents } from "@/lib/appearances";
 import type { GearItem, HostGear } from "@/data/gear";
 import { apps, type AppItem } from "@/data/apps";
 import type { Faq } from "@/lib/booking-buddy/landing-faqs";
@@ -183,12 +185,15 @@ export function buildGearJsonLd(hosts: HostGear[], partnerCodes: GearItem[]) {
 }
 
 /**
- * BreadcrumbList for the /appearances page. The `Event` nodes for confirmed
- * upcoming tournaments are added in a follow-up (#191); this keeps the page's
- * breadcrumb consistent with /gear, /tools, and /podcast in the meantime.
+ * BreadcrumbList for the /appearances page plus one `Event` node per confirmed
+ * upcoming appearance (see `confirmedUpcomingEvents`). Tentative and past
+ * appearances are deliberately left out - Google penalizes speculative or
+ * stale event markup. Returns just the breadcrumb when nothing confirmed is
+ * upcoming.
  */
-export function buildAppearancesJsonLd() {
+export function buildAppearancesJsonLd(list: readonly Appearance[], now: Date = new Date()) {
   const appearancesUrl = `${siteConfig.url}/appearances`;
+  const events = confirmedUpcomingEvents(list, now);
 
   return {
     "@context": "https://schema.org",
@@ -200,6 +205,7 @@ export function buildAppearancesJsonLd() {
           { "@type": "ListItem", position: 2, name: "Appearances", item: appearancesUrl },
         ],
       },
+      ...events,
     ],
   };
 }

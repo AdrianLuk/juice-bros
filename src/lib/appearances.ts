@@ -83,3 +83,39 @@ export function describePlayers(players: Appearance["players"]): string {
   if (players === "both") return "Adrian and Daven";
   return players === "adrian" ? "Adrian" : "Daven";
 }
+
+/** A schema.org `Event` node for one appearance: `startDate` always, `endDate`
+ *  only for a real multi-day range, `location` as a `Place`, `url` when set. */
+export function buildAppearanceEvent(appearance: Appearance) {
+  const startDate = appearanceStartDate(appearance);
+  const endDate = appearanceEndDate(appearance);
+
+  return {
+    "@type": "Event" as const,
+    name: appearance.name,
+    startDate,
+    ...(endDate !== startDate ? { endDate } : {}),
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place" as const,
+      name: appearance.location,
+      address: appearance.location,
+    },
+    ...(appearance.url ? { url: appearance.url } : {}),
+  };
+}
+
+/**
+ * `Event` nodes for confirmed upcoming appearances only, soonest-first.
+ * Tentative and past appearances are left out on purpose - Google penalizes
+ * speculative or stale event markup.
+ */
+export function confirmedUpcomingEvents(
+  list: readonly Appearance[],
+  now: Date = new Date(),
+): ReturnType<typeof buildAppearanceEvent>[] {
+  return splitAppearances(list, now)
+    .upcoming.filter((appearance) => appearance.status === "confirmed")
+    .map(buildAppearanceEvent);
+}

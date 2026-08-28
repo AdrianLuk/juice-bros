@@ -22,7 +22,7 @@ export default function AppearancesPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppearancesJsonLd()) }}
+        dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppearancesJsonLd(appearances)) }}
       />
       <PageHeading
         eyebrow="In The Wild"
