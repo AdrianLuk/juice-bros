@@ -48,10 +48,13 @@ export type Slot = {
   when: string;
   proposedStart: string;
   /**
-   * The attached court(s)' facility, resolved for display — `null` for a
-   * bare proposal with nothing attached yet. Reads `slot_bookings.org_name`
-   * alone, so this is the same for the owner and for a friend; unlike
-   * `SlotCapacity.attached`, it never needs the owner-only `bookings` table.
+   * The facility this game is at, resolved for display — the attached
+   * court(s)' facility once a court is booked (`slot_bookings.org_name`),
+   * otherwise the organizer's Intended Org (`slots.intended_org_name`) so a
+   * bare proposal still says where it's headed. `null` only when neither is
+   * set. Both are friend-visible snapshots, so this is the same string for
+   * the owner and a friend — unlike `SlotCapacity.attached`, it never needs
+   * the owner-only `bookings`/`orgs` tables.
    */
   facilityLabel: string | null;
   /**
@@ -191,7 +194,7 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
 
   const { data: rows, error } = await supabase
     .from("slots")
-    .select("id, owner_id, proposed_start, proposed_end, time_zone")
+    .select("id, owner_id, proposed_start, proposed_end, time_zone, intended_org_name")
     .order("proposed_start", { ascending: true });
 
   if (error) {
@@ -248,7 +251,10 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
       timeZone: row.time_zone,
     }),
     proposedStart: row.proposed_start,
-    facilityLabel: facilityLabel(orgNamesBySlotId.get(row.id) ?? []),
+    // A booked court's facility wins; a bare proposal falls back to the
+    // Intended Org so the row still names where the game is headed.
+    facilityLabel:
+      facilityLabel(orgNamesBySlotId.get(row.id) ?? []) ?? row.intended_org_name,
     courtCount: courtCountBySlotId.get(row.id) ?? 0,
   });
 
@@ -344,7 +350,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
     .select(
-      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, division, notes",
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, intended_org_name, division, notes",
     )
     .eq("id", slotId)
     .maybeSingle();
@@ -393,7 +399,9 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
         timeZone: slotRow.time_zone,
       }),
       proposedStart: slotRow.proposed_start,
-      facilityLabel: capacity.facilityLabel,
+      // Booked court's facility wins; a bare proposal falls back to the
+      // Intended Org, same as `listSlots`.
+      facilityLabel: capacity.facilityLabel ?? slotRow.intended_org_name,
       courtCount: capacity.courtCount,
     },
     isOwner,

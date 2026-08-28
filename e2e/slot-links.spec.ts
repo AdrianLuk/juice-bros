@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { AMY, signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
-import { selectDuration } from "./support/places.ts";
+import { addPlace, placeName, removePlace, selectDuration } from "./support/places.ts";
 
 /**
  * The Slot Link + Guest RSVP journey (issue #10): the owner generates a
@@ -83,6 +83,46 @@ test("the owner can create an invite link and a guest can RSVP through it with n
     await expect(page.getByText("Priya Guest")).toHaveCount(0);
   } finally {
     await deleteSlots([slotId]);
+  }
+});
+
+test("a guest sees which facility the slot is for, even for a bare proposal", async ({
+  page,
+  browser,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy/slots");
+  await page.getByLabel("Date").fill("2031-04-06");
+  await page.getByLabel("Start").selectOption("18:00");
+  await selectDuration(page, "18:00", "19:00");
+  await page.getByLabel("Facility").selectOption({ label: place });
+  await page.getByRole("button", { name: "Post game" }).click();
+
+  await row(page, "Apr 6, 2031").getByRole("link").click();
+  await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
+  const slotId = page.url().split("/").pop()!;
+
+  try {
+    await page.getByRole("button", { name: "Create invite link" }).click();
+    const url = await page.getByLabel("Invite link").inputValue();
+
+    const guestContext = await browser.newContext();
+    const guestPage = await guestContext.newPage();
+    await guestPage.goto(url);
+
+    // No court booked — still a proposal — but the heading names the facility
+    // the organizer is planning to book, so a guest arriving from WhatsApp
+    // knows where the game would be.
+    await expect(guestPage.getByRole("heading", { level: 1 })).toContainText(place);
+    await expect(guestPage.getByRole("heading", { level: 1 })).toContainText("Apr 6, 2031");
+    await expect(guestPage.getByText("still a proposal")).toBeVisible();
+
+    await guestContext.close();
+  } finally {
+    await deleteSlots([slotId]);
+    await removePlace(page, place);
   }
 });
 

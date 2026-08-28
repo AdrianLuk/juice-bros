@@ -401,6 +401,10 @@ test("the organizer can set an intended org for a still-bare-proposal slot", asy
     // Not just the optimistic form state — it survives a fresh read.
     await page.reload();
     await expect(page.getByLabel("Planning to book at")).toHaveValue(orgId);
+
+    // And the facility now shows in the game's title, even though it's still
+    // a bare proposal with no court attached.
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(place);
   } finally {
     await deleteSlots([slotId]);
     await removePlace(page, place);
@@ -420,11 +424,20 @@ test("a facility picked at creation is already the slot's intended org", async (
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByRole("button", { name: "Post game" }).click();
 
-  await row(page, "Oct 10, 2031").getByRole("link").click();
+  // The facility shows in the game's row title even though no court is booked
+  // — it's still a bare proposal, but a proposal has a destination.
+  const proposalRow = row(page, "Oct 10, 2031");
+  await expect(proposalRow).toContainText(place);
+  await expect(proposalRow).toContainText("Proposal");
+
+  await proposalRow.getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
   const slotId = page.url().split("/").pop()!;
 
   try {
+    // Same on the detail page's own title.
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(place);
+
     // No separate "Planning to book at" save needed — creation already set it.
     await expect(
       page.getByLabel("Planning to book at").locator("option:checked"),
