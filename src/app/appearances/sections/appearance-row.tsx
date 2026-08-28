@@ -60,8 +60,9 @@ export function AppearanceRow({
       <RowShell
         target={target}
         className={cn(
-          "group flex items-start gap-4 rounded-2xl border border-border p-3 transition-colors duration-300 sm:gap-5 sm:p-4",
-          target && "hover:border-brand-orange/40 hover:bg-brand-orange/3",
+          "group flex items-start gap-4 rounded-2xl border border-border p-3 outline-none transition-colors duration-300 sm:gap-5 sm:p-4",
+          target &&
+            "hover:border-brand-orange/40 hover:bg-brand-orange/3 focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           isPast && "text-muted-foreground",
         )}
       >
@@ -77,8 +78,9 @@ export function AppearanceRow({
             alt=""
             loading="lazy"
             className={cn(
-              "object-contain",
+              "object-contain transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
               hasImage ? "h-full w-full" : "w-12 sm:w-16",
+              target && "group-hover:scale-[1.04]",
             )}
           />
         </div>
@@ -87,7 +89,7 @@ export function AppearanceRow({
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             <h3
               className={cn(
-                "font-heading text-lg font-semibold text-foreground",
+                "font-heading text-lg font-semibold text-foreground transition-colors duration-300",
                 isPast && "font-medium text-muted-foreground",
                 target && "group-hover:text-brand-orange",
               )}
@@ -103,7 +105,10 @@ export function AppearanceRow({
               </span>
             )}
             {target?.external && (
-              <ArrowUpRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+              <ArrowUpRight
+                aria-hidden
+                className="size-4 shrink-0 text-muted-foreground transition-[transform,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand-orange motion-reduce:transition-none"
+              />
             )}
           </div>
 
@@ -137,7 +142,10 @@ export function AppearanceRow({
           {showRecap && (
             <span className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-orange group-hover:underline">
               Read our recap
-              <ArrowUpRight aria-hidden className="size-3.5 shrink-0" />
+              <ArrowUpRight
+                aria-hidden
+                className="size-3.5 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
+              />
             </span>
           )}
         </div>

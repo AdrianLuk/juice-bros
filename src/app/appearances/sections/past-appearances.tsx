@@ -1,7 +1,6 @@
-import { ChevronRight } from "lucide-react";
-
 import type { Appearance } from "@/lib/appearances";
 import { AppearanceRow } from "./appearance-row";
+import { PastDisclosure } from "./past-disclosure";
 
 export function PastAppearances({ appearances }: { appearances: Appearance[] }) {
   if (appearances.length === 0) {
@@ -17,22 +16,12 @@ export function PastAppearances({ appearances }: { appearances: Appearance[] }) 
   }
 
   return (
-    <details className="group mt-14 border-t border-border pt-8">
-      <summary className="flex cursor-pointer list-none items-center gap-2 font-heading text-2xl font-semibold tracking-[-0.02em] [&::-webkit-details-marker]:hidden">
-        <ChevronRight
-          aria-hidden
-          className="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
-        />
-        Past
-        <span className="text-base font-medium text-muted-foreground">
-          ({appearances.length})
-        </span>
-      </summary>
+    <PastDisclosure count={appearances.length}>
       <ul className="mt-4 flex flex-col gap-3">
         {appearances.map((appearance) => (
           <AppearanceRow key={appearance.name} appearance={appearance} tone="past" />
         ))}
       </ul>
-    </details>
+    </PastDisclosure>
   );
 }
