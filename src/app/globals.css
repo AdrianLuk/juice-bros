@@ -183,6 +183,12 @@
 
 /* Shadows tinted with the brand-orange hue instead of flat black, so
    elevated cards read as lit rather than smudged. */
+.shadow-brand-sm {
+  box-shadow:
+    0 1px 2px oklch(0.25 0.03 45 / 0.05),
+    0 10px 24px -14px oklch(0.6 0.18 40 / 0.3);
+}
+
 .shadow-brand {
   box-shadow:
     0 1px 2px oklch(0.25 0.03 45 / 0.06),
@@ -193,6 +199,21 @@
   box-shadow:
     0 2px 4px oklch(0.25 0.03 45 / 0.08),
     0 40px 80px -24px oklch(0.55 0.18 40 / 0.4);
+}
+
+/* Homepage "On Instagram" filmstrip: hovering one frame recedes the others so
+   the pointed-at post reads as the focus — the row behaves like a strip of
+   film held up to the light rather than a flat thumbnail grid. Pointer-only
+   (`@media (hover: hover)`) so touch devices, which have no true hover, never
+   get stuck with five dimmed tiles. Source order matters: the second rule
+   re-lights the hovered tile and must win at equal specificity. */
+@media (hover: hover) {
+  .ig-strip:hover .ig-tile {
+    opacity: 0.55;
+  }
+  .ig-strip .ig-tile:hover {
+    opacity: 1;
+  }
 }
 
 /* Pickle Point Pal is intentionally locked to a light, high-contrast surface

@@ -2,12 +2,20 @@ const GRAPH_VERSION = "v21.0";
 const IG_USER_ID = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
 const ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN;
 
+/**
+ * How many posts the "On Instagram" grid shows on the homepage and Contact page.
+ * The grid layout adapts to any count, so this is the only knob to turn.
+ */
+export const INSTAGRAM_POST_COUNT = 6;
+
 export type InstagramPost = {
   id: string;
   caption: string;
   permalink: string;
   thumbnail: string;
   timestamp: string;
+  /** "video" covers Reels and feed videos — the grid badges these with a play glyph. */
+  type: "image" | "video";
 };
 
 type RawMediaItem = {
@@ -26,7 +34,9 @@ type RawMediaItem = {
  * via ISR. Returns [] if env vars are missing or the API call fails, so pages
  * render fine without the feed.
  */
-export async function getLatestInstagramPosts(limit = 6): Promise<InstagramPost[]> {
+export async function getLatestInstagramPosts(
+  limit = INSTAGRAM_POST_COUNT,
+): Promise<InstagramPost[]> {
   if (!IG_USER_ID || !ACCESS_TOKEN) return [];
 
   try {
@@ -48,6 +58,7 @@ export async function getLatestInstagramPosts(limit = 6): Promise<InstagramPost[
         permalink: item.permalink,
         thumbnail: item.media_type === "VIDEO" ? item.thumbnail_url! : item.media_url,
         timestamp: item.timestamp,
+        type: item.media_type === "VIDEO" ? ("video" as const) : ("image" as const),
       }));
   } catch {
     return [];
