@@ -4,7 +4,7 @@ import type { InstagramPost } from "@/lib/instagram";
 
 export function InstagramGrid({ posts }: { posts: InstagramPost[] }) {
   return (
-    <div className="ig-strip grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+    <div className="ig-strip grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
       {posts.map((post) => (
         <a
           key={post.id}
