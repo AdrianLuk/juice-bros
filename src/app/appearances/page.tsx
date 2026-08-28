@@ -5,17 +5,18 @@ import { splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHeading } from "@/components/typography/page-heading";
-import { AppearanceList } from "./sections/appearance-list";
+import { UpcomingAppearances } from "./sections/upcoming-appearances";
+import { PastAppearances } from "./sections/past-appearances";
 
 export const metadata: Metadata = pageMetadata({
   title: "Appearances",
   description:
-    "Where to catch the Juice Bros in person. The pickleball tournaments Adrian and Daven are playing next.",
+    "Where to catch the Juice Bros in person. The pickleball tournaments Adrian and Daven are playing next, plus the ones already in the books.",
   path: "/appearances",
 });
 
 export default function AppearancesPage() {
-  const { upcoming } = splitAppearances(appearances);
+  const { upcoming, past } = splitAppearances(appearances);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
@@ -29,7 +30,8 @@ export default function AppearancesPage() {
         description="Where to catch us in person. If you're playing one of these tournaments, come say hi."
       />
 
-      <AppearanceList appearances={upcoming} />
+      <UpcomingAppearances appearances={upcoming} />
+      <PastAppearances appearances={past} />
     </div>
   );
 }

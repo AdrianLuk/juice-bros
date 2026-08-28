@@ -32,12 +32,18 @@ export type Appearance = {
   players: AppearancePlayers;
   /** Brackets entered, if known. Fine to leave off tentative entries. */
   divisions?: AppearanceDivision[];
+  /** Slug for a future per-tournament recap page under /appearances. The recap
+   *  page isn't built yet; past entries carry this so they can link out later. */
+  recapSlug?: string;
+  /** External recap link, if the write-up lives off-site instead. */
+  recapUrl?: string;
 };
 
 // Hand-edited, like content/team.ts. Order doesn't matter here - the page
-// shows upcoming entries sorted soonest-first and drops past ones. Adrian keeps
-// the dates/players/divisions in sync as registrations firm up; flip `status`
-// to "confirmed" once a spot is locked.
+// splits these into upcoming (soonest-first) and a collapsed past list
+// (most-recent-first) by date. Adrian keeps the dates/players/divisions in
+// sync as registrations firm up; flip `status` to "confirmed" once a spot is
+// locked.
 export const appearances: Appearance[] = [
   {
     name: "2026 IG Wealth Management National Championships presented by Hearing Life",
