@@ -19,7 +19,7 @@ export default function AppearancesPage() {
   const { upcoming, past } = splitAppearances(appearances);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppearancesJsonLd()) }}
