@@ -655,10 +655,18 @@
 ::view-transition-old(bb-nav-pill),
 ::view-transition-new(bb-nav-pill),
 ::view-transition-old(bb-tab-pill),
-::view-transition-new(bb-tab-pill),
-::view-transition-old(bb-section-pill),
-::view-transition-new(bb-section-pill) {
+::view-transition-new(bb-tab-pill) {
   animation: none;
+}
+/* The section pill (only) can route to or from a page that has no section nav
+   — Dashboard, Settings. With nothing to pair with it must fade, not freeze in
+   the content area and pop out. A matched Friends↔Groups move just cross-fades
+   two identical fills mid-slide, which is invisible. */
+::view-transition-old(bb-section-pill) {
+  animation: 140ms ease-in both jb-fade-out;
+}
+::view-transition-new(bb-section-pill) {
+  animation: 200ms cubic-bezier(0.32, 0.72, 0, 1) both jb-fade-in;
 }
 
 /* Content column. The exit is one quick fade + sink for every direction; the
@@ -810,6 +818,10 @@
   ::view-transition-group(bb-nav-pill),
   ::view-transition-group(bb-tab-pill),
   ::view-transition-group(bb-section-pill) {
+    animation-duration: 1ms;
+  }
+  ::view-transition-old(bb-section-pill),
+  ::view-transition-new(bb-section-pill) {
     animation-duration: 1ms;
   }
 }
