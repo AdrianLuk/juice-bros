@@ -14,6 +14,7 @@ type Route = {
 const routes: Route[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/podcast", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/appearances", changeFrequency: "weekly", priority: 0.6 },
   { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
   { path: "/booking-buddy", changeFrequency: "monthly", priority: 0.7 },
   // Apps under /tools get an entry from their data. Booking Buddy sits on its

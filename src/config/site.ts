@@ -15,6 +15,7 @@ export const siteConfig = {
     { title: 'Podcast', href: '/podcast' },
     { title: 'Tools', href: '/tools' },
     { title: 'Gear', href: '/gear' },
+    { title: 'Appearances', href: '/appearances' },
     { title: 'About', href: '/about' },
     { title: 'Contact', href: '/contact' },
   ],
