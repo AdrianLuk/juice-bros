@@ -42,7 +42,10 @@ export function SiteHeader() {
       {/* Mobile: a plain, non-floating identity strip. It's never sticky or
           fixed, so it can never overlap a hero image below it - it just
           scrolls away like any other content once you pass it. */}
-      <div className="flex h-14 w-full shrink-0 items-center bg-brand-orange px-4 text-white sm:hidden">
+      <div
+        className="flex h-14 w-full shrink-0 items-center bg-brand-orange px-4 text-white sm:hidden"
+        style={{ viewTransitionName: "site-chrome-mobilebar" }}
+      >
         <Link href="/" className="flex items-center gap-2">
           {/* Decorative: the "Juice Bros Pickleball" wordmark sits right beside it. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
@@ -55,6 +58,7 @@ export function SiteHeader() {
 
       {/* Desktop: the floating pill nav. */}
       <header
+        style={{ viewTransitionName: "site-chrome-nav" }}
         className={cn(
           "z-40 hidden w-full justify-center px-4 pt-4 sm:flex",
           hasOverlayHero ? "fixed top-0" : "sticky top-0",
@@ -84,7 +88,11 @@ export function SiteHeader() {
                   )}
                 >
                   {active && (
-                    <span className="absolute inset-0 rounded-full bg-white/12" aria-hidden />
+                    <span
+                      className="absolute inset-0 rounded-full bg-white/12"
+                      style={{ viewTransitionName: "nav-active-pill" }}
+                      aria-hidden
+                    />
                   )}
                   <span className="relative">{item.title}</span>
                 </Link>
@@ -107,6 +115,7 @@ export function SiteHeader() {
             <button
               type="button"
               aria-label="Open menu"
+              style={{ viewTransitionName: "site-chrome-fab" }}
               className={cn(
                 "fixed right-5 bottom-5 z-40 flex size-14 items-center justify-center rounded-full bg-brand-orange text-white shadow-brand-lg transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-95 sm:hidden",
                 open && "scale-0"
