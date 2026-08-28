@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { CheckIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -246,6 +247,10 @@ export function CreateBookingForm({
 }) {
   const [state, formAction, pending] = useActionState(createBooking, EMPTY);
   const formRef = useRef<HTMLFormElement>(null);
+  // A brief "it saved" acknowledgement for the inline Bookings-page form —
+  // when this form sits in the quick-add dialog it closes on success
+  // (`onLogged`), so the calendar updating is the feedback there instead.
+  const [saved, setSaved] = useState(false);
   // Falls back to the placeholder when nothing's marked default — same as
   // today's "force an explicit pick" behaviour (issue #47).
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
@@ -264,6 +269,9 @@ export function CreateBookingForm({
     setResetForState(state);
     if (state.ok) {
       duration.reset(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
+      // Same mid-render pattern — a state change in response to the action
+      // settling, not a side effect of it.
+      setSaved(true);
     }
   }
 
@@ -278,6 +286,16 @@ export function CreateBookingForm({
       onLogged?.();
     }
   }, [state, onLogged]);
+
+  // Let the acknowledgement clear on its own after a few seconds rather than
+  // sit there until the next submit.
+  useEffect(() => {
+    if (!saved) {
+      return;
+    }
+    const timer = setTimeout(() => setSaved(false), 4000);
+    return () => clearTimeout(timer);
+  }, [saved]);
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-4">
@@ -324,6 +342,15 @@ export function CreateBookingForm({
           {pending ? "Saving…" : "Log booking"}
         </Button>
         <ActionError state={state} />
+        {saved && !pending && !state.error && (
+          <p
+            className="bb-anim-in flex items-center gap-1.5 text-xs font-medium text-primary"
+            role="status"
+          >
+            <CheckIcon className="bb-check-pop size-3.5" aria-hidden="true" />
+            Locked in. It&apos;s on your calendar.
+          </p>
+        )}
       </div>
     </form>
   );

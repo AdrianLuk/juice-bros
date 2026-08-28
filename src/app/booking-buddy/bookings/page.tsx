@@ -82,10 +82,10 @@ export default async function BookingsPage() {
           ) : (
             <div className="mt-10 flex flex-col gap-12">
               <section>
-                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                <h2 className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight">
                   Booked
                   {upcomingBookings.length > 0 && (
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                       {upcomingBookings.length}
                     </span>
                   )}
