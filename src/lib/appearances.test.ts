@@ -10,6 +10,7 @@ import {
   describePlayers,
   formatAppearanceDates,
   formatShortDay,
+  nextConfirmedAppearance,
   splitAppearances,
 } from "./appearances.ts";
 
@@ -60,6 +61,21 @@ test("splitAppearances sorts upcoming soonest-first and past most-recent-first",
   const { upcoming, past } = splitAppearances(list, now);
   assert.deepEqual(upcoming.map((a) => a.name), ["Sep", "Nov"]);
   assert.deepEqual(past.map((a) => a.name), ["June", "LastYear"]);
+});
+
+test("nextConfirmedAppearance returns the soonest confirmed upcoming entry, skipping tentative and past", () => {
+  const now = new Date("2026-08-27T12:00:00Z");
+  const list = [
+    make({ name: "Tentative soon", date: "2026-09-01", status: "tentative" }),
+    make({ name: "Confirmed later", date: "2026-09-17", status: "confirmed" }),
+    make({ name: "Confirmed past", date: "2026-06-01", status: "confirmed" }),
+  ];
+  assert.equal(nextConfirmedAppearance(list, now)?.name, "Confirmed later");
+});
+
+test("nextConfirmedAppearance returns null when nothing confirmed is upcoming", () => {
+  const now = new Date("2026-08-27T12:00:00Z");
+  assert.equal(nextConfirmedAppearance([make({ status: "tentative" })], now), null);
 });
 
 test("formatAppearanceDates: single day, same-month range, cross-month range", () => {
