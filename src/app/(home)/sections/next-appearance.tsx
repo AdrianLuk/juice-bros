@@ -39,11 +39,11 @@ export function NextAppearance() {
         <Button
           size="lg"
           nativeButton={false}
-          className="group mt-1 h-12 rounded-full bg-brand-orange pr-2 pl-6 text-base font-semibold text-brand-black hover:bg-brand-orange/90"
+          className="group mt-1 h-12 rounded-full bg-brand-orange pr-2 pl-6 text-base font-semibold text-white hover:bg-brand-orange/90"
           render={<Link href="/appearances" />}
         >
           View all appearances
-          <span className="flex size-8 items-center justify-center rounded-full bg-brand-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+          <span className="flex size-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
             <ArrowRight className="size-4" />
           </span>
         </Button>
