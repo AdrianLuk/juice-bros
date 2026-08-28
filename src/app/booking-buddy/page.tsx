@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
-import { PageHeading } from "@/components/typography/page-heading";
+import { DashboardGreeting } from "@/components/booking-buddy/dashboard-greeting";
 import { OwnerDashboardCalendar } from "@/components/booking-buddy/owner-dashboard-calendar";
 import { UpcomingBookingsSidebar } from "@/components/booking-buddy/upcoming-bookings";
 import { DashboardAvailabilitySidebar } from "@/components/booking-buddy/dashboard-availability-sidebar";
@@ -10,6 +10,7 @@ import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { BookingBuddyLanding } from "@/components/booking-buddy/landing/booking-buddy-landing";
 import { getOptionalSession, verifySession } from "@/lib/booking-buddy/dal";
 import { getDashboardPageData } from "@/lib/booking-buddy/actions/dashboard";
+import { upcomingBookings } from "@/lib/booking-buddy/calendar";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
 
@@ -44,6 +45,20 @@ export default async function BookingBuddyPage() {
   const now = new Date();
   const hasBooking = bookings.length > 0;
 
+  // The greeting's one-line status: how many booked courts land in the next 7
+  // days, and failing that, when the next one is. Cheap array work over data
+  // the page already has in hand — no extra round trip on the most-visited
+  // route.
+  const upcoming = upcomingBookings(bookings, now, bookings.length);
+  const weekOutMs = now.getTime() + 7 * 24 * 60 * 60 * 1000;
+  const thisWeekCount = upcoming.filter(
+    (booking) => new Date(booking.startsAt).getTime() < weekOutMs,
+  ).length;
+  const nextBookingDate =
+    thisWeekCount === 0 && upcoming.length > 0
+      ? (upcoming[0].when.split(" · ")[0] ?? null)
+      : null;
+
   // Onboarding (issue #103, reshaped in #176) can still open only while the
   // caller has neither a Booking nor a Slot, and its "coordinate" branch is
   // now the one place Gender is surfaced (ADR 0012) — so the profiles round
@@ -67,10 +82,10 @@ export default async function BookingBuddyPage() {
       />
       <section className="w-full px-4 pt-6 pb-10 sm:px-6 sm:pt-10 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title="Dashboard"
-            description="Your bookings and open time, at a glance."
+          <DashboardGreeting
+            thisWeekCount={thisWeekCount}
+            nextBookingDate={nextBookingDate}
+            hasAnyBooking={hasBooking}
           />
 
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
