@@ -5,6 +5,8 @@ import type { Appearance } from "../../content/appearances.ts";
 import {
   appearanceEndDate,
   appearanceStartDate,
+  buildAppearanceEvent,
+  confirmedUpcomingEvents,
   describePlayers,
   formatAppearanceDates,
   formatShortDay,
@@ -83,4 +85,39 @@ test("describePlayers covers both, solo, and an explicit name list", () => {
   assert.equal(describePlayers("daven"), "Daven");
   assert.equal(describePlayers(["Adrian", "Daven"]), "Adrian and Daven");
   assert.equal(describePlayers(["Adrian"]), "Adrian");
+});
+
+test("buildAppearanceEvent maps a range to startDate + endDate with a Place location", () => {
+  const event = buildAppearanceEvent(
+    make({ date: undefined, startDate: "2026-09-17", endDate: "2026-09-20", location: "The Backyard Club, Vaughan, ON" }),
+  );
+  assert.equal(event["@type"], "Event");
+  assert.equal(event.startDate, "2026-09-17");
+  assert.equal((event as { endDate?: string }).endDate, "2026-09-20");
+  assert.deepEqual(event.location, {
+    "@type": "Place",
+    name: "The Backyard Club, Vaughan, ON",
+    address: "The Backyard Club, Vaughan, ON",
+  });
+});
+
+test("buildAppearanceEvent omits endDate for a single-day event and url when absent", () => {
+  const event = buildAppearanceEvent(make({ date: "2026-09-26", url: undefined }));
+  assert.equal(event.startDate, "2026-09-26");
+  assert.ok(!("endDate" in event));
+  assert.ok(!("url" in event));
+});
+
+test("confirmedUpcomingEvents keeps only confirmed upcoming entries, soonest-first", () => {
+  const now = new Date("2026-08-27T12:00:00Z");
+  const list = [
+    make({ name: "Confirmed Nov", date: "2026-11-26", status: "confirmed" }),
+    make({ name: "Tentative Sep", date: "2026-09-26", status: "tentative" }),
+    make({ name: "Confirmed Sep", date: "2026-09-17", status: "confirmed" }),
+    make({ name: "Confirmed past", date: "2026-06-01", status: "confirmed" }),
+  ];
+  assert.deepEqual(
+    confirmedUpcomingEvents(list, now).map((event) => event.name),
+    ["Confirmed Sep", "Confirmed Nov"],
+  );
 });
