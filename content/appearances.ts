@@ -67,7 +67,7 @@ export const appearances: Appearance[] = [
     name: "PPA Tour Toronto",
     startDate: "2026-11-26",
     endDate: "2026-11-29",
-    location: "Toronto, ON",
+    location: "Pickleplex Downsview, Toronto, ON",
     status: "tentative",
     players: "both",
   },
