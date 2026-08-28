@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/typography/eyebrow";
 import { SectionHeading } from "@/components/typography/section-heading";
+import { Reveal, RevealGroup } from "@/components/motion/reveal";
 import { SIGN_IN_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 import { toJsonLdScript, buildBookingBuddyLandingJsonLd } from "@/lib/structured-data";
 import { landingFaqs } from "@/lib/booking-buddy/landing-faqs";
@@ -54,13 +55,17 @@ function FeatureRow({
   return (
     <section className={muted ? "w-full bg-muted/50" : "w-full"}>
       <div className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-8">
-        <div className={flip ? "lg:order-2" : undefined}>
+        <Reveal className={flip ? "lg:order-2" : undefined}>
           <SectionHeading eyebrow={eyebrow} title={title} />
           <p className="mt-4 max-w-md text-lg text-muted-foreground">{children}</p>
-        </div>
-        <div className={`flex justify-center ${flip ? "lg:order-1 lg:justify-start" : "lg:justify-end"}`}>
+        </Reveal>
+        <Reveal
+          variant="scale"
+          delay={80}
+          className={`flex justify-center ${flip ? "lg:order-1 lg:justify-start" : "lg:justify-end"}`}
+        >
           {visual}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -83,17 +88,17 @@ export function BookingBuddyLanding() {
       <section className="w-full bg-brand-orange px-4 py-16 text-white sm:-mt-24 sm:px-6 sm:pt-40 sm:pb-24 lg:px-8">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-5">
-            <Eyebrow color="yellow">Booking Buddy</Eyebrow>
-            <h1 className="font-heading text-4xl font-black tracking-[-0.03em] text-balance sm:text-6xl">
+            <Eyebrow color="yellow" className="jb-in">Booking Buddy</Eyebrow>
+            <h1 className="jb-in jb-in-2 font-heading text-4xl font-black tracking-[-0.03em] text-balance sm:text-6xl">
               Sort out the next game without the group-chat spiral
             </h1>
-            <p className="max-w-md text-lg text-white/80 text-balance">
+            <p className="jb-in jb-in-3 max-w-md text-lg text-white/80 text-balance">
               Post an open time, see who&apos;s actually in, and keep everyone&apos;s
               court bookings in one place. Free, and built by two rec players who
               got tired of running the Tuesday-night &ldquo;who can play?&rdquo;
               thread.
             </p>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <div className="jb-in jb-in-4 mt-3 flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
                 nativeButton={false}
@@ -113,7 +118,7 @@ export function BookingBuddyLanding() {
               </Button>
             </div>
           </div>
-          <div className="flex justify-center lg:justify-end">
+          <div className="jb-in jb-in-3 flex justify-center lg:justify-end">
             <SlotResponsesPreview />
           </div>
         </div>
@@ -168,7 +173,7 @@ export function BookingBuddyLanding() {
       {/* Made by rec players. Left un-muted so it reads as its own light beat
           between the muted "Your Week" row and the dark CTA close. */}
       <section className="w-full">
-        <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 lg:px-8">
+        <Reveal className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 lg:px-8">
           <div>
             <Eyebrow>Not a Startup</Eyebrow>
             <h2 className="mt-3 font-heading text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
@@ -183,7 +188,7 @@ export function BookingBuddyLanding() {
             and your schedule is only ever visible to the friends you connect
             with, at the level you choose. Nothing here is public.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       {/* CTA close */}
@@ -192,7 +197,10 @@ export function BookingBuddyLanding() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--brand-orange),transparent_86%)_0%,transparent_60%)]"
         />
-        <div className="relative flex w-full flex-col items-center gap-4 px-4 py-24 text-center sm:px-6 lg:px-8">
+        <Reveal
+          variant="scale"
+          className="relative flex w-full flex-col items-center gap-4 px-4 py-24 text-center sm:px-6 lg:px-8"
+        >
           <SectionHeading
             eyebrow="Get Started"
             title="Get your group on the same page"
@@ -218,14 +226,16 @@ export function BookingBuddyLanding() {
               Read the privacy policy
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* FAQ */}
       <section className="w-full">
         <div className="mx-auto w-full max-w-2xl px-4 py-20 sm:px-6 lg:px-8">
-          <SectionHeading eyebrow="Questions" title="Good to know" align="center" />
-          <dl className="mt-10 flex flex-col divide-y divide-border">
+          <Reveal>
+            <SectionHeading eyebrow="Questions" title="Good to know" align="center" />
+          </Reveal>
+          <RevealGroup as="dl" className="mt-10 flex flex-col divide-y divide-border">
             {landingFaqs.map((faq) => (
               <div key={faq.question} className="py-5 first:pt-0 last:pb-0">
                 <dt className="font-heading text-base font-semibold tracking-tight">
@@ -234,7 +244,7 @@ export function BookingBuddyLanding() {
                 <dd className="mt-2 text-sm text-muted-foreground">{faq.answer}</dd>
               </div>
             ))}
-          </dl>
+          </RevealGroup>
         </div>
       </section>
     </div>

@@ -70,6 +70,8 @@ export default async function SlotDetailPage({
             description={
               isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
             }
+            // Morphs out of the game row's own title on the way in (slots.tsx).
+            titleViewTransitionName={`bb-slot-title-${id}`}
           />
           <div className="mt-4">
             <SlotStatusBadge courtCount={slot.courtCount} />

@@ -582,3 +582,189 @@
     opacity: 1;
   }
 }
+
+/*
+ * ─── Booking Buddy: in-app motion ───────────────────────────────────────────
+ *
+ * The signed-in app (`/booking-buddy/*`) runs its own directional route
+ * transition — `src/app/booking-buddy/template.tsx` wraps each page in React's
+ * <ViewTransition>; `nav-order.ts` picks `forward` / `back` / `lateral` from
+ * the app's own reading order. The shell chrome is the spatial anchor: the
+ * desktop top bar (`bb-chrome-header`) and mobile tab bar (`bb-chrome-tabs`)
+ * are frozen, and the active nav indicator (`bb-nav-pill`, `bb-tab-pill`,
+ * `bb-section-pill`) slides between destinations underneath the moving page.
+ *
+ * Same signature easing as the rest of the site —
+ * cubic-bezier(0.32,0.72,0,1) for arrivals, a quicker ease-in for exits — but
+ * a touch faster than the marketing transition: this is a task surface,
+ * navigated over and over, not a page read once. Browsers without the View
+ * Transitions API just cut.
+ *
+ * `document.startViewTransition` is also used imperatively for the dashboard
+ * calendar's view switch (`bb-cal-*` below); the same `::view-transition`
+ * rules cover both.
+ */
+
+/* Pin the app-shell chrome above the animating content and hold it still. */
+::view-transition-group(bb-chrome-header),
+::view-transition-group(bb-chrome-tabs) {
+  z-index: 100;
+  animation: none;
+}
+::view-transition-old(bb-chrome-header),
+::view-transition-old(bb-chrome-tabs) {
+  /* Identical old/new — drop the old snapshot so there's no double image. */
+  display: none;
+}
+::view-transition-new(bb-chrome-header),
+::view-transition-new(bb-chrome-tabs) {
+  animation: none;
+}
+
+/* The active nav indicators: a magic-move between destinations, no cross-fade
+   of the fill itself — same treatment as the marketing nav pill. */
+::view-transition-group(bb-nav-pill),
+::view-transition-group(bb-tab-pill),
+::view-transition-group(bb-section-pill) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-old(bb-nav-pill),
+::view-transition-new(bb-nav-pill),
+::view-transition-old(bb-tab-pill),
+::view-transition-new(bb-tab-pill),
+::view-transition-old(bb-section-pill),
+::view-transition-new(bb-section-pill) {
+  animation: none;
+}
+
+/* Content column. The exit is one quick fade + sink for every direction; the
+   entrance carries the direction — the new page slides in over the gap the
+   old one left. Exit is shorter than entrance so the outgoing page is gone
+   before the incoming one lands. */
+::view-transition-old(.bb-page-exit) {
+  animation: 150ms cubic-bezier(0.4, 0, 1, 1) both bb-page-exit;
+}
+::view-transition-new(.bb-page-enter-forward) {
+  animation: 360ms cubic-bezier(0.32, 0.72, 0, 1) 80ms both bb-page-enter-forward;
+}
+::view-transition-new(.bb-page-enter-back) {
+  animation: 360ms cubic-bezier(0.32, 0.72, 0, 1) 80ms both bb-page-enter-back;
+}
+::view-transition-new(.bb-page-enter-lateral) {
+  animation: 300ms cubic-bezier(0.32, 0.72, 0, 1) 60ms both bb-page-enter-lateral;
+}
+
+@keyframes bb-page-exit {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: blur(2px);
+  }
+}
+@keyframes bb-page-enter-forward {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+@keyframes bb-page-enter-back {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+@keyframes bb-page-enter-lateral {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* Dashboard calendar: the Month / Week / Agenda switch and period navigation
+   (`dashboard-calendar.tsx` wraps the state change in
+   `document.startViewTransition`). The card box (`bb-cal-surface`) tweens its
+   own height between views; the day-number cells shared by Week and Month
+   (`bb-cal-day-<iso>`) travel between their two positions; the grid body
+   (`bb-cal-body`) cross-fades its contents. */
+::view-transition-group(bb-cal-surface),
+::view-transition-group(bb-cal-body) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/*
+ * Small in-app entrances — an optimistic list row landing, an onboarding-modal
+ * step swapping in. `@starting-style` fires only when the element is inserted
+ * (and once on first paint, which for these short below-the-fold lists reads
+ * as the panel settling, not a page-load sequence). Gated on no-preference;
+ * reduced motion gets the content with no movement.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .bb-anim-in {
+    transition:
+      opacity 260ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @starting-style {
+    .bb-anim-in {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  /* A confident settle on the response button you just pressed — added on
+     click, removed on animationend (slots.tsx). */
+  .bb-press {
+    animation: bb-press 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+@keyframes bb-press {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.93);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Plain cross-fade for the route transition; freeze every shared-element
+     magic-move. The imperative calendar transition is skipped in JS under
+     reduced motion, so it needs nothing here. */
+  ::view-transition-old(.bb-page-exit) {
+    animation: 1ms linear both jb-fade-out;
+  }
+  ::view-transition-new(.bb-page-enter-forward),
+  ::view-transition-new(.bb-page-enter-back),
+  ::view-transition-new(.bb-page-enter-lateral) {
+    animation: 160ms linear both jb-fade-in;
+  }
+  ::view-transition-group(bb-nav-pill),
+  ::view-transition-group(bb-tab-pill),
+  ::view-transition-group(bb-section-pill) {
+    animation-duration: 1ms;
+  }
+}

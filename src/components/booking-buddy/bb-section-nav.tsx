@@ -37,12 +37,22 @@ export function BbSectionNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex h-7 items-center rounded-full px-3 text-[0.8rem] font-medium transition-colors",
+              "relative isolate inline-flex h-7 items-center rounded-full px-3 text-[0.8rem] font-medium transition-colors",
               active
-                ? "bg-brand-orange text-white shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+                ? "text-white"
                 : "text-foreground/70 hover:bg-brand-orange/10 hover:text-brand-orange",
             )}
           >
+            {/* Separate fill carrying `bb-section-pill` so it slides between
+                siblings on navigation (globals.css). One active sibling at a
+                time, so the name stays unique per snapshot. */}
+            {active && (
+              <span
+                aria-hidden
+                style={{ viewTransitionName: "bb-section-pill" }}
+                className="absolute inset-0 -z-10 rounded-full bg-brand-orange shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+              />
+            )}
             {label}
           </Link>
         );
