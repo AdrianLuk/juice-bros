@@ -182,6 +182,28 @@ export function buildGearJsonLd(hosts: HostGear[], partnerCodes: GearItem[]) {
   };
 }
 
+/**
+ * BreadcrumbList for the /appearances page. The `Event` nodes for confirmed
+ * upcoming tournaments are added in a follow-up (#191); this keeps the page's
+ * breadcrumb consistent with /gear, /tools, and /podcast in the meantime.
+ */
+export function buildAppearancesJsonLd() {
+  const appearancesUrl = `${siteConfig.url}/appearances`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "Appearances", item: appearancesUrl },
+        ],
+      },
+    ],
+  };
+}
+
 function buildSoftwareApplicationJsonLd(app: AppItem) {
   return {
     "@type": "SoftwareApplication",
