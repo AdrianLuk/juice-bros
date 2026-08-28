@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/typography/eyebrow";
 import { appearances } from "@/content/appearances";
 import { formatAppearanceDates, nextConfirmedAppearance } from "@/lib/appearances";
 
@@ -10,23 +11,25 @@ export function NextAppearance() {
   if (!next) return null;
 
   return (
-    <section className="w-full bg-brand-orange text-white">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-5 px-4 py-24 text-center sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden bg-brand-black text-white">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--brand-orange),transparent_86%)_0%,transparent_60%)]"
+      />
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-5 px-4 py-24 text-center sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-3">
-          <span className="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
-            In The Wild
-          </span>
+          <Eyebrow color="yellow">In The Wild</Eyebrow>
           <h2 className="font-heading text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
             Catch us on court
           </h2>
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <p className="max-w-2xl text-lg text-white/90 text-balance">
-            <span className="text-white/70">Next up &middot; </span>
-            <span className="font-semibold text-white">{next.name}</span>
+          <p className="max-w-2xl text-lg text-balance">
+            <span className="text-white/60">Next up &middot; </span>
+            <span className="font-semibold">{next.name}</span>
           </p>
-          <p className="text-white/75">
+          <p className="text-white/70">
             {formatAppearanceDates(next)}
             <span aria-hidden> &middot; </span>
             {next.location}
@@ -36,11 +39,11 @@ export function NextAppearance() {
         <Button
           size="lg"
           nativeButton={false}
-          className="group mt-1 h-12 rounded-full bg-white pr-2 pl-6 text-base text-brand-orange hover:bg-white/90"
+          className="group mt-1 h-12 rounded-full bg-brand-orange pr-2 pl-6 text-base font-semibold text-brand-black hover:bg-brand-orange/90"
           render={<Link href="/appearances" />}
         >
           View all appearances
-          <span className="flex size-8 items-center justify-center rounded-full bg-brand-orange/10 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+          <span className="flex size-8 items-center justify-center rounded-full bg-brand-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
             <ArrowRight className="size-4" />
           </span>
         </Button>
