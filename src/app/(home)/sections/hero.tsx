@@ -2,6 +2,7 @@ import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { YoutubeIcon, SpotifyIcon, InstagramIcon } from "@/components/icons";
 import { Eyebrow } from "@/components/typography/eyebrow";
+import { HeroBackdrop } from "./hero-backdrop";
 
 const socialLinks = [
   {
@@ -46,15 +47,23 @@ export function Hero() {
           className="jb-hero-img w-full object-cover object-center opacity-90 sm:max-h-dvh sm:min-h-160"
         />
       </picture>
+      {/* Static fallback for the citrus energy field: a warm glow that carries
+          the idea when WebGL is unavailable. The <HeroBackdrop> canvas
+          screen-blends on top of this and covers it once it is live. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_10%)_0%,color-mix(in_oklch,var(--brand-black),transparent_60%)_55%,var(--brand-black)_100%)] sm:block"
+        className="pointer-events-none absolute inset-0 z-1 mix-blend-screen bg-[radial-gradient(ellipse_60%_50%_at_50%_58%,color-mix(in_oklch,var(--brand-orange),transparent_78%)_0%,transparent_70%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-brand-black to-transparent sm:hidden"
+        className="pointer-events-none absolute inset-0 z-2 hidden bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-black),transparent_20%)_0%,color-mix(in_oklch,var(--brand-black),transparent_62%)_55%,var(--brand-black)_100%)] sm:block"
       />
-      <div className="flex flex-1 items-center justify-center sm:absolute sm:inset-0 sm:flex-none">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-2 h-40 bg-linear-to-t from-brand-black to-transparent sm:hidden"
+      />
+      <HeroBackdrop />
+      <div className="relative z-10 flex flex-1 items-center justify-center sm:absolute sm:inset-0 sm:flex-none">
         <div className="flex w-full flex-col items-center gap-6 px-4 py-14 text-center sm:px-6 sm:py-10 sm:drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] lg:px-8">
           <Eyebrow color="yellow" className="jb-in">For Everyday Pickleball Players</Eyebrow>
           <h1 className="jb-in jb-in-2 max-w-3xl font-heading text-5xl font-black tracking-[-0.03em] text-balance sm:text-7xl">
