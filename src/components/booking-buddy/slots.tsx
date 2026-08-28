@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
+import { CheckIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import {
   isGenderBucketOverCapacity,
   isOverCapacity,
 } from "@/lib/booking-buddy/capacity";
+import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
 import { DEFAULT_DIVISION, DIVISIONS, DIVISION_LABEL } from "@/lib/booking-buddy/division";
 import { NOTES_MAX_LENGTH } from "@/lib/booking-buddy/slots";
 import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
@@ -428,7 +430,13 @@ export function ResponseButtons({
             variant={myAnswer === answer ? "default" : "outline"}
             aria-pressed={myAnswer === answer}
             disabled={mutation.isPending}
-            className={pressed === answer ? "bb-press" : undefined}
+            className={
+              pressed === answer
+                ? answer === "yes"
+                  ? "bb-yes"
+                  : "bb-press"
+                : undefined
+            }
             onClick={() => {
               setPressed(answer);
               mutation.mutate(answer);
@@ -463,9 +471,16 @@ export function ResponseButtons({
                 ? "You"
                 : (response.displayName ?? "A friend")}
             </span>
-            <span className="text-muted-foreground">
-              {ANSWER_LABEL[response.answer]}
-            </span>
+            {response.answer === "yes" ? (
+              <span className="inline-flex items-center gap-1 font-medium text-primary">
+                <CheckIcon className="size-3.5" aria-hidden="true" />
+                Yes
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {ANSWER_LABEL[response.answer]}
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -475,6 +490,19 @@ export function ResponseButtons({
 
 function courtsLabel(courtCount: number): string {
   return courtCount === 1 ? "1 court" : `${courtCount} courts`;
+}
+
+/**
+ * Shown beside the count once a Slot's "yes" Responses reach Capacity (but not
+ * past it — over-capacity keeps its own amber note). `bb-anim-in` gives it a
+ * short settle on the render it first appears, i.e. the "yes" that filled it.
+ */
+function FullPill() {
+  return (
+    <span className="bb-anim-in inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+      Full court
+    </span>
+  );
 }
 
 /**
@@ -525,13 +553,25 @@ export function SlotCapacityPanel({
     const overBuckets = gendered.buckets.filter(isGenderBucketOverCapacity);
 
     return (
-      <div className="flex flex-col gap-2">
-        <ul className="flex flex-col gap-0.5">
-          {gendered.buckets.map((bucket) => (
-            <li key={bucket.gender} className="text-sm font-medium">
-              {GENDER_LABEL[bucket.gender]}: {bucket.yes} of {bucket.capacity} spots taken
-            </li>
-          ))}
+      <div className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3">
+          {gendered.buckets.map((bucket) => {
+            const bucketFull =
+              bucket.yes >= bucket.capacity &&
+              !isGenderBucketOverCapacity(bucket);
+            return (
+              <li key={bucket.gender} className="flex flex-col gap-2">
+                <SpotsMeter filled={bucket.yes} capacity={bucket.capacity} />
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-sm font-medium">
+                    {GENDER_LABEL[bucket.gender]}: {bucket.yes} of{" "}
+                    {bucket.capacity} spots taken
+                  </span>
+                  {bucketFull && <FullPill />}
+                </div>
+              </li>
+            );
+          })}
         </ul>
         <p className="text-xs text-muted-foreground">
           {courtsLabel(capacity.courtCount)}
@@ -556,19 +596,21 @@ export function SlotCapacityPanel({
   }
 
   const over = isOverCapacity({ capacity: capacity.capacity, yesCount });
+  const full = !over && yesCount >= capacity.capacity;
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm">
-        <span className="font-medium">
+    <div className="flex flex-col gap-3">
+      <SpotsMeter filled={yesCount} capacity={capacity.capacity} />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-sm font-medium">
           {yesCount} of {capacity.capacity} spots taken
         </span>
-        <span className="text-muted-foreground">
-          {" · "}
-          {courtsLabel(capacity.courtCount)}
-          {capacity.rotationBuffer > 0 &&
-            ` plus ${capacity.rotationBuffer} rotating`}
-        </span>
+        {full && <FullPill />}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {courtsLabel(capacity.courtCount)}
+        {capacity.rotationBuffer > 0 &&
+          ` plus ${capacity.rotationBuffer} rotating`}
       </p>
 
       {over && isOwner && (

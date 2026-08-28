@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { CheckIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,13 +43,26 @@ const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
  * app can land in any browser, including one where the Server Action's own
  * client-side enhancement never loads.
  */
+const CONFIRMATION: Record<ResponseAnswer, string> = {
+  yes: "You're in. See you on the court.",
+  maybe: "Marked as a maybe. The organizer will see it.",
+  no: "Got it. Thanks for letting them know.",
+};
+
 export function GuestRsvpForm({ token }: { token: string }) {
   const [state, formAction, pending] = useActionState(guestRespondViaLink, EMPTY);
+  const [chosen, setChosen] = useState<ResponseAnswer | null>(null);
 
   if (state.ok) {
     return (
-      <p className="bb-card px-4 py-3 text-sm" role="status">
-        Thanks. Your RSVP is in.
+      <p
+        className="bb-card flex items-center gap-2 px-4 py-3 text-sm"
+        role="status"
+      >
+        {chosen === "yes" && (
+          <CheckIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        )}
+        {chosen ? CONFIRMATION[chosen] : "Your RSVP is in."}
       </p>
     );
   }
@@ -73,6 +87,7 @@ export function GuestRsvpForm({ token }: { token: string }) {
               value={answer}
               variant={answer === "yes" ? "default" : "outline"}
               disabled={pending}
+              onClick={() => setChosen(answer)}
             >
               {pending ? "Sending…" : ANSWER_LABEL[answer]}
             </Button>
