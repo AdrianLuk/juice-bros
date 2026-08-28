@@ -33,6 +33,12 @@ export default async function BookingBuddyPage() {
   // so this is not a second round trip.
   await verifySession();
 
+  // No Suspense skeleton here, unlike the section pages: the dashboard is the
+  // hub every other page routes back to, and its full-viewport calendar + two
+  // sidebars make for a heavy placeholder that reads as "content got covered"
+  // more than "content is loading". A blocked navigation holds the previous
+  // (real, rendered) page until the data lands, then the transition plays
+  // straight to the real dashboard — less jarring for a page hit this often.
   const { orgs, bookings, availabilityWindows, hasSlot } =
     await getDashboardPageData();
   const now = new Date();

@@ -82,6 +82,11 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
           <img
             src={episode.thumbnail}
             alt=""
+            // Shared element for the transition in from the archive grid: the
+            // clicked tile tags its own thumbnail with this same name on click
+            // (episode-card.tsx) so the two morph. Same aspect ratio both ends,
+            // so it's a clean grow. Fixed name - only ever one on a page.
+            style={{ viewTransitionName: "jb-episode-hero" }}
             className="h-full w-full object-cover"
           />
         </div>
