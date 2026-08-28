@@ -37,7 +37,7 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
             <Button
               size="sm"
               variant="secondary"
-              className="h-11 gap-2 rounded-full px-4 shadow-lg"
+              className="h-11 gap-2 rounded-full px-4 shadow-lg hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
             />
           }
         >
@@ -64,7 +64,7 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
           render={
             <Button
               size="lg"
-              className="h-11 gap-2 rounded-full px-5 shadow-lg"
+              className="h-11 gap-2 rounded-full px-5 shadow-lg hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
             />
           }
         >
