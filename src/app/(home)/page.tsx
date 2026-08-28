@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
-import { getLatestInstagramPosts } from "@/lib/instagram";
+import { getLatestInstagramPosts, INSTAGRAM_POST_COUNT } from "@/lib/instagram";
 import { Hero } from "./sections/hero";
 import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
@@ -22,7 +22,7 @@ export const metadata: Metadata = pageMetadata({
 export default async function Home() {
   // First item is the feature card up top; the rest fill the grid below.
   const [featuredEpisode, ...restEpisodes] = (await getEpisodes()).slice(0, 7);
-  const instagramPosts = await getLatestInstagramPosts(6);
+  const instagramPosts = await getLatestInstagramPosts(INSTAGRAM_POST_COUNT);
 
   return (
     <div className="flex flex-1 flex-col">
