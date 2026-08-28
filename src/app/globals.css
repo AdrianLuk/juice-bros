@@ -335,27 +335,26 @@
  * content with no movement. Same easing as the rest of the site.
  */
 @media (prefers-reduced-motion: no-preference) {
+  /* Transform + opacity only — no `filter: blur()`. Animating blur re-
+     rasterises the element every frame and stutters the reveal on a long
+     page; the scale / slide / fade carries the gesture on its own. */
   .js [data-reveal] {
     opacity: 0;
     transition:
-      opacity 640ms cubic-bezier(0.32, 0.72, 0, 1),
-      transform 720ms cubic-bezier(0.32, 0.72, 0, 1),
-      filter 640ms cubic-bezier(0.32, 0.72, 0, 1);
+      opacity 460ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 520ms cubic-bezier(0.32, 0.72, 0, 1);
   }
   .js [data-reveal="rise"] {
-    transform: translateY(26px);
+    transform: translateY(22px);
   }
   .js [data-reveal="scale"] {
-    transform: scale(0.965) translateY(14px);
-    filter: blur(4px);
+    transform: scale(0.97) translateY(12px);
   }
   .js [data-reveal="left"] {
-    transform: translateX(-32px);
-    filter: blur(3px);
+    transform: translateX(-28px);
   }
   .js [data-reveal="right"] {
-    transform: translateX(32px);
-    filter: blur(3px);
+    transform: translateX(28px);
   }
   /* left/right slide in from outside their own box - clip so the page never
      gains a sideways scrollbar mid-reveal. */
@@ -366,17 +365,16 @@
   .js [data-reveal][data-shown] {
     opacity: 1;
     transform: none;
-    filter: none;
   }
 
   /* Grid / list cascade: children settle in a short wave as the group enters,
      capped so a long archive never turns into a slow drip. */
   .js [data-reveal-group] > * {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(20px);
     transition:
-      opacity 600ms cubic-bezier(0.32, 0.72, 0, 1),
-      transform 640ms cubic-bezier(0.32, 0.72, 0, 1);
+      opacity 440ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 480ms cubic-bezier(0.32, 0.72, 0, 1);
   }
   .js [data-reveal-group][data-shown] > * {
     opacity: 1;
@@ -487,6 +485,10 @@
  *
  * Same easing as the rest of the site: cubic-bezier(0.32,0.72,0,1) for the
  * arrival, a quicker ease-in for the exit. Browsers without the API just cut.
+ *
+ * Transform + opacity only — no `filter: blur()`, which re-rasterises the
+ * whole-page snapshot every frame and drops the transition to ~30fps. No
+ * entrance delay either: the gap before the first motion reads as lag.
  */
 ::view-transition {
   /* Let clicks through to the live page while the overlay is up. */
@@ -520,29 +522,26 @@
 }
 
 ::view-transition-old(.page-exit) {
-  animation: 150ms cubic-bezier(0.4, 0, 1, 1) both jb-page-exit;
+  animation: 120ms cubic-bezier(0.4, 0, 1, 1) both jb-page-exit;
 }
 ::view-transition-new(.page-enter) {
-  animation: 340ms cubic-bezier(0.32, 0.72, 0, 1) 110ms both jb-page-enter;
+  animation: 280ms cubic-bezier(0.32, 0.72, 0, 1) both jb-page-enter;
 }
 
 @keyframes jb-page-exit {
   to {
     opacity: 0;
     transform: translateY(6px);
-    filter: blur(2px);
   }
 }
 @keyframes jb-page-enter {
   from {
     opacity: 0;
     transform: translateY(12px);
-    filter: blur(3px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
@@ -557,7 +556,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Keep a plain cross-fade, drop every translate and blur. */
+  /* Keep a plain cross-fade, drop every translate. */
   ::view-transition-old(.page-exit) {
     animation: 1ms linear both jb-fade-out;
   }
