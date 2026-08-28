@@ -88,6 +88,7 @@ export const appearances: Appearance[] = [
     endDate: "2026-10-04",
     location: "Vaughan Pickleball, Vaughan, ON",
     url: "https://pickleballtournaments.com/tournaments/vaughan-pickleball-fall-open",
+    image: "/appearances/vaughan-fall-open-2026.png",
     status: "tentative",
     players: "adrian",
   },
