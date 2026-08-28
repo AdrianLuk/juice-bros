@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 export function ComingSoon({ icon: Icon }: { icon: LucideIcon }) {
   return (
     <div className="mt-12 flex flex-col items-center rounded-[1.75rem] border border-dashed border-border/80 p-12 text-center">
-      <Icon className="size-10 text-brand-orange/40" />
+      <Icon className="jb-float size-10 text-brand-orange/40" />
       <p className="mt-4 font-heading text-lg font-semibold">
         This tool is in the works
       </p>

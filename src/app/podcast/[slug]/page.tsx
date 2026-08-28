@@ -70,12 +70,12 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
       />
       <Link
         href="/podcast"
-        className="w-fit text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
+        className="jb-in w-fit text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
       >
         &larr; All episodes
       </Link>
 
-      <div className="mt-6 overflow-hidden rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
+      <div className="jb-hero-img mt-6 overflow-hidden rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
         <div className="aspect-video overflow-hidden rounded-[1.25rem]">
           {/* Decorative: the episode title is the <h1> directly below this. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN thumbnail, no next/image optimization needed */}
@@ -88,7 +88,7 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
       </div>
 
       <div className="mt-8 flex flex-col gap-5">
-        <div>
+        <div className="jb-in jb-in-2">
           <p className="text-sm text-muted-foreground">
             {dateFormatter.format(new Date(episode.published))}
           </p>
@@ -98,12 +98,12 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
         </div>
 
         {episode.description && (
-          <p className="max-w-2xl text-lg whitespace-pre-line text-muted-foreground">
+          <p className="jb-in jb-in-3 max-w-2xl text-lg whitespace-pre-line text-muted-foreground">
             {episode.description}
           </p>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="jb-in jb-in-4 flex flex-col gap-3 sm:flex-row">
           <WatchListenButtons youtubeUrl={episode.url} />
         </div>
       </div>
