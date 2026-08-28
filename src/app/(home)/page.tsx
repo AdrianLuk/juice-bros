@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
 import { getLatestInstagramPosts, INSTAGRAM_POST_COUNT } from "@/lib/instagram";
+import { Reveal } from "@/components/motion/reveal";
 import { Hero } from "./sections/hero";
 import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
@@ -27,10 +28,24 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col">
       <Hero />
-      {featuredEpisode && <FeaturedEpisode episode={featuredEpisode} />}
-      {restEpisodes.length > 0 && <LatestVideos videos={restEpisodes} />}
-      <NextAppearance />
-      {instagramPosts.length > 0 && <InstagramFeed posts={instagramPosts} />}
+      {featuredEpisode && (
+        <Reveal variant="scale">
+          <FeaturedEpisode episode={featuredEpisode} />
+        </Reveal>
+      )}
+      {restEpisodes.length > 0 && (
+        <Reveal>
+          <LatestVideos videos={restEpisodes} />
+        </Reveal>
+      )}
+      <Reveal variant="scale">
+        <NextAppearance />
+      </Reveal>
+      {instagramPosts.length > 0 && (
+        <Reveal>
+          <InstagramFeed posts={instagramPosts} />
+        </Reveal>
+      )}
     </div>
   );
 }

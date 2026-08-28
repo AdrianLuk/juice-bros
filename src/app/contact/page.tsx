@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { getLatestInstagramPosts } from "@/lib/instagram";
 import { pageMetadata } from "@/lib/metadata";
+import { Reveal } from "@/components/motion/reveal";
 import { PageHeading } from "@/components/typography/page-heading";
 import { InstagramFeed } from "@/components/instagram-feed";
 import { ContactForm } from "./sections/contact-form";
@@ -39,8 +40,14 @@ export default async function ContactPage() {
         </div>
       </section>
 
-      {instagramPosts.length > 0 && <InstagramFeed posts={instagramPosts} />}
-      <ContactInfo />
+      {instagramPosts.length > 0 && (
+        <Reveal>
+          <InstagramFeed posts={instagramPosts} />
+        </Reveal>
+      )}
+      <Reveal variant="scale">
+        <ContactInfo />
+      </Reveal>
     </div>
   );
 }
