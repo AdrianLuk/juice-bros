@@ -16,9 +16,9 @@ const pill =
 export function SlotProposalPreview() {
   const responses: [string, string][] = [
     ["You", "Yes"],
-    ["John", "Yes"],
-    ["Sally", "Yes"],
-    ["Mike", "Maybe"],
+    ["Adrian", "Yes"],
+    ["Daven", "Yes"],
+    ["Ben", "Maybe"],
   ];
 
   return (
@@ -65,9 +65,9 @@ export function SlotProposalPreview() {
 export function SlotResponsesPreview() {
   const responses: [string, string][] = [
     ["You", "Yes"],
-    ["John", "Yes"],
-    ["Mike", "Yes"],
-    ["Sally", "Maybe"],
+    ["Adrian", "Yes"],
+    ["Ben", "Yes"],
+    ["Daven", "Maybe"],
   ];
 
   return (
@@ -116,9 +116,9 @@ export function SlotResponsesPreview() {
 export function AvailabilityPreview() {
   const days = ["Thu", "Fri", "Sat", "Sun", "Mon"];
   const rows: { name: string; cells: (null | "open" | "busy")[] }[] = [
-    { name: "John", cells: [null, null, "open", "open", null] },
-    { name: "Mike", cells: ["busy", "busy", null, null, "open"] },
-    { name: "Sally", cells: [null, "open", "open", null, null] },
+    { name: "Adrian", cells: [null, null, "open", "open", null] },
+    { name: "Ben", cells: ["busy", "busy", null, null, "open"] },
+    { name: "Daven", cells: [null, "open", "open", null, null] },
   ];
 
   return (
@@ -164,7 +164,7 @@ export function AvailabilityPreview() {
         ))}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        John and Sally are both free Saturday.
+        Adrian and Daven are both free Saturday.
       </p>
     </div>
   );
@@ -172,7 +172,7 @@ export function AvailabilityPreview() {
 
 /** The overlap of a few friends' open time — the days a whole group can make. */
 export function OverlapPreview() {
-  const picked = ["You", "John", "Sally", "Mike"];
+  const picked = ["You", "Adrian", "Daven", "Ben"];
   // A day split by someone's midday busy stretch shows a window either side,
   // each proposable on its own — mirrors the real result list.
   const days: { day: string; windows: string[] }[] = [
