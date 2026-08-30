@@ -183,10 +183,17 @@ export async function getSlotResponses(slotId: string): Promise<SlotResponses> {
 }
 
 /**
- * Every Slot the caller can see: their own, and any friend's they have at
- * least `slots` Visibility into. One query — RLS (`has_slot_visibility`) is
+ * Every upcoming Slot the caller can see: their own, and any friend's they have
+ * at least `slots` Visibility into. One query — RLS (`has_slot_visibility`) is
  * what actually decides which rows come back, so there is no separate
  * "visible friends" filter to apply here.
+ *
+ * A Slot drops off this list once its window is fully over (`proposed_end` in
+ * the past) — a game in progress still shows, a finished one doesn't. The row
+ * itself is untouched: its detail page, Slot Link, Responses, and Reminders all
+ * still exist, they're just no longer listed here. `proposed_end` is a
+ * `timestamptz`, so the UTC comparison is correct regardless of each Slot's own
+ * display zone.
  */
 export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
   const session = await verifySession();
@@ -195,6 +202,7 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
   const { data: rows, error } = await supabase
     .from("slots")
     .select("id, owner_id, proposed_start, proposed_end, time_zone, intended_org_name")
+    .gte("proposed_end", new Date().toISOString())
     .order("proposed_start", { ascending: true });
 
   if (error) {
