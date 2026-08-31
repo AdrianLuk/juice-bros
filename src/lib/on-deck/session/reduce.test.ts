@@ -392,22 +392,33 @@ test("a PLAYER_QUEUED before the Session opens is ignored", () => {
 
 // --- Match Me through the fold (#244) -----------------------------------
 
-test("the fold commits a same-Skill On Deck Foursome over a mixed one", () => {
-  // p1..p4 intermediate fill the first On Deck Foursome. The second forms from
-  // p5 (anchor, intermediate) + a window of two intermediates and three
-  // advanced — Match Me takes the intermediates.
+test("a fresh On Deck Foursome is selected through Match Me's window, not by wait order", () => {
+  // One Court, an oversubscribed Queue. Startup commits p1-4 and p5-8; p9-13
+  // sit in reserve. When the Court frees, p1-4 walk on and On Deck forms a
+  // fresh second Foursome from the five reserves — anchor p9 (intermediate)
+  // plus the best Skill fit from the window [p10..p13], where p10/p11 are
+  // advanced and p12/p13 intermediate. Match Me reaches past the advanced;
+  // a naive "front four" would seat them.
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
   const skills: SkillLevel[] = [
-    "intermediate", "intermediate", "intermediate", "intermediate", // F0
-    "intermediate", // p5 anchor
-    "intermediate", "intermediate", // p6, p7
-    "advanced", "advanced", "advanced", // p8, p9, p10
+    "intermediate", "intermediate", "intermediate", "intermediate", // p1-4
+    "intermediate", "intermediate", "intermediate", "intermediate", // p5-8
+    "intermediate", // p9 anchor
+    "advanced", "advanced", // p10, p11
+    "intermediate", "intermediate", // p12, p13
   ];
-  const state = reduceSession(config, sessionWithSkills(skills));
+  const state = reduceSession(oneCourt, [
+    ...sessionWithSkills(skills),
+    courtFinished(1),
+  ]);
 
-  assert.equal(state.onDeck[1].players[0], "p5", "anchor leads the second Foursome");
+  assert.deepEqual(state.courts[0].foursome, ["p1", "p2", "p3", "p4"]);
+  const fresh = state.onDeck[state.onDeck.length - 1];
+  assert.equal(fresh.players[0], "p9", "anchor leads");
   assert.deepEqual(
-    state.onDeck[1].players.map((id) => idSkill(state, id)).sort(),
+    fresh.players.map((id) => idSkill(state, id)).sort(),
     ["advanced", "intermediate", "intermediate", "intermediate"],
+    "Match Me pulled p12/p13 past the advanced p10/p11",
   );
 });
 

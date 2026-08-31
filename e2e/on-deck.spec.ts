@@ -207,6 +207,9 @@ test("the rotation loop: a Player joins the Queue, is called onto a Court, and r
   await court1.getByRole("button", { name: "Court 1 done" }).click();
   await expect(court1.getByText("Dana R.")).toHaveCount(0);
 
-  // And our Player is back in the Queue.
-  await expect(page.getByTestId("queue-position")).toBeVisible({ timeout: 10_000 });
+  // The four coming off re-queue; with eight now waiting they land in the
+  // second On Deck Foursome, and our Player's own screen says so.
+  await expect(page.getByText("You're on deck — the foursome after next")).toBeVisible({
+    timeout: 10_000,
+  });
 });

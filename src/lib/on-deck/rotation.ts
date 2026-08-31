@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getSession, type LoadedSession } from "./sessions.ts";
-import { playerCourt, queuePosition } from "./session/types.ts";
+import { playerCourt } from "./session/types.ts";
 import { createClient } from "./supabase/server.ts";
 
 /**
@@ -31,7 +31,11 @@ export type RotationView = {
   status: "open" | "closed";
   venueName: string;
   courts: RotationCourt[];
-  /** Display names in wait order — longest-waiting first. */
+  /**
+   * Display names in wait order — longest-waiting first — of the Players *not*
+   * already committed to an On Deck Foursome. On Deck names appear in `onDeck`,
+   * not here, so the floor screen never lists a Player twice.
+   */
   queue: string[];
   queuedCount: number;
   /**
@@ -42,8 +46,11 @@ export type RotationView = {
   onDeck: string[][];
   /** The caller's own standing, when they passed a token. */
   me: {
+    /** 1-based place among the waiters not yet On Deck, or null. */
     position: number | null;
     court: number | null;
+    /** Which On Deck Foursome the caller is in — 0 "up next", 1 "after that". */
+    onDeck: number | null;
   } | null;
 };
 
@@ -56,14 +63,22 @@ export function rotationViewFrom(
   const nameOf = (id: string) =>
     state.roster.find((p) => p.id === id)?.displayName ?? "Someone";
 
+  const onDeckIds = new Set(state.onDeck.flatMap((f) => f.players));
+  const waiting = state.queue.filter((e) => !onDeckIds.has(e.playerId));
+
   const trimmed = token?.trim() ?? "";
-  const me =
-    trimmed.length >= 8
-      ? {
-          position: queuePosition(state, trimmed),
-          court: playerCourt(state, trimmed),
-        }
-      : null;
+  let me: RotationView["me"] = null;
+  if (trimmed.length >= 8) {
+    const waitingIndex = waiting.findIndex((e) => e.playerId === trimmed);
+    const onDeckIndex = state.onDeck.findIndex((f) =>
+      f.players.includes(trimmed),
+    );
+    me = {
+      position: waitingIndex < 0 ? null : waitingIndex + 1,
+      court: playerCourt(state, trimmed),
+      onDeck: onDeckIndex < 0 ? null : onDeckIndex,
+    };
+  }
 
   return {
     status,
@@ -73,8 +88,8 @@ export function rotationViewFrom(
       players: c.foursome.map(nameOf),
       since: c.since,
     })),
-    queue: state.queue.map((e) => nameOf(e.playerId)),
-    queuedCount: state.queue.length,
+    queue: waiting.map((e) => nameOf(e.playerId)),
+    queuedCount: waiting.length,
     onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
     me,
   };

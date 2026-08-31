@@ -33,7 +33,7 @@ export function RotationBoard({
   );
 }
 
-const ON_DECK_LABELS = ["Up next", "After that"] as const;
+const ON_DECK_LABELS = ["Up next", "After that"];
 
 /**
  * The two committed On Deck Foursomes (issue #245): the eight Players who can
@@ -58,7 +58,7 @@ function OnDeck({ foursomes }: { foursomes: string[][] }) {
               data-testid={`on-deck-${i}`}
             >
               <p className="font-heading text-sm font-semibold tracking-[0.15em] text-brand-orange uppercase">
-                {ON_DECK_LABELS[i] ?? `Foursome ${i + 1}`}
+                {ON_DECK_LABELS[i]}
               </p>
               <ul className="mt-2 space-y-1 text-sm">
                 {players.map((name, j) => (

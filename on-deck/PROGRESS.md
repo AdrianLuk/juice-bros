@@ -86,8 +86,11 @@ event array plus assertions about the resulting state.
   `COURT_FINISHED` the complete leading Foursome walks straight onto the freed
   Court with no Match Me call; a fresh Foursome refills the second slot. Floor
   screen gains an "On deck" section (two named cards, open spots shown);
-  `RotationView.onDeck` carries display names only. Tests: `reduce.test.ts`
-  commitment / top-up / promotion / determinism / undo-parity.
+  `RotationView.onDeck` carries display names only, and On Deck Players drop
+  out of the `queue` list / count — a Player's own line reads "up next" /
+  "on deck" via `me.onDeck`. Tests: `reduce.test.ts` commitment / top-up /
+  promotion / windowed fresh selection / determinism / undo-parity;
+  `e2e/on-deck.spec.ts` floor "On deck" section + screenshots.
 
 ## Next
 
