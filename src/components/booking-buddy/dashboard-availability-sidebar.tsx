@@ -31,7 +31,7 @@ export function DashboardAvailabilitySidebar({
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
         <h2 className="font-heading text-sm font-semibold tracking-tight">
-          Your open time
+          Your availability blocks
         </h2>
         <Link
           href={AVAILABILITY_PATH}
