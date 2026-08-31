@@ -7,8 +7,16 @@ Distinct from [Booking Buddy](../booking-buddy/CONTEXT.md): Booking Buddy coordi
 ## Organizing
 
 **Club**:
-The tenant, and the owner of everything below it. Has a name, an owner, and saved session defaults (venue, court count, group cap). One Club per real-world organization.
+The tenant, and the owner of everything below it. Has a name, an owner, and saved session defaults (venue, court count, group cap, Floor Mode). One Club per real-world organization.
 _Avoid_: Org (means something different in Booking Buddy - a User's record of playing at a facility), Tenant, Venue.
+
+**Floor Mode**:
+A Club setting for who may fire a Session's operational events - ending a Game, swapping a no-show, adding a walk-up. Two independent switches, **Volunteer Links** and the interactive **Kiosk**, expressed as three presets: **volunteer-run** (links only; Players never touch operations), **self-serve** (Kiosk only; no volunteer needed at all), and **hybrid** (both - volunteers drive the night, and anyone courtside can still tap a Game done when a volunteer misses a Court). The Organizer keeps override from their own phone and Undo covers mistaps in every mode. Defaults to hybrid. See [adr/0005-app-never-requires-a-volunteer.md](docs/adr/0005-app-never-requires-a-volunteer.md).
+_Avoid_: Staffing mode, Manual/auto (nothing here is automatic - a human always taps).
+
+**Operator**:
+Whoever fired an operational event - an Organizer, a Volunteer, or, where Floor Mode allows it, a Player at the Kiosk. Every event in the log records which. Less a role a person holds than a label on an action.
+_Avoid_: Admin, Staff, Ref.
 
 **Session**:
 One event night, belonging to a Club - a date/time, a venue name, and a court count. Started with one tap from the Club's saved defaults, or created and edited ahead of time. Everything a Player does is scoped to a single Session and does not outlive it (see [adr/0001-no-cross-week-identity.md](docs/adr/0001-no-cross-week-identity.md)).
@@ -21,10 +29,10 @@ One playable court in a Session, numbered 1..N from the Session's court count an
 The person who owns a Club - starts and configures Sessions, sets defaults, and holds every Volunteer ability as well. Vanessa's role.
 
 **Volunteer**:
-Someone running the floor for one Session, admitted by a Volunteer Link rather than an account. Can end Games, add walk-up Players, form Groups, swap and pause Players, adjust the live group cap, and call Last Call. Cannot change Club settings or start Sessions.
+Someone running the floor for one Session, admitted by a Volunteer Link rather than an account - one kind of Operator. Can end Games, add walk-up Players, form Groups, swap and pause Players, adjust the live group cap, and call Last Call. Cannot change Club settings or start Sessions.
 
 **Volunteer Link**:
-A per-Session URL the Organizer shares (in practice, the club's volunteer WhatsApp group) that grants Volunteer abilities for that Session only. Requires no account and expires when the Session closes, so an old link is inert.
+A per-Session URL the Organizer shares (in practice, the club's volunteer WhatsApp group) that grants Volunteer abilities for that Session only. Issued only when Floor Mode includes volunteers (volunteer-run or hybrid). Requires no account and expires when the Session closes, so an old link is inert.
 _Avoid_: Invite Link (means a personal friend-request link in Booking Buddy), Volunteer account.
 
 **Club QR**:
@@ -32,10 +40,14 @@ A single stable QR code, printed once per Club and displayed on a sign at the ve
 _Avoid_: Check-in code (there is no check-in - see Player).
 
 **Display**:
-A read-only view of a live Session, intended for a cheap tablet or laptop on the snack table: every Court and who is on it, the Queue in order, and the On Deck foursomes. A walk-up-and-read surface, not a scoreboard read from across the park, so it can afford a dense list. Optional at every venue - a Session runs identically without one.
+A read-only view of a live Session, intended for a cheap tablet or laptop on the snack table: every Court and who is on it, the Queue in order, and the On Deck foursomes. A walk-up-and-read surface, not a scoreboard read from across the park, so it can afford a dense list. Optional at every venue - a Session runs identically without one. Its interactive counterpart, for a screen stood by the courts, is the Kiosk.
+
+**Kiosk**:
+The Display plus the buttons a Game turnover needs - **Game done**, **a player short** (pulls a replacement into the Foursome), **add me** (a walk-up with no phone) - for a tablet stood near the courts. Enabled by Floor Mode (self-serve or hybrid); the taps it accepts are Operator actions, logged as coming from a Kiosk. A Session can carry a read-only Display, a Kiosk, both, or neither.
+_Avoid_: Terminal, Station.
 
 **Last Call**:
-The Organizer's or a Volunteer's single tap ending new play for the night. After it, no further foursomes are assigned; Games in progress finish. A human judgment call, not a clock trigger, because Games have no time cap (see [adr/0002-rolling-queue-no-time-cap.md](docs/adr/0002-rolling-queue-no-time-cap.md)).
+An Operator's single tap ending new play for the night - the Organizer or a Volunteer, never a Kiosk button (it is a judgment about the night, not a Court turnover). After it, no further foursomes are assigned; Games in progress finish. A human judgment call, not a clock trigger, because Games have no time cap (see [adr/0002-rolling-queue-no-time-cap.md](docs/adr/0002-rolling-queue-no-time-cap.md)). In a self-serve Session with no Volunteers, it is the Organizer's alone.
 
 **Session Summary**:
 The anonymous aggregate record kept permanently once a Session closes - attendance, Games played, court utilization, wait-time distribution, longest wait, skill mix. The Player roster is discarded at the same moment; a closed Session leaves numbers, not people.
@@ -70,7 +82,7 @@ _Avoid_: No-show, Away, Inactive (all describe one door into paused, not the sta
 How long a Player has been queued - measured from the moment they joined the Queue, or from the moment they last came off a Court, whichever is later. The primary fairness input to Match Me.
 
 **Game**:
-One instance of four Players on one Court. Ends when a Volunteer taps the Court done; there is no time cap and no score, winner, or result recorded of any kind. Its only lasting trace is that its four Players now count as having shared a Court tonight, which feeds Variety.
+One instance of four Players on one Court. Ends when an Operator taps the Court done - a Volunteer, the Organizer, or a Player at the Kiosk, depending on Floor Mode; there is no time cap and no score, winner, or result recorded of any kind. Its only lasting trace is that its four Players now count as having shared a Court tonight, which feeds Variety.
 _Avoid_: Match, Round (there are no synchronized rounds - see ADR 0002), Rally.
 
 **Foursome**:
@@ -78,6 +90,8 @@ The four Players selected for a Court, before or during their Game. On Deck neve
 
 **On Deck**:
 The two Foursomes selected and announced ahead of any Court actually freeing, so those eight Players can gather instead of being hunted down. Recomputed continuously as Players join, pause, and come off Courts. When a Court frees, the leading On Deck Foursome walks straight onto it. Also the product's name, for exactly this reason.
+
+A Player may opt in to a single push notification for their own moment - "you're up, Court 5" - when they enter On Deck or are assigned a Court. Off by default and never a broadcast; it exists because a self-serve Session has no volunteer calling names, and it is the one notification worth a Player's phone buzzing in a bag. The Display and Kiosk remain the primary surface; the push is a courtesy on top.
 
 **Match Me**:
 The default Queue Mode, and the algorithm behind it: when a Court frees, the longest-waiting Player is always included, and the remaining three are chosen from a window of the next-longest-waiting to best fit Skill Level, Variety, and Playing Style. Every one of those preferences is soft - a Court is never left empty for want of a good fit (see [adr/0004-windowed-selection-with-wait-anchor.md](docs/adr/0004-windowed-selection-with-wait-anchor.md)).
