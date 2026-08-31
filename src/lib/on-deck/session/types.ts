@@ -146,10 +146,10 @@ export type SessionEvent =
   | {
       /**
        * An Operator taps "Court N done". The four Players on Court `court`
-       * re-queue (Wait Time measured from this event's `at`), then the fold
-       * seats the longest-waiting Foursome from the Queue onto the freed
-       * Courts. Several in a row fold one at a time, each Foursome removed from
-       * the Queue before the next is picked (ADR 0004).
+       * re-queue (Wait Time measured from this event's `at`), then Match Me
+       * (`match-me.ts`) seats the next Foursome onto the freed Court. Several
+       * in a row fold one at a time, each Foursome removed from the Queue
+       * before the next is picked (ADR 0004).
        */
       type: "COURT_FINISHED";
       at: number;
@@ -187,6 +187,17 @@ export interface QueueEntry {
   waitSince: number;
 }
 
+/**
+ * A Game that has finished, in the order Games finished — the last entry is
+ * the most recent. Feeds Match Me's Variety preference (issue #244): the
+ * further back two Players last shared a Court, the weaker the pull to keep
+ * them apart now.
+ */
+export interface CompletedGame {
+  /** The device tokens of the four who played it. */
+  players: string[];
+}
+
 /** One Court in a Session — empty (`foursome` is `[]`) or holding a Game. */
 export interface CourtSlot {
   /** 1-based Court number. */
@@ -208,13 +219,17 @@ export interface SessionState {
   /** Everyone who has joined this Session, in join order. */
   roster: RosterPlayer[];
   /**
-   * Players waiting for a Court, ordered longest-wait-first — index 0 is next
-   * up. Selection is naive for now (ticket #243): the four longest-waiting
-   * walk on. Match Me's windowed fit lands in ticket 05.
+   * Players waiting for a Court, ordered longest-wait-first — index 0 is the
+   * anchor Match Me always seats next (issue #244, ADR 0004).
    */
   queue: QueueEntry[];
   /** Every Court, `config.courtCount` of them, numbered 1..N. */
   courts: CourtSlot[];
+  /**
+   * Every finished Game, in finish order — the Variety history Match Me scores
+   * candidate Foursomes against. Not projected to any live surface.
+   */
+  completedGames: CompletedGame[];
 }
 
 /**

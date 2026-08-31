@@ -1,9 +1,11 @@
+import { selectFoursome } from "./match-me.ts";
 import type {
   CourtSlot,
   RosterPlayer,
   SessionConfig,
   SessionEvent,
   SessionState,
+  SkillLevel,
 } from "./types.ts";
 
 /** Trim, collapse inner whitespace, capitalise the first letter. */
@@ -48,18 +50,30 @@ function sortQueue(queue: SessionState["queue"]): void {
 }
 
 /**
- * Seat the longest-waiting Foursome from the Queue onto one freed Court
- * (ADR 0004). Naive selection for #243 — the four at the front of the Queue
- * walk on. Fewer than four waiting: the Court stays empty until there are.
+ * Seat a Foursome from the Queue onto one freed Court via Match Me
+ * (`match-me.ts`, ADR 0004): the longest-waiting Player anchors, the other
+ * three are the best Skill / Variety fit from a window of the next-longest-
+ * waiting. Fewer than four waiting: the Court stays empty until there are.
  *
  * Only ever fills the Court named by a `COURT_FINISHED` event, one at a time,
  * so several finishing together fold sequentially with the Foursome removed
  * from the Queue before the next Court is filled.
  */
 function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
-  if (state.queue.length < 4) return;
-  const four = state.queue.splice(0, 4);
-  court.foursome = four.map((e) => e.playerId);
+  const skillById = new Map<string, SkillLevel>(
+    state.roster.map((p) => [p.id, p.skillLevel]),
+  );
+  const foursome = selectFoursome({
+    queue: state.queue.map((e) => e.playerId),
+    skillOf: (id) => skillById.get(id) ?? "intermediate",
+    completedGames: state.completedGames,
+    seed: state.config.seed,
+  });
+  if (!foursome) return;
+
+  const seated = new Set(foursome);
+  state.queue = state.queue.filter((e) => !seated.has(e.playerId));
+  court.foursome = foursome;
   court.since = at;
 }
 
@@ -74,8 +88,8 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
  * `reduceSession(config, events)` stops being reproducible and the
  * undo-parity guarantee goes with it.
  *
- * Selection tie-breaks (arriving in later tickets) derive from
- * `config.seed`, never from `Math.random()`, for the same reason.
+ * Match Me's selection tie-breaks derive from `config.seed`, never
+ * `Math.random()`, for the same reason (see `match-me.ts`).
  *
  * A `COURT_FINISHED` on an already-empty Court carries no Game — it just seats
  * the next Foursome (the floor screen's "Send next four" on session start).
@@ -100,6 +114,7 @@ export function reduceSession(
     roster: [],
     queue: [],
     courts,
+    completedGames: [],
   };
 
   for (const event of events) {
@@ -158,6 +173,12 @@ export function reduceSession(
         const court = state.courts.find((c) => c.number === event.court);
         if (!court) break;
 
+        // A real Game (an occupied Court) ending is the Variety history Match
+        // Me scores against; an empty Court tapped done carries no Game.
+        if (court.foursome.length > 0) {
+          state.completedGames.push({ players: [...court.foursome] });
+        }
+
         // The four coming off re-queue automatically, Wait Time measured from
         // this event (CONTEXT: "or from the moment they last came off a Court,
         // whichever is later").
@@ -168,7 +189,7 @@ export function reduceSession(
         court.since = null;
         sortQueue(state.queue);
 
-        // ...then the longest-waiting Foursome walks onto the freed Court.
+        // ...then Match Me walks the next Foursome onto the freed Court.
         seatCourt(state, court, event.at);
         break;
       }
