@@ -29,8 +29,21 @@ event array plus assertions about the resulting state.
   `reduce.test.ts`, `routes.test.ts`, `on_deck_club_session.test.sql`,
   `e2e/on-deck.spec.ts`.
 
+- [x] **#242 — Player joins via Club QR.** `on_deck_join_session` RPC —
+  `anon`-callable, SECURITY DEFINER, pins the event to `PLAYER_JOINED` /
+  `player`, normalises the name, and is idempotent on the device token so
+  reopening the QR is not a re-join. `reduceSession` folds `PLAYER_JOINED`
+  into `state.roster` (join-ordered, duplicate-token no-op, `"Sarah K."` →
+  `"Sarah K. 2"` same-name suffix). The live Session view carries a two-tap
+  setup (name, then Skill Level) for an open Session; a device token in
+  `localStorage` (keyed by Session id) is what "you're already in" reads.
+  No phone number, email, or account anywhere in the flow (ADR 0001).
+  Tests: `reduce.test.ts` roster cases, extended
+  `on_deck_club_session.test.sql`, `e2e/on-deck.spec.ts` scan → setup →
+  "you're in" → recognized on return.
+
 ## Next
 
-The rest of #238 — Players joining via the QR and the Queue, Match Me
+The rest of #238 — the Queue and a Player's position in it, Match Me
 selection and On Deck foursomes, Queue Together, the Volunteer link surface,
 the Display and Kiosk, Last Call and the Session Summary purge.

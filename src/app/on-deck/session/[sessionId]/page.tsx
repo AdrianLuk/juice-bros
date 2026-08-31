@@ -6,6 +6,7 @@ import { createClient } from "@/lib/on-deck/supabase/server";
 import { getSession } from "@/lib/on-deck/sessions";
 import { sessionPath } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
+import { PlayerJoin } from "@/components/on-deck/player-join";
 
 export async function generateMetadata({
   params,
@@ -72,10 +73,14 @@ export default async function SessionPage({
               </>
             )}
           </dl>
-          <p className="mt-8 text-sm text-muted-foreground">
-            The queue opens here soon. For now this confirms the session is
-            live.
-          </p>
+
+          {status === "open" ? (
+            <PlayerJoin sessionId={config.sessionId} />
+          ) : (
+            <p className="mt-8 text-sm text-muted-foreground">
+              This session has wrapped up. Thanks for playing.
+            </p>
+          )}
         </div>
       </section>
     </div>

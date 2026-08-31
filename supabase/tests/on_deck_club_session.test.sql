@@ -14,7 +14,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(27);
+select plan(37);
 
 select has_table('public', 'on_deck_clubs', 'on_deck_clubs table exists');
 select has_table('public', 'on_deck_sessions', 'on_deck_sessions table exists');
@@ -23,6 +23,11 @@ select has_table('public', 'on_deck_session_events', 'on_deck_session_events tab
 select has_index(
   'public', 'on_deck_sessions', 'on_deck_sessions_one_open_per_club',
   'the one-open-Session-per-Club rule is a real partial unique index'
+);
+
+select has_index(
+  'public', 'on_deck_session_events', 'on_deck_session_events_one_join_per_token',
+  'one PLAYER_JOINED per device token per Session is a real partial unique index'
 );
 
 -- Vanessa owns a Club; Cal is an unrelated Organizer with his own Club.
@@ -205,7 +210,69 @@ select throws_ok(
     values ('5e551011-0000-0000-0000-000000000001', 'PLAYER_JOINED', 'player')$$,
   '42501',
   null,
-  'a Player cannot append events yet (the player join path is a later ticket)'
+  'a Player cannot append events directly — only through the join RPC (no anon insert grant)'
+);
+
+-- The Player join path (issue #242): a SECURITY DEFINER RPC, callable with no
+-- account, that appends exactly one PLAYER_JOINED and is idempotent on the
+-- device token.
+select lives_ok(
+  $$select public.on_deck_join_session(
+      '5e551011-0000-0000-0000-000000000001', 'device-token-sarah', 'Sarah', 'k.', 'intermediate'
+    )$$,
+  'a Player with no account can join the open Session via on_deck_join_session'
+);
+
+select is(
+  (select payload->>'lastInitial' from public.on_deck_session_events
+   where session_id = '5e551011-0000-0000-0000-000000000001' and type = 'PLAYER_JOINED'),
+  'K',
+  'the RPC normalises the last initial to a single upper-case letter'
+);
+
+select is(
+  (select count(*)::int from public.on_deck_session_events
+   where session_id = '5e551011-0000-0000-0000-000000000001' and type = 'PLAYER_JOINED'),
+  1,
+  'the join appended exactly one PLAYER_JOINED'
+);
+
+select throws_ok(
+  $$select public.on_deck_join_session(
+      '5e551011-0000-0000-0000-000000000001', 'device-token-noskill', 'Nomvula', 'N', null
+    )$$,
+  '22023',
+  null,
+  'a null skill level is rejected, not folded into a ghost roster entry'
+);
+
+-- Reopening the Club QR on the same device replays the same token.
+select lives_ok(
+  $$select public.on_deck_join_session(
+      '5e551011-0000-0000-0000-000000000001', 'device-token-sarah', 'Sarah', 'K', 'advanced'
+    )$$,
+  'reopening the QR on the same device does not error'
+);
+
+select is(
+  (select count(*)::int from public.on_deck_session_events
+   where session_id = '5e551011-0000-0000-0000-000000000001' and type = 'PLAYER_JOINED'),
+  1,
+  'and does not append a second PLAYER_JOINED for the same token'
+);
+
+select lives_ok(
+  $$select public.on_deck_join_session(
+      '5e551011-0000-0000-0000-000000000001', 'device-token-nnamdi', 'Nnamdi', 'O', 'beginner'
+    )$$,
+  'a different device joins as its own Player'
+);
+
+select is(
+  (select count(*)::int from public.on_deck_session_events
+   where session_id = '5e551011-0000-0000-0000-000000000001' and type = 'PLAYER_JOINED'),
+  2,
+  'a second device appends a second PLAYER_JOINED'
 );
 
 -- ---- close the Session, then re-check the anon read --------------------
@@ -230,6 +297,15 @@ select is(
    where session_id = '5e551011-0000-0000-0000-000000000001'),
   0,
   'and can no longer read its event log'
+);
+
+select throws_ok(
+  $$select public.on_deck_join_session(
+      '5e551011-0000-0000-0000-000000000001', 'device-token-late', 'Late', 'B', 'newbie'
+    )$$,
+  '42501',
+  null,
+  'a Player cannot join a Session that has closed'
 );
 
 -- Back as Vanessa: the owner still sees her Club''s closed Session.

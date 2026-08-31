@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { reduceSession } from "./session/reduce.ts";
+import { isSkillLevel } from "./session/types.ts";
 import type {
   Operator,
   SessionConfig,
@@ -26,10 +27,13 @@ type EventRow = {
   at: string;
   operator_kind: Operator["kind"];
   operator_user_id: string | null;
+  payload: Record<string, unknown> | null;
 };
 
 const SESSION_COLUMNS =
   "id, club_id, venue_name, court_count, group_cap, floor_mode, status, seed";
+
+const EVENT_COLUMNS = "type, at, operator_kind, operator_user_id, payload";
 
 function toConfig(row: SessionRow): SessionConfig {
   return {
@@ -51,17 +55,44 @@ function toOperator(row: EventRow): Operator {
 }
 
 function toEvent(row: EventRow): SessionEvent | null {
-  // Only SESSION_STARTED is modelled so far; later tickets widen this map as
-  // they widen the fold. An unrecognised row is skipped rather than
-  // mis-folded.
-  if (row.type !== "SESSION_STARTED") {
-    return null;
+  // Later tickets widen this map as they widen the fold. An unrecognised row,
+  // or one whose payload doesn't carry what its type needs, is skipped rather
+  // than mis-folded.
+  const at = new Date(row.at).getTime();
+  const operator = toOperator(row);
+
+  switch (row.type) {
+    case "SESSION_STARTED":
+      return { type: "SESSION_STARTED", at, operator };
+
+    case "PLAYER_JOINED": {
+      const payload = row.payload ?? {};
+      const token = payload.token;
+      const firstName = payload.firstName;
+      const lastInitial = payload.lastInitial;
+      const skillLevel = payload.skillLevel;
+      if (
+        typeof token !== "string" ||
+        typeof firstName !== "string" ||
+        typeof lastInitial !== "string" ||
+        !isSkillLevel(skillLevel)
+      ) {
+        return null;
+      }
+      return {
+        type: "PLAYER_JOINED",
+        at,
+        operator,
+        token,
+        firstName,
+        lastInitial,
+        skillLevel,
+      };
+    }
+
+    default:
+      return null;
   }
-  return {
-    type: "SESSION_STARTED",
-    at: new Date(row.at).getTime(),
-    operator: toOperator(row),
-  };
 }
 
 export type LoadedSession = {
@@ -123,7 +154,7 @@ async function loadSession(
 ): Promise<LoadedSession> {
   const { data, error } = await supabase
     .from("on_deck_session_events")
-    .select("type, at, operator_kind, operator_user_id")
+    .select(EVENT_COLUMNS)
     .eq("session_id", row.id)
     .order("seq", { ascending: true });
 

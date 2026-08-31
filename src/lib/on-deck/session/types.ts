@@ -54,6 +54,36 @@ export const OPERATOR_KINDS = [
 ] as const;
 
 /**
+ * A Player's own declaration of where they play — the club's four words, not a
+ * rating system, and never computed by the app (see the On Deck glossary and
+ * ADR 0001). Set once per Session at join.
+ */
+export type SkillLevel = "newbie" | "beginner" | "intermediate" | "advanced";
+
+export const SKILL_LEVELS: readonly SkillLevel[] = [
+  "newbie",
+  "beginner",
+  "intermediate",
+  "advanced",
+];
+
+/** How each Skill Level reads in the UI — one map, so every surface agrees. */
+export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = {
+  newbie: "Newbie",
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+};
+
+/** Narrows an untrusted value (an event payload field) to a `SkillLevel`. */
+export function isSkillLevel(value: unknown): value is SkillLevel {
+  return (
+    typeof value === "string" &&
+    (SKILL_LEVELS as readonly string[]).includes(value)
+  );
+}
+
+/**
  * The immutable facts a Session is folded against — the Club's saved defaults
  * captured at Start, plus a seed that makes every later tie-break
  * deterministic (never `Math.random()`).
@@ -75,16 +105,49 @@ export interface SessionConfig {
  * moment it does, replay stops being reproducible and undo (dropping the last
  * event) breaks.
  *
- * Only `SESSION_STARTED` exists so far; the rest of the log's vocabulary
- * (players joining and queuing, groups, courts finishing, last call, close)
- * lands in later tickets. The DB `on_deck_session_events.type` check already
- * lists the full set so those tickets add rows, not migrations.
+ * `SESSION_STARTED` and `PLAYER_JOINED` exist so far; the rest of the log's
+ * vocabulary (queuing, groups, courts finishing, last call, close) lands in
+ * later tickets. The DB `on_deck_session_events.type` check already lists the
+ * full set so those tickets add rows, not migrations.
  */
-export type SessionEvent = {
-  type: "SESSION_STARTED";
-  at: number;
-  operator: Operator;
-};
+export type SessionEvent =
+  | {
+      type: "SESSION_STARTED";
+      at: number;
+      operator: Operator;
+    }
+  | {
+      type: "PLAYER_JOINED";
+      at: number;
+      operator: Operator;
+      /**
+       * The device token the Player's phone minted and stored — their whole
+       * identity for this Session (ADR 0001). A replayed event carrying a
+       * token already in the roster is a no-op, which is what makes reopening
+       * the Club QR on the same device safe.
+       */
+      token: string;
+      firstName: string;
+      lastInitial: string;
+      skillLevel: SkillLevel;
+    };
+
+/** One Player in a Session's roster, as the fold projects them. */
+export interface RosterPlayer {
+  /** The device token the Player joined with — their id within this Session. */
+  id: string;
+  firstName: string;
+  lastInitial: string;
+  skillLevel: SkillLevel;
+  /**
+   * "First name + last initial", with a numeric suffix when someone with the
+   * same name and initial already joined — "Sarah K.", then "Sarah K. 2". The
+   * suffix is what a Volunteer disambiguates two same-named Players by.
+   */
+  displayName: string;
+  /** When this Player joined the Session (epoch ms, off the event). */
+  joinedAt: number;
+}
 
 /** The minimal live state a folded Session projects to so far. */
 export interface SessionState {
@@ -94,4 +157,6 @@ export interface SessionState {
   /** The Operator that started the Session — always an organizer for now. */
   startedBy: Operator | null;
   status: "pending" | "open";
+  /** Everyone who has joined this Session, in join order. */
+  roster: RosterPlayer[];
 }
