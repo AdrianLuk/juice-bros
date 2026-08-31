@@ -2,32 +2,10 @@
 
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
+import { imminenceLabel } from "@/lib/booking-buddy/datetime";
 import { BookingDetailsModal } from "@/components/booking-buddy/bookings";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
-
-/**
- * How many calendar days (viewer-local) separate `then` from `now` — 0 is
- * today, 1 tomorrow. A soft "when" cue for the nearest games, not a precise
- * countdown: the row already carries the exact date and time.
- */
-function calendarDayOffset(now: Date, then: Date): number {
-  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const b = new Date(then.getFullYear(), then.getMonth(), then.getDate());
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
-}
-
-function imminenceLabel(nowIso: string, startsAt: string): string | null {
-  const start = new Date(startsAt);
-  const offset = calendarDayOffset(new Date(nowIso), start);
-  if (offset === 0) {
-    return start.getHours() >= 17 ? "Tonight" : "Today";
-  }
-  if (offset === 1) {
-    return "Tomorrow";
-  }
-  return null;
-}
 
 function durationLabel(startsAt: string, endsAt: string): string {
   const minutes = Math.round(
@@ -57,7 +35,7 @@ export function UpcomingBookingItem({
   /** The dashboard's server `now`, for the "Tonight / Tomorrow" cue. */
   nowIso: string;
 }) {
-  const imminence = imminenceLabel(nowIso, booking.startsAt);
+  const imminence = imminenceLabel(new Date(nowIso), booking.startsAt);
 
   return (
     <BookingDetailsModal
