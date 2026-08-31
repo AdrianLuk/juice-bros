@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
 import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/datetime";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -180,11 +180,12 @@ export function DeleteAvailabilityWindowButton({ windowId }: { windowId: string 
   const [state, formAction, pending] = useActionState(deleteAvailabilityWindow, EMPTY);
 
   // The form lives inside the dialog so the confirm button is the only thing
-  // that can submit it — the same shape as removing a friend or a group.
+  // that can submit it — the same shape as removing a booking (`DeleteBookingButton`):
+  // a plain dismissable Dialog, and full-width stacked buttons that match on mobile.
   const form = (
-    <form className="flex flex-col items-end gap-1" action={formAction}>
+    <form className="flex flex-col gap-1" action={formAction}>
       <input type="hidden" name="window_id" value={windowId} />
-      <Button type="submit" variant="destructive" size="sm" disabled={pending}>
+      <Button type="submit" variant="destructive" disabled={pending}>
         {pending ? "Removing…" : "Remove"}
       </Button>
       <ActionError state={state} />
@@ -192,23 +193,25 @@ export function DeleteAvailabilityWindowButton({ windowId }: { windowId: string 
   );
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
+    <Dialog>
+      <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Remove this availability?</AlertDialogTitle>
-          <AlertDialogDescription>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remove this availability?</DialogTitle>
+          <DialogDescription>
             This only affects what shows on your calendar, not any actual
             court reservation.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Keep availability</AlertDialogCancel>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>
+            Keep availability
+          </DialogClose>
           {form}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
