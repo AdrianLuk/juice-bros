@@ -105,10 +105,10 @@ export interface SessionConfig {
  * moment it does, replay stops being reproducible and undo (dropping the last
  * event) breaks.
  *
- * `SESSION_STARTED` and `PLAYER_JOINED` exist so far; the rest of the log's
- * vocabulary (queuing, groups, courts finishing, last call, close) lands in
- * later tickets. The DB `on_deck_session_events.type` check already lists the
- * full set so those tickets add rows, not migrations.
+ * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED` and `COURT_FINISHED`
+ * exist so far; the rest of the log's vocabulary (groups, pausing, last call,
+ * close) lands in later tickets. The DB `on_deck_session_events.type` check
+ * already lists the full set so those tickets add rows, not migrations.
  */
 export type SessionEvent =
   | {
@@ -130,6 +130,32 @@ export type SessionEvent =
       firstName: string;
       lastInitial: string;
       skillLevel: SkillLevel;
+    }
+  | {
+      /**
+       * A Player taps to join the Queue. Fired once per Player — coming off a
+       * Court re-queues them without an event (the fold does it on
+       * `COURT_FINISHED`), so a replayed `PLAYER_QUEUED` for a token already
+       * queued or playing is a no-op.
+       */
+      type: "PLAYER_QUEUED";
+      at: number;
+      operator: Operator;
+      token: string;
+    }
+  | {
+      /**
+       * An Operator taps "Court N done". The four Players on Court `court`
+       * re-queue (Wait Time measured from this event's `at`), then the fold
+       * seats the longest-waiting Foursome from the Queue onto the freed
+       * Courts. Several in a row fold one at a time, each Foursome removed from
+       * the Queue before the next is picked (ADR 0004).
+       */
+      type: "COURT_FINISHED";
+      at: number;
+      operator: Operator;
+      /** 1-based Court number, within `config.courtCount`. */
+      court: number;
     };
 
 /** One Player in a Session's roster, as the fold projects them. */
@@ -149,7 +175,29 @@ export interface RosterPlayer {
   joinedAt: number;
 }
 
-/** The minimal live state a folded Session projects to so far. */
+/** One Player waiting for a Court. */
+export interface QueueEntry {
+  /** The Player's device token — their id within this Session. */
+  playerId: string;
+  /**
+   * When this Player's current wait began (epoch ms, off an event): their
+   * `PLAYER_QUEUED`, or the `COURT_FINISHED` that last took them off a Court,
+   * whichever is later. The primary fairness input to selection.
+   */
+  waitSince: number;
+}
+
+/** One Court in a Session — empty (`foursome` is `[]`) or holding a Game. */
+export interface CourtSlot {
+  /** 1-based Court number. */
+  number: number;
+  /** The device tokens of the four Players on it, or `[]` when empty. */
+  foursome: string[];
+  /** When the current Game was seated (epoch ms, off an event), or null. */
+  since: number | null;
+}
+
+/** The live state a folded Session projects to. */
 export interface SessionState {
   config: SessionConfig;
   /** Null until `SESSION_STARTED` is folded. */
@@ -159,4 +207,33 @@ export interface SessionState {
   status: "pending" | "open";
   /** Everyone who has joined this Session, in join order. */
   roster: RosterPlayer[];
+  /**
+   * Players waiting for a Court, ordered longest-wait-first — index 0 is next
+   * up. Selection is naive for now (ticket #243): the four longest-waiting
+   * walk on. Match Me's windowed fit lands in ticket 05.
+   */
+  queue: QueueEntry[];
+  /** Every Court, `config.courtCount` of them, numbered 1..N. */
+  courts: CourtSlot[];
+}
+
+/**
+ * A Player's position in the Queue (1-based), or null if they are not queued
+ * (on a Court, only on the roster, or unknown).
+ */
+export function queuePosition(
+  state: SessionState,
+  playerId: string,
+): number | null {
+  const index = state.queue.findIndex((e) => e.playerId === playerId);
+  return index < 0 ? null : index + 1;
+}
+
+/** The Court a Player is on (1-based number), or null if they are not playing. */
+export function playerCourt(
+  state: SessionState,
+  playerId: string,
+): number | null {
+  const court = state.courts.find((c) => c.foursome.includes(playerId));
+  return court ? court.number : null;
 }

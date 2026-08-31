@@ -42,8 +42,26 @@ event array plus assertions about the resulting state.
   `on_deck_club_session.test.sql`, `e2e/on-deck.spec.ts` scan → setup →
   "you're in" → recognized on return.
 
+- [x] **#243 — the rotation loop (naive selection, polling sync).** `PLAYER_QUEUED`
+  and `COURT_FINISHED` reach the fold. `reduceSession` projects a `queue`
+  (longest-wait-first) and a `courts` array: a Player taps to join the Queue
+  and reads their position; "Court N done" re-queues the four coming off (Wait
+  Time reset to the event's `at`) and walks the longest-waiting Foursome onto
+  the freed Court, one Court at a time. Selection is naive — the front four —
+  standing in for Match Me (ticket 05); a queued Player waits for a
+  `COURT_FINISHED` rather than being pulled onto an empty Court, so "sees their
+  position" always holds. `on_deck_queue_player` RPC (`anon`-callable,
+  idempotent on the device token, roster-gated); `COURT_FINISHED` rides the
+  foundation migration's Organizer-append policy. New Organizer floor screen at
+  `/on-deck/session/[sessionId]/floor` (Courts + Queue + "Court N done"), and a
+  Player's own position line on the Session view — both poll `getRotationView`
+  (~4s, TanStack Query) and never receive a device token. Tests:
+  `reduce.test.ts` queue/re-queue/multi-finish/wait-reset, `routes.test.ts`
+  floor gating, `on_deck_rotation.test.sql`, `e2e/on-deck.spec.ts` join → get
+  called → re-queue.
+
 ## Next
 
-The rest of #238 — the Queue and a Player's position in it, Match Me
-selection and On Deck foursomes, Queue Together, the Volunteer link surface,
-the Display and Kiosk, Last Call and the Session Summary purge.
+The rest of #238 — Match Me selection and On Deck foursomes, Queue Together,
+the Volunteer link surface, the Display and Kiosk, Last Call and the Session
+Summary purge.

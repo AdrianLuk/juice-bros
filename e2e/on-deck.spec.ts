@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { seedClubForOrganizer, deleteClubForOrganizer } from "./support/on-deck.ts";
+import {
+  seedClubForOrganizer,
+  deleteClubForOrganizer,
+  joinPlayerViaRpc,
+  queuePlayerViaRpc,
+} from "./support/on-deck.ts";
 
 /**
  * On Deck's tenant backbone (issue #241): an Organizer signs in, sees their
@@ -118,4 +123,73 @@ test("a Player scans the Club QR, does the two-tap setup, and is recognized on r
   await page.waitForURL(sessionUrl);
   await expect(page.getByText("You're in")).toBeVisible();
   await expect(page.getByLabel("First name")).toHaveCount(0);
+});
+
+test("the rotation loop: a Player joins the Queue, is called onto a Court, and re-queues when it finishes", async ({
+  page,
+  context,
+}) => {
+  await page.goto(`/on-deck/c/${clubId}`);
+  await page.waitForURL(/\/on-deck\/session\/([0-9a-f-]+)$/);
+  const sessionId = page.url().split("/").pop()!;
+
+  // Two Players already queued from their own phones (driven through the same
+  // anon RPCs the join/queue taps hit).
+  const stamp = Date.now();
+  for (const [i, name] of ["Anna", "Ben"].entries()) {
+    const tok = `tok-${name}-${stamp}-${i}`;
+    await joinPlayerViaRpc(sessionId, tok, name, name[0]);
+    await queuePlayerViaRpc(sessionId, tok);
+  }
+
+  // Our Player does the two-tap setup, then joins the Queue.
+  await page.getByLabel("First name").fill("Dana");
+  await page.getByLabel("Last initial").fill("R");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.getByRole("button", { name: "Intermediate", exact: true }).click();
+  await expect(page.getByText("You're in")).toBeVisible();
+
+  await page.getByRole("button", { name: "Join the queue" }).click();
+  await expect(page.getByTestId("queue-position")).toBeVisible();
+
+  // A fourth Player queues — enough for a foursome.
+  const cyrus = `tok-cyrus-${stamp}`;
+  await joinPlayerViaRpc(sessionId, cyrus, "Cyrus", "C");
+  await queuePlayerViaRpc(sessionId, cyrus);
+
+  // The Organizer, on the floor screen, sends the next four onto Court 1.
+  const organizer = await context.newPage();
+  await organizer.goto("/on-deck/sign-in?next=/on-deck/home");
+  await organizer
+    .getByRole("button", { name: "Sign in with a password" })
+    .click();
+  await organizer.getByLabel("Email").fill(ORGANIZER_EMAIL);
+  await organizer.getByLabel("Password", { exact: true }).fill(ORGANIZER_PASSWORD);
+  await organizer.getByRole("button", { name: "Sign in", exact: true }).click();
+  await organizer.waitForURL((url) => !url.pathname.includes("/sign-in"));
+
+  await organizer.goto(`/on-deck/session/${sessionId}/floor`);
+  const court1 = organizer.getByTestId("court-1");
+  await expect(court1.getByText("Dana R.")).toHaveCount(0);
+  await court1.getByRole("button", { name: "Send next four" }).click();
+  await expect(court1.getByText("Dana R.")).toBeVisible();
+
+  // Our Player's own screen updates within a poll interval: they're up.
+  await expect(page.getByText("You're up, Court 1")).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // Four more Players queue, then the Organizer taps Court 1 done: the four
+  // coming off re-queue and the next four walk on.
+  for (const name of ["Dee", "Eli", "Fay", "Gus"]) {
+    const tok = `tok-${name}-${stamp}`;
+    await joinPlayerViaRpc(sessionId, tok, name, name[0]);
+    await queuePlayerViaRpc(sessionId, tok);
+  }
+
+  await court1.getByRole("button", { name: "Court 1 done" }).click();
+  await expect(court1.getByText("Dana R.")).toHaveCount(0);
+
+  // And our Player is back in the Queue.
+  await expect(page.getByTestId("queue-position")).toBeVisible({ timeout: 10_000 });
 });

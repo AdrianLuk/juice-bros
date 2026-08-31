@@ -11,7 +11,7 @@ import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getOpenSessionForClub } from "@/lib/on-deck/sessions";
 import { startSession } from "@/lib/on-deck/actions/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
-import { clubQrPath, sessionPath } from "@/lib/on-deck/routes";
+import { clubQrPath, floorPath, sessionPath } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 
 export const metadata: Metadata = pageMetadata({
@@ -79,12 +79,20 @@ export default async function OnDeckHomePage() {
               {openSession ? (
                 <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
                   <p className="text-sm font-medium">A session is running.</p>
-                  <Link
-                    href={sessionPath(openSession.config.sessionId)}
-                    className={cn(buttonVariants(), "mt-4")}
-                  >
-                    Go to the session
-                  </Link>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link
+                      href={floorPath(openSession.config.sessionId)}
+                      className={cn(buttonVariants())}
+                    >
+                      Open the floor screen
+                    </Link>
+                    <Link
+                      href={sessionPath(openSession.config.sessionId)}
+                      className={cn(buttonVariants({ variant: "outline" }))}
+                    >
+                      Player view
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <form
