@@ -89,3 +89,33 @@ test("an Organizer signs in, sees their Club, and Start opens a Session the QR t
     0,
   );
 });
+
+test("a Player scans the Club QR, does the two-tap setup, and is recognized on return", async ({
+  page,
+}) => {
+  // The session opened by the test above is still running (there is no close
+  // feature yet), so the QR resolves straight to it.
+  await page.goto(`/on-deck/c/${clubId}`);
+  await page.waitForURL(/\/on-deck\/session\/[0-9a-f-]+$/);
+  const sessionUrl = page.url();
+  await expect(page.getByText("Session running")).toBeVisible();
+
+  // Tap one: name.
+  await page.getByLabel("First name").fill("Sarah");
+  await page.getByLabel("Last initial").fill("K");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  // Tap two: skill level — which submits.
+  await page.getByRole("button", { name: "Intermediate", exact: true }).click();
+
+  await expect(page.getByText("You're in")).toBeVisible();
+  await expect(page.getByText("Sarah K.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Playing as Intermediate")).toBeVisible();
+
+  // Reopening the QR on the same device recognizes the returning token —
+  // straight to "you're in", no setup form.
+  await page.goto(`/on-deck/c/${clubId}`);
+  await page.waitForURL(sessionUrl);
+  await expect(page.getByText("You're in")).toBeVisible();
+  await expect(page.getByLabel("First name")).toHaveCount(0);
+});
