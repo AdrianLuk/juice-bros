@@ -122,6 +122,10 @@ function RotationBoardInner({
       <div className="grid gap-3 sm:grid-cols-2">
         {view.courts.map((court) => {
           const occupied = court.players.length > 0;
+          // "Send next four" seats the leading On Deck Foursome; enable it once
+          // that Foursome is full (or, with nothing On Deck, once four wait).
+          const nextReady =
+            view.onDeck[0]?.length === 4 || view.queuedCount >= 4;
           return (
             <div
               key={court.number}
@@ -136,7 +140,7 @@ function RotationBoardInner({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={finish.isPending || (!occupied && view.queuedCount < 4)}
+                  disabled={finish.isPending || (!occupied && !nextReady)}
                   onClick={() =>
                     finish.mutate({ number: court.number, since: court.since })
                   }

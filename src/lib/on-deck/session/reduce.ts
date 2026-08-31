@@ -122,8 +122,10 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
  *   2. **Top up in wait order.** An incomplete Foursome (short Queue when it
  *      formed) gains the next-longest-waiting unspoken-for Players until full.
  *   3. **Form with Match Me.** A fresh Foursome is selected via `pickFoursome`
- *      from the Players not already spoken for by On Deck or a Court; when
- *      fewer than four remain it is committed incomplete, to top up later.
+ *      from the Players not already spoken for by On Deck or a Court. The
+ *      *first* Foursome only forms once four are available — a lone waiter is
+ *      "in the Queue", not "on deck". A *second* Foursome may form with as few
+ *      as one, so "After that" fills out as Players arrive.
  */
 function refreshOnDeck(state: SessionState, at: number): void {
   const queuedIds = new Set(state.queue.map((e) => e.playerId));
@@ -148,8 +150,10 @@ function refreshOnDeck(state: SessionState, at: number): void {
   }
 
   // 3. Form new Foursomes until On Deck is `ON_DECK_DEPTH` deep or nobody is
-  //    left to commit.
-  while (state.onDeck.length < ON_DECK_DEPTH && available.length > 0) {
+  //    left to commit. The first needs a full four; a second may start partial.
+  while (state.onDeck.length < ON_DECK_DEPTH) {
+    const minSize = state.onDeck.length === 0 ? 4 : 1;
+    if (available.length < minSize) break;
     const picked = pickFoursome(state, available) ?? [...available];
     const seated = new Set(picked);
     for (let i = available.length - 1; i >= 0; i--) {

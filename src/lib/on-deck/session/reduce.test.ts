@@ -517,6 +517,20 @@ test("two On Deck Foursomes are committed once eight are waiting, before any Cou
   assert.ok(state.courts.every((c) => c.foursome.length === 0));
 });
 
+test("fewer than four waiting: nobody is On Deck yet — a lone waiter is just in the Queue", () => {
+  const state = reduceSession(config, sessionWith(3));
+  assert.deepEqual(state.onDeck, []);
+  assert.equal(state.queue.length, 3);
+});
+
+test("the first On Deck Foursome only commits once four are waiting", () => {
+  const three = reduceSession(config, sessionWith(3));
+  assert.equal(three.onDeck.length, 0);
+  const four = reduceSession(config, sessionWith(4));
+  assert.equal(four.onDeck.length, 1);
+  assert.equal(four.onDeck[0].players.length, 4);
+});
+
 test("each On Deck Foursome is anchored by its longest waiter", () => {
   const state = reduceSession(config, sessionWith(9));
   assert.equal(state.onDeck[0].players[0], "p1");
