@@ -52,8 +52,12 @@ A Player's own declaration of where they play, from a fixed four: newbie, beginn
 _Avoid_: Rating, DUPR, Level.
 
 **Playing Style**:
-A Player's per-round declaration of casual or competitive. Unlike Skill Level it can shift through the night, carries forward until changed, and is only a tie-breaker in Match Me - it never leaves a Court unfilled or a Player waiting.
-_Avoid_: Intensity, Mode (Mode means the Match Me / Queue Together choice - see Queue Mode).
+A Player's per-round declaration of casual or competitive, which sets *their own* tolerance for Skill Level spread rather than scoring on its own axis. **Competitive** means "match me close" - a strong preference for players at the same level. **Casual** means "I don't mind who I'm mixed with" - happy to share a Court with newbies well outside their own level.
+
+Applied per Player, not per Court, because the two sides of a mixed Foursome feel it differently: an advanced Player who asked for competitive games is poorly served by a newbie on their court, while a newbie is delighted either way, and a *casual* advanced Player doesn't mind at all. Each Player's own tolerance scores their own mismatch and those scores sum, so a Court's acceptable spread emerges from who is on it rather than one Player vetoing everyone else's game.
+
+Unlike Skill Level it can shift through the night and carries forward until changed. Still soft, like every Match Me preference: it widens or narrows what the algorithm reaches for, and never leaves a Court unfilled or a Player waiting. Deferred past v1 - see the spec's Out of Scope.
+_Avoid_: Intensity, Mode (Mode means the Match Me / Queue Together choice - see Queue Mode), Skill tolerance (that is what Playing Style *sets*, not another name for it).
 
 **Queue**:
 The ordered pool of Players waiting for a Court. A Player is in exactly one state at a time: **queued** (waiting), **playing** (on a Court), or **paused** (present but not waiting). Coming off a Court re-queues a Player automatically; opting out is what puts them in paused.

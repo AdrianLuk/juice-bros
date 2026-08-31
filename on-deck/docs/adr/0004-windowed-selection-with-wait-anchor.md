@@ -1,6 +1,6 @@
 # Windowed selection with a longest-wait anchor
 
-When a Court frees, Match Me always includes the single longest-waiting Player, then chooses the other three from a window of roughly the next eight to ten longest-waiting, scoring Skill Level fit, Variety, and Playing Style. Window size and weights are tunable. Every preference is soft: the Court is filled even when the fit is poor, because playing beats sitting.
+When a Court frees, Match Me always includes the single longest-waiting Player, then chooses the other three from a window of roughly the next eight to ten longest-waiting, scoring Skill Level fit and Variety. Window size and weights are tunable. Every preference is soft: the Court is filled even when the fit is poor, because playing beats sitting.
 
 The anchor is the load-bearing part. It gives Players one promise simple enough to explain on a sign: **once you are at the front of the Queue, you are on the next open Court.** No starvation is possible, and nobody has to wonder why they were skipped.
 
@@ -11,3 +11,5 @@ The anchor is the load-bearing part. It gives Players one promise simple enough 
 ## Consequences
 
 Skill matching is soft in a specific way: same level preferred, plus or minus one common, plus or minus two occasional and tolerated (a little advanced-with-newbie mingling is a feature at a social, not a failure). When several Courts free at once they are processed one at a time in the order they freed, with each Foursome removed from the Queue before the next is chosen.
+
+Playing Style, when it lands after v1, is deliberately *not* a third scoring axis alongside Skill Level and Variety. It is a per-Player modifier on how wide that skill spread may go before it hurts - competitive narrows it, casual widens it - so the tolerance above becomes a property of who is on the Court rather than a fixed constant. Scored per Player and summed, so an advanced Player who asked for competitive games is penalised for a newbie on their Court while a casual one beside them is not.
