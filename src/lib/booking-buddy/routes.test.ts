@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  connectLinkPath,
   proposeGameHref,
   requiresSession,
   safeRedirectTarget,
@@ -68,6 +69,18 @@ test("marketing routes never require a session", () => {
 test("the public Slot Link route is reachable without a session", () => {
   // Guests respond via Slot Link without an account (see CONTEXT.md).
   assert.equal(requiresSession("/s/abc123token"), false);
+});
+
+test("the friend-request Accept/Decline route is reachable without a session", () => {
+  // The recipient acts on it straight from the email (issue #228).
+  assert.equal(requiresSession("/connect/abc123token"), false);
+  assert.equal(requiresSession(connectLinkPath("abc123token")), false);
+});
+
+test("connectLinkPath adds the action only when given one", () => {
+  assert.equal(connectLinkPath("tok"), "/connect/tok");
+  assert.equal(connectLinkPath("tok", "accept"), "/connect/tok?a=accept");
+  assert.equal(connectLinkPath("tok", "decline"), "/connect/tok?a=decline");
 });
 
 test("a personal invite link is reachable without a session", () => {

@@ -8,6 +8,7 @@ import { UsernameForm } from "@/components/booking-buddy/username-form";
 import { GenderForm } from "@/components/booking-buddy/gender-form";
 import {
   BookingWindowPreferenceForm,
+  ConnectionRequestPreferenceForm,
   NotificationPreferencesForm,
 } from "@/components/booking-buddy/reminders";
 import { PushNotificationsForm } from "@/components/booking-buddy/push-notifications";
@@ -70,7 +71,7 @@ export default async function SettingsPage({
 
           <div className="mt-8">
             <h2 className="font-heading text-lg font-semibold tracking-tight">
-              Reminders
+              Notifications
             </h2>
             <div className="bb-card mt-4 flex flex-col divide-y divide-border/60 p-6">
               <div className="pb-5">
@@ -78,6 +79,9 @@ export default async function SettingsPage({
               </div>
               <div className="py-5">
                 <BookingWindowPreferenceForm preferences={notificationPreferences} />
+              </div>
+              <div className="py-5">
+                <ConnectionRequestPreferenceForm preferences={notificationPreferences} />
               </div>
               <div className="pt-5">
                 <PushNotificationsForm />
