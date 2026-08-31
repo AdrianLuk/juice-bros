@@ -112,13 +112,13 @@ export function SlotResponsesPreview() {
   );
 }
 
-/** Friends' shared open / busy time for a few days. */
+/** Friends' shared looking-to-play / busy time for a few days. */
 export function AvailabilityPreview() {
   const days = ["Thu", "Fri", "Sat", "Sun", "Mon"];
-  const rows: { name: string; cells: (null | "open" | "busy")[] }[] = [
-    { name: "Adrian", cells: [null, null, "open", "open", null] },
-    { name: "Ben", cells: ["busy", "busy", null, null, "open"] },
-    { name: "Daven", cells: [null, "open", "open", null, null] },
+  const rows: { name: string; cells: (null | "looking" | "busy")[] }[] = [
+    { name: "Adrian", cells: [null, null, "looking", "looking", null] },
+    { name: "Ben", cells: ["busy", "busy", null, null, "looking"] },
+    { name: "Daven", cells: [null, "looking", "looking", null, null] },
   ];
 
   return (
@@ -147,7 +147,7 @@ export function AvailabilityPreview() {
                 key={days[i]}
                 className={
                   "flex h-7 items-center justify-center rounded-sm border text-[10px] font-bold text-foreground/70 " +
-                  (cell === "open"
+                  (cell === "looking"
                     ? "border-dashed border-accent-foreground/25 bg-accent/25"
                     : cell === "busy"
                       ? "border-border bg-muted"
@@ -157,7 +157,7 @@ export function AvailabilityPreview() {
                   cell === "busy" ? { backgroundImage: HATCH } : undefined
                 }
               >
-                {cell === "open" ? "Open" : cell === "busy" ? "Busy" : ""}
+                {cell === "looking" ? "Looking" : cell === "busy" ? "Busy" : ""}
               </div>
             ))}
           </div>
@@ -170,7 +170,7 @@ export function AvailabilityPreview() {
   );
 }
 
-/** The overlap of a few friends' open time — the days a whole group can make. */
+/** The overlap of a few friends' availability — the days a whole group can make. */
 export function OverlapPreview() {
   const picked = ["You", "Adrian", "Daven", "Ben"];
   // A day split by someone's midday busy stretch shows a window either side,

@@ -132,7 +132,7 @@ test("a per-friend override beats the group default, and clearing it restores", 
 
   // The group grants the most it can, so that is what the friend now sees.
   await expect(friendRow(page, FRIEND)).toContainText(
-    "From your groups: Slots and my open time",
+    "From your groups: Slots and my availability",
   );
 
   // Pinning them shut must win over the group.
@@ -144,7 +144,7 @@ test("a per-friend override beats the group default, and clearing it restores", 
   await friendRow(page, FRIEND).getByRole("combobox").selectOption("clear");
   await friendRow(page, FRIEND).getByRole("button", { name: "Save" }).click();
   await expect(friendRow(page, FRIEND)).toContainText(
-    "From your groups: Slots and my open time",
+    "From your groups: Slots and my availability",
   );
 
   await page.goto("/booking-buddy/groups");
@@ -165,7 +165,7 @@ test("two groups resolve to the most permissive of them", async ({ page }) => {
   // In one group showing everything and one showing nothing, the open one
   // wins — adding someone to a group can only ever expand what they see.
   await expect(friendRow(page, FRIEND)).toContainText(
-    "From your groups: Slots and my open time",
+    "From your groups: Slots and my availability",
   );
 
   await page.goto("/booking-buddy/groups");

@@ -48,9 +48,9 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
           <DialogHeader>
             <DialogTitle>Set your availability</DialogTitle>
             <DialogDescription>
-              Mark a stretch as open or busy. It only shows on your calendar.
-              Friends can still ask about it, this doesn&apos;t stop a game
-              invite.
+              Mark a stretch as looking to play or busy. It only shows on your
+              calendar. Friends can still ask about it, this doesn&apos;t stop a
+              game invite.
             </DialogDescription>
           </DialogHeader>
           <CreateAvailabilityWindowForm

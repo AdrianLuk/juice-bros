@@ -8,7 +8,7 @@ import {
 
 /**
  * "Find a time" (issue #195) — Plan's third child. Pick friends who share their
- * open time, see when everyone's free, deep-link into the Games form.
+ * availability, see when everyone's free, deep-link into the Games form.
  *
  * The seeded `@amyace` ↔ `@benbackhand2` pair starts at the visibility
  * lattice's bottom (see booking-buddy/docs/local-test-accounts.md), so each
@@ -82,7 +82,7 @@ test.afterEach(async ({ browser }) => {
   }
 });
 
-test("only friends who share their open time show in the picker", async ({
+test("only friends who share their availability show in the picker", async ({
   page,
   browser,
 }) => {

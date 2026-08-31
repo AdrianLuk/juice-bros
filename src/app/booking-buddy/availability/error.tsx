@@ -12,7 +12,7 @@ export default function AvailabilityError(props: {
 }) {
   return (
     <DataError
-      title="Couldn't load your open time"
+      title="Couldn't load your availability"
       description="Something went wrong reading the time you've blocked off. This isn't you, and nothing has been changed."
       {...props}
     />

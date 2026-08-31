@@ -4,8 +4,8 @@ import { BbPageSkeleton } from "@/components/booking-buddy/bb-page-skeleton";
 export default function Loading() {
   return (
     <BbPageSkeleton
-      title="Open time"
-      description="Mark when you're open or busy. It only shows on your calendar, and never blocks a game invite."
+      title="Availability"
+      description="Mark when you're looking to play or busy. It only shows on your calendar, and never blocks a game invite."
     />
   );
 }

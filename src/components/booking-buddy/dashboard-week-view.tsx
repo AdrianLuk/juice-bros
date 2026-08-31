@@ -366,7 +366,7 @@ function DayColumn<T extends CalendarEvent>({
           <DashboardAvailabilityBlock
             key={`${segment.type}-${segment.startsAt}`}
             type={segment.type}
-            label={`${segment.type === "open" ? "Open" : "Busy"}: ${formatTimeLabelFromMs(start)} – ${formatTimeLabelFromMs(end)}`}
+            label={`${segment.type === "looking" ? "Looking to play" : "Busy"}: ${formatTimeLabelFromMs(start)} – ${formatTimeLabelFromMs(end)}`}
             className="absolute inset-x-0.5"
             style={{
               top,

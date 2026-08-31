@@ -1,5 +1,5 @@
--- An Availability Window is a User's own dated open/busy declaration (see
--- CONTEXT.md). Unlike every table before it, its read policy is not pure
+-- An Availability Window is a User's own dated looking-to-play/busy declaration
+-- (see CONTEXT.md). Unlike every table before it, its read policy is not pure
 -- ownership: it is gated on `calendar`-level Visibility (ADR 0003's coarse
 -- net, applied here to the one relationship CONTEXT.md actually names —
 -- see the migration comment for why that's not a contradiction). The
@@ -51,7 +51,7 @@ insert into public.availability_windows (id, owner_id, type, starts_at, ends_at)
 values (
   '77777777-0000-0000-0000-000000000021',
   'aaaaaaaa-0000-0000-0000-000000000021',
-  'open',
+  'looking',
   '2026-08-20 09:00:00+00',
   '2026-08-20 17:00:00+00'
 );
@@ -59,13 +59,13 @@ values (
 select is(
   (select type::text from public.availability_windows
    where id = '77777777-0000-0000-0000-000000000021'),
-  'open',
+  'looking',
   'the owner can create and read their own Availability Window'
 );
 
 select throws_ok(
   $$insert into public.availability_windows (owner_id, type, starts_at, ends_at)
-    values ('bbbbbbbb-0000-0000-0000-000000000022', 'open', '2026-08-20 09:00:00+00', '2026-08-20 17:00:00+00')$$,
+    values ('bbbbbbbb-0000-0000-0000-000000000022', 'looking', '2026-08-20 09:00:00+00', '2026-08-20 17:00:00+00')$$,
   '42501',
   null,
   'a User cannot create an Availability Window owned by someone else'
@@ -107,7 +107,7 @@ update public.availability_windows set type = 'busy'
 select is(
   (select type::text from public.availability_windows
    where id = '77777777-0000-0000-0000-000000000021'),
-  'open',
+  'looking',
   'read access does not carry write access — a calendar-visible friend''s update matches no rows'
 );
 
