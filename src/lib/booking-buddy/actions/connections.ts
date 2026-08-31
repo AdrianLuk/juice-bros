@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../supabase/server.ts";
 import { verifySession, type Session } from "../dal.ts";
 import { trackFirstFriend } from "../analytics.ts";
+import { notifyNewConnectionRequest } from "../connection-request-notify.ts";
 import { FRIENDS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
@@ -235,9 +236,11 @@ export async function sendConnectionRequest(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("connections")
-    .insert({ requester_id: session.userId, addressee_id: addresseeId });
+    .insert({ requester_id: session.userId, addressee_id: addresseeId })
+    .select("id")
+    .single();
 
   if (error) {
     // The unique index covers the pair in both directions, so this also fires
@@ -247,6 +250,11 @@ export async function sendConnectionRequest(
     }
     return { error: "Couldn't send that request. Try again." };
   }
+
+  // Email the addressee so they can accept straight from their inbox (#228).
+  // After the response, and best-effort — a send failure never fails the
+  // request, which has already succeeded.
+  after(() => notifyNewConnectionRequest(data.id));
 
   revalidatePath(FRIENDS_PATH);
   return { ok: true };

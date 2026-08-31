@@ -69,6 +69,15 @@ test.afterEach(async ({ page }) => {
     await expect(page.getByRole("status")).toBeVisible();
   }
 
+  const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
+  if (!(await friendRequestEmails.isChecked())) {
+    await friendRequestEmails.check();
+    await formWithField(page, "Email me when someone sends me a friend request, so I can accept it right away")
+      .getByRole("button", { name: "Save", exact: true })
+      .click();
+    await expect(page.getByRole("status")).toBeVisible();
+  }
+
   // Same reasoning as Username above — Gender (issue #79) is unset by
   // default for the seeded account, and a test that sets it has to unset it.
   const genderUnset = page.getByRole("radio", { name: "Prefer not to say" });
@@ -182,6 +191,33 @@ test("turning booking window reminders off sticks, independently of the other to
 
   // The other preference is untouched — these are two separate settings,
   // not one control wearing two labels.
+  await expect(emailReminders).toBeChecked();
+});
+
+test("the friend-request email defaults to enabled", async ({ page }) => {
+  await expect(
+    page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away"),
+  ).toBeChecked();
+});
+
+test("turning the friend-request email off sticks, independently of the reminder toggles", async ({
+  page,
+}) => {
+  const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
+  const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
+
+  await friendRequestEmails.uncheck();
+  await formWithField(page, "Email me when someone sends me a friend request, so I can accept it right away")
+    .getByRole("button", { name: "Save", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("Saved");
+
+  await page.reload();
+  await expect(
+    page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away"),
+  ).not.toBeChecked();
+
+  // The game reminder toggle is a separate setting and stays on.
   await expect(emailReminders).toBeChecked();
 });
 

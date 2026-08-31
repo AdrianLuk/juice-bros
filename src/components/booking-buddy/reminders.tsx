@@ -12,6 +12,7 @@ import {
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   updateBookingWindowRemindersEnabled,
+  updateConnectionRequestEmailsEnabled,
   updateEmailRemindersEnabled,
   updateReminderOffset,
   type NotificationPreferences,
@@ -113,6 +114,55 @@ export function NotificationPreferencesForm({
         />
         <Label htmlFor="email-enabled" className="font-normal">
           Email me a reminder before games I&apos;ve said yes to, so I don&apos;t forget to show up
+        </Label>
+      </div>
+
+      {state.error && (
+        <p className="text-sm text-destructive" role="alert">
+          {state.error}
+        </p>
+      )}
+      {state.ok && (
+        <p className="text-sm text-muted-foreground" role="status">
+          Saved.
+        </p>
+      )}
+
+      <div>
+        <Button type="submit" variant="outline" disabled={pending}>
+          {pending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * The signed-in User's own opt-in for the friend-request email (issue #228) —
+ * its own preference, independent of the two Reminder toggles.
+ */
+export function ConnectionRequestPreferenceForm({
+  preferences,
+}: {
+  preferences: NotificationPreferences;
+}) {
+  const [state, formAction, pending] = useActionState(
+    updateConnectionRequestEmailsEnabled,
+    EMPTY,
+  );
+
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <input
+          id="connection-request-email-enabled"
+          name="connection_request_email_enabled"
+          type="checkbox"
+          defaultChecked={preferences.connectionRequestEmailEnabled}
+          className="h-5 w-5 rounded border-input accent-primary"
+        />
+        <Label htmlFor="connection-request-email-enabled" className="font-normal">
+          Email me when someone sends me a friend request, so I can accept it right away
         </Label>
       </div>
 

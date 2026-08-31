@@ -183,6 +183,24 @@ export function slotLinkPath(token: string): string {
 }
 
 /**
+ * The one-click Accept / Decline link in a friend-request email (issue #228) —
+ * `/connect/<token>`, where the token is a single-use `connection_request_links`
+ * row. Like `/s`, it sits outside `BOOKING_BUDDY_ROOT` so `requiresSession`
+ * never gates it: the recipient acts on it straight from their inbox, signed in
+ * or not. The optional `action` pre-selects Accept or Decline on the page; the
+ * page shows both buttons regardless.
+ */
+export const CONNECT_LINK_ROOT = "/connect";
+
+export function connectLinkPath(
+  token: string,
+  action?: "accept" | "decline",
+): string {
+  const base = `${CONNECT_LINK_ROOT}/${token}`;
+  return action ? `${base}?a=${action}` : base;
+}
+
+/**
  * Reachable while signed out, despite living under the Booking Buddy root.
  * "/privacy" is here alongside "/sign-in" so the policy can be linked from
  * the sign-in page itself, before there's a session to check. "/join" is a
