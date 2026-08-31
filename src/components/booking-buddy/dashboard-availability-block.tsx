@@ -12,8 +12,13 @@ import type { AvailabilityType } from "@/lib/booking-buddy/availability";
  * `busy` gets a diagonal hatch rather than a saturated color — the same
  * device Google Calendar uses for a declared-busy stretch — which keeps
  * "busy" from reading as an error/destructive state (that color is reserved
- * for the app's actual destructive actions) while still standing apart from
- * `looking`'s plain dashed tint.
+ * for the app's actual destructive actions).
+ *
+ * `looking` ("looking to play") gets the opposite read: a warm primary-tinted
+ * dashed block. Still dashed and still translucent, so it never reads as a
+ * real Booking (those are solid brand orange, white text) — the dashed border
+ * and low-opacity fill keep it informational — but the primary hue marks it as
+ * an opening rather than the neutral grey a bare "not busy" stretch would get.
  */
 export function DashboardAvailabilityBlock({
   type,
@@ -34,7 +39,7 @@ export function DashboardAvailabilityBlock({
       className={cn(
         "pointer-events-none flex items-center justify-center overflow-hidden rounded-sm border px-1 py-0.5",
         type === "looking"
-          ? "border-dashed border-accent-foreground/25 bg-accent/25"
+          ? "border-dashed border-primary/45 bg-primary/10"
           : "border-border bg-muted",
         className,
       )}
@@ -50,7 +55,10 @@ export function DashboardAvailabilityBlock({
     >
       <span
         aria-hidden="true"
-        className="truncate text-base leading-none font-bold text-foreground/70"
+        className={cn(
+          "truncate text-base leading-none font-bold",
+          type === "looking" ? "text-primary" : "text-foreground/70",
+        )}
       >
         {type === "looking" ? "Looking" : "Busy"}
       </span>

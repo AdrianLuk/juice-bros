@@ -2,11 +2,30 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  proposeGameHref,
   requiresSession,
   safeRedirectTarget,
   sectionForPath,
   siblingsForPath,
 } from "./routes.ts";
+
+test("proposeGameHref: a date and start hour become a prefilled deep link to the form", () => {
+  assert.equal(
+    proposeGameHref({ date: "2026-08-20", startTime: "18:00" }),
+    "/booking-buddy/slots?date=2026-08-20&start=18%3A00#post-a-game",
+  );
+});
+
+test("proposeGameHref: a null or missing start hour leaves the form's own default", () => {
+  assert.equal(
+    proposeGameHref({ date: "2026-08-20", startTime: null }),
+    "/booking-buddy/slots?date=2026-08-20#post-a-game",
+  );
+  assert.equal(
+    proposeGameHref({ date: "2026-08-20" }),
+    "/booking-buddy/slots?date=2026-08-20#post-a-game",
+  );
+});
 
 test("the Booking Buddy section root is public (marketing page / dashboard branch)", () => {
   assert.equal(requiresSession("/booking-buddy"), false);

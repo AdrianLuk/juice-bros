@@ -6,6 +6,7 @@ import {
   facilityLabel,
   formatSlotWhen,
   parseNewSlotProposal,
+  proposeGamePrefill,
   slotWriteMessage,
 } from "./slots.ts";
 
@@ -202,4 +203,47 @@ test("the same facility repeated across courts is shown once", () => {
 
 test("courts at different facilities are joined, not picked from arbitrarily", () => {
   assert.equal(facilityLabel(["Amy's gym", "Rally Point"]), "Amy's gym & Rally Point");
+});
+
+test("proposeGamePrefill: a future timed window seeds its own local day and start hour", () => {
+  // 2026-08-20T22:00:00Z is 6:00 PM in Toronto (EDT, UTC-4).
+  assert.deepEqual(
+    proposeGamePrefill(
+      {
+        startsAt: "2026-08-20T22:00:00Z",
+        endsAt: "2026-08-21T01:00:00Z",
+        timeZone: "America/Toronto",
+      },
+      NOW,
+    ),
+    { date: "2026-08-20", startTime: "18:00" },
+  );
+});
+
+test("proposeGamePrefill: a future all-day window seeds the date only — midnight is no useful hour", () => {
+  assert.deepEqual(
+    proposeGamePrefill(
+      {
+        startsAt: "2026-08-20T04:00:00Z",
+        endsAt: "2026-08-27T04:00:00Z",
+        timeZone: "America/Toronto",
+      },
+      NOW,
+    ),
+    { date: "2026-08-20", startTime: null },
+  );
+});
+
+test("proposeGamePrefill: a window already running seeds today with no hour (a past start time would be refused)", () => {
+  assert.deepEqual(
+    proposeGamePrefill(
+      {
+        startsAt: "2026-07-30T00:00:00Z",
+        endsAt: "2026-08-05T00:00:00Z",
+        timeZone: "America/Toronto",
+      },
+      NOW,
+    ),
+    { date: "2026-08-01", startTime: null },
+  );
 });
