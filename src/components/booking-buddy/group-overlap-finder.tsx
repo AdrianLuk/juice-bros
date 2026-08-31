@@ -253,7 +253,7 @@ export function GroupOverlapFinder({
       <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
         Nobody to compare with yet. This fills up once a friend gives you{" "}
         <Link href={FRIENDS_PATH} className="underline underline-offset-4">
-          open-time visibility
+          availability visibility
         </Link>{" "}
         into their calendar.
       </p>
@@ -267,8 +267,8 @@ export function GroupOverlapFinder({
           Who are you playing with?
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pick everyone who needs to be there. Only friends who share their open
-          time with you show up here.
+          Pick everyone who needs to be there. Only friends who share their
+          availability with you show up here.
         </p>
 
         <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
@@ -325,7 +325,7 @@ export function GroupOverlapFinder({
           Time nobody&apos;s booked and nobody&apos;s marked busy, from today.
           Blocking off busy stretches on{" "}
           <Link href={AVAILABILITY_PATH} className="underline underline-offset-4">
-            Open time
+            Availability
           </Link>{" "}
           makes this sharper.
         </p>
@@ -347,16 +347,16 @@ export function GroupOverlapFinder({
           ) : noneVisible ? (
             <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
               {selectedIds.length === 1
-                ? "That friend no longer shares their open time with you."
-                : "None of the friends you picked share their open time with you any more."}
+                ? "That friend no longer shares their availability with you."
+                : "None of the friends you picked share their availability with you any more."}
             </p>
           ) : (
             <div className="flex flex-col gap-4">
               {missingCount > 0 && (
                 <p className="rounded-lg border border-accent-foreground/25 bg-accent/25 px-4 py-3 text-sm">
                   {missingCount === 1
-                    ? "One friend no longer shares their open time with you, so they're not in this result."
-                    : `${missingCount} friends no longer share their open time with you, so they're not in this result.`}
+                    ? "One friend no longer shares their availability with you, so they're not in this result."
+                    : `${missingCount} friends no longer share their availability with you, so they're not in this result.`}
                 </p>
               )}
 

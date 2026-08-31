@@ -21,7 +21,7 @@ test("a Booking or confirmed Slot covering `at` returns busy regardless of any A
       ],
       windows: [
         {
-          type: "open",
+          type: "looking",
           startsAt: "2026-08-20T00:00:00Z",
           endsAt: "2026-08-21T00:00:00Z",
           createdAt: "2026-08-19T00:00:00Z",
@@ -46,7 +46,7 @@ test("with no covering Booking/confirmed Slot, the most recently created Availab
         createdAt: "2026-08-15T00:00:00Z",
       },
       {
-        type: "open",
+        type: "looking",
         startsAt: "2026-08-20T11:00:00Z",
         endsAt: "2026-08-20T13:00:00Z",
         createdAt: "2026-08-18T00:00:00Z",
@@ -54,7 +54,7 @@ test("with no covering Booking/confirmed Slot, the most recently created Availab
     ],
   });
 
-  assert.equal(result, "open");
+  assert.equal(result, "looking");
 });
 
 test("a moment covered by neither a busy interval nor an Availability Window is unspecified", () => {
@@ -68,7 +68,7 @@ test("a moment covered by neither a busy interval nor an Availability Window is 
       ],
       windows: [
         {
-          type: "open",
+          type: "looking",
           startsAt: "2026-08-21T00:00:00Z",
           endsAt: "2026-08-22T00:00:00Z",
           createdAt: "2026-08-15T00:00:00Z",
@@ -91,7 +91,7 @@ test("creation order, not edit order, decides precedence", () => {
   };
   // Created second, and covers `at`.
   const newerWindow = {
-    type: "open" as const,
+    type: "looking" as const,
     startsAt: "2026-08-20T11:00:00Z",
     endsAt: "2026-08-20T13:00:00Z",
     createdAt: "2026-08-18T00:00:00Z",
@@ -103,7 +103,7 @@ test("creation order, not edit order, decides precedence", () => {
       busyIntervals: [],
       windows: [olderWindowBeforeEdit, newerWindow],
     }),
-    "open",
+    "looking",
     "the newer window wins when it's the only one covering `at`",
   );
 
@@ -124,7 +124,7 @@ test("creation order, not edit order, decides precedence", () => {
       busyIntervals: [],
       windows: [olderWindowAfterEdit, newerWindow],
     }),
-    "open",
+    "looking",
     "the newer window still wins after the older one is edited to also cover `at`",
   );
 });
@@ -138,7 +138,7 @@ test("resolveAvailabilitySegments: a busy-covered span is omitted entirely, not 
     ],
     windows: [
       {
-        type: "open",
+        type: "looking",
         startsAt: "2026-08-20T00:00:00Z",
         endsAt: "2026-08-21T00:00:00Z",
         createdAt: "2026-08-19T00:00:00Z",
@@ -148,10 +148,10 @@ test("resolveAvailabilitySegments: a busy-covered span is omitted entirely, not 
 
   // The Booking owns 10:00-14:00 — the calendar draws its own block there, so
   // no Availability segment should claim that span (ADR 0006, "never both").
-  // The Availability Window's `open` declaration still surfaces either side.
+  // The Availability Window's `looking` declaration still surfaces either side.
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { type: "looking", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
+    { type: "looking", startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
@@ -162,13 +162,13 @@ test("resolveAvailabilitySegments: adjacent same-type slices merge into one segm
     busyIntervals: [],
     windows: [
       {
-        type: "open",
+        type: "looking",
         startsAt: "2026-08-20T08:00:00Z",
         endsAt: "2026-08-20T12:00:00Z",
         createdAt: "2026-08-15T00:00:00Z",
       },
       {
-        type: "open",
+        type: "looking",
         startsAt: "2026-08-20T12:00:00Z",
         endsAt: "2026-08-20T18:00:00Z",
         createdAt: "2026-08-16T00:00:00Z",
@@ -177,7 +177,7 @@ test("resolveAvailabilitySegments: adjacent same-type slices merge into one segm
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T08:00:00.000Z", endsAt: "2026-08-20T18:00:00.000Z" },
+    { type: "looking", startsAt: "2026-08-20T08:00:00.000Z", endsAt: "2026-08-20T18:00:00.000Z" },
   ]);
 });
 
@@ -225,7 +225,7 @@ test("resolveAvailabilitySegments: an override still wins its own slice, splitti
         createdAt: "2026-08-15T00:00:00Z",
       },
       {
-        type: "open",
+        type: "looking",
         startsAt: "2026-08-20T12:00:00Z",
         endsAt: "2026-08-20T13:00:00Z",
         createdAt: "2026-08-18T00:00:00Z",
@@ -235,12 +235,12 @@ test("resolveAvailabilitySegments: an override still wins its own slice, splitti
 
   assert.deepEqual(segments, [
     { type: "busy", startsAt: "2026-08-20T09:00:00.000Z", endsAt: "2026-08-20T12:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T12:00:00.000Z", endsAt: "2026-08-20T13:00:00.000Z" },
+    { type: "looking", startsAt: "2026-08-20T12:00:00.000Z", endsAt: "2026-08-20T13:00:00.000Z" },
     { type: "busy", startsAt: "2026-08-20T13:00:00.000Z", endsAt: "2026-08-20T17:00:00.000Z" },
   ]);
 });
 
-test("resolveCommonOpenSegments: with nobody busy, the whole range comes back as one open segment", () => {
+test("resolveCommonOpenSegments: with nobody busy, the whole range comes back as one free segment", () => {
   const segments = resolveCommonOpenSegments({
     rangeStart: new Date("2026-08-20T00:00:00Z"),
     rangeEnd: new Date("2026-08-21T00:00:00Z"),
@@ -251,7 +251,7 @@ test("resolveCommonOpenSegments: with nobody busy, the whole range comes back as
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
@@ -287,8 +287,8 @@ test("resolveCommonOpenSegments: one person's busy Window carves that span out o
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
+    { startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
@@ -307,12 +307,12 @@ test("resolveCommonOpenSegments: a Booking (busy interval) carves out its span t
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T18:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T20:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T18:00:00.000Z" },
+    { startsAt: "2026-08-20T20:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
-test("resolveCommonOpenSegments: an `open` Window carves nothing — free means 'not busy', unspecified included", () => {
+test("resolveCommonOpenSegments: a `looking` Window carves nothing — free means 'not busy', unspecified included", () => {
   const segments = resolveCommonOpenSegments({
     rangeStart: new Date("2026-08-20T00:00:00Z"),
     rangeEnd: new Date("2026-08-21T00:00:00Z"),
@@ -321,7 +321,7 @@ test("resolveCommonOpenSegments: an `open` Window carves nothing — free means 
         busyIntervals: [],
         windows: [
           {
-            type: "open",
+            type: "looking",
             startsAt: "2026-08-20T10:00:00Z",
             endsAt: "2026-08-20T14:00:00Z",
             createdAt: "2026-08-15T00:00:00Z",
@@ -333,11 +333,11 @@ test("resolveCommonOpenSegments: an `open` Window carves nothing — free means 
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
-test("resolveCommonOpenSegments: a newer `open` Window reopens the span an older `busy` Window closed (ADR 0006)", () => {
+test("resolveCommonOpenSegments: a newer `looking` Window reopens the span an older `busy` Window closed (ADR 0006)", () => {
   const segments = resolveCommonOpenSegments({
     rangeStart: new Date("2026-08-20T00:00:00Z"),
     rangeEnd: new Date("2026-08-21T00:00:00Z"),
@@ -352,7 +352,7 @@ test("resolveCommonOpenSegments: a newer `open` Window reopens the span an older
             createdAt: "2026-08-15T00:00:00Z",
           },
           {
-            type: "open",
+            type: "looking",
             startsAt: "2026-08-20T11:00:00Z",
             endsAt: "2026-08-20T13:00:00Z",
             createdAt: "2026-08-18T00:00:00Z",
@@ -363,9 +363,9 @@ test("resolveCommonOpenSegments: a newer `open` Window reopens the span an older
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T11:00:00.000Z", endsAt: "2026-08-20T13:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T10:00:00.000Z" },
+    { startsAt: "2026-08-20T11:00:00.000Z", endsAt: "2026-08-20T13:00:00.000Z" },
+    { startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
@@ -386,16 +386,16 @@ test("resolveCommonOpenSegments: three people's staggered busy Windows leave the
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T08:00:00.000Z", endsAt: "2026-08-20T09:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T11:00:00.000Z", endsAt: "2026-08-20T12:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-20T16:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T18:00:00.000Z", endsAt: "2026-08-20T20:00:00.000Z" },
+    { startsAt: "2026-08-20T08:00:00.000Z", endsAt: "2026-08-20T09:00:00.000Z" },
+    { startsAt: "2026-08-20T11:00:00.000Z", endsAt: "2026-08-20T12:00:00.000Z" },
+    { startsAt: "2026-08-20T14:00:00.000Z", endsAt: "2026-08-20T16:00:00.000Z" },
+    { startsAt: "2026-08-20T18:00:00.000Z", endsAt: "2026-08-20T20:00:00.000Z" },
   ]);
 });
 
 test("resolveCommonOpenSegments: free slices merge across an internal boundary that doesn't change the state", () => {
-  // Person A is `open` 09:00-17:00 (an internal 09:00 and 17:00 boundary that
-  // must NOT split the free run); person B is busy 12:00-13:00.
+  // Person A is `looking` 09:00-17:00 (an internal 09:00 and 17:00 boundary
+  // that must NOT split the free run); person B is busy 12:00-13:00.
   const segments = resolveCommonOpenSegments({
     rangeStart: new Date("2026-08-20T00:00:00Z"),
     rangeEnd: new Date("2026-08-21T00:00:00Z"),
@@ -404,7 +404,7 @@ test("resolveCommonOpenSegments: free slices merge across an internal boundary t
         busyIntervals: [],
         windows: [
           {
-            type: "open",
+            type: "looking",
             startsAt: "2026-08-20T09:00:00Z",
             endsAt: "2026-08-20T17:00:00Z",
             createdAt: "2026-08-15T00:00:00Z",
@@ -426,8 +426,8 @@ test("resolveCommonOpenSegments: free slices merge across an internal boundary t
   });
 
   assert.deepEqual(segments, [
-    { type: "open", startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T12:00:00.000Z" },
-    { type: "open", startsAt: "2026-08-20T13:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
+    { startsAt: "2026-08-20T00:00:00.000Z", endsAt: "2026-08-20T12:00:00.000Z" },
+    { startsAt: "2026-08-20T13:00:00.000Z", endsAt: "2026-08-21T00:00:00.000Z" },
   ]);
 });
 
@@ -455,11 +455,11 @@ test("parseNewAvailabilityWindow: an all-day range is accepted, defaulting to bu
 
 test("parseNewAvailabilityWindow: an explicit type is honoured", () => {
   const result = parseNewAvailabilityWindow(
-    formData({ type: "open", all_day: "on", from_date: "2026-08-24", to_date: "2026-08-24" }),
+    formData({ type: "looking", all_day: "on", from_date: "2026-08-24", to_date: "2026-08-24" }),
   );
 
   assert.deepEqual(result, {
-    type: "open",
+    type: "looking",
     fromDate: "2026-08-24",
     toDate: "2026-08-24",
     startTime: null,

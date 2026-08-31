@@ -18,7 +18,7 @@ import { getFriendCalendarPageData } from "@/lib/booking-buddy/actions/friend-ca
 
 /**
  * The "View calendar" entry point from the friends list (issue #61) — a
- * Dialog instead of a route, so checking a friend's open time doesn't leave
+ * Dialog instead of a route, so checking a friend's availability doesn't leave
  * the friends list. Data loads on open rather than up front: the trigger
  * only ever renders for a friend `calendarVisibleFriendIds` already cleared
  * server-side (see `friends/page.tsx`), so the `null` this can still return
@@ -50,7 +50,7 @@ export function FriendCalendarDialog({
         <DialogHeader>
           <DialogTitle>{name}&apos;s calendar</DialogTitle>
           <DialogDescription>
-            Busy and open time only. No Slots, and nothing before today.
+            Availability only. No Slots, and nothing before today.
           </DialogDescription>
         </DialogHeader>
         {calendar.isPending ? (

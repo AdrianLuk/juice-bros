@@ -28,7 +28,7 @@ const EMPTY: ActionResult = {};
 
 const TYPE_OPTIONS: { value: AvailabilityType; label: string }[] = [
   { value: "busy", label: "Busy" },
-  { value: "open", label: "Open" },
+  { value: "looking", label: "Looking to play" },
 ];
 
 function ActionError({ state }: { state: ActionResult }) {
@@ -168,7 +168,7 @@ export function AvailabilityWindowRow({
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{rangeLabel}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {window.type === "busy" ? "Busy" : "Open"}
+          {window.type === "busy" ? "Busy" : "Looking to play"}
         </p>
       </div>
       <DeleteAvailabilityWindowButton windowId={window.id} />

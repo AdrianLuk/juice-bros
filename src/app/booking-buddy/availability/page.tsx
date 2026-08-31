@@ -20,9 +20,9 @@ import { formatAvailabilityWindowRange } from "@/lib/booking-buddy/availability"
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "@/lib/booking-buddy/orgs";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Open time",
+  title: "Availability",
   description:
-    "Block off the stretches you're open or busy, so friends know when to catch you for a game.",
+    "Mark the stretches you're looking to play or busy, so friends know when to catch you for a game.",
   path: "/booking-buddy/availability",
 });
 
@@ -50,8 +50,8 @@ export default async function AvailabilityPage() {
         <div className="mx-auto max-w-4xl">
           <PageHeading
             eyebrow="Booking Buddy"
-            title="Open time"
-            description="Mark when you're open or busy. It only shows on your calendar, and never blocks a game invite."
+            title="Availability"
+            description="Mark when you're looking to play or busy. It only shows on your calendar, and never blocks a game invite."
           />
           <BbSectionNav />
 
@@ -115,8 +115,8 @@ export default async function AvailabilityPage() {
                 Block off time
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Mark a stretch as open or busy. Friends can still ask about it,
-                this doesn&apos;t stop a game invite.
+                Mark a stretch as looking to play or busy. Friends can still ask
+                about it, this doesn&apos;t stop a game invite.
               </p>
               <div className="mt-4">
                 <CreateAvailabilityWindowForm />

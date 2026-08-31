@@ -134,7 +134,7 @@ export default async function JoinPage({
           <>
             <p className="text-sm text-muted-foreground">
               We&apos;ll send {ownerName} a friend request. Once they accept,
-              you can see each other&apos;s open time and invite each other to
+              you can see each other&apos;s availability and invite each other to
               games.
             </p>
             <InviteRequestButton ownerId={owner.id} ownerName={ownerName} />

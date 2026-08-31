@@ -4,7 +4,7 @@ import { AMY, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
 import { deleteAvailabilityWindows } from "./support/availability.ts";
 
 /**
- * The "Open time" page (issue #197) — Plan's second child. Its own list of the
+ * The "Availability" page (issue #197) — Plan's second child. Its own list of the
  * User's Availability Windows, plus the inline "Block off time" form, clicked
  * rather than asserted against the database.
  *
@@ -18,12 +18,12 @@ test.afterEach(async () => {
   await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
 });
 
-test("the Open time pill shows in the Plan section's secondary nav", async ({ page }) => {
+test("the Availability pill shows in the Plan section's secondary nav", async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy/availability");
 
   const pills = page.getByRole("navigation", { name: "Section" });
   await expect(pills.getByRole("link", { name: "Games" })).toBeVisible();
-  await expect(pills.getByRole("link", { name: "Open time" })).toHaveAttribute(
+  await expect(pills.getByRole("link", { name: "Availability" })).toHaveAttribute(
     "aria-current",
     "page",
   );

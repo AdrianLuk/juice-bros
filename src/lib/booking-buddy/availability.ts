@@ -17,12 +17,12 @@ import {
   todayInZone,
 } from "./datetime.ts";
 
-export type AvailabilityType = "open" | "busy";
+export type AvailabilityType = "looking" | "busy";
 export type ResolvedAvailability = AvailabilityType | "unspecified";
 
-const AVAILABILITY_TYPES: readonly AvailabilityType[] = ["open", "busy"];
+const AVAILABILITY_TYPES: readonly AvailabilityType[] = ["looking", "busy"];
 
-/** Defaults a form that omits/mangles the field to `busy` — declaring time off is the common case this form exists for. */
+/** Defaults a form that omits/mangles the field to `busy` — blocking off time you can't play is the common case this form exists for; marking yourself looking to play is deliberate. */
 const DEFAULT_AVAILABILITY_TYPE: AvailabilityType = "busy";
 
 export function isAvailabilityType(value: unknown): value is AvailabilityType {
@@ -91,6 +91,12 @@ export function resolveAvailability({
 
 export type AvailabilitySegment = {
   type: AvailabilityType;
+  startsAt: string;
+  endsAt: string;
+};
+
+/** A stretch where everyone in a "Find a time" comparison is free — no open/busy nature, just a span. */
+export type CommonFreeSegment = {
   startsAt: string;
   endsAt: string;
 };
@@ -179,18 +185,20 @@ export function resolveAvailabilitySegments({
  * The stretches over `[rangeStart, rangeEnd)` where *every* one of `people` is
  * free — `resolveAvailability` returning anything but `"busy"` for them. What
  * the "Find a time" view (issue #195) intersects to answer "when are we all
- * open."
+ * free."
  *
  * "Free" here deliberately includes `"unspecified"`: someone who has declared
  * nothing is counted available, so a time surfaces as soon as nobody is
- * actually busy — you don't have to have painstakingly marked open time, only
- * to not be busy. `busy` means a Booking/confirmed Slot covering the moment,
- * or the Availability Window that wins ADR 0006 precedence there being `busy`.
+ * actually busy — you don't have to have painstakingly marked your
+ * availability, only to not be busy. `busy` means a Booking/confirmed Slot
+ * covering the moment, or the Availability Window that wins ADR 0006
+ * precedence there being `busy`.
  *
  * Same plain boundary sweep as `resolveAvailabilitySegments`: every person's
  * busyInterval/window edges, clamped into range, become cut points; a
  * sub-interval survives only if all people are non-busy at its midpoint;
- * adjacent survivors merge. Returned segments are all `type: "open"`.
+ * adjacent survivors merge. Returned segments carry just a start and end —
+ * they have no open/busy nature, only "everyone is free here".
  */
 export function resolveCommonOpenSegments({
   rangeStart,
@@ -200,7 +208,7 @@ export function resolveCommonOpenSegments({
   rangeStart: Date;
   rangeEnd: Date;
   people: { busyIntervals: BusyInterval[]; windows: AvailabilityWindow[] }[];
-}): AvailabilitySegment[] {
+}): CommonFreeSegment[] {
   const rangeStartMs = rangeStart.getTime();
   const rangeEndMs = rangeEnd.getTime();
 
@@ -218,7 +226,7 @@ export function resolveCommonOpenSegments({
 
   const sorted = [...boundaries].sort((a, b) => a - b);
 
-  const segments: AvailabilitySegment[] = [];
+  const segments: CommonFreeSegment[] = [];
 
   for (let i = 0; i < sorted.length - 1; i++) {
     const start = sorted[i];
@@ -245,7 +253,6 @@ export function resolveCommonOpenSegments({
       last.endsAt = new Date(end).toISOString();
     } else {
       segments.push({
-        type: "open",
         startsAt: new Date(start).toISOString(),
         endsAt: new Date(end).toISOString(),
       });

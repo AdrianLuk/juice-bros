@@ -44,7 +44,7 @@ test("moving between sections follows the nav's own order", () => {
 });
 
 test("moving between siblings in one section follows the sibling order", () => {
-  // Games → Open time → Find a time
+  // Games → Availability → Find a time
   assert.equal(
     bookingBuddyNavDirection(`${ROOT}/slots`, `${ROOT}/availability`),
     "forward",
