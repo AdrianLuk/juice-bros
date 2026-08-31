@@ -122,3 +122,9 @@ Default label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-h
 ### Domain docs
 
 Multi-context layout: root `CONTEXT-MAP.md` indexes per-context `CONTEXT.md` files (currently just `booking-buddy/`). See `docs/agents/domain.md`.
+
+## Git Workflow & Worktrees
+- Always perform code changes, feature development, or refactoring in an isolated Git worktree rather than the main working directory.
+- Use `.claude/worktrees/` for task isolation or spin up subagents with worktree isolation enabled.
+- Never commit directly or make destructive changes to the main checkout branch.
+
