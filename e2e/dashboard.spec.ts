@@ -268,9 +268,9 @@ test("a Booking always renders as busy over an overlapping Availability Window",
     startsAt: `${bookingDate.iso}T16:00:00Z`,
     endsAt: `${bookingDate.iso}T18:00:00Z`,
   });
-  // Open declared 6-7pm local, with nothing booked over it — should render plainly.
+  // Looking-to-play declared 6-7pm local, with nothing booked over it — should render plainly.
   await insertAvailabilityWindow(user, {
-    type: "open",
+    type: "looking",
     startsAt: `${bookingDate.iso}T22:00:00Z`,
     endsAt: `${bookingDate.iso}T23:00:00Z`,
   });
@@ -293,8 +293,8 @@ test("a Booking always renders as busy over an overlapping Availability Window",
   await expect(page.locator('[title*="Busy: 1:00 PM"]')).toHaveCount(0);
   // The Busy declaration still surfaces either side of the Booking it doesn't cover.
   await expect(page.locator('[title^="Busy: 12:00 PM"]')).toHaveCount(1);
-  // The unrelated Open declaration, nowhere near a Booking, renders untouched.
-  await expect(page.locator('[title^="Open: 6:00 PM"]')).toHaveCount(1);
+  // The unrelated Looking-to-play declaration, nowhere near a Booking, renders untouched.
+  await expect(page.locator('[title^="Looking to play: 6:00 PM"]')).toHaveCount(1);
 
   await removePlace(page, place);
   await deleteAvailabilityWindows(user);

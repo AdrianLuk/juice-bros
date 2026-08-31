@@ -143,9 +143,9 @@ export function BookingBuddyLanding() {
         flip
         muted
       >
-        Everyone shares their open and busy time with the friends they choose.
-        Looking for a fourth? See who&apos;s actually free instead of texting six
-        people one at a time.
+        Everyone shares their availability with the friends they choose. Looking
+        for a fourth? See who&apos;s actually free instead of texting six people
+        one at a time.
       </FeatureRow>
 
       <FeatureRow
@@ -154,7 +154,7 @@ export function BookingBuddyLanding() {
         visual={<OverlapPreview />}
       >
         Pick the friends you want in, and Booking Buddy checks everyone&apos;s
-        open time against yours. It shows the days you can all actually make,
+        availability against yours. It shows the days you can all actually make,
         with a button to float a game for one without leaving the page.
       </FeatureRow>
 

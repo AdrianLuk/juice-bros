@@ -56,7 +56,7 @@ function FriendBookingDetails({ booking }: { booking: FriendVisibleBooking }) {
  * shell the owner's own dashboard uses (`DashboardCalendar`), pointed at a
  * Connection's resolved busy time instead. No `quickActions` (nothing to
  * create here) and `restrictToFuture` set, so navigation can't reach the
- * friend's past and their past busy/open time is filtered out of what
+ * friend's past and their past busy/looking-to-play time is filtered out of what
  * renders — the two things that make this view read-only and
  * forward-looking, per the ticket's own acceptance criteria.
  *

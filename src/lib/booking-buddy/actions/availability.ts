@@ -18,15 +18,15 @@ export type { ActionResult } from "./result.ts";
 
 /**
  * An `AvailabilityWindow` plus the `id` a delete needs — the shape both the
- * "Open time" page (`listAvailabilityWindows`) and the dashboard
+ * "Availability" page (`listAvailabilityWindows`) and the dashboard
  * (`getDashboardPageData`) hand their windows over in.
  */
 export type AvailabilityWindowRecord = AvailabilityWindow & { id: string };
 
 /**
  * The caller's own Availability Windows, oldest first — the one read behind
- * both the "Open time" page (issue #197) and the dashboard calendar/sidebar
- * (ADR 0006). Raw rows: the "Open time" page splits them into upcoming/past
+ * both the "Availability" page (issue #197) and the dashboard calendar/sidebar
+ * (ADR 0006). Raw rows: the "Availability" page splits them into upcoming/past
  * and the dashboard resolves them against Bookings per visible range, so
  * neither wants them pre-filtered here.
  */
@@ -99,7 +99,7 @@ export async function createAvailabilityWindow(
   }
 
   // Rendered on the dashboard (calendar overlay + sidebar list) and on the
-  // "Open time" page's own list (issue #197) — revalidate both.
+  // "Availability" page's own list (issue #197) — revalidate both.
   revalidatePath(BOOKING_BUDDY_ROOT);
   revalidatePath(AVAILABILITY_PATH);
   return { ok: true };

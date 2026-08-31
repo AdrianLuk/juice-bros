@@ -9,3 +9,7 @@ Availability Windows (see [../../CONTEXT.md](../../CONTEXT.md)) can describe the
 ## Consequences
 
 Reading "what does this User's calendar say for time T" needs a resolver function (check Bookings/confirmed Slots first, then max-by-`created_at` over overlapping Availability Windows), not a single-row lookup — that's the cost paid for cheap edits. Nothing enforces that a User's explicit windows agree with their real Bookings; that's deliberate, not an oversight — see Availability Window's "entirely informational" note.
+
+## Amendment (issue #229, 2026-08-31)
+
+The `open` Availability Window type was renamed `looking` ("Looking to play") — enum value and all (migration `20260831140000`). The precedence rule above is unchanged: a `looking` window resolves exactly where an `open` one did, and step (2) still reads "the most recently created window wins" regardless of type. Prose in this ADR that says "Open window" now means a `looking` window.

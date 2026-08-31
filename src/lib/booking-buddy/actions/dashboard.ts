@@ -39,7 +39,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
 
   const [{ orgs, bookings }, availabilityWindows, slotCountResult] = await Promise.all([
     getBookingsPageData(),
-    // The same owner-scoped read the "Open time" page runs — shared so a
+    // The same owner-scoped read the "Availability" page runs — shared so a
     // column or scope change lands in one place (it throws its own `readFailed`
     // on error).
     listAvailabilityWindows(),

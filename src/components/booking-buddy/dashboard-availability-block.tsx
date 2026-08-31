@@ -13,7 +13,7 @@ import type { AvailabilityType } from "@/lib/booking-buddy/availability";
  * device Google Calendar uses for a declared-busy stretch — which keeps
  * "busy" from reading as an error/destructive state (that color is reserved
  * for the app's actual destructive actions) while still standing apart from
- * `open`'s plain dashed tint.
+ * `looking`'s plain dashed tint.
  */
 export function DashboardAvailabilityBlock({
   type,
@@ -33,7 +33,7 @@ export function DashboardAvailabilityBlock({
       aria-hidden={label ? undefined : true}
       className={cn(
         "pointer-events-none flex items-center justify-center overflow-hidden rounded-sm border px-1 py-0.5",
-        type === "open"
+        type === "looking"
           ? "border-dashed border-accent-foreground/25 bg-accent/25"
           : "border-border bg-muted",
         className,
@@ -52,7 +52,7 @@ export function DashboardAvailabilityBlock({
         aria-hidden="true"
         className="truncate text-base leading-none font-bold text-foreground/70"
       >
-        {type === "open" ? "Open" : "Busy"}
+        {type === "looking" ? "Looking" : "Busy"}
       </span>
     </div>
   );

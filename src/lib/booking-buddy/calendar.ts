@@ -273,7 +273,7 @@ export function upcomingBookings<T extends { startsAt: string }>(
 /**
  * Items that haven't fully ended before `floor` — what `DashboardCalendar`'s
  * `restrictToFuture` (issue #61) filters both events and Availability
- * Windows through, so a friend's calendar never renders busy/open time from
+ * Windows through, so a friend's calendar never renders busy/looking-to-play time from
  * before today, even within the currently-displayed week or month, which
  * always renders as a full grid (past days included) regardless of how far
  * back navigation itself is allowed to go.

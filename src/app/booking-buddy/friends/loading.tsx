@@ -5,7 +5,7 @@ export default function Loading() {
   return (
     <BbPageSkeleton
       title="Friends"
-      description="Connections are mutual. Once you're both in, you can see each other's open time."
+      description="Connections are mutual. Once you're both in, you can see each other's availability."
     />
   );
 }

@@ -57,7 +57,7 @@ const VIEWS: { id: CalendarView; label: string }[] = [
  * `events`/`availabilityWindows` are pre-filtered to drop anything that
  * ended before today — otherwise the currently-displayed week or month,
  * which always renders as a full grid, would still show the friend's real
- * past busy/open time on any day before today that happens to fall in the
+ * past busy/looking-to-play time on any day before today that happens to fall in the
  * *current* week/month (e.g. Sunday–Tuesday of the week "today" sits in).
  * Filtering the data is what actually satisfies "a friend cannot see your
  * past," not just the navigation bound — issue #61's own acceptance
@@ -156,7 +156,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
   // which always renders as a full grid, from showing days before today that
   // happen to fall in the current period (e.g. Sunday–Tuesday of the week
   // "today" sits in). Filtering here is what actually keeps a friend's past
-  // busy/open time off the screen, not the navigation bound alone.
+  // busy/looking-to-play time off the screen, not the navigation bound alone.
   const visibleEvents = useMemo(
     () => (minAnchor ? notEndedBefore(events, minAnchor) : events),
     [events, minAnchor],

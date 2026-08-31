@@ -19,12 +19,12 @@ export const landingFaqs: Faq[] = [
   {
     question: "How do I find a time that works for everyone?",
     answer:
-      "Pick the friends you want to play with and Booking Buddy shows the days and times you're all free, based on the open time each of them shares with you. You can propose a game for any of those slots without leaving the page.",
+      "Pick the friends you want to play with and Booking Buddy shows the days and times you're all free, based on the availability each of them shares with you. You can propose a game for any of those slots without leaving the page.",
   },
   {
     question: "Who can see my calendar?",
     answer:
-      "Only the friends you've connected with, and only as much as you choose to share with each group: your open time, the games you invite them to, both, or nothing. None of it is public.",
+      "Only the friends you've connected with, and only as much as you choose to share with each group: your availability, the games you invite them to, both, or nothing. None of it is public.",
   },
   {
     question: "Does it book courts for me?",

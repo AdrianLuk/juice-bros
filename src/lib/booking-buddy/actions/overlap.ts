@@ -114,7 +114,7 @@ export async function getFriendAvailability(
     { owner_users: unique },
   );
   if (visibleError) {
-    readFailed("whose open time you can see", visibleError);
+    readFailed("whose availability you can see", visibleError);
   }
   const visibleIds = (visibleData ?? []) as string[];
   if (visibleIds.length === 0) {
@@ -136,7 +136,7 @@ export async function getFriendAvailability(
     readFailed("your friends' booked time", bookingsResult.error);
   }
   if (windowsResult.error) {
-    readFailed("your friends' open time", windowsResult.error);
+    readFailed("your friends' availability", windowsResult.error);
   }
 
   return visibleIds.map((userId) => ({

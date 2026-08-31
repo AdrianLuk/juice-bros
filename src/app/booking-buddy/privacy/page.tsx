@@ -74,7 +74,7 @@ export default async function BookingBuddyPrivacyPage() {
 
           <Section title="Bookings, Slots, and friends">
             <p>
-              Facilities, bookings, open time Slots, availability windows, and friend
+              Facilities, bookings, Slots, availability windows, and friend
               connections/groups you create are stored so the app can show your
               calendar and let you coordinate with the people you&apos;ve connected
               with. This data is visible only to you and to the friends you&apos;ve

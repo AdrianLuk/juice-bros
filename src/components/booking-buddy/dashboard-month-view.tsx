@@ -28,11 +28,11 @@ const SPAN_DATE_LABEL = new Intl.DateTimeFormat("en-US", {
 
 /** "Busy: Aug 3, 9:00 AM – Aug 5, 5:00 PM" — the Week view's block always
  * builds a range label (`dashboard-week-view.tsx`); this bar previously read
- * only "Busy"/"Open" to a screen reader, with no indication of when. */
+ * only "Busy"/"Looking to play" to a screen reader, with no indication of when. */
 function formatSpanLabel(segment: AvailabilitySegment): string {
   const startMs = new Date(segment.startsAt).getTime();
   const endMs = new Date(segment.endsAt).getTime();
-  const label = segment.type === "busy" ? "Busy" : "Open";
+  const label = segment.type === "busy" ? "Busy" : "Looking to play";
   return `${label}: ${SPAN_DATE_LABEL.format(startMs)}, ${formatTimeLabelFromMs(startMs)} – ${SPAN_DATE_LABEL.format(endMs)}, ${formatTimeLabelFromMs(endMs)}`;
 }
 
@@ -223,7 +223,7 @@ function AvailabilitySpanBar({
   isStart: boolean;
   isEnd: boolean;
 }) {
-  const label = segment.type === "busy" ? "Busy" : "Open";
+  const label = segment.type === "busy" ? "Busy" : "Looking";
 
   return (
     <div

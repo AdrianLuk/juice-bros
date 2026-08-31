@@ -25,16 +25,16 @@ export function slotPath(slotId: string): string {
 }
 
 /**
- * Availability Windows ("open time") — Plan's second child. The user-facing
- * label is "Open time", not "Availability" (CONTEXT.md's own steer), but the
- * path keeps the entity's informal name.
+ * Availability Windows — Plan's second child. The user-facing label is
+ * "Availability" (it holds `busy` blocks too, so the old "Open time" always
+ * mislabelled it; issue #229 reframed the `open` type as "Looking to play").
  */
 export const AVAILABILITY_PATH = `${BOOKING_BUDDY_ROOT}/availability`;
 
 /**
  * Group availability overlap ("Find a time", issue #195) — Plan's third child.
- * The user-facing label is "Find a time" (task-framed, matching "Open time"
- * over "Availability"); the path keeps the shorter internal name.
+ * The user-facing label is "Find a time" (task-framed); the path keeps the
+ * shorter internal name.
  */
 export const OVERLAP_PATH = `${BOOKING_BUDDY_ROOT}/overlap`;
 
@@ -60,7 +60,7 @@ export function joinPath(token: string): string {
  * more than one, the siblings shown in the desktop dropdown and in the pill row
  * under the page heading. Section labels repeat the primary child's label
  * (GitHub's "Code" tab pattern) except where a section genuinely spans two
- * peers ("Plan" over Games + Open time, "Bookings" over Bookings + Facilities).
+ * peers ("Plan" over Games + Availability, "Bookings" over Bookings + Facilities).
  *
  * Kept here beside the path constants and free of Next / icon imports, so the
  * layout nav and the pill row share one definition of the tree — unit-tested
@@ -86,7 +86,7 @@ export const BB_SECTIONS: readonly BbSection[] = [
     primary: SLOTS_PATH,
     children: [
       { label: "Games", href: SLOTS_PATH },
-      { label: "Open time", href: AVAILABILITY_PATH },
+      { label: "Availability", href: AVAILABILITY_PATH },
       { label: "Find a time", href: OVERLAP_PATH },
     ],
   },

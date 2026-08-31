@@ -4,7 +4,7 @@ const LOCAL_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
 /**
- * Availability Windows have a create/delete UI now (the "Open time" page,
+ * Availability Windows have a create/delete UI now (the "Availability" page,
  * issue #197, and the dashboard quick-add), but the calendar-rendering tests
  * in `dashboard.spec.ts` need windows at *precise* UTC instants relative to a
  * Booking — something the day/hour-granularity form can't express — so those
@@ -31,7 +31,7 @@ async function sessionFor(email: string, password: string): Promise<{ accessToke
 /** `owner_id` has no column default (unlike RLS, which only checks whatever is written) — every insert has to name it explicitly, the same way `createBooking` does. */
 export async function insertAvailabilityWindow(
   user: { email: string; password: string },
-  window: { type: "open" | "busy"; startsAt: string; endsAt: string },
+  window: { type: "looking" | "busy"; startsAt: string; endsAt: string },
 ): Promise<void> {
   const { accessToken, userId } = await sessionFor(user.email, user.password);
 

@@ -44,7 +44,7 @@ export default async function FriendsPage() {
           <PageHeading
             eyebrow="Booking Buddy"
             title="Friends"
-            description="Connections are mutual. Once you're both in, you can see each other's open time."
+            description="Connections are mutual. Once you're both in, you can see each other's availability."
           />
           <BbSectionNav />
 
@@ -146,7 +146,7 @@ export default async function FriendsPage() {
                             confirm={{
                               title: `Remove ${personLabel(friend.person)}?`,
                               description:
-                                "You'll both stop seeing each other's open time, and they aren't told. You can send a new request later, but they'd have to accept it again.",
+                                "You'll both stop seeing each other's availability, and they aren't told. You can send a new request later, but they'd have to accept it again.",
                             }}
                           />
                         </>

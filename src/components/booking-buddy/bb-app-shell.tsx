@@ -48,7 +48,7 @@ const SECTION_ICON: Record<BbSectionId, LucideIcon> = {
 
 const CHILD_ICON: Record<string, LucideIcon> = {
   Games: CalendarClockIcon,
-  "Open time": CalendarRangeIcon,
+  Availability: CalendarRangeIcon,
   "Find a time": CalendarSearchIcon,
   Bookings: CalendarCheckIcon,
   Facilities: MapPinIcon,

@@ -78,7 +78,7 @@ export async function getFriendCalendarPageData(
     readFailed("their busy time", bookingsResult.error);
   }
   if (windowsResult.error) {
-    readFailed("their open time", windowsResult.error);
+    readFailed("their availability", windowsResult.error);
   }
 
   return {
