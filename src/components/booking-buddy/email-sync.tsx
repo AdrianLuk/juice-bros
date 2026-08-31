@@ -79,7 +79,7 @@ export function GmailSyncSection({
               </form>
             )}
             <form action={disconnectAction}>
-              <Button type="submit" variant="outline" disabled={pending}>
+              <Button type="submit" variant="destructive" disabled={pending}>
                 {pending ? "Disconnecting…" : "Disconnect"}
               </Button>
             </form>
