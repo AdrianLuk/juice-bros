@@ -4,6 +4,24 @@ A live-event court rotation app for pickleball socials, living under the Juice B
 
 Distinct from [Booking Buddy](../booking-buddy/CONTEXT.md): Booking Buddy coordinates *before* an event (who's free, book a court); On Deck runs the two hours *during* one. No shared entities.
 
+## Architecture
+
+A live Session's entire state is a **fold over an append-only event log**:
+`reduceSession(config, events) → SessionState`, one pure function, mirroring
+Pickle Point Pal's `reduceMatch`. Queue order, wait times, court occupancy, On
+Deck foursomes, and Session Summary counters all derive from it. The fold never
+reads the wall clock (events carry their own `at`), selection tie-breaks derive
+from a seed in the config (never `Math.random()`), and **undo is dropping the
+last event** and re-folding. The fold, its types, and its selectors use
+relative imports only — `node --test` cannot resolve the `@/` alias.
+
+Three tables back it: `on_deck_clubs` (the tenant, seeded by hand),
+`on_deck_sessions` (one open per Club at a time, enforced), and
+`on_deck_session_events`. Access follows Booking Buddy's hybrid RLS posture
+(its ADR 0003) with one On Deck twist: an *open* Session and its log are
+readable with no account, because everyone at the venue reads the same board
+(see [adr/0006-open-session-is-public-to-the-venue.md](docs/adr/0006-open-session-is-public-to-the-venue.md)).
+
 ## Organizing
 
 **Club**:

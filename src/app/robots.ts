@@ -13,6 +13,7 @@ import {
   SLOTS_PATH,
   SLOT_LINK_ROOT,
 } from "@/lib/booking-buddy/routes";
+import { ON_DECK_HOME_PATH, ON_DECK_ROOT } from "@/lib/on-deck/routes";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -35,6 +36,12 @@ export default function robots(): MetadataRoute.Robots {
         SETTINGS_PATH,
         `${JOIN_PATH}/`,
         `${SLOT_LINK_ROOT}/`,
+        // On Deck: the /on-deck landing page stays crawlable; the Organizer
+        // home, the QR resolver, and the live Session view do not — they
+        // redirect, gate, or are a live-event surface, not a page.
+        ON_DECK_HOME_PATH,
+        `${ON_DECK_ROOT}/c/`,
+        `${ON_DECK_ROOT}/session/`,
       ],
     },
     sitemap: `${siteConfig.url}/sitemap.xml`,
