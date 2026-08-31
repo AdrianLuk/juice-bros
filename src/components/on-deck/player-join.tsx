@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -16,37 +16,12 @@ import {
   SKILL_LEVEL_LABEL,
   type SkillLevel,
 } from "@/lib/on-deck/session/types";
+import { newPlayerToken, savePlayerToken } from "@/components/on-deck/player-token";
 import {
-  loadPlayerToken,
-  newPlayerToken,
-  savePlayerToken,
-} from "@/components/on-deck/player-token";
-
-const TOKEN_CHANGED_EVENT = "on-deck:player-token";
-
-/**
- * The Player's device token, read through `useSyncExternalStore` so it is
- * `null` during SSR and hydration (no mismatch) and the real value straight
- * after. `savePlayerToken` fires `TOKEN_CHANGED_EVENT` so a join in this tab
- * re-reads without a reload.
- */
-function usePlayerToken(sessionId: string): string | null {
-  const subscribe = useCallback((onChange: () => void) => {
-    if (typeof window === "undefined") return () => {};
-    window.addEventListener("storage", onChange);
-    window.addEventListener(TOKEN_CHANGED_EVENT, onChange);
-    return () => {
-      window.removeEventListener("storage", onChange);
-      window.removeEventListener(TOKEN_CHANGED_EVENT, onChange);
-    };
-  }, []);
-
-  return useSyncExternalStore(
-    subscribe,
-    () => loadPlayerToken(sessionId),
-    () => null,
-  );
-}
+  TOKEN_CHANGED_EVENT,
+  usePlayerToken,
+} from "@/components/on-deck/use-player-token";
+import { QueueStatus } from "@/components/on-deck/queue-status";
 
 /**
  * The Player's side of a running Session: a two-tap setup (name, then Skill
@@ -137,9 +112,10 @@ export function PlayerJoin({ sessionId }: { sessionId: string }) {
           Playing as {SKILL_LEVEL_LABEL[me.skillLevel]}
         </p>
         <p className="mt-6 text-sm text-muted-foreground">
-          That&apos;s it — you can put your phone away. Reopen the sign any time
-          on this device and it&apos;ll know it&apos;s you.
+          Reopen the sign any time on this device and it&apos;ll know it&apos;s
+          you.
         </p>
+        {token && <QueueStatus sessionId={sessionId} token={token} />}
       </div>
     );
   }

@@ -5,6 +5,7 @@ import {
   ON_DECK_HOME_PATH,
   ON_DECK_SIGN_IN_PATH,
   clubQrPath,
+  floorPath,
   requiresOrganizerSession,
   safeRedirectTarget,
   sessionPath,
@@ -21,6 +22,12 @@ test("only the Organizer subtree requires a session", () => {
   assert.equal(requiresOrganizerSession("/booking-buddy/friends"), false);
 });
 
+test("the floor screen under a Session is Organizer-only", () => {
+  assert.equal(requiresOrganizerSession("/on-deck/session/abc/floor"), true);
+  assert.equal(requiresOrganizerSession("/on-deck/session/abc/floor/"), true);
+  assert.equal(requiresOrganizerSession("/on-deck/session/abc"), false);
+});
+
 test("the prefix alone does not make a route On Deck's", () => {
   assert.equal(requiresOrganizerSession("/on-deck-press-kit"), false);
 });
@@ -28,6 +35,7 @@ test("the prefix alone does not make a route On Deck's", () => {
 test("path builders produce the stable shapes the proxy and pages share", () => {
   assert.equal(clubQrPath("club-1"), "/on-deck/c/club-1");
   assert.equal(sessionPath("session-1"), "/on-deck/session/session-1");
+  assert.equal(floorPath("session-1"), "/on-deck/session/session-1/floor");
 });
 
 test("safeRedirectTarget only ever returns an On Deck path", () => {

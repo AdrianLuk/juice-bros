@@ -2,6 +2,17 @@
 const LOCAL_SUPABASE_API_URL = "http://127.0.0.1:54321";
 const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const LOCAL_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+
+/** Headers a Player's phone would send — no account, the anon key only. */
+function anonHeaders(): Record<string, string> {
+  return {
+    apikey: LOCAL_SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${LOCAL_SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
 
 function serviceRoleHeaders(): Record<string, string> {
   return {
@@ -67,6 +78,54 @@ export async function seedClubForOrganizer(
   }
   const [created] = (await res.json()) as { id: string }[];
   return created.id;
+}
+
+/**
+ * Drives the `anon`-callable RPCs a Player's phone would hit — used to stand
+ * up a roster and a Queue for the rotation-loop journey (#243) without
+ * spinning up a browser context per Player.
+ */
+export async function joinPlayerViaRpc(
+  sessionId: string,
+  token: string,
+  firstName: string,
+  lastInitial: string,
+  skillLevel = "intermediate",
+): Promise<void> {
+  const res = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/rpc/on_deck_join_session`,
+    {
+      method: "POST",
+      headers: anonHeaders(),
+      body: JSON.stringify({
+        p_session_id: sessionId,
+        p_token: token,
+        p_first_name: firstName,
+        p_last_initial: lastInitial,
+        p_skill_level: skillLevel,
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`join RPC failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+export async function queuePlayerViaRpc(
+  sessionId: string,
+  token: string,
+): Promise<void> {
+  const res = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/rpc/on_deck_queue_player`,
+    {
+      method: "POST",
+      headers: anonHeaders(),
+      body: JSON.stringify({ p_session_id: sessionId, p_token: token }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`queue RPC failed: ${res.status} ${await res.text()}`);
+  }
 }
 
 /** Tears down the Club and everything cascading off it (Sessions, events). */
