@@ -56,20 +56,29 @@ async function search(page: Page, handle: string) {
  * without a reset the second test would find a friendship the first left.
  */
 async function disconnect(page: Page) {
-  await page.goto("/booking-buddy/friends");
-
   const row = personRow(page, BEN_2_HANDLE).or(personRow(page, AMY_2_HANDLE));
   const buttons = row.getByRole("button", { name: /^(Remove|Cancel|Decline)$/ });
 
-  while ((await buttons.count()) > 0) {
+  for (;;) {
+    await page.goto("/booking-buddy/friends");
+    // The route streams behind `friends/loading.tsx` (#221), so `load` fires
+    // on the skeleton — wait for the real page (the search field, which the
+    // skeleton has no equivalent of) before counting, since `count()` doesn't
+    // retry the way a web-first assertion would.
+    await expect(page.getByLabel("Search for someone")).toBeVisible();
+
+    if ((await buttons.count()) === 0) {
+      return;
+    }
+
     const label = await buttons.first().textContent();
     await buttons.first().click();
     // Only unfriending is behind a dialog; declining and cancelling are not.
     if (label?.trim() === "Remove") {
       await page.getByRole("button", { name: "Remove", exact: true }).last().click();
     }
-    await page.waitForTimeout(250);
-    await page.goto("/booking-buddy/friends");
+    // Wait for the mutation + revalidation to land — the row leaves the list.
+    await expect(buttons).toHaveCount(0);
   }
 }
 

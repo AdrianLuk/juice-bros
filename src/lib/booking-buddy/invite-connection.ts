@@ -1,9 +1,11 @@
 import "server-only";
 
+import { after } from "next/server";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { INVITE_COOKIE, parseInviteToken } from "./invite-links.ts";
+import { notifyNewConnectionRequest } from "./connection-request-notify.ts";
 
 /**
  * Turning a held invite token into a pending friend request, shared by the
@@ -47,11 +49,17 @@ export async function createInviteConnection(
     return "self";
   }
 
-  const { error } = await supabase
+  const { data: created, error } = await supabase
     .from("connections")
-    .insert({ requester_id: requesterId, addressee_id: ownerId });
+    .insert({ requester_id: requesterId, addressee_id: ownerId })
+    .select("id")
+    .single();
 
   if (!error) {
+    // Email the link owner so they can accept from their inbox (#228) — the
+    // same notification the Friends-page request path sends. Best-effort,
+    // after the response.
+    after(() => notifyNewConnectionRequest(created.id));
     return "requested";
   }
 

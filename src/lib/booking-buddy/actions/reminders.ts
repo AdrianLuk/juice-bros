@@ -49,6 +49,8 @@ export type NotificationPreferences = {
   pushEnabled: boolean;
   /** Independent of `emailEnabled` — governs the Booking Window Reminder (issue #36), not the attendee Reminder (issue #11). */
   bookingWindowEmailEnabled: boolean;
+  /** Independent of the two above — governs the friend-request email (issue #228). */
+  connectionRequestEmailEnabled: boolean;
 };
 
 /**
@@ -60,6 +62,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   emailEnabled: true,
   pushEnabled: false,
   bookingWindowEmailEnabled: true,
+  connectionRequestEmailEnabled: true,
 };
 
 /** The signed-in User's own notification preferences, defaulted if they've never set any. */
@@ -69,7 +72,9 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 
   const { data, error } = await supabase
     .from("notification_preferences")
-    .select("email_enabled, push_enabled, booking_window_email_enabled")
+    .select(
+      "email_enabled, push_enabled, booking_window_email_enabled, connection_request_email_enabled",
+    )
     .eq("user_id", session.userId)
     .maybeSingle();
 
@@ -84,6 +89,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
     emailEnabled: data.email_enabled,
     pushEnabled: data.push_enabled,
     bookingWindowEmailEnabled: data.booking_window_email_enabled,
+    connectionRequestEmailEnabled: data.connection_request_email_enabled,
   };
 }
 
@@ -107,6 +113,36 @@ export async function updateEmailRemindersEnabled(
   const { error } = await supabase
     .from("notification_preferences")
     .upsert({ user_id: session.userId, email_enabled: emailEnabled }, { onConflict: "user_id" });
+
+  if (error) {
+    return { error: "Couldn't save that. Try again." };
+  }
+
+  revalidatePath(SETTINGS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Toggle the friend-request email on or off (issue #228) — its own preference,
+ * independent of the two Reminder toggles. Same shape as the others, touching
+ * only its own column.
+ */
+export async function updateConnectionRequestEmailsEnabled(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const connectionRequestEmailEnabled =
+    formData.get("connection_request_email_enabled") === "on";
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("notification_preferences").upsert(
+    {
+      user_id: session.userId,
+      connection_request_email_enabled: connectionRequestEmailEnabled,
+    },
+    { onConflict: "user_id" },
+  );
 
   if (error) {
     return { error: "Couldn't save that. Try again." };

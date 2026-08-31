@@ -6,6 +6,7 @@
  * and you must change the other.
  */
 
+import { escapeHtml } from "./escape-html.ts";
 import type { ResponseAnswer } from "./responses.ts";
 
 export const DEFAULT_REMINDER_OFFSET_MINUTES = 60;
@@ -133,15 +134,6 @@ export function shouldSendReminder(params: {
   }
 
   return params.channel === "email" ? params.emailEnabled : params.pushEnabled;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 /** Title, body and target URL for one Reminder push notification (issue #12) — pure, no I/O. */
