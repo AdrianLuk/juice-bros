@@ -59,7 +59,7 @@ Design settled via a domain-modeling/grilling session — see [CONTEXT.md](CONTE
 
 ## Manual (Adrian, not Claude Code)
 
-- [ ] Google Search Console + Bing Webmaster Tools, submit sitemap
+- [x] Google Search Console + Bing Webmaster Tools, submit sitemap — site submitted to both, done by Adrian
 - [x] Run an episode page through Google's Rich Results Test once deployed, to validate the `PodcastEpisode`/`VideoObject`/`BreadcrumbList` JSON-LD (#141) — done, clean
 - [x] Run `/gear`, `/tools`, `/tools/pickle-point-pal`, and `/podcast` through Google's Rich Results Test once deployed, to validate the `Product`/`SoftwareApplication`/`ItemList`/`BreadcrumbList` JSON-LD (#165) — done, clean
 - [x] Re-run `/tools/pickle-point-pal` through the Rich Results Test — it now also emits `FAQPage` JSON-LD alongside the existing nodes — done by Adrian
