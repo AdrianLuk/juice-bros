@@ -90,6 +90,22 @@ function toEvent(row: EventRow): SessionEvent | null {
       };
     }
 
+    case "PLAYER_QUEUED": {
+      const token = (row.payload ?? {}).token;
+      if (typeof token !== "string") {
+        return null;
+      }
+      return { type: "PLAYER_QUEUED", at, operator, token };
+    }
+
+    case "COURT_FINISHED": {
+      const court = (row.payload ?? {}).court;
+      if (typeof court !== "number" || !Number.isInteger(court)) {
+        return null;
+      }
+      return { type: "COURT_FINISHED", at, operator, court };
+    }
+
     default:
       return null;
   }

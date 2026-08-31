@@ -1,4 +1,5 @@
 import type {
+  CourtSlot,
   RosterPlayer,
   SessionConfig,
   SessionEvent,
@@ -38,6 +39,31 @@ function displayNameFor(
 }
 
 /**
+ * Re-sort the Queue longest-wait-first. `Array.prototype.sort` is stable, so
+ * Players who began waiting at the same instant — the four coming off a Court
+ * together — keep the order they were added in.
+ */
+function sortQueue(queue: SessionState["queue"]): void {
+  queue.sort((a, b) => a.waitSince - b.waitSince);
+}
+
+/**
+ * Seat the longest-waiting Foursome from the Queue onto one freed Court
+ * (ADR 0004). Naive selection for #243 — the four at the front of the Queue
+ * walk on. Fewer than four waiting: the Court stays empty until there are.
+ *
+ * Only ever fills the Court named by a `COURT_FINISHED` event, one at a time,
+ * so several finishing together fold sequentially with the Foursome removed
+ * from the Queue before the next Court is filled.
+ */
+function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
+  if (state.queue.length < 4) return;
+  const four = state.queue.splice(0, 4);
+  court.foursome = four.map((e) => e.playerId);
+  court.since = at;
+}
+
+/**
  * The pure fold. Takes the whole event array — not one event at a time —
  * because that is what makes replay (and therefore undo) trivial: undo is
  * dropping the last event and re-folding, never a compensating action.
@@ -50,17 +76,30 @@ function displayNameFor(
  *
  * Selection tie-breaks (arriving in later tickets) derive from
  * `config.seed`, never from `Math.random()`, for the same reason.
+ *
+ * A `COURT_FINISHED` on an already-empty Court carries no Game — it just seats
+ * the next Foursome (the floor screen's "Send next four" on session start).
+ * "Games played" for the Session Summary is therefore a count of
+ * `COURT_FINISHED` events whose Court *was* occupied, derived in a later fold,
+ * not a raw event count.
  */
 export function reduceSession(
   config: SessionConfig,
   events: SessionEvent[],
 ): SessionState {
+  const courts: CourtSlot[] = Array.from(
+    { length: Math.max(0, config.courtCount) },
+    (_, i) => ({ number: i + 1, foursome: [], since: null }),
+  );
+
   const state: SessionState = {
     config,
     startedAt: null,
     startedBy: null,
     status: "pending",
     roster: [],
+    queue: [],
+    courts,
   };
 
   for (const event of events) {
@@ -94,6 +133,43 @@ export function reduceSession(
           displayName: displayNameFor(firstName, lastInitial, state.roster),
           joinedAt: event.at,
         });
+        break;
+      }
+
+      case "PLAYER_QUEUED": {
+        if (state.status !== "open") break;
+        // Unknown token, or a Player already waiting or on a Court — a replayed
+        // or stray queue tap is a no-op, not a second entry.
+        if (!state.roster.some((p) => p.id === event.token)) break;
+        if (state.queue.some((e) => e.playerId === event.token)) break;
+        if (state.courts.some((c) => c.foursome.includes(event.token))) break;
+
+        // Naive selection stands in for Match Me here (#243): a queued Player
+        // waits until a Court is tapped done. The fold does not pull them onto
+        // an empty Court — that only happens on `COURT_FINISHED`, so a Player
+        // reliably "joins the Queue and sees their position".
+        state.queue.push({ playerId: event.token, waitSince: event.at });
+        sortQueue(state.queue);
+        break;
+      }
+
+      case "COURT_FINISHED": {
+        if (state.status !== "open") break;
+        const court = state.courts.find((c) => c.number === event.court);
+        if (!court) break;
+
+        // The four coming off re-queue automatically, Wait Time measured from
+        // this event (CONTEXT: "or from the moment they last came off a Court,
+        // whichever is later").
+        for (const playerId of court.foursome) {
+          state.queue.push({ playerId, waitSince: event.at });
+        }
+        court.foursome = [];
+        court.since = null;
+        sortQueue(state.queue);
+
+        // ...then the longest-waiting Foursome walks onto the freed Court.
+        seatCourt(state, court, event.at);
         break;
       }
     }

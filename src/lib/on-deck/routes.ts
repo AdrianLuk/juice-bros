@@ -30,6 +30,11 @@ export function sessionPath(sessionId: string): string {
   return `${ON_DECK_ROOT}/session/${sessionId}`;
 }
 
+/** The Organizer's floor screen for a running Session — Courts and the Queue. */
+export function floorPath(sessionId: string): string {
+  return `${ON_DECK_ROOT}/session/${sessionId}/floor`;
+}
+
 function isUnderRoot(pathname: string): boolean {
   // Exact match or a real segment beneath it — `/on-deck-press-kit` shares the
   // prefix but is not an On Deck route.
@@ -38,7 +43,8 @@ function isUnderRoot(pathname: string): boolean {
 
 /**
  * Only the Organizer subtree requires a session. The landing page, sign-in,
- * the Club QR resolver, and the live Session view are all open.
+ * the Club QR resolver, and the live Session view are all open — but the
+ * floor screen *under* a Session (`/session/:id/floor`) is the Organizer's.
  */
 const ORGANIZER_SUBPATHS = ["/home"];
 
@@ -48,6 +54,10 @@ export function requiresOrganizerSession(pathname: string): boolean {
   }
 
   const subpath = pathname.slice(ON_DECK_ROOT.length);
+
+  if (/^\/session\/[^/]+\/floor\/?$/.test(subpath)) {
+    return true;
+  }
 
   return ORGANIZER_SUBPATHS.some(
     (gated) => subpath === gated || subpath.startsWith(`${gated}/`),

@@ -114,3 +114,42 @@ export async function joinSession(input: JoinInput): Promise<JoinResult> {
     player: { displayName: me.displayName, skillLevel: me.skillLevel },
   };
 }
+
+export type QueueResult = { ok: true } | { ok?: false; error: string };
+
+/**
+ * A Player already in the Session taps to join the Queue (issue #243). Goes
+ * through the `on_deck_queue_player` RPC — `anon`-callable, pins the event to
+ * `PLAYER_QUEUED` / `player`, and is idempotent on the device token. Coming
+ * off a Court re-queues a Player with no event, so this is fired once.
+ */
+export async function queueForSession(
+  sessionId: string,
+  token: string,
+): Promise<QueueResult> {
+  const trimmed = token?.trim() ?? "";
+  if (trimmed.length < 8) {
+    return { error: "Couldn't find your spot. Reload and try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("on_deck_queue_player", {
+    p_session_id: sessionId,
+    p_token: trimmed,
+  });
+
+  if (error) {
+    if (error.code === "42501") {
+      // Either the Session has closed or this device isn't on the roster
+      // (a lost/rotated token). Scanning the Club QR again resolves both.
+      return {
+        error: "Couldn't add you. Scan the club QR again to get set up.",
+      };
+    }
+    console.error("on-deck: queueing a Player failed", error);
+    return { error: "Couldn't add you to the queue. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
+}
