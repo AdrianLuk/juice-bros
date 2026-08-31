@@ -10,6 +10,22 @@ const nextConfig: NextConfig = {
   // it at all: it's `require()`d directly in the Node server process instead,
   // where `__dirname` is real.
   serverExternalPackages: ["geo-tz"],
+
+  async redirects() {
+    return [
+      // Short, say-out-loud vanity link for promoting Booking Buddy on the
+      // podcast. Carries podcast UTM params so signups from an episode show up
+      // as their own source in Vercel Analytics (which reads utm_* off the
+      // landing URL automatically). Temporary (307) on purpose: it's a
+      // marketing alias, not a moved page, and the destination may change.
+      {
+        source: "/bb",
+        destination:
+          "/booking-buddy?utm_source=podcast&utm_medium=podcast&utm_campaign=booking-buddy",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
