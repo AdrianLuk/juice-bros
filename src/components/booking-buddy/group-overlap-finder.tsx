@@ -6,8 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { personOptionLabel } from "@/lib/booking-buddy/connections";
-import { AVAILABILITY_PATH, FRIENDS_PATH, SLOTS_PATH } from "@/lib/booking-buddy/routes";
+import { personLabel, personOptionLabel } from "@/lib/booking-buddy/connections";
+import {
+  AVAILABILITY_PATH,
+  FRIENDS_PATH,
+  proposeGameHref,
+} from "@/lib/booking-buddy/routes";
 import {
   addDays,
   addMonths,
@@ -147,12 +151,7 @@ function proposedStartTime(block: DayBlock): string | null {
 
 /** Deep-links the Games form to one specific free window — a day split by a midday busy stretch gets a link per window, each seeding its own start. */
 function proposeHref(dateKey: string, block: DayBlock): string {
-  const start = proposedStartTime(block);
-  const params = new URLSearchParams({ date: dateKey });
-  if (start) {
-    params.set("start", start);
-  }
-  return `${SLOTS_PATH}?${params.toString()}#post-a-game`;
+  return proposeGameHref({ date: dateKey, startTime: proposedStartTime(block) });
 }
 
 function blockLabel(block: DayBlock): string {
@@ -160,6 +159,32 @@ function blockLabel(block: DayBlock): string {
     return "Any time";
   }
   return `${formatTimeLabelFromMs(block.startMs)} – ${formatTimeLabelFromMs(block.endMs)}`;
+}
+
+type LookingSpan = { name: string; startMs: number; endMs: number };
+
+/** The picked friends who have marked a "Looking to play" window overlapping `block`. */
+function lookersForBlock(spans: LookingSpan[], block: DayBlock): string[] {
+  const names = spans
+    .filter((span) => span.startMs < block.endMs && span.endMs > block.startMs)
+    .map((span) => span.name);
+  return [...new Set(names)];
+}
+
+/** "Ben is looking to play" / "Ben and Dana are…" / "Ben, Dana and 2 others are…" */
+function lookersLine(names: string[]): string {
+  const verb = names.length === 1 ? "is" : "are";
+  let subject: string;
+  if (names.length === 1) {
+    subject = names[0];
+  } else if (names.length === 2) {
+    subject = `${names[0]} and ${names[1]}`;
+  } else if (names.length === 3) {
+    subject = `${names[0]}, ${names[1]} and ${names[2]}`;
+  } else {
+    subject = `${names[0]}, ${names[1]} and ${names.length - 2} others`;
+  }
+  return `${subject} ${verb} looking to play`;
 }
 
 const RANGE_OPTIONS: { id: RangeChoice; label: string }[] = [
@@ -235,6 +260,22 @@ export function GroupOverlapFinder({
       }),
     );
   }, [range, people, friendQuery.data, selectedIds.length, visibleFriendCount]);
+
+  // Which picked friends have a "Looking to play" window open over each free
+  // block (#230) — surfaced as a nudge under the block, without changing which
+  // blocks are shown (that stays the pure not-busy intersection).
+  const lookingSpans = useMemo<LookingSpan[]>(() => {
+    const nameById = new Map(friends.map((friend) => [friend.userId, personLabel(friend)]));
+    return (friendQuery.data ?? []).flatMap((entry) =>
+      entry.windows
+        .filter((window) => window.type === "looking")
+        .map((window) => ({
+          name: nameById.get(entry.userId) ?? "A friend",
+          startMs: new Date(window.startsAt).getTime(),
+          endMs: new Date(window.endsAt).getTime(),
+        })),
+    );
+  }, [friends, friendQuery.data]);
 
   function toggle(userId: string) {
     setSelected((current) => {
@@ -377,25 +418,35 @@ export function GroupOverlapFinder({
                           each with its own "Propose a game" seeding that
                           window's start time. */}
                       <ul className="mt-1.5 flex flex-col gap-1.5">
-                        {day.blocks.map((block) => (
-                          <li
-                            key={block.startMs}
-                            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5"
-                          >
-                            <span className="text-sm text-muted-foreground">
-                              {blockLabel(block)}
-                            </span>
-                            <Link
-                              href={proposeHref(day.dateKey, block)}
-                              className={cn(
-                                buttonVariants({ variant: "outline", size: "sm" }),
-                                "shrink-0",
-                              )}
+                        {day.blocks.map((block) => {
+                          const lookers = lookersForBlock(lookingSpans, block);
+                          return (
+                            <li
+                              key={block.startMs}
+                              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5"
                             >
-                              Propose a game
-                            </Link>
-                          </li>
-                        ))}
+                              <span className="min-w-0">
+                                <span className="text-sm text-muted-foreground">
+                                  {blockLabel(block)}
+                                </span>
+                                {lookers.length > 0 && (
+                                  <span className="mt-0.5 block text-xs font-medium text-primary">
+                                    {lookersLine(lookers)}
+                                  </span>
+                                )}
+                              </span>
+                              <Link
+                                href={proposeHref(day.dateKey, block)}
+                                className={cn(
+                                  buttonVariants({ variant: "outline", size: "sm" }),
+                                  "shrink-0",
+                                )}
+                              >
+                                Propose a game
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </li>
                   ))}

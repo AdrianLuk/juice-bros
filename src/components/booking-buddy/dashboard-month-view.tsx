@@ -235,7 +235,7 @@ function AvailabilitySpanBar({
         isEnd ? "rounded-r-sm" : "-mr-1 sm:-mr-1.5",
         segment.type === "busy"
           ? "bg-muted-foreground/25 text-foreground"
-          : "bg-accent/60 text-accent-foreground",
+          : "bg-primary/20 text-primary",
       )}
     >
       {isStart ? label : null}

@@ -7,10 +7,12 @@
 
 import { isKnownTimeZone } from "./timezone.ts";
 import {
+  clockInZone,
   formatInstantRange,
   isHourTime,
   isPastDate,
   isRealDate,
+  todayInZone,
 } from "./datetime.ts";
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "./orgs.ts";
 import { parseDivision, type Division } from "./division.ts";
@@ -110,6 +112,32 @@ export function parseNewSlotProposal(
   }
 
   return { date, startTime, endTime, timeZone, division, orgId, notes: notesResult.notes };
+}
+
+/**
+ * The date + start hour to seed the Games form with when someone proposes a
+ * game against a friend's "Looking to play" window (#230). A window still in
+ * the future seeds its own local start day and hour; one that has already
+ * started seeds today with no hour, since the form (and the
+ * `slots_not_in_the_past` trigger) would reject a start time in the past. An
+ * all-day window sits on local midnight — there's no useful hour to seed, so
+ * only the date goes through.
+ */
+export function proposeGamePrefill(
+  window: { startsAt: string; endsAt: string; timeZone: string },
+  now: Date = new Date(),
+): { date: string; startTime: string | null } {
+  const start = new Date(window.startsAt);
+
+  if (start.getTime() > now.getTime()) {
+    const clock = clockInZone(window.timeZone, start);
+    return {
+      date: todayInZone(window.timeZone, start),
+      startTime: clock === "00:00" ? null : clock,
+    };
+  }
+
+  return { date: todayInZone(window.timeZone, now), startTime: null };
 }
 
 /**
