@@ -49,6 +49,12 @@ function BookingPopoverDetails({ booking, orgs }: { booking: Booking; orgs: Org[
         <dd className="text-foreground">
           {BOOKING_FORMAT_LABEL[booking.format]}
         </dd>
+        {booking.players.length > 0 && (
+          <>
+            <dt>Players</dt>
+            <dd className="text-foreground">{booking.players.join(", ")}</dd>
+          </>
+        )}
       </dl>
       <div className="mt-1 flex justify-end gap-1.5 border-t border-border pt-2.5">
         <EditBookingButton booking={booking} orgs={orgs} />

@@ -37,6 +37,7 @@ import {
 import {
   clockInZone,
   formatInstantDateAndTime,
+  imminenceLabel,
   todayInZone,
 } from "@/lib/booking-buddy/datetime";
 import {
@@ -536,15 +537,37 @@ export function BookingDetailsModal({
   );
 }
 
-export function BookingRow({ booking, orgs }: { booking: Booking; orgs: Org[] }) {
+export function BookingRow({
+  booking,
+  orgs,
+  nowIso,
+}: {
+  booking: Booking;
+  orgs: Org[];
+  /**
+   * When set, an upcoming Booking gets a "Today" / "Tonight" / "Tomorrow"
+   * badge — the same imminence cue the dashboard's "Coming up" sidebar
+   * shows. Left unset for the History list, where it never applies.
+   */
+  nowIso?: string;
+}) {
   // `when` is always the popover's date and time joined with " · " (see
   // `formatInstantRange`) — split back apart so the time gets its own line
   // instead of competing with the date for width next to the Remove button.
   const [whenDate, whenTime] = booking.when.split(" · ");
 
+  const imminence = nowIso
+    ? imminenceLabel(new Date(nowIso), booking.startsAt)
+    : null;
+
   return (
     <li className="flex items-center justify-between gap-4 px-5 py-4">
       <div className="min-w-0">
+        {imminence && (
+          <span className="mb-1 inline-flex items-center rounded-full bg-accent/40 px-2 py-0.5 text-[0.7rem] font-semibold text-accent-foreground">
+            {imminence}
+          </span>
+        )}
         <div className="sm:hidden">
           <p className="font-medium">{whenDate}</p>
           <p className="font-medium">{whenTime}</p>

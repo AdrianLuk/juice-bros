@@ -147,6 +147,29 @@ export function formatTimeLabelFromMs(ms: number): string {
 }
 
 /**
+ * A soft "when" cue for an upcoming instant, relative to `now`, read in the
+ * viewer's own local clock: "Today", "Tonight" (a same-day start at or after
+ * 5pm), "Tomorrow", or `null` for anything further out or already past. Not a
+ * precise countdown — wherever this badge sits, the exact date and time are
+ * already shown next to it. Shared by the dashboard's "Coming up" sidebar
+ * and the Bookings page's "Booked" list.
+ */
+export function imminenceLabel(now: Date, startsAt: string): string | null {
+  const start = new Date(startsAt);
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const offsetDays = Math.round(
+    (startOfDay(start).getTime() - startOfDay(now).getTime()) / 86_400_000,
+  );
+  if (offsetDays === 0) {
+    return start.getHours() >= 17 ? "Tonight" : "Today";
+  }
+  if (offsetDays === 1) {
+    return "Tomorrow";
+  }
+  return null;
+}
+
+/**
  * The date and time-range parts of an instant range, written as the zone it
  * was created in, split apart rather than joined — what the calendar
  * popover's own two-line "When" needs, and what `formatInstantRange` below

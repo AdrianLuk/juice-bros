@@ -7,6 +7,7 @@ import {
   formatInstantDateAndTime,
   formatInstantRange,
   formatTimeLabel,
+  imminenceLabel,
   isHourTime,
   isPastDate,
   isRealDate,
@@ -114,6 +115,16 @@ test("formatInstantDateAndTime falls back to UTC and says so on the date, not th
   assert.match(date, /\(UTC\)$/);
   assert.doesNotMatch(time, /UTC/);
   assert.equal(time, "10:00 PM – 11:30 PM");
+});
+
+test("imminenceLabel cues Today, Tonight, Tomorrow, and nothing further out", () => {
+  const now = new Date("2026-08-20T14:00:00");
+
+  assert.equal(imminenceLabel(now, "2026-08-20T15:00:00"), "Today");
+  assert.equal(imminenceLabel(now, "2026-08-20T19:00:00"), "Tonight");
+  assert.equal(imminenceLabel(now, "2026-08-21T10:00:00"), "Tomorrow");
+  assert.equal(imminenceLabel(now, "2026-08-22T10:00:00"), null);
+  assert.equal(imminenceLabel(now, "2026-08-19T10:00:00"), null);
 });
 
 test("formatInstantRange joins formatInstantDateAndTime's own date and time with a middot", () => {
