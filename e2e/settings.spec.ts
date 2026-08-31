@@ -21,11 +21,11 @@ const TAKEN = "benbackhand";
 const alertIn = (page: Page) => page.locator("form").getByRole("alert");
 
 /**
- * Two independent preference forms both have a "Save" button — the account
- * settings page's `NotificationPreferencesForm` and `BookingWindowPreferenceForm`
- * are separate `<form>`s, each with the same exact button text. Scoping to
- * "the form containing this field" is what makes each one's save button
- * unambiguous.
+ * The account settings page has several `<form>`s, and the Username / Gender
+ * ones each carry their own "Save …" button. Scoping to "the form containing
+ * this field" keeps the plain "Save" button unambiguous. All three email
+ * notification toggles now live in one form behind a single "Save", so every
+ * notification label resolves to that same form.
  */
 const formWithField = (page: Page, labelText: string) =>
   page.locator("form").filter({ has: page.getByLabel(labelText) });
@@ -144,6 +144,25 @@ test("punctuation is refused with a reason, not silently stripped", async ({
 
   await expect(alertIn(page)).toContainText(
     "letters, numbers and underscores",
+  );
+});
+
+test("the three email toggles share one Save button, with push at the top", async ({
+  page,
+}) => {
+  const notificationsCard = page
+    .locator(".bb-card")
+    .filter({ has: page.getByLabel("Push me a reminder on this device") });
+
+  // Every email toggle sits in the one form, behind a single "Save".
+  await expect(
+    notificationsCard.getByRole("button", { name: "Save", exact: true }),
+  ).toHaveCount(1);
+
+  // "Push me a reminder" is the first checkbox in the card.
+  await expect(notificationsCard.getByRole("checkbox").first()).toHaveAttribute(
+    "id",
+    "push-enabled",
   );
 });
 
