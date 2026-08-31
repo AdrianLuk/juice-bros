@@ -71,6 +71,16 @@ function QueueStatusInner({
     );
   }
 
+  if (me?.onDeck != null) {
+    return (
+      <p className="mt-6 rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
+        {me.onDeck === 0
+          ? "You're up next — head to the courts"
+          : "You're on deck — the foursome after next"}
+      </p>
+    );
+  }
+
   if (me?.position) {
     return (
       <p className="mt-6 text-sm text-muted-foreground" data-testid="queue-position">

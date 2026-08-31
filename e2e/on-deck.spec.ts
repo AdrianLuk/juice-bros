@@ -171,8 +171,25 @@ test("the rotation loop: a Player joins the Queue, is called onto a Court, and r
   await organizer.goto(`/on-deck/session/${sessionId}/floor`);
   const court1 = organizer.getByTestId("court-1");
   await expect(court1.getByText("Dana R.")).toHaveCount(0);
+
+  // On Deck (#245): with four waiting, the "Up next" Foursome is committed and
+  // named on the floor screen before any Court frees.
+  const upNext = organizer.getByTestId("on-deck-0");
+  await expect(upNext).toBeVisible();
+  await expect(upNext.getByText("Up next")).toBeVisible();
+  await expect(upNext.getByText("Dana R.")).toBeVisible();
+
+  await organizer.setViewportSize({ width: 1280, height: 900 });
+  await organizer.screenshot({ path: "test-results/on-deck-floor-desktop.png", fullPage: true });
+  await organizer.setViewportSize({ width: 390, height: 844 });
+  await organizer.screenshot({ path: "test-results/on-deck-floor-mobile.png", fullPage: true });
+  await organizer.setViewportSize({ width: 1280, height: 720 });
+
   await court1.getByRole("button", { name: "Send next four" }).click();
   await expect(court1.getByText("Dana R.")).toBeVisible();
+  // The committed Foursome walked straight onto the Court — On Deck is empty
+  // again until more Players queue.
+  await expect(organizer.getByTestId("on-deck-0")).toHaveCount(0);
 
   // Our Player's own screen updates within a poll interval: they're up.
   await expect(page.getByText("You're up, Court 1")).toBeVisible({
@@ -190,6 +207,10 @@ test("the rotation loop: a Player joins the Queue, is called onto a Court, and r
   await court1.getByRole("button", { name: "Court 1 done" }).click();
   await expect(court1.getByText("Dana R.")).toHaveCount(0);
 
-  // And our Player is back in the Queue.
-  await expect(page.getByTestId("queue-position")).toBeVisible({ timeout: 10_000 });
+  // The four who were waiting walk straight onto the freed Court; the four
+  // coming off (our Player among them) become the next On Deck Foursome, and
+  // their own screen says so.
+  await expect(page.getByText("You're up next — head to the courts")).toBeVisible({
+    timeout: 10_000,
+  });
 });
