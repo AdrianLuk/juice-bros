@@ -17,6 +17,7 @@ const routes: Route[] = [
   { path: "/appearances", changeFrequency: "weekly", priority: 0.6 },
   { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
   { path: "/booking-buddy", changeFrequency: "monthly", priority: 0.7 },
+  { path: "/on-deck", changeFrequency: "monthly", priority: 0.6 },
   // Apps under /tools get an entry from their data. Booking Buddy sits on its
   // own path and is listed explicitly above.
   ...apps

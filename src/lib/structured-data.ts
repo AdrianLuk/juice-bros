@@ -210,21 +210,48 @@ export function buildAppearancesJsonLd(list: readonly Appearance[], now: Date = 
   };
 }
 
-function buildSoftwareApplicationJsonLd(app: AppItem) {
+/**
+ * The shared shape of a SoftwareApplication node, used both for the /tools
+ * apps and for standalone app pages that have no `apps.ts` entry yet. `free`
+ * attaches a zero-price Offer; `publisher` links back to the Organization
+ * node (only worth doing when the node stands alone, not inside the Tools
+ * ItemList where the page already carries the Organization).
+ */
+function softwareApplicationNode({
+  id,
+  name,
+  description,
+  url,
+  free = true,
+  publisher = false,
+}: {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  free?: boolean;
+  publisher?: boolean;
+}) {
   return {
     "@type": "SoftwareApplication",
-    "@id": `${siteConfig.url}${app.href}#app`,
+    "@id": id,
+    name,
+    description,
+    url,
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Web",
+    ...(free ? { offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } } : {}),
+    ...(publisher ? { publisher: { "@id": `${siteConfig.url}/#organization` } } : {}),
+  };
+}
+
+function buildSoftwareApplicationJsonLd(app: AppItem) {
+  return softwareApplicationNode({
+    id: `${siteConfig.url}${app.href}#app`,
     name: app.title,
     description: app.description,
     url: `${siteConfig.url}${app.href}`,
-    applicationCategory: "UtilitiesApplication",
-    operatingSystem: "Web",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
-  };
+  });
 }
 
 /**
@@ -256,6 +283,39 @@ export function buildToolsJsonLd(apps: AppItem[]) {
             item: buildSoftwareApplicationJsonLd(app),
           })),
       },
+    ],
+  };
+}
+
+/**
+ * BreadcrumbList + SoftwareApplication for the On Deck landing page. On Deck
+ * is not on the /tools shelf yet (it has no working app, only this explainer),
+ * so the breadcrumb runs Home > On Deck and there's no `apps.ts` entry to pull
+ * from. `offers` is omitted rather than asserting a price we haven't set.
+ */
+export function buildOnDeckLandingJsonLd() {
+  const pageUrl = `${siteConfig.url}/on-deck`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
+          { "@type": "ListItem", position: 2, name: "On Deck", item: pageUrl },
+        ],
+      },
+      softwareApplicationNode({
+        id: `${pageUrl}#app`,
+        name: "On Deck",
+        description:
+          "Live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up, keeping court time fair and varying who plays with whom.",
+        url: pageUrl,
+        // No public pricing set yet, so don't assert a zero-price Offer.
+        free: false,
+        publisher: true,
+      }),
     ],
   };
 }
