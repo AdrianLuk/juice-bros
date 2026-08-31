@@ -208,6 +208,23 @@ export interface CourtSlot {
   since: number | null;
 }
 
+/**
+ * A Foursome the app has **committed** to ahead of any Court freeing — "Up
+ * next", then "After that" (issue #245). Committed at the moment it is selected
+ * and carried forward in the fold's accumulator, never recomputed on a read: a
+ * Player joining the Queue must not reshuffle a Foursome already announced.
+ *
+ * An incomplete Foursome (`players.length < 4`, formed when the Queue was too
+ * short) **tops up** as Players join — appended in wait order, its existing
+ * members untouched. A complete one never changes until it walks onto a Court.
+ */
+export interface OnDeckFoursome {
+  /** Device tokens of the committed Players, in Queue (wait) order. */
+  players: string[];
+  /** When this Foursome was first committed (epoch ms, off an event). */
+  committedAt: number;
+}
+
 /** The live state a folded Session projects to. */
 export interface SessionState {
   config: SessionConfig;
@@ -225,6 +242,13 @@ export interface SessionState {
   queue: QueueEntry[];
   /** Every Court, `config.courtCount` of them, numbered 1..N. */
   courts: CourtSlot[];
+  /**
+   * Up to two committed Foursomes shown ahead of any Court freeing — index 0
+   * is "Up next" (walks straight onto the next freed Court), index 1 is "After
+   * that" (issue #245). Carried forward across events, never recomputed on a
+   * read.
+   */
+  onDeck: OnDeckFoursome[];
   /**
    * Every finished Game, in finish order — the Variety history Match Me scores
    * candidate Foursomes against. Not projected to any live surface.

@@ -74,8 +74,25 @@ event array plus assertions about the resulting state.
   skill spread, variety recency, determinism, seed tie-break) plus
   `reduce.test.ts` integration through the fold.
 
+- [x] **#245 — On Deck foursomes (committed, two ahead).** `reduceSession`
+  projects `state.onDeck`: up to two Foursomes ("Up next", "After that")
+  selected and **committed** ahead of any Court freeing, carried forward in the
+  fold's accumulator and never recomputed on a read (ADR 0007, overriding the
+  old "recomputed continuously" line in CONTEXT.md). `refreshOnDeck` runs after
+  every Queue-changing event: it drops Players who have left the Queue, tops up
+  an incomplete Foursome (thin Queue when it formed) by appending in wait order
+  without reshuffling its members, and forms fresh Foursomes via Match Me
+  (ticket 05) over the Players not already committed or playing. On
+  `COURT_FINISHED` the complete leading Foursome walks straight onto the freed
+  Court with no Match Me call; a fresh Foursome refills the second slot. Floor
+  screen gains an "On deck" section (two named cards, open spots shown);
+  `RotationView.onDeck` carries display names only, and On Deck Players drop
+  out of the `queue` list / count — a Player's own line reads "up next" /
+  "on deck" via `me.onDeck`. Tests: `reduce.test.ts` commitment / top-up /
+  promotion / windowed fresh selection / determinism / undo-parity;
+  `e2e/on-deck.spec.ts` floor "On deck" section + screenshots.
+
 ## Next
 
-The rest of #238 — On Deck foursomes (announce the next two ahead of a Court
-freeing), Queue Together, the Volunteer link surface, the Display and Kiosk,
-Last Call and the Session Summary purge.
+The rest of #238 — Queue Together, the Volunteer link surface, the Display and
+Kiosk, Last Call and the Session Summary purge.
