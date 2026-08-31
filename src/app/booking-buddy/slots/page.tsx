@@ -5,9 +5,11 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import { CreateSlotForm, SlotRow } from "@/components/booking-buddy/slots";
+import { FriendsLookingToPlay } from "@/components/booking-buddy/friends-looking-to-play";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { listSlots } from "@/lib/booking-buddy/actions/slots";
+import { listFriendsLookingToPlay } from "@/lib/booking-buddy/actions/looking";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
@@ -29,8 +31,9 @@ export default async function SlotsPage({
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const [{ own, friends }, orgs, { date, start }] = await Promise.all([
+  const [{ own, friends }, lookingWindows, orgs, { date, start }] = await Promise.all([
     listSlots(),
+    listFriendsLookingToPlay(),
     listOrgs(),
     searchParams,
   ]);
@@ -90,6 +93,13 @@ export default async function SlotsPage({
                   ))}
                 </ul>
               )}
+            </section>
+
+            <section>
+              <h2 className="font-heading text-lg font-semibold tracking-tight">
+                Friends looking to play
+              </h2>
+              <FriendsLookingToPlay windows={lookingWindows} />
             </section>
 
             <section id="post-a-game" className="scroll-mt-24">

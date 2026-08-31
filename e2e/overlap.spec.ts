@@ -8,7 +8,9 @@ import {
 
 /**
  * "Find a time" (issue #195) — Plan's third child. Pick friends who share their
- * availability, see when everyone's free, deep-link into the Games form.
+ * availability, see when everyone's free, deep-link into the Games form. Plus
+ * the "Looking to play" surfaces that hang off the same visibility gate (#230):
+ * the Games page's "Friends looking to play" pool and the Find-a-time nudge.
  *
  * The seeded `@amyace` ↔ `@benbackhand2` pair starts at the visibility
  * lattice's bottom (see booking-buddy/docs/local-test-accounts.md), so each
@@ -141,6 +143,68 @@ test("free days appear, then a friend's busy window carves them away", async ({
     page.getByText("No shared free time in this range"),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Propose a game" })).toHaveCount(0);
+});
+
+test("the Games page lists a friend who's looking to play, with a prefilled Propose link", async ({
+  page,
+  browser,
+}) => {
+  await signIn(page, AMY, "/booking-buddy/slots");
+  // Before BEN2 grants anything, the pool is empty and says so.
+  await expect(
+    page.getByText("Nobody's marked themselves looking to play right now"),
+  ).toBeVisible();
+
+  await grantAmyOpenTime(browser);
+
+  // BEN2 marks a 3-hour "looking to play" window two days out, 6-9pm local.
+  const start = new Date();
+  start.setDate(start.getDate() + 2);
+  start.setHours(18, 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(21, 0, 0, 0);
+  const targetDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+  await insertAvailabilityWindow(
+    { email: BEN2, password: TEST_PASSWORD },
+    { type: "looking", startsAt: start.toISOString(), endsAt: end.toISOString() },
+  );
+
+  await page.goto("/booking-buddy/slots");
+  const section = page
+    .locator("section")
+    .filter({ hasText: "Friends looking to play" });
+  await expect(section).toBeVisible();
+
+  const propose = section.getByRole("link", { name: "Propose a game" });
+  await expect(propose).toHaveCount(1);
+  const href = await propose.getAttribute("href");
+  expect(new URL(href!, "http://localhost").searchParams.get("date")).toBe(targetDate);
+
+  await propose.click();
+  await page.waitForURL(/\/booking-buddy\/slots(\?|#|$)/);
+  await expect(page.getByLabel("Date")).toHaveValue(targetDate);
+});
+
+test("Find a time flags a free block a picked friend is looking over", async ({
+  page,
+  browser,
+}) => {
+  await grantAmyOpenTime(browser);
+
+  const start = new Date();
+  start.setDate(start.getDate() + 2);
+  start.setHours(18, 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(21, 0, 0, 0);
+  await insertAvailabilityWindow(
+    { email: BEN2, password: TEST_PASSWORD },
+    { type: "looking", startsAt: start.toISOString(), endsAt: end.toISOString() },
+  );
+
+  await signIn(page, AMY, "/booking-buddy/overlap");
+  await friendCheckbox(page, "benbackhand2").check();
+
+  await expect(page.getByText(/looking to play$/).first()).toBeVisible();
 });
 
 test("a day with a midday busy stretch splits into a window before and after, each proposable", async ({
