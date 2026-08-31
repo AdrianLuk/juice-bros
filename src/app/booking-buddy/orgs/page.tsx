@@ -22,7 +22,12 @@ export default async function OrgsPage() {
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const orgs = await listOrgs();
+  // `listOrgs` returns newest-first; float the default facility to the top so
+  // the one that pre-fills every Booking form is the first thing you see. The
+  // sort is stable, so the rest stay in newest-first order.
+  const orgs = [...(await listOrgs())].sort(
+    (a, b) => Number(b.isDefault) - Number(a.isDefault),
+  );
 
   return (
     <div className="flex w-full flex-1 flex-col">

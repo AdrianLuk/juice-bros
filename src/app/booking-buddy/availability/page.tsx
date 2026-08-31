@@ -58,7 +58,7 @@ export default async function AvailabilityPage() {
           <div className="mt-10 flex flex-col gap-12">
             <section>
               <h2 className="font-heading text-lg font-semibold tracking-tight">
-                Your open time
+                Your availability blocks
                 {upcoming.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     {upcoming.length}
