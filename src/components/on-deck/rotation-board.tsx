@@ -33,6 +33,51 @@ export function RotationBoard({
   );
 }
 
+const ON_DECK_LABELS = ["Up next", "After that"] as const;
+
+/**
+ * The two committed On Deck Foursomes (issue #245): the eight Players who can
+ * gather now instead of being hunted down when a Court frees. Named, in wait
+ * order; a Foursome still filling out shows the names it has plus how many
+ * seats are open.
+ */
+function OnDeck({ foursomes }: { foursomes: string[][] }) {
+  return (
+    <div>
+      <h2 className="font-heading text-xl font-semibold">On deck</h2>
+      {foursomes.length === 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Not enough players waiting to line up a foursome yet.
+        </p>
+      ) : (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {foursomes.map((players, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border bg-card p-4"
+              data-testid={`on-deck-${i}`}
+            >
+              <p className="font-heading text-sm font-semibold tracking-[0.15em] text-brand-orange uppercase">
+                {ON_DECK_LABELS[i] ?? `Foursome ${i + 1}`}
+              </p>
+              <ul className="mt-2 space-y-1 text-sm">
+                {players.map((name, j) => (
+                  <li key={j}>{name}</li>
+                ))}
+                {Array.from({ length: 4 - players.length }, (_, k) => (
+                  <li key={`open-${k}`} className="text-muted-foreground">
+                    Open spot
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RotationBoardInner({
   sessionId,
   initialView,
@@ -110,6 +155,8 @@ function RotationBoardInner({
           );
         })}
       </div>
+
+      <OnDeck foursomes={view.onDeck} />
 
       <div>
         <h2 className="font-heading text-xl font-semibold">

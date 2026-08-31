@@ -34,6 +34,12 @@ export type RotationView = {
   /** Display names in wait order — longest-waiting first. */
   queue: string[];
   queuedCount: number;
+  /**
+   * The committed On Deck Foursomes, display names only — index 0 is "Up
+   * next", index 1 "After that" (issue #245). A Foursome still short of four
+   * (Queue was thin when it formed) comes back with fewer names.
+   */
+  onDeck: string[][];
   /** The caller's own standing, when they passed a token. */
   me: {
     position: number | null;
@@ -69,6 +75,7 @@ export function rotationViewFrom(
     })),
     queue: state.queue.map((e) => nameOf(e.playerId)),
     queuedCount: state.queue.length,
+    onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
     me,
   };
 }

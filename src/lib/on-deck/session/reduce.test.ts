@@ -392,25 +392,21 @@ test("a PLAYER_QUEUED before the Session opens is ignored", () => {
 
 // --- Match Me through the fold (#244) -----------------------------------
 
-test("the fold seats a same-Skill Foursome over a mixed one", () => {
-  // p1 (anchor, intermediate) + a window of two intermediates and three
-  // advanced. Match Me takes the intermediates.
+test("the fold commits a same-Skill On Deck Foursome over a mixed one", () => {
+  // p1..p4 intermediate fill the first On Deck Foursome. The second forms from
+  // p5 (anchor, intermediate) + a window of two intermediates and three
+  // advanced — Match Me takes the intermediates.
   const skills: SkillLevel[] = [
-    "intermediate",
-    "advanced",
-    "intermediate",
-    "advanced",
-    "intermediate",
-    "advanced",
+    "intermediate", "intermediate", "intermediate", "intermediate", // F0
+    "intermediate", // p5 anchor
+    "intermediate", "intermediate", // p6, p7
+    "advanced", "advanced", "advanced", // p8, p9, p10
   ];
-  const state = reduceSession(smallConfig, [
-    ...sessionWithSkills(skills),
-    courtFinished(1),
-  ]);
+  const state = reduceSession(config, sessionWithSkills(skills));
 
-  assert.equal(state.courts[0].foursome[0], "p1", "anchor leads");
+  assert.equal(state.onDeck[1].players[0], "p5", "anchor leads the second Foursome");
   assert.deepEqual(
-    state.courts[0].foursome.map((id) => idSkill(state, id)).sort(),
+    state.onDeck[1].players.map((id) => idSkill(state, id)).sort(),
     ["advanced", "intermediate", "intermediate", "intermediate"],
   );
 });
@@ -491,6 +487,108 @@ test("COURT_FINISHED records the finished Game for Variety history", () => {
   ]);
   assert.equal(played.completedGames.length, 1);
   assert.equal(played.completedGames[0].players.length, 4);
+});
+
+// --- On Deck foursomes (#245) ------------------------------------------
+
+/** join + queue one Player, tokens continuing from `p${n}`. */
+function addWaiter(n: number): SessionEvent[] {
+  return [joined(`p${n}`, `P${n}`, "X"), queued(`p${n}`)];
+}
+
+test("two On Deck Foursomes are committed once eight are waiting, before any Court frees", () => {
+  const state = reduceSession(config, sessionWith(8));
+
+  assert.equal(state.onDeck.length, 2);
+  assert.deepEqual(state.onDeck[0].players, ["p1", "p2", "p3", "p4"]);
+  assert.deepEqual(state.onDeck[1].players, ["p5", "p6", "p7", "p8"]);
+  // Nothing has been seated — these are announced ahead of a Court freeing.
+  assert.ok(state.courts.every((c) => c.foursome.length === 0));
+});
+
+test("each On Deck Foursome is anchored by its longest waiter", () => {
+  const state = reduceSession(config, sessionWith(9));
+  assert.equal(state.onDeck[0].players[0], "p1");
+  assert.equal(state.onDeck[1].players[0], "p5");
+});
+
+test("a committed On Deck Foursome does not change when another Player joins", () => {
+  const base = sessionWith(8);
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [...base, ...addWaiter(9)]);
+
+  assert.deepEqual(after.onDeck[0], before.onDeck[0]);
+  assert.deepEqual(after.onDeck[1], before.onDeck[1]);
+  assert.equal(after.queue.length, 9);
+});
+
+test("an incomplete On Deck Foursome tops up as Players join, without reshuffling its members", () => {
+  // Six waiting: F0 is a full Match Me pick, F1 is the two left over.
+  const base = sessionWith(6);
+  const six = reduceSession(config, base);
+  assert.equal(six.onDeck[1].players.length, 2);
+  const f1Members = six.onDeck[1].players;
+
+  const eight = reduceSession(config, [...base, ...addWaiter(7), ...addWaiter(8)]);
+  assert.deepEqual(eight.onDeck[0], six.onDeck[0], "F0 untouched");
+  assert.equal(eight.onDeck[1].players.length, 4);
+  assert.deepEqual(
+    eight.onDeck[1].players.slice(0, 2),
+    f1Members,
+    "existing members keep their places, new ones append",
+  );
+  assert.equal(eight.onDeck[1].committedAt, six.onDeck[1].committedAt);
+});
+
+test("when a Court frees, the leading Foursome takes it and a fresh second Foursome is selected", () => {
+  const base = sessionWith(12);
+  const before = reduceSession(config, base);
+  const upNext = before.onDeck[0].players;
+  const afterThat = before.onDeck[1].players;
+
+  const state = reduceSession(config, [...base, courtFinished(1)]);
+
+  assert.deepEqual(state.courts[0].foursome, upNext, "Up next walked on");
+  assert.equal(state.onDeck.length, 2);
+  assert.deepEqual(state.onDeck[0].players, afterThat, "After that is now Up next");
+  assert.equal(state.onDeck[1].players.length, 4, "a fresh second Foursome formed");
+  // The fresh Foursome is drawn from Players not already committed or playing.
+  const committed = new Set([
+    ...state.courts[0].foursome,
+    ...state.onDeck[0].players,
+  ]);
+  assert.ok(state.onDeck[1].players.every((id) => !committed.has(id)));
+});
+
+test("promotion seats exactly the Foursome that was 'Up next' — no recompute", () => {
+  const base = sessionWith(12);
+  const upNext = reduceSession(config, base).onDeck[0].players;
+  const seated = reduceSession(config, [...base, courtFinished(1)]).courts[0]
+    .foursome;
+  assert.deepEqual(seated, upNext);
+});
+
+test("a stray COURT_FINISHED (empty Court, one tap) still promotes the leading Foursome", () => {
+  const state = reduceSession(config, [...sessionWith(8), courtFinished(3)]);
+  assert.equal(state.courts[2].foursome.length, 4);
+  assert.deepEqual(state.courts[2].foursome, ["p1", "p2", "p3", "p4"]);
+});
+
+test("On Deck folding is deterministic — identical events, identical Foursomes", () => {
+  const events = [...sessionWith(14), courtFinished(1), courtFinished(2)];
+  assert.deepEqual(
+    reduceSession(config, events).onDeck,
+    reduceSession(config, events).onDeck,
+  );
+});
+
+test("undo drops the last COURT_FINISHED: re-folding restores the prior On Deck", () => {
+  const base = [...sessionWith(12), courtFinished(1)];
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [...base, courtFinished(2)]);
+
+  assert.notDeepEqual(after.onDeck, before.onDeck);
+  assert.deepEqual(reduceSession(config, base).onDeck, before.onDeck);
 });
 
 function idSkill(

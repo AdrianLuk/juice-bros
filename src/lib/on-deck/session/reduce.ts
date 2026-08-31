@@ -1,12 +1,22 @@
 import { selectFoursome } from "./match-me.ts";
 import type {
   CourtSlot,
+  OnDeckFoursome,
   RosterPlayer,
   SessionConfig,
   SessionEvent,
   SessionState,
   SkillLevel,
 } from "./types.ts";
+
+/** How many Foursomes On Deck holds ahead of a Court freeing — "Up next" and
+ * "After that" (issue #245). */
+const ON_DECK_DEPTH = 2;
+
+/** A Foursome is playable — walks straight onto a Court — only when full. */
+function isComplete(foursome: OnDeckFoursome): boolean {
+  return foursome.players.length === 4;
+}
 
 /** Trim, collapse inner whitespace, capitalise the first letter. */
 function cleanFirstName(raw: string): string {
@@ -49,32 +59,104 @@ function sortQueue(queue: SessionState["queue"]): void {
   queue.sort((a, b) => a.waitSince - b.waitSince);
 }
 
+/** A Player's declared Skill Level, defaulting to intermediate for a token the
+ * roster somehow lacks. */
+function skillLookup(state: SessionState): (id: string) => SkillLevel {
+  const byId = new Map<string, SkillLevel>(
+    state.roster.map((p) => [p.id, p.skillLevel]),
+  );
+  return (id) => byId.get(id) ?? "intermediate";
+}
+
 /**
- * Seat a Foursome from the Queue onto one freed Court via Match Me
- * (`match-me.ts`, ADR 0004): the longest-waiting Player anchors, the other
- * three are the best Skill / Variety fit from a window of the next-longest-
- * waiting. Fewer than four waiting: the Court stays empty until there are.
+ * Run Match Me (`match-me.ts`, ADR 0004) over a list of waiting Players, already
+ * in wait order: the longest-waiting anchors, the other three are the best
+ * Skill / Variety fit from a window of the next-longest-waiting. `null` when
+ * fewer than four are given.
+ */
+function pickFoursome(state: SessionState, waiting: string[]): string[] | null {
+  return selectFoursome({
+    queue: waiting,
+    skillOf: skillLookup(state),
+    completedGames: state.completedGames,
+    seed: state.config.seed,
+  });
+}
+
+/**
+ * Seat a Foursome onto one freed Court. The committed "Up next" Foursome
+ * (issue #245) walks straight on when it is complete and still entirely in the
+ * Queue; otherwise Match Me picks from the Queue directly. Fewer than four to
+ * seat either way: the Court stays empty until there are.
  *
  * Only ever fills the Court named by a `COURT_FINISHED` event, one at a time,
  * so several finishing together fold sequentially with the Foursome removed
  * from the Queue before the next Court is filled.
  */
 function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
-  const skillById = new Map<string, SkillLevel>(
-    state.roster.map((p) => [p.id, p.skillLevel]),
-  );
-  const foursome = selectFoursome({
-    queue: state.queue.map((e) => e.playerId),
-    skillOf: (id) => skillById.get(id) ?? "intermediate",
-    completedGames: state.completedGames,
-    seed: state.config.seed,
-  });
+  const queuedIds = new Set(state.queue.map((e) => e.playerId));
+
+  let foursome: string[] | null = null;
+  const lead = state.onDeck[0];
+  if (lead && isComplete(lead) && lead.players.every((id) => queuedIds.has(id))) {
+    foursome = lead.players;
+    state.onDeck.shift();
+  } else {
+    foursome = pickFoursome(state, state.queue.map((e) => e.playerId));
+  }
   if (!foursome) return;
 
   const seated = new Set(foursome);
   state.queue = state.queue.filter((e) => !seated.has(e.playerId));
   court.foursome = foursome;
   court.since = at;
+}
+
+/**
+ * Bring On Deck back up to `ON_DECK_DEPTH` committed Foursomes after any event
+ * that changed the Queue (issue #245). The rules, in order:
+ *
+ *   1. **Never reshuffle.** An already-committed Foursome keeps its members;
+ *      this function only drops Players who have left the Queue, tops up
+ *      incomplete Foursomes, and forms new ones.
+ *   2. **Top up in wait order.** An incomplete Foursome (short Queue when it
+ *      formed) gains the next-longest-waiting unspoken-for Players until full.
+ *   3. **Form with Match Me.** A fresh Foursome is selected via `pickFoursome`
+ *      from the Players not already spoken for by On Deck or a Court; when
+ *      fewer than four remain it is committed incomplete, to top up later.
+ */
+function refreshOnDeck(state: SessionState, at: number): void {
+  const queuedIds = new Set(state.queue.map((e) => e.playerId));
+
+  // 1. A committed Player who is no longer waiting (walked onto a Court) drops
+  //    out; a Foursome emptied that way is gone.
+  for (const foursome of state.onDeck) {
+    foursome.players = foursome.players.filter((id) => queuedIds.has(id));
+  }
+  state.onDeck = state.onDeck.filter((f) => f.players.length > 0);
+
+  const spokenFor = new Set(state.onDeck.flatMap((f) => f.players));
+  const available = state.queue
+    .map((e) => e.playerId)
+    .filter((id) => !spokenFor.has(id));
+
+  // 2. Top up incomplete Foursomes, "Up next" before "After that".
+  for (const foursome of state.onDeck) {
+    while (foursome.players.length < 4 && available.length > 0) {
+      foursome.players.push(available.shift()!);
+    }
+  }
+
+  // 3. Form new Foursomes until On Deck is `ON_DECK_DEPTH` deep or nobody is
+  //    left to commit.
+  while (state.onDeck.length < ON_DECK_DEPTH && available.length > 0) {
+    const picked = pickFoursome(state, available) ?? [...available];
+    const seated = new Set(picked);
+    for (let i = available.length - 1; i >= 0; i--) {
+      if (seated.has(available[i])) available.splice(i, 1);
+    }
+    state.onDeck.push({ players: picked, committedAt: at });
+  }
 }
 
 /**
@@ -114,6 +196,7 @@ export function reduceSession(
     roster: [],
     queue: [],
     courts,
+    onDeck: [],
     completedGames: [],
   };
 
@@ -165,6 +248,10 @@ export function reduceSession(
         // reliably "joins the Queue and sees their position".
         state.queue.push({ playerId: event.token, waitSince: event.at });
         sortQueue(state.queue);
+
+        // The new waiter fills out an incomplete On Deck Foursome, or forms one
+        // — but never reshuffles a Foursome already announced (issue #245).
+        refreshOnDeck(state, event.at);
         break;
       }
 
@@ -189,8 +276,10 @@ export function reduceSession(
         court.since = null;
         sortQueue(state.queue);
 
-        // ...then Match Me walks the next Foursome onto the freed Court.
+        // ...then the "Up next" On Deck Foursome (or Match Me, if it is not
+        // ready) walks onto the freed Court, and On Deck refills behind it.
         seatCourt(state, court, event.at);
+        refreshOnDeck(state, event.at);
         break;
       }
     }
