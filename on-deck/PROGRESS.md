@@ -60,8 +60,22 @@ event array plus assertions about the resulting state.
   floor gating, `on_deck_rotation.test.sql`, `e2e/on-deck.spec.ts` join → get
   called → re-queue.
 
+- [x] **#244 — Match Me selection.** Naive "front four" replaced by the
+  windowed, anchored algorithm (ADR 0004) in `session/match-me.ts`: the
+  longest-waiting Player is a hard anchor, the other three are the best Skill /
+  Variety fit from a window of the next `SELECTION_WINDOW` (10) longest-waiting.
+  Skill fit is a per-Player gap cost (`[0,1,4,9]` by level gap), summed — so
+  Playing Style (v2) becomes a coefficient, not a rewrite. Variety penalises
+  repeating a courtmate, decaying with how many Games ago (`completedGames`,
+  recorded on every full-Court `COURT_FINISHED`). Every preference soft — the
+  Court fills regardless. Ties fall to Wait Time, then a FNV-1a hash of
+  `config.seed` — never `Math.random()`, so identical config + events always
+  yield the identical Foursome. Tests: `match-me.test.ts` (anchor, window,
+  skill spread, variety recency, determinism, seed tie-break) plus
+  `reduce.test.ts` integration through the fold.
+
 ## Next
 
-The rest of #238 — Match Me selection and On Deck foursomes, Queue Together,
-the Volunteer link surface, the Display and Kiosk, Last Call and the Session
-Summary purge.
+The rest of #238 — On Deck foursomes (announce the next two ahead of a Court
+freeing), Queue Together, the Volunteer link surface, the Display and Kiosk,
+Last Call and the Session Summary purge.

@@ -55,6 +55,14 @@ function sessionWith(count: number): SessionEvent[] {
   return events;
 }
 
+/** `started()` plus one joined-and-queued Player per Skill Level given. */
+function sessionWithSkills(skills: SkillLevel[]): SessionEvent[] {
+  const events: SessionEvent[] = [started()];
+  skills.forEach((skill, i) => events.push(joined(`p${i + 1}`, `P${i + 1}`, "X", skill)));
+  skills.forEach((_, i) => events.push(queued(`p${i + 1}`)));
+  return events;
+}
+
 const smallConfig: SessionConfig = { ...config, courtCount: 2 };
 
 function joined(
@@ -271,15 +279,17 @@ test("a queued Player is not pulled onto an empty Court — selection waits for 
   assert.equal(state.queue.length, 8);
 });
 
-test("COURT_FINISHED on an empty Court seats the longest-waiting Foursome", () => {
+test("COURT_FINISHED on an empty Court seats a Foursome anchored by the longest waiter", () => {
   const state = reduceSession(smallConfig, [...sessionWith(6), courtFinished(1)]);
 
-  assert.deepEqual(state.courts[0].foursome, ["p1", "p2", "p3", "p4"]);
-  assert.deepEqual(
-    state.queue.map((e) => e.playerId),
-    ["p5", "p6"],
-  );
+  assert.equal(state.courts[0].foursome.length, 4);
+  assert.equal(state.courts[0].foursome[0], "p1", "the anchor leads");
+  assert.equal(state.queue.length, 2);
   assert.equal(playerCourt(state, "p1"), 1);
+  // The two left behind were in the Queue; none of the seated four remain.
+  for (const seated of state.courts[0].foursome) {
+    assert.ok(!state.queue.some((e) => e.playerId === seated));
+  }
 });
 
 test("COURT_FINISHED with fewer than four waiting leaves the Court empty", () => {
@@ -288,47 +298,67 @@ test("COURT_FINISHED with fewer than four waiting leaves the Court empty", () =>
   assert.equal(state.queue.length, 3);
 });
 
-test("COURT_FINISHED re-queues the four coming off and the next four by Wait Time take the Court", () => {
+test("COURT_FINISHED re-queues the four coming off; the next Foursome is anchored by whoever now waits longest", () => {
+  const afterFirst = reduceSession(smallConfig, [
+    ...sessionWith(8),
+    courtFinished(1),
+  ]);
+  const firstFour = afterFirst.courts[0].foursome;
+  const stillWaiting = afterFirst.queue.map((e) => e.playerId);
+
   const state = reduceSession(smallConfig, [
     ...sessionWith(8),
-    courtFinished(1), // seats p1..p4
-    courtFinished(1), // p1..p4 re-queue behind p5..p8, who walk on
+    courtFinished(1),
+    courtFinished(1),
   ]);
 
-  assert.deepEqual(state.courts[0].foursome, ["p5", "p6", "p7", "p8"]);
-  assert.deepEqual(
-    state.queue.map((e) => e.playerId),
-    ["p1", "p2", "p3", "p4"],
-  );
+  // The four coming off are all back in the Queue...
+  for (const id of firstFour) {
+    assert.ok(state.queue.some((e) => e.playerId === id));
+  }
+  // ...and the new Foursome is drawn from those who were still waiting,
+  // anchored by the one who had waited longest (they sort ahead of the
+  // just-re-queued four).
+  assert.equal(state.courts[0].foursome.length, 4);
+  assert.equal(state.courts[0].foursome[0], stillWaiting[0]);
 });
 
 test("Wait Time resets to the COURT_FINISHED moment for a Player coming off", () => {
-  const events = [...sessionWith(8), courtFinished(1), courtFinished(1)];
-  const finishedAt = events[events.length - 1].at;
+  const base = sessionWith(8);
+  const firstFinish = courtFinished(1);
+  const secondFinish = courtFinished(1);
+  const events = [...base, firstFinish, secondFinish];
+
+  const seatedFirst = reduceSession(smallConfig, [...base, firstFinish])
+    .courts[0].foursome;
   const state = reduceSession(smallConfig, events);
 
-  const p1 = state.queue.find((e) => e.playerId === "p1");
-  assert.equal(p1?.waitSince, finishedAt);
+  // Everyone sent back to the Queue by the second finish carries its `at`.
+  for (const id of seatedFirst) {
+    const entry = state.queue.find((e) => e.playerId === id);
+    if (entry) assert.equal(entry.waitSince, secondFinish.at);
+  }
 });
 
 test("simultaneous Court finishes fold one at a time with no Player double-assigned", () => {
   const state = reduceSession(smallConfig, [
     ...sessionWith(16),
-    courtFinished(1), // p1..p4 onto Court 1
-    courtFinished(2), // p5..p8 onto Court 2
-    courtFinished(1), // p1..p4 re-queue; p9..p12 onto Court 1
-    courtFinished(2), // p5..p8 re-queue; p13..p16 onto Court 2
+    courtFinished(1),
+    courtFinished(2),
+    courtFinished(1),
+    courtFinished(2),
   ]);
 
-  assert.deepEqual(state.courts[0].foursome, ["p9", "p10", "p11", "p12"]);
-  assert.deepEqual(state.courts[1].foursome, ["p13", "p14", "p15", "p16"]);
+  assert.equal(state.courts[0].foursome.length, 4);
+  assert.equal(state.courts[1].foursome.length, 4);
 
   const assigned = state.courts.flatMap((c) => c.foursome);
-  assert.equal(new Set(assigned).size, assigned.length);
-  assert.deepEqual(
-    [...state.queue.map((e) => e.playerId)].sort(),
-    ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
-  );
+  assert.equal(new Set(assigned).size, assigned.length, "nobody on two Courts");
+
+  const queued = state.queue.map((e) => e.playerId);
+  assert.equal(new Set(queued).size, queued.length, "nobody queued twice");
+  // Everyone is either playing or waiting, exactly once.
+  assert.equal(assigned.length + queued.length, 16);
 });
 
 test("with nobody else waiting, the four coming off a Court go straight back on", () => {
@@ -359,3 +389,113 @@ test("a PLAYER_QUEUED before the Session opens is ignored", () => {
   const state = reduceSession(smallConfig, [queued("p1")]);
   assert.deepEqual(state.queue, []);
 });
+
+// --- Match Me through the fold (#244) -----------------------------------
+
+test("the fold seats a same-Skill Foursome over a mixed one", () => {
+  // p1 (anchor, intermediate) + a window of two intermediates and three
+  // advanced. Match Me takes the intermediates.
+  const skills: SkillLevel[] = [
+    "intermediate",
+    "advanced",
+    "intermediate",
+    "advanced",
+    "intermediate",
+    "advanced",
+  ];
+  const state = reduceSession(smallConfig, [
+    ...sessionWithSkills(skills),
+    courtFinished(1),
+  ]);
+
+  assert.equal(state.courts[0].foursome[0], "p1", "anchor leads");
+  assert.deepEqual(
+    state.courts[0].foursome.map((id) => idSkill(state, id)).sort(),
+    ["advanced", "intermediate", "intermediate", "intermediate"],
+  );
+});
+
+test("the fold rotates two Courts deterministically when Skill Level pins the picks", () => {
+  // Four intermediates then four advanced — Match Me keeps each Court to one
+  // level, so every seat is forced and the whole rotation is exact.
+  const events = sessionWithSkills([
+    "intermediate",
+    "intermediate",
+    "intermediate",
+    "intermediate",
+    "advanced",
+    "advanced",
+    "advanced",
+    "advanced",
+  ]);
+  const state = reduceSession(smallConfig, [
+    ...events,
+    courtFinished(1), // p1..p4 (intermediates)
+    courtFinished(2), // p5..p8 (advanced)
+  ]);
+
+  assert.deepEqual(state.courts[0].foursome, ["p1", "p2", "p3", "p4"]);
+  assert.deepEqual(state.courts[1].foursome, ["p5", "p6", "p7", "p8"]);
+  assert.deepEqual(state.queue, []);
+});
+
+test("the fold avoids re-pairing a Foursome across consecutive Games (Variety)", () => {
+  // Eight intermediates. Court 1's first Game, then finish it: the four
+  // coming off should not be the four Match Me picks next.
+  const base = sessionWith(8);
+  const first = reduceSession(smallConfig, [...base, courtFinished(1)]);
+  const firstFour = new Set(first.courts[0].foursome);
+
+  const next = reduceSession(smallConfig, [
+    ...base,
+    courtFinished(1),
+    courtFinished(1),
+  ]);
+  const overlap = next.courts[0].foursome.filter((id) => firstFour.has(id));
+
+  // The anchor may be forced (longest wait), but the Foursome as a whole is
+  // fresh — no more than the anchor carries over.
+  assert.ok(overlap.length <= 1, `overlap was ${overlap.join(", ")}`);
+});
+
+test("the fold's selection is deterministic — same events, same Foursome", () => {
+  const events = [...sessionWith(12), courtFinished(1), courtFinished(2)];
+  const a = reduceSession(config, events);
+  const b = reduceSession(config, events);
+
+  assert.deepEqual(a.courts, b.courts);
+  assert.deepEqual(a.completedGames, b.completedGames);
+});
+
+test("a different seed can seat a different Foursome from the same events", () => {
+  const events = [...sessionWith(12), courtFinished(1)];
+  const one = reduceSession({ ...config, seed: "one" }, events);
+  const two = reduceSession({ ...config, seed: "two" }, events);
+
+  // Both anchor the longest waiter; the trio behind can differ.
+  assert.equal(one.courts[0].foursome[0], two.courts[0].foursome[0]);
+  // (not asserting they differ — two seeds may coincide — only that each is
+  // internally consistent, covered above.)
+  assert.equal(one.courts[0].foursome.length, 4);
+});
+
+test("COURT_FINISHED records the finished Game for Variety history", () => {
+  const base = sessionWith(8);
+  const state = reduceSession(smallConfig, [...base, courtFinished(1)]);
+  assert.equal(state.completedGames.length, 0, "an empty Court carries no Game");
+
+  const played = reduceSession(smallConfig, [
+    ...base,
+    courtFinished(1),
+    courtFinished(1),
+  ]);
+  assert.equal(played.completedGames.length, 1);
+  assert.equal(played.completedGames[0].players.length, 4);
+});
+
+function idSkill(
+  state: ReturnType<typeof reduceSession>,
+  id: string,
+): SkillLevel {
+  return state.roster.find((p) => p.id === id)!.skillLevel;
+}
