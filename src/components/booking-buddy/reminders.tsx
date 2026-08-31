@@ -11,9 +11,7 @@ import {
 } from "@/lib/booking-buddy/reminders";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
-  updateBookingWindowRemindersEnabled,
-  updateConnectionRequestEmailsEnabled,
-  updateEmailRemindersEnabled,
+  updateNotificationPreferences,
   updateReminderOffset,
   type NotificationPreferences,
 } from "@/lib/booking-buddy/actions/reminders";
@@ -94,126 +92,74 @@ export function ReminderOffsetForm({
   );
 }
 
-/** The signed-in User's own opt-in for email Reminders — Settings-page control. */
+function PreferenceCheckbox({
+  id,
+  name,
+  defaultChecked,
+  label,
+}: {
+  id: string;
+  name: string;
+  defaultChecked: boolean;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        id={id}
+        name={name}
+        type="checkbox"
+        defaultChecked={defaultChecked}
+        className="h-5 w-5 rounded border-input accent-primary"
+      />
+      <Label htmlFor={id} className="font-normal">
+        {label}
+      </Label>
+    </div>
+  );
+}
+
+/**
+ * The signed-in User's own email notification opt-ins — the Settings page's
+ * "Notifications" card. All three toggles (the attendee Reminder from issue
+ * #11, the Booking Window Reminder from #36, and the friend-request email from
+ * #228) are still independent preferences, each with its own column, but they
+ * share one Save button: the form submits every checkbox's current state on
+ * each save, so flipping one and saving leaves the others exactly as they sit.
+ * Per-device push has its own control (`PushNotificationsForm`), which saves on
+ * toggle and isn't part of this form.
+ */
 export function NotificationPreferencesForm({
   preferences,
 }: {
   preferences: NotificationPreferences;
 }) {
-  const [state, formAction, pending] = useActionState(updateEmailRemindersEnabled, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    updateNotificationPreferences,
+    EMPTY,
+  );
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <input
+    <form action={formAction} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
+        <PreferenceCheckbox
           id="email-enabled"
           name="email_enabled"
-          type="checkbox"
           defaultChecked={preferences.emailEnabled}
-          className="h-5 w-5 rounded border-input accent-primary"
+          label="Email me a reminder before games I've said yes to, so I don't forget to show up"
         />
-        <Label htmlFor="email-enabled" className="font-normal">
-          Email me a reminder before games I&apos;ve said yes to, so I don&apos;t forget to show up
-        </Label>
-      </div>
-
-      {state.error && (
-        <p className="text-sm text-destructive" role="alert">
-          {state.error}
-        </p>
-      )}
-      {state.ok && (
-        <p className="text-sm text-muted-foreground" role="status">
-          Saved.
-        </p>
-      )}
-
-      <div>
-        <Button type="submit" variant="outline" disabled={pending}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-/**
- * The signed-in User's own opt-in for the friend-request email (issue #228) —
- * its own preference, independent of the two Reminder toggles.
- */
-export function ConnectionRequestPreferenceForm({
-  preferences,
-}: {
-  preferences: NotificationPreferences;
-}) {
-  const [state, formAction, pending] = useActionState(
-    updateConnectionRequestEmailsEnabled,
-    EMPTY,
-  );
-
-  return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <input
-          id="connection-request-email-enabled"
-          name="connection_request_email_enabled"
-          type="checkbox"
-          defaultChecked={preferences.connectionRequestEmailEnabled}
-          className="h-5 w-5 rounded border-input accent-primary"
-        />
-        <Label htmlFor="connection-request-email-enabled" className="font-normal">
-          Email me when someone sends me a friend request, so I can accept it right away
-        </Label>
-      </div>
-
-      {state.error && (
-        <p className="text-sm text-destructive" role="alert">
-          {state.error}
-        </p>
-      )}
-      {state.ok && (
-        <p className="text-sm text-muted-foreground" role="status">
-          Saved.
-        </p>
-      )}
-
-      <div>
-        <Button type="submit" variant="outline" disabled={pending}>
-          {pending ? "Saving…" : "Save"}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-/**
- * The signed-in User's own opt-in for Booking Window Reminders — a separate
- * preference from `NotificationPreferencesForm` above (issue #36's own
- * acceptance criterion), not a second control over the same setting.
- */
-export function BookingWindowPreferenceForm({
-  preferences,
-}: {
-  preferences: NotificationPreferences;
-}) {
-  const [state, formAction, pending] = useActionState(
-    updateBookingWindowRemindersEnabled,
-    EMPTY,
-  );
-
-  return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <input
+        <PreferenceCheckbox
           id="booking-window-email-enabled"
           name="booking_window_email_enabled"
-          type="checkbox"
           defaultChecked={preferences.bookingWindowEmailEnabled}
-          className="h-5 w-5 rounded border-input accent-primary"
+          label="Email me once a facility's booking window opens, so I don't forget to reserve a court"
         />
-        <Label htmlFor="booking-window-email-enabled" className="font-normal">
-          Email me once a facility&apos;s booking window opens, so I don&apos;t forget to reserve a court
-        </Label>
+        <PreferenceCheckbox
+          id="connection-request-email-enabled"
+          name="connection_request_email_enabled"
+          defaultChecked={preferences.connectionRequestEmailEnabled}
+          label="Email me when someone sends me a friend request, so I can accept it right away"
+        />
       </div>
 
       {state.error && (

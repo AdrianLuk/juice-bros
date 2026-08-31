@@ -6,11 +6,7 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { SignOutButton } from "@/components/booking-buddy/sign-out-button";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
 import { GenderForm } from "@/components/booking-buddy/gender-form";
-import {
-  BookingWindowPreferenceForm,
-  ConnectionRequestPreferenceForm,
-  NotificationPreferencesForm,
-} from "@/components/booking-buddy/reminders";
+import { NotificationPreferencesForm } from "@/components/booking-buddy/reminders";
 import { PushNotificationsForm } from "@/components/booking-buddy/push-notifications";
 import { GmailSyncSection } from "@/components/booking-buddy/email-sync";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
@@ -75,16 +71,10 @@ export default async function SettingsPage({
             </h2>
             <div className="bb-card mt-4 flex flex-col divide-y divide-border/60 p-6">
               <div className="pb-5">
-                <NotificationPreferencesForm preferences={notificationPreferences} />
-              </div>
-              <div className="py-5">
-                <BookingWindowPreferenceForm preferences={notificationPreferences} />
-              </div>
-              <div className="py-5">
-                <ConnectionRequestPreferenceForm preferences={notificationPreferences} />
+                <PushNotificationsForm />
               </div>
               <div className="pt-5">
-                <PushNotificationsForm />
+                <NotificationPreferencesForm preferences={notificationPreferences} />
               </div>
             </div>
           </div>

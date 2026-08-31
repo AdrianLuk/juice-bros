@@ -94,44 +94,25 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 }
 
 /**
- * Toggle email Reminders on or off. An unchecked checkbox sends no field at
- * all — its absence, not a value, is what "off" means here.
+ * Save all three email notification opt-ins in one write — the Settings page's
+ * "Notifications" card has a single Save button covering every email toggle
+ * (issues #11, #36, #228), so this action reads and upserts all three columns
+ * at once. An unchecked checkbox sends no field at all — its absence, not a
+ * value, is what "off" means here.
  *
- * Push has no control on this form yet (issue #12 wires up delivery); the
- * upsert only ever touches `email_enabled`, so a first-time write still
- * leaves `push_enabled` at the column's own default rather than this action
- * having an opinion about a channel it doesn't manage.
+ * Push has no control on this form (`PushNotificationsForm` manages the
+ * per-device subscription itself); the upsert never touches `push_enabled`, so
+ * a first-time write still leaves it at the column's own default rather than
+ * this action having an opinion about a channel it doesn't manage.
  */
-export async function updateEmailRemindersEnabled(
+export async function updateNotificationPreferences(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
   const session = await verifySession();
+
   const emailEnabled = formData.get("email_enabled") === "on";
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("notification_preferences")
-    .upsert({ user_id: session.userId, email_enabled: emailEnabled }, { onConflict: "user_id" });
-
-  if (error) {
-    return { error: "Couldn't save that. Try again." };
-  }
-
-  revalidatePath(SETTINGS_PATH);
-  return { ok: true };
-}
-
-/**
- * Toggle the friend-request email on or off (issue #228) — its own preference,
- * independent of the two Reminder toggles. Same shape as the others, touching
- * only its own column.
- */
-export async function updateConnectionRequestEmailsEnabled(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
+  const bookingWindowEmailEnabled = formData.get("booking_window_email_enabled") === "on";
   const connectionRequestEmailEnabled =
     formData.get("connection_request_email_enabled") === "on";
 
@@ -139,36 +120,10 @@ export async function updateConnectionRequestEmailsEnabled(
   const { error } = await supabase.from("notification_preferences").upsert(
     {
       user_id: session.userId,
+      email_enabled: emailEnabled,
+      booking_window_email_enabled: bookingWindowEmailEnabled,
       connection_request_email_enabled: connectionRequestEmailEnabled,
     },
-    { onConflict: "user_id" },
-  );
-
-  if (error) {
-    return { error: "Couldn't save that. Try again." };
-  }
-
-  revalidatePath(SETTINGS_PATH);
-  return { ok: true };
-}
-
-/**
- * Toggle Booking Window Reminders on or off — a separate preference from
- * `updateEmailRemindersEnabled` (issue #36's own acceptance criterion):
- * someone may want to know a game is on without being nagged about booking
- * logistics, or the reverse. Same shape as that action, touching only its
- * own column.
- */
-export async function updateBookingWindowRemindersEnabled(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-  const bookingWindowEmailEnabled = formData.get("booking_window_email_enabled") === "on";
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("notification_preferences").upsert(
-    { user_id: session.userId, booking_window_email_enabled: bookingWindowEmailEnabled },
     { onConflict: "user_id" },
   );
 
