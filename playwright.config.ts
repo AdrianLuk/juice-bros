@@ -25,9 +25,23 @@ export default defineConfig({
   // (`e2e/support/accounts.ts`, keyed on parallelIndex), which is what makes
   // it safe — two workers on the same account would fight over its rows.
   // `fullyParallel` stays off: it would split a file's tests across workers.
-  workers: process.env.CI ? 2 : TEST_WORKER_COUNT,
+  //
+  // 3, not `TEST_WORKER_COUNT` (4): the bottleneck is the single Next server +
+  // the single local Postgres, not CPU. At 4 workers their Server-Action round
+  // trips roughly double and the timing-sensitive specs flake; 3 keeps the win
+  // without that. Seeding still makes 4 sets so bumping this back is a one-liner.
+  workers: process.env.CI ? 2 : Math.min(3, TEST_WORKER_COUNT),
   fullyParallel: false,
+  // One retry locally: a spec that lost a race with three other workers'
+  // Server Actions almost always passes on its own the second time. CI stays
+  // strict.
+  retries: process.env.CI ? 0 : 1,
   reporter: process.env.CI ? "github" : "list",
+  // Generous vs the defaults (30s / 5s) — under concurrent load a Server Action
+  // that normally lands in ~1s can take several, and a passing assertion only
+  // ever waits as long as it needs to.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   use: {
     baseURL: "http://localhost:3000",
     // Kept only for failures — a passing run shouldn't leave artefacts behind.
