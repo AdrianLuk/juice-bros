@@ -78,7 +78,9 @@ test("repeated guest RSVPs from the same IP past the soft threshold are flagged 
         await guestPage.goto(url);
         await guestPage.getByLabel("Your name").fill(`Repeat Guest ${i}`);
         await guestPage.getByRole("button", { name: "Yes" }).click();
-        await expect(guestPage.getByText("Thanks. Your RSVP is in.")).toBeVisible();
+        await expect(
+          guestPage.getByText("You're in. See you on the court."),
+        ).toBeVisible();
         await guestPage.close();
       }
 

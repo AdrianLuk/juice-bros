@@ -190,15 +190,25 @@ test("clicking a Month day switches to Week view centered on that day", async ({
 
   await page.getByRole("button", { name: "Month", exact: true }).click();
 
-  // Aug 27 falls in the week after the one Week view opens on by default
-  // (Aug 16-22) — a real switch, not a same-range no-op.
-  await page.getByRole("button", { name: "Go to the week of Thu Aug 27 2026" }).click();
+  // A day eight from today — always a different week than the one Week view
+  // opens on (which is today's) — kept inside the month the Month grid shows
+  // by reaching toward whichever end is further away, so its cell is on
+  // screen. The component labels each day cell `Go to the week of
+  // <Date#toDateString>`.
+  const today = new Date();
+  const target = new Date(today);
+  target.setDate(today.getDate() < 15 ? today.getDate() + 8 : today.getDate() - 8);
+  const weekOfTarget = `Go to the week of ${target.toDateString()}`;
+
+  await page.getByRole("button", { name: weekOfTarget }).click();
 
   await expect(page.getByRole("button", { name: "Week", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  await expect(page.getByText("Aug 23 – 29, 2026")).toBeVisible();
+  // Week view now spans the target's week: its own day-column header carries
+  // the same "Go to the week of <target>" label.
+  await expect(page.getByRole("button", { name: weekOfTarget })).toBeVisible();
 });
 
 test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
@@ -222,7 +232,10 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
   // A successful save closes the dialog itself — no manual "Close" needed.
   await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
   await expect(page.getByText(bookingDate.label)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Court 95/ })).toBeVisible();
+  // `.first()` is the grid chip: a booking this soon also lands in the
+  // server-rendered "Coming up" sidebar, whose row matches /Court NN/ too
+  // once it streams in (same reason as the popover test above).
+  await expect(page.getByRole("button", { name: /Court 95/ }).first()).toBeVisible();
   await expect(page).toHaveURL(/\/booking-buddy$/);
 
   await removePlace(page, place);
@@ -251,7 +264,8 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
 
   // A successful save closes the dialog itself.
   await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Court 96/ })).toBeVisible();
+  // `.first()` is the grid chip — see the note in the sibling quick-add test.
+  await expect(page.getByRole("button", { name: /Court 96/ }).first()).toBeVisible();
 
   await removePlace(page, place);
 });
@@ -288,8 +302,9 @@ test("a Booking always renders as busy over an overlapping Availability Window",
 
   await page.goto("/booking-buddy");
 
-  // The Booking itself renders.
-  await expect(page.getByRole("button", { name: /Court 97/ })).toBeVisible();
+  // The Booking itself renders (`.first()` is the grid chip — the "Coming up"
+  // sidebar row matches /Court 97/ too once it streams in).
+  await expect(page.getByRole("button", { name: /Court 97/ }).first()).toBeVisible();
   // Its own span is never also drawn as a Busy Availability block (ADR 0006 — never both).
   await expect(page.locator('[title*="Busy: 1:00 PM"]')).toHaveCount(0);
   // The Busy declaration still surfaces either side of the Booking it doesn't cover.
