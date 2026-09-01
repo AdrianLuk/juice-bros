@@ -2,7 +2,7 @@
 
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import { formatCourtLabel } from "@/lib/booking-buddy/bookings";
-import { imminenceLabel } from "@/lib/booking-buddy/datetime";
+import { ImminenceBadge } from "@/components/booking-buddy/imminence-badge";
 import { BookingDetailsModal } from "@/components/booking-buddy/bookings";
 import type { Booking } from "@/lib/booking-buddy/actions/bookings";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
@@ -35,8 +35,6 @@ export function UpcomingBookingItem({
   /** The dashboard's server `now`, for the "Tonight / Tomorrow" cue. */
   nowIso: string;
 }) {
-  const imminence = imminenceLabel(new Date(nowIso), booking.startsAt);
-
   return (
     <BookingDetailsModal
       booking={booking}
@@ -46,11 +44,7 @@ export function UpcomingBookingItem({
         <li className="bb-card bb-card-interactive w-full cursor-pointer p-3 text-left" />
       }
     >
-      {imminence && (
-        <span className="mb-1 inline-flex items-center rounded-full bg-accent/40 px-2 py-0.5 text-[0.7rem] font-semibold text-accent-foreground">
-          {imminence}
-        </span>
-      )}
+      <ImminenceBadge nowIso={nowIso} startsAt={booking.startsAt} />
       <p className="text-sm font-medium">{booking.when}</p>
       {booking.name && (
         <p className="mt-0.5 text-xs font-medium">{booking.name}</p>

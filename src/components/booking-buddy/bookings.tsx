@@ -37,9 +37,9 @@ import {
 import {
   clockInZone,
   formatInstantDateAndTime,
-  imminenceLabel,
   todayInZone,
 } from "@/lib/booking-buddy/datetime";
+import { ImminenceBadge } from "@/components/booking-buddy/imminence-badge";
 import {
   BOOKING_FORMATS,
   BOOKING_FORMAT_LABEL,
@@ -567,17 +567,11 @@ export function BookingRow({
   // instead of competing with the date for width next to the Remove button.
   const [whenDate, whenTime] = booking.when.split(" · ");
 
-  const imminence = nowIso
-    ? imminenceLabel(new Date(nowIso), booking.startsAt)
-    : null;
-
   return (
     <li className="flex items-center justify-between gap-4 px-5 py-4">
       <div className="min-w-0">
-        {imminence && (
-          <span className="mb-1 inline-flex items-center rounded-full bg-accent/40 px-2 py-0.5 text-[0.7rem] font-semibold text-accent-foreground">
-            {imminence}
-          </span>
+        {nowIso && (
+          <ImminenceBadge nowIso={nowIso} startsAt={booking.startsAt} />
         )}
         <div className="sm:hidden">
           <p className="font-medium">{whenDate}</p>
