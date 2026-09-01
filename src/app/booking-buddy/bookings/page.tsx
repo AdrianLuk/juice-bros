@@ -21,7 +21,7 @@ import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
 import { notEndedBefore } from "@/lib/booking-buddy/calendar";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
-import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
+import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 
@@ -57,7 +57,7 @@ export default async function BookingsPage() {
   // does — an unapproved User never sees "Sync from Email" at all.
   // syncFromEmail/confirmImportCandidate/dismissReviewItem each
   // re-check this authoritatively.
-  const emailSyncAllowed = isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
+  const emailSyncAllowed = isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist());
   const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
 
   return (

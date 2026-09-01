@@ -1,5 +1,5 @@
--- Mailbox Link (issue #62, CONTEXT.md) — one Gmail OAuth grant per User,
--- owner-only per ADR 0003's coarse-RLS pattern (see profiles.test.sql for
+-- Mailbox Link (issue #62 / #281, CONTEXT.md) — one mailbox OAuth grant per
+-- User, owner-only per ADR 0003's coarse-RLS pattern (see profiles.test.sql for
 -- the pattern this mirrors: seed as the table owner, then re-check as
 -- `authenticated` carrying each User's own JWT).
 
@@ -7,14 +7,17 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(18);
 
 select has_table('public', 'mailbox_links', 'mailbox_links table exists');
 select has_column('public', 'mailbox_links', 'owner_id', 'mailbox_links.owner_id exists');
-select has_column('public', 'mailbox_links', 'google_account_email', 'mailbox_links.google_account_email exists');
+select has_column('public', 'mailbox_links', 'account_email', 'mailbox_links.account_email exists (renamed from google_account_email in #281)');
+select hasnt_column('public', 'mailbox_links', 'google_account_email', 'the Gmail-specific column name is gone');
+select has_column('public', 'mailbox_links', 'provider', 'mailbox_links.provider exists (#281)');
 select has_column('public', 'mailbox_links', 'encrypted_refresh_token', 'mailbox_links.encrypted_refresh_token exists');
 select has_column('public', 'mailbox_links', 'status', 'mailbox_links.status exists');
 select col_is_pk('public', 'mailbox_links', 'owner_id', 'owner_id is the primary key — one Mailbox Link per User');
+select col_hasnt_default('public', 'mailbox_links', 'provider', 'the backfill default was dropped — every insert names the provider');
 
 insert into auth.users (id, instance_id, aud, role, email)
 values (
@@ -34,9 +37,10 @@ values (
   'mailboxlink-stranger@example.com'
 );
 
-insert into public.mailbox_links (owner_id, google_account_email, encrypted_refresh_token)
+insert into public.mailbox_links (owner_id, provider, account_email, encrypted_refresh_token)
 values (
   '33333333-3333-3333-3333-333333333333',
+  'google',
   'owner@gmail.com',
   'fake.iv.ciphertext'
 );
@@ -48,19 +52,27 @@ select is(
 );
 
 select throws_ok(
-  $$ insert into public.mailbox_links (owner_id, google_account_email, encrypted_refresh_token, status)
-     values ('33333333-3333-3333-3333-333333333333', 'second@gmail.com', 'fake.iv.ciphertext', 'not-a-real-status') $$,
+  $$ insert into public.mailbox_links (owner_id, provider, account_email, encrypted_refresh_token)
+     values ('33333333-3333-3333-3333-333333333333', 'yahoo', 'second@yahoo.com', 'fake.iv.ciphertext') $$,
+  '23514',
+  null,
+  'provider is constrained to google/microsoft'
+);
+
+select throws_ok(
+  $$ insert into public.mailbox_links (owner_id, provider, account_email, encrypted_refresh_token, status)
+     values ('33333333-3333-3333-3333-333333333333', 'google', 'second@gmail.com', 'fake.iv.ciphertext', 'not-a-real-status') $$,
   '23514',
   null,
   'status is constrained to active/expired'
 );
 
 select throws_ok(
-  $$ insert into public.mailbox_links (owner_id, google_account_email, encrypted_refresh_token)
-     values ('33333333-3333-3333-3333-333333333333', 'dup@gmail.com', 'fake.iv.ciphertext') $$,
+  $$ insert into public.mailbox_links (owner_id, provider, account_email, encrypted_refresh_token)
+     values ('33333333-3333-3333-3333-333333333333', 'microsoft', 'dup@hotmail.com', 'fake.iv.ciphertext') $$,
   '23505',
   null,
-  'a second Mailbox Link for the same owner is refused — one per User'
+  'a second Mailbox Link for the same owner is refused — one per User, connecting a provider upserts onto the same row'
 );
 
 -- Row Level Security, exercised the way a real request arrives: as the
@@ -76,7 +88,7 @@ select is(
 );
 
 select is(
-  (select google_account_email from public.mailbox_links),
+  (select account_email from public.mailbox_links),
   'owner@gmail.com',
   'and can read its own columns'
 );

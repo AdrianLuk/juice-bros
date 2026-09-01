@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
-import { isEmailSyncAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
+import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
@@ -31,14 +31,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * sign-in page links here before there's a session. `getOptionalSession`
  * rather than `verifySession` so it renders instead of redirecting when
  * signed out; the Gmail section below simply stays hidden in that case,
- * consistent with `isEmailSyncAllowed`'s own fail-closed default.
+ * consistent with `isGmailConnectAllowed`'s own fail-closed default.
  */
 export default async function BookingBuddyPrivacyPage() {
   const session = await getOptionalSession();
   const profile = session ? await getOwnProfile() : null;
   const emailSyncAllowed =
     profile && session
-      ? isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist())
+      ? isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist())
       : false;
 
   return (

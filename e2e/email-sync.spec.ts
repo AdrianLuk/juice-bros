@@ -123,8 +123,20 @@ test.beforeEach(() => {
 /** Leaves Ben disconnected for the next test/run, same discipline settings.spec.ts uses for Username. */
 test.afterEach(async ({ page }) => {
   await page.goto("/booking-buddy/settings");
+
+  // The Settings route streams through its own `loading.tsx` and the
+  // connect/disconnect controls are a client component. A bare
+  // `disconnect.isVisible()` here doesn't auto-wait — it races the skeleton,
+  // reads "nothing connected", and skips a disconnect that was actually
+  // needed. The stale Mailbox Link then survives into the next test, whose
+  // "Connect Gmail" step waits out the full timeout against a page that's
+  // showing "Disconnect" instead (issue #279). The "Sync from Email" heading
+  // renders only on the real page (never the skeleton) and for every User, so
+  // waiting on it lands us past the swap before probing.
+  await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
+
   const disconnect = page.getByRole("button", { name: "Disconnect" });
-  if (await disconnect.isVisible().catch(() => false)) {
+  if (await disconnect.isVisible()) {
     await disconnect.click();
     await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
   }
@@ -156,7 +168,7 @@ test("connecting runs the real OAuth redirect and stores the Mailbox Link", asyn
   await signIn(page, BEN, "/booking-buddy/settings");
   await page.getByRole("button", { name: "Connect Gmail" }).click();
 
-  await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+  await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
   await expect(page.getByText("Connected as ben.pickleball@gmail.com")).toBeVisible();
 
   // Not just the optimistic redirect state — it survives a fresh read.
@@ -174,7 +186,7 @@ test("disconnecting removes the Mailbox Link", async ({ page }) => {
 
   await signIn(page, BEN, "/booking-buddy/settings");
   await page.getByRole("button", { name: "Connect Gmail" }).click();
-  await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+  await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
   await page.getByRole("button", { name: "Disconnect" }).click();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
@@ -190,7 +202,7 @@ test("a failed token exchange reports it honestly, without creating a Mailbox Li
   await signIn(page, BEN, "/booking-buddy/settings");
   await page.getByRole("button", { name: "Connect Gmail" }).click();
 
-  await page.waitForURL((url) => url.searchParams.get("error") === "gmail_connect_failed");
+  await page.waitForURL((url) => url.searchParams.get("error") === "mailbox_connect_failed");
   await expect(
     page.getByRole("alert").filter({ hasText: "Couldn't connect Gmail" }),
   ).toBeVisible();
@@ -208,6 +220,11 @@ test("a failed token exchange reports it honestly, without creating a Mailbox Li
 test.describe("Sync from Email", () => {
   test.afterEach(async ({ page }) => {
     await page.goto("/booking-buddy/orgs");
+    // `/orgs` streams through its own `loading.tsx`, whose skeleton mirrors the
+    // "Facilities" page title — so wait for a heading only the real page has
+    // before counting, or `strays.count()` reads zero against the skeleton and
+    // this cleanup silently no-ops (issue #279).
+    await expect(page.getByRole("heading", { name: "Your facilities" })).toBeVisible();
     const strays = row(page, "Playwright");
     for (let left = await strays.count(); left > 0; left--) {
       await strays.first().getByRole("button", { name: "Remove" }).click();
@@ -231,7 +248,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     mock.registerMessages([confirmationEmail({ id: messageId(), facility })]);
 
@@ -276,7 +293,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     mock.registerMessages([confirmationEmail({ id: messageId(), facility })]);
 
@@ -310,7 +327,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     // The real-world shape (issue #88): editing a reservation twice (e.g.
     // adding a player) resends a cancellation and a fresh confirmation each
@@ -379,7 +396,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     mock.registerMessages([cancellationEmail({ id: messageId(), facility })]);
 
@@ -420,7 +437,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     mock.registerMessages([cancellationEmail({ id: messageId(), facility })]);
 
@@ -458,7 +475,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     mock.registerMessages([
       confirmationEmail({ id: messageId(), facility, players: "Amy Ace, Ben Backhand", receivedAt: 1 }),
@@ -518,7 +535,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     // No in-batch confirmation this time — the same shape as a User syncing,
     // confirming right away, and only getting the Update Notice on a later
@@ -569,7 +586,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     mock.registerMessages([updateEmail({ id: messageId(), facility })]);
 
@@ -610,7 +627,7 @@ test.describe("Sync from Email", () => {
 
     await page.goto("/booking-buddy/settings");
     await page.getByRole("button", { name: "Connect Gmail" }).click();
-    await page.waitForURL((url) => url.searchParams.get("gmail_connected") === "1");
+    await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
     // The Mailbox Link is still connected/active — Google's refresh grant
     // itself is what fails now, exactly ADR-0009's 7-day Testing-mode expiry.
