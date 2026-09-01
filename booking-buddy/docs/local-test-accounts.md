@@ -75,6 +75,21 @@ so it is a useful thing to have in local data — but it is also easy to send a 
 request to the wrong Amy and then wonder why the other one never received it. Check the
 `@handle` in search results, not the name.
 
+## Per-worker copies (for the parallel browser suite)
+
+`seed:users` also creates `E2E_WORKER_COUNT` (default 4) copies of all four
+accounts — `amyace-w0@example.com`, `benbackhand-w0@example.com`,
+`amyace2-w0@example.com`, `benbackhand2-w0@example.com`, then `-w1`, `-w2`, `-w3`
+— each wired into the same two friendships and left at the same visibility
+bottom. Playwright's `accounts` fixture hands each worker its own set, so
+`workers: 4` doesn't have two workers writing one account's rows.
+
+Their Usernames are `amyacew0` / `benbackhandw0` / `amyace2w0` /
+`benbackhand2w0` (and `…w1` …). The display names still collide two-and-two on
+purpose, so the seed script forces the Username explicitly rather than letting
+the signup trigger number the collisions. These are for the test suite — click
+through with the four un-suffixed accounts above.
+
 ## These are local-only
 
 The emails are unreachable, the password is in this file on purpose, and none of these

@@ -30,6 +30,12 @@ They only exist locally and none of it is secret. `seed:users` also restores the
 two accepted Connections the browser tests assume — without them five of those
 tests fail for reasons unrelated to the code under test.
 
+`seed:users` additionally creates **per-worker copies** of the four accounts
+(`amyace-w0@example.com` … `amyace-w3@example.com` and so on), one set per
+Playwright worker — that's what lets `test:e2e` run `workers: 4`. Set
+`E2E_WORKER_COUNT` to change how many it makes; keep it `>=` the `workers` in
+`playwright.config.ts`.
+
 If you've pulled new migrations, apply them without wiping your data:
 
 ```
@@ -111,8 +117,15 @@ Some things worth knowing before writing more of them:
 - **They mutate the local database**, as any real click does. Each test deletes
   the group it made, and `afterEach` sweeps up anything a failed run left
   behind — without that, strays pile up one per broken run.
-- **`workers: 1`, deliberately.** Two tests writing the same account's groups at
-  once would fight over each other's rows.
+- **`workers: 4`, `fullyParallel: false` — file-level parallelism.** Each spec
+  file runs whole on one worker (so intra-file ordering and the per-file mock
+  singletons hold), but different files run at once. Each worker gets its own
+  seeded account set via the `accounts` fixture (`e2e/support/accounts.ts`),
+  keyed on `parallelIndex` — that's what makes it safe. Any spec that signs in
+  as a seeded account imports `test`/`expect` from that fixture and reaches for
+  `accounts.amy.email` / `accounts.ben2.username`, never a hard-coded constant.
+  Specs on fresh throwaway signups (onboarding, on-deck, pickle-point-pal) are
+  already isolated and don't use the fixture.
 - **Address friends by Username, never by display name.** The local data holds
   two "Ben Backhand"s on purpose (that ambiguity is why Usernames exist — see
   [adr/0004-user-search-is-not-a-directory.md](adr/0004-user-search-is-not-a-directory.md)),
