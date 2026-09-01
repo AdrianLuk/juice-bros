@@ -1,18 +1,16 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 
 /**
  * Changing a Username.
  *
- * Every test here puts the handle back to `amyace` before it ends: the rest of
- * the suite finds Amy by that handle, and the seed script won't restore it
- * without a database reset.
+ * Every test here puts the handle back to this worker's Amy handle before it
+ * ends: the rest of the suite finds her by it, and the seed script won't
+ * restore it without a database reset. This worker's Ben holds
+ * `accounts.ben.username`, so that one can never be claimed.
  */
-const ORIGINAL = "amyace";
-
-/** Taken by another seeded account, so it can never be claimed. */
-const TAKEN = "benbackhand";
 
 /**
  * The form's own error, not Next's route announcer — that is also
@@ -34,16 +32,16 @@ const formWithField = (page: Page, labelText: string) =>
 const genderForm = (page: Page) =>
   page.locator("form").filter({ has: page.getByRole("radio", { name: "Prefer not to say" }) });
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/settings");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/settings");
 });
 
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page, accounts }) => {
   await page.goto("/booking-buddy/settings");
   const field = page.getByLabel("Username");
 
-  if ((await field.inputValue()) !== ORIGINAL) {
-    await field.fill(ORIGINAL);
+  if ((await field.inputValue()) !== accounts.amy.username) {
+    await field.fill(accounts.amy.username);
     await page.getByRole("button", { name: "Save username" }).click();
     await expect(page.getByRole("status")).toBeVisible();
   }
@@ -97,11 +95,11 @@ test.afterEach(async ({ page }) => {
   }
 });
 
-test("the handle assigned at signup is what the form starts on", async ({ page }) => {
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+test("the handle assigned at signup is what the form starts on", async ({ page, accounts }) => {
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
-test("a new handle can be chosen, and it sticks", async ({ page }) => {
+test("a new handle can be chosen, and it sticks", async ({ page, accounts }) => {
   const chosen = `amy_the_ace_${Date.now().toString().slice(-6)}`;
 
   await page.getByLabel("Username").fill(chosen);
@@ -113,38 +111,39 @@ test("a new handle can be chosen, and it sticks", async ({ page }) => {
   await expect(page.getByLabel("Username")).toHaveValue(chosen);
 });
 
-test("a handle someone else holds is refused", async ({ page }) => {
-  await page.getByLabel("Username").fill(TAKEN);
+test("a handle someone else holds is refused", async ({ page, accounts }) => {
+  await page.getByLabel("Username").fill(accounts.ben.username);
   await page.getByRole("button", { name: "Save username" }).click();
 
   await expect(alertIn(page)).toContainText("taken");
 
   await page.reload();
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
-test("the same handle in different case is still someone else's", async ({ page }) => {
+test("the same handle in different case is still someone else's", async ({ page, accounts }) => {
   // Uniqueness is on lower(username): `BenBackhand` and `benbackhand` are one
   // handle, or impersonation would be a matter of pressing shift.
-  await page.getByLabel("Username").fill(TAKEN.toUpperCase());
+  await page.getByLabel("Username").fill(accounts.ben.username.toUpperCase());
   await page.getByRole("button", { name: "Save username" }).click();
 
   await expect(alertIn(page)).toContainText("taken");
 });
 
-test("your own handle in a different case is not a collision", async ({ page }) => {
+test("your own handle in a different case is not a collision", async ({ page, accounts }) => {
   // It normalises to what is already stored, so this is a no-op, not a clash
   // with yourself.
-  await page.getByLabel("Username").fill(ORIGINAL.toUpperCase());
+  await page.getByLabel("Username").fill(accounts.amy.username.toUpperCase());
   await page.getByRole("button", { name: "Save username" }).click();
 
   await expect(page.getByRole("status")).toContainText("Saved");
   await page.reload();
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
 test("punctuation is refused with a reason, not silently stripped", async ({
   page,
+  accounts,
 }) => {
   // The browser's own minlength/maxlength cover the length rules, so this
   // checks the one the server has to make: which characters are allowed.
@@ -158,6 +157,7 @@ test("punctuation is refused with a reason, not silently stripped", async ({
 
 test("the three email toggles share one Save button, with push at the top", async ({
   page,
+  accounts,
 }) => {
   const notificationsCard = page
     .locator(".bb-card")
@@ -175,13 +175,13 @@ test("the three email toggles share one Save button, with push at the top", asyn
   );
 });
 
-test("email reminders default to enabled", async ({ page }) => {
+test("email reminders default to enabled", async ({ page, accounts }) => {
   await expect(
     page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up"),
   ).toBeChecked();
 });
 
-test("turning email reminders off sticks", async ({ page }) => {
+test("turning email reminders off sticks", async ({ page, accounts }) => {
   const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
 
   await emailReminders.uncheck();
@@ -195,7 +195,7 @@ test("turning email reminders off sticks", async ({ page }) => {
   await expect(emailReminders).not.toBeChecked();
 });
 
-test("booking window reminders default to enabled", async ({ page }) => {
+test("booking window reminders default to enabled", async ({ page, accounts }) => {
   await expect(
     page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court"),
   ).toBeChecked();
@@ -203,6 +203,7 @@ test("booking window reminders default to enabled", async ({ page }) => {
 
 test("turning booking window reminders off sticks, independently of the other toggle", async ({
   page,
+  accounts,
 }) => {
   const bookingWindowReminders = page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court");
   const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
@@ -222,7 +223,7 @@ test("turning booking window reminders off sticks, independently of the other to
   await expect(emailReminders).toBeChecked();
 });
 
-test("the friend-request email defaults to enabled", async ({ page }) => {
+test("the friend-request email defaults to enabled", async ({ page, accounts }) => {
   await expect(
     page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away"),
   ).toBeChecked();
@@ -230,6 +231,7 @@ test("the friend-request email defaults to enabled", async ({ page }) => {
 
 test("turning the friend-request email off sticks, independently of the reminder toggles", async ({
   page,
+  accounts,
 }) => {
   const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
   const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
@@ -249,7 +251,7 @@ test("turning the friend-request email off sticks, independently of the reminder
   await expect(emailReminders).toBeChecked();
 });
 
-test("the request-accepted email defaults to enabled", async ({ page }) => {
+test("the request-accepted email defaults to enabled", async ({ page, accounts }) => {
   await expect(
     page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected"),
   ).toBeChecked();
@@ -257,6 +259,7 @@ test("the request-accepted email defaults to enabled", async ({ page }) => {
 
 test("turning the request-accepted email off sticks, independently of the other toggles", async ({
   page,
+  accounts,
 }) => {
   const acceptedEmails = page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected");
   const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
@@ -276,14 +279,14 @@ test("turning the request-accepted email off sticks, independently of the other 
   await expect(friendRequestEmails).toBeChecked();
 });
 
-test("gender is unset by default", async ({ page }) => {
+test("gender is unset by default", async ({ page, accounts }) => {
   await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(
     "aria-checked",
     "true",
   );
 });
 
-test("a gender can be chosen, and it sticks — independently of Username", async ({ page }) => {
+test("a gender can be chosen, and it sticks — independently of Username", async ({ page, accounts }) => {
   await page.getByRole("radio", { name: "Male", exact: true }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
   await expect(genderForm(page).getByRole("status")).toContainText("Saved");
@@ -292,10 +295,10 @@ test("a gender can be chosen, and it sticks — independently of Username", asyn
   await page.reload();
   await expect(page.getByRole("radio", { name: "Male", exact: true })).toHaveAttribute("aria-checked", "true");
   // Choosing a Gender never touched the Username saved right next to it.
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
-test("a gender can be cleared back to unset", async ({ page }) => {
+test("a gender can be cleared back to unset", async ({ page, accounts }) => {
   await page.getByRole("radio", { name: "Female" }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
   await expect(genderForm(page).getByRole("status")).toBeVisible();

@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, BEN, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import {
   PREFIX,
   addPlace,
@@ -30,15 +30,15 @@ import {
  * where a non-default zone is actually reachable: `places.spec.ts`'s
  * coordinate-derivation test.
  */
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/orgs");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/orgs");
 });
 
 /**
  * Sweeps up anything a failed run left behind. Each test still removes its own
  * place as part of what it asserts; this is only the safety net.
  */
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page, accounts }) => {
   await page.goto("/booking-buddy/orgs");
 
   const strays = row(page, PREFIX);
@@ -50,7 +50,7 @@ test.afterEach(async ({ page }) => {
   }
 });
 
-test("a place can be added, booked at, and removed again", async ({ page }) => {
+test("a place can be added, booked at, and removed again", async ({ page, accounts }) => {
   const place = placeName();
 
   await addPlace(page, place);
@@ -78,7 +78,7 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
   await expect(row(page, "Court 3")).toHaveCount(0);
 });
 
-test("a booking's name renders on the Bookings list row", async ({ page }) => {
+test("a booking's name renders on the Bookings list row", async ({ page, accounts }) => {
   const place = placeName();
   const name = `${PREFIX} Rally ${Date.now()}`;
 
@@ -101,6 +101,7 @@ test("a booking's name renders on the Bookings list row", async ({ page }) => {
 
 test("a booking's name and court can be edited, in place on the Bookings list row", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   const originalName = `${PREFIX} Rally ${Date.now()}`;
@@ -129,6 +130,7 @@ test("a booking's name and court can be edited, in place on the Bookings list ro
 
 test("a booking's notes can be added, shown in its details modal, and edited", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   const originalNotes = `${PREFIX} bring extra balls`;
@@ -163,6 +165,7 @@ test("a booking's notes can be added, shown in its details modal, and edited", a
 
 test("a booking's players can be added, edited, and removed via the Edit dialog (issue #101)", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   const playerOne = `${PREFIX} Player One`;
@@ -193,7 +196,7 @@ test("a booking's players can be added, edited, and removed via the Edit dialog 
   await removePlace(page, place);
 });
 
-test("a booking that runs past midnight can be logged", async ({ page }) => {
+test("a booking that runs past midnight can be logged", async ({ page, accounts }) => {
   // Games routinely run 9pm–midnight or 10pm–1am. The End clock reads earlier
   // than the Start, and the form marks it "Next day" rather than refusing it.
   const place = placeName();
@@ -217,7 +220,7 @@ test("a booking that runs past midnight can be logged", async ({ page }) => {
   await removePlace(page, place);
 });
 
-test("a booking cannot be logged for a date that's already passed", async ({ page }) => {
+test("a booking cannot be logged for a date that's already passed", async ({ page, accounts }) => {
   const place = placeName();
   await addPlace(page, place);
 
@@ -237,7 +240,7 @@ test("a booking cannot be logged for a date that's already passed", async ({ pag
   await removePlace(page, place);
 });
 
-test("the same place cannot be added twice", async ({ page }) => {
+test("the same place cannot be added twice", async ({ page, accounts }) => {
   const place = placeName();
 
   await addPlace(page, place);
@@ -255,6 +258,7 @@ test("the same place cannot be added twice", async ({ page }) => {
 
 test("a place's booking window can be set, and it survives a reload", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -274,7 +278,7 @@ test("a place's booking window can be set, and it survives a reload", async ({
   await removePlace(page, place);
 });
 
-test("another User sees none of it", async ({ page, browser }) => {
+test("another User sees none of it", async ({ page, browser, accounts }) => {
   const place = placeName();
 
   await addPlace(page, place);
@@ -294,7 +298,7 @@ test("another User sees none of it", async ({ page, browser }) => {
   const bens = await bensContext.newPage();
 
   try {
-    await signIn(bens, BEN, "/booking-buddy/orgs");
+    await signIn(bens, accounts.ben.email, "/booking-buddy/orgs");
     await expect(row(bens, place)).toHaveCount(0);
 
     await bens.goto("/booking-buddy/bookings");

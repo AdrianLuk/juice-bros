@@ -1,7 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { AMY, TEST_PASSWORD } from "./sign-in.ts";
-
 /** Local Docker stack only — Supabase's published demo keys, same as scripts/seed-booking-buddy-users.mts. */
 const LOCAL_SUPABASE_API_URL = "http://127.0.0.1:54321";
 const LOCAL_SUPABASE_ANON_KEY =
@@ -12,14 +10,18 @@ const LOCAL_SUPABASE_ANON_KEY =
  * (out of scope for issue #8), so cleanup can't go through the app the way
  * removing an Org or a Friend Group does.
  *
- * Signs in as Amy rather than using the service-role key the way
+ * Signs in as the Slot owner rather than using the service-role key the way
  * `deleteCachedPlaces` does for `place_cache`: `service_role` has no grant on
  * `slots` at all (only `authenticated` does, per the migration), and every
- * Slot this spec file creates is Amy's, so her own "delete only your own
- * slots" RLS policy is sufficient — no elevated access needed just to clean
- * up after a test. `responses` cascades away with its Slot.
+ * Slot a spec creates belongs to its own worker's account, so that account's
+ * own "delete only your own slots" RLS policy is sufficient — no elevated
+ * access needed just to clean up after a test. `responses` cascades away with
+ * its Slot.
  */
-export async function deleteSlots(slotIds: string[]): Promise<void> {
+export async function deleteSlots(
+  slotIds: string[],
+  owner: { email: string; password: string },
+): Promise<void> {
   if (slotIds.length === 0) {
     return;
   }
@@ -27,11 +29,11 @@ export async function deleteSlots(slotIds: string[]): Promise<void> {
   const supabase = createClient(LOCAL_SUPABASE_API_URL, LOCAL_SUPABASE_ANON_KEY);
 
   const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: AMY,
-    password: TEST_PASSWORD,
+    email: owner.email,
+    password: owner.password,
   });
   if (signInError) {
-    throw new Error(`slot cleanup: couldn't sign in as Amy: ${signInError.message}`);
+    throw new Error(`slot cleanup: couldn't sign in as ${owner.email}: ${signInError.message}`);
   }
 
   const { error } = await supabase.from("slots").delete().in("id", slotIds);

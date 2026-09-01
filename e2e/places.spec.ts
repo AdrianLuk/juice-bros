@@ -1,6 +1,7 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import { GooglePlacesMock, deleteCachedPlaces } from "./support/google-places-mock.ts";
 
 /**
@@ -74,12 +75,12 @@ test.afterAll(async () => {
   await mock.stop();
 });
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/orgs");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/orgs");
 });
 
 /** Sweeps up anything a failed run left behind, same shape as bookings.spec.ts. */
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page, accounts }) => {
   await page.goto("/booking-buddy/orgs");
 
   const strays = row(page, PREFIX);
@@ -90,7 +91,7 @@ test.afterEach(async ({ page }) => {
   }
 });
 
-test("picking a search result caches the Place and creates an Org", async ({ page }) => {
+test("picking a search result caches the Place and creates an Org", async ({ page, accounts }) => {
   const query = uniqueName();
   const placeId = `mock-${query}`;
   const address = "123 Mock Street, Toronto, ON";
@@ -120,7 +121,7 @@ test("picking a search result caches the Place and creates an Org", async ({ pag
   await removePlace(page, query);
 });
 
-test("a place already cached is not re-fetched on a second pick", async ({ page }) => {
+test("a place already cached is not re-fetched on a second pick", async ({ page, accounts }) => {
   const query = uniqueName();
   const placeId = `mock-${query}`;
   const address = "456 Mock Avenue, Toronto, ON";
@@ -150,6 +151,7 @@ test("a place already cached is not re-fetched on a second pick", async ({ page 
 
 test("Google being unreachable reports it honestly, and the hand-typed fallback still works", async ({
   page,
+  accounts,
 }) => {
   const query = uniqueName();
   mock.registerSearch(query, "unavailable");
@@ -173,6 +175,7 @@ test("Google being unreachable reports it honestly, and the hand-typed fallback 
 
 test("a picked place's time zone is derived from its coordinates, no question asked", async ({
   page,
+  accounts,
 }) => {
   const query = uniqueName();
   const placeId = `mock-${query}`;
@@ -219,6 +222,7 @@ test("a picked place's time zone is derived from its coordinates, no question as
 
 test("a place_id that stops resolving is refused rather than creating a broken Org", async ({
   page,
+  accounts,
 }) => {
   const query = uniqueName();
   const placeId = `mock-dead-${query}`;

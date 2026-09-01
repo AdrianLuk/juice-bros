@@ -1,6 +1,7 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, BEN2, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import {
   addPlace,
@@ -65,8 +66,8 @@ async function resetGender(page: Page) {
   await expect(page.getByRole("status")).toBeVisible();
 }
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/slots");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/slots");
 });
 
 /**
@@ -75,7 +76,7 @@ test.beforeEach(async ({ page }) => {
  * uses. Amy and Ben2 are already a Connection per the seed data
  * (booking-buddy/docs/local-test-accounts.md); this only adds the group.
  */
-async function grantBen2SlotsVisibility(page: Page): Promise<string> {
+async function grantBen2SlotsVisibility(page: Page, ben2Handle: string): Promise<string> {
   const name = `Playwright slots ${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
   await page.goto("/booking-buddy/groups");
@@ -87,7 +88,7 @@ async function grantBen2SlotsVisibility(page: Page): Promise<string> {
   const card = page.locator("section").filter({ hasText: name }).last();
   const picker = card.getByLabel("Add a friend");
   const value = await picker
-    .locator("option", { hasText: "@benbackhand2)" })
+    .locator("option", { hasText: `@)` })
     .getAttribute("value");
   await picker.selectOption(value!);
   await card.getByRole("button", { name: "Add" }).click();
@@ -106,6 +107,7 @@ async function revokeBen2SlotsVisibility(page: Page, name: string) {
 
 test("a bare-proposal slot can be posted and shows up for its owner", async ({
   page,
+  accounts,
 }) => {
   const slotId = await createSlot(page, {
     date: "2031-03-03",
@@ -128,11 +130,11 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
       row(page, "Mar 3, 2031").getByText("Proposal", { exact: true }),
     ).toBeVisible();
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
-test("a game that runs past midnight can be proposed", async ({ page }) => {
+test("a game that runs past midnight can be proposed", async ({ page, accounts }) => {
   // A 10pm–1am proposal — the End clock reads earlier than the Start, and the
   // form marks it "Next day" rather than refusing it.
   const slotId = await createSlot(page, {
@@ -150,11 +152,11 @@ test("a game that runs past midnight can be proposed", async ({ page }) => {
     await expect(posted).toContainText("10:00");
     await expect(posted).toContainText("1:00");
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
-test("a slot's notes can be set at posting time, and edited afterward", async ({ page }) => {
+test("a slot's notes can be set at posting time, and edited afterward", async ({ page, accounts }) => {
   const originalNotes = "Playwright need 2 more players";
   const updatedNotes = "Playwright bring your own paddle";
 
@@ -184,11 +186,11 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
     await page.reload();
     await expect(page.getByLabel("Notes")).toHaveValue(updatedNotes);
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
-test("a slot cannot be posted for a date that's already passed", async ({ page }) => {
+test("a slot cannot be posted for a date that's already passed", async ({ page, accounts }) => {
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2020-01-01");
   await page.getByLabel("Start").selectOption("13:00");
@@ -204,8 +206,9 @@ test("a slot cannot be posted for a date that's already passed", async ({ page }
 test("a friend with slots Visibility can respond, and the owner sees it", async ({
   page,
   browser,
+  accounts,
 }) => {
-  const groupName = await grantBen2SlotsVisibility(page);
+  const groupName = await grantBen2SlotsVisibility(page, accounts.ben2.username);
 
   const slotId = await createSlot(page, {
     date: "2031-04-04",
@@ -220,7 +223,7 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
     const ben2 = await ben2Context.newPage();
 
     try {
-      await signIn(ben2, BEN2, "/booking-buddy/slots");
+      await signIn(ben2, accounts.ben2.email, "/booking-buddy/slots");
       await expect(row(ben2, "Apr 4, 2031")).toBeVisible();
 
       await ben2.goto(`/booking-buddy/slots/${slotId}`);
@@ -244,7 +247,7 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
       page.getByRole("listitem").filter({ hasText: "Ben Backhand" }),
     ).toContainText("Maybe");
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await revokeBen2SlotsVisibility(page, groupName);
   }
 });
@@ -252,6 +255,7 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
 test("a Connection with no slots Visibility cannot see or reach the slot", async ({
   page,
   browser,
+  accounts,
 }) => {
   // No group granted here — Amy and Ben2 are Connections per the seed data,
   // but a friend with no group and no override defaults to no access.
@@ -267,7 +271,7 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
     const ben2 = await ben2Context.newPage();
 
     try {
-      await signIn(ben2, BEN2, "/booking-buddy/slots");
+      await signIn(ben2, accounts.ben2.email, "/booking-buddy/slots");
       await expect(row(ben2, "Jun 6, 2031")).toHaveCount(0);
 
       // RLS filters the row itself, so `getSlotDetail` returns null and the
@@ -286,12 +290,13 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
       await ben2Context.close();
     }
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
 test("attaching a booking gives a proposal real capacity, and detaching takes it away", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -373,13 +378,14 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
     await expect(page.getByText("Court booked")).toHaveCount(0);
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
   }
 });
 
 test("the reminder timing defaults to 60 minutes and the owner can change it", async ({
   page,
+  accounts,
 }) => {
   const slotId = await createSlot(page, {
     date: "2031-08-08",
@@ -402,12 +408,13 @@ test("the reminder timing defaults to 60 minutes and the owner can change it", a
     await page.reload();
     await expect(page.getByLabel("Remind attendees")).toHaveValue("120");
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
 test("the organizer can set an intended org for a still-bare-proposal slot", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -436,13 +443,14 @@ test("the organizer can set an intended org for a still-bare-proposal slot", asy
     // a bare proposal with no court attached.
     await expect(page.getByRole("heading", { level: 1 })).toContainText(place);
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
   }
 });
 
 test("a facility picked at creation is already the slot's intended org", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -473,13 +481,14 @@ test("a facility picked at creation is already the slot's intended org", async (
       page.getByLabel("Planning to book at").locator("option:checked"),
     ).toHaveText(place);
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
   }
 });
 
 test("tapping a response shows an optimistic update before the server confirms it", async ({
   page,
+  accounts,
 }) => {
   const slotId = await createSlot(page, {
     date: "2031-05-05",
@@ -517,15 +526,16 @@ test("tapping a response shows an optimistic update before the server confirms i
     // Still correct once the real response lands.
     await expect(page.getByRole("button", { name: "Yes", pressed: true })).toBeVisible();
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
 test("a mixed-division slot with a real capacity breaks the signal down by gender — over on one side, under on the other", async ({
   page,
   browser,
+  accounts,
 }) => {
-  const groupName = await grantBen2SlotsVisibility(page);
+  const groupName = await grantBen2SlotsVisibility(page, accounts.ben2.username);
   const place = placeName();
   await addPlace(page, place);
   await setGender(page, "Male");
@@ -573,7 +583,7 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
     const ben2Context = await browser.newContext();
     const ben2 = await ben2Context.newPage();
     try {
-      await signIn(ben2, BEN2, "/booking-buddy/slots");
+      await signIn(ben2, accounts.ben2.email, "/booking-buddy/slots");
       await setGender(ben2, "Male");
 
       await ben2.goto(`/booking-buddy/slots/${slotId}`);
@@ -610,7 +620,7 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
     }
   } finally {
     await resetGender(page);
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
     await revokeBen2SlotsVisibility(page, groupName);
   }

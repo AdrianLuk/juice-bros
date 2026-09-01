@@ -1,7 +1,8 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
+import { type Locator, type Page } from "@playwright/test";
 
 import { GUEST_RSVP_SOFT_THRESHOLD } from "../src/lib/booking-buddy/slot-links.ts";
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import { guestRsvpLogForSlotLink, slotLinkIdForToken } from "./support/guest-rsvp-log.ts";
 import { selectDuration } from "./support/places.ts";
@@ -42,13 +43,14 @@ async function createSlot(
   return page.url().split("/").pop()!;
 }
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/slots");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/slots");
 });
 
 test("repeated guest RSVPs from the same IP past the soft threshold are flagged in guest_rsvp_log, not blocked", async ({
   page,
   browser,
+  accounts,
 }) => {
   const slotId = await createSlot(page, {
     date: "2031-04-06",
@@ -112,6 +114,6 @@ test("repeated guest RSVPs from the same IP past the soft threshold are flagged 
       await guestContext.close();
     }
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });

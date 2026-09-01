@@ -1,6 +1,7 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 
 /**
  * The Friend Group journey, clicked rather than asserted against the database.
@@ -13,8 +14,11 @@ import { AMY, signIn } from "./support/sign-in.ts";
  * data deliberately holds two "Ben Backhand"s (see
  * booking-buddy/docs/local-test-accounts.md), and a test that matched on the
  * name would silently assert against whichever one it happened to find.
+ *
+ * The friend grouped here is this worker's `accounts.ben2` — seeded as a
+ * friend of `accounts.amy`, since a group only holds people you're already
+ * connected to.
  */
-const FRIEND = "benbackhand2";
 
 /** Every group these tests make starts with this, so strays are findable. */
 const PREFIX = "Playwright";
@@ -72,8 +76,8 @@ async function deleteGroup(page: Page, name: string) {
   await expect(page.getByRole("heading", { name })).toHaveCount(0);
 }
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/groups");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/groups");
 });
 
 /**
@@ -84,7 +88,7 @@ test.beforeEach(async ({ page }) => {
  * is unusable. Each test still deletes its own group as part of what it
  * asserts; this is only the safety net.
  */
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page, accounts }) => {
   await page.goto("/booking-buddy/groups");
 
   const strays = page.getByRole("heading", { name: new RegExp(`^${PREFIX} `) });
@@ -97,16 +101,16 @@ test.afterEach(async ({ page }) => {
   }
 });
 
-test("a group can be created, filled, and emptied again", async ({ page }) => {
+test("a group can be created, filled, and emptied again", async ({ page, accounts }) => {
   const name = groupName();
 
   await createGroup(page, name, "calendar");
   await expect(groupCard(page, name)).toContainText("0 friends");
 
-  await addFriend(page, name, FRIEND);
+  await addFriend(page, name, accounts.ben2.username);
   const filled = groupCard(page, name);
   await expect(filled).toContainText("1 friend");
-  await expect(filled).toContainText(`@${FRIEND}`);
+  await expect(filled).toContainText(`@${accounts.ben2.username}`);
 
   // Confirm-before-remove, same shape as everywhere else in the app — but
   // unlike Delete/"Delete group", this trigger and its confirm button share
@@ -122,28 +126,29 @@ test("a group can be created, filled, and emptied again", async ({ page }) => {
 
 test("a per-friend override beats the group default, and clearing it restores", async ({
   page,
+  accounts,
 }) => {
   const name = groupName();
 
   await createGroup(page, name, "calendar");
-  await addFriend(page, name, FRIEND);
+  await addFriend(page, name, accounts.ben2.username);
 
   await page.goto("/booking-buddy/friends");
 
   // The group grants the most it can, so that is what the friend now sees.
-  await expect(friendRow(page, FRIEND)).toContainText(
+  await expect(friendRow(page, accounts.ben2.username)).toContainText(
     "From your groups: Slots and my availability",
   );
 
   // Pinning them shut must win over the group.
-  await friendRow(page, FRIEND).getByRole("combobox").selectOption("none");
-  await friendRow(page, FRIEND).getByRole("button", { name: "Save" }).click();
-  await expect(friendRow(page, FRIEND)).toContainText("Set just for them: Nothing");
+  await friendRow(page, accounts.ben2.username).getByRole("combobox").selectOption("none");
+  await friendRow(page, accounts.ben2.username).getByRole("button", { name: "Save" }).click();
+  await expect(friendRow(page, accounts.ben2.username)).toContainText("Set just for them: Nothing");
 
   // Clearing the pin drops them back to what the group gives.
-  await friendRow(page, FRIEND).getByRole("combobox").selectOption("clear");
-  await friendRow(page, FRIEND).getByRole("button", { name: "Save" }).click();
-  await expect(friendRow(page, FRIEND)).toContainText(
+  await friendRow(page, accounts.ben2.username).getByRole("combobox").selectOption("clear");
+  await friendRow(page, accounts.ben2.username).getByRole("button", { name: "Save" }).click();
+  await expect(friendRow(page, accounts.ben2.username)).toContainText(
     "From your groups: Slots and my availability",
   );
 
@@ -151,20 +156,20 @@ test("a per-friend override beats the group default, and clearing it restores", 
   await deleteGroup(page, name);
 });
 
-test("two groups resolve to the most permissive of them", async ({ page }) => {
+test("two groups resolve to the most permissive of them", async ({ page, accounts }) => {
   const open = groupName("-open");
   const shut = groupName("-shut");
 
   await createGroup(page, open, "calendar");
   await createGroup(page, shut, "none");
-  await addFriend(page, open, FRIEND);
-  await addFriend(page, shut, FRIEND);
+  await addFriend(page, open, accounts.ben2.username);
+  await addFriend(page, shut, accounts.ben2.username);
 
   await page.goto("/booking-buddy/friends");
 
   // In one group showing everything and one showing nothing, the open one
   // wins — adding someone to a group can only ever expand what they see.
-  await expect(friendRow(page, FRIEND)).toContainText(
+  await expect(friendRow(page, accounts.ben2.username)).toContainText(
     "From your groups: Slots and my availability",
   );
 
@@ -173,7 +178,7 @@ test("two groups resolve to the most permissive of them", async ({ page }) => {
   await deleteGroup(page, shut);
 });
 
-test("a group cannot be given a name you have already used", async ({ page }) => {
+test("a group cannot be given a name you have already used", async ({ page, accounts }) => {
   const name = groupName();
 
   await createGroup(page, name, "slots");

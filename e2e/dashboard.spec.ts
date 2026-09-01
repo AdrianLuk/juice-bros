@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import {
   PREFIX,
   addPlace,
@@ -62,7 +62,7 @@ function requireTestBookingDate(): { iso: string; label: string } {
 
 /**
  * Post-#176 (PR #192) the onboarding modal (`OnboardingModal`) opens on the
- * dashboard for anyone with **no Booking and no Slot** — which AMY is, straight
+ * dashboard for anyone with **no Booking and no Slot** — which accounts.amy.email is, straight
  * out of `npm run seed:users` (the seed creates accounts and friendships only).
  * Its "What do you want to start with?" dialog then sits over the calendar and
  * intercepts every click. These tests are about the calendar, not onboarding
@@ -74,7 +74,7 @@ function requireTestBookingDate(): { iso: string; label: string } {
  */
 const ONBOARDING_SNOOZE_KEY = "bb-onboarding-snoozed-until";
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, accounts }) => {
   await page.addInitScript((key) => {
     try {
       window.localStorage.setItem(key, String(Date.now() + 60 * 60 * 1000));
@@ -83,7 +83,7 @@ test.beforeEach(async ({ page }) => {
     }
   }, ONBOARDING_SNOOZE_KEY);
 
-  await signIn(page, AMY, "/booking-buddy");
+  await signIn(page, accounts.amy.email, "/booking-buddy");
 });
 
 /**
@@ -94,8 +94,8 @@ test.beforeEach(async ({ page }) => {
  * leftover `Playwright …`-named Org/Booking collides with the next run's
  * fresh one, since both share a court label this suite asserts against).
  */
-test.afterEach(async ({ page }) => {
-  await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
+test.afterEach(async ({ page, accounts }) => {
+  await deleteAvailabilityWindows({ email: accounts.amy.email, password: accounts.password });
 
   await page.goto("/booking-buddy/orgs");
   const strays = row(page, PREFIX);
@@ -108,6 +108,7 @@ test.afterEach(async ({ page }) => {
 
 test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({
   page,
+  accounts,
 }) => {
   await page.goto("/booking-buddy");
 
@@ -135,6 +136,7 @@ test("the calendar defaults to Week view, and Month/Agenda toggle without naviga
 
 test("a Booking renders on the calendar and in the sidebar, and its popover can remove it", async ({
   page,
+  accounts,
 }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
@@ -192,7 +194,7 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
   await removePlace(page, place);
 });
 
-test("clicking a Month day switches to Week view centered on that day", async ({ page }) => {
+test("clicking a Month day switches to Week view centered on that day", async ({ page, accounts }) => {
   await page.goto("/booking-buddy");
 
   await page.getByRole("button", { name: "Month", exact: true }).click();
@@ -218,7 +220,7 @@ test("clicking a Month day switches to Week view centered on that day", async ({
   await expect(page.getByRole("button", { name: weekOfTarget })).toBeVisible();
 });
 
-test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
+test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page, accounts }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
@@ -248,7 +250,7 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
   await removePlace(page, place);
 });
 
-test("the quick-add dialog logs a Booking that runs past midnight", async ({ page }) => {
+test("the quick-add dialog logs a Booking that runs past midnight", async ({ page, accounts }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
@@ -279,6 +281,7 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
 
 test("a Week-view empty-cell + opens the booking dialog prefilled with that day and hour, and the saved chip lands on the grid", async ({
   page,
+  accounts,
 }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
@@ -319,7 +322,7 @@ test("a Week-view empty-cell + opens the booking dialog prefilled with that day 
   await removePlace(page, place);
 });
 
-test("a past day in the current week shows no quick-create +", async ({ page }) => {
+test("a past day in the current week shows no quick-create +", async ({ page, accounts }) => {
   const now = new Date();
   test.skip(now.getDay() === 0, "no past day is left in the current calendar week on a Sunday");
 
@@ -343,6 +346,7 @@ test("a past day in the current week shows no quick-create +", async ({ page }) 
 
 test("a Month-view day-cell + opens the booking dialog prefilled with that date, Start left at the 18:00 default, and the saved chip lands on the grid", async ({
   page,
+  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -378,7 +382,7 @@ test("a Month-view day-cell + opens the booking dialog prefilled with that date,
   await removePlace(page, place);
 });
 
-test("a past day in the current month shows no quick-create +", async ({ page }) => {
+test("a past day in the current month shows no quick-create +", async ({ page, accounts }) => {
   const now = new Date();
   test.skip(
     now.getDate() === 1 && now.getDay() === 0,
@@ -412,9 +416,10 @@ test("a past day in the current month shows no quick-create +", async ({ page })
 
 test("a Booking always renders as busy over an overlapping Availability Window", async ({
   page,
+  accounts,
 }) => {
   const bookingDate = requireTestBookingDate();
-  const user = { email: AMY, password: TEST_PASSWORD };
+  const user = { email: accounts.amy.email, password: accounts.password };
   await deleteAvailabilityWindows(user);
 
   // Busy declared noon-2pm local (EDT); a Booking then covers 1-2pm of it.
