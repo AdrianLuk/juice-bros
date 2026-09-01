@@ -18,6 +18,13 @@
  * booking-buddy/docs/local-test-accounts.md.
  */
 
+import {
+  LEGACY_ACCOUNTS,
+  TEST_PASSWORD,
+  TEST_WORKER_COUNT,
+  workerAccountSet,
+} from "../e2e/support/account-sets.ts";
+
 /** Local Docker stack only. These are Supabase's published demo keys. */
 const API_URL = "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY =
@@ -25,7 +32,7 @@ const SERVICE_ROLE_KEY =
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
-export const TEST_PASSWORD = "pickleball123";
+export { TEST_PASSWORD };
 
 /**
  * Order matters. Usernames are derived from the display name at signup, so the
@@ -33,47 +40,7 @@ export const TEST_PASSWORD = "pickleball123";
  * which is what keeps each email's local part equal to that account's Username
  * across a reset. Reorder these and the numbering swaps.
  */
-export const TEST_ACCOUNTS = [
-  { email: "amyace@example.com", displayName: "Amy Ace" },
-  { email: "benbackhand@example.com", displayName: "Ben Backhand" },
-  { email: "amyace2@example.com", displayName: "Amy Ace" },
-  { email: "benbackhand2@example.com", displayName: "Ben Backhand" },
-];
-
-/**
- * Per-worker copies of the four accounts, so `playwright.config.ts` can run
- * `workers > 1` without two workers fighting over one account's rows. Worker
- * `i` gets `amyace-w{i}` / `benbackhand-w{i}` / `amyace2-w{i}` /
- * `benbackhand2-w{i}`, wired into the same two friendships and left at the
- * same visibility-lattice bottom as the legacy four (which stay, for clicking
- * through by hand — see local-test-accounts.md).
- *
- * Keep this >= the `workers` in `playwright.config.ts`. The `e2e/support/
- * accounts.ts` fixture maps `testInfo.parallelIndex` onto one set.
- *
- * Display name stays "Amy Ace" / "Ben Backhand" (some specs assert on that
- * literal, and the two-of-each-name ambiguity is deliberate — ADR 0004), so
- * the trigger-derived Username would be a non-deterministic `amyace7`-style
- * collision number. The Username is PATCHed to a fixed `amyacew{i}` right
- * after creation instead.
- */
-export const TEST_WORKER_COUNT = Number(process.env.E2E_WORKER_COUNT ?? 4);
-
-type WorkerAccount = { email: string; displayName: string; username: string };
-
-export function workerAccountSet(index: number): {
-  amy: WorkerAccount;
-  ben: WorkerAccount;
-  amy2: WorkerAccount;
-  ben2: WorkerAccount;
-} {
-  return {
-    amy: { email: `amyace-w${index}@example.com`, displayName: "Amy Ace", username: `amyacew${index}` },
-    ben: { email: `benbackhand-w${index}@example.com`, displayName: "Ben Backhand", username: `benbackhandw${index}` },
-    amy2: { email: `amyace2-w${index}@example.com`, displayName: "Amy Ace", username: `amyace2w${index}` },
-    ben2: { email: `benbackhand2-w${index}@example.com`, displayName: "Ben Backhand", username: `benbackhand2w${index}` },
-  };
-}
+const TEST_ACCOUNTS = LEGACY_ACCOUNTS;
 
 if (!API_URL.includes("127.0.0.1")) {
   console.error("Refusing to run: this script is for the local stack only.");
