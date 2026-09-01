@@ -133,10 +133,75 @@ function pickFoursome(state: SessionState, waiting: string[]): string[] | null {
 }
 
 /**
+ * Form one Foursome from `available` (waiting Player ids in wait order), or
+ * `null` when a clean one can't be made:
+ *
+ *   - **front unit is a Queue Together Group** (issue #250): its members are
+ *     fixed and `fillFoursome` (targeting the members' average Skill Level,
+ *     Variety suppressed between members) fills the open seats. If the pool
+ *     can't fill it: `firstSlot` holds out for a full four, a later slot
+ *     commits it partial.
+ *   - **front unit is a solo**: the ordinary windowed Match Me over the solos
+ *     (Group members are never cherry-picked into someone else's Foursome).
+ *     `firstSlot` needs four solos.
+ *   - if the preferred path can't produce a Foursome, the other is tried, so a
+ *     Court is never left empty while there is a seatable Group *or* four solos
+ *     waiting.
+ */
+function formFoursome(
+  state: SessionState,
+  available: readonly string[],
+  firstSlot: boolean,
+): { players: string[]; groupId: string | null } | null {
+  if (available.length === 0) return null;
+  const groupOf = groupByMember(state);
+
+  const fromGroup = (group: SessionState["groups"][number]) => {
+    const members = available.filter((id) => group.memberIds.includes(id));
+    if (members.length === 0) return null;
+    const pool = available.filter((id) => !group.memberIds.includes(id));
+    let players: string[] | null =
+      members.length >= 4
+        ? members.slice(0, 4)
+        : fillFoursome({
+            fixed: members,
+            pool,
+            skillOf: skillLookup(state),
+            completedGames: state.completedGames,
+            seed: state.config.seed,
+          });
+    if (!players) {
+      if (firstSlot) return null;
+      players = [...members];
+    }
+    return { players, groupId: group.id };
+  };
+
+  const fromSolos = () => {
+    const solos = available.filter((id) => !groupOf.get(id));
+    if (solos.length === 0) return null;
+    if (firstSlot && solos.length < 4) return null;
+    return { players: pickFoursome(state, solos) ?? [...solos], groupId: null };
+  };
+
+  const frontGroup = groupOf.get(available[0]);
+  if (frontGroup) return fromGroup(frontGroup) ?? fromSolos();
+
+  const solo = fromSolos();
+  if (solo) return solo;
+  // Not enough solos for a clean four — seat a waiting Group instead of
+  // leaving the Court empty.
+  const groupHead = available.find((id) => groupOf.get(id));
+  return groupHead ? fromGroup(groupOf.get(groupHead)!) : null;
+}
+
+/**
  * Seat a Foursome onto one freed Court. The committed "Up next" Foursome
  * (issue #245) walks straight on when it is complete and still entirely in the
- * Queue; otherwise Match Me picks from the Queue directly. Fewer than four to
- * seat either way: the Court stays empty until there are.
+ * Queue; otherwise `formFoursome` picks from the Queue directly (Group-aware —
+ * a Group is seated whole and bound to the Court, never split across it and the
+ * Queue). Fewer than four to seat either way: the Court stays empty until there
+ * are.
  *
  * Only ever fills the Court named by a `COURT_FINISHED` event, one at a time,
  * so several finishing together fold sequentially with the Foursome removed
@@ -146,20 +211,31 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
   const queuedIds = new Set(state.queue.map((e) => e.playerId));
 
   let foursome: string[] | null = null;
+  let seatedGroupId: string | null = null;
   const lead = state.onDeck[0];
   if (lead && isComplete(lead) && lead.players.every((id) => queuedIds.has(id))) {
     foursome = lead.players;
-    // A Group's Foursome walking on binds the Group to this Court (issue #250);
-    // `COURT_FINISHED` for the Court is what dissolves the Group.
-    if (lead.groupId) {
-      const group = state.groups.find((g) => g.id === lead.groupId);
-      if (group) group.courtNumber = court.number;
-    }
+    seatedGroupId = lead.groupId;
     state.onDeck.shift();
   } else {
-    foursome = pickFoursome(state, state.queue.map((e) => e.playerId));
+    const formed = formFoursome(
+      state,
+      state.queue.map((e) => e.playerId),
+      true,
+    );
+    if (formed) {
+      foursome = formed.players;
+      seatedGroupId = formed.groupId;
+    }
   }
   if (!foursome) return;
+
+  // A Group's Foursome walking on binds the Group to this Court (issue #250);
+  // `COURT_FINISHED` for the Court is what dissolves the Group.
+  if (seatedGroupId) {
+    const group = state.groups.find((g) => g.id === seatedGroupId);
+    if (group) group.courtNumber = court.number;
+  }
 
   const seated = new Set(foursome);
   state.queue = state.queue.filter((e) => !seated.has(e.playerId));
@@ -230,45 +306,17 @@ function refreshOnDeck(state: SessionState, at: number): void {
   }
 
   // 3. Form new Foursomes until On Deck is `ON_DECK_DEPTH` deep or nobody is
-  //    left to commit.
+  //    left to commit — `formFoursome` handles the Group-vs-solo choice and is
+  //    shared with `seatCourt` so a Court and On Deck agree.
   while (state.onDeck.length < ON_DECK_DEPTH && available.length > 0) {
-    const firstSlot = state.onDeck.length === 0;
-    const group = groupOf.get(available[0]);
-
-    if (group) {
-      const members = available.filter((id) => group.memberIds.includes(id));
-      const pool = available.filter((id) => !group.memberIds.includes(id));
-      let foursome: string[] | null =
-        members.length >= 4
-          ? members.slice(0, 4)
-          : fillFoursome({
-              fixed: members,
-              pool,
-              skillOf: skillLookup(state),
-              completedGames: state.completedGames,
-              seed: state.config.seed,
-            });
-      if (!foursome) {
-        // Not enough waiting Players to fill the Group yet. The lead slot holds
-        // out for a full Foursome; the second slot commits the Group partial
-        // and tops up as Players arrive.
-        if (firstSlot) break;
-        foursome = [...members];
-      }
-      drop(foursome);
-      state.onDeck.push({ players: foursome, committedAt: at, groupId: group.id });
-      continue;
-    }
-
-    // A Group that is not the front unit stays in the Queue as one entry — its
-    // members are not eligible for an ordinary Match Me Foursome until the
-    // Group itself reaches the front.
-    const solos = available.filter((id) => !groupOf.get(id));
-    if (solos.length === 0) break;
-    if (firstSlot && solos.length < 4) break;
-    const picked = pickFoursome(state, solos) ?? [...solos];
-    drop(picked);
-    state.onDeck.push({ players: picked, committedAt: at, groupId: null });
+    const formed = formFoursome(state, available, state.onDeck.length === 0);
+    if (!formed) break;
+    drop(formed.players);
+    state.onDeck.push({
+      players: formed.players,
+      committedAt: at,
+      groupId: formed.groupId,
+    });
   }
 }
 

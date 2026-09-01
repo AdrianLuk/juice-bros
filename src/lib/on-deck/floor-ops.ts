@@ -352,9 +352,10 @@ export function formGroupOutcome(
 }
 
 /**
- * "Lower the group cap" (issue #250): a Volunteer trims the live cap to stop one
- * Foursome monopolising a Court. Bounded to `[2, config.groupCap]` — the Club
- * default is the ceiling. A no-op when it already matches; existing larger
+ * "Group cap" (issue #250): a Volunteer sets the live cap — normally trimming it
+ * to stop one Foursome monopolising a Court, but free to move back up to the
+ * Club default (the ceiling) to undo an over-trim. Bounded to
+ * `[2, config.groupCap]`; a no-op when it already matches; existing larger
  * Groups are untouched (the fold enforces that).
  */
 export function lowerGroupCapOutcome(

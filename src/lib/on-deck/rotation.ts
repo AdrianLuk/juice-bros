@@ -77,6 +77,8 @@ export type RotationView = {
   /** The live group cap (issue #250) — `config.groupCap`, or lower if a
    * Volunteer trimmed it mid-Session. */
   groupCap: number;
+  /** The Club default group cap — the ceiling the live control moves within. */
+  groupCapMax: number;
   /**
    * The committed On Deck Foursomes, display names only — index 0 is "Up
    * next", index 1 "After that" (issue #245). A Foursome still short of four
@@ -151,27 +153,32 @@ export function rotationViewFrom(
   // The Queue as units — a Group is one entry — minus anyone already On Deck
   // (a Group's Foursome is committed whole, so its members are all On Deck or
   // all still here).
-  const queue: QueueEntryView[] = queueUnits(state).flatMap<QueueEntryView>(
-    (unit) => {
-      if (unit.kind === "solo") {
-        return onDeckIds.has(unit.playerId)
-          ? []
-          : [{ kind: "solo", name: nameOf(unit.playerId) }];
-      }
-      if (unit.memberIds.some((id) => onDeckIds.has(id))) return [];
-      return [{ kind: "group", names: unit.memberIds.map(nameOf) }];
-    },
+  const waitingUnits = queueUnits(state).filter((unit) =>
+    unit.kind === "solo"
+      ? !onDeckIds.has(unit.playerId)
+      : !unit.memberIds.some((id) => onDeckIds.has(id)),
+  );
+  const queue: QueueEntryView[] = waitingUnits.map((unit) =>
+    unit.kind === "solo"
+      ? { kind: "solo", name: nameOf(unit.playerId) }
+      : { kind: "group", names: unit.memberIds.map(nameOf) },
   );
 
   const trimmed = token?.trim() ?? "";
   let me: RotationView["me"] = null;
   if (trimmed.length >= 8) {
-    const waitingIndex = waiting.findIndex((e) => e.playerId === trimmed);
+    // Position is over the *units* a surface shows — a Group is one line, so a
+    // grouped Player's "#N" matches the row their Group sits on (issue #250).
+    const unitIndex = waitingUnits.findIndex((unit) =>
+      unit.kind === "solo"
+        ? unit.playerId === trimmed
+        : unit.memberIds.includes(trimmed),
+    );
     const onDeckIndex = state.onDeck.findIndex((f) =>
       f.players.includes(trimmed),
     );
     me = {
-      position: waitingIndex < 0 ? null : waitingIndex + 1,
+      position: unitIndex < 0 ? null : unitIndex + 1,
       court: playerCourt(state, trimmed),
       onDeck: onDeckIndex < 0 ? null : onDeckIndex,
       paused: playerPaused(state, trimmed),
@@ -197,6 +204,7 @@ export function rotationViewFrom(
       .map((e) => nameOf(e.playerId)),
     queuedCount: waiting.length,
     groupCap: state.groupCap,
+    groupCapMax: state.config.groupCap,
     onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
     onDeckIsGroup: state.onDeck.map((f) => f.groupId !== null),
     paused: state.paused.map((p) => ({ name: nameOf(p.playerId), reason: p.reason })),

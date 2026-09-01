@@ -1314,6 +1314,35 @@ test("Queue Together folding is deterministic — identical events, identical st
   assert.deepEqual(reduceSession(config, events), reduceSession(config, events));
 });
 
+test("a Group behind too few solos to make a Foursome is still seated whole, never split across a Court and the Queue", () => {
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  // s1..s3 are the longest-waiting but only three; m1/m2 group up behind them.
+  const base = queuedSession([
+    { token: "s1" },
+    { token: "s2" },
+    { token: "s3" },
+    { token: "m1" },
+    { token: "m2" },
+  ]);
+  const formed = [...base, groupFormed(GID, ["m1", "m2"])];
+
+  const state = reduceSession(oneCourt, formed);
+  // The Group is committed whole (both members together) rather than one
+  // member cherry-picked into a solo Foursome.
+  assert.ok(state.onDeck[0].players.includes("m1"));
+  assert.ok(state.onDeck[0].players.includes("m2"));
+  assert.equal(state.onDeck[0].groupId, GID);
+
+  const seated = reduceSession(oneCourt, [...formed, courtFinished(1)]);
+  assert.equal(seated.groups[0].courtNumber, 1);
+  const ended = reduceSession(oneCourt, [
+    ...formed,
+    courtFinished(1),
+    courtFinished(1),
+  ]);
+  assert.deepEqual(ended.groups, []);
+});
+
 test("a paused member leaves the Group; a Group under two members dissolves", () => {
   const base = queuedSession([
     { token: "p1" },

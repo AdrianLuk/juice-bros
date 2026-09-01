@@ -464,19 +464,25 @@ function SkillLevels({
 function QueueTogether({
   waiting,
   groupCap,
+  groupCapMax,
   onForm,
-  onLowerCap,
+  onSetCap,
   pending,
 }: {
   waiting: string[];
   groupCap: number;
+  groupCapMax: number;
   onForm: (names: string[]) => Promise<{ ok?: boolean } | undefined>;
-  onLowerCap: (cap: number) => void;
+  onSetCap: (cap: number) => void;
   pending: boolean;
 }) {
   const [picked, setPicked] = useState<string[]>([]);
   const chosen = picked.filter((name) => waiting.includes(name));
   const ready = chosen.length >= 2 && chosen.length <= groupCap;
+  const capOptions = Array.from(
+    { length: Math.max(0, groupCapMax - 1) },
+    (_, i) => i + 2,
+  );
 
   const toggle = (name: string) =>
     setPicked((prev) =>
@@ -494,9 +500,9 @@ function QueueTogether({
             className="ml-1 h-8 rounded-md border bg-background px-1.5 text-sm"
             value={groupCap}
             disabled={pending}
-            onChange={(e) => onLowerCap(Number(e.target.value))}
+            onChange={(e) => onSetCap(Number(e.target.value))}
           >
-            {[2, 3, 4].map((n) => (
+            {capOptions.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
@@ -724,8 +730,10 @@ function RotationBoardInner({
       <div className="grid gap-3 sm:grid-cols-2">
         {view.courts.map((court) => {
           const occupied = court.players.length > 0;
-          const nextReady =
-            view.onDeck[0]?.length === 4 || view.queuedCount >= 4;
+          // A clean Foursome is ready only when On Deck has actually committed
+          // one — with Groups in the mix `queuedCount >= 4` no longer implies a
+          // seatable four (a Group at the front may be short a fill Player).
+          const nextReady = view.onDeck[0]?.length === 4;
           return (
             <div
               key={court.number}
@@ -842,8 +850,9 @@ function RotationBoardInner({
       <QueueTogether
         waiting={view.groupablePlayers}
         groupCap={view.groupCap}
+        groupCapMax={view.groupCapMax}
         onForm={(names) => group.mutateAsync(names)}
-        onLowerCap={capChange.mutate}
+        onSetCap={capChange.mutate}
         pending={group.isPending || capChange.isPending}
       />
 
