@@ -14,6 +14,10 @@ import { MICROSOFT_MOCK_URL } from "./e2e/support/microsoft-mock.ts";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // Aborts the run with one clear message when the app under test isn't the
+  // one Playwright configured (a reused `next dev` with no mock env) — see
+  // `e2e/support/global-setup.ts`.
+  globalSetup: "./e2e/support/global-setup.ts",
   // Server Actions mutate shared rows in one local database, so two workers
   // racing on the same account would fight over each other's groups.
   workers: 1,
@@ -54,6 +58,10 @@ export default defineConfig({
     // host by default), which is why e2e/places.spec.ts needs a dev server
     // that *wasn't* already running to get the mock — see testing.md.
     env: {
+      // Marks this server as the one Playwright started, so `/api/e2e-preflight`
+      // (and through it `global-setup.ts`) can tell it apart from a reused
+      // `next dev` that never got these overrides.
+      E2E_WEB_SERVER: "1",
       GOOGLE_PLACES_API_BASE_URL: GOOGLE_PLACES_MOCK_URL,
       // The mock never validates this; a placeholder keeps CI from needing a
       // real key provisioned just to run tests that never call Google.

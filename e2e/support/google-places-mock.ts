@@ -1,5 +1,7 @@
 import http from "node:http";
 
+import { listenOnFixedPort } from "./mock-server.ts";
+
 /**
  * Fixed rather than OS-assigned: `playwright.config.ts` has to bake this URL
  * into `webServer.env` before the dev server (which Playwright only starts
@@ -91,10 +93,11 @@ export class GooglePlacesMock {
   }
 
   async start(): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      this.#server.once("error", reject);
-      this.#server.listen(GOOGLE_PLACES_MOCK_PORT, "127.0.0.1", () => resolve());
-    });
+    await listenOnFixedPort(
+      this.#server,
+      GOOGLE_PLACES_MOCK_PORT,
+      "google-places-mock",
+    );
   }
 
   async stop(): Promise<void> {

@@ -1,5 +1,7 @@
 import http from "node:http";
 
+import { listenOnFixedPort } from "./mock-server.ts";
+
 /**
  * The Microsoft counterpart of `gmail-mock.ts` (spec #280). A fixture stand-in
  * for the Microsoft identity host (`login.microsoftonline.com`), collapsed onto
@@ -77,10 +79,7 @@ export class MicrosoftMock {
   }
 
   async start(): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      this.#server.once("error", reject);
-      this.#server.listen(MICROSOFT_MOCK_PORT, "127.0.0.1", () => resolve());
-    });
+    await listenOnFixedPort(this.#server, MICROSOFT_MOCK_PORT, "microsoft-mock");
   }
 
   async stop(): Promise<void> {
