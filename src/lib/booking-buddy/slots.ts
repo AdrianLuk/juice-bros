@@ -71,10 +71,12 @@ export function parseNewSlotProposal(
     return { error: "Pick a start and end time." };
   }
 
-  // Zero-padded 24-hour times compare correctly as strings. A Slot spanning
-  // midnight would defeat this, and is not something this form can produce.
-  if (endTime <= startTime) {
-    return { error: "The end time has to be after the start time." };
+  // An End at or before the Start reads as the next day — a 9pm–midnight or
+  // 10pm–1am game is a real proposal. `createSlot` turns that into a
+  // `proposed_end` instant on `date + 1` (`crossesMidnight` in
+  // `actions/slots.ts`). Only a zero-length range is refused.
+  if (endTime === startTime) {
+    return { error: "The end time can't be the same as the start time." };
   }
 
   const rawTimeZone = String(formData.get("time_zone") ?? "").trim();
@@ -180,8 +182,9 @@ export function formatSlotWhen(slot: {
 /**
  * Turns a failed Slot write into something worth reading.
  *
- * `23514` arrives from three rules now: the two check constraints (end not
- * after start, a negative buffer — neither reachable through
+ * `23514` arrives from three rules now: the two check constraints (a
+ * zero-length window — a cross-midnight one is stored with its end on the
+ * next day and clears it — and a negative buffer; neither reachable through
  * `parseNewSlotProposal`, which already refuses the first and never sends
  * the second) and the `slots_not_in_the_past` trigger, which *is* reachable
  * — `parseNewSlotProposal`'s own past-date guard is calendar-day-only, so a

@@ -9,6 +9,7 @@ import {
   placeName,
   removePlace,
   row,
+  selectDuration,
 } from "./support/places.ts";
 
 /**
@@ -192,13 +193,9 @@ test("a booking's players can be added, edited, and removed via the Edit dialog 
   await removePlace(page, place);
 });
 
-test("a duration that would run past midnight is refused before it's ever submitted", async ({
-  page,
-}) => {
-  // The form's own End field is computed (Start + Duration, issue #57), so
-  // "end before start" isn't a state the UI can construct anymore — this is
-  // the current equivalent invalid case, and Log booking disables itself
-  // rather than letting an overflowing submission reach the server at all.
+test("a booking that runs past midnight can be logged", async ({ page }) => {
+  // Games routinely run 9pm–midnight or 10pm–1am. The End clock reads earlier
+  // than the Start, and the form marks it "Next day" rather than refusing it.
   const place = placeName();
   await addPlace(page, place);
 
@@ -207,14 +204,15 @@ test("a duration that would run past midnight is refused before it's ever submit
   await page.getByLabel("Court").fill("91");
   await page.getByLabel("Date").fill("2026-09-15");
   await page.getByLabel("Start").selectOption("22:00");
-  await page.getByRole("radio", { name: "Custom" }).click();
-  await page.getByLabel("Custom duration in hours").fill("3");
+  await selectDuration(page, "22:00", "01:00");
 
-  await expect(
-    page.getByRole("alert").filter({ hasText: "past midnight" }),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Log booking" })).toBeDisabled();
-  await expect(row(page, "Court 91")).toHaveCount(0);
+  await expect(page.getByText("Next day")).toBeVisible();
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  const booking = row(page, "Court 91");
+  await expect(booking).toContainText("Sep 15, 2026");
+  await expect(booking).toContainText("10:00");
+  await expect(booking).toContainText("1:00");
 
   await removePlace(page, place);
 });

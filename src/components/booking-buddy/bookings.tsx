@@ -114,6 +114,7 @@ function BookingFieldSet({
   customHours,
   onCustomHoursChange,
   endTime,
+  endCrossesMidnight,
   durationOverflows,
 }: {
   idPrefix: string;
@@ -130,6 +131,7 @@ function BookingFieldSet({
   customHours: string;
   onCustomHoursChange: (value: string) => void;
   endTime: string | null;
+  endCrossesMidnight: boolean;
   durationOverflows: boolean;
 }) {
   return (
@@ -206,7 +208,7 @@ function BookingFieldSet({
         )}
         {durationOverflows && (
           <p className="text-xs text-destructive" role="alert">
-            That runs past midnight. Pick fewer hours or an earlier start.
+            That&apos;s more than a full day. Pick a shorter duration.
           </p>
         )}
       </div>
@@ -219,6 +221,9 @@ function BookingFieldSet({
           disabled
           readOnly
         />
+        {endCrossesMidnight && (
+          <p className="text-xs text-muted-foreground">Next day</p>
+        )}
         <input type="hidden" name="end_time" value={endTime ?? ""} />
       </div>
 
@@ -315,6 +320,7 @@ export function CreateBookingForm({
         customHours={duration.customHours}
         onCustomHoursChange={duration.setCustomHours}
         endTime={duration.endTime}
+        endCrossesMidnight={duration.endCrossesMidnight}
         durationOverflows={duration.durationOverflows}
       />
 
@@ -384,8 +390,12 @@ export function EditBookingForm({
   const initialDate = todayInZone(booking.timeZone, new Date(booking.startsAt));
   const initialStartTime = clockInZone(booking.timeZone, new Date(booking.startsAt));
   const initialEndTime = clockInZone(booking.timeZone, new Date(booking.endsAt));
-  const initialHours =
+  // A Booking that ran past midnight (start 21:00, end 01:00) has an End clock
+  // that reads earlier than its Start — its real length is the wrapped gap, so
+  // "Custom" pre-fills with e.g. 4 hours rather than -20.
+  const rawHours =
     Number(initialEndTime.slice(0, 2)) - Number(initialStartTime.slice(0, 2));
+  const initialHours = rawHours > 0 ? rawHours : rawHours + 24;
 
   const duration = useDurationInput(initialStartTime, initialHours);
 
@@ -413,6 +423,7 @@ export function EditBookingForm({
         customHours={duration.customHours}
         onCustomHoursChange={duration.setCustomHours}
         endTime={duration.endTime}
+        endCrossesMidnight={duration.endCrossesMidnight}
         durationOverflows={duration.durationOverflows}
       />
 
