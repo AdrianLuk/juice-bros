@@ -308,11 +308,17 @@ async function replaceBookingPlayers(bookingId: string, players: readonly string
  * form-parsed path and `confirmImportCandidate` (issue #64) — both start
  * from an already-validated `NewBooking`, so everything below this point is
  * identical either way.
+ *
+ * Returns the new Booking's `id` on success (issue #286) so
+ * `confirmImportCandidate` can hang the `processed_messages` ledger row off it
+ * — the row then cascades away if the User later deletes the Booking, letting
+ * a future sync re-offer the email. A Players-only failure still returns
+ * `{ error }` with no `bookingId`, same as before.
  */
 export async function insertValidatedBooking(
   ownerId: string,
   parsed: NewBooking,
-): Promise<ActionResult> {
+): Promise<ActionResult & { bookingId?: string }> {
   const org = await resolveValidatedOrg(ownerId, parsed);
   if ("error" in org) {
     return org;
@@ -357,7 +363,7 @@ export async function insertValidatedBooking(
     return { error: playersError };
   }
 
-  return { ok: true };
+  return { ok: true, bookingId: booking.id };
 }
 
 /** Log a court reservation that already exists on the facility's own platform. */

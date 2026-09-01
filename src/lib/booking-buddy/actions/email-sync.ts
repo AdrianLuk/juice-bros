@@ -383,6 +383,11 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
  * re-runs the match against the caller's *current* Connections at this,
  * the actual add-time (ADR 0011), rather than trusting the stale match
  * computed back when the review screen was rendered (issue #100).
+ *
+ * The `processed_messages` row records `booking_id` (issue #286) so that
+ * deleting this Booking later cascades the row away and a future sync
+ * re-offers the email — the realistic "deleted a confirmed booking, want it
+ * back" path is recovery.
  */
 export async function confirmImportCandidate(
   _prev: ActionResult,
@@ -416,6 +421,10 @@ export async function confirmImportCandidate(
     provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "confirmed",
+    // Ties this ledger row to the Booking just created (issue #286): the FK
+    // cascades, so deleting that Booking in the UI removes this row and a
+    // later sync re-offers the email. `result.ok` guarantees `bookingId` here.
+    booking_id: result.bookingId ?? null,
   });
 
   if (error) {
@@ -491,6 +500,10 @@ export async function confirmCancellationCandidate(
  * `bookingId` here, same reasoning `confirmCancellationCandidate` doesn't
  * re-parse `formData` through `parseNewBooking` either — the review screen
  * already showed the User exactly what they're about to apply.
+ *
+ * The `processed_messages` row records `booking_id` (issue #286), same as a
+ * confirmed import: deleting that Booking later cascades the row away so a
+ * future sync re-offers the update email.
  */
 export async function confirmUpdateCandidate(
   _prev: ActionResult,
@@ -531,6 +544,10 @@ export async function confirmUpdateCandidate(
     provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "updated",
+    // Ties this ledger row to the Booking the update was applied to (issue
+    // #286) — the FK cascades, so deleting that Booking re-opens the email to
+    // a later sync. `bookingId` was validated non-empty above.
+    booking_id: bookingId,
   });
 
   if (recordError) {

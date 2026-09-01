@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { signIn } from "./sign-in.ts";
-import { addPlace, logBooking, placeName, removePlace, row } from "./places.ts";
+import { addPlace, deleteBooking, logBooking, placeName, removePlace, row } from "./places.ts";
 
 /**
  * The full "Sync from Email" scenario set (issues #64/#65/#88/#91), factored
@@ -226,6 +226,42 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await page.getByRole("button", { name: "Sync from Email" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible();
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+      await removePlace(page, facility);
+    });
+
+    test("deleting a confirmed Booking lets its email be re-imported on the next sync", async ({
+      page,
+    }) => {
+      const facility = placeName();
+      await signIn(page, user, "/booking-buddy/orgs");
+      await addPlace(page, facility);
+
+      await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
+
+      await page.goto("/booking-buddy/bookings");
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+
+      const card = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+      await expect(card).toBeVisible();
+      await card.getByRole("button", { name: "Confirm" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(row(page, "Court 3")).toContainText(facility);
+
+      // Delete the Booking in the UI — the ledger row cascades away, so the
+      // confirmation email is no longer settled and the next sync re-offers it
+      // (issue #286). A deliberate delete just means Dismissing it once, which
+      // the dismiss scenario above already covers.
+      await deleteBooking(page, "Court 3");
+
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      const reoffered = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+      await expect(reoffered).toBeVisible();
+      await expect(reoffered).toContainText(facility);
 
       await removePlace(page, facility);
     });
