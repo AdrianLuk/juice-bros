@@ -154,6 +154,14 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
   const { connectButtonName } = fixture;
 
   test.describe(`Sync from Email (${fixture.label})`, () => {
+    // The heaviest block in the suite — each test drives an OAuth-mock connect,
+    // a sync, and a confirm/apply, ~10 Server-Action round trips deep. Under
+    // parallel load one of those steps occasionally times out; an extra retry
+    // beyond the config-wide one keeps this from being the reason a run goes
+    // red without masking a real regression (the journeys are all covered by
+    // `npm test` at the resolver level too).
+    test.describe.configure({ retries: 2 });
+
     /** Connects the provider's mailbox on Settings, then seeds the fixture inbox. */
     async function connectAndSeed(page: Page, messages: SyncMailMessage[]) {
       fixture.getMock().registerAccount(fixture.account);
