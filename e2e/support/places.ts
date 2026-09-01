@@ -47,7 +47,9 @@ export async function removePlace(page: Page, name: string) {
 export async function selectDuration(page: Page, start: string, end: string) {
   const [startHour] = start.split(":").map(Number);
   const [endHour] = end.split(":").map(Number);
-  const hours = endHour - startHour;
+  // An End clock at or before the Start is a session running past midnight —
+  // its length is the wrapped gap (22:00 → 01:00 is 3 hours, not -21).
+  const hours = endHour > startHour ? endHour - startHour : endHour + 24 - startHour;
 
   if (hours === 1 || hours === 2 || hours === 3) {
     await page.getByRole("radio", { name: `${hours} hour${hours === 1 ? "" : "s"}` }).click();

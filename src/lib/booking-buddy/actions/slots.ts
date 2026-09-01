@@ -22,6 +22,7 @@ import {
   parseRotationBuffer,
   slotBookingWriteMessage,
 } from "../capacity.ts";
+import { crossesMidnight, nextCalendarDate } from "../datetime.ts";
 import { isDivision, type Division } from "../division.ts";
 import type { Gender } from "../gender.ts";
 import type { ResponseAnswer } from "../responses.ts";
@@ -445,9 +446,15 @@ export async function createSlot(
     .insert({
       owner_id: session.userId,
       // Wall-clock strings carrying their own zone, same as Bookings — Postgres
-      // does the DST-aware conversion to an instant.
+      // does the DST-aware conversion to an instant. An End clock at or before
+      // the Start means a game running past midnight (9pm–midnight, 10pm–1am),
+      // so its `proposed_end` sits on the next calendar day.
       proposed_start: `${parsed.date} ${parsed.startTime}:00 ${parsed.timeZone}`,
-      proposed_end: `${parsed.date} ${parsed.endTime}:00 ${parsed.timeZone}`,
+      proposed_end: `${
+        crossesMidnight(parsed.startTime, parsed.endTime)
+          ? nextCalendarDate(parsed.date)
+          : parsed.date
+      } ${parsed.endTime}:00 ${parsed.timeZone}`,
       time_zone: parsed.timeZone,
       division: parsed.division,
       intended_org_id: parsed.orgId,

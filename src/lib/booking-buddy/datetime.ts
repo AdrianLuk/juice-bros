@@ -108,21 +108,42 @@ export const HOUR_TIMES: readonly string[] = Array.from(
 /**
  * `startTime` shifted forward by a whole number of hours — what a duration
  * picker (1/2/3 hours, or a custom count) turns into an End time without
- * making the User pick one off the grid themselves. `null` when `hours` isn't
- * a positive whole number or the result would run past `"23:00"`: a Booking
- * can't cross midnight (see `parseNewBooking`), so there's no valid End to show.
+ * making the User pick one off the grid themselves. A count that carries the
+ * End past `"23:00"` wraps into the next day (`"22:00"` + 3 → `"01:00"`); a
+ * Booking or Game may span one midnight, and `crossesMidnight` is how a
+ * caller tells a wrapped End from a same-day one. `null` only when `hours`
+ * isn't a positive whole number or is 24 or more — a range can't lap its own
+ * start, so there's no valid End to show.
  */
 export function addHoursToTime(
   startTime: string,
   hours: number,
 ): string | null {
-  if (!isHourTime(startTime) || !Number.isInteger(hours) || hours <= 0) {
+  if (
+    !isHourTime(startTime) ||
+    !Number.isInteger(hours) ||
+    hours <= 0 ||
+    hours >= 24
+  ) {
     return null;
   }
 
   const startHour = Number(startTime.slice(0, 2));
-  const endHour = startHour + hours;
-  return endHour <= 23 ? `${String(endHour).padStart(2, "0")}:00` : null;
+  const endHour = (startHour + hours) % 24;
+  return `${String(endHour).padStart(2, "0")}:00`;
+}
+
+/**
+ * Whether an hour-grid range from `startTime` to `endTime` runs into the next
+ * calendar day — true when the End clock reads at or before the Start, the
+ * shape a 9pm–midnight or 10pm–1am game takes. Equal times are not a crossing:
+ * the Booking and Game forms reject a zero-length range outright, so this
+ * never has to stand in for one. The write path (`actions/bookings.ts`,
+ * `actions/slots.ts`) uses this to decide whether the stored End instant sits
+ * on `date` or on `nextCalendarDate(date)`.
+ */
+export function crossesMidnight(startTime: string, endTime: string): boolean {
+  return endTime < startTime;
 }
 
 /** `"18:30"` → `"6:30 PM"`, for the option labels — the value posted is still 24-hour. */

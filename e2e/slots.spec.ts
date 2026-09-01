@@ -132,6 +132,28 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   }
 });
 
+test("a game that runs past midnight can be proposed", async ({ page }) => {
+  // A 10pm–1am proposal — the End clock reads earlier than the Start, and the
+  // form marks it "Next day" rather than refusing it.
+  const slotId = await createSlot(page, {
+    date: "2031-03-04",
+    start: "22:00",
+    end: "01:00",
+    label: "Mar 4, 2031",
+  });
+
+  try {
+    await expect(page.getByRole("heading", { name: /Mar 4, 2031/ })).toBeVisible();
+
+    await page.goto("/booking-buddy/slots");
+    const posted = row(page, "Mar 4, 2031");
+    await expect(posted).toContainText("10:00");
+    await expect(posted).toContainText("1:00");
+  } finally {
+    await deleteSlots([slotId]);
+  }
+});
+
 test("a slot's notes can be set at posting time, and edited afterward", async ({ page }) => {
   const originalNotes = "Playwright need 2 more players";
   const updatedNotes = "Playwright bring your own paddle";
