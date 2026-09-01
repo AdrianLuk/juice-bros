@@ -787,6 +787,36 @@
 }
 
 /*
+ * Month-view quick-create (`dashboard-month-view.tsx`, issue #303): the `+`
+ * at a non-past day cell's top-right. On a pointer with hover it stays
+ * invisible until the cell is hovered — the same quiet reveal as the Week
+ * view. Where there's no hover (touch), it can't hide behind nothing to tap,
+ * so it sits faintly always-present instead, matching the day number it
+ * mirrors. `:focus-visible` reveals it fully on any device; reduced motion
+ * keeps the reveal and drops the fade.
+ */
+.bb-month-quick-add {
+  opacity: 0.4;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bb-month-quick-add {
+    transition: opacity 140ms ease;
+  }
+}
+.bb-month-quick-add:focus-visible {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .bb-month-quick-add {
+    opacity: 0;
+  }
+  .bb-month-quick-add:hover,
+  .bb-cal-month-cell:hover .bb-month-quick-add {
+    opacity: 1;
+  }
+}
+
+/*
  * Route-loading skeleton (`loading.tsx` + `BbPageSkeleton`). The shell — page
  * heading, section pills — is real and paints at once; only the content
  * placeholders sit in `.bb-skeleton-body`, held hidden for a beat so a quick

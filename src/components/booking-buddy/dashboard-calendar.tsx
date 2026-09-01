@@ -53,10 +53,10 @@ const VIEWS: { id: CalendarView; label: string }[] = [
  *
  * `onQuickCreate` is the same story for the calendar-cell quick-create
  * (issue #303): the owner's dashboard passes it and the friend calendar
- * leaves it out, so the friend grid stays creation-free. Wired to the Week
- * view here (#306), which passes the clicked row's hour; the Month view
- * (#307) will pass `null` and let the form keep its own default start time,
- * hence the `number | null` in the signature.
+ * leaves it out, so the friend grid stays creation-free. The Week view
+ * (#306) passes the clicked row's hour; the Month view (#307) passes `null`
+ * and lets the form keep its own default start time, hence the
+ * `number | null` in the signature.
  *
  * `restrictToFuture`, when set, is two bounds sharing one floor
  * (`minAnchor`, below), not one: navigation can't move the anchor earlier
@@ -382,6 +382,9 @@ export function DashboardCalendar<T extends CalendarEvent>({
             busyIntervals={busyIntervals}
             windows={visibleWindows}
             onDayClick={goToDay}
+            onQuickCreate={
+              onQuickCreate ? (day) => onQuickCreate(day, null) : undefined
+            }
             renderEvent={renderMonthEvent}
             minDay={minAnchor}
             sharedDayNames={gridTransitioning}
