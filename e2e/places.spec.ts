@@ -80,7 +80,7 @@ test.beforeEach(async ({ page, accounts }) => {
 });
 
 /** Sweeps up anything a failed run left behind, same shape as bookings.spec.ts. */
-test.afterEach(async ({ page, accounts }) => {
+test.afterEach(async ({ page }) => {
   await page.goto("/booking-buddy/orgs");
 
   const strays = row(page, PREFIX);
@@ -91,7 +91,7 @@ test.afterEach(async ({ page, accounts }) => {
   }
 });
 
-test("picking a search result caches the Place and creates an Org", async ({ page, accounts }) => {
+test("picking a search result caches the Place and creates an Org", async ({ page }) => {
   const query = uniqueName();
   const placeId = `mock-${query}`;
   const address = "123 Mock Street, Toronto, ON";
@@ -121,7 +121,7 @@ test("picking a search result caches the Place and creates an Org", async ({ pag
   await removePlace(page, query);
 });
 
-test("a place already cached is not re-fetched on a second pick", async ({ page, accounts }) => {
+test("a place already cached is not re-fetched on a second pick", async ({ page }) => {
   const query = uniqueName();
   const placeId = `mock-${query}`;
   const address = "456 Mock Avenue, Toronto, ON";
@@ -151,7 +151,6 @@ test("a place already cached is not re-fetched on a second pick", async ({ page,
 
 test("Google being unreachable reports it honestly, and the hand-typed fallback still works", async ({
   page,
-  accounts,
 }) => {
   const query = uniqueName();
   mock.registerSearch(query, "unavailable");
@@ -175,7 +174,6 @@ test("Google being unreachable reports it honestly, and the hand-typed fallback 
 
 test("a picked place's time zone is derived from its coordinates, no question asked", async ({
   page,
-  accounts,
 }) => {
   const query = uniqueName();
   const placeId = `mock-${query}`;
@@ -222,7 +220,6 @@ test("a picked place's time zone is derived from its coordinates, no question as
 
 test("a place_id that stops resolving is refused rather than creating a broken Org", async ({
   page,
-  accounts,
 }) => {
   const query = uniqueName();
   const placeId = `mock-dead-${query}`;

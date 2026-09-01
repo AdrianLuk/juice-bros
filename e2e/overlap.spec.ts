@@ -45,7 +45,7 @@ async function grantAmyOpenTime(browser: Browser, accounts: Accounts): Promise<v
     const card = ben2.locator("section").filter({ hasText: name }).last();
     const picker = card.getByLabel("Add a friend");
     const value = await picker
-      .locator("option", { hasText: `(@)` })
+      .locator("option", { hasText: `(@${accounts.amy.username})` })
       .getAttribute("value");
     await picker.selectOption(value!);
     await card.getByRole("button", { name: "Add" }).click();
@@ -103,7 +103,7 @@ test("only friends who share their availability show in the picker", async ({
 
   await expect(friendCheckbox(page, accounts.ben2.username)).toBeVisible();
   await expect(
-    page.locator("label").filter({ hasText: `(@)` }),
+    page.locator("label").filter({ hasText: `(@${accounts.ben.username})` }),
   ).toHaveCount(0);
 });
 

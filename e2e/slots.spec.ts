@@ -88,7 +88,7 @@ async function grantBen2SlotsVisibility(page: Page, ben2Handle: string): Promise
   const card = page.locator("section").filter({ hasText: name }).last();
   const picker = card.getByLabel("Add a friend");
   const value = await picker
-    .locator("option", { hasText: `@)` })
+    .locator("option", { hasText: `@${ben2Handle})` })
     .getAttribute("value");
   await picker.selectOption(value!);
   await card.getByRole("button", { name: "Add" }).click();
@@ -190,7 +190,7 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
   }
 });
 
-test("a slot cannot be posted for a date that's already passed", async ({ page, accounts }) => {
+test("a slot cannot be posted for a date that's already passed", async ({ page }) => {
   await page.goto("/booking-buddy/slots");
   await page.getByLabel("Date").fill("2020-01-01");
   await page.getByLabel("Start").selectOption("13:00");

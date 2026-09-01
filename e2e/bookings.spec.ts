@@ -38,7 +38,7 @@ test.beforeEach(async ({ page, accounts }) => {
  * Sweeps up anything a failed run left behind. Each test still removes its own
  * place as part of what it asserts; this is only the safety net.
  */
-test.afterEach(async ({ page, accounts }) => {
+test.afterEach(async ({ page }) => {
   await page.goto("/booking-buddy/orgs");
 
   const strays = row(page, PREFIX);
@@ -50,7 +50,7 @@ test.afterEach(async ({ page, accounts }) => {
   }
 });
 
-test("a place can be added, booked at, and removed again", async ({ page, accounts }) => {
+test("a place can be added, booked at, and removed again", async ({ page }) => {
   const place = placeName();
 
   await addPlace(page, place);
@@ -78,7 +78,7 @@ test("a place can be added, booked at, and removed again", async ({ page, accoun
   await expect(row(page, "Court 3")).toHaveCount(0);
 });
 
-test("a booking's name renders on the Bookings list row", async ({ page, accounts }) => {
+test("a booking's name renders on the Bookings list row", async ({ page }) => {
   const place = placeName();
   const name = `${PREFIX} Rally ${Date.now()}`;
 
@@ -101,7 +101,6 @@ test("a booking's name renders on the Bookings list row", async ({ page, account
 
 test("a booking's name and court can be edited, in place on the Bookings list row", async ({
   page,
-  accounts,
 }) => {
   const place = placeName();
   const originalName = `${PREFIX} Rally ${Date.now()}`;
@@ -130,7 +129,6 @@ test("a booking's name and court can be edited, in place on the Bookings list ro
 
 test("a booking's notes can be added, shown in its details modal, and edited", async ({
   page,
-  accounts,
 }) => {
   const place = placeName();
   const originalNotes = `${PREFIX} bring extra balls`;
@@ -165,7 +163,6 @@ test("a booking's notes can be added, shown in its details modal, and edited", a
 
 test("a booking's players can be added, edited, and removed via the Edit dialog (issue #101)", async ({
   page,
-  accounts,
 }) => {
   const place = placeName();
   const playerOne = `${PREFIX} Player One`;
@@ -196,7 +193,7 @@ test("a booking's players can be added, edited, and removed via the Edit dialog 
   await removePlace(page, place);
 });
 
-test("a booking that runs past midnight can be logged", async ({ page, accounts }) => {
+test("a booking that runs past midnight can be logged", async ({ page }) => {
   // Games routinely run 9pm–midnight or 10pm–1am. The End clock reads earlier
   // than the Start, and the form marks it "Next day" rather than refusing it.
   const place = placeName();
@@ -220,7 +217,7 @@ test("a booking that runs past midnight can be logged", async ({ page, accounts 
   await removePlace(page, place);
 });
 
-test("a booking cannot be logged for a date that's already passed", async ({ page, accounts }) => {
+test("a booking cannot be logged for a date that's already passed", async ({ page }) => {
   const place = placeName();
   await addPlace(page, place);
 
@@ -240,7 +237,7 @@ test("a booking cannot be logged for a date that's already passed", async ({ pag
   await removePlace(page, place);
 });
 
-test("the same place cannot be added twice", async ({ page, accounts }) => {
+test("the same place cannot be added twice", async ({ page }) => {
   const place = placeName();
 
   await addPlace(page, place);
@@ -258,7 +255,6 @@ test("the same place cannot be added twice", async ({ page, accounts }) => {
 
 test("a place's booking window can be set, and it survives a reload", async ({
   page,
-  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);

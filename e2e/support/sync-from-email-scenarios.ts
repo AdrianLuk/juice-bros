@@ -162,7 +162,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       fixture.getMock().registerMessages(messages);
     }
 
-    test.afterEach(async ({ page, accounts }) => {
+    test.afterEach(async ({ page }) => {
       // Disconnect the mailbox so the next test's connect step starts clean —
       // same discipline `email-sync.spec.ts` uses. Wait for a real-page
       // marker first (issue #279).

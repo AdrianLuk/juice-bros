@@ -88,7 +88,7 @@ test.beforeEach(async ({ page, accounts }) => {
  * is unusable. Each test still deletes its own group as part of what it
  * asserts; this is only the safety net.
  */
-test.afterEach(async ({ page, accounts }) => {
+test.afterEach(async ({ page }) => {
   await page.goto("/booking-buddy/groups");
 
   const strays = page.getByRole("heading", { name: new RegExp(`^${PREFIX} `) });
@@ -178,7 +178,7 @@ test("two groups resolve to the most permissive of them", async ({ page, account
   await deleteGroup(page, shut);
 });
 
-test("a group cannot be given a name you have already used", async ({ page, accounts }) => {
+test("a group cannot be given a name you have already used", async ({ page }) => {
   const name = groupName();
 
   await createGroup(page, name, "slots");

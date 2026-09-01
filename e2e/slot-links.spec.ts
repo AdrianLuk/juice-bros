@@ -152,7 +152,7 @@ test("generating an invite link twice reuses the same one", async ({ page, accou
   }
 });
 
-test("an unknown invite link reads as invalid, not a generic 404", async ({ page, accounts }) => {
+test("an unknown invite link reads as invalid, not a generic 404", async ({ page }) => {
   await page.goto("/s/this-token-does-not-exist");
   await expect(
     page.getByRole("heading", { name: "This invite isn't valid" }),

@@ -31,7 +31,7 @@ test.beforeEach(() => {
 });
 
 /** Leaves Ben disconnected for the next test/run, same discipline settings.spec.ts uses for Username. */
-test.afterEach(async ({ page, accounts }) => {
+test.afterEach(async ({ page }) => {
   await page.goto("/booking-buddy/settings");
 
   // The Settings route streams through its own `loading.tsx` and the

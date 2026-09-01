@@ -99,7 +99,7 @@ test("the handle assigned at signup is what the form starts on", async ({ page, 
   await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
-test("a new handle can be chosen, and it sticks", async ({ page, accounts }) => {
+test("a new handle can be chosen, and it sticks", async ({ page }) => {
   const chosen = `amy_the_ace_${Date.now().toString().slice(-6)}`;
 
   await page.getByLabel("Username").fill(chosen);
@@ -143,7 +143,6 @@ test("your own handle in a different case is not a collision", async ({ page, ac
 
 test("punctuation is refused with a reason, not silently stripped", async ({
   page,
-  accounts,
 }) => {
   // The browser's own minlength/maxlength cover the length rules, so this
   // checks the one the server has to make: which characters are allowed.
@@ -157,7 +156,6 @@ test("punctuation is refused with a reason, not silently stripped", async ({
 
 test("the three email toggles share one Save button, with push at the top", async ({
   page,
-  accounts,
 }) => {
   const notificationsCard = page
     .locator(".bb-card")
@@ -175,13 +173,13 @@ test("the three email toggles share one Save button, with push at the top", asyn
   );
 });
 
-test("email reminders default to enabled", async ({ page, accounts }) => {
+test("email reminders default to enabled", async ({ page }) => {
   await expect(
     page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up"),
   ).toBeChecked();
 });
 
-test("turning email reminders off sticks", async ({ page, accounts }) => {
+test("turning email reminders off sticks", async ({ page }) => {
   const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
 
   await emailReminders.uncheck();
@@ -195,7 +193,7 @@ test("turning email reminders off sticks", async ({ page, accounts }) => {
   await expect(emailReminders).not.toBeChecked();
 });
 
-test("booking window reminders default to enabled", async ({ page, accounts }) => {
+test("booking window reminders default to enabled", async ({ page }) => {
   await expect(
     page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court"),
   ).toBeChecked();
@@ -203,7 +201,6 @@ test("booking window reminders default to enabled", async ({ page, accounts }) =
 
 test("turning booking window reminders off sticks, independently of the other toggle", async ({
   page,
-  accounts,
 }) => {
   const bookingWindowReminders = page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court");
   const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
@@ -223,7 +220,7 @@ test("turning booking window reminders off sticks, independently of the other to
   await expect(emailReminders).toBeChecked();
 });
 
-test("the friend-request email defaults to enabled", async ({ page, accounts }) => {
+test("the friend-request email defaults to enabled", async ({ page }) => {
   await expect(
     page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away"),
   ).toBeChecked();
@@ -231,7 +228,6 @@ test("the friend-request email defaults to enabled", async ({ page, accounts }) 
 
 test("turning the friend-request email off sticks, independently of the reminder toggles", async ({
   page,
-  accounts,
 }) => {
   const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
   const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
@@ -251,7 +247,7 @@ test("turning the friend-request email off sticks, independently of the reminder
   await expect(emailReminders).toBeChecked();
 });
 
-test("the request-accepted email defaults to enabled", async ({ page, accounts }) => {
+test("the request-accepted email defaults to enabled", async ({ page }) => {
   await expect(
     page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected"),
   ).toBeChecked();
@@ -259,7 +255,6 @@ test("the request-accepted email defaults to enabled", async ({ page, accounts }
 
 test("turning the request-accepted email off sticks, independently of the other toggles", async ({
   page,
-  accounts,
 }) => {
   const acceptedEmails = page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected");
   const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
@@ -279,7 +274,7 @@ test("turning the request-accepted email off sticks, independently of the other 
   await expect(friendRequestEmails).toBeChecked();
 });
 
-test("gender is unset by default", async ({ page, accounts }) => {
+test("gender is unset by default", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(
     "aria-checked",
     "true",
@@ -298,7 +293,7 @@ test("a gender can be chosen, and it sticks — independently of Username", asyn
   await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
-test("a gender can be cleared back to unset", async ({ page, accounts }) => {
+test("a gender can be cleared back to unset", async ({ page }) => {
   await page.getByRole("radio", { name: "Female" }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
   await expect(genderForm(page).getByRole("status")).toBeVisible();

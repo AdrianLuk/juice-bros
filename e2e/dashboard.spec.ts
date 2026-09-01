@@ -108,7 +108,6 @@ test.afterEach(async ({ page, accounts }) => {
 
 test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({
   page,
-  accounts,
 }) => {
   await page.goto("/booking-buddy");
 
@@ -136,7 +135,6 @@ test("the calendar defaults to Week view, and Month/Agenda toggle without naviga
 
 test("a Booking renders on the calendar and in the sidebar, and its popover can remove it", async ({
   page,
-  accounts,
 }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
@@ -194,7 +192,7 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
   await removePlace(page, place);
 });
 
-test("clicking a Month day switches to Week view centered on that day", async ({ page, accounts }) => {
+test("clicking a Month day switches to Week view centered on that day", async ({ page }) => {
   await page.goto("/booking-buddy");
 
   await page.getByRole("button", { name: "Month", exact: true }).click();
@@ -220,7 +218,7 @@ test("clicking a Month day switches to Week view centered on that day", async ({
   await expect(page.getByRole("button", { name: weekOfTarget })).toBeVisible();
 });
 
-test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page, accounts }) => {
+test("the quick-add dialog logs a Booking without leaving the dashboard, and closes itself", async ({ page }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
@@ -250,7 +248,7 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
   await removePlace(page, place);
 });
 
-test("the quick-add dialog logs a Booking that runs past midnight", async ({ page, accounts }) => {
+test("the quick-add dialog logs a Booking that runs past midnight", async ({ page }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
@@ -281,7 +279,6 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
 
 test("a Week-view empty-cell + opens the booking dialog prefilled with that day and hour, and the saved chip lands on the grid", async ({
   page,
-  accounts,
 }) => {
   const bookingDate = requireTestBookingDate();
   const place = placeName();
@@ -322,7 +319,7 @@ test("a Week-view empty-cell + opens the booking dialog prefilled with that day 
   await removePlace(page, place);
 });
 
-test("a past day in the current week shows no quick-create +", async ({ page, accounts }) => {
+test("a past day in the current week shows no quick-create +", async ({ page }) => {
   const now = new Date();
   test.skip(now.getDay() === 0, "no past day is left in the current calendar week on a Sunday");
 
@@ -346,7 +343,6 @@ test("a past day in the current week shows no quick-create +", async ({ page, ac
 
 test("a Month-view day-cell + opens the booking dialog prefilled with that date, Start left at the 18:00 default, and the saved chip lands on the grid", async ({
   page,
-  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -382,7 +378,7 @@ test("a Month-view day-cell + opens the booking dialog prefilled with that date,
   await removePlace(page, place);
 });
 
-test("a past day in the current month shows no quick-create +", async ({ page, accounts }) => {
+test("a past day in the current month shows no quick-create +", async ({ page }) => {
   const now = new Date();
   test.skip(
     now.getDate() === 1 && now.getDay() === 0,
