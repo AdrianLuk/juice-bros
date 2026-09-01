@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { track } from "@vercel/analytics/server";
 
 import { createClient } from "./supabase/server.ts";
+import type { MailboxProvider } from "./mailbox-provider.ts";
 
 /**
  * The onboarding-funnel events (issue #179). Emitted server-side — every one
@@ -27,6 +28,30 @@ export type FunnelEvent =
   | "bb_first_slot"
   | "bb_first_friend"
   | "bb_slot_first_response";
+
+/**
+ * "Sync from Email" events (spec #280). Not funnel steps — these measure how
+ * the mailbox integration itself is used, and every one carries a `provider`
+ * dimension (`google` / `microsoft`) so the Gmail and Outlook paths can be
+ * compared. `bb_email_sync_run` fires once per successful sync (with the
+ * candidate count); `bb_email_sync_import` fires when a candidate is
+ * confirmed into a Booking. Emitted server-side like the funnel events, for
+ * the same "can't be trusted from the client" reason.
+ */
+export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
+
+/** Emit one `provider`-dimensioned email-sync event. Same fail-quiet posture as `trackFunnelEvent`. */
+export async function trackEmailSyncEvent(
+  event: EmailSyncEvent,
+  provider: MailboxProvider,
+  properties?: Record<string, string | number | boolean | null>,
+): Promise<void> {
+  try {
+    await track(event, { provider, ...properties });
+  } catch (error) {
+    console.error(`booking-buddy: emitting ${event} failed`, error);
+  }
+}
 
 /**
  * Emit one funnel event. Swallows everything: the `track` SDK already fails

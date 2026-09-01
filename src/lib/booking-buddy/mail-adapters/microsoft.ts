@@ -8,11 +8,13 @@ import {
 import type {
   AccountEmailOutcome,
   MailAdapter,
+  MailSearchCriteria,
   MailboxMessageOutcome,
   MailboxSearchOutcome,
   RefreshOutcome,
   TokenExchangeOutcome,
 } from "../mail-adapter.ts";
+import { buildGraphMessagesUrl, collectGraphMessageIds } from "./graph-query.ts";
 
 /**
  * The Microsoft `MailAdapter` — the OAuth half of spec #280's Outlook /
@@ -36,13 +38,19 @@ import type {
  *   refresh token on every call and the old one stops working, so this always
  *   returns the new one in `RefreshOutcome.refreshToken` for the shared
  *   token-lifecycle helper to persist.
+ * - `searchMailbox` / `fetchMessage` (issue #284 — "Microsoft sync") — the
+ *   Graph `/me/messages` list + get. Search formats its `$filter` and follows
+ *   `@odata.nextLink` via `graph-query.ts` (unit tested there); it sends no
+ *   `$orderby` (Graph defaults to newest-first, and combining `$orderby` with
+ *   this `$filter` is rejected as "too complex"). Fetch requests the stored
+ *   HTML body directly (`Prefer: outlook.body-content-type="html"`).
+ *   A Graph `429` is a transient `unreachable` with no automatic retry —
+ *   there's only one non-`ok` reason for these methods and the User's retry
+ *   is the "Sync from Email" button.
  *
- * What does NOT ship here yet: `resolveAccountEmail` (not needed — see above),
- * `searchMailbox`, and `fetchMessage`. Those are Microsoft Graph calls and
- * land with the "Microsoft sync" slice (issue after #283). Until then they
- * honour the interface's no-throw discriminated-result contract by returning
- * `unreachable`, so a half-configured `provider = 'microsoft'` row degrades to
- * the ordinary "couldn't reach your mailbox" path rather than a 500.
+ * `resolveAccountEmail` still isn't needed — the connected account's address
+ * comes back from `exchangeCodeForTokens` in the `id_token`, so the callback
+ * route never calls it.
  *
  * Deliberately not unit tested: it's glue over real network calls, exercised
  * instead by Playwright's mocked Microsoft host (`e2e/support/microsoft-mock.ts`),
@@ -52,6 +60,7 @@ import type {
 const FETCH_TIMEOUT_MS = 8000;
 
 const DEFAULT_AUTHORITY = "https://login.microsoftonline.com/consumers/oauth2/v2.0";
+const DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 
 const OAUTH_SCOPE = "offline_access Mail.Read openid email";
 
@@ -65,6 +74,14 @@ function authorizeUrl(): string {
 function tokenUrl(): string {
   const base = readMicrosoftApiBaseUrl();
   return base ? `${base}/token` : `${DEFAULT_AUTHORITY}/token`;
+}
+
+// Graph lives on its own host in production; the e2e mock collapses it onto
+// the same local server as the identity endpoints, under a `/v1.0` prefix
+// that matches the real version segment.
+function graphBaseUrl(): string {
+  const base = readMicrosoftApiBaseUrl();
+  return base ? `${base}/v1.0` : DEFAULT_GRAPH_BASE_URL;
 }
 
 async function safeText(response: Response): Promise<string> {
@@ -248,13 +265,112 @@ async function resolveAccountEmail(): Promise<AccountEmailOutcome> {
   return { ok: false, reason: "unreachable" };
 }
 
-/** Microsoft Graph search/fetch land with the "Microsoft sync" slice. */
-async function searchMailbox(): Promise<MailboxSearchOutcome> {
-  return { ok: false, reason: "unreachable" };
+/**
+ * `GET /me/messages` scoped by the neutral criteria (formatted to Graph's
+ * `$filter` / `$select` / `$top` by `graph-query.ts`) — ids only, in Graph's
+ * default newest-first order, following `@odata.nextLink` up to a small fixed
+ * page cap. Each id still needs its own `fetchMessage` call for subject/body.
+ *
+ * Any non-`ok` response on any page (a `429`, a `5xx`, a network error) ends
+ * the search as `unreachable` with no retry — a partial list would let a
+ * sync settle messages it never actually saw.
+ */
+async function searchMailbox(
+  accessToken: string,
+  criteria: MailSearchCriteria,
+): Promise<MailboxSearchOutcome> {
+  const firstUrl = buildGraphMessagesUrl(graphBaseUrl(), criteria);
+
+  const collected = await collectGraphMessageIds(firstUrl, async (url) => {
+    try {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        console.error(
+          "booking-buddy: Graph message search failed",
+          response.status,
+          await safeText(response),
+        );
+        return null;
+      }
+
+      return (await response.json()) as unknown;
+    } catch (error) {
+      console.error("booking-buddy: Graph message search unreachable", error);
+      return null;
+    }
+  });
+
+  if (!collected.ok) {
+    return { ok: false, reason: "unreachable" };
+  }
+
+  return { ok: true, messageIds: collected.ids };
 }
 
-async function fetchMessage(): Promise<MailboxMessageOutcome> {
-  return { ok: false, reason: "unreachable" };
+type GraphMessage = {
+  subject?: unknown;
+  receivedDateTime?: unknown;
+  body?: { contentType?: unknown; content?: unknown };
+};
+
+/**
+ * `GET /me/messages/{id}` for one message, reduced to what
+ * `parseCourtReserveEmail` needs: the subject and the HTML body. The `Prefer:
+ * outlook.body-content-type="html"` header asks Graph to return the stored
+ * HTML rather than a text conversion; CourtReserve's own mail is HTML, so
+ * Graph hands it back directly with no round trip through its text renderer.
+ *
+ * `receivedAt` is Graph's `receivedDateTime` (an ISO-8601 instant) parsed to
+ * epoch milliseconds — the chronological order a confirm/cancel chain
+ * arrived in, which `reconcileCourtReserveEvents` keys on. A
+ * missing/unparseable value falls back to 0 (oldest possible) rather than
+ * "now", same as the Gmail adapter, so a timestamp-less message can't
+ * masquerade as the most recent event in its chain.
+ */
+async function fetchMessage(
+  accessToken: string,
+  messageId: string,
+): Promise<MailboxMessageOutcome> {
+  try {
+    const url = new URL(`${graphBaseUrl()}/me/messages/${encodeURIComponent(messageId)}`);
+    url.searchParams.set("$select", "subject,receivedDateTime,body");
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Prefer: 'outlook.body-content-type="html"',
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      console.error(
+        "booking-buddy: fetching a Graph message failed",
+        response.status,
+        await safeText(response),
+      );
+      return { ok: false, reason: "unreachable" };
+    }
+
+    const json = (await response.json()) as GraphMessage;
+    const subject = typeof json.subject === "string" ? json.subject : "";
+    const html =
+      typeof json.body?.content === "string" ? json.body.content : "";
+    const receivedAt =
+      typeof json.receivedDateTime === "string" ? Date.parse(json.receivedDateTime) : NaN;
+
+    return {
+      ok: true,
+      email: { subject, html, receivedAt: Number.isFinite(receivedAt) ? receivedAt : 0 },
+    };
+  } catch (error) {
+    console.error("booking-buddy: fetching a Graph message unreachable", error);
+    return { ok: false, reason: "unreachable" };
+  }
 }
 
 export const microsoftMailAdapter: MailAdapter = {
