@@ -1,7 +1,9 @@
-/** Local Docker stack only — Supabase's published demo keys, same as slot-cleanup.ts. */
-const LOCAL_SUPABASE_API_URL = "http://127.0.0.1:54321";
-const LOCAL_SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+import {
+  LOCAL_SUPABASE_ANON_KEY,
+  LOCAL_SUPABASE_API_URL,
+  fixtureToken,
+  fixtureUserId,
+} from "./fixture-token.ts";
 
 /**
  * Availability Windows have a create/delete UI now (the "Availability" page,
@@ -16,16 +18,9 @@ const LOCAL_SUPABASE_ANON_KEY =
  * service-role key.
  */
 async function sessionFor(email: string, password: string): Promise<{ accessToken: string; userId: string }> {
-  const res = await fetch(`${LOCAL_SUPABASE_API_URL}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: LOCAL_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) {
-    throw new Error(`signing in ${email} for a fixture write failed: ${res.status} ${await res.text()}`);
-  }
-  const body = (await res.json()) as { access_token: string; user: { id: string } };
-  return { accessToken: body.access_token, userId: body.user.id };
+  const user = { email, password };
+  const [accessToken, userId] = await Promise.all([fixtureToken(user), fixtureUserId(user)]);
+  return { accessToken, userId };
 }
 
 /** `owner_id` has no column default (unlike RLS, which only checks whatever is written) — every insert has to name it explicitly, the same way `createBooking` does. */

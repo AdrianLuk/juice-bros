@@ -11,31 +11,21 @@
  * already takes.
  */
 
-/** Local Docker stack only — Supabase's published demo keys, same as availability.ts. */
-const LOCAL_SUPABASE_API_URL = "http://127.0.0.1:54321";
-const LOCAL_SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+import {
+  LOCAL_SUPABASE_ANON_KEY,
+  LOCAL_SUPABASE_API_URL,
+  fixtureToken,
+  type FixtureUser,
+} from "./fixture-token.ts";
 
-export type FixtureUser = { email: string; password: string };
-
-async function tokenFor(user: FixtureUser): Promise<string> {
-  const res = await fetch(`${LOCAL_SUPABASE_API_URL}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: LOCAL_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify(user),
-  });
-  if (!res.ok) {
-    throw new Error(`db-reset: signing in ${user.email} failed: ${res.status} ${await res.text()}`);
-  }
-  return ((await res.json()) as { access_token: string }).access_token;
-}
+export type { FixtureUser };
 
 async function asUser(
   user: FixtureUser,
   path: string,
   init: RequestInit,
 ): Promise<void> {
-  const token = await tokenFor(user);
+  const token = await fixtureToken(user);
   const res = await fetch(`${LOCAL_SUPABASE_API_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
