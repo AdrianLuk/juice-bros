@@ -249,11 +249,14 @@ test("a gender can be chosen, and it sticks — independently of Username", asyn
 test("a gender can be cleared back to unset", async ({ page }) => {
   await page.getByRole("radio", { name: "Female" }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
-  await expect(genderForm(page).getByRole("status")).toBeVisible();
+  await expect(genderForm(page).getByRole("status")).toContainText("Saved");
 
   await page.getByRole("radio", { name: "Prefer not to say" }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
-  await expect(genderForm(page).getByRole("status")).toBeVisible();
+  // "Saved", not just any status — bare `toBeVisible()` matched the stale
+  // confirmation from the first save and let the reload race the second
+  // Server Action under parallel load.
+  await expect(genderForm(page).getByRole("status")).toContainText("Saved");
 
   await page.reload();
   await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(
