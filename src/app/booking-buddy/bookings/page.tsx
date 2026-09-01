@@ -53,12 +53,18 @@ export default async function BookingsPage() {
     .filter((booking) => !upcomingBookings.includes(booking))
     .reverse();
 
-  // Optimistic half of ADR-0009's addendum, same gating Settings already
-  // does — an unapproved User never sees "Sync from Email" at all.
-  // syncFromEmail/confirmImportCandidate/dismissReviewItem each
-  // re-check this authoritatively.
+  // Optimistic half of ADR-0009's addendum — syncFromEmail and the confirm/
+  // dismiss actions re-check authoritatively.
   const emailSyncAllowed = isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist());
   const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
+
+  // Microsoft mailbox *sync* isn't wired up yet (spec #280's third slice), so
+  // a User who connected Outlook has nothing actionable here — hide the
+  // section rather than hand them a "Sync from Email" button that can only
+  // ever fail. An allowlisted User with no link yet still sees it (the
+  // "connect a mailbox in Settings" prompt).
+  const canSyncFromEmail =
+    emailSyncAllowed && (mailboxLink === null || mailboxLink.provider === "google");
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -125,12 +131,12 @@ export default async function BookingsPage() {
                 )}
               </section>
 
-              {emailSyncAllowed && (
+              {canSyncFromEmail && (
                 <section>
                   <h2 className="font-heading text-lg font-semibold tracking-tight">
                     Sync from Email
                   </h2>
-                  <SyncFromEmailSection orgs={orgs} mailboxLinkConnected={mailboxLink !== null} />
+                  <SyncFromEmailSection orgs={orgs} mailboxProvider={mailboxLink?.provider ?? null} />
                 </section>
               )}
 

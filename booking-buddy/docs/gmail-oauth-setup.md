@@ -75,7 +75,7 @@ https://juice-bros-git-<branch-name>-lukabaseballs-projects.vercel.app
 "Domains" section, alongside the random per-deployment one.) Register:
 
 ```
-https://juice-bros-git-<branch-name>-lukabaseballs-projects.vercel.app/booking-buddy/settings/gmail-callback
+https://juice-bros-git-<branch-name>-lukabaseballs-projects.vercel.app/booking-buddy/settings/mailbox-callback
 ```
 
 once in Cloud Console, and every future push to that branch keeps working
@@ -91,7 +91,7 @@ own notes only flag the real credentials as needed "before this ships to
 and only register the production redirect URI:
 
 ```
-https://<production-domain>/booking-buddy/settings/gmail-callback
+https://<production-domain>/booking-buddy/settings/mailbox-callback
 ```
 
 **Ad hoc exception:** to manually click through the real Google consent

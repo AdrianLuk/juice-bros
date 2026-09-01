@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 import { GOOGLE_PLACES_MOCK_URL } from "./e2e/support/google-places-mock.ts";
 import { GMAIL_MOCK_URL } from "./e2e/support/gmail-mock.ts";
+import { MICROSOFT_MOCK_URL } from "./e2e/support/microsoft-mock.ts";
 
 /**
  * Browser tests, kept apart from `npm test`.
@@ -48,6 +49,15 @@ export default defineConfig({
       GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID ?? "test-client-id-for-e2e",
       GOOGLE_OAUTH_CLIENT_SECRET:
         process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "test-client-secret-for-e2e",
+      // Spec #280's Outlook / Hotmail provider (outlook-connect.spec.ts) — same
+      // collapsing-mock shape as Gmail above, see microsoft-mock.ts. Setting
+      // MICROSOFT_OAUTH_CLIENT_ID is also what makes the "Connect Outlook"
+      // button render at all.
+      MICROSOFT_API_BASE_URL: MICROSOFT_MOCK_URL,
+      MICROSOFT_OAUTH_CLIENT_ID:
+        process.env.MICROSOFT_OAUTH_CLIENT_ID ?? "test-ms-client-id-for-e2e",
+      MICROSOFT_OAUTH_CLIENT_SECRET:
+        process.env.MICROSOFT_OAUTH_CLIENT_SECRET ?? "test-ms-client-secret-for-e2e",
       // A throwaway 32-byte key — real ones are generated per docs in
       // .env.example and never checked in.
       MAILBOX_LINK_ENCRYPTION_KEY:

@@ -12,11 +12,15 @@ import { SETTINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { getOwnProfile } from "./profile.ts";
 import { isGmailConnectAllowed } from "../email-sync-allowlist.ts";
-import { readEmailSyncAllowlist, requireMailboxLinkEncryptionKey } from "../env.ts";
+import {
+  readEmailSyncAllowlist,
+  readMicrosoftOAuthClientId,
+  requireMailboxLinkEncryptionKey,
+} from "../env.ts";
 import { mailAdapterFor } from "../mail-adapters/index.ts";
 import { resolveMailboxAccessToken } from "../mailbox-token-lifecycle.ts";
 import type { MailboxProvider } from "../mailbox-provider.ts";
-import { MAILBOX_OAUTH_STATE_COOKIE } from "../mailbox-oauth.ts";
+import { MAILBOX_OAUTH_STATE_COOKIE, encodeMailboxOAuthState } from "../mailbox-oauth.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
 import { buildCourtReserveSearchCriteria } from "../courtreserve-email.ts";
 import { connectionCandidatesFromFriends } from "../email-sync-matching.ts";
@@ -49,7 +53,7 @@ export type MailboxLink = {
 } | null;
 
 function mailboxCallbackUrl(): Promise<string> {
-  return absoluteAppUrl("/booking-buddy/settings/gmail-callback");
+  return absoluteAppUrl("/booking-buddy/settings/mailbox-callback");
 }
 
 /**
@@ -96,26 +100,29 @@ export async function getMailboxLink(): Promise<MailboxLink> {
 }
 
 /**
- * Starts a mailbox provider's OAuth redirect. Only Google is wired up today;
- * `"microsoft"` is added in #280's later slices and is rejected here until
- * then. For Google, rejects a non-allowlisted User even if they reach this
- * directly — the Settings page not rendering the button is the optimistic
- * half, this is the authoritative one (ADR-0009's addendum, same shape
- * `verifySession` already established).
+ * Starts a mailbox provider's OAuth redirect (spec #280).
+ *
+ * - Google: rejects a non-allowlisted User even if they reach this directly —
+ *   the Settings page not rendering the button is the optimistic half, this is
+ *   the authoritative one (ADR-0009's addendum). The allowlist is Gmail-only.
+ * - Microsoft: no allowlist, but the "Connect Outlook" button only renders
+ *   when `MICROSOFT_OAUTH_CLIENT_ID` is set, so a direct hit with it unset is
+ *   a misconfiguration — reported as the ordinary connect failure rather than
+ *   letting `requireMicrosoftOAuthClientId` throw an uncaught 500 further down.
  */
 export async function connectMailbox(provider: MailboxProvider): Promise<void> {
   await verifySession();
 
-  if (provider !== "google") {
+  if (provider === "google") {
+    const allowed = await isGmailConnectAllowedForCaller();
+    if (!allowed) {
+      redirect(`${SETTINGS_PATH}?error=email_sync_not_allowed`);
+    }
+  } else if (!readMicrosoftOAuthClientId()) {
     redirect(`${SETTINGS_PATH}?error=mailbox_connect_failed`);
   }
 
-  const allowed = await isGmailConnectAllowedForCaller();
-  if (!allowed) {
-    redirect(`${SETTINGS_PATH}?error=email_sync_not_allowed`);
-  }
-
-  const state = randomBytes(16).toString("hex");
+  const state = encodeMailboxOAuthState(provider, randomBytes(16).toString("hex"));
 
   // Built before setting the cookie: if the OAuth client isn't configured
   // (a plausible partial-deploy state — see PROGRESS.md's own note that
@@ -125,7 +132,7 @@ export async function connectMailbox(provider: MailboxProvider): Promise<void> {
   try {
     authorizeUrl = mailAdapterFor(provider).buildAuthorizeUrl(await mailboxCallbackUrl(), state);
   } catch (error) {
-    console.error("booking-buddy: Gmail OAuth client isn't configured", error);
+    console.error("booking-buddy: mailbox OAuth client isn't configured", error);
     redirect(`${SETTINGS_PATH}?error=mailbox_connect_failed`);
   }
 
@@ -155,7 +162,7 @@ export async function disconnectMailbox(): Promise<ActionResult> {
     .eq("owner_id", session.userId);
 
   if (error) {
-    return { error: "Couldn't disconnect Gmail. Try again." };
+    return { error: "Couldn't disconnect that mailbox. Try again." };
   }
 
   revalidatePath(SETTINGS_PATH);
@@ -217,6 +224,15 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     return { status: "reconnect_required" };
   }
 
+  // Microsoft mailbox sync lands in spec #280's third slice. A microsoft link
+  // can already be created from Settings, and the Bookings page hides this
+  // section for it — but guard here too so a direct call can't spin the
+  // Microsoft adapter (and pointlessly rotate its refresh token) against a
+  // search path that only ever returns `unreachable`.
+  if (link.provider !== "google") {
+    return { status: "error", message: "Syncing this mailbox isn't available yet." };
+  }
+
   let encryptionKey: string;
   try {
     encryptionKey = requireMailboxLinkEncryptionKey();
@@ -241,7 +257,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     if (token.reason === "reconnect_required") {
       return { status: "reconnect_required" };
     }
-    return { status: "error", message: "Couldn't reach Gmail. Try again." };
+    return { status: "error", message: "Couldn't reach your mailbox. Try again." };
   }
 
   const searchResult = await adapter.searchMailbox(
@@ -249,7 +265,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     buildCourtReserveSearchCriteria(new Date()),
   );
   if (!searchResult.ok) {
-    return { status: "error", message: "Couldn't reach Gmail. Try again." };
+    return { status: "error", message: "Couldn't reach your mailbox. Try again." };
   }
 
   const { data: processedRows, error: processedError } = await supabase

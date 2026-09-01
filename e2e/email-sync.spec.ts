@@ -142,20 +142,22 @@ test.afterEach(async ({ page }) => {
   }
 });
 
-test("a non-allowlisted User sees an invite-only note instead of the working section", async ({ page }) => {
+test("a non-allowlisted User sees the section but no Connect Gmail button", async ({ page }) => {
   await signIn(page, AMY, "/booking-buddy/settings");
 
   await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toHaveCount(0);
-  await expect(page.getByText("it's invite-only for now", { exact: false })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Request access" })).toHaveAttribute("href", "/contact");
+  // The Outlook option isn't allowlist-gated (spec #280), and it's configured
+  // for this run — so the section is present and usable, not an invite note.
+  await expect(page.getByRole("button", { name: "Connect Outlook" })).toBeVisible();
 });
 
-test("an allowlisted User sees the section, with no Mailbox Link connected yet", async ({ page }) => {
+test("an allowlisted User sees both connect options, with no Mailbox Link connected yet", async ({ page }) => {
   await signIn(page, BEN, "/booking-buddy/settings");
 
   await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Connect Outlook" })).toBeVisible();
 });
 
 test("connecting runs the real OAuth redirect and stores the Mailbox Link", async ({ page }) => {
@@ -204,7 +206,7 @@ test("a failed token exchange reports it honestly, without creating a Mailbox Li
 
   await page.waitForURL((url) => url.searchParams.get("error") === "mailbox_connect_failed");
   await expect(
-    page.getByRole("alert").filter({ hasText: "Couldn't connect Gmail" }),
+    page.getByRole("alert").filter({ hasText: "Couldn't connect that mailbox" }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
 
