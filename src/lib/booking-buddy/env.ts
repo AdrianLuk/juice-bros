@@ -168,3 +168,56 @@ export function readGmailApiBaseUrl(
   const value = source.GMAIL_API_BASE_URL;
   return value && value.trim() !== "" ? value : undefined;
 }
+
+/**
+ * This app's own Microsoft OAuth client for spec #280's Outlook / Hotmail
+ * Mailbox Link — the Microsoft counterpart of `GOOGLE_OAUTH_CLIENT_ID`, a
+ * confidential client registered against the `consumers` authority (personal
+ * Microsoft accounts only). Server-only, never `NEXT_PUBLIC_*`.
+ *
+ * Two readers, on purpose:
+ *
+ * - `readMicrosoftOAuthClientId` is the *optional* one, following the same
+ *   self-gating pattern as `readGoogleSignInClientId`: it returns `undefined`
+ *   when the variable is unset, and the Settings page simply doesn't render the
+ *   "Connect Outlook" button in that case. A missing Microsoft client id must
+ *   never break the Settings page for Users who only ever wanted Gmail.
+ * - `requireMicrosoftOAuthClientId` is the strict one the Microsoft adapter
+ *   uses once a connect flow is actually under way — by then the button was
+ *   rendered, so an unset value is a real misconfiguration and should name
+ *   itself, matching `requireGoogleOAuthClientId`.
+ */
+export function readMicrosoftOAuthClientId(
+  source: EnvSource = { MICROSOFT_OAUTH_CLIENT_ID: process.env.MICROSOFT_OAUTH_CLIENT_ID },
+): string | undefined {
+  const value = source.MICROSOFT_OAUTH_CLIENT_ID;
+  return value && value.trim() !== "" ? value : undefined;
+}
+
+export function requireMicrosoftOAuthClientId(
+  source: EnvSource = { MICROSOFT_OAUTH_CLIENT_ID: process.env.MICROSOFT_OAUTH_CLIENT_ID },
+): string {
+  return requireEnv(source, "MICROSOFT_OAUTH_CLIENT_ID");
+}
+
+/** Server-only. Never read this into anything that reaches the browser. */
+export function requireMicrosoftOAuthClientSecret(
+  source: EnvSource = {
+    MICROSOFT_OAUTH_CLIENT_SECRET: process.env.MICROSOFT_OAUTH_CLIENT_SECRET,
+  },
+): string {
+  return requireEnv(source, "MICROSOFT_OAUTH_CLIENT_SECRET");
+}
+
+/**
+ * Test-only override collapsing Microsoft's identity-platform host
+ * (`login.microsoftonline.com`) onto one local mock
+ * (`e2e/support/microsoft-mock.ts`) — mirrors `GMAIL_API_BASE_URL`.
+ * Blank/missing means "use the real host".
+ */
+export function readMicrosoftApiBaseUrl(
+  source: EnvSource = { MICROSOFT_API_BASE_URL: process.env.MICROSOFT_API_BASE_URL },
+): string | undefined {
+  const value = source.MICROSOFT_API_BASE_URL;
+  return value && value.trim() !== "" ? value : undefined;
+}

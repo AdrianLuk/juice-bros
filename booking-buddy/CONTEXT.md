@@ -62,7 +62,7 @@ Entirely independent of a Slot's Responses/Guests, even when the Booking is atta
 _Avoid_: Guest (a Slot RSVP identity — name-only, never links to a Connection, and belongs to a different list entirely; see above)
 
 **Mailbox Link**:
-A User's account-level OAuth grant to their own email inbox (Gmail today; Outlook/Hotmail planned — spec #280), used only to search for CourtReserve confirmation/cancellation mail when the User triggers a sync. One Link per User, carrying which `provider` it belongs to; not tied to any single Org — one Link covers a User's Bookings across every facility. A Link can lapse and need the User to re-establish it: a Gmail Link expires periodically under Google's Testing-mode verification status; other providers have their own expiry. See [adr/0009-email-sync-via-gmail-oauth.md](docs/adr/0009-email-sync-via-gmail-oauth.md).
+A User's account-level OAuth grant to their own email inbox (Gmail, or Outlook/Hotmail — spec #280; Outlook connect is live, Outlook sync lands in a later slice), used only to search for CourtReserve confirmation/cancellation mail when the User triggers a sync. One Link per User, carrying which `provider` it belongs to; not tied to any single Org — one Link covers a User's Bookings across every facility. A Link can lapse and need the User to re-establish it: a Gmail Link expires periodically under Google's Testing-mode verification status; other providers have their own expiry. See [adr/0009-email-sync-via-gmail-oauth.md](docs/adr/0009-email-sync-via-gmail-oauth.md).
 _Avoid_: Connection (already means a two-sided friendship between Users — do not reuse for this), Gmail Connection
 
 **Import Candidate**:
