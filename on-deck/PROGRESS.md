@@ -16,6 +16,14 @@ event array plus assertions about the resulting state.
 - `src/components/on-deck/` — components
 - `supabase/migrations/`, `supabase/tests/` — schema + RLS (`on_deck_` prefix)
 
+## Hosted DB
+
+`supabase db push` is done through **`20260901200000`** (#247) — `supabase
+migration list --linked` shows local and remote in sync. #248 / #249 / #247 all
+went up together on 2026-09-01 after sitting merged-but-unpushed; check
+`migration list --linked` at the start of a session, not just after writing a
+migration (the drift lesson `booking-buddy/PROGRESS.md` already carries).
+
 ## Done
 
 - [x] **#241 — Club and Session foundation, one-tap start.** Schema for
