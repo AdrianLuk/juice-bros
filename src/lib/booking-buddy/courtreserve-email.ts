@@ -1,8 +1,8 @@
 /**
  * Parses CourtReserve's own confirmation/cancellation notification emails
  * (issue #63, first slice of #59's email-sync feature — see ADR-0009 and
- * CONTEXT.md's Import Candidate entry) and builds the Gmail search query
- * that finds them.
+ * CONTEXT.md's Import Candidate entry) and builds the provider-neutral
+ * mailbox-search criteria that find them.
  *
  * CourtReserve's template is a fixed, known shape (single-provider parsing
  * only, per ADR-0009) — so this is plain pattern-matching over the raw HTML,
@@ -231,14 +231,6 @@ function splitSectionLines(html: string): string[] {
   return html
     .split(/<br\s*\/?>/gi)
     .map((line) => decodeHtmlEntities(line.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim());
-}
-
-/** `"2026-09-15"` (`sep = "-"`) or `"2026/09/15"` (`sep = "/"`) from a `Date`'s own local year/month/day. */
-function formatLocalDate(date: Date, sep: string): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}${sep}${month}${sep}${day}`;
 }
 
 /**
@@ -522,14 +514,16 @@ export const COURTRESERVE_SENDER = "notifications@courtreserve.com";
 export const COURTRESERVE_SEARCH_WINDOW_DAYS = 90;
 
 /**
- * A Gmail search query (`users.messages.list`'s own `q` syntax) scoped to
- * CourtReserve's notification address and the last `COURTRESERVE_SEARCH_WINDOW_DAYS`
- * days — never a whole-inbox search (issue #62's Settings copy already
- * promises this to the User).
+ * Provider-neutral mailbox-search criteria scoped to CourtReserve's
+ * notification address and the last `COURTRESERVE_SEARCH_WINDOW_DAYS` days —
+ * never a whole-inbox search (issue #62's Settings copy already promises this
+ * to the User). Each `MailAdapter` formats its own query dialect from this
+ * (Gmail `q` syntax, Microsoft Graph `$filter`); the caller only ever sees
+ * the neutral `{ sender, after }` shape (spec #280).
  */
-export function buildCourtReserveSearchQuery(now: Date): string {
+export function buildCourtReserveSearchCriteria(now: Date): { sender: string; after: Date } {
   const after = new Date(now);
   after.setDate(after.getDate() - COURTRESERVE_SEARCH_WINDOW_DAYS);
 
-  return `from:${COURTRESERVE_SENDER} after:${formatLocalDate(after, "/")}`;
+  return { sender: COURTRESERVE_SENDER, after };
 }
