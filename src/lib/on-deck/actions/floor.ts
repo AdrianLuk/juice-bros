@@ -7,6 +7,13 @@ import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
 import { sessionPath } from "../routes.ts";
+import {
+  bringBackOutcome,
+  finishCourtOutcome,
+  setAsideOutcome,
+  swapNoShowOutcome,
+  type FloorOpOutcome,
+} from "../floor-ops.ts";
 
 export type FloorActionResult = { ok: true } | { ok?: false; error: string };
 export type FinishCourtResult = FloorActionResult;
@@ -37,16 +44,35 @@ async function loadOwnedOpenSession(
   return { organizer, supabase, loaded };
 }
 
-/** Resolve a display name to its roster token — display names are unique
- * within a Session (the fold disambiguates same-name Players with a suffix). */
-function tokenForName(
-  loaded: { state: { roster: { id: string; displayName: string }[] } },
-  name: string,
-): string | null {
-  const trimmed = name?.trim() ?? "";
-  return (
-    loaded.state.roster.find((p) => p.displayName === trimmed)?.id ?? null
-  );
+/**
+ * Turn a `FloorOpOutcome` into an appended event under the Organizer's own
+ * "an Organizer appends events to their own open Session" policy — a plain
+ * INSERT, no RPC. A link-authenticated Volunteer takes the same outcome to
+ * `on_deck_volunteer_append` instead (`actions/volunteer.ts`).
+ */
+async function appendAsOrganizer(
+  owned: OwnedSession,
+  sessionId: string,
+  outcome: FloorOpOutcome,
+): Promise<FloorActionResult> {
+  if (outcome.kind === "error") return { error: outcome.error };
+  if (outcome.kind === "noop") return { ok: true };
+
+  const { error } = await owned.supabase.from("on_deck_session_events").insert({
+    session_id: sessionId,
+    type: outcome.type,
+    operator_kind: "organizer",
+    operator_user_id: owned.organizer.userId,
+    payload: outcome.payload,
+  });
+
+  if (error) {
+    console.error("on-deck: floor action failed", outcome.type, error);
+    return { error: "That didn't go through. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
 }
 
 /**
@@ -54,57 +80,22 @@ function tokenForName(
  * `reduceSession` fold re-queues the four coming off and walks the
  * longest-waiting Foursome onto the freed Court.
  *
- * A plain INSERT through the foundation migration's "an Organizer appends
- * events to their own open Session" policy — no RPC. The ownership check here
- * is belt-and-braces on top of RLS, and keeps the Court number in range.
+ * `expectedSince` is the `since` the floor screen last saw for this Court — a
+ * mismatch (a double tap, a stale board) makes this a silent no-op rather than
+ * a second `COURT_FINISHED`.
  */
 export async function finishCourt(
   sessionId: string,
   court: number,
-  /**
-   * The `since` the floor screen last saw for this Court. When it no longer
-   * matches — a double tap, or a board that was seconds stale — the turnover
-   * has already happened, so this is a silent no-op rather than a second
-   * `COURT_FINISHED` that yanks a Foursome mid-Game.
-   */
   expectedSince: number | null,
 ): Promise<FinishCourtResult> {
-  const organizer = await verifyOrganizer();
-  const supabase = await createClient();
-
-  const club = await getOwnedClub(supabase);
-  const loaded = await getSession(supabase, sessionId).catch(() => null);
-  if (!club || !loaded || loaded.config.clubId !== club.id) {
-    return { error: "That session isn't yours to run." };
-  }
-  if (loaded.status !== "open") {
-    return { error: "This session has already wrapped up." };
-  }
-  if (!Number.isInteger(court) || court < 1 || court > loaded.config.courtCount) {
-    return { error: "That court number isn't on this session." };
-  }
-
-  const current = loaded.state.courts.find((c) => c.number === court);
-  if ((current?.since ?? null) !== expectedSince) {
-    // Already turned over since the board rendered — nothing to do.
-    return { ok: true };
-  }
-
-  const { error } = await supabase.from("on_deck_session_events").insert({
-    session_id: sessionId,
-    type: "COURT_FINISHED",
-    operator_kind: "organizer",
-    operator_user_id: organizer.userId,
-    payload: { court },
-  });
-
-  if (error) {
-    console.error("on-deck: finishing a Court failed", error);
-    return { error: "Couldn't end that game. Try again." };
-  }
-
-  revalidatePath(sessionPath(sessionId));
-  return { ok: true };
+  const owned = await loadOwnedOpenSession(sessionId);
+  if ("error" in owned) return owned;
+  return appendAsOrganizer(
+    owned,
+    sessionId,
+    finishCourtOutcome(owned.loaded.state, court, expectedSince),
+  );
 }
 
 /**
@@ -119,25 +110,11 @@ export async function setPlayerAside(
 ): Promise<FloorActionResult> {
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
-  const { organizer, supabase, loaded } = owned;
-
-  const token = tokenForName(loaded, playerName);
-  if (!token) return { error: "Couldn't find that player." };
-
-  const { error } = await supabase.from("on_deck_session_events").insert({
-    session_id: sessionId,
-    type: "PLAYER_PAUSED",
-    operator_kind: "organizer",
-    operator_user_id: organizer.userId,
-    payload: { token, reason: "set-aside" },
-  });
-  if (error) {
-    console.error("on-deck: setting a Player aside failed", error);
-    return { error: "Couldn't set that player aside. Try again." };
-  }
-
-  revalidatePath(sessionPath(sessionId));
-  return { ok: true };
+  return appendAsOrganizer(
+    owned,
+    sessionId,
+    setAsideOutcome(owned.loaded.state, playerName),
+  );
 }
 
 /**
@@ -150,25 +127,11 @@ export async function bringPlayerBack(
 ): Promise<FloorActionResult> {
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
-  const { organizer, supabase, loaded } = owned;
-
-  const token = tokenForName(loaded, playerName);
-  if (!token) return { error: "Couldn't find that player." };
-
-  const { error } = await supabase.from("on_deck_session_events").insert({
-    session_id: sessionId,
-    type: "PLAYER_REQUEUED",
-    operator_kind: "organizer",
-    operator_user_id: organizer.userId,
-    payload: { token },
-  });
-  if (error) {
-    console.error("on-deck: re-queueing a Player failed", error);
-    return { error: "Couldn't add that player back. Try again." };
-  }
-
-  revalidatePath(sessionPath(sessionId));
-  return { ok: true };
+  return appendAsOrganizer(
+    owned,
+    sessionId,
+    bringBackOutcome(owned.loaded.state, playerName),
+  );
 }
 
 /**
@@ -176,9 +139,6 @@ export async function bringPlayerBack(
  * didn't appear and names a replacement standing there. Appends
  * `FOURSOME_MEMBER_SWAPPED` — the fold pauses `out` (reason `no-show`, Wait
  * Time held) and seats `in` on the Court without restarting the Game.
- *
- * `expectedSince` guards a stale board the same way `finishCourt` does: if the
- * Court has turned over since it rendered, the swap no longer applies.
  */
 export async function swapNoShow(
   sessionId: string,
@@ -189,40 +149,9 @@ export async function swapNoShow(
 ): Promise<FloorActionResult> {
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
-  const { organizer, supabase, loaded } = owned;
-
-  const current = loaded.state.courts.find((c) => c.number === court);
-  if (!current || current.foursome.length === 0) {
-    return { error: "That court isn't in play." };
-  }
-  if ((current.since ?? null) !== expectedSince) {
-    // The Court turned over since the board rendered — the Foursome the
-    // Organizer was looking at is gone, so say so rather than silently
-    // reporting a swap that never happened.
-    return { error: "That court already turned over — nothing to swap." };
-  }
-
-  const outToken = tokenForName(loaded, outName);
-  const inToken = tokenForName(loaded, inName);
-  if (!outToken || !current.foursome.includes(outToken)) {
-    return { error: "That player isn't on this court." };
-  }
-  if (!inToken || !loaded.state.queue.some((e) => e.playerId === inToken)) {
-    return { error: "That replacement isn't waiting anymore." };
-  }
-
-  const { error } = await supabase.from("on_deck_session_events").insert({
-    session_id: sessionId,
-    type: "FOURSOME_MEMBER_SWAPPED",
-    operator_kind: "organizer",
-    operator_user_id: organizer.userId,
-    payload: { court, out: outToken, in: inToken },
-  });
-  if (error) {
-    console.error("on-deck: swapping a no-show failed", error);
-    return { error: "Couldn't make that swap. Try again." };
-  }
-
-  revalidatePath(sessionPath(sessionId));
-  return { ok: true };
+  return appendAsOrganizer(
+    owned,
+    sessionId,
+    swapNoShowOutcome(owned.loaded.state, court, expectedSince, outName, inName),
+  );
 }

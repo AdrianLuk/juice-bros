@@ -12,10 +12,28 @@ import {
   swapNoShow,
 } from "@/lib/on-deck/actions/floor";
 import {
+  volunteerBringPlayerBack,
+  volunteerFinishCourt,
+  volunteerSetPlayerAside,
+  volunteerSwapNoShow,
+} from "@/lib/on-deck/actions/volunteer";
+import {
   getRotationView,
   type RotationView,
 } from "@/lib/on-deck/actions/rotation";
 import type { PauseReason } from "@/lib/on-deck/session/types";
+
+/**
+ * How the person driving the board is authorized (issue #248). The Organizer
+ * holds an account; a Volunteer holds only the link's token, which every action
+ * carries back so `on_deck_volunteer_append` can re-check it. The two paths run
+ * the identical `floor-ops` decision — ADR 0005.
+ */
+export type FloorAuth =
+  | { kind: "organizer" }
+  | { kind: "volunteer"; token: string };
+
+const ORGANIZER_AUTH: FloorAuth = { kind: "organizer" };
 
 const POLL_MS = 4_000;
 
@@ -37,15 +55,52 @@ const PAUSE_REASON_LABEL: Record<PauseReason, string> = {
 export function RotationBoard({
   sessionId,
   initialView,
+  auth = ORGANIZER_AUTH,
 }: {
   sessionId: string;
   initialView: RotationView;
+  auth?: FloorAuth;
 }) {
   return (
     <QueryProvider>
-      <RotationBoardInner sessionId={sessionId} initialView={initialView} />
+      <RotationBoardInner
+        sessionId={sessionId}
+        initialView={initialView}
+        auth={auth}
+      />
     </QueryProvider>
   );
+}
+
+/**
+ * The four floor actions, bound to whoever is driving the board: the
+ * Organizer's account-backed Server Actions, or the Volunteer's token-carrying
+ * ones. `auth.kind` is checked inline so TypeScript narrows `auth.token`.
+ */
+function floorOps(sessionId: string, auth: FloorAuth) {
+  return {
+    finishCourt: (court: number, since: number | null) =>
+      auth.kind === "volunteer"
+        ? volunteerFinishCourt(sessionId, auth.token, court, since)
+        : finishCourt(sessionId, court, since),
+    swapNoShow: (
+      court: number,
+      since: number | null,
+      outName: string,
+      inName: string,
+    ) =>
+      auth.kind === "volunteer"
+        ? volunteerSwapNoShow(sessionId, auth.token, court, since, outName, inName)
+        : swapNoShow(sessionId, court, since, outName, inName),
+    setPlayerAside: (name: string) =>
+      auth.kind === "volunteer"
+        ? volunteerSetPlayerAside(sessionId, auth.token, name)
+        : setPlayerAside(sessionId, name),
+    bringPlayerBack: (name: string) =>
+      auth.kind === "volunteer"
+        ? volunteerBringPlayerBack(sessionId, auth.token, name)
+        : bringPlayerBack(sessionId, name),
+  };
 }
 
 const ON_DECK_LABELS = ["Up next", "After that"];
@@ -202,9 +257,11 @@ function NoShowSwap({
 function RotationBoardInner({
   sessionId,
   initialView,
+  auth,
 }: {
   sessionId: string;
   initialView: RotationView;
+  auth: FloorAuth;
 }) {
   const queryClient = useQueryClient();
   const queryKey = ["on-deck", "rotation", sessionId, "floor"] as const;
@@ -215,6 +272,7 @@ function RotationBoardInner({
     initialData: initialView,
   });
   const [error, setError] = useState<string | null>(null);
+  const ops = floorOps(sessionId, auth);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey });
   const handle = (result: { ok?: boolean; error?: string }) => {
@@ -228,7 +286,7 @@ function RotationBoardInner({
 
   const finish = useMutation({
     mutationFn: ({ number, since }: { number: number; since: number | null }) =>
-      finishCourt(sessionId, number, since),
+      ops.finishCourt(number, since),
     onSuccess: handle,
     onError: () => setError("Couldn't end that game. Try again."),
   });
@@ -244,19 +302,19 @@ function RotationBoardInner({
       since: number | null;
       outName: string;
       inName: string;
-    }) => swapNoShow(sessionId, court, since, outName, inName),
+    }) => ops.swapNoShow(court, since, outName, inName),
     onSuccess: handle,
     onError: () => setError("Couldn't make that swap. Try again."),
   });
 
   const aside = useMutation({
-    mutationFn: (name: string) => setPlayerAside(sessionId, name),
+    mutationFn: (name: string) => ops.setPlayerAside(name),
     onSuccess: handle,
     onError: () => setError("Couldn't set that player aside. Try again."),
   });
 
   const back = useMutation({
-    mutationFn: (name: string) => bringPlayerBack(sessionId, name),
+    mutationFn: (name: string) => ops.bringPlayerBack(name),
     onSuccess: handle,
     onError: () => setError("Couldn't add that player back. Try again."),
   });
@@ -268,7 +326,11 @@ function RotationBoardInner({
   return (
     <div className="space-y-8">
       {error && (
-        <p className="text-sm text-destructive" role="alert">
+        <p
+          className="text-sm text-destructive"
+          role="alert"
+          data-testid="floor-error"
+        >
           {error}
         </p>
       )}

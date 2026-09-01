@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
@@ -8,8 +9,10 @@ import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSession } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
-import { clubQrPath, floorPath } from "@/lib/on-deck/routes";
+import { getVolunteerToken } from "@/lib/on-deck/volunteer";
+import { clubQrPath, floorPath, volunteerPath } from "@/lib/on-deck/routes";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
+import { VolunteerLinkCard } from "@/components/on-deck/volunteer-link-card";
 
 export async function generateMetadata({
   params,
@@ -50,6 +53,25 @@ export default async function FloorPage({
 
   const view = rotationViewFrom(loaded);
 
+  // The Volunteer Link is issued only when Floor Mode includes volunteers
+  // (volunteer-run / hybrid); under self-serve it is inert, so it isn't shown.
+  const volunteerToken =
+    loaded.config.floorMode === "self-serve"
+      ? null
+      : await getVolunteerToken(supabase, sessionId);
+
+  let volunteerUrl: string | null = null;
+  if (volunteerToken) {
+    // Absolute, off the request host — works unchanged on localhost, a preview,
+    // and production.
+    const host = (await headers()).get("host") ?? "localhost:3000";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    volunteerUrl = `${protocol}://${host}${volunteerPath(
+      sessionId,
+      volunteerToken,
+    )}`;
+  }
+
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-12 sm:px-6 lg:px-8">
@@ -70,6 +92,12 @@ export default async function FloorPage({
             </Link>{" "}
             to join.
           </p>
+
+          {volunteerUrl && (
+            <div className="mt-6">
+              <VolunteerLinkCard url={volunteerUrl} />
+            </div>
+          )}
 
           <div className="mt-10">
             <RotationBoard sessionId={sessionId} initialView={view} />
