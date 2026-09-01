@@ -64,17 +64,101 @@ the iCal parser feeds the same `ReviewItem` union). Cancellations show as feed d
 rather than cancellation emails, so the netting logic needs an "event vanished from feed"
 case. **This is the first thing to build.**
 
-### A2. Designated booker + "I'll book it" claim · small · *roadmap 2D*
+### A2. Designated bookers + court-target assignments · medium · *roadmap 2D*
 
-On a bare-proposal Slot, one responder claims the booking job. Others see "Daven's
-booking it" and stand down. When a Booking attaches, yes-responders get a "booked ✓ —
-Court 3" ping. Kills the double-book and the dropped ball. Builds on the Booking Reminder
-and the pure-planner cron pattern.
+**Seen in the wild.** The crew's WhatsApp thread already runs this by hand: the organizer
+posts "help book tomorrow morning at VP Sept 10 7–9pm?" followed by a list — "Adrian Luk —
+Court 8, Daven Wong — Court 9, Eugenia Jon — Court 2" — or splits a bigger group into
+fours, one court per group ("Group 1: Ivan try court 3, Brian try court 4, Mark try court
+1…"). Facilities cap reservations at one court per account and it's first-come the instant
+the Booking Window opens, so the only way a group of twelve lands three courts is to have
+three people all booking in parallel at open. Names can be placeholders ("Aaliyah
+(Placeholder)") — the job gets assigned before the person is locked in. And a chunk of
+those 7am jobs just don't happen: the person sleeps in, or never sees the message. The
+group absorbs it (someone else grabs a court, or they play with fewer) and nobody makes a
+thing of it — the tool should behave the same way.
+
+The bare "one responder claims it, others stand down" claim is the small end of a range,
+not the whole thing. What A2 needs:
+
+- **Booker jobs on a Slot — one, or several.** A job is a User *or* a free-text name, an
+  optional target court label, and an optional target Org. One job is the simple case:
+  someone claims "I'll book it" and nothing else changes (this is roadmap 2D as written).
+  Several jobs is the fan-out above — three people each targeting a court because one
+  account can't hold three reservations. Same record either way; the count is just how
+  many the organizer created. A target is a hint for the human racing the facility site,
+  not a reservation — BB still books nothing itself (ADR 0002 holds).
+- **Slot division seeds the multi-job case.** Reuse the gender/size division logic: N
+  yes-responders → ⌈N/4⌉ courts → that many booker jobs, pre-labelled "Group 1 / Court ?",
+  for the organizer to drop names and court numbers onto. A one-court Slot just seeds one
+  job.
+- **Countdown is per-booker.** A3's "Vaughan opens in 3h 12m" line reads "…— you're on
+  Court 3" for an assigned booker and "…— Adrian, Daven, Eugenia are booking" for everyone
+  else.
+- **The target court is where you start, not what you have to come back with.** In practice
+  a booker opens the facility site, finds Court 3 gone, tries Court 7, gets it — or fails
+  their own target and grabs whatever's free, which might be a court that was someone
+  else's target. That's not a mistake to flag; it's the job working. So: the target only
+  seeds the "got it" form and the countdown line; the booker records the court they
+  *actually* landed, any court, with no "that wasn't yours" friction. The assignments exist
+  to spread people across the site at open, not to bind anyone to one court.
+- **Live count so improvising doesn't overshoot.** Because bookers wander off-target, the
+  Slot needs a running "3 of 3 courts booked — you can stop" (and the inverse, "still need
+  one, grab anything"). A booker mid-scramble checks it before locking a fourth court
+  nobody needs. If an extra court lands anyway, that's the existing over-Capacity signal
+  for the organizer to resolve (keep it for rotation, or cancel it), not an error state —
+  same as an over-capacity Response (see Capacity, ADR 0001).
+- **Nobody-woke-up is the expected case, not the edge case.** Booking windows open at 7 or
+  8am. People sleep through them — routinely, not exceptionally — and that's fine; the
+  design has to absorb it structurally instead of leaning on the person to not fail. Two
+  mechanisms:
+  - **Cover, don't assign 1:1.** A court target can carry more than one booker — a primary
+    plus one or two on cover. Whoever's awake at open grabs it and marks it booked; the
+    rest see "Court 3 — got it, thanks" and go back to sleep. An early window just gets
+    more cover per court. No single person is a point of failure, so no single person is
+    "the one who blew it."
+  - **Open jobs, not just named ones.** A job can sit unassigned — "Court 4 needs someone"
+    — and any yes-responder can claim it from the Slot the moment they wake up and see it
+    still open. The Slot is a shared board, not a rota with your name against a task you
+    might miss.
+- **Job states, once the window's open:**
+  - **booked** — a booker taps "got it" and sets the court they actually landed (prefilled
+    to the target, freely changed); a real Booking attaches. Yes-responders get the "booked
+    ✓ — Court 8" ping against the real court, not the planned one.
+  - **couldn't get one** — a booker taps it (courts gone, site crashed). Explicit, opt-in
+    — never inferred.
+  - **still open** — no word yet. This is the neutral resting state, not an accusation. BB
+    can't tell "asleep" from "booked it, didn't tap", so it never narrates either. At most
+    it sends *the assigned booker only* a soft, private nudge ("Vaughan's open — Court 3
+    still needs grabbing if you're up"), and surfaces the job to other awake responders as
+    claimable. It never posts "Adrian didn't book" to the group, and never tells the
+    organizer someone "flaked".
+  - **reassigned** — organizer or a responder picks up a still-open court. The Slot frames
+    it as "Court 4 still needs a booker", not "covering for X". Original job just closes
+    quietly.
+- **Reconcile on the courts actually held, not the plan.** The Slot rolls up the real
+  Bookings — courts 7, 8, 2 when the plan said 3, 4, 1 is a complete success, count and
+  Capacity intact. Partial success is also a normal end state: 3 of 4 courts landed →
+  Capacity is 12, not 16, and the organizer sees it spelled out as a group without a court
+  ("Court 1 group — 4 people, no spot yet") with the claim/reassign action attached.
+  Stated as a gap to close, not a person to chase.
+- **No booking-side reliability signal, ever.** C3's flake read is about *showing up to
+  play*; missing a 7am booking window is not the same thing and must not feed anything —
+  no score, no history, no "usually misses" hint to the organizer. A "skip me for early
+  windows" preference on the User is the only memory here, and it's self-set.
+- **Stand-down still works.** Non-booker responders see "Adrian + 2 others are booking" and
+  leave it alone — the double-book this kills is now a *group* each grabbing a random court
+  instead of their assigned one, or two people both jumping the same still-open job.
+
+Builds on the Booking Reminder, the pure-planner cron pattern (the soft post-open nudge is
+just another planned send), multi-Booking-per-Slot and the derived-not-stored Capacity
+with its over-capacity signal (both already modelled — see Booking, Capacity), and the
+Slot division logic.
 
 ### A3. Booking-window countdown on the dashboard · small
 
 The Org already carries a Booking Window. Surface it as a live countdown ("Vaughan opens
-in 3h 12m"). Pair with A2: "…opens in 3h 12m — you're booking."
+in 3h 12m"). Pair with A2: "…opens in 3h 12m — you're on Court 3."
 
 ### A4. Crowd-sourced booking-window facts at the Place level · medium
 
@@ -152,7 +236,7 @@ advantage against an install wall; push is the missing piece.
 
 1. **A1** — CourtReserve iCal import *(current target)*
 2. **B1** — recurring games
-3. **A2 + A3** — designated booker + countdown
+3. **A2 + A3** — designated bookers + countdown
 4. **B2 + B4** — nudges + regulars
 5. **C1** — cost splitting
 6. **D2** — PWA push
