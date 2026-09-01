@@ -258,11 +258,17 @@ test("a time renders as a 12-hour label", () => {
   assert.equal(formatTimeLabel("23:30"), "11:30 PM");
 });
 
-test("a Booking cannot end before it starts, or at the moment it starts", () => {
-  // The database refuses this too. Catching it here is what turns a raw
-  // constraint violation into a sentence about the form the User just filled in.
-  assert.ok("error" in parse({ start_time: "19:00", end_time: "18:00" }));
-  assert.ok("error" in parse({ end_time: "18:00" }));
+test("a Booking that ends earlier on the clock than it starts is a past-midnight session, not an error", () => {
+  // A 9pm–midnight or 10pm–1am game — the write path (`actions/bookings.ts`)
+  // puts the End instant on the next calendar day.
+  assert.ok(!("error" in parse({ start_time: "21:00", end_time: "00:00" })));
+  assert.ok(!("error" in parse({ start_time: "22:00", end_time: "01:00" })));
+});
+
+test("a Booking cannot end at the very moment it starts", () => {
+  // A zero-length range. The database refuses it too; catching it here turns a
+  // raw constraint violation into a sentence about the form.
+  assert.ok("error" in parse({ start_time: "18:00", end_time: "18:00" }));
 });
 
 test("a Booking is rendered in its own time zone, not the server's", () => {

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   HOUR_TIMES,
   addHoursToTime,
+  crossesMidnight,
   formatInstantDateAndTime,
   formatInstantRange,
   formatTimeLabel,
@@ -50,15 +51,28 @@ test("addHoursToTime lands on the hour a duration picker would show", () => {
   assert.equal(addHoursToTime("00:00", 23), "23:00");
 });
 
-test("addHoursToTime refuses a result that would cross midnight", () => {
-  assert.equal(addHoursToTime("22:00", 3), null);
-  assert.equal(addHoursToTime("23:00", 1), null);
+test("addHoursToTime wraps a result past midnight into the next day", () => {
+  assert.equal(addHoursToTime("21:00", 3), "00:00");
+  assert.equal(addHoursToTime("22:00", 3), "01:00");
+  assert.equal(addHoursToTime("23:00", 1), "00:00");
+});
+
+test("addHoursToTime refuses a count of a full day or more — a range can't lap its own start", () => {
+  assert.equal(addHoursToTime("18:00", 24), null);
+  assert.equal(addHoursToTime("18:00", 30), null);
 });
 
 test("addHoursToTime refuses a non-positive or fractional hour count", () => {
   assert.equal(addHoursToTime("18:00", 0), null);
   assert.equal(addHoursToTime("18:00", -1), null);
   assert.equal(addHoursToTime("18:00", 1.5), null);
+});
+
+test("crossesMidnight is true only when the end clock reads before the start", () => {
+  assert.equal(crossesMidnight("21:00", "00:00"), true);
+  assert.equal(crossesMidnight("22:00", "01:00"), true);
+  assert.equal(crossesMidnight("18:00", "21:00"), false);
+  assert.equal(crossesMidnight("18:00", "18:00"), false);
 });
 
 test("addHoursToTime refuses a start time that isn't on the hour grid", () => {

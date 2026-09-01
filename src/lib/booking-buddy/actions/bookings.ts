@@ -14,7 +14,7 @@ import {
   parseNewBooking,
   type NewBooking,
 } from "../bookings.ts";
-import { isPastDate } from "../datetime.ts";
+import { crossesMidnight, isPastDate, nextCalendarDate } from "../datetime.ts";
 import type { BookingFormat } from "../capacity.ts";
 import {
   connectionCandidatesFromFriends,
@@ -180,6 +180,27 @@ async function resolveValidatedOrg(
 }
 
 /**
+ * The `starts_at`/`ends_at` pair a `NewBooking` writes — wall-clock strings
+ * carrying the Org's own zone, left for Postgres to convert to instants
+ * (DST-aware, much harder to get wrong than doing it here). When the End clock
+ * reads at or before the Start, the session ran past midnight (a 9pm–midnight
+ * or 10pm–1am game) and its End instant sits on the next calendar day; the
+ * `ends_at > starts_at` check is what that day-bump is there to satisfy.
+ */
+function bookingInstants(
+  parsed: NewBooking,
+  timeZone: string,
+): { starts_at: string; ends_at: string } {
+  const endDate = crossesMidnight(parsed.startTime, parsed.endTime)
+    ? nextCalendarDate(parsed.date)
+    : parsed.date;
+  return {
+    starts_at: `${parsed.date} ${parsed.startTime}:00 ${timeZone}`,
+    ends_at: `${endDate} ${parsed.endTime}:00 ${timeZone}`,
+  };
+}
+
+/**
  * Matches `names` against the caller's own current Connections — the one
  * write-time resolution both `insertBookingPlayers` (a Booking's first
  * Players) and `replaceBookingPlayers` (an edit's newly-added or
@@ -307,11 +328,7 @@ export async function insertValidatedBooking(
       name: parsed.name,
       notes: parsed.notes,
       format: parsed.format,
-      // Wall-clock strings carrying their own zone. Postgres does the DST-aware
-      // conversion to an instant, which is much harder to get wrong than doing it
-      // in JavaScript.
-      starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
-      ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
+      ...bookingInstants(parsed, org.timeZone),
     })
     .select("id")
     .single();
@@ -388,8 +405,7 @@ export async function updateValidatedBooking(
       name: parsed.name,
       notes: parsed.notes,
       format: parsed.format,
-      starts_at: `${parsed.date} ${parsed.startTime}:00 ${org.timeZone}`,
-      ends_at: `${parsed.date} ${parsed.endTime}:00 ${org.timeZone}`,
+      ...bookingInstants(parsed, org.timeZone),
     })
     .eq("id", bookingId)
     .select("id");

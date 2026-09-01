@@ -118,11 +118,13 @@ export function parseNewBooking(
     return { error: "Pick a start and end time." };
   }
 
-  // Zero-padded 24-hour times compare correctly as strings. A Booking that ran
-  // past midnight would defeat this, and is not a thing a court reservation
-  // does — the database refuses it too.
-  if (endTime <= startTime) {
-    return { error: "The end time has to be after the start time." };
+  // An End at or before the Start reads as the next day — a 9pm–midnight or
+  // 10pm–1am session is a real reservation. The write path turns that into an
+  // End instant on `date + 1` (`crossesMidnight` in `actions/bookings.ts`).
+  // Only a zero-length range is refused; the database's `ends_at > starts_at`
+  // check is satisfied either way once the day is bumped.
+  if (endTime === startTime) {
+    return { error: "The end time can't be the same as the start time." };
   }
 
   // Never refused for an odd value — a stray/tampered value just falls back
@@ -247,8 +249,9 @@ export function bookingWriteMessage(error: {
   }
 
   // The check constraints — court label, name, or notes blank or over-long,
-  // and an end that isn't after the start. `parseNewBooking` catches all of
-  // them first, so getting here means the form and the schema have drifted
-  // apart.
+  // and an end instant that isn't after the start (a zero-length range; a
+  // cross-midnight one is written with its end on the next day and clears the
+  // constraint). `parseNewBooking` catches all of them first, so getting here
+  // means the form and the schema have drifted apart.
   return "Something about that booking doesn't add up. Check the name, notes, court, and times.";
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DURATION_PRESET_HOURS, addHoursToTime } from "@/lib/booking-buddy/bookings";
+import { crossesMidnight } from "@/lib/booking-buddy/datetime";
 
 /** A duration preset's hour count, or "custom" for a hand-typed one. */
 export type DurationChoice = `${(typeof DURATION_PRESET_HOURS)[number]}` | "custom";
@@ -67,8 +68,11 @@ export interface DurationInput {
   customHours: string;
   setCustomHours: (value: string) => void;
   /** `addHoursToTime(startTime, hours)` for the current choice, or `null` while
-   * "Custom" is picked but nothing's typed yet, or the count runs past midnight. */
+   * "Custom" is picked but nothing's typed yet, or the count is 24 hours or more. */
   endTime: string | null;
+  /** The computed End lands on the next day — a session running past midnight. Drives the "next day" hint next to the End field. */
+  endCrossesMidnight: boolean;
+  /** The count is 24 hours or more, so there's no End to show — distinct from "Custom picked, nothing typed yet". */
   durationOverflows: boolean;
   /** Re-seeds Start/Duration/Custom back to a given start time and hour count — for a form that resets itself after a successful submit. */
   reset: (startTime: string, hours: number) => void;
@@ -98,6 +102,7 @@ export function useDurationInput(initialStartTime: string, initialHours: number)
     durationChoice === "custom" ? Number(customHours) : Number(durationChoice);
   const endTime = hasDurationInput ? addHoursToTime(startTime, durationHours) : null;
   const durationOverflows = hasDurationInput && endTime === null;
+  const endCrossesMidnight = endTime !== null && crossesMidnight(startTime, endTime);
 
   function reset(nextStartTime: string, nextHours: number) {
     setStartTime(nextStartTime);
@@ -113,6 +118,7 @@ export function useDurationInput(initialStartTime: string, initialHours: number)
     customHours,
     setCustomHours,
     endTime,
+    endCrossesMidnight,
     durationOverflows,
     reset,
   };

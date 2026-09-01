@@ -180,7 +180,7 @@ export function CreateSlotForm({
           )}
           {duration.durationOverflows && (
             <p className="text-xs text-destructive" role="alert">
-              That runs past midnight. Pick fewer hours or an earlier start.
+              That&apos;s more than a full day. Pick a shorter duration.
             </p>
           )}
         </div>
@@ -193,6 +193,9 @@ export function CreateSlotForm({
             disabled
             readOnly
           />
+          {duration.endCrossesMidnight && (
+            <p className="text-xs text-muted-foreground">Next day</p>
+          )}
           <input type="hidden" name="end_time" value={duration.endTime ?? ""} />
         </div>
       </div>

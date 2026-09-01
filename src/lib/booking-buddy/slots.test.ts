@@ -122,9 +122,15 @@ test("a time off the hour grid is refused", () => {
   }
 });
 
-test("a Slot cannot end before it starts, or at the moment it starts", () => {
-  assert.ok("error" in parse({ start_time: "10:00", end_time: "09:00" }));
-  assert.ok("error" in parse({ end_time: "09:00" }));
+test("a Slot that ends earlier on the clock than it starts is a past-midnight game, not an error", () => {
+  // A 9pm–midnight or 10pm–1am proposal — `createSlot` puts the `proposed_end`
+  // instant on the next calendar day.
+  assert.ok(!("error" in parse({ start_time: "21:00", end_time: "00:00" })));
+  assert.ok(!("error" in parse({ start_time: "22:00", end_time: "01:00" })));
+});
+
+test("a Slot cannot end at the very moment it starts", () => {
+  assert.ok("error" in parse({ start_time: "09:00", end_time: "09:00" }));
 });
 
 test("a date already in the past is refused", () => {

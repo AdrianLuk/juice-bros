@@ -1,7 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 import { AMY, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
-import { PREFIX, addPlace, logBooking, placeName, removePlace, row } from "./support/places.ts";
+import {
+  PREFIX,
+  addPlace,
+  logBooking,
+  placeName,
+  removePlace,
+  row,
+  selectDuration,
+} from "./support/places.ts";
 import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/availability.ts";
 
 /**
@@ -220,13 +228,8 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
   await removePlace(page, place);
 });
 
-test("a quick-add duration that would run past midnight is refused before it's ever submitted", async ({
-  page,
-}) => {
-  // End is computed (Start + Duration, issue #57), so "end before start"
-  // isn't reachable through the UI anymore — this is the current equivalent
-  // invalid case, refused live rather than via a round trip that reopens
-  // the dialog.
+test("the quick-add dialog logs a Booking that runs past midnight", async ({ page }) => {
+  const bookingDate = requireTestBookingDate();
   const place = placeName();
   await addPlace(page, place);
 
@@ -237,20 +240,18 @@ test("a quick-add duration that would run past midnight is refused before it's e
 
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("96");
-  await page.getByLabel("Date").fill("2026-08-20");
+  await page.getByLabel("Date").fill(bookingDate.iso);
   await page.getByLabel("Start", { exact: true }).selectOption("22:00");
-  await page.getByRole("radio", { name: "Custom" }).click();
-  await page.getByLabel("Custom duration in hours").fill("3");
+  await selectDuration(page, "22:00", "01:00");
 
-  // Refused live, before any submit — the dialog was never asked to close,
-  // and every field the User entered is still there, not wiped back to blank.
-  await expect(
-    page.getByRole("alert").filter({ hasText: "past midnight" }),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Log booking" })).toBeDisabled();
-  await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
-  await expect(page.getByLabel("Court")).toHaveValue("96");
-  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("22:00");
+  // The End clock reads earlier than the Start — the form marks it "Next day"
+  // rather than refusing it.
+  await expect(page.getByText("Next day")).toBeVisible();
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  // A successful save closes the dialog itself.
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Court 96/ })).toBeVisible();
 
   await removePlace(page, place);
 });
