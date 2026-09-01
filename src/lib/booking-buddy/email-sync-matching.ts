@@ -4,9 +4,12 @@
  * first slice). Kept free of Next.js/Supabase imports, same as its sibling —
  * callers resolve the real rows and hand in plain data, ready to be wired
  * into the live sync/review flow by a later ticket (#64).
+ *
+ * The source-agnostic Import Candidate shaping — the Org + court + date/time
+ * duplicate check, the calendar-day past-date drop, the court-label handling —
+ * lives in `import-candidate-shaping.ts`, shared with the Calendar Feed's own
+ * review composition (#288).
  */
-
-import { isPastDate } from "./datetime.ts";
 
 export type OrgCandidate = { orgId: string; displayName: string };
 
@@ -38,31 +41,6 @@ export function matchOrgByName(
   }
   const match = orgs.find((org) => normalizeFacilityName(org.displayName) === normalized);
   return match?.orgId ?? null;
-}
-
-export type BookingIdentity = {
-  orgId: string;
-  courtLabel: string | null;
-  date: string;
-  startTime: string;
-};
-
-/**
- * A parsed confirmation that already matches an existing Booking on Org +
- * court + date/time — the exact fields a real second reservation for the
- * same slot would also share, and the ones #59 names for this check.
- */
-export function isDuplicateBooking(
-  candidate: BookingIdentity,
-  existingBookings: readonly BookingIdentity[],
-): boolean {
-  return existingBookings.some(
-    (booking) =>
-      booking.orgId === candidate.orgId &&
-      booking.courtLabel === candidate.courtLabel &&
-      booking.date === candidate.date &&
-      booking.startTime === candidate.startTime,
-  );
 }
 
 export type CancellationIdentity = { orgId: string; date: string; startTime: string };
@@ -343,19 +321,4 @@ export function diffBookingPlayers(
   const removeIds = [...remainingByName.values()].flat().map((player) => player.id);
 
   return { keepIds, toMatch, removeIds };
-}
-
-/**
- * A confirmation for a date/time that's already passed, filtered out
- * automatically (#59) so a first sync doesn't dump irrelevant history into
- * the review queue. Reuses `isPastDate`'s existing coarse, calendar-day-only
- * check rather than a second notion of "past" — same reasoning `datetime.ts`
- * already documents there.
- */
-export function isPastConfirmation(
-  confirmation: { date: string },
-  zone: string,
-  now: Date,
-): boolean {
-  return isPastDate(confirmation.date, zone, now);
 }

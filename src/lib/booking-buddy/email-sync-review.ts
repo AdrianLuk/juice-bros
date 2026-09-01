@@ -28,17 +28,20 @@ import {
   parseCourtReserveEmail,
   type CourtReserveConfirmation,
 } from "./courtreserve-email.ts";
-import { splitOverlongCourtLabel, stripCourtLabelPrefix } from "./bookings.ts";
 import type { BookingFormat } from "./capacity.ts";
 import {
   isDuplicateBooking,
   isPastConfirmation,
+  splitOverlongCourtLabel,
+  stripCourtLabelPrefix,
+  type BookingIdentity,
+} from "./import-candidate-shaping.ts";
+import {
   matchCancellationToBooking,
   matchOrgByName,
   matchPlayerNamesToConnections,
   matchUpdateToBooking,
   reconcileCourtReserveEvents,
-  type BookingIdentity,
   type ConnectionCandidate,
   type OrgCandidate,
   type PlayerMatch,
