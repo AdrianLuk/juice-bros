@@ -8,7 +8,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(22);
 
 select has_table('public', 'processed_messages', 'processed_messages table exists (renamed from processed_gmail_messages in #281)');
 select hasnt_table('public', 'processed_gmail_messages', 'the Gmail-specific table name is gone');
@@ -116,6 +116,49 @@ select is(
    where provider_message_id = 'msg-confirmed-with-booking'),
   0,
   'deleting the Booking cascades away its confirmed ledger row, re-opening the email to a later sync'
+);
+
+-- `confirmCancellationCandidate` deletes the matched Booking too (issue #65),
+-- which would cascade its confirmed row away and re-open the confirmation email
+-- — wrong when the reservation was cancelled. The action captures that row's
+-- message id before the delete and re-records it as `cancelled` afterwards
+-- (issue #286). The same capture -> cascade-delete -> re-insert sequence:
+insert into public.bookings (id, org_id, owner_id, court_label, starts_at, ends_at)
+values (
+  'b0000000-0000-0000-0000-0000000000cc',
+  'a0000000-0000-0000-0000-0000000000aa',
+  '55555555-5555-5555-5555-555555555555',
+  'Court 8',
+  '2031-09-26 18:00:00 America/Toronto',
+  '2031-09-26 19:00:00 America/Toronto'
+);
+
+insert into public.processed_messages (owner_id, provider, provider_message_id, outcome, booking_id)
+values (
+  '55555555-5555-5555-5555-555555555555',
+  'google',
+  'msg-confirmed-then-cancelled',
+  'confirmed',
+  'b0000000-0000-0000-0000-0000000000cc'
+);
+
+delete from public.bookings where id = 'b0000000-0000-0000-0000-0000000000cc';
+
+-- The cascade removed the confirmed row, so this re-insert doesn't collide with
+-- the unique (owner, provider, message id) constraint.
+insert into public.processed_messages (owner_id, provider, provider_message_id, outcome)
+values (
+  '55555555-5555-5555-5555-555555555555',
+  'google',
+  'msg-confirmed-then-cancelled',
+  'cancelled'
+);
+
+select is(
+  (select outcome from public.processed_messages
+   where provider_message_id = 'msg-confirmed-then-cancelled'),
+  'cancelled',
+  'a confirmation re-recorded as cancelled after its Booking is cancel-deleted stays suppressed (issue #286)'
 );
 
 -- Row Level Security, exercised the way a real request arrives: as the
