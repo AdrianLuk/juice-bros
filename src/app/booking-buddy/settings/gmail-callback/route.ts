@@ -6,7 +6,7 @@ import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { MAILBOX_OAUTH_STATE_COOKIE } from "@/lib/booking-buddy/mailbox-oauth";
 import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist, requireMailboxLinkEncryptionKey } from "@/lib/booking-buddy/env";
-import { exchangeCodeForTokens, fetchGoogleAccountEmail } from "@/lib/booking-buddy/gmail-client";
+import { mailAdapterFor } from "@/lib/booking-buddy/mail-adapters";
 import { encryptRefreshToken } from "@/lib/booking-buddy/token-encryption";
 import { createClient } from "@/lib/booking-buddy/supabase/server";
 import { SETTINGS_PATH } from "@/lib/booking-buddy/routes";
@@ -42,14 +42,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`${SETTINGS_PATH}?error=email_sync_not_allowed`, origin));
   }
 
+  // Only Google reaches this route today; #280's Microsoft-connect slice
+  // carries the provider in the OAuth `state` and selects the adapter here.
+  const adapter = mailAdapterFor("google");
+
   const redirectUri = `${origin}/booking-buddy/settings/gmail-callback`;
 
-  const tokenOutcome = await exchangeCodeForTokens(code, redirectUri);
+  const tokenOutcome = await adapter.exchangeCodeForTokens(code, redirectUri);
   if (!tokenOutcome.ok) {
     return NextResponse.redirect(new URL(`${SETTINGS_PATH}?error=mailbox_connect_failed`, origin));
   }
 
-  const accountOutcome = await fetchGoogleAccountEmail(tokenOutcome.accessToken);
+  const accountOutcome = await adapter.resolveAccountEmail(tokenOutcome.accessToken);
   if (!accountOutcome.ok) {
     return NextResponse.redirect(new URL(`${SETTINGS_PATH}?error=mailbox_connect_failed`, origin));
   }

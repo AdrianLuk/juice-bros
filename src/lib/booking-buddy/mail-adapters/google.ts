@@ -4,17 +4,34 @@ import {
   readGmailApiBaseUrl,
   requireGoogleOAuthClientId,
   requireGoogleOAuthClientSecret,
-} from "./env.ts";
+} from "../env.ts";
+import type {
+  AccountEmailOutcome,
+  MailAdapter,
+  MailSearchCriteria,
+  MailboxMessageOutcome,
+  MailboxSearchOutcome,
+  RefreshOutcome,
+  TokenExchangeOutcome,
+} from "../mail-adapter.ts";
+import { toGmailSearchQuery } from "./gmail-query.ts";
 
 /**
- * Thin HTTP wrappers around Google's OAuth flow and the Gmail API for issue
- * #62's Mailbox Link and issue #64's "Sync from Email" — the authorize
- * redirect, the code-for-tokens exchange, the refresh-token exchange the
- * sync flow runs on every click (a Mailbox Link never keeps a live access
- * token around — see ADR-0009), the userinfo lookup used to show which
- * Google account got connected, and the message search/fetch the sync flow
- * reads CourtReserve mail through. No `googleapis` npm dependency, same
- * posture `google-places-client.ts` established for Places.
+ * The Google `MailAdapter` — thin HTTP wrappers around Google's OAuth flow
+ * and the Gmail API for issue #62's Mailbox Link and issue #64's "Sync from
+ * Email": the authorize redirect, the code-for-tokens exchange, the
+ * refresh-token exchange the sync flow runs on every click (a Mailbox Link
+ * never keeps a live access token around — see ADR-0009), the userinfo
+ * lookup used to show which Google account got connected, and the message
+ * search/fetch the sync flow reads CourtReserve mail through. No `googleapis`
+ * npm dependency, same posture `google-places-client.ts` established for
+ * Places.
+ *
+ * Lifted out of the old `gmail-client.ts` unchanged as part of #282's
+ * provider seam — the only behaviour difference is that `searchMailbox` now
+ * formats the Gmail `q` string itself from a neutral
+ * `{ sender, after }` criteria object instead of receiving a ready-made
+ * query, so the Gmail dialect stops leaking to the caller.
  *
  * Deliberately not unit tested: it's glue over real network calls (and, for
  * the authorize step, a real browser redirect), which is what Playwright's
@@ -69,7 +86,7 @@ async function safeText(response: Response): Promise<string> {
  * refresh token at all, which is useless for a feature that syncs later,
  * unattended.
  */
-export function buildGoogleAuthorizeUrl(redirectUri: string, state: string): string {
+function buildAuthorizeUrl(redirectUri: string, state: string): string {
   const params = new URLSearchParams({
     client_id: requireGoogleOAuthClientId(),
     redirect_uri: redirectUri,
@@ -83,10 +100,6 @@ export function buildGoogleAuthorizeUrl(redirectUri: string, state: string): str
   return `${authorizeUrl()}?${params.toString()}`;
 }
 
-export type TokenExchangeOutcome =
-  | { ok: true; refreshToken: string; accessToken: string }
-  | { ok: false; reason: "unreachable" };
-
 /**
  * The authorization-code exchange the OAuth callback route runs once Google
  * redirects back with a `code`. `refresh_token` is only ever present when
@@ -94,7 +107,7 @@ export type TokenExchangeOutcome =
  * absence as `"unreachable"` is deliberate — a token response with no
  * refresh token is unusable for this feature either way.
  */
-export async function exchangeCodeForTokens(
+async function exchangeCodeForTokens(
   code: string,
   redirectUri: string,
 ): Promise<TokenExchangeOutcome> {
@@ -143,10 +156,8 @@ export async function exchangeCodeForTokens(
   }
 }
 
-export type GoogleAccountOutcome = { ok: true; email: string } | { ok: false; reason: "unreachable" };
-
 /** Which Google account just got connected, shown back in Settings. */
-export async function fetchGoogleAccountEmail(accessToken: string): Promise<GoogleAccountOutcome> {
+async function resolveAccountEmail(accessToken: string): Promise<AccountEmailOutcome> {
   try {
     const response = await fetch(userinfoUrl(), {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -180,11 +191,6 @@ export async function fetchGoogleAccountEmail(accessToken: string): Promise<Goog
   }
 }
 
-export type RefreshOutcome =
-  | { ok: true; accessToken: string }
-  | { ok: false; reason: "invalid_grant" }
-  | { ok: false; reason: "unreachable" };
-
 /**
  * Trades a stored refresh token for a fresh access token — run on every
  * "Sync from Email" click (issue #64), since a Mailbox Link never keeps a
@@ -192,10 +198,10 @@ export type RefreshOutcome =
  * error code for a dead/revoked refresh token, most commonly ADR-0009's own
  * 7-day Testing-mode expiry — distinguished from a generic `unreachable` so
  * the caller can tell "reconnect Gmail" apart from "Google had a bad
- * minute," which `TokenExchangeOutcome` above has no need to (a fresh
- * `authorization_code` exchange is never itself an expired-token situation).
+ * minute." Google never rotates the refresh token, so the `RefreshOutcome`'s
+ * optional `refreshToken` is left unset here.
  */
-export async function refreshAccessToken(refreshToken: string): Promise<RefreshOutcome> {
+async function refreshAccessToken(refreshToken: string): Promise<RefreshOutcome> {
   try {
     const response = await fetch(tokenUrl(), {
       method: "POST",
@@ -236,22 +242,21 @@ export async function refreshAccessToken(refreshToken: string): Promise<RefreshO
   }
 }
 
-export type SearchOutcome =
-  | { ok: true; messageIds: string[] }
-  | { ok: false; reason: "unreachable" };
-
 /**
- * `users.messages.list` scoped by `query` (built by
- * `buildCourtReserveSearchQuery`) — ids only; each one still needs its own
- * `fetchGmailMessage` call for the actual subject/body. Not paginated: the
- * query is already bounded to a fixed 90-day window
+ * `users.messages.list` scoped by the neutral criteria (formatted to Gmail
+ * `q` syntax by `toGmailSearchQuery`) — ids only; each one still needs its own
+ * `fetchMessage` call for the actual subject/body. Not paginated: the query
+ * is already bounded to a fixed 90-day window
  * (`COURTRESERVE_SEARCH_WINDOW_DAYS`), which one page comfortably covers for
  * a hobby-app inbox — worth revisiting only if a real sync ever needs it.
  */
-export async function searchGmailMessages(accessToken: string, query: string): Promise<SearchOutcome> {
+async function searchMailbox(
+  accessToken: string,
+  criteria: MailSearchCriteria,
+): Promise<MailboxSearchOutcome> {
   try {
     const url = new URL(`${gmailApiUrl()}/users/me/messages`);
-    url.searchParams.set("q", query);
+    url.searchParams.set("q", toGmailSearchQuery(criteria));
 
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -316,10 +321,6 @@ function findHtmlPart(part: GmailMessagePart | undefined): string | null {
   return null;
 }
 
-export type FetchMessageOutcome =
-  | { ok: true; email: { subject: string; html: string; receivedAt: number } }
-  | { ok: false; reason: "unreachable" };
-
 /**
  * `users.messages.get` for one message id, reduced to what
  * `parseCourtReserveEmail` needs: the Subject header and the HTML body (a
@@ -339,10 +340,10 @@ export type FetchMessageOutcome =
  * back to 0 — oldest possible — rather than "now", so a message with no
  * timestamp can't masquerade as the most recent event in its chain.
  */
-export async function fetchGmailMessage(
+async function fetchMessage(
   accessToken: string,
   messageId: string,
-): Promise<FetchMessageOutcome> {
+): Promise<MailboxMessageOutcome> {
   try {
     const url = new URL(`${gmailApiUrl()}/users/me/messages/${encodeURIComponent(messageId)}`);
     url.searchParams.set("format", "full");
@@ -377,3 +378,12 @@ export async function fetchGmailMessage(
     return { ok: false, reason: "unreachable" };
   }
 }
+
+export const googleMailAdapter: MailAdapter = {
+  buildAuthorizeUrl,
+  exchangeCodeForTokens,
+  refreshAccessToken,
+  resolveAccountEmail,
+  searchMailbox,
+  fetchMessage,
+};

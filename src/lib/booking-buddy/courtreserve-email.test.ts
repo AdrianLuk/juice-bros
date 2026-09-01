@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   COURTRESERVE_SEARCH_WINDOW_DAYS,
   COURTRESERVE_SENDER,
-  buildCourtReserveSearchQuery,
+  buildCourtReserveSearchCriteria,
   parseCourtReserveEmail,
 } from "./courtreserve-email.ts";
 
@@ -657,20 +657,17 @@ test("a real captured update email (facility/player names replaced with placehol
   });
 });
 
-test("the search query is scoped to CourtReserve's own sender", () => {
-  const query = buildCourtReserveSearchQuery(new Date("2026-08-17T12:00:00Z"));
-  assert.match(query, new RegExp(`from:${COURTRESERVE_SENDER.replace(".", "\\.")}`));
+test("the search criteria are scoped to CourtReserve's own sender", () => {
+  const { sender } = buildCourtReserveSearchCriteria(new Date("2026-08-17T12:00:00Z"));
+  assert.equal(sender, COURTRESERVE_SENDER);
 });
 
-test("the search query's recency window is exactly the documented number of days", () => {
+test("the search criteria's recency window is exactly the documented number of days", () => {
   const now = new Date("2026-08-17T12:00:00Z");
-  const query = buildCourtReserveSearchQuery(now);
+  const { after } = buildCourtReserveSearchCriteria(now);
 
   const expected = new Date(now);
   expected.setDate(expected.getDate() - COURTRESERVE_SEARCH_WINDOW_DAYS);
-  const year = expected.getFullYear();
-  const month = String(expected.getMonth() + 1).padStart(2, "0");
-  const day = String(expected.getDate()).padStart(2, "0");
 
-  assert.match(query, new RegExp(`after:${year}/${month}/${day}$`));
+  assert.equal(after.getTime(), expected.getTime());
 });

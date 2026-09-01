@@ -13,16 +13,12 @@ import { readFailed, type ActionResult } from "./result.ts";
 import { getOwnProfile } from "./profile.ts";
 import { isGmailConnectAllowed } from "../email-sync-allowlist.ts";
 import { readEmailSyncAllowlist, requireMailboxLinkEncryptionKey } from "../env.ts";
-import {
-  buildGoogleAuthorizeUrl,
-  fetchGmailMessage,
-  refreshAccessToken,
-  searchGmailMessages,
-} from "../gmail-client.ts";
+import { mailAdapterFor } from "../mail-adapters/index.ts";
+import { resolveMailboxAccessToken } from "../mailbox-token-lifecycle.ts";
+import type { MailboxProvider } from "../mailbox-provider.ts";
 import { MAILBOX_OAUTH_STATE_COOKIE } from "../mailbox-oauth.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
-import { decryptRefreshToken } from "../token-encryption.ts";
-import { buildCourtReserveSearchQuery } from "../courtreserve-email.ts";
+import { buildCourtReserveSearchCriteria } from "../courtreserve-email.ts";
 import { connectionCandidatesFromFriends } from "../email-sync-matching.ts";
 import {
   reviewCourtReserveEmails,
@@ -43,13 +39,7 @@ import { listConnections } from "./connections.ts";
 export type { ActionResult } from "./result.ts";
 export type { ReviewItem };
 
-/**
- * Which identity platform a Mailbox Link's OAuth grant is against. Only
- * `"google"` is reachable today; `"microsoft"` is added in #280's later
- * slices. Kept in sync with the `provider` CHECK constraint on
- * `mailbox_links` / `processed_messages`.
- */
-export type MailboxProvider = "google" | "microsoft";
+export type { MailboxProvider };
 
 export type MailboxLink = {
   provider: MailboxProvider;
@@ -133,7 +123,7 @@ export async function connectMailbox(provider: MailboxProvider): Promise<void> {
   // below should report a normal "couldn't connect" rather than a raw 500.
   let authorizeUrl: string;
   try {
-    authorizeUrl = buildGoogleAuthorizeUrl(await mailboxCallbackUrl(), state);
+    authorizeUrl = mailAdapterFor(provider).buildAuthorizeUrl(await mailboxCallbackUrl(), state);
   } catch (error) {
     console.error("booking-buddy: Gmail OAuth client isn't configured", error);
     redirect(`${SETTINGS_PATH}?error=mailbox_connect_failed`);
@@ -214,7 +204,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 
   const { data: link, error: linkError } = await supabase
     .from("mailbox_links")
-    .select("encrypted_refresh_token, status")
+    .select("provider, encrypted_refresh_token, status")
     .eq("owner_id", session.userId)
     .maybeSingle();
 
@@ -235,28 +225,28 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     return { status: "error", message: "Couldn't sync from email. Try again." };
   }
 
-  const decrypted = decryptRefreshToken(link.encrypted_refresh_token, encryptionKey);
-  if (!decrypted.ok) {
-    // A refresh token that no longer decrypts (a rotated encryption key, a
-    // corrupted row) is just as unusable as an expired one — the User's own
-    // fix is the same either way: reconnect.
-    console.error("booking-buddy: decrypting the Mailbox Link's refresh token failed");
-    return { status: "reconnect_required" };
-  }
+  const adapter = mailAdapterFor(link.provider);
 
-  const refreshed = await refreshAccessToken(decrypted.plainText);
-  if (!refreshed.ok) {
-    if (refreshed.reason === "invalid_grant") {
-      await supabase.from("mailbox_links").update({ status: "expired" }).eq("owner_id", session.userId);
-      revalidatePath(SETTINGS_PATH);
+  // Decrypt → refresh → persist a rotated refresh token → mark `expired` on
+  // `invalid_grant`, all in the shared token-lifecycle helper so the
+  // bookkeeping is identical for every provider.
+  const token = await resolveMailboxAccessToken({
+    supabase,
+    ownerId: session.userId,
+    adapter,
+    encryptedRefreshToken: link.encrypted_refresh_token,
+    encryptionKey,
+  });
+  if (!token.ok) {
+    if (token.reason === "reconnect_required") {
       return { status: "reconnect_required" };
     }
     return { status: "error", message: "Couldn't reach Gmail. Try again." };
   }
 
-  const searchResult = await searchGmailMessages(
-    refreshed.accessToken,
-    buildCourtReserveSearchQuery(new Date()),
+  const searchResult = await adapter.searchMailbox(
+    token.accessToken,
+    buildCourtReserveSearchCriteria(new Date()),
   );
   if (!searchResult.ok) {
     return { status: "error", message: "Couldn't reach Gmail. Try again." };
@@ -266,7 +256,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     .from("processed_messages")
     .select("provider_message_id")
     .eq("owner_id", session.userId)
-    .eq("provider", "google");
+    .eq("provider", link.provider);
 
   if (processedError) {
     console.error("booking-buddy: reading processed messages failed", processedError);
@@ -285,14 +275,14 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   // in this sync shares one "now" regardless of how long the fetch loop runs.
   const now = new Date();
 
-  // The Gmail fetch is the only per-message I/O left here — one unreadable
+  // The mailbox fetch is the only per-message I/O left here — one unreadable
   // message shouldn't sink the whole sync. Everything decidable from the
   // bodies down is `reviewCourtReserveEmails`.
   const rawEmails: RawCourtReserveEmail[] = [];
   for (const messageId of unseenIds) {
-    const fetched = await fetchGmailMessage(refreshed.accessToken, messageId);
+    const fetched = await adapter.fetchMessage(token.accessToken, messageId);
     if (!fetched.ok) {
-      console.error("booking-buddy: fetching a Gmail message failed", messageId);
+      console.error("booking-buddy: fetching a mailbox message failed", messageId);
       continue;
     }
     rawEmails.push({ gmailMessageId: messageId, ...fetched.email });
