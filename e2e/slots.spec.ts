@@ -584,6 +584,13 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
       await expect(
         ben2.getByRole("button", { name: "Yes", pressed: true }),
       ).toBeVisible();
+      // The pressed state above is optimistic. Wait for Ben2's own capacity
+      // line to catch up — that only moves once the Server Action has
+      // committed and the route revalidated — before Amy reloads to read it,
+      // or her reload races his write and still sees just her own yes.
+      await expect(
+        ben2.getByText("Male: 2 of 1 spots taken", { exact: true }),
+      ).toBeVisible();
 
       // Two male yeses against a one-spot male bucket: over on that side.
       // Female's own bucket is untouched — still 0 of 1, not folded into one

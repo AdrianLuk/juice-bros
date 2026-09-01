@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { AMY, BEN, signIn } from "./support/sign-in.ts";
+import { clearConnectionBetween } from "./support/connection-request-link.ts";
 
 /**
  * The two-sided half of Connections: a request only means anything once the
@@ -50,36 +51,17 @@ async function search(page: Page, handle: string) {
 }
 
 /**
- * Puts the pair back to strangers, whichever state they ended in.
+ * Puts the pair back to strangers, whichever state they ended in — straight at
+ * Postgres, not by clicking through the friends page.
  *
- * These two accounts start unconnected, and every test here changes that, so
- * without a reset the second test would find a friendship the first left.
+ * These two accounts start unconnected and every test here changes that, so
+ * without a reset the second test finds a friendship the first left. The old
+ * click-through version raced `friends/loading.tsx`'s stream — `count()`
+ * doesn't retry — and left the pair half-connected often enough to be the
+ * suite's flakiest spot.
  */
-async function disconnect(page: Page) {
-  const row = personRow(page, BEN_2_HANDLE).or(personRow(page, AMY_2_HANDLE));
-  const buttons = row.getByRole("button", { name: /^(Remove|Cancel|Decline)$/ });
-
-  for (;;) {
-    await page.goto("/booking-buddy/friends");
-    // The route streams behind `friends/loading.tsx` (#221), so `load` fires
-    // on the skeleton — wait for the real page (the search field, which the
-    // skeleton has no equivalent of) before counting, since `count()` doesn't
-    // retry the way a web-first assertion would.
-    await expect(page.getByLabel("Search for someone")).toBeVisible();
-
-    if ((await buttons.count()) === 0) {
-      return;
-    }
-
-    const label = await buttons.first().textContent();
-    await buttons.first().click();
-    // Only unfriending is behind a dialog; declining and cancelling are not.
-    if (label?.trim() === "Remove") {
-      await page.getByRole("button", { name: "Remove", exact: true }).last().click();
-    }
-    // Wait for the mutation + revalidation to land — the row leaves the list.
-    await expect(buttons).toHaveCount(0);
-  }
+async function disconnect() {
+  await clearConnectionBetween(AMY_2_HANDLE, BEN_2_HANDLE);
 }
 
 test.describe("two Users, one Connection", () => {
@@ -93,7 +75,7 @@ test.describe("two Users, one Connection", () => {
 
     await signIn(amy, AMY_2, "/booking-buddy/friends");
     await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await disconnect(amy);
+    await disconnect();
 
     // Amy finds Ben by his handle and asks.
     await search(amy, BEN_2_HANDLE);
@@ -129,7 +111,7 @@ test.describe("two Users, one Connection", () => {
       await expect(friends).toContainText(`@${handle}`);
     }
 
-    await disconnect(amy);
+    await disconnect();
     await amyContext.close();
     await benContext.close();
   });
@@ -144,7 +126,7 @@ test.describe("two Users, one Connection", () => {
 
     await signIn(amy, AMY_2, "/booking-buddy/friends");
     await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await disconnect(amy);
+    await disconnect();
 
     await search(amy, BEN_2_HANDLE);
     await searchRow(amy, BEN_2_HANDLE)
@@ -181,12 +163,17 @@ test.describe("two Users, one Connection", () => {
 
     await signIn(amy, AMY_2, "/booking-buddy/friends");
     await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await disconnect(amy);
+    await disconnect();
 
     await search(amy, BEN_2_HANDLE);
     await searchRow(amy, BEN_2_HANDLE)
       .getByRole("button", { name: "Add friend" })
       .click();
+    // Wait for the request to actually land before Ben looks for it —
+    // otherwise his reload races Amy's Server Action and finds no row to
+    // accept (tests above already wait on this; this one didn't).
+    await expect(searchRow(amy, BEN_2_HANDLE)).toContainText("Request sent");
+
     await ben.reload();
     await section(ben, "Requests for you")
       .getByRole("button", { name: "Accept" })

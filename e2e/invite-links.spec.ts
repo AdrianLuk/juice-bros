@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { signIn, TEST_PASSWORD } from "./support/sign-in.ts";
+import { clearAllConnectionsFor } from "./support/connection-request-link.ts";
 
 /**
  * Personal invite link (issue #175): a cold-start User with no friends on
@@ -8,9 +9,11 @@ import { signIn, TEST_PASSWORD } from "./support/sign-in.ts";
  * opens it, signs up, and lands as a pending request the inviter accepts.
  *
  * The inviter is `amyace2` — an account `friends.spec.ts` already treats as
- * "starts unconnected, every test changes that" — and the invitee is a fresh
- * throwaway signup, so no seeded friendship is disturbed. `disconnectAll`
- * puts the inviter back to strangers either way.
+ * "starts unconnected, every test changes that" — and the invitee is either a
+ * fresh throwaway signup or `benbackhand2`, so no seeded friendship is
+ * disturbed. `resetInviter` clears every connection `amyace2` is on, straight
+ * at Postgres — which covers the other side too, whoever it was, without
+ * touching that account's own seeded friendships.
  */
 
 const INVITER = "amyace2@example.com";
@@ -23,21 +26,8 @@ function section(page: Page, heading: string) {
     .last();
 }
 
-async function disconnectAll(page: Page) {
-  await page.goto("/booking-buddy/friends");
-  const buttons = page
-    .getByRole("listitem")
-    .getByRole("button", { name: /^(Remove|Cancel|Decline)$/ });
-
-  while ((await buttons.count()) > 0) {
-    const label = (await buttons.first().textContent())?.trim();
-    await buttons.first().click();
-    if (label === "Remove") {
-      await page.getByRole("button", { name: "Remove", exact: true }).last().click();
-    }
-    await page.waitForTimeout(250);
-    await page.goto("/booking-buddy/friends");
-  }
+async function resetInviter() {
+  await clearAllConnectionsFor(INVITER_HANDLE);
 }
 
 async function readInviteUrl(page: Page): Promise<string> {
@@ -51,7 +41,7 @@ test("a fresh signup through an invite link becomes a pending request the invite
   const inviterContext = await browser.newContext();
   const inviter = await inviterContext.newPage();
   await signIn(inviter, INVITER, "/booking-buddy/friends");
-  await disconnectAll(inviter);
+  await resetInviter();
 
   const url = await readInviteUrl(inviter);
   expect(url).toContain("/booking-buddy/join/");
@@ -113,7 +103,7 @@ test("a fresh signup through an invite link becomes a pending request the invite
     await inviter.goto(url);
     await expect(inviter.getByText(/your own invite link/i)).toBeVisible();
   } finally {
-    await disconnectAll(inviter);
+    await resetInviter();
     await inviterContext.close();
     await newbieContext.close();
   }
@@ -125,13 +115,14 @@ test("a signed-in User who isn't connected can send the request straight from th
   const inviterContext = await browser.newContext();
   const inviter = await inviterContext.newPage();
   await signIn(inviter, INVITER, "/booking-buddy/friends");
-  await disconnectAll(inviter);
+  // Clears amyace2 <-> benbackhand2 too (amyace2 is on it), without touching
+  // benbackhand2's own seeded amyace friendship — so `other` needs no reset.
+  await resetInviter();
   const url = await readInviteUrl(inviter);
 
   const otherContext = await browser.newContext();
   const other = await otherContext.newPage();
   await signIn(other, "benbackhand2@example.com", "/booking-buddy/friends");
-  await disconnectAll(other);
 
   try {
     await other.goto(url);
@@ -147,8 +138,7 @@ test("a signed-in User who isn't connected can send the request straight from th
       "@benbackhand2",
     );
   } finally {
-    await disconnectAll(other);
-    await disconnectAll(inviter);
+    await resetInviter();
     await inviterContext.close();
     await otherContext.close();
   }
