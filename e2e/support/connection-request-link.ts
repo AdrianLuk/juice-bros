@@ -53,6 +53,28 @@ export async function clearConnectionBetween(
   }
 }
 
+/**
+ * Wipe every `connections` row this User is on either side of — direct against
+ * Postgres. For the invite-link specs, where the inviter (`amyace2`) has to
+ * start from no connections at all and the invitees are fresh throwaway
+ * signups with handles a `clearConnectionBetween` can't name ahead of time.
+ *
+ * `amyace2` holds none of the seed script's friendships, so clearing all of
+ * its rows never touches fixture data — don't point this at `amyace` /
+ * `benbackhand` / `benbackhand2`, which do.
+ */
+export async function clearAllConnectionsFor(username: string): Promise<void> {
+  const id = await userIdByUsername(username);
+
+  const url = new URL(`${LOCAL_SUPABASE_API_URL}/rest/v1/connections`);
+  url.searchParams.set("or", `(requester_id.eq.${id},addressee_id.eq.${id})`);
+
+  const res = await fetch(url, { method: "DELETE", headers: serviceRoleHeaders() });
+  if (!res.ok) {
+    throw new Error(`clearing connections failed: ${res.status} ${await res.text()}`);
+  }
+}
+
 async function userIdByUsername(username: string): Promise<string> {
   const rows = await get<{ id: string }[]>("profiles", {
     username: `eq.${username}`,
