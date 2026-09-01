@@ -163,15 +163,17 @@ function FacilityFieldHint() {
       >
         <Info className="size-3.5" aria-hidden />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 text-sm leading-relaxed">
-        Don&apos;t see your facility? Add it on the{" "}
-        <Link
-          href={ORGS_PATH}
-          className="font-medium text-foreground underline underline-offset-2"
-        >
-          Facilities
-        </Link>{" "}
-        page and it&apos;ll show up in this list.
+      <PopoverContent align="start" className="w-64">
+        <p className="text-sm leading-relaxed">
+          Don&apos;t see your facility? Add it on the{" "}
+          <Link
+            href={ORGS_PATH}
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            Facilities
+          </Link>{" "}
+          page and it&apos;ll show up in this list.
+        </p>
       </PopoverContent>
     </Popover>
   );
