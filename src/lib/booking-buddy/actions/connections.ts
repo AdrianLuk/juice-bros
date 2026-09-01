@@ -6,7 +6,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../supabase/server.ts";
 import { verifySession, type Session } from "../dal.ts";
 import { trackFirstFriend } from "../analytics.ts";
-import { notifyNewConnectionRequest } from "../connection-request-notify.ts";
+import {
+  notifyConnectionAccepted,
+  notifyNewConnectionRequest,
+} from "../connection-request-notify.ts";
 import { FRIENDS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
@@ -288,6 +291,10 @@ export async function acceptConnectionRequest(
   // accepter's first accepted Connection. The requester's own first-friend
   // moment isn't tracked; see the ADR.
   after(() => trackFirstFriend(session.userId));
+
+  // Email the requester that their request was accepted. Best-effort, after
+  // the response — mirrors the friend-request email on the way in.
+  after(() => notifyConnectionAccepted(connectionId));
 
   revalidatePath(FRIENDS_PATH);
   return { ok: true };

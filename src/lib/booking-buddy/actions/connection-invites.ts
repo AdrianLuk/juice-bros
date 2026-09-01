@@ -8,7 +8,10 @@ import { createAdminClient } from "../supabase/admin.ts";
 import { trackFunnelEvent } from "../analytics.ts";
 import { FRIENDS_PATH, connectLinkPath } from "../routes.ts";
 import { parseConnectionRequestAction } from "../connection-request-email.ts";
-import { respondToConnectionRequest } from "../connection-request-notify.ts";
+import {
+  notifyConnectionAccepted,
+  respondToConnectionRequest,
+} from "../connection-request-notify.ts";
 
 /**
  * Accept or Decline a friend request from its email link (`/connect/<token>`,
@@ -32,7 +35,14 @@ export async function respondToConnectionRequestAction(
     redirect(`${connectLinkPath(token || "unknown")}?done=failed`);
   }
 
-  const { outcome, addresseeId } = await respondToConnectionRequest(token, action);
+  const { outcome, addresseeId, connectionId } =
+    await respondToConnectionRequest(token, action);
+
+  if (outcome === "accepted" && connectionId) {
+    // Tell the requester their request went through (best-effort, after the
+    // response — same as the friend-request email on the way in).
+    after(() => notifyConnectionAccepted(connectionId));
+  }
 
   if (outcome === "accepted" && addresseeId) {
     // The requester's own first-friend funnel moment is already untracked
