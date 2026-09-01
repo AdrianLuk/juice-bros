@@ -29,9 +29,12 @@ Five sections, each naming the child its tab / dropdown trigger navigates to:
 | -------- | ---------------------------- | ----------------------------------------- |
 | Dashboard| —                            | `/booking-buddy`                          |
 | Plan     | Games, Availability          | `/booking-buddy/slots`, `/booking-buddy/availability` |
-| Bookings | Bookings, Facilities         | `/booking-buddy/bookings`, `/booking-buddy/orgs` |
+| Bookings | —                            | `/booking-buddy/bookings`                 |
 | Friends  | Friends, Groups              | `/booking-buddy/friends`, `/booking-buddy/groups` |
-| Settings | —                            | `/booking-buddy/settings`                 |
+| Settings | Settings, Facilities         | `/booking-buddy/settings`, `/booking-buddy/orgs` |
+
+_(Bookings originally carried Facilities as a second child; Availability / Find a time
+joined Plan later, and Facilities moved to Settings — see Consequences.)_
 
 Section labels repeat the primary child's label (GitHub's "Code" tab pattern) except where
 a section genuinely spans two peers. The tree lives as `BB_SECTIONS` in
@@ -126,3 +129,12 @@ The marketing landing page, its mockups, and the FAQ block are a separate copy p
 - "Availability" (`/booking-buddy/availability`, labelled "Open time" until issue #229) landed
   as Plan's second child in issue #197, so Plan is now a dropdown like Bookings and Friends and
   carries its own pill row.
+- **Facilities moved from Bookings to Settings.** Managing the venues you play at is setup, not
+  a day-to-day booking task, and pairing it with the lone Bookings page gave that section a
+  two-item dropdown for no real navigational gain. `Facilities` (`/booking-buddy/orgs`) is now
+  Settings' second child: Settings became a dropdown / pill-row section ("Settings · Facilities"),
+  Bookings dropped back to a plain link, and the desktop account cluster renders Settings through
+  the shared `DesktopSectionItem` (dropdown anchored to the right edge) rather than its own
+  hand-rolled link. The `/orgs` route and the "Facilities" product label are unchanged. The
+  sibling row also renders as a segmented control now, not a bare hover-fill pill row, so the
+  inactive tabs read as navigation.
