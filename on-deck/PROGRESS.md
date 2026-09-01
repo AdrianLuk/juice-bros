@@ -146,7 +146,30 @@ event array plus assertions about the resulting state.
   `e2e/on-deck-volunteer.spec.ts` (open link → end a game, bogus/self-serve
   link 404s, Organizer copies the link).
 
+- [x] **#247 — operator Undo.** One "Undo" on the floor screen drops the most
+  recent event (`on_deck_undo_last_event` — the only DELETE path, `anon` and
+  `authenticated` have none) and every surface re-folds to the exact prior state
+  — dropping the last event, never a compensating action. Guard rails: only the
+  single latest event, only an undoable turnover type (the `floor-ops`
+  `FloorEventType` set — never SESSION_STARTED / PLAYER_JOINED / PLAYER_QUEUED),
+  only within `on_deck_undo_window()` (15 min, matched by `UNDO_WINDOW_MS`), and
+  only when the caller's `expected_seq` still matches `max(seq)` — a concurrent
+  Operator's newer action fails with `40001` and a "someone else changed the
+  board" message rather than a silent wrong drop (the tip row is `for update`
+  locked and a 0-row delete re-raises `40001`, so two simultaneous undos can't
+  both report success). Organizer via account, Volunteer via the #248 link
+  token (reusing `on_deck_check_volunteer_token`), same one RPC. `LoadedSession`
+  carries the raw `lastEvent` (seq/type/at/operator) the fold discards;
+  `describeUndo` (pure, `node --test`) decides whether to offer it and surfaces
+  *whose* tap it was, so undoing a volunteer's mistap from the Organizer phone
+  reads clearly; `RotationView.undo` carries the seq + a button label + `by`.
+  Tests: `on_deck_undo.test.sql` (stale seq, window,
+  non-undoable type, empty log, volunteer scope, no direct DELETE, unrelated
+  Organizer), `floor-ops.test.ts` `describeUndo`, `reduce.test.ts` undo-parity
+  for the swap and re-queue, `e2e/on-deck-undo.spec.ts` (tap-wrong-court → undo
+  → restored, for Organizer and Volunteer).
+
 ## Next
 
 The rest of #238 — Queue Together, the interactive Display and Kiosk, Last
-Call, operator Undo (#247), and the Session Summary purge.
+Call, and the Session Summary purge.

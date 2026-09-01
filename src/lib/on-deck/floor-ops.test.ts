@@ -9,10 +9,12 @@ import type {
 } from "./session/types.ts";
 import {
   bringBackOutcome,
+  describeUndo,
   finishCourtOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
   tokenForName,
+  UNDO_WINDOW_MS,
 } from "./floor-ops.ts";
 
 const config: SessionConfig = {
@@ -161,4 +163,51 @@ test("swapNoShowOutcome rejects an empty Court, a stale board, and a bad pick", 
     swapNoShowOutcome(state, 1, since, onCourt, onCourt2).kind,
     "error",
   );
+});
+
+// --- describeUndo (#247) -------------------------------------------------
+
+const NOW = 1_000_000_000_000;
+const byOrganizer: Operator = { kind: "organizer", userId: "vanessa" };
+const last = (type: string, at = NOW, operator: Operator = byOrganizer) => ({
+  seq: 42,
+  type,
+  at,
+  operator,
+});
+
+test("describeUndo offers a recent turnover event, with a per-type label and who fired it", () => {
+  assert.deepEqual(describeUndo(last("COURT_FINISHED", NOW - 1000), NOW), {
+    seq: 42,
+    label: "the last court finish",
+    by: "organizer",
+  });
+  assert.equal(describeUndo(last("PLAYER_PAUSED"), NOW)?.label, "the last set-aside");
+  assert.equal(
+    describeUndo(last("FOURSOME_MEMBER_SWAPPED"), NOW)?.label,
+    "the last no-show swap",
+  );
+  assert.equal(describeUndo(last("PLAYER_REQUEUED"), NOW)?.label, "the last re-queue");
+  assert.equal(
+    describeUndo(last("COURT_FINISHED", NOW, { kind: "volunteer" }), NOW)?.by,
+    "volunteer",
+  );
+});
+
+test("describeUndo declines a structural or Player-sourced last event", () => {
+  for (const type of ["SESSION_STARTED", "PLAYER_JOINED", "PLAYER_QUEUED"]) {
+    assert.equal(describeUndo(last(type), NOW), null);
+  }
+});
+
+test("describeUndo declines an event past the undo window, and an empty log", () => {
+  assert.equal(
+    describeUndo(last("COURT_FINISHED", NOW - UNDO_WINDOW_MS - 1), NOW),
+    null,
+  );
+  assert.notEqual(
+    describeUndo(last("COURT_FINISHED", NOW - UNDO_WINDOW_MS + 1), NOW),
+    null,
+  );
+  assert.equal(describeUndo(null, NOW), null);
 });

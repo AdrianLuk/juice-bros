@@ -3,6 +3,7 @@ import "server-only";
 import { getSession, type LoadedSession } from "./sessions.ts";
 import { playerCourt, playerPaused, type PauseReason } from "./session/types.ts";
 import { bestReplacement } from "./session/match-me.ts";
+import { describeUndo, type UndoTarget } from "./floor-ops.ts";
 import { createClient } from "./supabase/server.ts";
 
 /**
@@ -58,6 +59,13 @@ export type RotationView = {
    * "back in the queue" tap.
    */
   paused: { name: string; reason: PauseReason }[];
+  /**
+   * The most recent event an Operator could undo (#247) — its `seq` and a
+   * phrase for the button — or null when nothing recent is undoable. The floor
+   * screen sends the `seq` back so a concurrent Operator's newer action is
+   * caught, not silently rolled over.
+   */
+  undo: UndoTarget | null;
   /** The caller's own standing, when they passed a token. */
   me: {
     /** 1-based place among the waiters not yet On Deck, or null. */
@@ -70,10 +78,13 @@ export type RotationView = {
   } | null;
 };
 
-/** Project a `RotationView` from an already-folded Session. */
+/** Project a `RotationView` from an already-folded Session. `now` is injected
+ * so the projection stays testable — it feeds only the Undo window (#247), not
+ * the fold, which never reads the clock. */
 export function rotationViewFrom(
   loaded: LoadedSession,
   token?: string,
+  now: number = Date.now(),
 ): RotationView {
   const { state, status } = loaded;
   const nameOf = (id: string) =>
@@ -126,6 +137,7 @@ export function rotationViewFrom(
     queuedCount: waiting.length,
     onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
     paused: state.paused.map((p) => ({ name: nameOf(p.playerId), reason: p.reason })),
+    undo: status === "open" ? describeUndo(loaded.lastEvent, now) : null,
     me,
   };
 }

@@ -852,3 +852,38 @@ test("undo drops the last PLAYER_PAUSED: re-folding restores the prior state", (
   assert.deepEqual(reduceSession(config, base).queue, before.queue);
   assert.deepEqual(reduceSession(config, base).paused, before.paused);
 });
+
+// Undo is a physical row delete (#247), so "fold [...xs, e], then drop e and
+// re-fold" is exactly "fold xs" — these assert the whole state comes back, for
+// the event types the older undo tests above don't cover.
+test("undo drops the last FOURSOME_MEMBER_SWAPPED: re-folding restores the exact prior state (#247)", () => {
+  const xs = [...sessionWith(8), courtFinished(1)];
+  const seated = reduceSession(config, xs).courts[0].foursome;
+  const waiting = reduceSession(config, xs).queue[0].playerId;
+  const withEvent = [...xs, swapped(1, seated[0], waiting)];
+
+  assert.notDeepEqual(
+    reduceSession(config, withEvent),
+    reduceSession(config, xs),
+    "the swap changed the state",
+  );
+  assert.deepEqual(
+    reduceSession(config, withEvent.slice(0, -1)),
+    reduceSession(config, xs),
+    "dropping the swap and re-folding is byte-for-byte the prior state",
+  );
+});
+
+test("undo drops the last PLAYER_REQUEUED: re-folding restores the exact prior state (#247)", () => {
+  const xs = [...sessionWith(4), paused("p1", "left")];
+  const withEvent = [...xs, requeued("p1")];
+
+  assert.notDeepEqual(
+    reduceSession(config, withEvent),
+    reduceSession(config, xs),
+  );
+  assert.deepEqual(
+    reduceSession(config, withEvent.slice(0, -1)),
+    reduceSession(config, xs),
+  );
+});

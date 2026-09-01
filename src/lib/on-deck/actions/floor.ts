@@ -4,7 +4,11 @@ import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
-import { commitFloorOutcome, type FloorActionResult } from "../floor-commit.ts";
+import {
+  commitFloorOutcome,
+  runUndo,
+  type FloorActionResult,
+} from "../floor-commit.ts";
 import {
   bringBackOutcome,
   finishCourtOutcome,
@@ -132,4 +136,19 @@ export async function swapNoShow(
   return runAsOrganizer(sessionId, ({ loaded }) =>
     swapNoShowOutcome(loaded.state, court, expectedSince, outName, inName),
   );
+}
+
+/**
+ * "Undo" (issue #247): drop the most recent event and let every surface re-fold
+ * to the prior state. `expectedSeq` is the `seq` the floor screen last saw as
+ * the latest — if another Operator has appended or undone since, the RPC
+ * refuses (`40001`) rather than silently drop the wrong row.
+ */
+export async function undoLastAction(
+  sessionId: string,
+  expectedSeq: number,
+): Promise<FloorActionResult> {
+  const owned = await loadOwnedOpenSession(sessionId);
+  if ("error" in owned) return owned;
+  return runUndo(owned.supabase, sessionId, expectedSeq);
 }
