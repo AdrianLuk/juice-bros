@@ -31,7 +31,14 @@ export async function addPlace(page: Page, name: string) {
 /** Removing a place cascades its Bookings away, which is what makes it enough cleanup. */
 export async function removePlace(page: Page, name: string) {
   await page.goto("/booking-buddy/orgs");
-  await row(page, name).getByRole("button", { name: "Remove" }).click();
+  // Scope to the row that carries a Remove button: `/orgs` streams behind its
+  // skeleton, so on a slow run a bare `row(page, name)` can resolve before
+  // that row's button is there, and the click waits out the full timeout.
+  const target = row(page, name).filter({
+    has: page.getByRole("button", { name: "Remove" }),
+  });
+  await expect(target).toBeVisible();
+  await target.getByRole("button", { name: "Remove" }).click();
   await page.getByRole("button", { name: "Remove facility" }).click();
   await expect(row(page, name)).toHaveCount(0);
 }

@@ -439,6 +439,10 @@ test("a Booking always renders as busy over an overlapping Availability Window",
     start: "13:00",
     end: "14:00",
   });
+  // `logBooking` only clicks — wait for the logged row before navigating, or
+  // the Server Action's round trip races the `goto` and the dashboard renders
+  // from before the Booking landed (same as the popover test above).
+  await page.getByRole("listitem").filter({ hasText: "Court 97" }).waitFor();
 
   await page.goto("/booking-buddy");
 
