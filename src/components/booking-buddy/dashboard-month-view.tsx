@@ -192,7 +192,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     type="button"
                     onClick={() => onQuickCreate(day)}
                     aria-label={`Log a booking on ${dayLabel(day)}`}
-                    className="bb-month-quick-add absolute right-1 top-1 flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
+                    className="bb-month-quick-add absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
                   >
                     <PlusIcon className="size-3.5" aria-hidden />
                   </button>

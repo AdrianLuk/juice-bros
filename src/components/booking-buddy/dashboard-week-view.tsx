@@ -393,12 +393,12 @@ function DayColumn<T extends CalendarEvent>({
               type="button"
               onClick={() => onQuickCreate(day, hour)}
               aria-label={`Log a booking on ${dayLabel(day)} at ${HOUR_LABEL.format(new Date(2000, 0, 1, hour))}`}
-              className="bb-week-quick-add absolute inset-x-0 flex justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
+              className="bb-week-quick-add absolute inset-x-0 flex items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
               style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
             >
               <span
                 aria-hidden
-                className="bb-week-quick-add-mark mt-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border"
+                className="bb-week-quick-add-mark flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border"
               >
                 <PlusIcon className="size-3.5" />
               </span>
