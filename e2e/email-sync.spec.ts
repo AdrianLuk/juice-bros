@@ -3,6 +3,7 @@ import { expect, test } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import { GmailMock } from "./support/gmail-mock.ts";
 import { defineSyncFromEmailScenarios } from "./support/sync-from-email-scenarios.ts";
+import { disconnectMailbox } from "./support/db-reset.ts";
 
 /**
  * Connect / disconnect Gmail (issue #62), and the Gmail run of the shared
@@ -30,24 +31,10 @@ test.beforeEach(() => {
   mock.reset();
 });
 
-/** Leaves Ben disconnected for the next test/run, same discipline settings.spec.ts uses for Username. */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/settings");
-
-  // The Settings route streams through its own `loading.tsx` and the
-  // connect/disconnect controls are a client component. A bare
-  // `disconnect.isVisible()` here doesn't auto-wait — it races the skeleton,
-  // reads "nothing connected", and skips a disconnect that was actually
-  // needed. The "Sync from Email" heading renders only on the real page
-  // (never the skeleton) and for every User, so waiting on it lands us past
-  // the swap before probing (issue #279).
-  await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
-
-  const disconnect = page.getByRole("button", { name: "Disconnect" });
-  if (await disconnect.isVisible()) {
-    await disconnect.click();
-    await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
-  }
+/** Leaves Ben disconnected for the next test/run — straight at Postgres, so it
+ * doesn't race the streamed Settings route under parallel load. */
+test.afterEach(async ({ accounts }) => {
+  await disconnectMailbox({ email: accounts.ben.email, password: accounts.password });
 });
 
 test("a non-allowlisted User sees the section but no Connect Gmail button", async ({ page, accounts }) => {

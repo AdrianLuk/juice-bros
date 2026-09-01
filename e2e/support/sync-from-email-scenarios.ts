@@ -4,6 +4,7 @@ import { expect, test, type Accounts } from "./accounts.ts";
 
 import { signIn } from "./sign-in.ts";
 import { addPlace, deleteBooking, logBooking, placeName, removePlace, row } from "./places.ts";
+import { deleteOrgs, disconnectMailbox } from "./db-reset.ts";
 
 /**
  * The full "Sync from Email" scenario set (issues #64/#65/#88/#91), factored
@@ -162,27 +163,15 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       fixture.getMock().registerMessages(messages);
     }
 
-    test.afterEach(async ({ page }) => {
-      // Disconnect the mailbox so the next test's connect step starts clean —
-      // same discipline `email-sync.spec.ts` uses. Wait for a real-page
-      // marker first (issue #279).
-      await page.goto("/booking-buddy/settings");
-      await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
-      const disconnect = page.getByRole("button", { name: "Disconnect" });
-      if (await disconnect.isVisible()) {
-        await disconnect.click();
-        await expect(page.getByRole("button", { name: connectButtonName })).toBeVisible();
-      }
-
-      // Sweep any facilities the scenario left behind.
-      await page.goto("/booking-buddy/orgs");
-      await expect(page.getByRole("heading", { name: "Your facilities" })).toBeVisible();
-      const strays = row(page, "Playwright");
-      for (let left = await strays.count(); left > 0; left--) {
-        await strays.first().getByRole("button", { name: "Remove" }).click();
-        await page.getByRole("button", { name: "Remove facility" }).click();
-        await expect(strays).toHaveCount(left - 1);
-      }
+    test.afterEach(async ({ accounts }) => {
+      // Reset straight at Postgres, not by clicking Settings then Orgs: every
+      // test in this block does a full OAuth-mock + sync + confirm round, and
+      // with several workers loading one server the click-through teardown
+      // raced `revalidatePath` and left the mailbox link or a facility behind,
+      // poisoning the next test.
+      const user = { email: fixture.resolveUser(accounts), password: accounts.password };
+      await disconnectMailbox(user);
+      await deleteOrgs(user);
     });
 
     test("syncing shows a candidate for a matched facility, and confirming it creates a real Booking", async ({

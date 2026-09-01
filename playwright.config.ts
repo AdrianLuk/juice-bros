@@ -26,13 +26,14 @@ export default defineConfig({
   // it safe — two workers on the same account would fight over its rows.
   // `fullyParallel` stays off: it would split a file's tests across workers.
   //
-  // 2, not `TEST_WORKER_COUNT` (4): the bottleneck is the single Next server +
-  // the single local Postgres, not CPU. At 3-4 workers their Server-Action
-  // round trips balloon and the timing-sensitive specs flake faster than one
-  // retry can absorb; 2 stays clean and still cuts a serial run by a third.
-  // Seeding makes 4 sets, so raising this is a one-line change if the backend
-  // ever stops being the ceiling.
-  workers: process.env.CI ? 2 : Math.min(2, TEST_WORKER_COUNT),
+  // 3, not `TEST_WORKER_COUNT` (4): the bottleneck is the single Next server +
+  // the single local Postgres, not CPU, and past 3 the Server-Action round
+  // trips balloon enough that even a retry can't reliably absorb the timing.
+  // Every `afterEach` that mutated shared state now resets straight at Postgres
+  // (`e2e/support/db-reset.ts`) rather than clicking through a route that
+  // `revalidatePath` is still settling. Seeding makes 4 sets, so raising this
+  // is a one-liner if the backend ever stops being the ceiling.
+  workers: process.env.CI ? 2 : Math.min(3, TEST_WORKER_COUNT),
   fullyParallel: false,
   // One retry locally: a spec that lost a race with three other workers'
   // Server Actions almost always passes on its own the second time. CI stays

@@ -7,10 +7,10 @@ import {
   logBooking,
   placeName,
   removePlace,
-  row,
   selectDuration,
 } from "./support/places.ts";
 import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/availability.ts";
+import { deleteOrgs } from "./support/db-reset.ts";
 
 /**
  * The dashboard calendar (issue #23) — Month/Week/Agenda toggling, a
@@ -94,16 +94,12 @@ test.beforeEach(async ({ page, accounts }) => {
  * leftover `Playwright …`-named Org/Booking collides with the next run's
  * fresh one, since both share a court label this suite asserts against).
  */
-test.afterEach(async ({ page, accounts }) => {
-  await deleteAvailabilityWindows({ email: accounts.amy.email, password: accounts.password });
-
-  await page.goto("/booking-buddy/orgs");
-  const strays = row(page, PREFIX);
-  for (let left = await strays.count(); left > 0; left--) {
-    await strays.first().getByRole("button", { name: "Remove" }).click();
-    await page.getByRole("button", { name: "Remove facility" }).click();
-    await expect(strays).toHaveCount(left - 1);
-  }
+test.afterEach(async ({ accounts }) => {
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await deleteAvailabilityWindows(amy);
+  // Straight at Postgres (Org delete cascades its Bookings) — the
+  // click-through sweep raced `revalidatePath` under parallel load.
+  await deleteOrgs(amy, PREFIX);
 });
 
 test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({

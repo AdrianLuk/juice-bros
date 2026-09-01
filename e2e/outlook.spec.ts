@@ -2,6 +2,7 @@ import { expect, test } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import { MicrosoftMock } from "./support/microsoft-mock.ts";
 import { defineSyncFromEmailScenarios } from "./support/sync-from-email-scenarios.ts";
+import { disconnectMailbox } from "./support/db-reset.ts";
 
 /**
  * Everything Outlook (personal Microsoft account) — the OAuth pipe and Settings
@@ -35,16 +36,12 @@ test.beforeEach(() => {
   mock.reset();
 });
 
-/** Leaves the account disconnected for the next test/run, same discipline email-sync.spec.ts uses. */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/settings");
-  await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
-
-  const disconnect = page.getByRole("button", { name: "Disconnect" });
-  if (await disconnect.isVisible()) {
-    await disconnect.click();
-    await expect(page.getByRole("button", { name: "Connect Outlook" })).toBeVisible();
-  }
+/** Leaves both accounts disconnected for the next test/run — straight at
+ * Postgres, so it doesn't race the streamed Settings route under load. Amy and
+ * Ben both connect Outlook across these tests (it's not allowlist-gated). */
+test.afterEach(async ({ accounts }) => {
+  await disconnectMailbox({ email: accounts.amy.email, password: accounts.password });
+  await disconnectMailbox({ email: accounts.ben.email, password: accounts.password });
 });
 
 test("a non-allowlisted User can connect Outlook and see it named as the provider", async ({ page, accounts }) => {

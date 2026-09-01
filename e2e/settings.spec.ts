@@ -2,6 +2,7 @@ import { type Page } from "@playwright/test";
 import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
+import { resetNotificationPreferences, resetProfile } from "./support/db-reset.ts";
 
 /**
  * Changing a Username.
@@ -36,63 +37,15 @@ test.beforeEach(async ({ page, accounts }) => {
   await signIn(page, accounts.amy.email, "/booking-buddy/settings");
 });
 
-test.afterEach(async ({ page, accounts }) => {
-  await page.goto("/booking-buddy/settings");
-  const field = page.getByLabel("Username");
-
-  if ((await field.inputValue()) !== accounts.amy.username) {
-    await field.fill(accounts.amy.username);
-    await page.getByRole("button", { name: "Save username" }).click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  // Same reasoning as the username reset above: the seed script won't put
-  // these back on their own, so a test that flips either off has to flip it
-  // back.
-  const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
-  if (!(await emailReminders.isChecked())) {
-    await emailReminders.check();
-    await formWithField(page, "Email me a reminder before games I've said yes to, so I don't forget to show up")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  const bookingWindowReminders = page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court");
-  if (!(await bookingWindowReminders.isChecked())) {
-    await bookingWindowReminders.check();
-    await formWithField(page, "Email me once a facility's booking window opens, so I don't forget to reserve a court")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
-  if (!(await friendRequestEmails.isChecked())) {
-    await friendRequestEmails.check();
-    await formWithField(page, "Email me when someone sends me a friend request, so I can accept it right away")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  const requestAcceptedEmails = page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected");
-  if (!(await requestAcceptedEmails.isChecked())) {
-    await requestAcceptedEmails.check();
-    await formWithField(page, "Email me when someone accepts a friend request I sent, so I know we're connected")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  // Same reasoning as Username above — Gender (issue #79) is unset by
-  // default for the seeded account, and a test that sets it has to unset it.
-  const genderUnset = page.getByRole("radio", { name: "Prefer not to say" });
-  if ((await genderUnset.getAttribute("aria-checked")) !== "true") {
-    await genderUnset.click();
-    await genderForm(page).getByRole("button", { name: "Save gender" }).click();
-    await expect(genderForm(page).getByRole("status")).toBeVisible();
-  }
+// Every test here flips something the seed script won't put back on its own —
+// the Username, one of the e-mail toggles, or Gender. Restore it straight at
+// Postgres: the click-through restore (goto Settings, read each control, save)
+// raced the streamed route under parallel load and left the account dirty for
+// the next test.
+test.afterEach(async ({ accounts }) => {
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await resetProfile(amy, accounts.amy.username);
+  await resetNotificationPreferences(amy);
 });
 
 test("the handle assigned at signup is what the form starts on", async ({ page, accounts }) => {

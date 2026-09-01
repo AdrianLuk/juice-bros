@@ -2,6 +2,7 @@ import { type Locator, type Page } from "@playwright/test";
 import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
+import { deleteFriendGroups, deleteVisibilityOverrides } from "./support/db-reset.ts";
 
 /**
  * The Friend Group journey, clicked rather than asserted against the database.
@@ -81,24 +82,16 @@ test.beforeEach(async ({ page, accounts }) => {
 });
 
 /**
- * Sweeps up anything a failed run left behind.
- *
- * Without this, a test that dies mid-way leaves its group in the local
- * database for good — and they accumulate, one per broken run, until the page
- * is unusable. Each test still deletes its own group as part of what it
- * asserts; this is only the safety net.
+ * Sweeps up anything a failed run left behind — straight at Postgres, since
+ * under parallel load the click-through delete raced `revalidatePath` and left
+ * groups (and the Visibility they grant) behind, poisoning the next test. Each
+ * test still deletes its own group through the UI as part of what it asserts;
+ * this is only the safety net.
  */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/groups");
-
-  const strays = page.getByRole("heading", { name: new RegExp(`^${PREFIX} `) });
-
-  for (let left = await strays.count(); left > 0; left--) {
-    const name = (await strays.first().textContent())!;
-    await groupCard(page, name).getByRole("button", { name: "Delete" }).click();
-    await page.getByRole("button", { name: "Delete group" }).click();
-    await expect(page.getByRole("heading", { name })).toHaveCount(0);
-  }
+test.afterEach(async ({ accounts }) => {
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await deleteFriendGroups(amy, PREFIX);
+  await deleteVisibilityOverrides(amy);
 });
 
 test("a group can be created, filled, and emptied again", async ({ page, accounts }) => {

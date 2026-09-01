@@ -3,6 +3,7 @@ import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
+import { deleteFriendGroups } from "./support/db-reset.ts";
 import {
   addPlace,
   logBooking,
@@ -76,7 +77,7 @@ test.beforeEach(async ({ page, accounts }) => {
  * uses. Amy and Ben2 are already a Connection per the seed data
  * (booking-buddy/docs/local-test-accounts.md); this only adds the group.
  */
-async function grantBen2SlotsVisibility(page: Page, ben2Handle: string): Promise<string> {
+async function grantBen2SlotsVisibility(page: Page, ben2Handle: string): Promise<void> {
   const name = `Playwright slots ${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
   await page.goto("/booking-buddy/groups");
@@ -93,16 +94,13 @@ async function grantBen2SlotsVisibility(page: Page, ben2Handle: string): Promise
   await picker.selectOption(value!);
   await card.getByRole("button", { name: "Add" }).click();
   await expect(card).toContainText("1 friend");
-
-  return name;
 }
 
-async function revokeBen2SlotsVisibility(page: Page, name: string) {
-  await page.goto("/booking-buddy/groups");
-  const card = page.locator("section").filter({ hasText: name }).last();
-  await card.getByRole("button", { name: "Delete" }).click();
-  await page.getByRole("button", { name: "Delete group" }).click();
-  await expect(page.getByRole("heading", { name })).toHaveCount(0);
+async function revokeBen2SlotsVisibility(amy: { email: string; password: string }) {
+  // Straight at Postgres — the click-through delete raced `revalidatePath`
+  // under parallel load and left the group (and the Visibility it grants)
+  // behind, so the "no Visibility" test that runs later saw the slot.
+  await deleteFriendGroups(amy, "Playwright slots");
 }
 
 test("a bare-proposal slot can be posted and shows up for its owner", async ({
@@ -208,7 +206,7 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
   browser,
   accounts,
 }) => {
-  const groupName = await grantBen2SlotsVisibility(page, accounts.ben2.username);
+  await grantBen2SlotsVisibility(page, accounts.ben2.username);
 
   const slotId = await createSlot(page, {
     date: "2031-04-04",
@@ -248,7 +246,7 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
     ).toContainText("Maybe");
   } finally {
     await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
-    await revokeBen2SlotsVisibility(page, groupName);
+    await revokeBen2SlotsVisibility({ email: accounts.amy.email, password: accounts.password });
   }
 });
 
@@ -535,7 +533,7 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
   browser,
   accounts,
 }) => {
-  const groupName = await grantBen2SlotsVisibility(page, accounts.ben2.username);
+  await grantBen2SlotsVisibility(page, accounts.ben2.username);
   const place = placeName();
   await addPlace(page, place);
   await setGender(page, "Male");
@@ -622,6 +620,6 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
     await resetGender(page);
     await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
-    await revokeBen2SlotsVisibility(page, groupName);
+    await revokeBen2SlotsVisibility({ email: accounts.amy.email, password: accounts.password });
   }
 });

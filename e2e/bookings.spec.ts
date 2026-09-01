@@ -11,6 +11,7 @@ import {
   row,
   selectDuration,
 } from "./support/places.ts";
+import { deleteOrgs } from "./support/db-reset.ts";
 
 /**
  * The Org → Booking journey, clicked rather than asserted against the database.
@@ -35,19 +36,13 @@ test.beforeEach(async ({ page, accounts }) => {
 });
 
 /**
- * Sweeps up anything a failed run left behind. Each test still removes its own
- * place as part of what it asserts; this is only the safety net.
+ * Sweeps up anything a failed run left behind — straight at Postgres (removing
+ * an Org cascades its Bookings away), since under parallel load the
+ * click-through sweep raced `revalidatePath`. Each test still removes its own
+ * place through the UI as part of what it asserts; this is only the safety net.
  */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/orgs");
-
-  const strays = row(page, PREFIX);
-
-  for (let left = await strays.count(); left > 0; left--) {
-    await strays.first().getByRole("button", { name: "Remove" }).click();
-    await page.getByRole("button", { name: "Remove facility" }).click();
-    await expect(strays).toHaveCount(left - 1);
-  }
+test.afterEach(async ({ accounts }) => {
+  await deleteOrgs({ email: accounts.amy.email, password: accounts.password }, PREFIX);
 });
 
 test("a place can be added, booked at, and removed again", async ({ page }) => {

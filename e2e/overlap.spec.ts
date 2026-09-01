@@ -7,6 +7,7 @@ import {
   deleteAvailabilityWindows,
   insertAvailabilityWindow,
 } from "./support/availability.ts";
+import { deleteFriendGroups } from "./support/db-reset.ts";
 
 /**
  * "Find a time" (issue #195) — Plan's third child. Pick friends who share their
@@ -63,27 +64,16 @@ function friendCheckbox(page: Page, handle: string) {
     .getByRole("checkbox");
 }
 
-test.afterEach(async ({ browser, accounts }) => {
-  await deleteAvailabilityWindows({ email: accounts.ben2.email, password: accounts.password });
-  await deleteAvailabilityWindows({ email: accounts.amy.email, password: accounts.password });
-
-  // Sweep any group a failed run left behind — each grants Amy visibility she
-  // shouldn't keep.
-  const context = await browser.newContext();
-  try {
-    const ben2 = await context.newPage();
-    await signIn(ben2, accounts.ben2.email, "/booking-buddy/groups");
-    const strays = ben2.getByRole("heading", { name: new RegExp(`^${PREFIX} `) });
-    for (let left = await strays.count(); left > 0; left--) {
-      const name = (await strays.first().textContent())!;
-      const card = ben2.locator("section").filter({ hasText: name }).last();
-      await card.getByRole("button", { name: "Delete" }).click();
-      await ben2.getByRole("button", { name: "Delete group" }).click();
-      await expect(ben2.getByRole("heading", { name })).toHaveCount(0);
-    }
-  } finally {
-    await context.close();
-  }
+test.afterEach(async ({ accounts }) => {
+  const ben2 = { email: accounts.ben2.email, password: accounts.password };
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await deleteAvailabilityWindows(ben2);
+  await deleteAvailabilityWindows(amy);
+  // Ben2 owns the `open_time` group each test creates to grant Amy visibility;
+  // clear it straight at Postgres so a failed run can't leave Amy able to see
+  // more than she should. (The click-through sweep raced `revalidatePath`
+  // under parallel load and needed its own browser context besides.)
+  await deleteFriendGroups(ben2, PREFIX);
 });
 
 test("only friends who share their availability show in the picker", async ({
