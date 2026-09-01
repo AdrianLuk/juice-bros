@@ -49,23 +49,6 @@ export default async function FriendsPage() {
           <BbSectionNav />
 
           <div className="mt-10 flex flex-col gap-12">
-            {inviteUrl && (
-              <section>
-                <h2 className="font-heading text-lg font-semibold tracking-tight">
-                  Invite a friend
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Not on Booking Buddy yet? Send them your link. It connects
-                  them to you when they sign up.
-                </p>
-                <div className="mt-4">
-                  <InviteLinkPanel url={inviteUrl} />
-                </div>
-              </section>
-            )}
-
-            <FriendSearch />
-
             <ConnectionList
               title="Requests for you"
               people={received}
@@ -156,6 +139,23 @@ export default async function FriendsPage() {
                 </ul>
               )}
             </section>
+
+            <FriendSearch />
+
+            {inviteUrl && (
+              <section>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  Invite a friend
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Not on Booking Buddy yet? Send them your link. It connects
+                  them to you when they sign up.
+                </p>
+                <div className="mt-4">
+                  <InviteLinkPanel url={inviteUrl} />
+                </div>
+              </section>
+            )}
           </div>
 
           <BbFooter />
