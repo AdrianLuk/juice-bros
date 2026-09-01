@@ -4,12 +4,13 @@ import { Resend } from "resend";
 
 import { createAdminClient } from "./supabase/admin.ts";
 import { absoluteAppUrl } from "./request-origin.ts";
-import { connectLinkPath } from "./routes.ts";
+import { connectLinkPath, FRIENDS_PATH } from "./routes.ts";
 import { personOptionLabel } from "./connections.ts";
 import {
   formatConnectionRequestEmail,
   type ConnectionRequestAction,
 } from "./connection-request-email.ts";
+import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
 
 /**
  * The I/O behind the friend-request email (issue #228). The email copy itself
@@ -40,14 +41,15 @@ type LinkRow = {
   consumed_at: string | null;
 };
 
-async function loadRequesterLabel(
+/** A person's display label from their `profiles` row, read past RLS. Used for both parties. */
+async function loadPersonLabel(
   supabase: ReturnType<typeof createAdminClient>,
-  requesterId: string,
+  userId: string,
 ): Promise<string> {
   const { data } = await supabase
     .from("profiles")
     .select("display_name, username")
-    .eq("id", requesterId)
+    .eq("id", userId)
     .maybeSingle();
 
   return personOptionLabel({
@@ -131,7 +133,7 @@ export async function notifyNewConnectionRequest(
       return;
     }
 
-    const requesterLabel = await loadRequesterLabel(
+    const requesterLabel = await loadPersonLabel(
       supabase,
       connection.requester_id,
     );
@@ -153,6 +155,89 @@ export async function notifyNewConnectionRequest(
     }
   } catch (error) {
     console.error("connection-request-notify: unexpected failure", error);
+  }
+}
+
+/**
+ * Send the "your friend request was accepted" email to the original requester.
+ * Called from `after()` on whichever path moved the Connection to `accepted`
+ * (the signed-in Friends page, or the session-less `/connect/<token>` link), so
+ * the same best-effort rules as `notifyNewConnectionRequest` apply: every exit
+ * is a `return`, and the whole body is wrapped so nothing here can fail the
+ * request that triggered it.
+ */
+export async function notifyConnectionAccepted(
+  connectionId: string,
+): Promise<void> {
+  try {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.REMINDER_FROM_EMAIL;
+    if (!apiKey || !from) {
+      console.error(
+        "connection-request-notify: missing RESEND_API_KEY or REMINDER_FROM_EMAIL.",
+      );
+      return;
+    }
+
+    const supabase = createAdminClient();
+
+    const { data: connection, error: connectionError } = await supabase
+      .from("connections")
+      .select("id, requester_id, addressee_id, status")
+      .eq("id", connectionId)
+      .maybeSingle<ConnectionRow>();
+
+    if (connectionError || !connection || connection.status !== "accepted") {
+      return;
+    }
+
+    const { data: preference } = await supabase
+      .from("notification_preferences")
+      .select("connection_accepted_email_enabled")
+      .eq("user_id", connection.requester_id)
+      .maybeSingle();
+
+    // A missing row means the column default — opted in.
+    if (preference && preference.connection_accepted_email_enabled === false) {
+      return;
+    }
+
+    const { data: userData, error: userError } =
+      await supabase.auth.admin.getUserById(connection.requester_id);
+    const to = userData?.user?.email;
+    if (userError || !to) {
+      console.error(
+        "connection-request-notify: no email for requester",
+        connection.requester_id,
+        userError,
+      );
+      return;
+    }
+
+    const accepterLabel = await loadPersonLabel(
+      supabase,
+      connection.addressee_id,
+    );
+
+    const { subject, html } = formatConnectionAcceptedEmail({
+      accepterLabel,
+      friendsUrl: await absoluteAppUrl(FRIENDS_PATH),
+    });
+
+    const { error: sendError } = await new Resend(apiKey).emails.send({
+      from,
+      to,
+      subject,
+      html,
+    });
+    if (sendError) {
+      console.error("connection-request-notify: Resend error (accepted)", sendError);
+    }
+  } catch (error) {
+    console.error(
+      "connection-request-notify: unexpected failure (accepted)",
+      error,
+    );
   }
 }
 
@@ -193,7 +278,7 @@ export async function getConnectionRequestByToken(
   }
 
   return {
-    requesterLabel: await loadRequesterLabel(supabase, connection.requester_id),
+    requesterLabel: await loadPersonLabel(supabase, connection.requester_id),
     state:
       link.consumed_at || connection.status !== "pending" ? "handled" : "pending",
   };
@@ -212,13 +297,18 @@ export type RespondOutcome =
  * that has already moved off `pending`, returns `already-handled` rather than
  * acting again.
  *
- * Returns the addressee's id on a successful accept so the caller can attribute
- * analytics without a second read.
+ * Returns the addressee's id and the Connection id on a successful accept, so
+ * the caller can attribute analytics and fire the "request accepted" email
+ * without a second read.
  */
 export async function respondToConnectionRequest(
   token: string,
   action: ConnectionRequestAction,
-): Promise<{ outcome: RespondOutcome; addresseeId?: string }> {
+): Promise<{
+  outcome: RespondOutcome;
+  addresseeId?: string;
+  connectionId?: string;
+}> {
   const supabase = createAdminClient();
 
   const { data: link } = await supabase
@@ -279,5 +369,6 @@ export async function respondToConnectionRequest(
   return {
     outcome: action === "accept" ? "accepted" : "declined",
     addresseeId: connection.addressee_id,
+    connectionId: connection.id,
   };
 }
