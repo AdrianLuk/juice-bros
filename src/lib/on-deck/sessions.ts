@@ -89,7 +89,19 @@ function toEvent(row: EventRow): SessionEvent | null {
         firstName,
         lastInitial,
         skillLevel,
+        // Walk-up added by an Operator (issue #249) — straight into the Queue.
+        queueOnJoin: payload.queueOnJoin === true,
       };
+    }
+
+    case "PLAYER_SKILL_SET": {
+      const payload = row.payload ?? {};
+      const token = payload.token;
+      const skillLevel = payload.skillLevel;
+      if (typeof token !== "string" || !isSkillLevel(skillLevel)) {
+        return null;
+      }
+      return { type: "PLAYER_SKILL_SET", at, operator, token, skillLevel };
     }
 
     case "PLAYER_QUEUED": {

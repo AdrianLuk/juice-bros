@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { loadVolunteerSession } from "@/lib/on-deck/volunteer";
-import { rotationViewFrom } from "@/lib/on-deck/rotation";
+import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
 import { volunteerPath } from "@/lib/on-deck/routes";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
 
@@ -44,6 +44,7 @@ export default async function VolunteerFloorPage({
   }
 
   const view = rotationViewFrom(loaded);
+  const roster = floorRosterFrom(loaded);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -64,6 +65,7 @@ export default async function VolunteerFloorPage({
             <RotationBoard
               sessionId={sessionId}
               initialView={view}
+              initialRoster={roster}
               auth={{ kind: "volunteer", token }}
             />
           </div>

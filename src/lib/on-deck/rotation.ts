@@ -1,7 +1,12 @@
 import "server-only";
 
 import { getSession, type LoadedSession } from "./sessions.ts";
-import { playerCourt, playerPaused, type PauseReason } from "./session/types.ts";
+import {
+  playerCourt,
+  playerPaused,
+  type PauseReason,
+  type SkillLevel,
+} from "./session/types.ts";
 import { bestReplacement } from "./session/match-me.ts";
 import { describeUndo, type UndoTarget } from "./floor-ops.ts";
 import { createClient } from "./supabase/server.ts";
@@ -150,4 +155,21 @@ export async function loadRotationView(
   const supabase = await createClient();
   const loaded = await getSession(supabase, sessionId).catch(() => null);
   return loaded ? rotationViewFrom(loaded, token) : null;
+}
+
+/**
+ * Every Player in the Session, in join order — display name and current Skill
+ * Level. Feeds the operator's "add a walk-up" and "fix a skill level" controls
+ * (issue #249). Deliberately *not* on `RotationView`: that read model is
+ * world-readable (a Player polls it with no account), and a self-declared
+ * Skill Level is operator-facing, not wall-of-the-venue public. Every caller
+ * of `floorRosterFrom` is behind Organizer auth or a Volunteer Link.
+ */
+export type FloorRoster = { name: string; skillLevel: SkillLevel }[];
+
+export function floorRosterFrom(loaded: LoadedSession): FloorRoster {
+  return loaded.state.roster.map((p) => ({
+    name: p.displayName,
+    skillLevel: p.skillLevel,
+  }));
 }

@@ -4,26 +4,38 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import {
+  addWalkup,
   bringPlayerBack,
   finishCourt,
+  overridePlayerSkill,
   setPlayerAside,
   swapNoShow,
   undoLastAction,
 } from "@/lib/on-deck/actions/floor";
 import {
+  volunteerAddWalkup,
   volunteerBringPlayerBack,
   volunteerFinishCourt,
+  volunteerOverridePlayerSkill,
   volunteerSetPlayerAside,
   volunteerSwapNoShow,
   volunteerUndoLastAction,
 } from "@/lib/on-deck/actions/volunteer";
 import {
+  getFloorRoster,
   getRotationView,
+  type FloorRoster,
   type RotationView,
 } from "@/lib/on-deck/actions/rotation";
-import type { PauseReason } from "@/lib/on-deck/session/types";
+import {
+  SKILL_LEVELS,
+  SKILL_LEVEL_LABEL,
+  type PauseReason,
+} from "@/lib/on-deck/session/types";
 
 /**
  * How the person driving the board is authorized (issue #248). The Organizer
@@ -66,10 +78,12 @@ const OTHER_OPERATOR_LABEL: Record<string, string> = {
 export function RotationBoard({
   sessionId,
   initialView,
+  initialRoster,
   auth = ORGANIZER_AUTH,
 }: {
   sessionId: string;
   initialView: RotationView;
+  initialRoster: FloorRoster;
   auth?: FloorAuth;
 }) {
   return (
@@ -77,6 +91,7 @@ export function RotationBoard({
       <RotationBoardInner
         sessionId={sessionId}
         initialView={initialView}
+        initialRoster={initialRoster}
         auth={auth}
       />
     </QueryProvider>
@@ -115,6 +130,14 @@ function boundFloorActions(sessionId: string, auth: FloorAuth) {
       auth.kind === "volunteer"
         ? volunteerUndoLastAction(sessionId, auth.token, expectedSeq)
         : undoLastAction(sessionId, expectedSeq),
+    addWalkup: (first: string, initial: string, skill: string) =>
+      auth.kind === "volunteer"
+        ? volunteerAddWalkup(sessionId, auth.token, first, initial, skill)
+        : addWalkup(sessionId, first, initial, skill),
+    overrideSkill: (name: string, skill: string) =>
+      auth.kind === "volunteer"
+        ? volunteerOverridePlayerSkill(sessionId, auth.token, name, skill)
+        : overridePlayerSkill(sessionId, name, skill),
   };
 }
 
@@ -269,27 +292,179 @@ function NoShowSwap({
   );
 }
 
+/**
+ * "Add a walk-up" (issue #249): an Operator enters a Player with no phone —
+ * name, last initial, Skill Level. They land in the Session and the Queue like
+ * a self-registered Player, minus the device.
+ */
+function AddWalkup({
+  onAdd,
+  pending,
+}: {
+  onAdd: (args: {
+    first: string;
+    initial: string;
+    skill: string;
+  }) => Promise<{ ok?: boolean } | undefined>;
+  pending: boolean;
+}) {
+  const [first, setFirst] = useState("");
+  const [initial, setInitial] = useState("");
+  const [skill, setSkill] = useState<string>("intermediate");
+  const ready = first.trim() !== "" && initial.trim() !== "";
+
+  return (
+    <form
+      className="rounded-2xl border bg-card p-4"
+      data-testid="add-walkup"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!ready || pending) return;
+        // Clear only once the add lands — a failed write keeps what was typed.
+        onAdd({ first, initial, skill })
+          .then((result) => {
+            if (result && result.ok === false) return;
+            setFirst("");
+            setInitial("");
+            setSkill("intermediate");
+          })
+          .catch(() => {});
+      }}
+    >
+      <h2 className="font-heading text-xl font-semibold">Add a walk-up</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Someone without their phone — they queue like everyone else.
+      </p>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="walkup-first">First name</Label>
+          <Input
+            id="walkup-first"
+            autoComplete="off"
+            autoCapitalize="words"
+            className="w-40"
+            value={first}
+            onChange={(e) => setFirst(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="walkup-initial">Last initial</Label>
+          <Input
+            id="walkup-initial"
+            autoComplete="off"
+            autoCapitalize="characters"
+            maxLength={4}
+            className="w-16"
+            value={initial}
+            onChange={(e) => setInitial(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="walkup-skill">Skill level</Label>
+          <select
+            id="walkup-skill"
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+            value={skill}
+            onChange={(e) => setSkill(e.target.value)}
+          >
+            {SKILL_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {SKILL_LEVEL_LABEL[level]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" size="sm" disabled={!ready || pending}>
+          Add to the queue
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * "Fix a skill level" (issue #249): a self-rating is sometimes plainly wrong.
+ * An Operator corrects it on any Player and Match Me uses the new level on its
+ * next selection. Tucked in a `<details>` — a rare correction, not a primary
+ * control.
+ */
+function SkillLevels({
+  roster,
+  onOverride,
+  pending,
+}: {
+  roster: FloorRoster;
+  onOverride: (args: { name: string; skill: string }) => void;
+  pending: boolean;
+}) {
+  if (roster.length === 0) return null;
+
+  return (
+    <details className="rounded-2xl border bg-card p-4" data-testid="skill-levels">
+      <summary className="cursor-pointer font-heading text-xl font-semibold">
+        Fix a skill level
+      </summary>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Only if a self-rating is clearly off — this feeds the next match.
+      </p>
+      <ul className="mt-3 space-y-2 text-sm">
+        {roster.map((p) => (
+          <li key={p.name} className="flex items-center justify-between gap-3">
+            <span>{p.name}</span>
+            <select
+              aria-label={`Skill level for ${p.name}`}
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value={p.skillLevel}
+              disabled={pending}
+              onChange={(e) => onOverride({ name: p.name, skill: e.target.value })}
+            >
+              {SKILL_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {SKILL_LEVEL_LABEL[level]}
+                </option>
+              ))}
+            </select>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function RotationBoardInner({
   sessionId,
   initialView,
+  initialRoster,
   auth,
 }: {
   sessionId: string;
   initialView: RotationView;
+  initialRoster: FloorRoster;
   auth: FloorAuth;
 }) {
   const queryClient = useQueryClient();
+  const authToken = auth.kind === "volunteer" ? auth.token : undefined;
   const queryKey = ["on-deck", "rotation", sessionId, "floor"] as const;
+  const rosterKey = ["on-deck", "roster", sessionId, "floor"] as const;
   const query = useQuery({
     queryKey,
     queryFn: () => getRotationView(sessionId),
     refetchInterval: POLL_MS,
     initialData: initialView,
   });
+  const rosterQuery = useQuery({
+    queryKey: rosterKey,
+    queryFn: () => getFloorRoster(sessionId, authToken),
+    refetchInterval: POLL_MS,
+    initialData: initialRoster,
+  });
   const [error, setError] = useState<string | null>(null);
   const ops = boundFloorActions(sessionId, auth);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: rosterKey });
+  };
   const handle = (result: { ok?: boolean; error?: string }) => {
     setError(result.ok ? null : (result.error ?? "Something went wrong. Try again."));
     // Re-sync either way: on success to show the new board, on error (e.g. a
@@ -338,14 +513,38 @@ function RotationBoardInner({
     onError: () => setError("Couldn't undo that. Try again."),
   });
 
+  const walkup = useMutation({
+    mutationFn: ({
+      first,
+      initial,
+      skill,
+    }: {
+      first: string;
+      initial: string;
+      skill: string;
+    }) => ops.addWalkup(first, initial, skill),
+    onSuccess: handle,
+    onError: () => setError("Couldn't add that walk-up. Try again."),
+  });
+
+  const skillOverride = useMutation({
+    mutationFn: ({ name, skill }: { name: string; skill: string }) =>
+      ops.overrideSkill(name, skill),
+    onSuccess: handle,
+    onError: () => setError("Couldn't change that skill level. Try again."),
+  });
+
   const view = query.data ?? initialView;
   const undoTarget = view.undo;
+  const roster = rosterQuery.data ?? initialRoster;
   const busy =
     finish.isPending ||
     swap.isPending ||
     aside.isPending ||
     back.isPending ||
-    undo.isPending;
+    undo.isPending ||
+    walkup.isPending ||
+    skillOverride.isPending;
 
   return (
     <div className="space-y-8">
@@ -431,6 +630,11 @@ function RotationBoardInner({
 
       <OnDeck foursomes={view.onDeck} />
 
+      <AddWalkup
+        onAdd={(args) => walkup.mutateAsync(args)}
+        pending={walkup.isPending}
+      />
+
       <div>
         <h2 className="font-heading text-xl font-semibold">
           Queue{" "}
@@ -463,6 +667,12 @@ function RotationBoardInner({
           </ol>
         )}
       </div>
+
+      <SkillLevels
+        roster={roster}
+        onOverride={skillOverride.mutate}
+        pending={skillOverride.isPending}
+      />
 
       {view.paused.length > 0 && (
         <div>

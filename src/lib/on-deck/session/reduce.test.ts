@@ -887,3 +887,145 @@ test("undo drops the last PLAYER_REQUEUED: re-folding restores the exact prior s
     reduceSession(config, xs),
   );
 });
+
+// --- walk-up Players and Skill Level override (#249) ------------------
+
+const volunteer: Operator = { kind: "volunteer" };
+
+/** A walk-up added by an Operator: PLAYER_JOINED carrying `queueOnJoin`. */
+function walkup(
+  token: string,
+  firstName: string,
+  skillLevel: SkillLevel = "intermediate",
+  operator: Operator = volunteer,
+): SessionEvent {
+  return {
+    type: "PLAYER_JOINED",
+    at: tick(),
+    operator,
+    token,
+    firstName,
+    lastInitial: "W",
+    skillLevel,
+    queueOnJoin: true,
+  };
+}
+
+function skillSet(
+  token: string,
+  skillLevel: SkillLevel,
+  operator: Operator = volunteer,
+): SessionEvent {
+  return { type: "PLAYER_SKILL_SET", at: tick(), operator, token, skillLevel };
+}
+
+test("a walk-up lands in the roster and, with queueOnJoin, straight in the Queue", () => {
+  const state = reduceSession(config, [
+    started(),
+    walkup("w1", "Wanda", "beginner"),
+  ]);
+
+  assert.equal(state.roster.length, 1);
+  assert.equal(state.roster[0].displayName, "Wanda W.");
+  assert.equal(state.roster[0].skillLevel, "beginner");
+  assert.equal(queuePosition(state, "w1"), 1);
+});
+
+test("a plain PLAYER_JOINED (no queueOnJoin) still does not auto-queue", () => {
+  const state = reduceSession(config, [started(), joined("p1", "Pat", "P")]);
+  assert.equal(state.roster.length, 1);
+  assert.deepEqual(state.queue, []);
+});
+
+test("a walk-up is anchored and selected by Match Me exactly like a self-registered Player", () => {
+  // Three self-registered Players queue, then a walk-up is added. When Court 1
+  // frees, the walk-up is in the Foursome — no different from the other three.
+  const state = reduceSession(smallConfig, [
+    started(),
+    joined("p1", "P1", "X"),
+    joined("p2", "P2", "X"),
+    joined("p3", "P3", "X"),
+    queued("p1"),
+    queued("p2"),
+    queued("p3"),
+    walkup("w1", "Wanda"),
+    courtFinished(1),
+  ]);
+
+  assert.equal(state.courts[0].foursome.length, 4);
+  assert.ok(state.courts[0].foursome.includes("w1"));
+});
+
+test("a walk-up added by the Organizer folds identically to one added by a Volunteer (ADR 0005)", () => {
+  const base = [started(), joined("p1", "P1", "X"), queued("p1")];
+  const add = walkup("w1", "Wanda");
+  const byVolunteer = reduceSession(config, [...base, { ...add, operator: volunteer }]);
+  const byOrganizer = reduceSession(config, [...base, { ...add, operator: vanessa }]);
+
+  assert.deepEqual(byOrganizer.roster, byVolunteer.roster);
+  assert.deepEqual(byOrganizer.queue, byVolunteer.queue);
+});
+
+test("PLAYER_SKILL_SET overrides a Player's declared level", () => {
+  const state = reduceSession(config, [
+    started(),
+    joined("p1", "Pat", "P", "newbie"),
+    skillSet("p1", "advanced"),
+  ]);
+  assert.equal(idSkill(state, "p1"), "advanced");
+});
+
+test("PLAYER_SKILL_SET for a token not on the roster is a no-op", () => {
+  const state = reduceSession(config, [started(), skillSet("ghost", "advanced")]);
+  assert.deepEqual(state.roster, []);
+});
+
+test("a PLAYER_SKILL_SET before the Session opens is ignored", () => {
+  const state = reduceSession(config, [skillSet("p1", "advanced")]);
+  assert.deepEqual(state.roster, []);
+});
+
+test("undo drops the last PLAYER_SKILL_SET: re-folding restores the prior level", () => {
+  const base = [started(), joined("p1", "Pat", "P", "beginner")];
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [...base, skillSet("p1", "advanced")]);
+
+  assert.notDeepEqual(after.roster, before.roster);
+  assert.deepEqual(reduceSession(config, base).roster, before.roster);
+});
+
+test("a corrected Skill Level changes the next Match Me selection", () => {
+  // One Court, thirteen all-intermediate Players queued: p1-8 fill the two
+  // committed Foursomes, p9-13 sit in reserve. A volunteer corrects p10 to
+  // advanced. Court 1 (empty) is tapped: the leading Foursome walks on and a
+  // fresh one forms from the reserves via Match Me — which now reaches past
+  // p10. The un-corrected fold seats p10.
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  const base: SessionEvent[] = [started()];
+  for (let i = 1; i <= 13; i++) base.push(joined(`p${i}`, `P${i}`, "X", "intermediate"));
+  for (let i = 1; i <= 13; i++) base.push(queued(`p${i}`));
+
+  const fresh = (events: SessionEvent[]) => {
+    const state = reduceSession(oneCourt, events);
+    return state.onDeck[state.onDeck.length - 1].players;
+  };
+
+  assert.deepEqual(
+    fresh([...base, courtFinished(1)]),
+    ["p9", "p10", "p11", "p12"],
+  );
+  assert.deepEqual(
+    fresh([...base, skillSet("p10", "advanced"), courtFinished(1)]),
+    ["p9", "p11", "p12", "p13"],
+  );
+});
+
+test("PLAYER_SKILL_SET does not reshuffle an already-committed On Deck Foursome (ADR 0007)", () => {
+  // p4 is committed to the first Foursome before the override; it stays.
+  const base = sessionWith(8);
+  const committed = reduceSession(config, base).onDeck[0].players;
+  assert.ok(committed.includes("p4"));
+
+  const state = reduceSession(config, [...base, skillSet("p4", "advanced")]);
+  assert.deepEqual(state.onDeck[0].players, committed);
+});

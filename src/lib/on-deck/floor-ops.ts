@@ -15,12 +15,14 @@
  * object, unit-tested under `node --test`.
  */
 
-import type { Operator, SessionState } from "./session/types.ts";
+import { isSkillLevel, type Operator, type SessionState } from "./session/types.ts";
 
 /**
- * The operational turnover events a floor tap can produce — the one list the
+ * The operational **turnover** events a floor tap can produce — the one list the
  * `FloorEventType` union, `on_deck_volunteer_append`'s whitelist, and operator
- * Undo (#247) all draw from.
+ * Undo (#247) all draw from. The roster corrections in `FloorOutcomeType`
+ * (#249) are deliberately not here: a walk-up add or a skill fix is corrected
+ * forward, never rolled back, and the DB Undo path excludes them too.
  */
 export const FLOOR_EVENT_TYPES = [
   "COURT_FINISHED",
@@ -30,6 +32,17 @@ export const FLOOR_EVENT_TYPES = [
 ] as const;
 
 export type FloorEventType = (typeof FLOOR_EVENT_TYPES)[number];
+
+/**
+ * Every event a floor decision can emit: the undoable turnover set, plus the
+ * two roster corrections a Volunteer may make (issue #249) — add a walk-up
+ * (`PLAYER_JOINED`) and override a Skill Level (`PLAYER_SKILL_SET`). The same
+ * set `on_deck_volunteer_append` whitelists for a link-authenticated Volunteer.
+ */
+export type FloorOutcomeType =
+  | FloorEventType
+  | "PLAYER_JOINED"
+  | "PLAYER_SKILL_SET";
 
 function isFloorEventType(type: string): type is FloorEventType {
   return (FLOOR_EVENT_TYPES as readonly string[]).includes(type);
@@ -97,7 +110,7 @@ export function describeUndo(
  * show the message.
  */
 export type FloorOpOutcome =
-  | { kind: "event"; type: FloorEventType; payload: Record<string, unknown> }
+  | { kind: "event"; type: FloorOutcomeType; payload: Record<string, unknown> }
   | { kind: "noop" }
   | { kind: "error"; error: string };
 
@@ -202,5 +215,86 @@ export function swapNoShowOutcome(
     kind: "event",
     type: "FOURSOME_MEMBER_SWAPPED",
     payload: { court, out: outToken, in: inToken },
+  };
+}
+
+/** Trim + collapse inner whitespace. The fold re-normalises on the way in
+ * (`cleanFirstName`), so this only has to be good enough to validate. */
+function tidyFirstName(raw: string): string {
+  return (raw ?? "").trim().replace(/\s+/g, " ");
+}
+
+/** First letter of the input, upper-cased; "" when there is none. */
+function tidyLastInitial(raw: string): string {
+  return (raw ?? "").trim().match(/[a-z]/i)?.[0].toUpperCase() ?? "";
+}
+
+/**
+ * "Add a walk-up" (issue #249): an Operator enters a Player with no phone —
+ * name, last initial, Skill Level — and they land in the Session and the Queue
+ * exactly like a self-registered Player. `token` is a synthetic id minted by
+ * the caller (there is no device), passed in so this stays pure.
+ *
+ * `queueOnJoin` on the payload is what puts them straight in the Queue; the
+ * database (`on_deck_volunteer_append`) also requires it on a volunteer-sourced
+ * `PLAYER_JOINED`, since a Volunteer only ever adds walk-ups.
+ */
+export function addWalkupOutcome(
+  state: SessionState,
+  token: string,
+  firstName: string,
+  lastInitial: string,
+  skillLevel: string,
+): FloorOpOutcome {
+  const first = tidyFirstName(firstName);
+  const initial = tidyLastInitial(lastInitial);
+  if (!first) return { kind: "error", error: "Enter a first name." };
+  if (!initial) return { kind: "error", error: "Enter a last initial." };
+  if (!isSkillLevel(skillLevel)) {
+    return { kind: "error", error: "Pick a skill level." };
+  }
+  if (state.roster.some((p) => p.id === token)) {
+    // A minted id already on the roster — a replayed submit. Nothing to do.
+    return { kind: "noop" };
+  }
+  return {
+    kind: "event",
+    type: "PLAYER_JOINED",
+    payload: {
+      token,
+      firstName: first,
+      lastInitial: initial,
+      skillLevel,
+      queueOnJoin: true,
+    },
+  };
+}
+
+/**
+ * "Fix a skill level" (issue #249): an Operator corrects an obviously wrong
+ * self-rating on any Player. A no-op when the level already matches, so a
+ * double tap doesn't stack events; Match Me reads the new level on its next
+ * selection.
+ */
+export function overrideSkillOutcome(
+  state: SessionState,
+  playerName: string,
+  skillLevel: string,
+): FloorOpOutcome {
+  if (!isSkillLevel(skillLevel)) {
+    return { kind: "error", error: "Pick a skill level." };
+  }
+  const token = tokenForName(state, playerName);
+  if (!token) {
+    return { kind: "error", error: "Couldn't find that player." };
+  }
+  const current = state.roster.find((p) => p.id === token)?.skillLevel;
+  if (current === skillLevel) {
+    return { kind: "noop" };
+  }
+  return {
+    kind: "event",
+    type: "PLAYER_SKILL_SET",
+    payload: { token, skillLevel },
   };
 }

@@ -18,9 +18,14 @@ function isComplete(foursome: OnDeckFoursome): boolean {
   return foursome.players.length === 4;
 }
 
-/** Trim, collapse inner whitespace, capitalise the first letter. */
+/**
+ * Trim, collapse inner whitespace, capitalise the first letter, cap at 40
+ * chars. `on_deck_join_session` already caps the self-registration path; the
+ * cap here also covers a walk-up added straight through `on_deck_volunteer_append`
+ * (issue #249), so no event can put an unbounded name on the board.
+ */
 function cleanFirstName(raw: string): string {
-  const s = raw.trim().replace(/\s+/g, " ");
+  const s = raw.trim().replace(/\s+/g, " ").slice(0, 40);
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
@@ -219,6 +224,23 @@ export function reduceSession(
     return Math.max(0, at - since);
   };
 
+  /**
+   * Put a rostered Player into the Queue at `at`: a no-op if they are already
+   * waiting, on a Court, or paused. Shared by the `PLAYER_QUEUED` tap and a
+   * walk-up's `queueOnJoin` (issue #249) so both enter the Queue identically —
+   * same wait anchor, same On Deck top-up.
+   */
+  const enqueuePlayer = (playerId: string, at: number): void => {
+    if (state.queue.some((e) => e.playerId === playerId)) return;
+    if (state.courts.some((c) => c.foursome.includes(playerId))) return;
+    if (state.paused.some((p) => p.playerId === playerId)) return;
+
+    state.queue.push({ playerId, waitSince: at });
+    beginWait(playerId, at);
+    sortQueue(state.queue);
+    refreshOnDeck(state, at);
+  };
+
   for (const event of events) {
     switch (event.type) {
       case "SESSION_STARTED": {
@@ -250,32 +272,34 @@ export function reduceSession(
           displayName: displayNameFor(firstName, lastInitial, state.roster),
           joinedAt: event.at,
         });
+
+        // A walk-up added by an Operator (issue #249) is there to play now —
+        // straight into the Queue, no separate PLAYER_QUEUED tap.
+        if (event.queueOnJoin) enqueuePlayer(event.token, event.at);
+        break;
+      }
+
+      case "PLAYER_SKILL_SET": {
+        if (state.status !== "open") break;
+        const target = state.roster.find((p) => p.id === event.token);
+        if (!target) break;
+        // Just the declared level changes — an in-progress Game, the Queue
+        // order, and any committed On Deck Foursome are all untouched; the
+        // corrected level is read by the next Match Me selection.
+        target.skillLevel = event.skillLevel;
         break;
       }
 
       case "PLAYER_QUEUED": {
         if (state.status !== "open") break;
-        // Unknown token, or a Player already waiting or on a Court — a replayed
-        // or stray queue tap is a no-op, not a second entry.
+        // Unknown token — a stray queue tap is a no-op. The rest of the guards
+        // (already waiting / on a Court / paused) and the wait-anchor + On Deck
+        // top-up (issue #245) live in `enqueuePlayer`, shared with a walk-up's
+        // `queueOnJoin` (issue #249). A queued Player waits for a
+        // `COURT_FINISHED` — the fold never pulls them onto an empty Court —
+        // so they reliably "join the Queue and see their position" (#243).
         if (!state.roster.some((p) => p.id === event.token)) break;
-        if (state.queue.some((e) => e.playerId === event.token)) break;
-        if (state.courts.some((c) => c.foursome.includes(event.token))) break;
-        // A paused Player rejoins through PLAYER_REQUEUED, never a second
-        // PLAYER_QUEUED — guard it anyway so a future queue path can't land
-        // them in the Queue and the paused list at once.
-        if (state.paused.some((p) => p.playerId === event.token)) break;
-
-        // Naive selection stands in for Match Me here (#243): a queued Player
-        // waits until a Court is tapped done. The fold does not pull them onto
-        // an empty Court — that only happens on `COURT_FINISHED`, so a Player
-        // reliably "joins the Queue and sees their position".
-        state.queue.push({ playerId: event.token, waitSince: event.at });
-        beginWait(event.token, event.at);
-        sortQueue(state.queue);
-
-        // The new waiter fills out an incomplete On Deck Foursome, or forms one
-        // — but never reshuffles a Foursome already announced (issue #245).
-        refreshOnDeck(state, event.at);
+        enqueuePlayer(event.token, event.at);
         break;
       }
 
