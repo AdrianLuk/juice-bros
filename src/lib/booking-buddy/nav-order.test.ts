@@ -56,14 +56,24 @@ test("moving between siblings in one section follows the sibling order", () => {
 });
 
 test("a detail route ranks with its list, not the section root", () => {
-  // Facilities detail-ish depth shouldn't flip the Bookings→Facilities order.
-  assert.equal(
-    bookingBuddyNavDirection(`${ROOT}/bookings`, `${ROOT}/orgs`),
-    "forward",
-  );
+  // A single game sits at /slots/<id>; it should rank with Games (2nd primary),
+  // so moving on to Bookings still reads as forward.
   assert.equal(
     bookingBuddyNavDirection(`${ROOT}/slots/abc123`, `${ROOT}/bookings`),
     "forward",
+  );
+});
+
+test("Facilities sits at the tail of the order, under Settings", () => {
+  // Moved out of the Bookings section (ADR 0016): it's now Settings' second
+  // child, the last primary destination in the app's reading order.
+  assert.equal(
+    bookingBuddyNavDirection(`${ROOT}/settings`, `${ROOT}/orgs`),
+    "forward",
+  );
+  assert.equal(
+    bookingBuddyNavDirection(`${ROOT}/orgs`, `${ROOT}/bookings`),
+    "back",
   );
 });
 

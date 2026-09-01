@@ -18,7 +18,7 @@ test("desktop: the active section is marked and its dropdown exposes the sibling
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await signIn(page, BEN, "/booking-buddy/bookings");
+  await signIn(page, BEN, "/booking-buddy/friends");
 
   const bar = page.locator("header");
   await expect(bar).toBeVisible();
@@ -27,15 +27,33 @@ test("desktop: the active section is marked and its dropdown exposes the sibling
   // Standalone shell — the marketing site footer is gone.
   await expect(page.getByText("All rights reserved")).toHaveCount(0);
 
-  // Bookings is the active section.
+  // Friends is the active section.
   await expect(
-    bar.getByRole("link", { name: "Bookings" }).first(),
+    bar.getByRole("link", { name: "Friends" }).first(),
   ).toHaveAttribute("aria-current", "page");
 
-  // Its child "Facilities" is hidden until the trigger is hovered.
-  const facilities = bar.getByRole("link", { name: "Facilities" });
-  await expect(facilities).toBeHidden();
+  // Its child "Groups" is hidden until the trigger is hovered.
+  const groups = bar.getByRole("link", { name: "Groups" });
+  await expect(groups).toBeHidden();
+  await bar.getByRole("link", { name: "Friends" }).first().hover();
+  await expect(groups).toBeVisible();
+});
+
+test("desktop: Facilities has moved under the Settings dropdown", async ({
+  page,
+}) => {
+  await page.setViewportSize(DESKTOP);
+  await signIn(page, BEN, "/booking-buddy/settings");
+
+  const bar = page.locator("header");
+
+  // Facilities is no longer a child of Bookings.
   await bar.getByRole("link", { name: "Bookings" }).first().hover();
+  await expect(bar.getByRole("link", { name: "Facilities" })).toBeHidden();
+
+  // It's exposed by the Settings dropdown in the account cluster.
+  const facilities = bar.getByRole("link", { name: "Facilities" });
+  await bar.getByRole("link", { name: "Settings" }).first().hover();
   await expect(facilities).toBeVisible();
 });
 
@@ -63,7 +81,7 @@ test("the sibling pill row shows on a section page and is absent on the dashboar
   await signIn(page, BEN, "/booking-buddy/orgs");
 
   const pills = page.getByRole("navigation", { name: "Section" });
-  await expect(pills.getByRole("link", { name: "Bookings" })).toBeVisible();
+  await expect(pills.getByRole("link", { name: "Settings" })).toBeVisible();
   await expect(pills.getByRole("link", { name: "Facilities" })).toHaveAttribute(
     "aria-current",
     "page",

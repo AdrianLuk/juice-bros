@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 import {
   BB_SECTIONS,
   BOOKING_BUDDY_ROOT,
-  SETTINGS_PATH,
   sectionForPath,
   type BbSection,
   type BbSectionId,
@@ -51,12 +50,14 @@ const CHILD_ICON: Record<string, LucideIcon> = {
   Availability: CalendarRangeIcon,
   "Find a time": CalendarSearchIcon,
   Bookings: CalendarCheckIcon,
-  Facilities: MapPinIcon,
   Friends: UsersIcon,
   Groups: UsersRoundIcon,
+  Settings: SettingsIcon,
+  Facilities: MapPinIcon,
 };
 
 const PRIMARY_SECTIONS = BB_SECTIONS.filter((s) => s.id !== "settings");
+const SETTINGS_SECTION = BB_SECTIONS.find((s) => s.id === "settings")!;
 
 function isChildActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -66,10 +67,13 @@ function DesktopSectionItem({
   section,
   activeSection,
   pathname,
+  align = "left",
 }: {
   section: BbSection;
   activeSection: BbSectionId | null;
   pathname: string;
+  /** Which edge the dropdown panel hangs from — "right" for the account cluster past the divider. */
+  align?: "left" | "right";
 }) {
   const Icon = SECTION_ICON[section.id];
   const active = activeSection === section.id;
@@ -114,7 +118,12 @@ function DesktopSectionItem({
   return (
     <div className="group/sec relative">
       {trigger}
-      <div className="invisible absolute left-0 top-full z-50 translate-y-1 pt-2 opacity-0 transition-[opacity,transform,visibility] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/sec:visible group-hover/sec:translate-y-0 group-hover/sec:opacity-100 group-focus-within/sec:visible group-focus-within/sec:translate-y-0 group-focus-within/sec:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-none">
+      <div
+        className={cn(
+          "invisible absolute top-full z-50 translate-y-1 pt-2 opacity-0 transition-[opacity,transform,visibility] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/sec:visible group-hover/sec:translate-y-0 group-hover/sec:opacity-100 group-focus-within/sec:visible group-focus-within/sec:translate-y-0 group-focus-within/sec:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-none",
+          align === "right" ? "right-0" : "left-0",
+        )}
+      >
         <div className="min-w-44 rounded-xl border border-brand-orange/15 bg-popover p-1 text-popover-foreground shadow-[0_8px_28px_-12px_oklch(0.55_0.16_40/0.4)]">
           {section.children.map((child) => {
             const ChildIcon = CHILD_ICON[child.label];
@@ -177,31 +186,12 @@ export function BbAppShell() {
 
           <div className="ml-auto flex items-center gap-2">
             <span aria-hidden className="h-5 w-px bg-brand-orange/30" />
-            <Link
-              href={SETTINGS_PATH}
-              aria-current={activeSection === "settings" ? "page" : undefined}
-              className={cn(
-                "relative isolate flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                activeSection === "settings"
-                  ? "text-white"
-                  : "text-foreground/75 hover:bg-brand-orange/10 hover:text-brand-orange",
-              )}
-            >
-              {activeSection === "settings" && (
-                <span
-                  aria-hidden
-                  style={{ viewTransitionName: "bb-nav-pill" }}
-                  className="absolute inset-0 -z-10 rounded-lg bg-brand-orange shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
-                />
-              )}
-              <SettingsIcon
-                className={cn(
-                  "size-4",
-                  activeSection === "settings" ? "text-white" : "text-brand-orange",
-                )}
-              />
-              Settings
-            </Link>
+            <DesktopSectionItem
+              section={SETTINGS_SECTION}
+              activeSection={activeSection}
+              pathname={pathname}
+              align="right"
+            />
           </div>
         </div>
       </header>
