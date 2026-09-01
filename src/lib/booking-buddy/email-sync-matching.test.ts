@@ -3,8 +3,6 @@ import test from "node:test";
 
 import {
   diffBookingPlayers,
-  isDuplicateBooking,
-  isPastConfirmation,
   matchCancellationToBooking,
   matchOrgByName,
   matchPlayerNamesToConnections,
@@ -47,41 +45,9 @@ test("surrounding whitespace on either side doesn't defeat an otherwise-exact ma
   assert.equal(matchOrgByName("PicklePlex Downsview", orgs), "org-1");
 });
 
-const SAME_SLOT = { orgId: "org-1", courtLabel: "Court 3", date: "2026-09-15", startTime: "18:00" };
-
-test("a candidate matching Org + court + date/time on an existing Booking is a duplicate", () => {
-  assert.equal(isDuplicateBooking(SAME_SLOT, [SAME_SLOT]), true);
-});
-
-test("a different court is not a duplicate, even at the same Org/date/time", () => {
-  const existing = { ...SAME_SLOT, courtLabel: "Court 4" };
-  assert.equal(isDuplicateBooking(SAME_SLOT, [existing]), false);
-});
-
-test("a different date is not a duplicate", () => {
-  const existing = { ...SAME_SLOT, date: "2026-09-16" };
-  assert.equal(isDuplicateBooking(SAME_SLOT, [existing]), false);
-});
-
-test("a different start time is not a duplicate", () => {
-  const existing = { ...SAME_SLOT, startTime: "19:00" };
-  assert.equal(isDuplicateBooking(SAME_SLOT, [existing]), false);
-});
-
-test("a different Org is not a duplicate, even with everything else matching", () => {
-  const existing = { ...SAME_SLOT, orgId: "org-2" };
-  assert.equal(isDuplicateBooking(SAME_SLOT, [existing]), false);
-});
-
-test("a null courtLabel on both sides still counts as matching, not as two different unlabeled courts", () => {
-  const candidate = { ...SAME_SLOT, courtLabel: null };
-  const existing = { ...SAME_SLOT, courtLabel: null };
-  assert.equal(isDuplicateBooking(candidate, [existing]), true);
-});
-
-test("no existing Bookings at all is never a duplicate", () => {
-  assert.equal(isDuplicateBooking(SAME_SLOT, []), false);
-});
+// `isDuplicateBooking` / `isPastConfirmation` moved to
+// `import-candidate-shaping.ts` (#288); their tests moved with them to
+// `import-candidate-shaping.test.ts`.
 
 test("a listed player matching a Connection's display name resolves to their user id", () => {
   const connections = [{ userId: "user-1", displayName: "Ben Backhand" }];
@@ -246,17 +212,6 @@ test("two Bookings at the same Org/date/start-time (different courts) resolve an
     { ...CANCELLED_SLOT, id: "booking-2", courtLabel: "4" },
   ];
   assert.equal(matchUpdateToBooking(CANCELLED_SLOT, existing), null);
-});
-
-test("a confirmation dated before today in its own zone is past", () => {
-  const now = new Date("2026-09-20T12:00:00Z");
-  assert.equal(isPastConfirmation({ date: "2026-09-15" }, "America/Toronto", now), true);
-});
-
-test("a confirmation dated today or later is not past", () => {
-  const now = new Date("2026-09-15T12:00:00Z");
-  assert.equal(isPastConfirmation({ date: "2026-09-15" }, "America/Toronto", now), false);
-  assert.equal(isPastConfirmation({ date: "2026-09-16" }, "America/Toronto", now), false);
 });
 
 const SLOT = { facilityName: "HISPORTS - Stouffville", date: "2026-08-21", startTime: "18:00" };

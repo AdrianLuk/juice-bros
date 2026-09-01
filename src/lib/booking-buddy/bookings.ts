@@ -165,41 +165,10 @@ export function formatCandidateDate(date: string): string {
   return `${weekday} ${month}-${day}-${year}`;
 }
 
-/**
- * A facility's own Court(s) text sometimes lists every court on one line
- * (a "Partner Play" session's confirmation can run past 40 characters),
- * which the `booking_court_length` check constraint refuses outright.
- * Rather than truncating it and losing courts a User might care about, the
- * overlong text is kept whole in Notes instead and the court label is left
- * blank — recoverable by hand from Edit Booking, same "don't block the
- * import over a parsing quirk" posture already applied to an overlong
- * player name on the review screen.
- */
-export function splitOverlongCourtLabel(
-  courtLabel: string | null,
-): { courtLabel: string | null; notes: string | null } {
-  if (!courtLabel || courtLabel.length <= COURT_LABEL_MAX_LENGTH) {
-    return { courtLabel, notes: null };
-  }
-  return { courtLabel: null, notes: courtLabel.slice(0, NOTES_MAX_LENGTH) };
-}
-
-/**
- * Strips a leading "Court" word off a CourtReserve email's own Court(s) text
- * (e.g. "Court #6 - Hard") before it becomes a candidate's `court_label`
- * (issue #64) — without this, `formatCourtLabel` re-adding its own "Court "
- * prefix at display time would double up to "Court Court #6 - Hard". A
- * facility's own free text after that word (like "#6 - Hard") is kept as-is;
- * only the word CourtReserve's template itself always prepends is removed.
- */
-export function stripCourtLabelPrefix(courtLabel: string | null): string | null {
-  if (!courtLabel) {
-    return null;
-  }
-
-  const stripped = courtLabel.replace(/^court\s*/i, "").trim();
-  return stripped || null;
-}
+// The court-label shaping an Import Candidate needs — `splitOverlongCourtLabel`
+// and `stripCourtLabelPrefix` — moved to `import-candidate-shaping.ts` for #288
+// so the Calendar Feed's review composition can share them; both still read
+// `COURT_LABEL_MAX_LENGTH` / `NOTES_MAX_LENGTH` from here.
 
 /**
  * When a Booking is, written as the facility's own clock read it.
