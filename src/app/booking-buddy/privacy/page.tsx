@@ -7,13 +7,14 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
+import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
 import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
-  description: "What Booking Buddy collects, why, and what the optional Gmail sync feature does with your inbox.",
+  description: "What Booking Buddy collects, why, and what the optional email sync feature does with your inbox.",
   path: "/booking-buddy/privacy",
 });
 
@@ -36,10 +37,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default async function BookingBuddyPrivacyPage() {
   const session = await getOptionalSession();
   const profile = session ? await getOwnProfile() : null;
-  const emailSyncAllowed =
+  const gmailEligible =
     profile && session
       ? isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist())
       : false;
+  // The section renders for a User who could connect Gmail (allowlist) or who
+  // already has any Mailbox Link — an Outlook link has no allowlist (spec
+  // #280), so its owner would otherwise never see this disclosure.
+  const mailboxLink = session ? await getMailboxLink() : null;
+  const showEmailSync = gmailEligible || mailboxLink !== null;
+  const outlookConnected = mailboxLink?.provider === "microsoft";
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -99,23 +106,35 @@ export default async function BookingBuddyPrivacyPage() {
             </p>
           </Section>
 
-          {emailSyncAllowed && (
-            <Section title="Sync from Email (Gmail)">
+          {showEmailSync && (
+            <Section title="Sync from Email">
               <p>
-                Your account currently has access to &quot;Sync from Email&quot; &mdash;
-                an invite-only feature, still being built out, that reads your Gmail
-                inbox for CourtReserve booking emails so you don&apos;t have to type
-                bookings in by hand. Here&apos;s exactly what that means:
+                Your account has access to &quot;Sync from Email&quot; &mdash; a
+                feature, still being built out, that reads your{" "}
+                {outlookConnected ? "Outlook" : "Gmail"} inbox for CourtReserve
+                booking emails so you don&apos;t have to type bookings in by hand.
+                Here&apos;s exactly what that means:
               </p>
               <ul className="list-disc space-y-2 pl-5">
                 <li>
                   <span className="text-foreground">What we ask permission for.</span>{" "}
-                  Connecting Gmail grants a read-only Google OAuth scope
-                  (<code className="text-xs">gmail.readonly</code>) plus your Google
-                  account email. Google requires that scope to be requested at the
-                  account level &mdash; there&apos;s no narrower &quot;just this
-                  sender&quot; permission Google offers &mdash; but what we actually do
-                  with it is much narrower than the permission itself, as below.
+                  {outlookConnected ? (
+                    <>
+                      Connecting Outlook grants a read-only Microsoft Graph scope
+                      (<code className="text-xs">Mail.Read</code>) plus your Microsoft
+                      account email.
+                    </>
+                  ) : (
+                    <>
+                      Connecting Gmail grants a read-only Google OAuth scope
+                      (<code className="text-xs">gmail.readonly</code>) plus your Google
+                      account email.
+                    </>
+                  )}{" "}
+                  The provider requires that scope to be requested at the account
+                  level &mdash; there&apos;s no narrower &quot;just this sender&quot;
+                  permission on offer &mdash; but what we actually do with it is much
+                  narrower than the permission itself, as below.
                 </li>
                 <li>
                   <span className="text-foreground">What we actually search for.</span>{" "}
@@ -150,19 +169,19 @@ export default async function BookingBuddyPrivacyPage() {
                 </li>
                 <li>
                   <span className="text-foreground">How the connection is stored.</span>{" "}
-                  We store a refresh token for your Gmail connection, encrypted at
+                  We store a refresh token for your{" "}
+                  {outlookConnected ? "Outlook" : "Gmail"} connection, encrypted at
                   rest, so we can search your inbox on demand without asking you to
-                  sign in to Google every time. We never store a long-lived access
-                  token. Google&apos;s own Testing-mode status (this integration
-                  isn&apos;t yet through Google&apos;s full app-verification review)
-                  expires that connection roughly every 7 days, at which point
-                  you&apos;ll be prompted to reconnect.
+                  sign in every time. We never store a long-lived access token.
+                  {outlookConnected
+                    ? " If the connection lapses, you'll be prompted to reconnect."
+                    : " Google's own Testing-mode status (this integration isn't yet through Google's full app-verification review) expires that connection roughly every 7 days, at which point you'll be prompted to reconnect."}
                 </li>
                 <li>
                   <span className="text-foreground">Disconnecting.</span> You can
-                  disconnect Gmail at any time from Settings. This immediately and
-                  permanently deletes the stored refresh token, so the connection can
-                  no longer read anything from your inbox.
+                  disconnect your mailbox at any time from Settings. This immediately
+                  and permanently deletes the stored refresh token, so the connection
+                  can no longer read anything from your inbox.
                 </li>
               </ul>
             </Section>
@@ -172,9 +191,9 @@ export default async function BookingBuddyPrivacyPage() {
             <p>
               We don&apos;t sell your data or share it with advertisers. Supabase
               hosts our database and handles authentication on our behalf, under its
-              own security practices. If you use Sync from Email, Google is
-              necessarily involved as the mailbox provider for that one feature;
-              nobody else is.
+              own security practices. If you use Sync from Email, your mailbox
+              provider (Google or Microsoft) is necessarily involved for that one
+              feature; nobody else is.
             </p>
           </Section>
 
@@ -182,8 +201,9 @@ export default async function BookingBuddyPrivacyPage() {
             <p>
               Every table is scoped with Row Level Security so you can only ever read
               or write your own data (and whatever friends have explicitly shared with
-              you). Sensitive credentials, including the Gmail refresh token above,
-              are encrypted at rest. All traffic to the app is served over HTTPS.
+              you). Sensitive credentials, including the mailbox refresh token
+              above, are encrypted at rest. All traffic to the app is served over
+              HTTPS.
             </p>
           </Section>
 

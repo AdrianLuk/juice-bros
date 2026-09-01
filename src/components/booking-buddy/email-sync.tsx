@@ -144,13 +144,6 @@ export function MailboxSyncSection({
           )}
         </p>
 
-        {mailboxLink.provider === "microsoft" && (
-          <p className="text-sm text-muted-foreground">
-            Outlook syncing is still being finished. Booking Buddy will start
-            reading this inbox for CourtReserve mail once that ships.
-          </p>
-        )}
-
         <div className="flex flex-wrap items-center gap-3">
           {mailboxLink.status === "expired" && (
             <form action={connectMailbox.bind(null, mailboxLink.provider)}>
