@@ -77,7 +77,8 @@ export function joinPath(token: string): string {
  * more than one, the siblings shown in the desktop dropdown and in the pill row
  * under the page heading. Section labels repeat the primary child's label
  * (GitHub's "Code" tab pattern) except where a section genuinely spans two
- * peers ("Plan" over Games + Availability, "Bookings" over Bookings + Facilities).
+ * peers ("Plan" over Games + Availability + Find a time, "Settings" over
+ * Settings + Facilities).
  *
  * Kept here beside the path constants and free of Next / icon imports, so the
  * layout nav and the pill row share one definition of the tree — unit-tested
@@ -107,15 +108,7 @@ export const BB_SECTIONS: readonly BbSection[] = [
       { label: "Find a time", href: OVERLAP_PATH },
     ],
   },
-  {
-    id: "bookings",
-    label: "Bookings",
-    primary: BOOKINGS_PATH,
-    children: [
-      { label: "Bookings", href: BOOKINGS_PATH },
-      { label: "Facilities", href: ORGS_PATH },
-    ],
-  },
+  { id: "bookings", label: "Bookings", primary: BOOKINGS_PATH, children: [] },
   {
     id: "friends",
     label: "Friends",
@@ -125,7 +118,15 @@ export const BB_SECTIONS: readonly BbSection[] = [
       { label: "Groups", href: GROUPS_PATH },
     ],
   },
-  { id: "settings", label: "Settings", primary: SETTINGS_PATH, children: [] },
+  {
+    id: "settings",
+    label: "Settings",
+    primary: SETTINGS_PATH,
+    children: [
+      { label: "Settings", href: SETTINGS_PATH },
+      { label: "Facilities", href: ORGS_PATH },
+    ],
+  },
 ];
 
 function isWithin(pathname: string, base: string): boolean {
@@ -148,13 +149,13 @@ export function sectionForPath(pathname: string): BbSectionId | null {
   ) {
     return "plan";
   }
-  if (isWithin(pathname, BOOKINGS_PATH) || isWithin(pathname, ORGS_PATH)) {
+  if (isWithin(pathname, BOOKINGS_PATH)) {
     return "bookings";
   }
   if (isWithin(pathname, FRIENDS_PATH) || isWithin(pathname, GROUPS_PATH)) {
     return "friends";
   }
-  if (isWithin(pathname, SETTINGS_PATH)) {
+  if (isWithin(pathname, SETTINGS_PATH) || isWithin(pathname, ORGS_PATH)) {
     return "settings";
   }
   return null;

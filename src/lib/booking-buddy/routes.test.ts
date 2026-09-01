@@ -162,9 +162,8 @@ test("the Find a time route requires a session", () => {
   assert.equal(requiresSession("/booking-buddy/overlap"), true);
 });
 
-test("Bookings and Facilities are siblings under the Bookings section", () => {
+test("Bookings stands alone as its own section", () => {
   assert.equal(sectionForPath("/booking-buddy/bookings"), "bookings");
-  assert.equal(sectionForPath("/booking-buddy/orgs"), "bookings");
 });
 
 test("Friends and Groups are siblings under the Friends section", () => {
@@ -172,8 +171,9 @@ test("Friends and Groups are siblings under the Friends section", () => {
   assert.equal(sectionForPath("/booking-buddy/groups"), "friends");
 });
 
-test("Settings is its own section", () => {
+test("Settings and Facilities are siblings under the Settings section", () => {
   assert.equal(sectionForPath("/booking-buddy/settings"), "settings");
+  assert.equal(sectionForPath("/booking-buddy/orgs"), "settings");
 });
 
 test("pre-auth and off-app paths belong to no section", () => {
@@ -185,7 +185,7 @@ test("pre-auth and off-app paths belong to no section", () => {
 });
 
 test("the pill row shows siblings only where there's a choice", () => {
-  // Plan (Games + Availability + Find a time), Bookings + Facilities, Friends +
+  // Plan (Games + Availability + Find a time), Settings + Facilities, Friends +
   // Groups: two or more real peers → shown.
   assert.deepEqual(
     siblingsForPath("/booking-buddy/slots").map((c) => c.label),
@@ -200,15 +200,19 @@ test("the pill row shows siblings only where there's a choice", () => {
     ["Games", "Availability", "Find a time"],
   );
   assert.deepEqual(
+    siblingsForPath("/booking-buddy/settings").map((c) => c.label),
+    ["Settings", "Facilities"],
+  );
+  assert.deepEqual(
     siblingsForPath("/booking-buddy/orgs").map((c) => c.label),
-    ["Bookings", "Facilities"],
+    ["Settings", "Facilities"],
   );
   assert.deepEqual(
     siblingsForPath("/booking-buddy/groups").map((c) => c.label),
     ["Friends", "Groups"],
   );
-  // Dashboard, Settings, pre-auth: nothing to choose between.
+  // Dashboard, Bookings, pre-auth: nothing to choose between.
   assert.deepEqual(siblingsForPath("/booking-buddy"), []);
-  assert.deepEqual(siblingsForPath("/booking-buddy/settings"), []);
+  assert.deepEqual(siblingsForPath("/booking-buddy/bookings"), []);
   assert.deepEqual(siblingsForPath("/booking-buddy/sign-in"), []);
 });

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
+import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import { SignOutButton } from "@/components/booking-buddy/sign-out-button";
 import { UsernameForm } from "@/components/booking-buddy/username-form";
 import { GenderForm } from "@/components/booking-buddy/gender-form";
@@ -56,6 +57,7 @@ export default async function SettingsPage({
             title="Settings"
             description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
           />
+          <BbSectionNav />
 
           <div className="bb-card mt-10 p-6">
             <UsernameForm username={profile.username} />
