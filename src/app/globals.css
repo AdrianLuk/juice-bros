@@ -774,7 +774,7 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   .bb-week-quick-add-mark {
-    transition: opacity 140ms ease;
+    transition: opacity 70ms ease;
   }
 }
 .bb-week-quick-add:focus-visible .bb-week-quick-add-mark {
@@ -800,7 +800,7 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   .bb-month-quick-add {
-    transition: opacity 140ms ease;
+    transition: opacity 70ms ease;
   }
 }
 .bb-month-quick-add:focus-visible {
