@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { signIn } from "./sign-in.ts";
-import { addPlace, logBooking, placeName, removePlace, row } from "./places.ts";
+import { addPlace, deleteBooking, logBooking, placeName, removePlace, row } from "./places.ts";
 
 /**
  * The full "Sync from Email" scenario set (issues #64/#65/#88/#91), factored
@@ -226,6 +226,38 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await page.getByRole("button", { name: "Sync from Email" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible();
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+      await removePlace(page, facility);
+    });
+
+    test("deleting a confirmed Booking lets its email be re-imported on the next sync (#286)", async ({
+      page,
+    }) => {
+      const facility = placeName();
+      await signIn(page, user, "/booking-buddy/orgs");
+      await addPlace(page, facility);
+
+      await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
+
+      const importCard = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+
+      // Import the confirmation into a real Booking.
+      await page.goto("/booking-buddy/bookings");
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await expect(importCard).toBeVisible();
+      await importCard.getByRole("button", { name: "Confirm" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(row(page, "Court 3")).toContainText(facility);
+
+      // Deleting that Booking from the UI cascades its ledger row away, so the
+      // next sync re-offers the email — the realistic path here is recovery
+      // (an accidental delete), and a deliberate delete just Dismisses it once.
+      await deleteBooking(page, "Court 3");
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await expect(importCard).toBeVisible();
+      await expect(importCard).toContainText(facility);
 
       await removePlace(page, facility);
     });

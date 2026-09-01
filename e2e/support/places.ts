@@ -102,6 +102,20 @@ export async function logBooking(
 }
 
 /**
+ * Removes the Bookings-list row for `courtLabel` through its own confirmation
+ * dialog. Scoped to that row so the "Remove"/"Remove booking" button names
+ * don't collide with the sync review screen's own cancellation card, which
+ * reuses "Remove booking".
+ */
+export async function deleteBooking(page: Page, courtLabel: string) {
+  await page.goto("/booking-buddy/bookings");
+  await row(page, courtLabel).getByRole("button", { name: "Remove", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Remove booking" }).click();
+  await expect(row(page, courtLabel)).toHaveCount(0);
+}
+
+/**
  * Opens the "Edit" dialog on the Bookings list row for `courtLabel` and
  * changes only the given fields (issue #97, extended to Players by #101).
  * Scoped to `page.getByRole("dialog")`, the same disambiguation
