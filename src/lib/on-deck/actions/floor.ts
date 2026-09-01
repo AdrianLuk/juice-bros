@@ -6,7 +6,7 @@ import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
 import {
   commitFloorOutcome,
-  undoResult,
+  runUndo,
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
@@ -150,10 +150,5 @@ export async function undoLastAction(
 ): Promise<FloorActionResult> {
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
-
-  const { error } = await owned.supabase.rpc("on_deck_undo_last_event", {
-    p_session_id: sessionId,
-    p_expected_seq: expectedSeq,
-  });
-  return undoResult(error, sessionId);
+  return runUndo(owned.supabase, sessionId, expectedSeq);
 }

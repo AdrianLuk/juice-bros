@@ -15,25 +15,25 @@
  * object, unit-tested under `node --test`.
  */
 
-import type { SessionState } from "./session/types.ts";
+import type { Operator, SessionState } from "./session/types.ts";
 
 /**
- * The operational turnover events a floor tap can produce. The same closed set
- * `on_deck_volunteer_append` whitelists for a link-authenticated Volunteer, and
- * the same set operator Undo (#247) will drop.
+ * The operational turnover events a floor tap can produce — the one list the
+ * `FloorEventType` union, `on_deck_volunteer_append`'s whitelist, and operator
+ * Undo (#247) all draw from.
  */
-export type FloorEventType =
-  | "COURT_FINISHED"
-  | "PLAYER_PAUSED"
-  | "PLAYER_REQUEUED"
-  | "FOURSOME_MEMBER_SWAPPED";
-
-const FLOOR_EVENT_TYPES: readonly string[] = [
+export const FLOOR_EVENT_TYPES = [
   "COURT_FINISHED",
   "PLAYER_PAUSED",
   "PLAYER_REQUEUED",
   "FOURSOME_MEMBER_SWAPPED",
-];
+] as const;
+
+export type FloorEventType = (typeof FLOOR_EVENT_TYPES)[number];
+
+function isFloorEventType(type: string): type is FloorEventType {
+  return (FLOOR_EVENT_TYPES as readonly string[]).includes(type);
+}
 
 /**
  * How long after an operational event an Operator may still undo it (#247).
@@ -50,9 +50,27 @@ const UNDO_LABEL: Record<FloorEventType, string> = {
   FOURSOME_MEMBER_SWAPPED: "the last no-show swap",
 };
 
-/** The event operator Undo would drop, and a phrase for the button — or null
- * when the most recent event is structural, Player-sourced, or too old. */
-export type UndoTarget = { seq: number; label: string };
+/** The most recent raw event of a Session — the seq/type/at/operator the fold
+ * discards but operator Undo needs. */
+export type LastEvent = {
+  seq: number;
+  type: string;
+  /** epoch ms */
+  at: number;
+  operator: Operator;
+};
+
+/**
+ * The event operator Undo would drop (`seq`), a phrase for the button
+ * (`label`), and who fired it (`by`) so the floor screen can flag undoing
+ * *someone else's* tap — or null when the most recent event is structural,
+ * Player-sourced, or too old.
+ */
+export type UndoTarget = {
+  seq: number;
+  label: string;
+  by: Operator["kind"];
+};
 
 /**
  * Given a Session's most recent raw event, decide whether the floor screen
@@ -60,15 +78,16 @@ export type UndoTarget = { seq: number; label: string };
  * projection, not the fold — the fold still never reads the clock).
  */
 export function describeUndo(
-  lastEvent: { seq: number; type: string; at: number } | null,
+  lastEvent: LastEvent | null,
   now: number,
 ): UndoTarget | null {
   if (!lastEvent) return null;
-  if (!FLOOR_EVENT_TYPES.includes(lastEvent.type)) return null;
+  if (!isFloorEventType(lastEvent.type)) return null;
   if (now - lastEvent.at > UNDO_WINDOW_MS) return null;
   return {
     seq: lastEvent.seq,
-    label: UNDO_LABEL[lastEvent.type as FloorEventType],
+    label: UNDO_LABEL[lastEvent.type],
+    by: lastEvent.operator.kind,
   };
 }
 

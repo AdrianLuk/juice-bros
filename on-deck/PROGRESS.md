@@ -155,11 +155,15 @@ event array plus assertions about the resulting state.
   only within `on_deck_undo_window()` (15 min, matched by `UNDO_WINDOW_MS`), and
   only when the caller's `expected_seq` still matches `max(seq)` — a concurrent
   Operator's newer action fails with `40001` and a "someone else changed the
-  board" message rather than a silent wrong drop. Organizer via account,
-  Volunteer via the #248 link token, same one RPC. `LoadedSession` now carries
-  the raw `lastEvent` (seq/type/at) the fold discards; `describeUndo` (pure,
-  `node --test`) decides whether to offer it; `RotationView.undo` carries the
-  seq + a button label. Tests: `on_deck_undo.test.sql` (stale seq, window,
+  board" message rather than a silent wrong drop (the tip row is `for update`
+  locked and a 0-row delete re-raises `40001`, so two simultaneous undos can't
+  both report success). Organizer via account, Volunteer via the #248 link
+  token (reusing `on_deck_check_volunteer_token`), same one RPC. `LoadedSession`
+  carries the raw `lastEvent` (seq/type/at/operator) the fold discards;
+  `describeUndo` (pure, `node --test`) decides whether to offer it and surfaces
+  *whose* tap it was, so undoing a volunteer's mistap from the Organizer phone
+  reads clearly; `RotationView.undo` carries the seq + a button label + `by`.
+  Tests: `on_deck_undo.test.sql` (stale seq, window,
   non-undoable type, empty log, volunteer scope, no direct DELETE, unrelated
   Organizer), `floor-ops.test.ts` `describeUndo`, `reduce.test.ts` undo-parity
   for the swap and re-queue, `e2e/on-deck-undo.spec.ts` (tap-wrong-court → undo

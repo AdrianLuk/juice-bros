@@ -10,6 +10,7 @@ import type {
   SessionEvent,
   SessionState,
 } from "./session/types.ts";
+import type { LastEvent } from "./floor-ops.ts";
 
 type SessionRow = {
   id: string;
@@ -158,12 +159,11 @@ export type LoadedSession = {
   status: "open" | "closed";
   state: SessionState;
   /**
-   * The raw most recent event row — its `seq`, `type`, and `at` (epoch ms) —
-   * or null for an eventless Session. What operator Undo (#247) needs that the
-   * fold discards: the seq to target and drop, and enough to decide whether it
-   * is an Operator's to undo.
+   * The raw most recent event row, or null for an eventless Session. What
+   * operator Undo (#247) needs that the fold discards: the seq to target, and
+   * enough to decide whether it is an Operator's to undo and whose tap it was.
    */
-  lastEvent: { seq: number; type: string; at: number } | null;
+  lastEvent: LastEvent | null;
 };
 
 /**
@@ -234,8 +234,13 @@ async function loadSession(
     .filter((event): event is SessionEvent => event !== null);
 
   const lastRow = rows[rows.length - 1];
-  const lastEvent = lastRow
-    ? { seq: lastRow.seq, type: lastRow.type, at: new Date(lastRow.at).getTime() }
+  const lastEvent: LastEvent | null = lastRow
+    ? {
+        seq: lastRow.seq,
+        type: lastRow.type,
+        at: new Date(lastRow.at).getTime(),
+        operator: toOperator(lastRow),
+      }
     : null;
 
   return {

@@ -4,7 +4,7 @@ import { createClient } from "../supabase/server.ts";
 import { loadVolunteerSession } from "../volunteer.ts";
 import {
   commitFloorOutcome,
-  undoResult,
+  runUndo,
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
@@ -107,12 +107,5 @@ export async function volunteerUndoLastAction(
 ): Promise<FloorActionResult> {
   const loaded = await loadVolunteerSession(sessionId, token);
   if (!loaded) return { error: LINK_DEAD };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("on_deck_undo_last_event", {
-    p_session_id: sessionId,
-    p_expected_seq: expectedSeq,
-    p_volunteer_token: token.trim(),
-  });
-  return undoResult(error, sessionId);
+  return runUndo(await createClient(), sessionId, expectedSeq, token.trim());
 }

@@ -31,6 +31,9 @@ immutable
 set search_path = ''
 as $$ select interval '15 minutes' $$;
 
+revoke all on function public.on_deck_undo_window() from public;
+grant execute on function public.on_deck_undo_window() to anon, authenticated;
+
 create function public.on_deck_undo_last_event(
   p_session_id uuid,
   p_expected_seq bigint,
@@ -61,27 +64,24 @@ begin
     ) then
       raise exception 'this session is not yours to undo' using errcode = '42501';
     end if;
-  else
-    if not exists (
-      select 1
-      from public.on_deck_sessions
-      where id = p_session_id
-        and status = 'open'
-        and floor_mode in ('volunteer-run', 'hybrid')
-        and char_length(v_token) >= 24
-        and volunteer_token = v_token
-    ) then
-      raise exception 'this volunteer link is not valid for an open session'
-        using errcode = '42501';
-    end if;
+  -- The volunteer gate is exactly `on_deck_check_volunteer_token` (#248) — open
+  -- Session, Floor Mode admits volunteers, token matches — so reuse it rather
+  -- than re-inline the predicate.
+  elsif not public.on_deck_check_volunteer_token(p_session_id, v_token) then
+    raise exception 'this volunteer link is not valid for an open session'
+      using errcode = '42501';
   end if;
 
+  -- Lock the tip so two Operators undoing at once serialize: the loser's
+  -- re-read sees the row gone, its expected_seq no longer matches, and it gets
+  -- the 40001 conflict rather than a silent no-op reported as success.
   select seq, type, at
     into v_seq, v_type, v_at
   from public.on_deck_session_events
   where session_id = p_session_id
   order by seq desc
-  limit 1;
+  limit 1
+  for update;
 
   if v_seq is null then
     raise exception 'there is nothing to undo' using errcode = '22023';
@@ -108,6 +108,13 @@ begin
 
   delete from public.on_deck_session_events
   where session_id = p_session_id and seq = v_seq;
+
+  -- Belt-and-braces on the FOR UPDATE: if the row vanished between the lock and
+  -- here, report the conflict, never a success that changed nothing.
+  if not found then
+    raise exception 'someone else changed the board since you looked'
+      using errcode = '40001';
+  end if;
 
   return v_seq;
 end;

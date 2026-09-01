@@ -168,45 +168,45 @@ test("swapNoShowOutcome rejects an empty Court, a stale board, and a bad pick", 
 // --- describeUndo (#247) -------------------------------------------------
 
 const NOW = 1_000_000_000_000;
+const byOrganizer: Operator = { kind: "organizer", userId: "vanessa" };
+const last = (type: string, at = NOW, operator: Operator = byOrganizer) => ({
+  seq: 42,
+  type,
+  at,
+  operator,
+});
 
-test("describeUndo offers a recent turnover event, with a per-type label", () => {
-  assert.deepEqual(
-    describeUndo({ seq: 42, type: "COURT_FINISHED", at: NOW - 1000 }, NOW),
-    { seq: 42, label: "the last court finish" },
-  );
+test("describeUndo offers a recent turnover event, with a per-type label and who fired it", () => {
+  assert.deepEqual(describeUndo(last("COURT_FINISHED", NOW - 1000), NOW), {
+    seq: 42,
+    label: "the last court finish",
+    by: "organizer",
+  });
+  assert.equal(describeUndo(last("PLAYER_PAUSED"), NOW)?.label, "the last set-aside");
   assert.equal(
-    describeUndo({ seq: 43, type: "PLAYER_PAUSED", at: NOW }, NOW)?.label,
-    "the last set-aside",
-  );
-  assert.equal(
-    describeUndo({ seq: 44, type: "FOURSOME_MEMBER_SWAPPED", at: NOW }, NOW)?.label,
+    describeUndo(last("FOURSOME_MEMBER_SWAPPED"), NOW)?.label,
     "the last no-show swap",
   );
+  assert.equal(describeUndo(last("PLAYER_REQUEUED"), NOW)?.label, "the last re-queue");
   assert.equal(
-    describeUndo({ seq: 45, type: "PLAYER_REQUEUED", at: NOW }, NOW)?.label,
-    "the last re-queue",
+    describeUndo(last("COURT_FINISHED", NOW, { kind: "volunteer" }), NOW)?.by,
+    "volunteer",
   );
 });
 
 test("describeUndo declines a structural or Player-sourced last event", () => {
   for (const type of ["SESSION_STARTED", "PLAYER_JOINED", "PLAYER_QUEUED"]) {
-    assert.equal(describeUndo({ seq: 1, type, at: NOW }, NOW), null);
+    assert.equal(describeUndo(last(type), NOW), null);
   }
 });
 
 test("describeUndo declines an event past the undo window, and an empty log", () => {
   assert.equal(
-    describeUndo(
-      { seq: 9, type: "COURT_FINISHED", at: NOW - UNDO_WINDOW_MS - 1 },
-      NOW,
-    ),
+    describeUndo(last("COURT_FINISHED", NOW - UNDO_WINDOW_MS - 1), NOW),
     null,
   );
   assert.notEqual(
-    describeUndo(
-      { seq: 9, type: "COURT_FINISHED", at: NOW - UNDO_WINDOW_MS + 1 },
-      NOW,
-    ),
+    describeUndo(last("COURT_FINISHED", NOW - UNDO_WINDOW_MS + 1), NOW),
     null,
   );
   assert.equal(describeUndo(null, NOW), null);

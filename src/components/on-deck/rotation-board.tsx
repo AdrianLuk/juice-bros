@@ -45,6 +45,15 @@ const PAUSE_REASON_LABEL: Record<PauseReason, string> = {
   "set-aside": "set aside",
 };
 
+/** Whose tap the Undo control is offering to reverse, when it wasn't the
+ * person now looking at the board (#247). */
+const OTHER_OPERATOR_LABEL: Record<string, string> = {
+  organizer: "The organizer",
+  volunteer: "A volunteer",
+  kiosk: "The kiosk",
+  player: "A player",
+};
+
 /**
  * The Organizer's floor screen (issue #243): every Court and who is on it, the
  * Queue in order, and a "Court N done" tap per occupied Court. Polls
@@ -282,11 +291,9 @@ function RotationBoardInner({
 
   const refresh = () => queryClient.invalidateQueries({ queryKey });
   const handle = (result: { ok?: boolean; error?: string }) => {
-    if (!result.ok) {
-      setError(result.error ?? "Something went wrong. Try again.");
-      return;
-    }
-    setError(null);
+    setError(result.ok ? null : (result.error ?? "Something went wrong. Try again."));
+    // Re-sync either way: on success to show the new board, on error (e.g. a
+    // concurrent Operator) to pull in whatever they changed.
     refresh();
   };
 
@@ -353,9 +360,11 @@ function RotationBoardInner({
       )}
 
       {undoTarget && (
-        <div className="flex items-center justify-between rounded-xl border border-dashed px-3 py-2">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2">
           <span className="text-sm text-muted-foreground">
-            Tapped something by mistake?
+            {undoTarget.by !== auth.kind
+              ? `${OTHER_OPERATOR_LABEL[undoTarget.by]} made the last change.`
+              : "Tapped something by mistake?"}
           </span>
           <Button
             type="button"
