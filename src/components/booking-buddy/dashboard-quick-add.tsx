@@ -12,9 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CreateBookingForm } from "@/components/booking-buddy/bookings";
 import { CreateAvailabilityWindowForm } from "@/components/booking-buddy/availability";
-import type { Org } from "@/lib/booking-buddy/actions/orgs";
 
 /**
  * The dashboard's floating quick-add actions (issue #23's "Add booking",
@@ -24,9 +22,18 @@ import type { Org } from "@/lib/booking-buddy/actions/orgs";
  * instead of two hand-tuned `bottom-*` offsets drifting apart. "Add booking"
  * stays the visually primary, bottom-most action — same position it already
  * held — with "Block off time" stacked above it as the secondary one.
+ *
+ * "Add booking" no longer owns its own dialog: the Log-a-booking dialog is a
+ * single shared instance lifted up into `OwnerDashboardCalendar` (issue #303),
+ * so a calendar-cell "+" and this FAB open the same form. This button just
+ * asks the owner to open it, with no prefill. "Block off time" keeps its own
+ * dialog here — it's unrelated to the booking form.
  */
-export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+export function DashboardQuickActions({
+  onAddBooking,
+}: {
+  onAddBooking: () => void;
+}) {
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
@@ -59,39 +66,14 @@ export function DashboardQuickActions({ orgs }: { orgs: Org[] }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogTrigger
-          render={
-            <Button
-              size="lg"
-              className="h-11 gap-2 rounded-full px-5 shadow-lg hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
-            />
-          }
-        >
-          <PlusIcon />
-          Add booking
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Log a booking</DialogTitle>
-            <DialogDescription>
-              Copy it off the facility&apos;s own booking screen. It&apos;ll
-              show up on the calendar right after.
-            </DialogDescription>
-          </DialogHeader>
-          {orgs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Bookings need somewhere to be. Add a place you play first,
-              then come back.
-            </p>
-          ) : (
-            <CreateBookingForm
-              orgs={orgs}
-              onLogged={() => setBookingDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <Button
+        size="lg"
+        onClick={onAddBooking}
+        className="h-11 gap-2 rounded-full px-5 shadow-lg hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+      >
+        <PlusIcon />
+        Add booking
+      </Button>
     </div>
   );
 }

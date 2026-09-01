@@ -246,10 +246,23 @@ function BookingFieldSet({
 export function CreateBookingForm({
   orgs,
   onLogged,
+  prefill,
 }: {
   orgs: Org[];
   /** Called once the Booking actually saves — e.g. to close whatever dialog this form sits in. */
   onLogged?: () => void;
+  /**
+   * Set when the form is opened from a calendar cell (issue #303): `date`
+   * (ISO `YYYY-MM-DD`, browser-local) seeds the Date field, and `startTime`
+   * (`HH:00`, Week-view clicks only) seeds Start — Month clicks omit it and
+   * keep the 18:00 default. Its mere presence also stamps a hidden
+   * `source=calendar` marker on the submission so the create action can emit
+   * the calendar-origin analytics event; `parseNewBooking` ignores the field.
+   * A plain FAB / Bookings-page open leaves this undefined and carries no
+   * marker. `OwnerDashboardCalendar` keys the form on the prefill so each
+   * distinct cell click remounts it fresh.
+   */
+  prefill?: { date: string; startTime?: string };
 }) {
   const [state, formAction, pending] = useActionState(createBooking, EMPTY);
   const formRef = useRef<HTMLFormElement>(null);
@@ -261,9 +274,11 @@ export function CreateBookingForm({
   // today's "force an explicit pick" behaviour (issue #47).
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
+  const initialStartTime = prefill?.startTime ?? DEFAULT_START_TIME;
+
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, so both need a live value to derive it from.
-  const duration = useDurationInput(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
+  const duration = useDurationInput(initialStartTime, DEFAULT_DURATION_HOURS);
 
   // Resets the controlled Start/Duration fields in lockstep with the form's
   // own uncontrolled ones below — done here, during render, rather than in
@@ -274,7 +289,7 @@ export function CreateBookingForm({
   if (resetForState !== state) {
     setResetForState(state);
     if (state.ok) {
-      duration.reset(DEFAULT_START_TIME, DEFAULT_DURATION_HOURS);
+      duration.reset(initialStartTime, DEFAULT_DURATION_HOURS);
       // Same mid-render pattern — a state change in response to the action
       // settling, not a side effect of it.
       setSaved(true);
@@ -305,6 +320,7 @@ export function CreateBookingForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+      {prefill && <input type="hidden" name="source" value="calendar" />}
       <BookingFieldSet
         idPrefix="booking"
         orgs={orgs}
@@ -312,7 +328,7 @@ export function CreateBookingForm({
         defaultFormat={DEFAULT_BOOKING_FORMAT}
         defaultName=""
         defaultCourtLabel=""
-        defaultDate=""
+        defaultDate={prefill?.date ?? ""}
         startTime={duration.startTime}
         onStartTimeChange={duration.setStartTime}
         durationChoice={duration.durationChoice}
