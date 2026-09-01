@@ -35,6 +35,16 @@ export function floorPath(sessionId: string): string {
   return `${ON_DECK_ROOT}/session/${sessionId}/floor`;
 }
 
+/**
+ * The per-Session Volunteer Link (issue #248): the operational floor surface,
+ * no account, admitted by the link's token rather than a session. Not
+ * Organizer-gated (ADR 0005) — the token in the path is the credential, and it
+ * stops working when the Session closes.
+ */
+export function volunteerPath(sessionId: string, token: string): string {
+  return `${ON_DECK_ROOT}/session/${sessionId}/volunteer/${token}`;
+}
+
 function isUnderRoot(pathname: string): boolean {
   // Exact match or a real segment beneath it — `/on-deck-press-kit` shares the
   // prefix but is not an On Deck route.
@@ -45,6 +55,8 @@ function isUnderRoot(pathname: string): boolean {
  * Only the Organizer subtree requires a session. The landing page, sign-in,
  * the Club QR resolver, and the live Session view are all open — but the
  * floor screen *under* a Session (`/session/:id/floor`) is the Organizer's.
+ * The Volunteer Link (`/session/:id/volunteer/:token`) stays open: the token
+ * is its credential (ADR 0005), verified in the page, not by a session.
  */
 const ORGANIZER_SUBPATHS = ["/home"];
 

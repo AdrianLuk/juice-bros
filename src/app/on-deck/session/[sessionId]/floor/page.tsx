@@ -8,8 +8,11 @@ import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSession } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
-import { clubQrPath, floorPath } from "@/lib/on-deck/routes";
+import { getVolunteerToken } from "@/lib/on-deck/volunteer";
+import { onDeckAbsoluteUrl } from "@/lib/on-deck/request-origin";
+import { clubQrPath, floorPath, volunteerPath } from "@/lib/on-deck/routes";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
+import { VolunteerLinkCard } from "@/components/on-deck/volunteer-link-card";
 
 export async function generateMetadata({
   params,
@@ -50,6 +53,17 @@ export default async function FloorPage({
 
   const view = rotationViewFrom(loaded);
 
+  // The Volunteer Link is offered only for the *open* Session, and only when
+  // Floor Mode includes volunteers (volunteer-run / hybrid) — under self-serve
+  // it is inert, so it isn't shown.
+  const volunteerToken =
+    loaded.status === "open" && loaded.config.floorMode !== "self-serve"
+      ? await getVolunteerToken(supabase, sessionId)
+      : null;
+  const volunteerUrl = volunteerToken
+    ? await onDeckAbsoluteUrl(volunteerPath(sessionId, volunteerToken))
+    : null;
+
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-12 sm:px-6 lg:px-8">
@@ -70,6 +84,12 @@ export default async function FloorPage({
             </Link>{" "}
             to join.
           </p>
+
+          {volunteerUrl && (
+            <div className="mt-6">
+              <VolunteerLinkCard url={volunteerUrl} />
+            </div>
+          )}
 
           <div className="mt-10">
             <RotationBoard sessionId={sessionId} initialView={view} />
