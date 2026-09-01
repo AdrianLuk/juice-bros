@@ -3,8 +3,12 @@ import test from "node:test";
 
 import {
   readGooglePlacesApiBaseUrl,
+  readMicrosoftApiBaseUrl,
+  readMicrosoftOAuthClientId,
   readPublicSupabaseEnv,
   requireGoogleMapsApiKey,
+  requireMicrosoftOAuthClientId,
+  requireMicrosoftOAuthClientSecret,
   requireSupabaseServiceRoleKey,
 } from "./env.ts";
 
@@ -76,6 +80,41 @@ test("readGooglePlacesApiBaseUrl uses the override when set", () => {
   assert.equal(
     readGooglePlacesApiBaseUrl({ GOOGLE_PLACES_API_BASE_URL: "http://127.0.0.1:5602" }),
     "http://127.0.0.1:5602",
+  );
+});
+
+test("readMicrosoftOAuthClientId returns undefined when unset or blank", () => {
+  assert.equal(readMicrosoftOAuthClientId({}), undefined);
+  assert.equal(readMicrosoftOAuthClientId({ MICROSOFT_OAUTH_CLIENT_ID: "  " }), undefined);
+});
+
+test("readMicrosoftOAuthClientId returns the value when set", () => {
+  assert.equal(
+    readMicrosoftOAuthClientId({ MICROSOFT_OAUTH_CLIENT_ID: "ms-client" }),
+    "ms-client",
+  );
+});
+
+test("requireMicrosoftOAuthClientId names the variable when missing", () => {
+  assert.throws(() => requireMicrosoftOAuthClientId({}), /MICROSOFT_OAUTH_CLIENT_ID/);
+});
+
+test("requireMicrosoftOAuthClientSecret names the variable when missing", () => {
+  assert.throws(
+    () => requireMicrosoftOAuthClientSecret({}),
+    /MICROSOFT_OAUTH_CLIENT_SECRET/,
+  );
+});
+
+test("readMicrosoftApiBaseUrl defaults to undefined (real host) when unset or blank", () => {
+  assert.equal(readMicrosoftApiBaseUrl({}), undefined);
+  assert.equal(readMicrosoftApiBaseUrl({ MICROSOFT_API_BASE_URL: "   " }), undefined);
+});
+
+test("readMicrosoftApiBaseUrl uses the override when set", () => {
+  assert.equal(
+    readMicrosoftApiBaseUrl({ MICROSOFT_API_BASE_URL: "http://127.0.0.1:5604" }),
+    "http://127.0.0.1:5604",
   );
 });
 

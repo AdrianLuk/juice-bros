@@ -27,8 +27,16 @@ export type MailSearchCriteria = {
   after: Date;
 };
 
+/**
+ * `accountEmail` is the optional address of the just-connected mailbox, when
+ * the token response itself already carries it — Microsoft returns an
+ * `id_token` whose `email` claim identifies the account, so its adapter fills
+ * this in and the callback route skips a separate lookup. Google's token
+ * response has no such claim, so its adapter leaves this unset and the callback
+ * falls back to `resolveAccountEmail`.
+ */
 export type TokenExchangeOutcome =
-  | { ok: true; refreshToken: string; accessToken: string }
+  | { ok: true; refreshToken: string; accessToken: string; accountEmail?: string }
   | { ok: false; reason: "unreachable" };
 
 /**

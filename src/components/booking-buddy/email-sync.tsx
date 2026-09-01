@@ -1,6 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useActionState } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -9,45 +11,195 @@ import {
   disconnectMailbox,
   type MailboxLink,
 } from "@/lib/booking-buddy/actions/email-sync";
+import {
+  MAILBOX_PROVIDER_IDENTITY_LABEL,
+  MAILBOX_PROVIDER_LABEL,
+  type MailboxProvider,
+} from "@/lib/booking-buddy/mailbox-provider";
 
 const EMPTY: ActionResult = {};
 
-/** Only Google is wired up today (#281); the provider argument is threaded through for #280's later slices. */
-const connectGmail = connectMailbox.bind(null, "google");
+/**
+ * Brand glyphs as inline SVG — Booking Buddy's icon set (lucide) carries no
+ * brand marks, and the spec wants each connect option visually tagged with the
+ * inbox it opens. Monochrome-on-brand-colour, `aria-hidden` (the button label
+ * already names the provider).
+ */
+function GmailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4 shrink-0" aria-hidden="true">
+      <path
+        fill="#EA4335"
+        d="M22 5.5v13a1.5 1.5 0 0 1-1.5 1.5H18V9.6l-6 4.5-6-4.5V20H3.5A1.5 1.5 0 0 1 2 18.5v-13A1.5 1.5 0 0 1 3.5 4h.6L12 10l7.9-6h.6A1.5 1.5 0 0 1 22 5.5Z"
+      />
+    </svg>
+  );
+}
 
-// "email_sync_not_allowed" isn't handled here: this component only ever
-// renders when the Settings page has already decided the caller is
-// allowed, so that error (raised by connectMailbox's own authoritative
-// re-check) can't occur while this is on screen — see the page's own
-// standalone banner for that case.
+function OutlookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4 shrink-0" aria-hidden="true">
+      <path
+        fill="#0078D4"
+        d="M13 4h7a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-7v-4.2l3.2 2.1L21 15V9l-4.8-2.9L13 8.2V4Z"
+      />
+      <path
+        fill="#0078D4"
+        d="M2 6l9-2v16l-9-2V6Zm4.5 3.2c-1.3 0-2.2 1.2-2.2 2.9s.9 2.8 2.2 2.8 2.2-1.1 2.2-2.9-.9-2.8-2.2-2.8Zm0 1.3c.6 0 1 .6 1 1.5s-.4 1.6-1 1.6-1-.6-1-1.6.4-1.5 1-1.5Z"
+      />
+    </svg>
+  );
+}
+
+const PROVIDER_ICON: Record<MailboxProvider, () => ReactNode> = {
+  google: GmailIcon,
+  microsoft: OutlookIcon,
+};
+
+/**
+ * The one-line heads-up before each consent screen — until publisher
+ * verification is done for both apps, a User picking either option lands on a
+ * scary-looking warning and needs to know it's expected and how to get past it.
+ */
+const UNVERIFIED_APP_NOTE: Record<MailboxProvider, string> = {
+  google:
+    "Google has not reviewed this app yet, so its consent screen shows a warning. Choose Advanced, then Go to Booking Buddy.",
+  microsoft:
+    "Microsoft shows an unverified-app notice on the consent screen. Check the listed permissions, then choose Accept.",
+};
+
+// "email_sync_not_allowed" isn't handled here: the Settings page renders its
+// own standalone banner for that case (with a Request-access link), since the
+// section stays visible to every User now and that error is Gmail-only.
 function errorMessage(error: string | undefined): string | null {
   switch (error) {
     case "mailbox_connect_failed":
-      return "Couldn't connect Gmail. Try again.";
+      return "Couldn't connect that mailbox. Try again.";
     default:
       return null;
   }
 }
 
+function ProviderConnectButton({ provider }: { provider: MailboxProvider }) {
+  const Icon = PROVIDER_ICON[provider];
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <form action={connectMailbox.bind(null, provider)}>
+        <Button type="submit" variant="outline" className="gap-2">
+          <Icon />
+          Connect {MAILBOX_PROVIDER_LABEL[provider]}
+        </Button>
+      </form>
+      <p className="text-xs text-muted-foreground">{UNVERIFIED_APP_NOTE[provider]}</p>
+    </div>
+  );
+}
+
 /**
- * "Sync from Email" section of Settings (issue #62). Only ever rendered for
- * an allowlisted User — the page decides that before this component exists
- * on the page at all, so there's nothing here checking it a second time.
+ * "Sync from Email" section of Settings (spec #280). Visible to every User: the
+ * Gmail option only renders for an allowlisted one (ADR-0009's Testing-mode
+ * cap), the Outlook option only when the Microsoft OAuth client is configured.
+ * `connectMailbox` and the callback route re-check both of those authoritatively.
  *
- * Only the connect/disconnect pipe ships in this ticket: no "Sync from
- * Email" button yet, no candidates, no review screen — that's #64.
+ * Only the connect/disconnect pipe lives here — the "Sync from Email" button,
+ * the candidates, and the review screen are on the Bookings page.
  */
 export function MailboxSyncSection({
   mailboxLink,
+  gmailConnectAllowed,
+  outlookConnectConfigured,
   error,
   justConnected,
 }: {
   mailboxLink: MailboxLink;
+  gmailConnectAllowed: boolean;
+  outlookConnectConfigured: boolean;
   error?: string;
   justConnected?: boolean;
 }) {
   const [state, disconnectAction, pending] = useActionState(disconnectMailbox, EMPTY);
   const message = errorMessage(error);
+
+  const connectableProviders: MailboxProvider[] = [
+    ...(gmailConnectAllowed ? (["google"] as const) : []),
+    ...(outlookConnectConfigured ? (["microsoft"] as const) : []),
+  ];
+
+  let body: ReactNode;
+
+  if (mailboxLink) {
+    const providerLabel = MAILBOX_PROVIDER_LABEL[mailboxLink.provider];
+    const identityLabel = MAILBOX_PROVIDER_IDENTITY_LABEL[mailboxLink.provider];
+
+    body = (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm">
+          Connected as <span className="font-medium">{mailboxLink.accountEmail}</span> via{" "}
+          {providerLabel}
+          {mailboxLink.status === "expired" && (
+            <span className="ml-2 text-destructive">
+              ({identityLabel} needs you to reconnect)
+            </span>
+          )}
+        </p>
+
+        {mailboxLink.provider === "microsoft" && (
+          <p className="text-sm text-muted-foreground">
+            Outlook syncing is still being finished. Booking Buddy will start
+            reading this inbox for CourtReserve mail once that ships.
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {mailboxLink.status === "expired" && (
+            <form action={connectMailbox.bind(null, mailboxLink.provider)}>
+              <Button type="submit" variant="outline">
+                Reconnect {providerLabel}
+              </Button>
+            </form>
+          )}
+          <form action={disconnectAction}>
+            <Button type="submit" variant="destructive" disabled={pending}>
+              {pending ? "Disconnecting…" : "Disconnect"}
+            </Button>
+          </form>
+        </div>
+
+        {state.error && (
+          <p className="text-xs text-destructive" role="alert">
+            {state.error}
+          </p>
+        )}
+      </div>
+    );
+  } else if (connectableProviders.length === 0) {
+    body = (
+      <p className="text-sm text-muted-foreground">
+        Email sync reads your CourtReserve confirmation emails and pulls those
+        bookings in for you. The Gmail option is invite-only right now.{" "}
+        <Link href="/contact" className="text-foreground underline underline-offset-2">
+          Request access
+        </Link>
+        .
+      </p>
+    );
+  } else {
+    body = (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">
+          Connect the inbox your CourtReserve confirmation emails go to, and
+          Booking Buddy can pull those reservations in without you typing them by
+          hand.
+        </p>
+        <div className="flex flex-col gap-4">
+          {connectableProviders.map((provider) => (
+            <ProviderConnectButton key={provider} provider={provider} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,55 +210,10 @@ export function MailboxSyncSection({
       )}
       {justConnected && !message && (
         <p className="text-sm text-muted-foreground" role="status">
-          Gmail connected.
+          Mailbox connected.
         </p>
       )}
-
-      {mailboxLink ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm">
-            Connected as <span className="font-medium">{mailboxLink.accountEmail}</span>
-            {mailboxLink.status === "expired" && (
-              <span className="ml-2 text-destructive">
-                (Google needs you to reconnect)
-              </span>
-            )}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {mailboxLink.status === "expired" && (
-              <form action={connectGmail}>
-                <Button type="submit" variant="outline">
-                  Reconnect Gmail
-                </Button>
-              </form>
-            )}
-            <form action={disconnectAction}>
-              <Button type="submit" variant="destructive" disabled={pending}>
-                {pending ? "Disconnecting…" : "Disconnect"}
-              </Button>
-            </form>
-          </div>
-
-          {state.error && (
-            <p className="text-xs text-destructive" role="alert">
-              {state.error}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            Connect your Gmail account to pull in bookings you&apos;ve already made
-            at CourtReserve-powered facilities, without typing them in by hand.
-          </p>
-          <form action={connectGmail}>
-            <Button type="submit" variant="outline">
-              Connect Gmail
-            </Button>
-          </form>
-        </div>
-      )}
+      {body}
     </div>
   );
 }

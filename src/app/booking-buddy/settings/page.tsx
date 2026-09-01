@@ -16,7 +16,7 @@ import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
 import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
-import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
+import { readEmailSyncAllowlist, readMicrosoftOAuthClientId } from "@/lib/booking-buddy/env";
 
 export const metadata: Metadata = pageMetadata({
   title: "Settings",
@@ -40,13 +40,21 @@ export default async function SettingsPage({
     getNotificationPreferences(),
   ]);
 
-  // Optimistic half of ADR-0009's addendum: an unapproved User never even
-  // gets the section, not just a disabled one. connectMailbox (and the OAuth
-  // callback) re-check this authoritatively. Reuses the profile/session
-  // already fetched above rather than calling isGmailConnectAllowedForCaller,
-  // which would fetch them a second time.
-  const emailSyncAllowed = isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist());
-  const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
+  // The section itself is visible to everyone now (spec #280). Within it, the
+  // Gmail connect option is the allowlist-gated part (ADR-0009's addendum —
+  // Google's Testing-mode cap) and the Outlook option self-gates on whether the
+  // Microsoft OAuth client is configured, the same shape the optional Google
+  // sign-in button uses. `connectMailbox` and the callback re-check both
+  // authoritatively. The allowlist check reuses the profile/session already
+  // fetched above rather than calling isGmailConnectAllowedForCaller, which
+  // would fetch them a second time.
+  const gmailConnectAllowed = isGmailConnectAllowed(
+    profile.username,
+    session.email,
+    readEmailSyncAllowlist(),
+  );
+  const outlookConnectConfigured = readMicrosoftOAuthClientId() !== undefined;
+  const mailboxLink = await getMailboxLink();
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -85,37 +93,29 @@ export default async function SettingsPage({
             <h2 className="font-heading text-lg font-semibold tracking-tight">
               Sync from Email
             </h2>
-            {emailSyncAllowed ? (
-              <div className="bb-card mt-4 p-6">
-                <MailboxSyncSection
-                  mailboxLink={mailboxLink}
-                  error={error}
-                  justConnected={justConnected === "1"}
-                />
-              </div>
-            ) : error === "email_sync_not_allowed" ? (
-              // The working UI stays absent (not just hidden) for an
-              // unapproved User, per ADR-0009's addendum — but a redirect
-              // that landed here specifically because of that check still
-              // deserves an explanation, not a silently-dropped query param.
+            {error === "email_sync_not_allowed" && (
+              // A redirect that landed here because the Gmail allowlist
+              // re-check rejected the User (ADR-0009's addendum) deserves an
+              // explanation, not a silently-dropped query param. The section
+              // below still renders — the User may still have the Outlook
+              // option, or an already-connected mailbox.
               <p className="mt-4 text-sm text-destructive" role="alert">
-                Your account isn&apos;t approved for email sync yet.{" "}
-                <Link href="/contact" className="text-foreground underline underline-offset-2">
-                  Request access
-                </Link>
-                .
-              </p>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Email sync reads your CourtReserve confirmation emails and pulls
-                those bookings in automatically &mdash; it&apos;s invite-only for
-                now. Want in?{" "}
+                Your account isn&apos;t on the Gmail sync allowlist yet.{" "}
                 <Link href="/contact" className="text-foreground underline underline-offset-2">
                   Request access
                 </Link>
                 .
               </p>
             )}
+            <div className="bb-card mt-4 p-6">
+              <MailboxSyncSection
+                mailboxLink={mailboxLink}
+                gmailConnectAllowed={gmailConnectAllowed}
+                outlookConnectConfigured={outlookConnectConfigured}
+                error={error}
+                justConnected={justConnected === "1"}
+              />
+            </div>
           </div>
 
           <div className="mt-12 border-t border-border/60 pt-8">

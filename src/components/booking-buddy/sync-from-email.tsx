@@ -24,6 +24,11 @@ import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
+  MAILBOX_PROVIDER_IDENTITY_LABEL,
+  MAILBOX_PROVIDER_LABEL,
+  type MailboxProvider,
+} from "@/lib/booking-buddy/mailbox-provider";
+import {
   confirmCancellationCandidate,
   confirmImportCandidate,
   confirmUpdateCandidate,
@@ -402,18 +407,20 @@ function ReviewItemGroups({
 /**
  * "Sync from Email" (issue #64) — a click-triggered live search rather than
  * something the page loads eagerly, same `enabled` pattern
- * `FriendCalendarDialog` uses for its own click-triggered fetch. Only
- * rendered on the Bookings page when the caller is both allowlisted and has
- * an active or expired Mailbox Link — `mailboxLinkConnected` distinguishes
- * "not connected at all" (send them to Settings) from every other outcome,
- * which `syncFromEmail`'s own result handles once clicked.
+ * `FriendCalendarDialog` uses for its own click-triggered fetch. Rendered on
+ * the Bookings page for a User who can sync; `mailboxProvider` being `null`
+ * distinguishes "not connected at all" (send them to Settings) from every
+ * other outcome, which `syncFromEmail`'s own result handles once clicked. A
+ * non-null provider also names itself in the reconnect prompt so the button
+ * restarts the right provider's OAuth flow.
  */
 export function SyncFromEmailSection({
   orgs,
-  mailboxLinkConnected,
+  mailboxProvider,
 }: {
   orgs: Org[];
-  mailboxLinkConnected: boolean;
+  /** The connected Mailbox Link's provider, or `null` when nothing is connected. */
+  mailboxProvider: MailboxProvider | null;
 }) {
   const [hasSynced, setHasSynced] = useState(false);
   const queryClient = useQueryClient();
@@ -432,10 +439,10 @@ export function SyncFromEmailSection({
     );
   }
 
-  if (!mailboxLinkConnected) {
+  if (!mailboxProvider) {
     return (
       <p className="mt-4 text-sm text-muted-foreground">
-        Connect Gmail in Settings to pull in bookings you&apos;ve made at
+        Connect a mailbox in Settings to pull in bookings you&apos;ve made at
         CourtReserve-powered facilities.
       </p>
     );
@@ -457,11 +464,12 @@ export function SyncFromEmailSection({
       {data?.status === "reconnect_required" && (
         <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4">
           <p className="text-sm text-destructive">
-            Google needs you to reconnect Gmail before syncing again.
+            {MAILBOX_PROVIDER_IDENTITY_LABEL[mailboxProvider]} needs you to reconnect{" "}
+            {MAILBOX_PROVIDER_LABEL[mailboxProvider]} before syncing again.
           </p>
-          <form action={connectMailbox.bind(null, "google")}>
+          <form action={connectMailbox.bind(null, mailboxProvider)}>
             <Button type="submit" variant="outline" size="sm">
-              Reconnect Gmail
+              Reconnect {MAILBOX_PROVIDER_LABEL[mailboxProvider]}
             </Button>
           </form>
         </div>
