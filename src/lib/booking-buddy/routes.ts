@@ -21,18 +21,24 @@ export const BOOKINGS_PATH = `${BOOKING_BUDDY_ROOT}/bookings`;
 export const SLOTS_PATH = `${BOOKING_BUDDY_ROOT}/slots`;
 
 /**
- * Deep-links the Games form (`#post-a-game`) prefilled to a specific day, and
- * optionally an on-the-hour start. Used by "Find a time" (#195) and the
+ * Deep-links the Games form (`#post-a-game`) prefilled to a specific day, an
+ * optional on-the-hour start, and an optional on-the-hour end (which the form
+ * turns into a matching Duration). Used by "Find a time" (#195) and the
  * "Friends looking to play" list (#230) — both point someone at the form with
- * the when already filled in.
+ * the when already filled in. `endTime` only rides along with a `startTime`;
+ * an end with no start has nothing to measure a duration from.
  */
 export function proposeGameHref(prefill: {
   date: string;
   startTime?: string | null;
+  endTime?: string | null;
 }): string {
   const params = new URLSearchParams({ date: prefill.date });
   if (prefill.startTime) {
     params.set("start", prefill.startTime);
+    if (prefill.endTime) {
+      params.set("end", prefill.endTime);
+    }
   }
   return `${SLOTS_PATH}?${params.toString()}#post-a-game`;
 }

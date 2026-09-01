@@ -211,8 +211,9 @@ test("courts at different facilities are joined, not picked from arbitrarily", (
   assert.equal(facilityLabel(["Amy's gym", "Rally Point"]), "Amy's gym & Rally Point");
 });
 
-test("proposeGamePrefill: a future timed window seeds its own local day and start hour", () => {
-  // 2026-08-20T22:00:00Z is 6:00 PM in Toronto (EDT, UTC-4).
+test("proposeGamePrefill: a future timed window seeds its own local day, start hour, and end hour", () => {
+  // 2026-08-20T22:00:00Z is 6:00 PM in Toronto (EDT, UTC-4); the end is 9:00 PM
+  // the same evening — a 3-hour window, a sensible game length.
   assert.deepEqual(
     proposeGamePrefill(
       {
@@ -222,7 +223,22 @@ test("proposeGamePrefill: a future timed window seeds its own local day and star
       },
       NOW,
     ),
-    { date: "2026-08-20", startTime: "18:00" },
+    { date: "2026-08-20", startTime: "18:00", endTime: "21:00" },
+  );
+});
+
+test("proposeGamePrefill: a long future window seeds the start but not the end — no sensible game duration", () => {
+  // 2:00 PM to 10:00 PM Toronto — 8 hours, longer than any single game.
+  assert.deepEqual(
+    proposeGamePrefill(
+      {
+        startsAt: "2026-08-20T18:00:00Z",
+        endsAt: "2026-08-21T02:00:00Z",
+        timeZone: "America/Toronto",
+      },
+      NOW,
+    ),
+    { date: "2026-08-20", startTime: "14:00", endTime: null },
   );
 });
 
@@ -236,7 +252,7 @@ test("proposeGamePrefill: a future all-day window seeds the date only — midnig
       },
       NOW,
     ),
-    { date: "2026-08-20", startTime: null },
+    { date: "2026-08-20", startTime: null, endTime: null },
   );
 });
 
@@ -250,6 +266,6 @@ test("proposeGamePrefill: a window already running seeds today with no hour (a p
       },
       NOW,
     ),
-    { date: "2026-08-01", startTime: null },
+    { date: "2026-08-01", startTime: null, endTime: null },
   );
 });
