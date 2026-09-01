@@ -341,6 +341,75 @@ test("a past day in the current week shows no quick-create +", async ({ page }) 
   await expect(page.getByRole("button", { name: yesterdayPlus })).toHaveCount(0);
 });
 
+test("a Month-view day-cell + opens the booking dialog prefilled with that date, Start left at the 18:00 default, and the saved chip lands on the grid", async ({
+  page,
+}) => {
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy");
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+
+  // No Saturday skip here (unlike `requireTestBookingDate`): the Month grid
+  // always shows tomorrow — it's 6 weeks wide and spills into the next month —
+  // so quick-create from it is testable on any weekday.
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  // The Month `+` mirrors the day number — its accessible name is just the
+  // date, with no hour (the form keeps its own 18:00 default).
+  const plusLabel = `Log a booking on ${WEEKDAY_MONTH_DAY.format(tomorrow)}`;
+
+  await page.getByRole("button", { name: plusLabel, exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
+  await expect(page.getByLabel("Date")).toHaveValue(isoDate(tomorrow));
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("18:00");
+
+  await page.getByLabel("Facility").selectOption({ label: place });
+  await page.getByLabel("Court").fill("97");
+  await page.getByRole("radio", { name: "1 hour" }).click();
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  // Saves, closes itself, and the chip is on the Month grid without a navigation.
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Court 97/ }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/booking-buddy$/);
+
+  await removePlace(page, place);
+});
+
+test("a past day in the current month shows no quick-create +", async ({ page }) => {
+  const now = new Date();
+  test.skip(
+    now.getDate() === 1 && now.getDay() === 0,
+    "the month grid starts on today — no past day is visible",
+  );
+
+  await page.goto("/booking-buddy");
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Today's cell still offers its `+` — proves the grid rendered them at all.
+  // A count assertion, not `toBeVisible()`: on a `(hover: hover)` viewport the
+  // `+` sits at `opacity: 0` until hover, which Playwright still reports as
+  // visible, so only its presence in the DOM is real signal here.
+  await expect(
+    page.getByRole("button", {
+      name: `Log a booking on ${WEEKDAY_MONTH_DAY.format(now)}`,
+      exact: true,
+    }),
+  ).toHaveCount(1);
+  // Yesterday, in the same visible month grid, has none.
+  await expect(
+    page.getByRole("button", {
+      name: `Log a booking on ${WEEKDAY_MONTH_DAY.format(yesterday)}`,
+      exact: true,
+    }),
+  ).toHaveCount(0);
+});
+
 test("a Booking always renders as busy over an overlapping Availability Window", async ({
   page,
 }) => {
