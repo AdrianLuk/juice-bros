@@ -147,7 +147,7 @@ export function requireMailboxLinkEncryptionKey(
  * issue #62's email-sync feature — see `email-sync-allowlist.ts` and
  * ADR-0009's addendum. A deliberately separate list from Google's own
  * Testing-mode test users, not a mirror of it. Unset/blank means nobody is
- * allowed — see `isEmailSyncAllowed`, which fails closed rather than
+ * allowed — see `isGmailConnectAllowed`, which fails closed rather than
  * defaulting open.
  */
 export function readEmailSyncAllowlist(
