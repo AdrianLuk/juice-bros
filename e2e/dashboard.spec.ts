@@ -38,6 +38,13 @@ const MONTH_DAY_YEAR = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
+/** Matches `dayLabel` in `calendar.ts` — the Week-view quick-create `+`'s accessible name reads "Log a booking on <this> at <hour>". */
+const WEEKDAY_MONTH_DAY = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
 /**
  * Tomorrow — always in the future, and (Saturday aside) always still inside
  * the current calendar week the dashboard defaults to. On a Saturday, no
@@ -268,6 +275,70 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
   await expect(page.getByRole("button", { name: /Court 96/ }).first()).toBeVisible();
 
   await removePlace(page, place);
+});
+
+test("a Week-view empty-cell + opens the booking dialog prefilled with that day and hour, and the saved chip lands on the grid", async ({
+  page,
+}) => {
+  const bookingDate = requireTestBookingDate();
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy");
+
+  // Week view is the default. Each empty hour row of a non-past day carries a
+  // hover-revealed `+` whose accessible name names the day and the hour it
+  // would start the booking at.
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const plusLabel = `Log a booking on ${WEEKDAY_MONTH_DAY.format(tomorrow)} at 6 PM`;
+
+  await page.getByRole("button", { name: plusLabel }).click();
+
+  // The dialog opens with Date and Start already filled to the clicked cell.
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
+  await expect(page.getByLabel("Date")).toHaveValue(bookingDate.iso);
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("18:00");
+
+  await page.getByLabel("Facility").selectOption({ label: place });
+  await page.getByLabel("Court").fill("98");
+  await page.getByRole("radio", { name: "1 hour" }).click();
+  await page.getByRole("button", { name: "Log booking" }).click();
+
+  // Saves, closes itself, and the chip is on the grid without a navigation.
+  await expect(page.getByRole("heading", { name: "Log a booking" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Court 98/ }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/booking-buddy$/);
+
+  // Re-opening a different cell re-seeds the form — no stale prefill from the
+  // first click.
+  const plusLabel9am = `Log a booking on ${WEEKDAY_MONTH_DAY.format(tomorrow)} at 9 AM`;
+  await page.getByRole("button", { name: plusLabel9am }).click();
+  await expect(page.getByLabel("Start", { exact: true })).toHaveValue("09:00");
+
+  await removePlace(page, place);
+});
+
+test("a past day in the current week shows no quick-create +", async ({ page }) => {
+  const now = new Date();
+  test.skip(now.getDay() === 0, "no past day is left in the current calendar week on a Sunday");
+
+  await page.goto("/booking-buddy");
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayPlus = new RegExp(
+    `Log a booking on ${WEEKDAY_MONTH_DAY.format(yesterday)} at `,
+  );
+
+  // Today still has its `+` rows — proves the grid rendered them at all.
+  await expect(
+    page.getByRole("button", {
+      name: new RegExp(`Log a booking on ${WEEKDAY_MONTH_DAY.format(now)} at `),
+    }).first(),
+  ).toBeVisible();
+  // Yesterday, in the same visible week, has none.
+  await expect(page.getByRole("button", { name: yesterdayPlus })).toHaveCount(0);
 });
 
 test("a Booking always renders as busy over an overlapping Availability Window", async ({

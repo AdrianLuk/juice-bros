@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   addDays,
   addMonths,
+  bookedDayHours,
   groupByLocalDay,
   hourFromOffset,
   isPastDay,
@@ -252,4 +253,40 @@ test("isPastDay: correct across a year boundary", () => {
   const now = new Date(2027, 0, 1, 0, 30); // Jan 1 2027
   assert.equal(isPastDay(new Date(2026, 11, 31, 23, 30), now), true); // Dec 31 2026
   assert.equal(isPastDay(new Date(2027, 0, 1, 23, 0), now), false); // later today
+});
+
+test("bookedDayHours: an on-the-hour Booking claims exactly the bands it spans", () => {
+  const day = new Date(2026, 7, 20);
+  const hours = bookedDayHours(
+    [{ startsAt: new Date(2026, 7, 20, 14).toISOString(), endsAt: new Date(2026, 7, 20, 16).toISOString() }],
+    day,
+  );
+  assert.deepEqual([...hours].sort((a, b) => a - b), [14, 15]);
+});
+
+test("bookedDayHours: a part-hour Booking claims every band it touches", () => {
+  const day = new Date(2026, 7, 20);
+  const hours = bookedDayHours(
+    [{ startsAt: new Date(2026, 7, 20, 14, 30).toISOString(), endsAt: new Date(2026, 7, 20, 15, 30).toISOString() }],
+    day,
+  );
+  assert.deepEqual([...hours].sort((a, b) => a - b), [14, 15]);
+});
+
+test("bookedDayHours: a Booking on another day contributes nothing", () => {
+  const day = new Date(2026, 7, 20);
+  const hours = bookedDayHours(
+    [{ startsAt: new Date(2026, 7, 21, 9).toISOString(), endsAt: new Date(2026, 7, 21, 11).toISOString() }],
+    day,
+  );
+  assert.deepEqual([...hours], []);
+});
+
+test("bookedDayHours: a past-midnight Booking marks hour 23 on its start day and the early hours on the next", () => {
+  const event = {
+    startsAt: new Date(2026, 7, 20, 23).toISOString(),
+    endsAt: new Date(2026, 7, 21, 1).toISOString(),
+  };
+  assert.deepEqual([...bookedDayHours([event], new Date(2026, 7, 20))], [23]);
+  assert.deepEqual([...bookedDayHours([event], new Date(2026, 7, 21))].sort((a, b) => a - b), [0]);
 });

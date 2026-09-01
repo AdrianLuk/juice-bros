@@ -40,6 +40,26 @@ export type FunnelEvent =
  */
 export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
 
+/**
+ * Calendar quick-create (spec #303). Not a funnel step — `bb_first_booking`
+ * still owns the 0→1 transition from every entry point. This one fires on
+ * *every* Booking logged straight from a dashboard calendar cell's `+`, so
+ * the calendar entry point can be weighed against the FAB and the Bookings
+ * page. Server-emitted from inside `after()` like the funnel events, for the
+ * same "can't be trusted from the client" reason.
+ */
+export type BookingEntryEvent = "bb_booking_via_calendar";
+
+/** Emit `bb_booking_via_calendar`. Same fail-quiet posture as `trackFunnelEvent`. */
+export async function trackBookingViaCalendar(): Promise<void> {
+  const event: BookingEntryEvent = "bb_booking_via_calendar";
+  try {
+    await track(event);
+  } catch (error) {
+    console.error(`booking-buddy: emitting ${event} failed`, error);
+  }
+}
+
 /** Emit one `provider`-dimensioned email-sync event. Same fail-quiet posture as `trackFunnelEvent`. */
 export async function trackEmailSyncEvent(
   event: EmailSyncEvent,
