@@ -348,6 +348,50 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await removePlace(page, facility);
     });
 
+    test("confirming a cancellation keeps the original confirmation email suppressed", async ({
+      page,
+    }) => {
+      const facility = placeName();
+      await signIn(page, user, "/booking-buddy/orgs");
+      await addPlace(page, facility);
+
+      const confirmation = confirmationEmail({ id: messageId(), facility });
+      await connectAndSeed(page, [confirmation]);
+
+      // Import the confirmation into a real Booking.
+      await page.goto("/booking-buddy/bookings");
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      const importCard = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+      await expect(importCard).toBeVisible();
+      await importCard.getByRole("button", { name: "Confirm" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(row(page, "Court 3")).toContainText(facility);
+
+      // A cancellation for that same reservation now lands in the inbox.
+      fixture
+        .getMock()
+        .registerMessages([confirmation, cancellationEmail({ id: messageId(), facility })]);
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      const cancelCard = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Remove booking" }) });
+      await expect(cancelCard).toBeVisible();
+      await cancelCard.getByRole("button", { name: "Remove booking" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(row(page, "Court 3")).toHaveCount(0);
+
+      // Deleting the Booking cascaded the confirmation's ledger row away, but
+      // confirming a cancellation re-records it — so the confirmation must not
+      // resurface as an import candidate (issue #286).
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible();
+      await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
+
+      await removePlace(page, facility);
+    });
+
     test("an unmatched cancellation shows a distinct notice, dismissable once", async ({ page }) => {
       const facility = placeName();
       await signIn(page, user, "/booking-buddy/orgs");
