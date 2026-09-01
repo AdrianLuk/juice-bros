@@ -12,8 +12,13 @@ import {
   type RefObject,
 } from "react";
 
+import { PlusIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import {
+  bookedDayHours,
+  dayLabel,
+  isPastDay,
   isSameDay,
   layoutDayEvents,
   localDayKey,
@@ -97,6 +102,12 @@ export function eventChipLineBudget(heightPx: number): 1 | 2 | 3 {
  * "today" sits in, say) would silently no-op via `DashboardCalendar`'s own
  * navigation clamp, which reads as broken rather than as "that's as far
  * back as this goes."
+ *
+ * `onQuickCreate`, when set (the owner's dashboard, issue #303), puts a
+ * hover-revealed `+` on every empty hour row of a non-past day — clicking
+ * it opens the shared booking dialog prefilled with that cell's day and
+ * floored start hour. Rows a Booking already covers, and every row of a
+ * past day, get no `+`. Absent on the friend calendar.
  */
 export function DashboardWeekView<T extends CalendarEvent>({
   weekStart,
@@ -105,6 +116,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
   busyIntervals,
   windows,
   onDayClick,
+  onQuickCreate,
   renderEvent,
   minDay,
   sharedDayNames = false,
@@ -115,6 +127,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
   onDayClick: (day: Date) => void;
+  onQuickCreate?: (day: Date, hour: number) => void;
   renderEvent: (event: T, style: CSSProperties, range: EventRange) => ReactNode;
   minDay?: Date | null;
   /** During a Week/Month switch, the day-number cells carry a
@@ -291,6 +304,11 @@ export function DashboardWeekView<T extends CalendarEvent>({
                 busyIntervals={busyIntervals}
                 windows={windows}
                 renderEvent={renderEvent}
+                onQuickCreate={
+                  onQuickCreate && !isPastDay(day, today)
+                    ? onQuickCreate
+                    : undefined
+                }
                 columnRef={isSameDay(day, today) ? todayColumnRef : undefined}
               />
             ))}
@@ -308,6 +326,7 @@ function DayColumn<T extends CalendarEvent>({
   busyIntervals,
   windows,
   renderEvent,
+  onQuickCreate,
   columnRef,
 }: {
   day: Date;
@@ -316,6 +335,8 @@ function DayColumn<T extends CalendarEvent>({
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
   renderEvent: (event: T, style: CSSProperties, range: EventRange) => ReactNode;
+  /** Set only for a non-past day on the owner's dashboard (issue #303) — an empty hour row then reveals a `+` that calls this with the day and that row's hour. */
+  onQuickCreate?: (day: Date, hour: number) => void;
   columnRef?: RefObject<HTMLDivElement | null>;
 }) {
   const dayStart = new Date(day);
@@ -332,6 +353,10 @@ function DayColumn<T extends CalendarEvent>({
   });
 
   const laidOut = layoutDayEvents(dayEvents);
+
+  // Hour rows a Booking already fills get no `+` — the quick-create affordance
+  // is only for the genuinely empty ones (issue #303).
+  const bookedHours = onQuickCreate ? bookedDayHours(dayEvents, day) : null;
 
   const segments = resolveAvailabilitySegments({
     rangeStart: dayStart,
@@ -353,6 +378,33 @@ function DayColumn<T extends CalendarEvent>({
           style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
         />
       ))}
+
+      {/* One `+` per empty hour row of a non-past day (issue #303), rendered
+          under the Availability blocks and event chips below so those keep
+          their own hover/tooltip and click behaviour untouched — the `+` is
+          only ever reached on a row with neither. Each button spans exactly
+          one hour row, so its `hour` is already the floored start hour
+          `hourFromOffset` would compute for a free click. */}
+      {onQuickCreate &&
+        hours.map((hour) =>
+          bookedHours?.has(hour) ? null : (
+            <button
+              key={`quick-add-${hour}`}
+              type="button"
+              onClick={() => onQuickCreate(day, hour)}
+              aria-label={`Log a booking on ${dayLabel(day)} at ${HOUR_LABEL.format(new Date(2000, 0, 1, hour))}`}
+              className="bb-week-quick-add absolute inset-x-0 flex justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
+              style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+            >
+              <span
+                aria-hidden
+                className="bb-week-quick-add-mark mt-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border"
+              >
+                <PlusIcon className="size-3.5" />
+              </span>
+            </button>
+          ),
+        )}
 
       {segments.map((segment) => {
         const [start, end] = clampToDay(

@@ -105,6 +105,47 @@ export function hourFromOffset(offsetPx: number, hourHeight: number): number {
   return Math.max(0, Math.min(23, Math.floor(offsetPx / hourHeight)));
 }
 
+/**
+ * Which of a day's 24 hour bands already hold a Booking, in browser-local
+ * time — the Week view's quick-create `+` is suppressed on these (issue
+ * #303), leaving it only on the genuinely empty rows. Any overlap claims a
+ * band: a 6:30–7:30 Booking occupies both hour 6 and hour 7, and a Booking
+ * ending exactly on the hour (7:00) does not reach into hour 7. Events are
+ * clamped to the day first, so a session that ran past midnight marks hour
+ * 23 on its start day and the early hours on the next.
+ */
+export function bookedDayHours<T extends TimeSpan>(
+  events: T[],
+  day: Date,
+): Set<number> {
+  const dayStartMs = startOfDay(day).getTime();
+  const dayEndMs = dayStartMs + 24 * 60 * 60 * 1000;
+  const hours = new Set<number>();
+
+  for (const event of events) {
+    const startMs = new Date(event.startsAt).getTime();
+    const endMs = new Date(event.endsAt).getTime();
+    if (startMs >= dayEndMs || endMs <= dayStartMs) {
+      continue;
+    }
+
+    const fromHour = Math.floor(
+      (Math.max(startMs, dayStartMs) - dayStartMs) / 3_600_000,
+    );
+    // `ceil - 1`: an end landing exactly on an hour boundary occupies the
+    // band below it, not the one it touches.
+    const toHour = Math.ceil(
+      (Math.min(endMs, dayEndMs) - dayStartMs) / 3_600_000,
+    ) - 1;
+
+    for (let hour = Math.max(0, fromHour); hour <= Math.min(23, toHour); hour++) {
+      hours.add(hour);
+    }
+  }
+
+  return hours;
+}
+
 /** Every half-hour-aligned hour boundary a Week view's timeline draws rows for. */
 export function weekDays(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));

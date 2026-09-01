@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { trackFirstBooking } from "../analytics.ts";
+import { trackBookingViaCalendar, trackFirstBooking } from "../analytics.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
@@ -318,6 +318,11 @@ async function replaceBookingPlayers(bookingId: string, players: readonly string
 export async function insertValidatedBooking(
   ownerId: string,
   parsed: NewBooking,
+  // `"calendar"` when the submission came from a dashboard calendar cell's `+`
+  // (spec #303) — the only thing this changes is a non-funnel
+  // `bb_booking_via_calendar` analytics ping. `confirmImportCandidate` (email
+  // sync) leaves it unset.
+  source?: "calendar",
 ): Promise<ActionResult & { bookingId?: string }> {
   const org = await resolveValidatedOrg(ownerId, parsed);
   if ("error" in org) {
@@ -349,6 +354,12 @@ export async function insertValidatedBooking(
   // Players-only failure below doesn't suppress it — the Booking has committed.
   after(() => trackFirstBooking(ownerId));
 
+  // `bb_booking_via_calendar` (spec #303) — every calendar-originated create,
+  // not just the first. Independent of `bb_first_booking` above.
+  if (source === "calendar") {
+    after(() => trackBookingViaCalendar());
+  }
+
   const playersError = await insertBookingPlayers(booking.id, parsed.players);
 
   revalidatePath(BOOKINGS_PATH);
@@ -378,7 +389,12 @@ export async function createBooking(
     return parsed;
   }
 
-  return insertValidatedBooking(session.userId, parsed);
+  // The hidden marker `CreateBookingForm` stamps only on a calendar-cell open
+  // (spec #303); `parseNewBooking` ignores the field.
+  const source =
+    formData.get("source") === "calendar" ? ("calendar" as const) : undefined;
+
+  return insertValidatedBooking(session.userId, parsed, source);
 }
 
 /**

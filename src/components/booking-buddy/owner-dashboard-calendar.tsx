@@ -20,6 +20,7 @@ import {
   WEEK_EVENT_CLASS,
 } from "@/components/booking-buddy/calendar-event-popover";
 import { DashboardCalendar } from "@/components/booking-buddy/dashboard-calendar";
+import { localDayKey } from "@/lib/booking-buddy/calendar";
 import {
   eventChipLineBudget,
   type EventRange,
@@ -93,19 +94,39 @@ export function OwnerDashboardCalendar({
   orgs: Org[];
 }) {
   // One shared Log-a-booking dialog (issue #303), lifted out of the FAB so
-  // the FAB and — from ticket 3 on — a calendar-cell "+" open the same form.
-  // The FAB opens it with no prefill; the form is keyed on a stable blank key
-  // here so that open is always a clean slate (the prefill-keyed remount that
-  // makes each distinct cell click re-seed the form arrives with ticket 3).
+  // the FAB and a calendar-cell "+" open the same form. The FAB opens it with
+  // no prefill (a stable blank key, always a clean slate); a "+" click sets
+  // `prefill` and the form is keyed on it, so each distinct cell click
+  // remounts fresh instead of keeping the last cell's Date/Start.
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [prefill, setPrefill] = useState<
+    { date: string; startTime?: string } | undefined
+  >(undefined);
+
+  function openBlankBookingDialog() {
+    setPrefill(undefined);
+    setBookingDialogOpen(true);
+  }
+
+  function openQuickCreate(date: Date, startHour: number | null) {
+    setPrefill({
+      date: localDayKey(date),
+      startTime:
+        startHour === null
+          ? undefined
+          : `${String(startHour).padStart(2, "0")}:00`,
+    });
+    setBookingDialogOpen(true);
+  }
 
   return (
     <DashboardCalendar
       events={bookings}
       availabilityWindows={availabilityWindows}
+      onQuickCreate={openQuickCreate}
       quickActions={
         <>
-          <DashboardQuickActions onAddBooking={() => setBookingDialogOpen(true)} />
+          <DashboardQuickActions onAddBooking={openBlankBookingDialog} />
           <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
@@ -122,8 +143,13 @@ export function OwnerDashboardCalendar({
                 </p>
               ) : (
                 <CreateBookingForm
-                  key="blank"
+                  key={
+                    prefill
+                      ? `${prefill.date}T${prefill.startTime ?? "default"}`
+                      : "blank"
+                  }
                   orgs={orgs}
+                  prefill={prefill}
                   onLogged={() => setBookingDialogOpen(false)}
                 />
               )}
