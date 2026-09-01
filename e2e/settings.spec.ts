@@ -78,6 +78,15 @@ test.afterEach(async ({ page }) => {
     await expect(page.getByRole("status")).toBeVisible();
   }
 
+  const requestAcceptedEmails = page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected");
+  if (!(await requestAcceptedEmails.isChecked())) {
+    await requestAcceptedEmails.check();
+    await formWithField(page, "Email me when someone accepts a friend request I sent, so I know we're connected")
+      .getByRole("button", { name: "Save", exact: true })
+      .click();
+    await expect(page.getByRole("status")).toBeVisible();
+  }
+
   // Same reasoning as Username above — Gender (issue #79) is unset by
   // default for the seeded account, and a test that sets it has to unset it.
   const genderUnset = page.getByRole("radio", { name: "Prefer not to say" });

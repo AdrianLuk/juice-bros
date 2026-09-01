@@ -37,9 +37,15 @@ supabase migration up --local
 ```
 
 `supabase db reset` also works but destroys everything, including the test
-accounts and their friendships — re-run `npm run seed:users` afterwards. A reset
-is the right move when a migration has been **rewritten in place** rather than
-added, since `migration up` has no way to undo the old version.
+accounts and their friendships. Use `npm run db:reset` — it resets and then
+re-seeds in one step. A reset is the right move when a migration has been
+**rewritten in place** rather than added, since `migration up` has no way to
+undo the old version.
+
+`npm run test:e2e` re-runs `seed:users` for you first (`pretest:e2e`), so a
+run started right after someone else reset the shared local database still
+finds the accounts it needs. Running `npx playwright test` directly skips
+that — seed by hand.
 
 ## Clicking through it yourself
 
@@ -85,6 +91,13 @@ time. Set `PLAYWRIGHT_DEV_SERVER=1` to make Playwright run `next dev` itself
 instead (HMR beats a rebuild when you're iterating on one spec with `--ui`).
 Next 16 keeps dev output in `.next/dev` and prod in `.next`, so the two never
 clash.
+
+A reused server it didn't start is **missing the mock env** (see the Places
+note further down) — so a `globalSetup` preflight hits `/api/e2e-preflight` and
+aborts the whole run with a clear message rather than letting `places.spec.ts` /
+`email-sync.spec.ts` / `outlook-*.spec.ts` fail one opaque test at a time
+against the real APIs. Stop the stray dev server, or (deliberately) set
+`E2E_SKIP_PREFLIGHT=1`.
 
 **Sign-in is cached.** `signIn()` drives the real form the first time it's
 asked for an account, then replants that session's cookies on every later call
