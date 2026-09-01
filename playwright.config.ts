@@ -27,12 +27,27 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npm run dev",
+    // A production build (`next build` + `next start`), not `next dev`: the dev
+    // server compiles each route on its first request, and across ~120 tests
+    // that on-demand tax is most of the suite's wall time. Next 16 writes dev
+    // output to `.next/dev` and prod output to `.next`, so a dev server you
+    // keep open for iteration is still reused untouched (see below) rather than
+    // clashing with this build.
+    //
+    // Set PLAYWRIGHT_DEV_SERVER=1 to have Playwright run `next dev` itself
+    // instead — handy when stepping through a single spec with `--ui`, where
+    // HMR beats a ~40s rebuild and the slower per-route requests don't matter.
+    command: process.env.PLAYWRIGHT_DEV_SERVER
+      ? "npm run dev"
+      : "npm run build && npm run start",
     url: "http://localhost:3000",
     // Reuses the dev server you already have open, rather than fighting it for
-    // the port. Next refuses to start a second one anyway.
+    // the port. Next refuses to start a second one anyway. When something is
+    // already listening, `command` never runs — so an open `next dev` keeps
+    // serving and no build happens.
     reuseExistingServer: true,
-    timeout: 120_000,
+    // A cold `next build` comfortably exceeds the old 2-minute cap.
+    timeout: 300_000,
     // Only takes effect when Playwright starts the server itself — i.e.
     // always in CI, where nothing is already listening on :3000. A locally
     // reused dev server keeps whatever's in its own `.env` (the real Google
