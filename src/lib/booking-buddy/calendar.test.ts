@@ -5,6 +5,8 @@ import {
   addDays,
   addMonths,
   groupByLocalDay,
+  hourFromOffset,
+  isPastDay,
   isSameDay,
   layoutDayEvents,
   layoutMultiDaySpans,
@@ -215,4 +217,39 @@ test("notEndedBefore: an item ending exactly at the floor is dropped, not kept",
   );
 
   assert.deepEqual(result, []);
+});
+
+test("hourFromOffset: floors to the hour band the offset lands in", () => {
+  const hourHeight = 48;
+  assert.equal(hourFromOffset(0, hourHeight), 0);
+  assert.equal(hourFromOffset(47, hourHeight), 0); // just below one row height
+  assert.equal(hourFromOffset(48, hourHeight), 1); // exactly one row height
+  assert.equal(hourFromOffset(48 * 18 + 12, hourHeight), 18); // mid-evening
+});
+
+test("hourFromOffset: clamps to the 0–23 band range", () => {
+  const hourHeight = 48;
+  assert.equal(hourFromOffset(-10, hourHeight), 0); // above the grid
+  assert.equal(hourFromOffset(48 * 24, hourHeight), 23); // exactly at the bottom edge
+  assert.equal(hourFromOffset(48 * 100, hourHeight), 23); // far past the last hour
+});
+
+test("isPastDay: yesterday is past, any time today and tomorrow are not", () => {
+  const now = new Date(2026, 7, 20, 14, 30); // Aug 20 2026, 2:30pm local
+  assert.equal(isPastDay(new Date(2026, 7, 19, 23, 59), now), true);
+  assert.equal(isPastDay(new Date(2026, 7, 20, 0, 0), now), false);
+  assert.equal(isPastDay(new Date(2026, 7, 20, 23, 59), now), false);
+  assert.equal(isPastDay(new Date(2026, 7, 21, 0, 0), now), false);
+});
+
+test("isPastDay: correct across a month boundary", () => {
+  const now = new Date(2026, 8, 1, 9, 0); // Sep 1 2026
+  assert.equal(isPastDay(new Date(2026, 7, 31, 20, 0), now), true); // Aug 31
+  assert.equal(isPastDay(new Date(2026, 8, 1, 1, 0), now), false); // earlier today
+});
+
+test("isPastDay: correct across a year boundary", () => {
+  const now = new Date(2027, 0, 1, 0, 30); // Jan 1 2027
+  assert.equal(isPastDay(new Date(2026, 11, 31, 23, 30), now), true); // Dec 31 2026
+  assert.equal(isPastDay(new Date(2027, 0, 1, 23, 0), now), false); // later today
 });

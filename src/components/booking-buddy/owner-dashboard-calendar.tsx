@@ -1,10 +1,17 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { BOOKINGS_PATH, SLOTS_PATH } from "@/lib/booking-buddy/routes";
 import {
   CalendarEventPopover,
@@ -18,7 +25,11 @@ import {
   type EventRange,
 } from "@/components/booking-buddy/dashboard-week-view";
 import { DashboardQuickActions } from "@/components/booking-buddy/dashboard-quick-add";
-import { DeleteBookingButton, EditBookingButton } from "@/components/booking-buddy/bookings";
+import {
+  CreateBookingForm,
+  DeleteBookingButton,
+  EditBookingButton,
+} from "@/components/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import {
   formatInstantDateAndTime,
@@ -81,11 +92,45 @@ export function OwnerDashboardCalendar({
   availabilityWindows: AvailabilityWindow[];
   orgs: Org[];
 }) {
+  // One shared Log-a-booking dialog (issue #303), lifted out of the FAB so
+  // the FAB and — from ticket 3 on — a calendar-cell "+" open the same form.
+  // The FAB opens it with no prefill; the form is keyed on a stable blank key
+  // here so that open is always a clean slate (the prefill-keyed remount that
+  // makes each distinct cell click re-seed the form arrives with ticket 3).
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+
   return (
     <DashboardCalendar
       events={bookings}
       availabilityWindows={availabilityWindows}
-      quickActions={<DashboardQuickActions orgs={orgs} />}
+      quickActions={
+        <>
+          <DashboardQuickActions onAddBooking={() => setBookingDialogOpen(true)} />
+          <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Log a booking</DialogTitle>
+                <DialogDescription>
+                  Copy it off the facility&apos;s own booking screen. It&apos;ll
+                  show up on the calendar right after.
+                </DialogDescription>
+              </DialogHeader>
+              {orgs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Bookings need somewhere to be. Add a place you play first,
+                  then come back.
+                </p>
+              ) : (
+                <CreateBookingForm
+                  key="blank"
+                  orgs={orgs}
+                  onLogged={() => setBookingDialogOpen(false)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
+      }
       agendaEmptyMessage={
         <div className="mx-auto flex max-w-sm flex-col items-center gap-4">
           <p>

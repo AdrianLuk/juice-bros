@@ -59,6 +59,17 @@ export function addMonths(date: Date, months: number): Date {
   return result;
 }
 
+/**
+ * Whether `day` falls on a calendar day strictly before `now`'s — compared in
+ * whatever local zone the `Date`s carry (the browser's, like the rest of this
+ * module). Drives the calendar quick-create `+` suppression (issue #303): a
+ * past day gets no affordance at all, independent of the friend calendar's
+ * `restrictToFuture`, which stays off for the owner.
+ */
+export function isPastDay(day: Date, now: Date): boolean {
+  return startOfDay(day).getTime() < startOfDay(now).getTime();
+}
+
 /** Sunday through Saturday — the week the given date falls in. */
 export function startOfWeek(date: Date): Date {
   return addDays(startOfDay(date), -date.getDay());
@@ -80,6 +91,18 @@ export function monthGridDays(date: Date): Date[] {
   const firstOfMonth = startOfMonth(date);
   const gridStart = startOfWeek(firstOfMonth);
   return Array.from({ length: 42 }, (_, index) => addDays(gridStart, index));
+}
+
+/**
+ * The hour band a Week-column click at `offsetPx` down from the day's 00:00
+ * lands in — `Math.floor(offsetPx / hourHeight)`, the hour the pointer is
+ * *within*, not the nearest boundary (issue #303). Clamped to `0..23` so a
+ * click in the grid's bottom padding, or above hour 0, still resolves to a
+ * real hour. Bookings are on-the-hour only, so the caller turns this into an
+ * `HH:00` prefill.
+ */
+export function hourFromOffset(offsetPx: number, hourHeight: number): number {
+  return Math.max(0, Math.min(23, Math.floor(offsetPx / hourHeight)));
 }
 
 /** Every half-hour-aligned hour boundary a Week view's timeline draws rows for. */
