@@ -149,9 +149,33 @@ function proposedStartTime(block: DayBlock): string | null {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
-/** Deep-links the Games form to one specific free window — a day split by a midday busy stretch gets a link per window, each seeding its own start. */
+/**
+ * The hour a game would end, as an on-the-hour `"HH:00"` — the block's end
+ * floored to the hour, so it never runs past the free window. `null` unless
+ * that leaves a sensible single-game length (1–3 hours) from the start, in
+ * which case the form keeps its own default duration. Blocks are already
+ * clipped to a single local day, so this never wraps past midnight.
+ */
+function proposedEndTime(block: DayBlock, startTime: string | null): string | null {
+  if (!startTime) {
+    return null;
+  }
+  const endHour = new Date(block.endMs).getHours();
+  const hours = endHour - Number(startTime.slice(0, 2));
+  if (hours < 1 || hours > 3) {
+    return null;
+  }
+  return `${String(endHour).padStart(2, "0")}:00`;
+}
+
+/** Deep-links the Games form to one specific free window — a day split by a midday busy stretch gets a link per window, each seeding its own start (and, for a short window, a matching duration). */
 function proposeHref(dateKey: string, block: DayBlock): string {
-  return proposeGameHref({ date: dateKey, startTime: proposedStartTime(block) });
+  const startTime = proposedStartTime(block);
+  return proposeGameHref({
+    date: dateKey,
+    startTime,
+    endTime: proposedEndTime(block, startTime),
+  });
 }
 
 function blockLabel(block: DayBlock): string {

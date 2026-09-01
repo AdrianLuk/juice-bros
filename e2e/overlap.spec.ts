@@ -170,12 +170,13 @@ test("the Games page lists a friend who's looking to play, with a prefilled Prop
   );
 
   await page.goto("/booking-buddy/slots");
-  const section = page
-    .locator("section")
-    .filter({ hasText: "Friends looking to play" });
-  await expect(section).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Friends looking to play" }),
+  ).toBeVisible();
 
-  const propose = section.getByRole("link", { name: "Propose a game" });
+  // The only "Propose a game" link on the Games page is the looking-to-play
+  // pool's — "Post a game" is a submit button, and the slot lists are plain rows.
+  const propose = page.getByRole("link", { name: "Propose a game" });
   await expect(propose).toHaveCount(1);
   const href = await propose.getAttribute("href");
   expect(new URL(href!, "http://localhost").searchParams.get("date")).toBe(targetDate);
@@ -183,6 +184,22 @@ test("the Games page lists a friend who's looking to play, with a prefilled Prop
   await propose.click();
   await page.waitForURL(/\/booking-buddy\/slots(\?|#|$)/);
   await expect(page.getByLabel("Date")).toHaveValue(targetDate);
+  // 6-9pm window: Start and a matching 3-hour Duration both prefilled.
+  await expect(page.getByLabel("Start")).toHaveValue("18:00");
+  await expect(
+    page.getByRole("radio", { name: "3 hours", checked: true }),
+  ).toBeVisible();
+
+  // The form is scrolled to, not left below three sections of list.
+  await expect(async () => {
+    const inView = await page
+      .locator("#post-a-game")
+      .evaluate((el) => {
+        const { top, bottom } = el.getBoundingClientRect();
+        return top < window.innerHeight && bottom > 0;
+      });
+    expect(inView).toBe(true);
+  }).toPass();
 });
 
 test("Find a time flags a free block a picked friend is looking over", async ({

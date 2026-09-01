@@ -98,10 +98,29 @@ function HourTimeSelect({
 
 const DEFAULT_START_TIME = "20:00";
 
+/**
+ * The Duration to seed from a deep link's start/end pair — the span between
+ * them, but only when both are on the hour and it's a sensible single-game
+ * length (1–3 hours). Anything else (a long or all-day free window, a missing
+ * or malformed end) keeps the form's own default.
+ */
+function initialDurationHours(
+  startTime: string,
+  endTime: string | undefined,
+): number {
+  if (!endTime || !HOUR_TIMES.includes(startTime) || !HOUR_TIMES.includes(endTime)) {
+    return DEFAULT_DURATION_HOURS;
+  }
+  const hours =
+    ((Number(endTime.slice(0, 2)) - Number(startTime.slice(0, 2)) + 24) % 24) || 24;
+  return hours >= 1 && hours <= 3 ? hours : DEFAULT_DURATION_HOURS;
+}
+
 export function CreateSlotForm({
   orgs,
   defaultDate,
   defaultStartTime,
+  defaultEndTime,
   onPosted,
 }: {
   orgs: Org[];
@@ -109,6 +128,8 @@ export function CreateSlotForm({
   defaultDate?: string;
   /** Pre-fills the start time — "Find a time" (#195) seeds the start of a free window. Ignored unless it's an on-the-hour `"HH:00"`. */
   defaultStartTime?: string;
+  /** Pre-fills the Duration to match a free window's length (#272). Ignored unless it's an on-the-hour `"HH:00"` 1–3 hours past the start. */
+  defaultEndTime?: string;
   /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
   onPosted?: (slotId: string) => void;
 }) {
@@ -120,11 +141,13 @@ export function CreateSlotForm({
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, same as the Booking form's own duration picker.
-  const duration = useDurationInput(
+  const initialStartTime =
     defaultStartTime && HOUR_TIMES.includes(defaultStartTime)
       ? defaultStartTime
-      : DEFAULT_START_TIME,
-    DEFAULT_DURATION_HOURS,
+      : DEFAULT_START_TIME;
+  const duration = useDurationInput(
+    initialStartTime,
+    initialDurationHours(initialStartTime, defaultEndTime),
   );
 
   useEffect(() => {

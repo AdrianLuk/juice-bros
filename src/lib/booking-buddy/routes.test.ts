@@ -17,6 +17,20 @@ test("proposeGameHref: a date and start hour become a prefilled deep link to the
   );
 });
 
+test("proposeGameHref: an end hour rides along to seed the Duration", () => {
+  assert.equal(
+    proposeGameHref({ date: "2026-08-20", startTime: "18:00", endTime: "20:00" }),
+    "/booking-buddy/slots?date=2026-08-20&start=18%3A00&end=20%3A00#post-a-game",
+  );
+});
+
+test("proposeGameHref: an end hour with no start is dropped — nothing to measure a duration from", () => {
+  assert.equal(
+    proposeGameHref({ date: "2026-08-20", startTime: null, endTime: "20:00" }),
+    "/booking-buddy/slots?date=2026-08-20#post-a-game",
+  );
+});
+
 test("proposeGameHref: a null or missing start hour leaves the form's own default", () => {
   assert.equal(
     proposeGameHref({ date: "2026-08-20", startTime: null }),
