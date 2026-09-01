@@ -36,3 +36,32 @@ export async function commitFloorOutcome(
   revalidatePath(sessionPath(sessionId));
   return { ok: true };
 }
+
+/**
+ * Turn an `on_deck_undo_last_event` RPC error into a floor-screen result (#247).
+ * `40001` is a concurrent Operator — the log moved since the caller looked;
+ * `22023` / `42501` carry a message written to be shown as-is.
+ */
+export function undoResult(
+  error: { code?: string; message?: string } | null,
+  sessionId: string,
+): FloorActionResult {
+  if (error) {
+    if (error.code === "40001") {
+      return {
+        error: "Someone else changed the board since you looked. Take another look.",
+      };
+    }
+    if (error.code === "22023" || error.code === "42501") {
+      return { error: capitalise(error.message ?? "That can't be undone.") };
+    }
+    console.error("on-deck: undo failed", error);
+    return { error: "Couldn't undo that. Try again." };
+  }
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
+}
+
+function capitalise(sentence: string): string {
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}

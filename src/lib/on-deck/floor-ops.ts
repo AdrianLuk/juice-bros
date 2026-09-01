@@ -19,13 +19,58 @@ import type { SessionState } from "./session/types.ts";
 
 /**
  * The operational turnover events a floor tap can produce. The same closed set
- * `on_deck_volunteer_append` whitelists for a link-authenticated Volunteer.
+ * `on_deck_volunteer_append` whitelists for a link-authenticated Volunteer, and
+ * the same set operator Undo (#247) will drop.
  */
 export type FloorEventType =
   | "COURT_FINISHED"
   | "PLAYER_PAUSED"
   | "PLAYER_REQUEUED"
   | "FOURSOME_MEMBER_SWAPPED";
+
+const FLOOR_EVENT_TYPES: readonly string[] = [
+  "COURT_FINISHED",
+  "PLAYER_PAUSED",
+  "PLAYER_REQUEUED",
+  "FOURSOME_MEMBER_SWAPPED",
+];
+
+/**
+ * How long after an operational event an Operator may still undo it (#247).
+ * Bounds "recent events only" — a mistap this game or last is fixable; the
+ * night an hour deep is not. The same window `on_deck_undo_window()` enforces
+ * in the database.
+ */
+export const UNDO_WINDOW_MS = 15 * 60 * 1000;
+
+const UNDO_LABEL: Record<FloorEventType, string> = {
+  COURT_FINISHED: "the last court finish",
+  PLAYER_PAUSED: "the last set-aside",
+  PLAYER_REQUEUED: "the last re-queue",
+  FOURSOME_MEMBER_SWAPPED: "the last no-show swap",
+};
+
+/** The event operator Undo would drop, and a phrase for the button — or null
+ * when the most recent event is structural, Player-sourced, or too old. */
+export type UndoTarget = { seq: number; label: string };
+
+/**
+ * Given a Session's most recent raw event, decide whether the floor screen
+ * should offer to undo it. Pure over the event plus `now` (the read model's
+ * projection, not the fold — the fold still never reads the clock).
+ */
+export function describeUndo(
+  lastEvent: { seq: number; type: string; at: number } | null,
+  now: number,
+): UndoTarget | null {
+  if (!lastEvent) return null;
+  if (!FLOOR_EVENT_TYPES.includes(lastEvent.type)) return null;
+  if (now - lastEvent.at > UNDO_WINDOW_MS) return null;
+  return {
+    seq: lastEvent.seq,
+    label: UNDO_LABEL[lastEvent.type as FloorEventType],
+  };
+}
 
 /**
  * `event` — append this. `noop` — the board already moved on (a double tap, a

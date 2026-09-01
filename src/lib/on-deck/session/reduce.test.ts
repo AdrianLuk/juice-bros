@@ -852,3 +852,28 @@ test("undo drops the last PLAYER_PAUSED: re-folding restores the prior state", (
   assert.deepEqual(reduceSession(config, base).queue, before.queue);
   assert.deepEqual(reduceSession(config, base).paused, before.paused);
 });
+
+test("undo drops the last FOURSOME_MEMBER_SWAPPED: re-folding restores the prior state (#247)", () => {
+  const base = [...sessionWith(8), courtFinished(1)];
+  const seated = reduceSession(config, base).courts[0].foursome;
+  const waiting = reduceSession(config, base).queue[0].playerId;
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [
+    ...base,
+    swapped(1, seated[0], waiting),
+  ]);
+
+  assert.notDeepEqual(after.courts[0].foursome, before.courts[0].foursome);
+  assert.deepEqual(reduceSession(config, base).courts, before.courts);
+  assert.deepEqual(reduceSession(config, base).paused, before.paused);
+});
+
+test("undo drops the last PLAYER_REQUEUED: re-folding restores the prior state (#247)", () => {
+  const base = [...sessionWith(4), paused("p1", "left")];
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [...base, requeued("p1")]);
+
+  assert.notDeepEqual(after.queue, before.queue);
+  assert.deepEqual(reduceSession(config, base).queue, before.queue);
+  assert.deepEqual(reduceSession(config, base).paused, before.paused);
+});

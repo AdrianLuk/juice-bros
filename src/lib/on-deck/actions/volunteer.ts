@@ -2,7 +2,11 @@
 
 import { createClient } from "../supabase/server.ts";
 import { loadVolunteerSession } from "../volunteer.ts";
-import { commitFloorOutcome, type FloorActionResult } from "../floor-commit.ts";
+import {
+  commitFloorOutcome,
+  undoResult,
+  type FloorActionResult,
+} from "../floor-commit.ts";
 import {
   bringBackOutcome,
   finishCourtOutcome,
@@ -89,4 +93,26 @@ export async function volunteerSwapNoShow(
   return volunteerAppend(sessionId, token, (state) =>
     swapNoShowOutcome(state, court, expectedSince, outName, inName),
   );
+}
+
+/**
+ * "Undo" fired by a link-authenticated Volunteer (issue #247). Same
+ * `on_deck_undo_last_event` path the Organizer takes, with the token carried
+ * back so the database re-checks the volunteer scope.
+ */
+export async function volunteerUndoLastAction(
+  sessionId: string,
+  token: string,
+  expectedSeq: number,
+): Promise<FloorActionResult> {
+  const loaded = await loadVolunteerSession(sessionId, token);
+  if (!loaded) return { error: LINK_DEAD };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("on_deck_undo_last_event", {
+    p_session_id: sessionId,
+    p_expected_seq: expectedSeq,
+    p_volunteer_token: token.trim(),
+  });
+  return undoResult(error, sessionId);
 }

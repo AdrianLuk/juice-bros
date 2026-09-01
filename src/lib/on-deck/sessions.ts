@@ -23,6 +23,7 @@ type SessionRow = {
 };
 
 type EventRow = {
+  seq: number;
   type: string;
   at: string;
   operator_kind: Operator["kind"];
@@ -33,7 +34,7 @@ type EventRow = {
 const SESSION_COLUMNS =
   "id, club_id, venue_name, court_count, group_cap, floor_mode, status, seed";
 
-const EVENT_COLUMNS = "type, at, operator_kind, operator_user_id, payload";
+const EVENT_COLUMNS = "seq, type, at, operator_kind, operator_user_id, payload";
 
 function toConfig(row: SessionRow): SessionConfig {
   return {
@@ -156,6 +157,13 @@ export type LoadedSession = {
   config: SessionConfig;
   status: "open" | "closed";
   state: SessionState;
+  /**
+   * The raw most recent event row — its `seq`, `type`, and `at` (epoch ms) —
+   * or null for an eventless Session. What operator Undo (#247) needs that the
+   * fold discards: the seq to target and drop, and enough to decide whether it
+   * is an Operator's to undo.
+   */
+  lastEvent: { seq: number; type: string; at: number } | null;
 };
 
 /**
@@ -220,13 +228,20 @@ async function loadSession(
   }
 
   const config = toConfig(row);
-  const events = (data as EventRow[])
+  const rows = data as EventRow[];
+  const events = rows
     .map(toEvent)
     .filter((event): event is SessionEvent => event !== null);
+
+  const lastRow = rows[rows.length - 1];
+  const lastEvent = lastRow
+    ? { seq: lastRow.seq, type: lastRow.type, at: new Date(lastRow.at).getTime() }
+    : null;
 
   return {
     config,
     status: row.status,
     state: reduceSession(config, events),
+    lastEvent,
   };
 }
