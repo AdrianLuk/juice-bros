@@ -270,10 +270,18 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
       await signIn(ben2, BEN2, "/booking-buddy/slots");
       await expect(row(ben2, "Jun 6, 2031")).toHaveCount(0);
 
-      // RLS filters the row itself, so this reads as "not found" rather than
-      // a permission error, same as getSlotDetail's stated contract.
-      const response = await ben2.goto(`/booking-buddy/slots/${slotId}`);
-      expect(response?.status()).toBe(404);
+      // RLS filters the row itself, so `getSlotDetail` returns null and the
+      // page calls `notFound()` — Ben2 gets the not-found screen, never the
+      // slot, and never a "you don't have permission" that would confirm it
+      // exists. It's a soft 404 (200 + not-found UI): the route streams behind
+      // `loading.tsx`, so by the time the check runs the response has already
+      // begun and the status can't change (documented Next.js behaviour).
+      await ben2.goto(`/booking-buddy/slots/${slotId}`);
+      await expect(
+        ben2.getByRole("heading", { name: "This page could not be found." }),
+      ).toBeVisible();
+      await expect(ben2.getByText("Jun 6, 2031")).toHaveCount(0);
+      await expect(ben2.getByText(/Proposed by/)).toHaveCount(0);
     } finally {
       await ben2Context.close();
     }

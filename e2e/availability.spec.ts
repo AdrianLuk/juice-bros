@@ -46,9 +46,10 @@ test("an availability window can be blocked off, listed, and removed again", asy
   await expect(windowRow).toContainText("Busy");
 
   // The confirm button in the dialog is also labelled "Remove", so scope the
-  // second click to the dialog itself.
+  // second click to the dialog itself. It's a plain dismissable Dialog
+  // (role "dialog"), not an AlertDialog — matched to DeleteBookingButton in #256.
   await windowRow.getByRole("button", { name: "Remove" }).click();
-  const dialog = page.getByRole("alertdialog");
+  const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Remove this availability?")).toBeVisible();
   await dialog.getByRole("button", { name: "Remove" }).click();
 
