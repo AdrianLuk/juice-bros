@@ -1,11 +1,19 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
+import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import {
   formatCandidateDate,
   formatCourtLabel,
@@ -140,6 +148,36 @@ type BodyProps<K extends ReviewItem["kind"]> = {
 };
 
 /**
+ * The little "why isn't my facility here?" nudge next to the Facility label.
+ * The picker only lists facilities the User has already saved, so a booking
+ * from a court they haven't added yet lands here with nothing pre-selected —
+ * this points them at the Facilities page to fix that.
+ */
+function FacilityFieldHint() {
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={<button type="button" />}
+        aria-label="Why isn't my facility in the list?"
+        className="grid size-4 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Info className="size-3.5" aria-hidden />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 text-sm leading-relaxed">
+        Don&apos;t see your facility? Add it on the{" "}
+        <Link
+          href={ORGS_PATH}
+          className="font-medium text-foreground underline underline-offset-2"
+        >
+          Facilities
+        </Link>{" "}
+        page and it&apos;ll show up in this list.
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
  * The Import Candidate's Confirm form — the only kind with a field the User
  * still edits (`<OrgSelect>` when the facility matched no Org). Every other
  * value rides through as a hidden input so `confirmImportCandidate` re-runs
@@ -156,7 +194,10 @@ function ImportBody({ item, orgs, confirmAction, confirmState, confirmPending, b
         className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <Label htmlFor={facilityFieldId}>Facility</Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={facilityFieldId}>Facility</Label>
+            <FacilityFieldHint />
+          </div>
           <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={item.matchedOrgId ?? ""} />
         </div>
 
