@@ -62,7 +62,7 @@ function requireTestBookingDate(): { iso: string; label: string } {
 
 /**
  * Post-#176 (PR #192) the onboarding modal (`OnboardingModal`) opens on the
- * dashboard for anyone with **no Booking and no Slot** — which accounts.amy.email is, straight
+ * dashboard for anyone with **no Booking and no Slot** — which every worker's Amy is, straight
  * out of `npm run seed:users` (the seed creates accounts and friendships only).
  * Its "What do you want to start with?" dialog then sits over the calendar and
  * intercepts every click. These tests are about the calendar, not onboarding
