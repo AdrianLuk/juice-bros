@@ -11,6 +11,8 @@ import {
   addWalkupOutcome,
   bringBackOutcome,
   finishCourtOutcome,
+  formGroupOutcome,
+  lowerGroupCapOutcome,
   overrideSkillOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
@@ -120,6 +122,29 @@ export async function volunteerSwapNoShow(
 ): Promise<FloorActionResult> {
   return volunteerAppend(sessionId, token, (state) =>
     swapNoShowOutcome(state, court, expectedSince, outName, inName),
+  );
+}
+
+/** "Queue together" (issue #250), fired by a link-authenticated Volunteer. */
+export async function volunteerFormGroup(
+  sessionId: string,
+  token: string,
+  playerNames: string[],
+): Promise<FloorActionResult> {
+  const groupId = `group-${crypto.randomUUID()}`;
+  return volunteerAppend(sessionId, token, (state) =>
+    formGroupOutcome(state, playerNames, groupId),
+  );
+}
+
+/** "Lower the group cap" (issue #250), fired by a link-authenticated Volunteer. */
+export async function volunteerLowerGroupCap(
+  sessionId: string,
+  token: string,
+  cap: number,
+): Promise<FloorActionResult> {
+  return volunteerAppend(sessionId, token, (state) =>
+    lowerGroupCapOutcome(state, cap),
   );
 }
 

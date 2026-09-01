@@ -4,6 +4,7 @@ import { getSession, type LoadedSession } from "./sessions.ts";
 import {
   playerCourt,
   playerPaused,
+  queueUnits,
   type PauseReason,
   type SkillLevel,
 } from "./session/types.ts";
@@ -41,23 +42,50 @@ export type RotationCourt = {
   suggestedReplacement: string | null;
 };
 
+/**
+ * One entry in the Queue as the floor shows it (issue #250): a solo Player, or
+ * a whole Queue Together Group collapsed to one row carrying its members'
+ * names.
+ */
+export type QueueEntryView =
+  | { kind: "solo"; name: string }
+  | { kind: "group"; names: string[] };
+
 export type RotationView = {
   status: "open" | "closed";
   venueName: string;
   courts: RotationCourt[];
   /**
-   * Display names in wait order — longest-waiting first — of the Players *not*
-   * already committed to an On Deck Foursome. On Deck names appear in `onDeck`,
-   * not here, so the floor screen never lists a Player twice.
+   * Wait order — longest-waiting first — of the Players *not* already committed
+   * to an On Deck Foursome, with a Queue Together Group as a single `group`
+   * entry (issue #250). On Deck names appear in `onDeck`, not here.
    */
-  queue: string[];
+  queue: QueueEntryView[];
+  /**
+   * Every ungrouped waiting Player's display name, flat, in wait order — for
+   * the no-show swap picker. A Group's members are queued as a unit and are
+   * not offered here.
+   */
+  waitingNames: string[];
+  /**
+   * Every queued Player not already in a Group, in wait order — the "queue
+   * together" picker (issue #250). Includes the ones currently On Deck, since
+   * forming a Group deliberately rebuilds On Deck around it.
+   */
+  groupablePlayers: string[];
   queuedCount: number;
+  /** The live group cap (issue #250) — `config.groupCap`, or lower if a
+   * Volunteer trimmed it mid-Session. */
+  groupCap: number;
   /**
    * The committed On Deck Foursomes, display names only — index 0 is "Up
    * next", index 1 "After that" (issue #245). A Foursome still short of four
    * (Queue was thin when it formed) comes back with fewer names.
    */
   onDeck: string[][];
+  /** Parallel to `onDeck` — whether each Foursome came from a Queue Together
+   * Group (issue #250), for a "Group" label on the card. */
+  onDeckIsGroup: boolean[];
   /**
    * Players who have stepped out (issue #246), newest last — display name plus
    * which door they came through, for the Organizer's "set aside" list and its
@@ -80,6 +108,8 @@ export type RotationView = {
     onDeck: number | null;
     /** The caller has stepped out and is not being called. */
     paused: boolean;
+    /** The caller is queued as part of a Queue Together Group (issue #250). */
+    group: boolean;
   } | null;
 };
 
@@ -96,6 +126,7 @@ export function rotationViewFrom(
     state.roster.find((p) => p.id === id)?.displayName ?? "Someone";
 
   const onDeckIds = new Set(state.onDeck.flatMap((f) => f.players));
+  const groupedIds = new Set(state.groups.flatMap((g) => g.memberIds));
   const waiting = state.queue.filter((e) => !onDeckIds.has(e.playerId));
   const skillOf = (id: string) =>
     state.roster.find((p) => p.id === id)?.skillLevel ?? "intermediate";
@@ -104,15 +135,33 @@ export function rotationViewFrom(
    * name — the longest-waiting Players make the healthiest fit against the
    * three still standing there. */
   const suggestFor = (foursome: string[]): string | null => {
-    if (foursome.length === 0 || waiting.length === 0) return null;
+    const free = waiting
+      .map((e) => e.playerId)
+      .filter((id) => !groupedIds.has(id));
+    if (foursome.length === 0 || free.length === 0) return null;
     const id = bestReplacement({
       courtmates: foursome,
-      waiting: waiting.map((e) => e.playerId),
+      waiting: free,
       skillOf,
       completedGames: state.completedGames,
     });
     return id ? nameOf(id) : null;
   };
+
+  // The Queue as units — a Group is one entry — minus anyone already On Deck
+  // (a Group's Foursome is committed whole, so its members are all On Deck or
+  // all still here).
+  const queue: QueueEntryView[] = queueUnits(state).flatMap<QueueEntryView>(
+    (unit) => {
+      if (unit.kind === "solo") {
+        return onDeckIds.has(unit.playerId)
+          ? []
+          : [{ kind: "solo", name: nameOf(unit.playerId) }];
+      }
+      if (unit.memberIds.some((id) => onDeckIds.has(id))) return [];
+      return [{ kind: "group", names: unit.memberIds.map(nameOf) }];
+    },
+  );
 
   const trimmed = token?.trim() ?? "";
   let me: RotationView["me"] = null;
@@ -126,6 +175,7 @@ export function rotationViewFrom(
       court: playerCourt(state, trimmed),
       onDeck: onDeckIndex < 0 ? null : onDeckIndex,
       paused: playerPaused(state, trimmed),
+      group: state.groups.some((g) => g.memberIds.includes(trimmed)),
     };
   }
 
@@ -138,9 +188,17 @@ export function rotationViewFrom(
       since: c.since,
       suggestedReplacement: suggestFor(c.foursome),
     })),
-    queue: waiting.map((e) => nameOf(e.playerId)),
+    queue,
+    waitingNames: waiting
+      .filter((e) => !groupedIds.has(e.playerId))
+      .map((e) => nameOf(e.playerId)),
+    groupablePlayers: state.queue
+      .filter((e) => !groupedIds.has(e.playerId))
+      .map((e) => nameOf(e.playerId)),
     queuedCount: waiting.length,
+    groupCap: state.groupCap,
     onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
+    onDeckIsGroup: state.onDeck.map((f) => f.groupId !== null),
     paused: state.paused.map((p) => ({ name: nameOf(p.playerId), reason: p.reason })),
     undo: status === "open" ? describeUndo(loaded.lastEvent, now) : null,
     me,

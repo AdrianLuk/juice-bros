@@ -1,6 +1,8 @@
-import { selectFoursome } from "./match-me.ts";
+import { fillFoursome, selectFoursome } from "./match-me.ts";
+import { median } from "./types.ts";
 import type {
   CourtSlot,
+  Group,
   OnDeckFoursome,
   RosterPlayer,
   SessionConfig,
@@ -55,13 +57,55 @@ function displayNameFor(
   return priorSameName === 0 ? base : `${base} ${priorSameName + 1}`;
 }
 
+/** All Groups keyed by member device token, for the fold's inner helpers. */
+function groupByMember(state: SessionState): Map<string, Group> {
+  const byMember = new Map<string, Group>();
+  for (const group of state.groups) {
+    for (const id of group.memberIds) byMember.set(id, group);
+  }
+  return byMember;
+}
+
 /**
- * Re-sort the Queue longest-wait-first. `Array.prototype.sort` is stable, so
- * Players who began waiting at the same instant — the four coming off a Court
- * together — keep the order they were added in.
+ * Re-order the Queue longest-wait-first, treating each Queue Together Group
+ * (issue #250) as one unit sitting at the **median** Wait Time of its members —
+ * so recruiting a longer-waiting member never jumps the Group up the line, and
+ * grouping never costs a member their own accrued wait (each entry keeps its
+ * real `waitSince`; only the order changes).
+ *
+ * `Array.prototype.sort` is stable, so units — and the four Players coming off
+ * a Court together, who share a `waitSince` — keep first-appearance order on a
+ * key tie.
  */
-function sortQueue(queue: SessionState["queue"]): void {
-  queue.sort((a, b) => a.waitSince - b.waitSince);
+function sortQueue(state: SessionState): void {
+  const q = state.queue;
+  const groupOf = groupByMember(state);
+  const orderIndex = new Map(q.map((e, i) => [e, i] as const));
+
+  type Unit = { key: number; entries: SessionState["queue"] };
+  const units: Unit[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of q) {
+    const group = groupOf.get(entry.playerId);
+    if (!group) {
+      units.push({ key: entry.waitSince, entries: [entry] });
+      continue;
+    }
+    if (seen.has(group.id)) continue;
+    seen.add(group.id);
+    const members = q
+      .filter((e) => groupOf.get(e.playerId) === group)
+      .sort(
+        (a, b) =>
+          a.waitSince - b.waitSince ||
+          orderIndex.get(a)! - orderIndex.get(b)!,
+      );
+    units.push({ key: median(members.map((e) => e.waitSince)), entries: members });
+  }
+
+  units.sort((a, b) => a.key - b.key);
+  state.queue = units.flatMap((u) => u.entries);
 }
 
 /** A Player's declared Skill Level, defaulting to intermediate for a token the
@@ -105,6 +149,12 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
   const lead = state.onDeck[0];
   if (lead && isComplete(lead) && lead.players.every((id) => queuedIds.has(id))) {
     foursome = lead.players;
+    // A Group's Foursome walking on binds the Group to this Court (issue #250);
+    // `COURT_FINISHED` for the Court is what dissolves the Group.
+    if (lead.groupId) {
+      const group = state.groups.find((g) => g.id === lead.groupId);
+      if (group) group.courtNumber = court.number;
+    }
     state.onDeck.shift();
   } else {
     foursome = pickFoursome(state, state.queue.map((e) => e.playerId));
@@ -126,45 +176,99 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
  *      incomplete Foursomes, and forms new ones.
  *   2. **Top up in wait order.** An incomplete Foursome (short Queue when it
  *      formed) gains the next-longest-waiting unspoken-for Players until full.
- *   3. **Form with Match Me.** A fresh Foursome is selected via `pickFoursome`
- *      from the Players not already spoken for by On Deck or a Court. The
- *      *first* Foursome only forms once four are available — a lone waiter is
- *      "in the Queue", not "on deck". A *second* Foursome may form with as few
- *      as one, so "After that" fills out as Players arrive.
+ *   3. **Form the next Foursome.** From the Players not already spoken for by On
+ *      Deck or a Court: if the longest-waiting unspoken-for unit is a Queue
+ *      Together Group (issue #250), its members are fixed and Match Me only
+ *      fills the open seats (`fillFoursome`, targeting the Group's average
+ *      Skill Level, Variety suppressed between members); otherwise the ordinary
+ *      windowed Match Me runs. The *first* Foursome only forms once it can be
+ *      completed to four — a lone waiter, or an unfillable Group, is "in the
+ *      Queue", not "on deck". A *second* Foursome may form partial.
  */
 function refreshOnDeck(state: SessionState, at: number): void {
   const queuedIds = new Set(state.queue.map((e) => e.playerId));
+  const groupOf = groupByMember(state);
 
   // 1. A committed Player who is no longer waiting (walked onto a Court) drops
-  //    out; a Foursome emptied that way is gone.
+  //    out; a Foursome emptied that way is gone. A `groupId` whose Group has
+  //    since dissolved is cleared so nothing downstream chases it.
   for (const foursome of state.onDeck) {
     foursome.players = foursome.players.filter((id) => queuedIds.has(id));
+    if (foursome.groupId && !state.groups.some((g) => g.id === foursome.groupId)) {
+      foursome.groupId = null;
+    }
   }
   state.onDeck = state.onDeck.filter((f) => f.players.length > 0);
 
   const spokenFor = new Set(state.onDeck.flatMap((f) => f.players));
-  const available = state.queue
+  let available = state.queue
     .map((e) => e.playerId)
     .filter((id) => !spokenFor.has(id));
 
-  // 2. Top up incomplete Foursomes, "Up next" before "After that".
+  const drop = (ids: readonly string[]): void => {
+    const gone = new Set(ids);
+    available = available.filter((id) => !gone.has(id));
+  };
+
+  // A Group is placed as a whole (rule 3), so it never tops up someone else's
+  // Foursome and its members are never cherry-picked into a Match Me pick. The
+  // exception: a Foursome that is itself this Group's tops up with its own
+  // members first, then solos.
+  const topUpEligible = (foursome: OnDeckFoursome, id: string): boolean => {
+    const g = groupOf.get(id);
+    return !g || g.id === foursome.groupId;
+  };
+
+  // 2. Top up incomplete Foursomes in wait order, "Up next" before "After
+  //    that" — existing members (Group or not) are left in place.
   for (const foursome of state.onDeck) {
-    while (foursome.players.length < 4 && available.length > 0) {
-      foursome.players.push(available.shift()!);
+    while (foursome.players.length < 4) {
+      const next = available.findIndex((id) => topUpEligible(foursome, id));
+      if (next < 0) break;
+      foursome.players.push(available.splice(next, 1)[0]);
     }
   }
 
   // 3. Form new Foursomes until On Deck is `ON_DECK_DEPTH` deep or nobody is
-  //    left to commit. The first needs a full four; a second may start partial.
-  while (state.onDeck.length < ON_DECK_DEPTH) {
-    const minSize = state.onDeck.length === 0 ? 4 : 1;
-    if (available.length < minSize) break;
-    const picked = pickFoursome(state, available) ?? [...available];
-    const seated = new Set(picked);
-    for (let i = available.length - 1; i >= 0; i--) {
-      if (seated.has(available[i])) available.splice(i, 1);
+  //    left to commit.
+  while (state.onDeck.length < ON_DECK_DEPTH && available.length > 0) {
+    const firstSlot = state.onDeck.length === 0;
+    const group = groupOf.get(available[0]);
+
+    if (group) {
+      const members = available.filter((id) => group.memberIds.includes(id));
+      const pool = available.filter((id) => !group.memberIds.includes(id));
+      let foursome: string[] | null =
+        members.length >= 4
+          ? members.slice(0, 4)
+          : fillFoursome({
+              fixed: members,
+              pool,
+              skillOf: skillLookup(state),
+              completedGames: state.completedGames,
+              seed: state.config.seed,
+            });
+      if (!foursome) {
+        // Not enough waiting Players to fill the Group yet. The lead slot holds
+        // out for a full Foursome; the second slot commits the Group partial
+        // and tops up as Players arrive.
+        if (firstSlot) break;
+        foursome = [...members];
+      }
+      drop(foursome);
+      state.onDeck.push({ players: foursome, committedAt: at, groupId: group.id });
+      continue;
     }
-    state.onDeck.push({ players: picked, committedAt: at });
+
+    // A Group that is not the front unit stays in the Queue as one entry — its
+    // members are not eligible for an ordinary Match Me Foursome until the
+    // Group itself reaches the front.
+    const solos = available.filter((id) => !groupOf.get(id));
+    if (solos.length === 0) break;
+    if (firstSlot && solos.length < 4) break;
+    const picked = pickFoursome(state, solos) ?? [...solos];
+    drop(picked);
+    state.onDeck.push({ players: picked, committedAt: at, groupId: null });
   }
 }
 
@@ -199,6 +303,8 @@ export function reduceSession(
 
   const state: SessionState = {
     config,
+    groupCap: config.groupCap,
+    groups: [],
     startedAt: null,
     startedBy: null,
     status: "pending",
@@ -237,7 +343,7 @@ export function reduceSession(
 
     state.queue.push({ playerId, waitSince: at });
     beginWait(playerId, at);
-    sortQueue(state.queue);
+    sortQueue(state);
     refreshOnDeck(state, at);
   };
 
@@ -308,6 +414,11 @@ export function reduceSession(
         const court = state.courts.find((c) => c.number === event.court);
         if (!court) break;
 
+        // A Queue Together Group bound to this Court dissolves the moment its
+        // Game ends (issue #250) — its ex-members re-queue below as ordinary
+        // solos.
+        state.groups = state.groups.filter((g) => g.courtNumber !== event.court);
+
         // A real Game (an occupied Court) ending is the Variety history Match
         // Me scores against; an empty Court tapped done carries no Game.
         if (court.foursome.length > 0) {
@@ -323,7 +434,7 @@ export function reduceSession(
         }
         court.foursome = [];
         court.since = null;
-        sortQueue(state.queue);
+        sortQueue(state);
 
         // ...then the "Up next" On Deck Foursome (or Match Me, if it is not
         // ready) walks onto the freed Court, and On Deck refills behind it.
@@ -364,6 +475,18 @@ export function reduceSession(
             c.foursome = c.foursome.filter((x) => x !== id);
           }
         }
+
+        // A paused Player leaves any Queue Together Group they were in (issue
+        // #250). A still-waiting Group under two members dissolves — its lone
+        // member re-sorts as a solo. A Group already on a Court keeps going
+        // until its `COURT_FINISHED`.
+        for (const g of state.groups) {
+          g.memberIds = g.memberIds.filter((x) => x !== id);
+        }
+        state.groups = state.groups.filter(
+          (g) => g.courtNumber !== null || g.memberIds.length >= 2,
+        );
+        sortQueue(state);
         refreshOnDeck(state, event.at);
         break;
       }
@@ -380,7 +503,7 @@ export function reduceSession(
         const waitSince = event.at - paused.accruedWaitMs;
         state.queue.push({ playerId: id, waitSince });
         beginWait(id, waitSince);
-        sortQueue(state.queue);
+        sortQueue(state);
         refreshOnDeck(state, event.at);
         break;
       }
@@ -409,6 +532,48 @@ export function reduceSession(
         );
         state.queue = state.queue.filter((e) => e.playerId !== event.in);
         refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "GROUP_FORMED": {
+        if (state.status !== "open") break;
+        const ids = [...new Set(event.memberTokens)];
+        // 2 to the current live cap; every member rostered, currently waiting
+        // in the Queue, and in no other Group. Any miss makes this a no-op —
+        // `floor-ops` is what turns the same checks into a message for the
+        // Operator.
+        if (ids.length < 2 || ids.length > state.groupCap) break;
+        if (!ids.every((id) => state.roster.some((p) => p.id === id))) break;
+        if (!ids.every((id) => state.queue.some((e) => e.playerId === id))) break;
+        const grouped = new Set(state.groups.flatMap((g) => g.memberIds));
+        if (ids.some((id) => grouped.has(id))) break;
+
+        state.groups.push({
+          id: event.groupId,
+          memberIds: ids,
+          formedAt: event.at,
+          courtNumber: null,
+        });
+        // Forming a Group is a deliberate Operator act, not a passive Queue
+        // change — so unlike a join it *does* rebuild On Deck, from scratch, so
+        // the Group's Foursome can take its rightful "Up next" slot. ADR 0007's
+        // "never reshuffle" still holds for the events Players trigger; this is
+        // the Volunteer overriding the board on purpose, and the rebuild is
+        // deterministic (pure fold) so undo re-forms it exactly.
+        state.onDeck = [];
+        sortQueue(state);
+        refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "GROUP_CAP_CHANGED": {
+        if (state.status !== "open") break;
+        // The Club default is the ceiling and 2 the floor (a Volunteer only
+        // adjusts within that). Existing larger Groups are untouched — only
+        // later `GROUP_FORMED` events feel the new cap.
+        if (!Number.isInteger(event.cap)) break;
+        if (event.cap < 2 || event.cap > state.config.groupCap) break;
+        state.groupCap = event.cap;
         break;
       }
     }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { reduceSession } from "./reduce.ts";
-import { playerCourt, queuePosition } from "./types.ts";
+import { playerCourt, queuePosition, queueUnits } from "./types.ts";
 import type {
   Operator,
   SessionConfig,
@@ -1028,4 +1028,323 @@ test("PLAYER_SKILL_SET does not reshuffle an already-committed On Deck Foursome 
 
   const state = reduceSession(config, [...base, skillSet("p4", "advanced")]);
   assert.deepEqual(state.onDeck[0].players, committed);
+});
+
+// --- Queue Together, volunteer-formed (#250) -------------------------
+
+/** A Volunteer forms a Group from waiting Players who asked to play together. */
+function groupFormed(
+  groupId: string,
+  memberTokens: string[],
+  operator: Operator = volunteer,
+): SessionEvent {
+  return { type: "GROUP_FORMED", at: tick(), operator, groupId, memberTokens };
+}
+
+/** A Volunteer lowers the live group cap mid-Session. */
+function groupCapChanged(
+  cap: number,
+  operator: Operator = volunteer,
+): SessionEvent {
+  return { type: "GROUP_CAP_CHANGED", at: tick(), operator, cap };
+}
+
+/** `started()` plus one joined-and-queued Player per entry, with per-Player skill. */
+function queuedSession(
+  players: { token: string; skill?: SkillLevel }[],
+): SessionEvent[] {
+  const events: SessionEvent[] = [started()];
+  players.forEach((p, i) =>
+    events.push(joined(p.token, `P${i + 1}`, "X", p.skill ?? "intermediate")),
+  );
+  players.forEach((p) => events.push(queued(p.token)));
+  return events;
+}
+
+const GID = "group-00000000-0000-0000-0000-000000000001";
+
+test("a Group appears as one Queue entry, positioned at its members' median Wait Time", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+  ]);
+  const state = reduceSession(config, [...base, groupFormed(GID, ["p2", "p4"])]);
+
+  const units = queueUnits(state);
+  // p1 (longest wait) stays first; the Group sits at median(p2, p4) = p3's
+  // wait, ahead of p3 by first-appearance; p5 last.
+  assert.deepEqual(
+    units.map((u) => (u.kind === "group" ? "group" : u.playerId)),
+    ["p1", "group", "p3", "p5"],
+  );
+  assert.deepEqual(units[1], {
+    kind: "group",
+    groupId: GID,
+    memberIds: ["p2", "p4"],
+  });
+  assert.equal(state.groups.length, 1);
+  assert.deepEqual(state.groups[0].memberIds, ["p2", "p4"]);
+});
+
+test("recruiting a longer-waiting member does not jump the Group up the line", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+    { token: "p6" },
+  ]);
+  // The Group takes the longest-waiting p1 plus the two shortest waiters.
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p5", "p6"]),
+  ]);
+
+  const units = queueUnits(state);
+  // median(p1, p5, p6) = p5's wait, so the Group sits behind p2, p3, p4 — p1's
+  // long wait did not drag the unit to the front.
+  assert.deepEqual(
+    units.map((u) => (u.kind === "group" ? "group" : u.playerId)),
+    ["p2", "p3", "p4", "group"],
+  );
+});
+
+test("grouping does not cost a member their accrued Wait Time", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [...base, groupFormed(GID, ["p1", "p2"])]);
+
+  assert.deepEqual(after.waitStartByPlayer, before.waitStartByPlayer);
+  for (const id of ["p1", "p2", "p3", "p4"]) {
+    assert.equal(
+      after.queue.find((e) => e.playerId === id)!.waitSince,
+      before.queue.find((e) => e.playerId === id)!.waitSince,
+      `${id} keeps its wait anchor`,
+    );
+  }
+});
+
+test("a Group of two is filled to four by Match Me at the Group's average level", () => {
+  const base = queuedSession([
+    { token: "m1", skill: "newbie" },
+    { token: "m2", skill: "newbie" },
+    { token: "a1", skill: "advanced" },
+    { token: "a2", skill: "advanced" },
+    { token: "n1", skill: "newbie" },
+    { token: "n2", skill: "newbie" },
+  ]);
+  const state = reduceSession(config, [...base, groupFormed(GID, ["m1", "m2"])]);
+
+  // The Group anchors On Deck; the two fill seats go to the newbies, not the
+  // advanced players, because skill fit is scored across the whole Foursome.
+  assert.deepEqual(state.onDeck[0].players, ["m1", "m2", "n1", "n2"]);
+  assert.equal(state.onDeck[0].groupId, GID);
+});
+
+test("a Group of three is filled to four", () => {
+  const base = queuedSession([
+    { token: "m1" },
+    { token: "m2" },
+    { token: "m3" },
+    { token: "f1" },
+    { token: "f2" },
+  ]);
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["m1", "m2", "m3"]),
+  ]);
+
+  assert.equal(state.onDeck[0].players.length, 4);
+  assert.deepEqual(state.onDeck[0].players.slice(0, 3), ["m1", "m2", "m3"]);
+  assert.equal(state.onDeck[0].players[3], "f1");
+  assert.equal(state.onDeck[0].groupId, GID);
+});
+
+test("Variety is not applied between members — a Group whose members just shared a Court still forms and fills", () => {
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  const events: SessionEvent[] = [started()];
+  for (let i = 1; i <= 8; i++) events.push(joined(`p${i}`, `P${i}`, "X"));
+  for (let i = 1; i <= 4; i++) events.push(queued(`p${i}`));
+  events.push(courtFinished(1)); // seat p1..p4 onto the empty Court
+  for (let i = 5; i <= 8; i++) events.push(queued(`p${i}`));
+  events.push(courtFinished(1)); // p1..p4's Game ends, they re-queue; p5..p8 seat
+
+  // p1..p4 are the only ones waiting and have a shared Game on the books.
+  const state = reduceSession(oneCourt, [
+    ...events,
+    groupFormed(GID, ["p1", "p2"]),
+  ]);
+
+  assert.equal(state.groups.length, 1);
+  // The Foursome fills regardless of the shared history (every preference soft).
+  assert.deepEqual(state.onDeck[0].players, ["p1", "p2", "p3", "p4"]);
+  assert.equal(state.onDeck[0].groupId, GID);
+});
+
+test("a Group dissolves when its Game ends", () => {
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const formed = [...base, groupFormed(GID, ["p1", "p2"])];
+
+  const seated = reduceSession(oneCourt, [...formed, courtFinished(1)]);
+  assert.equal(seated.groups.length, 1);
+  assert.equal(seated.groups[0].courtNumber, 1);
+  assert.deepEqual(seated.courts[0].foursome, ["p1", "p2", "p3", "p4"]);
+
+  const ended = reduceSession(oneCourt, [
+    ...formed,
+    courtFinished(1),
+    courtFinished(1),
+  ]);
+  assert.deepEqual(ended.groups, []);
+  // The ex-members are back in the Queue as ordinary solos.
+  assert.ok(queueUnits(ended).every((u) => u.kind === "solo"));
+});
+
+test("a Group larger than the cap is rejected", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+  ]);
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2", "p3", "p4", "p5"]), // 5 > cap 4
+  ]);
+  assert.deepEqual(state.groups, []);
+});
+
+test("a Volunteer lowers the cap live; an existing larger Group is left alone, new over-cap Groups are rejected", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+    { token: "p6" },
+    { token: "p7" },
+    { token: "p8" },
+  ]);
+  const g2 = "group-00000000-0000-0000-0000-000000000002";
+  const g3 = "group-00000000-0000-0000-0000-000000000003";
+
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2", "p3", "p4"]), // ok at cap 4
+    groupCapChanged(2),
+    groupFormed(g2, ["p5", "p6", "p7"]), // 3 > new cap 2 — rejected
+    groupFormed(g3, ["p5", "p6"]), // ok at cap 2
+  ]);
+
+  assert.equal(state.groupCap, 2);
+  assert.equal(state.groups.length, 2);
+  assert.deepEqual(state.groups[0].memberIds, ["p1", "p2", "p3", "p4"]);
+  assert.deepEqual(state.groups[1].memberIds, ["p5", "p6"]);
+});
+
+test("GROUP_CAP_CHANGED outside [2, config.groupCap] is a no-op", () => {
+  const base = queuedSession([{ token: "p1" }, { token: "p2" }]);
+  assert.equal(reduceSession(config, [...base, groupCapChanged(1)]).groupCap, 4);
+  assert.equal(reduceSession(config, [...base, groupCapChanged(9)]).groupCap, 4);
+  assert.equal(reduceSession(config, [...base, groupCapChanged(3)]).groupCap, 3);
+});
+
+test("undo drops the last GROUP_FORMED: re-folding restores the exact prior state (#247)", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+    { token: "p6" },
+  ]);
+  const before = reduceSession(config, base);
+  const withGroup = [...base, groupFormed(GID, ["p1", "p2"])];
+  const after = reduceSession(config, withGroup);
+
+  assert.notDeepEqual(after.groups, before.groups);
+  assert.deepEqual(reduceSession(config, withGroup.slice(0, -1)), before);
+});
+
+test("undo drops the Group's COURT_FINISHED: the Group comes back, bound to no Court (#247)", () => {
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const events = [
+    ...base,
+    groupFormed(GID, ["p1", "p2"]),
+    courtFinished(1), // seats the Group
+    courtFinished(1), // ends its Game -> dissolves
+  ];
+  const restored = reduceSession(oneCourt, events.slice(0, -1));
+  assert.equal(restored.groups.length, 1);
+  assert.equal(restored.groups[0].courtNumber, 1);
+});
+
+test("Queue Together folding is deterministic — identical events, identical state", () => {
+  const base = queuedSession([
+    { token: "m1", skill: "beginner" },
+    { token: "m2", skill: "advanced" },
+    { token: "f1", skill: "intermediate" },
+    { token: "f2", skill: "intermediate" },
+    { token: "f3", skill: "intermediate" },
+    { token: "f4", skill: "intermediate" },
+  ]);
+  const events = [...base, groupFormed(GID, ["m1", "m2"])];
+  assert.deepEqual(reduceSession(config, events), reduceSession(config, events));
+});
+
+test("a paused member leaves the Group; a Group under two members dissolves", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const twoLeft = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2", "p3"]),
+    {
+      type: "PLAYER_PAUSED",
+      at: tick(),
+      operator: volunteer,
+      token: "p3",
+      reason: "set-aside",
+    },
+  ]);
+  assert.equal(twoLeft.groups.length, 1);
+  assert.deepEqual(twoLeft.groups[0].memberIds, ["p1", "p2"]);
+
+  const dissolved = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2"]),
+    {
+      type: "PLAYER_PAUSED",
+      at: tick(),
+      operator: volunteer,
+      token: "p2",
+      reason: "set-aside",
+    },
+  ]);
+  assert.deepEqual(dissolved.groups, []);
 });

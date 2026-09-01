@@ -6,6 +6,7 @@ import {
   SKILL_PAIR_COST,
   VARIETY_WEIGHT,
   bestReplacement,
+  fillFoursome,
   selectFoursome,
   skillPenalty,
   varietyPenalty,
@@ -332,4 +333,105 @@ test("bestReplacement returns null when nobody is waiting", () => {
     }),
     null,
   );
+});
+
+// --- fillFoursome (Queue Together, #250) --------------------------------
+
+test("fillFoursome keeps the Group members and adds the open seats in wait order", () => {
+  const four = fillFoursome({
+    fixed: ["m1", "m2"],
+    pool: ["q1", "q2", "q3", "q4"],
+    skillOf: () => "intermediate",
+    completedGames: [],
+    seed: "seed-1",
+  });
+  assert.deepEqual(four, ["m1", "m2", "q1", "q2"]);
+});
+
+test("fillFoursome fills a Group of three with one Player", () => {
+  const four = fillFoursome({
+    fixed: ["m1", "m2", "m3"],
+    pool: ["q1", "q2"],
+    skillOf: () => "intermediate",
+    completedGames: [],
+    seed: "seed-1",
+  });
+  assert.deepEqual(four, ["m1", "m2", "m3", "q1"]);
+});
+
+test("fillFoursome targets the Group's average Skill Level", () => {
+  const skills: Record<string, SkillLevel> = {
+    m1: "newbie",
+    m2: "newbie",
+    adv1: "advanced",
+    adv2: "advanced",
+    new1: "newbie",
+    new2: "newbie",
+  };
+  const four = fillFoursome({
+    fixed: ["m1", "m2"],
+    pool: ["adv1", "adv2", "new1", "new2"],
+    skillOf: (id) => skills[id] ?? "intermediate",
+    completedGames: [],
+    seed: "seed-1",
+  });
+  assert.deepEqual(four, ["m1", "m2", "new1", "new2"]);
+});
+
+test("fillFoursome does not penalise a Group for its members' shared history", () => {
+  // m1 and m2 have played together in every recent Game; a fill Player with a
+  // clean history still gets in over one who just shared a Court with them.
+  const games: CompletedGame[] = [
+    { players: ["m1", "m2", "dirty", "x"] },
+    { players: ["m1", "m2", "dirty", "y"] },
+  ];
+  const four = fillFoursome({
+    fixed: ["m1", "m2"],
+    pool: ["dirty", "clean1", "clean2"],
+    skillOf: () => "intermediate",
+    completedGames: games,
+    seed: "seed-1",
+  });
+  // The member–member repeat is ignored; the fill avoids "dirty", the recent
+  // courtmate of the members.
+  assert.deepEqual(four, ["m1", "m2", "clean1", "clean2"]);
+});
+
+test("fillFoursome applies Variety between fill Players", () => {
+  const games: CompletedGame[] = [{ players: ["f1", "f2", "z1", "z2"] }];
+  const four = fillFoursome({
+    fixed: ["m1", "m2"],
+    pool: ["f1", "f2", "f3"],
+    skillOf: () => "intermediate",
+    completedGames: games,
+    seed: "seed-1",
+  });
+  // f1+f2 just shared a Court, so the pair is broken up — f3 comes in.
+  assert.deepEqual(four!.slice(2).sort(), ["f1", "f3"]);
+});
+
+test("fillFoursome returns null when the pool can't cover the open seats", () => {
+  assert.equal(
+    fillFoursome({
+      fixed: ["m1", "m2"],
+      pool: ["q1"],
+      skillOf: () => "intermediate",
+      completedGames: [],
+      seed: "seed-1",
+    }),
+    null,
+  );
+});
+
+test("varietyPenalty ignores pairs where both ids are in ignoreWithin", () => {
+  const games: CompletedGame[] = [{ players: ["m1", "m2", "m3", "x"] }];
+  const withAll = varietyPenalty(["m1", "m2", "m3", "x"], games);
+  const suppressed = varietyPenalty(
+    ["m1", "m2", "m3", "x"],
+    games,
+    new Set(["m1", "m2", "m3"]),
+  );
+  assert.ok(withAll > suppressed);
+  // Only the m*-x pairs remain once m1/m2/m3 are suppressed among themselves.
+  assert.ok(suppressed > 0);
 });

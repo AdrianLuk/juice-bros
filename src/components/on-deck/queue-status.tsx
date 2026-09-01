@@ -156,6 +156,11 @@ function QueueStatusInner({
           {query.data ? ` of ${query.data.queuedCount}` : ""}. Hang around, you
           don&apos;t need to touch anything.
         </p>
+        {me.group && (
+          <p className="mt-1 text-sm text-muted-foreground" data-testid="queue-group-note">
+            You&apos;re queued with your group — you&apos;ll go on together.
+          </p>
+        )}
         {stepOut}
       </div>
     );

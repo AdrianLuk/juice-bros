@@ -205,7 +205,44 @@ migration (the drift lesson `booking-buddy/PROGRESS.md` already carries).
   `e2e/on-deck-walkup.spec.ts` (add four walk-ups → correct a rating → "Send
   next four" calls them).
 
+- [x] **#250 — Queue Together, volunteer-formed.** An Operator (Organizer or a
+  link-authenticated Volunteer) forms a **Group** of 2 to the live cap from
+  waiting Players: `GROUP_FORMED { groupId, memberTokens[] }` and
+  `GROUP_CAP_CHANGED { cap }` reach the fold. `reduceSession` grows
+  `state.groups` and `state.groupCap`. `sortQueue` becomes unit-aware — a Group
+  sits at the **median** `waitSince` of its members (each member keeps its real
+  wait anchor, so grouping costs nobody their equity and recruiting a
+  longer-waiting member only pulls the unit partway up). `refreshOnDeck` forms a
+  Group's Foursome when the Group is the front unit: a Group of 4 walks on
+  as-is, a Group of 2-3 is filled by `fillFoursome` (new in `match-me.ts` —
+  targets the members' average Skill Level; `varietyPenalty` gains an
+  `ignoreWithin` set so member-member repeats are free while the fill Players
+  still feel Variety). Forming a Group is the one deliberate Operator act that
+  rebuilds On Deck from scratch (ADR 0007's "never reshuffle" still holds for
+  Player-triggered events). A Group binds to the Court its Foursome walks onto
+  (`group.courtNumber`, `OnDeckFoursome.groupId`) and **dissolves on that
+  Court's `COURT_FINISHED`** — no `GROUP_DISSOLVED` event (that is #251's manual
+  volunteer dissolve); undo-parity holds because dissolution is pure fold. A
+  paused member leaves their Group; a Group under two members dissolves.
+  `GROUP_CAP_CHANGED` is bounded to `[2, config.groupCap]` and leaves existing
+  larger Groups alone. `floor-ops.ts` gains `formGroupOutcome` /
+  `lowerGroupCapOutcome`; `GROUP_FORMED` joins the undoable `FLOOR_EVENT_TYPES`
+  (a mis-formed Group is undone, not played out), `GROUP_CAP_CHANGED` is
+  forward-fixed. `RotationView` grows `queue: QueueEntryView[]` (a Group is one
+  entry), `groupablePlayers`, `groupCap`, `onDeckIsGroup[]`, `me.group`. Floor
+  screen gets a "Queue together" picker + live cap stepper and a "Group" chip on
+  the On Deck card; the Player view notes "you're queued with your group".
+  Migration `20260901210000` teaches `on_deck_volunteer_append` the two events
+  (server-minted `group-<uuid>`, 2-8 member array, 2-8 cap) and
+  `on_deck_undo_last_event` the `GROUP_FORMED` type. Tests: `reduce.test.ts`
+  (median positioning, no line-jump, wait-time preservation, fill count + level,
+  member-variety suppression, dissolve, cap enforcement, paused-member,
+  determinism, undo-parity), `match-me.test.ts` (`fillFoursome`),
+  `floor-ops.test.ts`, `on_deck_queue_together.test.sql`,
+  `e2e/on-deck-queue-together.spec.ts` (form a Group of 3 → filled to 4 with a
+  Group label → walks on → dissolves).
+
 ## Next
 
-The rest of #238 — Queue Together, the interactive Display and Kiosk, Last
-Call, and the Session Summary purge.
+The rest of #238 — Queue Together **player-formed** (#251), the interactive
+Display and Kiosk, Last Call, and the Session Summary purge.
