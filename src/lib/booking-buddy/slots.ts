@@ -117,29 +117,51 @@ export function parseNewSlotProposal(
 }
 
 /**
- * The date + start hour to seed the Games form with when someone proposes a
- * game against a friend's "Looking to play" window (#230). A window still in
- * the future seeds its own local start day and hour; one that has already
- * started seeds today with no hour, since the form (and the
- * `slots_not_in_the_past` trigger) would reject a start time in the past. An
- * all-day window sits on local midnight — there's no useful hour to seed, so
- * only the date goes through.
+ * How many whole hours an hour-aligned `"HH:MM"` range spans, wrapping once
+ * over midnight (`"21:00"` → `"01:00"` is 4). `null` if either end isn't on
+ * the hour, or the span isn't a sensible single game length (1–3 hours) — the
+ * Games form keeps its own default duration rather than seed something odd.
+ */
+function gameHoursBetween(startClock: string, endClock: string): number | null {
+  if (!startClock.endsWith(":00") || !endClock.endsWith(":00")) {
+    return null;
+  }
+  const startHour = Number(startClock.slice(0, 2));
+  const endHour = Number(endClock.slice(0, 2));
+  const hours = ((endHour - startHour + 24) % 24) || 24;
+  return hours >= 1 && hours <= 3 ? hours : null;
+}
+
+/**
+ * The date + start hour (+ end hour, when the window is a sensible game
+ * length) to seed the Games form with when someone proposes a game against a
+ * free window — a friend's "Looking to play" window (#230) or a "Find a time"
+ * overlap block (#195). A window still in the future seeds its own local start
+ * day and hour; one that has already started seeds today with no hour, since
+ * the form (and the `slots_not_in_the_past` trigger) would reject a start time
+ * in the past. An all-day window sits on local midnight — there's no useful
+ * hour to seed, so only the date goes through.
  */
 export function proposeGamePrefill(
   window: { startsAt: string; endsAt: string; timeZone: string },
   now: Date = new Date(),
-): { date: string; startTime: string | null } {
+): { date: string; startTime: string | null; endTime: string | null } {
   const start = new Date(window.startsAt);
 
   if (start.getTime() > now.getTime()) {
     const clock = clockInZone(window.timeZone, start);
+    if (clock === "00:00") {
+      return { date: todayInZone(window.timeZone, start), startTime: null, endTime: null };
+    }
+    const endClock = clockInZone(window.timeZone, new Date(window.endsAt));
     return {
       date: todayInZone(window.timeZone, start),
-      startTime: clock === "00:00" ? null : clock,
+      startTime: clock,
+      endTime: gameHoursBetween(clock, endClock) !== null ? endClock : null,
     };
   }
 
-  return { date: todayInZone(window.timeZone, now), startTime: null };
+  return { date: todayInZone(window.timeZone, now), startTime: null, endTime: null };
 }
 
 /**

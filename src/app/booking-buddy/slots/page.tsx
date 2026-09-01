@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 import { CreateSlotForm, SlotRow } from "@/components/booking-buddy/slots";
+import { ScrollToPostAGame } from "@/components/booking-buddy/scroll-to-post-a-game";
 import { FriendsLookingToPlay } from "@/components/booking-buddy/friends-looking-to-play";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
@@ -24,14 +25,15 @@ export const metadata: Metadata = pageMetadata({
 export default async function SlotsPage({
   searchParams,
 }: {
-  // "Find a time" (#195) deep-links here with a free day/time to prefill.
-  searchParams: Promise<{ date?: string; start?: string }>;
+  // "Find a time" (#195) and "Friends looking to play" (#230) deep-link here
+  // with a free window to prefill.
+  searchParams: Promise<{ date?: string; start?: string; end?: string }>;
 }) {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   await verifySession();
 
-  const [{ own, friends }, lookingWindows, orgs, { date, start }] = await Promise.all([
+  const [{ own, friends }, lookingWindows, orgs, { date, start, end }] = await Promise.all([
     listSlots(),
     listFriendsLookingToPlay(),
     listOrgs(),
@@ -43,6 +45,15 @@ export default async function SlotsPage({
   // "is it past" check here would need a time zone the deep-link doesn't carry.
   const prefillDate = date && isRealDate(date) ? date : undefined;
   const prefillStart = start && isHourTime(start) ? start : undefined;
+  // An end without a usable start has nothing to measure a duration against.
+  const prefillEnd =
+    prefillStart && end && isHourTime(end) && end !== prefillStart ? end : undefined;
+  // Empty on a plain visit; a stable signature of the deep link otherwise —
+  // re-seeds the form and re-runs the scroll whenever a "Propose a game" click
+  // changes the target, even when it only changes the query string.
+  const prefillKey = prefillDate
+    ? `${prefillDate}|${prefillStart ?? ""}|${prefillEnd ?? ""}`
+    : "";
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -107,13 +118,22 @@ export default async function SlotsPage({
                 Post a game
               </h2>
               <div className="mt-4">
+                {/* Keyed on the prefill so a "Propose a game" click that only
+                    changes the query string (from the "Friends looking to
+                    play" list right above, same route) still re-seeds the
+                    form — its Start/Duration live in mount-time state that a
+                    prop change alone wouldn't reach. */}
                 <CreateSlotForm
+                  key={prefillKey}
                   orgs={orgs}
                   defaultDate={prefillDate}
                   defaultStartTime={prefillStart}
+                  defaultEndTime={prefillEnd}
                 />
               </div>
             </section>
+
+            <ScrollToPostAGame prefillKey={prefillKey} />
           </div>
 
           <BbFooter />
