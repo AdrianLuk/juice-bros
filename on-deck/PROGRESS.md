@@ -18,11 +18,16 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
-`supabase db push` is done through **`20260901200000`** (#247) — `supabase
-migration list --linked` shows local and remote in sync. #248 / #249 / #247 all
-went up together on 2026-09-01 after sitting merged-but-unpushed; check
-`migration list --linked` at the start of a session, not just after writing a
-migration (the drift lesson `booking-buddy/PROGRESS.md` already carries).
+`supabase db push` is done through **`20260901220000`** (#250) — `supabase
+migration list --linked` shows local and remote in sync. #248 / #249 / #247 went
+up together on 2026-09-01 after sitting merged-but-unpushed; #250 followed the
+same day. Note the timestamp collision it caused: `create_calendar_feed` (#293)
+and `on_deck_queue_together` (#250) both landed as `20260901210000`, so #250 was
+renamed to `20260901220000` (#314) *after* it had already been pushed under that
+version — master's filename now matches remote. Check `migration list --linked`
+at the start of a session, not just after writing a migration, and rebase a new
+migration's timestamp past whatever else merged (the drift lesson
+`booking-buddy/PROGRESS.md` already carries).
 
 ## Done
 
