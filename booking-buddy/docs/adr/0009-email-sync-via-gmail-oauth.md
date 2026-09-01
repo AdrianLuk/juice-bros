@@ -22,4 +22,14 @@ Microsoft-specific OAuth choices (`consumers` authority, `Mail.Read` scope,
 refresh-token rotation) and notes that the app-side allowlist below stays
 Gmail-only.
 
+**Extended by [ADR-0019](0019-calendar-feed-second-import-source.md)**: the
+CourtReserve per-member iCal feed — the option passed over above for having "no
+cancellation signal" — added as a second, independent import source alongside
+email sync. ADR-0019 resolves the cancellation-signal objection with a
+feed-diff mechanism (a reservation that vanishes from the feed becomes a
+cancellation candidate) and its four safety rails, reuses this ADR's Import
+Candidate review pipeline unchanged, stores the feed URL encrypted with the
+same key as the Mailbox Link, and is on-demand only. The feed is **not** gated
+on `EMAIL_SYNC_ALLOWLIST`.
+
 **Addendum — app-side allowlist**: Google's Testing-mode test-user list already blocks OAuth consent for anyone not added in Cloud Console, but that list isn't queryable by the app at runtime, so it can't drive what the Settings UI shows — every User would see "Connect Gmail" and a non-test-user would hit Google's own "app not verified" block screen instead of anything in-app. Decided: a second, app-controlled allowlist (server-only env var of approved Usernames or account emails, following the same optimistic-UI/authoritative-action-check shape as `verifySession`) gates both the Settings UI and the `connectGmail`/`syncFromEmail` actions themselves. Usernames were chosen over User ids for editability — Adrian recognizes `@benbackhand`, not a UUID, when hand-editing the list. `isEmailSyncAllowed` checks the session's Username (via `profiles`, same lookup `getOwnProfile` already does) and account email (via `verifySession`) against the same list, entry-by-entry — a friend can be added by whichever identifier Adrian actually has on hand, typically their email, since a Username usually isn't known until the friend signs up and shares it. The tradeoff: a Username is User-changeable (see CONTEXT.md), so a friend who renames theirs silently drops off a Username-based entry until it's updated by hand — accepted, since the allowlist is already hand-maintained and small; an email-based entry doesn't have this problem, since a User's account email isn't changeable through the app. This is deliberately a separate list from Google's test users, not a mirror of it — being added to one doesn't add you to the other, and both need updating by hand to bring a new friend onto the feature.
