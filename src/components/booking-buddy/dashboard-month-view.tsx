@@ -2,9 +2,13 @@
 
 import { useMemo, type ReactNode } from "react";
 
+import { PlusIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import {
+  dayLabel,
   groupByLocalDay,
+  isPastDay,
   isSameDay,
   layoutMultiDaySpans,
   localDayKey,
@@ -47,6 +51,13 @@ function formatSpanLabel(segment: AvailabilitySegment): string {
  * it — see `dashboard-week-view.tsx`'s own note on why: without it, a click
  * on a past day silently lands on today's week instead, contradicting its
  * own `aria-label`.
+ *
+ * `onQuickCreate`, when set (the owner's dashboard, issue #303), puts a `+`
+ * at each non-past day cell's top-right, mirroring the day number — clicking
+ * it opens the shared booking dialog prefilled with that cell's date only
+ * (the Week view also passes an hour; the Month view keeps the form's 18:00
+ * default). Past days (`isPastDay`) get no `+`. Absent on the friend
+ * calendar, which stays creation-free.
  */
 export function DashboardMonthView<T extends CalendarEvent>({
   month,
@@ -55,6 +66,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
   busyIntervals,
   windows,
   onDayClick,
+  onQuickCreate,
   renderEvent,
   minDay,
   sharedDayNames = false,
@@ -65,6 +77,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
   busyIntervals: BusyInterval[];
   windows: AvailabilityWindow[];
   onDayClick: (day: Date) => void;
+  onQuickCreate?: (day: Date) => void;
   renderEvent: (event: T) => ReactNode;
   minDay?: Date | null;
   /** During a Week/Month switch, the day-number cells carry a
@@ -133,7 +146,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
               <div
                 key={key}
                 className={cn(
-                  "flex min-h-24 flex-col gap-1 border-t border-l border-border p-1 first:border-l-0 sm:min-h-28 sm:p-1.5",
+                  "bb-cal-month-cell relative flex min-h-24 flex-col gap-1 border-t border-l border-border p-1 first:border-l-0 sm:min-h-28 sm:p-1.5",
                   day.getMonth() !== currentMonth && "bg-muted/40",
                 )}
               >
@@ -166,6 +179,24 @@ export function DashboardMonthView<T extends CalendarEvent>({
                 >
                   {day.getDate()}
                 </button>
+
+                {/* Quick-create `+` (issue #303), mirroring the day number at
+                    the cell's other top corner. Absolutely positioned so it
+                    never shifts the day number or the availability/event
+                    stack, and never nests inside another button. Hidden on
+                    past days; the reveal (hover on `(hover: hover)`, a faint
+                    always-on where there's no hover, plus `:focus-visible`)
+                    lives in `globals.css` under `.bb-month-quick-add`. */}
+                {onQuickCreate && !isPastDay(day, today) && (
+                  <button
+                    type="button"
+                    onClick={() => onQuickCreate(day)}
+                    aria-label={`Log a booking on ${dayLabel(day)}`}
+                    className="bb-month-quick-add absolute right-1 top-1 flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
+                  >
+                    <PlusIcon className="size-3.5" aria-hidden />
+                  </button>
+                )}
 
                 {availabilitySpans.length > 0 && (
                   <div className="flex flex-col gap-0.5">
