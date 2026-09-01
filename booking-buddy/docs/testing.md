@@ -77,7 +77,21 @@ npx playwright test --debug         # pause on each action
 npx playwright show-report          # after a failure
 ```
 
-They reuse a dev server if one is already on port 3000, and start one if not.
+**The server they run against.** If something is already listening on port 3000
+(a `next dev` you have open), they reuse it as-is. If nothing is, Playwright
+builds the app and serves it with `next start` — a production build skips the
+dev server's compile-on-first-request tax, which is most of a full run's wall
+time. Set `PLAYWRIGHT_DEV_SERVER=1` to make Playwright run `next dev` itself
+instead (HMR beats a rebuild when you're iterating on one spec with `--ui`).
+Next 16 keeps dev output in `.next/dev` and prod in `.next`, so the two never
+clash.
+
+**Sign-in is cached.** `signIn()` drives the real form the first time it's
+asked for an account, then replants that session's cookies on every later call
+in the same run — a seeded-account sign-in costs one `goto`, not a form
+round-trip. `signUp()` (fresh throwaway accounts) is untouched. See
+`e2e/support/sign-in.ts` for why it's safe (the session's access token
+outlives any single run).
 
 Some things worth knowing before writing more of them:
 
