@@ -67,6 +67,10 @@ _Avoid_: Terminal, Station.
 **Last Call**:
 An Operator's single tap ending new play for the night - the Organizer or a Volunteer, never a Kiosk button (it is a judgment about the night, not a Court turnover). After it, no further foursomes are assigned; Games in progress finish. A human judgment call, not a clock trigger, because Games have no time cap (see [adr/0002-rolling-queue-no-time-cap.md](docs/adr/0002-rolling-queue-no-time-cap.md)). In a self-serve Session with no Volunteers, it is the Organizer's alone.
 
+**Undo**:
+One tap on the floor screen that drops the most recent event and re-folds every surface to the exact prior state - dropping the last event, never a compensating action. Any Operator who can fire an operational event can undo one: the Organizer from their account, a Volunteer from the link. Bounded on purpose - only the single latest event, only an operational turnover type (not a Session start or a Player's own join / queue), only within a short window (15 min), and only when no other Operator has acted since (else it warns rather than roll their action back). A mistap this game or last is fixable; the night an hour deep is not.
+_Avoid_: Rollback, Revert (both suggest more than one step), Delete.
+
 **Session Summary**:
 The anonymous aggregate record kept permanently once a Session closes - attendance, Games played, court utilization, wait-time distribution, longest wait, skill mix. The Player roster is discarded at the same moment; a closed Session leaves numbers, not people.
 _Avoid_: Report (the reader built on top of Summaries later; the Summary is the stored record).

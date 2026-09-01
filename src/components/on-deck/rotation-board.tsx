@@ -10,12 +10,14 @@ import {
   finishCourt,
   setPlayerAside,
   swapNoShow,
+  undoLastAction,
 } from "@/lib/on-deck/actions/floor";
 import {
   volunteerBringPlayerBack,
   volunteerFinishCourt,
   volunteerSetPlayerAside,
   volunteerSwapNoShow,
+  volunteerUndoLastAction,
 } from "@/lib/on-deck/actions/volunteer";
 import {
   getRotationView,
@@ -41,6 +43,15 @@ const PAUSE_REASON_LABEL: Record<PauseReason, string> = {
   left: "left the queue",
   "no-show": "no-show",
   "set-aside": "set aside",
+};
+
+/** Whose tap the Undo control is offering to reverse, when it wasn't the
+ * person now looking at the board (#247). */
+const OTHER_OPERATOR_LABEL: Record<string, string> = {
+  organizer: "The organizer",
+  volunteer: "A volunteer",
+  kiosk: "The kiosk",
+  player: "A player",
 };
 
 /**
@@ -100,6 +111,10 @@ function boundFloorActions(sessionId: string, auth: FloorAuth) {
       auth.kind === "volunteer"
         ? volunteerBringPlayerBack(sessionId, auth.token, name)
         : bringPlayerBack(sessionId, name),
+    undo: (expectedSeq: number) =>
+      auth.kind === "volunteer"
+        ? volunteerUndoLastAction(sessionId, auth.token, expectedSeq)
+        : undoLastAction(sessionId, expectedSeq),
   };
 }
 
@@ -276,11 +291,9 @@ function RotationBoardInner({
 
   const refresh = () => queryClient.invalidateQueries({ queryKey });
   const handle = (result: { ok?: boolean; error?: string }) => {
-    if (!result.ok) {
-      setError(result.error ?? "Something went wrong. Try again.");
-      return;
-    }
-    setError(null);
+    setError(result.ok ? null : (result.error ?? "Something went wrong. Try again."));
+    // Re-sync either way: on success to show the new board, on error (e.g. a
+    // concurrent Operator) to pull in whatever they changed.
     refresh();
   };
 
@@ -319,9 +332,20 @@ function RotationBoardInner({
     onError: () => setError("Couldn't add that player back. Try again."),
   });
 
+  const undo = useMutation({
+    mutationFn: (expectedSeq: number) => ops.undo(expectedSeq),
+    onSuccess: handle,
+    onError: () => setError("Couldn't undo that. Try again."),
+  });
+
   const view = query.data ?? initialView;
+  const undoTarget = view.undo;
   const busy =
-    finish.isPending || swap.isPending || aside.isPending || back.isPending;
+    finish.isPending ||
+    swap.isPending ||
+    aside.isPending ||
+    back.isPending ||
+    undo.isPending;
 
   return (
     <div className="space-y-8">
@@ -333,6 +357,26 @@ function RotationBoardInner({
         >
           {error}
         </p>
+      )}
+
+      {undoTarget && (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2">
+          <span className="text-sm text-muted-foreground">
+            {undoTarget.by !== auth.kind
+              ? `${OTHER_OPERATOR_LABEL[undoTarget.by]} made the last change.`
+              : "Tapped something by mistake?"}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            data-testid="undo-button"
+            onClick={() => undo.mutate(undoTarget.seq)}
+          >
+            Undo {undoTarget.label}
+          </Button>
+        </div>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
