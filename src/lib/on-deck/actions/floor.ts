@@ -10,8 +10,10 @@ import {
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
+  addWalkupOutcome,
   bringBackOutcome,
   finishCourtOutcome,
+  overrideSkillOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
   type FloorOpOutcome,
@@ -117,6 +119,39 @@ export async function bringPlayerBack(
 ): Promise<FloorActionResult> {
   return runAsOrganizer(sessionId, ({ loaded }) =>
     bringBackOutcome(loaded.state, playerName),
+  );
+}
+
+/**
+ * "Add a walk-up" (issue #249): the Organizer enters a Player with no phone —
+ * name, last initial, Skill Level. Appends `PLAYER_JOINED` with a synthetic id
+ * and `queueOnJoin`, so the fold drops them into the Session and the Queue
+ * exactly like a self-registered Player.
+ */
+export async function addWalkup(
+  sessionId: string,
+  firstName: string,
+  lastInitial: string,
+  skillLevel: string,
+): Promise<FloorActionResult> {
+  const token = `walkup-${crypto.randomUUID()}`;
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    addWalkupOutcome(loaded.state, token, firstName, lastInitial, skillLevel),
+  );
+}
+
+/**
+ * "Fix a skill level" (issue #249): the Organizer corrects an obviously wrong
+ * self-rating on any Player. Appends `PLAYER_SKILL_SET`; Match Me uses the
+ * corrected level on its next selection.
+ */
+export async function overridePlayerSkill(
+  sessionId: string,
+  playerName: string,
+  skillLevel: string,
+): Promise<FloorActionResult> {
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    overrideSkillOutcome(loaded.state, playerName, skillLevel),
   );
 }
 

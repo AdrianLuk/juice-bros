@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 import { sessionPath } from "./routes.ts";
-import type { FloorEventType, FloorOpOutcome } from "./floor-ops.ts";
+import type { FloorOutcomeType, FloorOpOutcome } from "./floor-ops.ts";
 
 /** `{ ok: true }` on success (an appended event or a harmless no-op), or an
  * error string for the floor screen to show. */
@@ -21,7 +21,7 @@ export async function commitFloorOutcome(
   sessionId: string,
   outcome: FloorOpOutcome,
   write: (event: {
-    type: FloorEventType;
+    type: FloorOutcomeType;
     payload: Record<string, unknown>;
   }) => Promise<{ error: unknown }>,
 ): Promise<FloorActionResult> {

@@ -7,7 +7,7 @@ import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSession } from "@/lib/on-deck/sessions";
-import { rotationViewFrom } from "@/lib/on-deck/rotation";
+import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
 import { getVolunteerToken } from "@/lib/on-deck/volunteer";
 import { onDeckAbsoluteUrl } from "@/lib/on-deck/request-origin";
 import { clubQrPath, floorPath, volunteerPath } from "@/lib/on-deck/routes";
@@ -52,6 +52,7 @@ export default async function FloorPage({
   }
 
   const view = rotationViewFrom(loaded);
+  const roster = floorRosterFrom(loaded);
 
   // The Volunteer Link is offered only for the *open* Session, and only when
   // Floor Mode includes volunteers (volunteer-run / hybrid) — under self-serve
@@ -92,7 +93,11 @@ export default async function FloorPage({
           )}
 
           <div className="mt-10">
-            <RotationBoard sessionId={sessionId} initialView={view} />
+            <RotationBoard
+              sessionId={sessionId}
+              initialView={view}
+              initialRoster={roster}
+            />
           </div>
         </div>
       </section>

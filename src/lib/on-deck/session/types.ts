@@ -129,11 +129,12 @@ export interface SessionConfig {
  * moment it does, replay stops being reproducible and undo (dropping the last
  * event) breaks.
  *
- * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `COURT_FINISHED`,
- * `PLAYER_PAUSED`, `PLAYER_REQUEUED` and `FOURSOME_MEMBER_SWAPPED` exist so
- * far; the rest of the log's vocabulary (groups, last call, close) lands in
- * later tickets. The DB `on_deck_session_events.type` check lists the full set
- * (the #246 migration adds `PLAYER_REQUEUED`, which the foundation missed).
+ * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `PLAYER_SKILL_SET`,
+ * `COURT_FINISHED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED` and
+ * `FOURSOME_MEMBER_SWAPPED` exist so far; the rest of the log's vocabulary
+ * (groups, last call, close) lands in later tickets. The DB
+ * `on_deck_session_events.type` check lists the full set (the #246 migration
+ * adds `PLAYER_REQUEUED`, which the foundation missed).
  */
 export type SessionEvent =
   | {
@@ -154,6 +155,28 @@ export type SessionEvent =
       token: string;
       firstName: string;
       lastInitial: string;
+      skillLevel: SkillLevel;
+      /**
+       * Set only on a walk-up added by an Operator (issue #249): the Player is
+       * there to play now, so the fold puts them straight in the Queue instead
+       * of waiting for a separate `PLAYER_QUEUED` tap. A self-registered Player
+       * omits it and queues themselves. Payload-driven, not operator-driven —
+       * ADR 0005 keeps the Operator out of the fold's branches.
+       */
+      queueOnJoin?: boolean;
+    }
+  | {
+      /**
+       * An Operator corrects an obviously wrong self-declared Skill Level
+       * (issue #249) — the club vocabulary is never computed by the app, but a
+       * Volunteer may override it. Takes effect on the next Match Me selection;
+       * a committed On Deck Foursome is never reshuffled for it (ADR 0007). A
+       * no-op for a token the roster does not carry.
+       */
+      type: "PLAYER_SKILL_SET";
+      at: number;
+      operator: Operator;
+      token: string;
       skillLevel: SkillLevel;
     }
   | {

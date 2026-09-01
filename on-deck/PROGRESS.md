@@ -169,6 +169,34 @@ event array plus assertions about the resulting state.
   for the swap and re-queue, `e2e/on-deck-undo.spec.ts` (tap-wrong-court → undo
   → restored, for Organizer and Volunteer).
 
+- [x] **#249 — walk-up Players and Skill Level override.** Two operator
+  abilities on the floor surface (Organizer or a link-authenticated Volunteer,
+  same `floor-ops` decision — ADR 0005). **Add a walk-up:** `PLAYER_JOINED`
+  with a server-minted `walkup-<uuid>` id (no device) and `queueOnJoin: true` —
+  a payload flag, not an operator branch — so the fold drops them into the
+  roster *and* the Queue exactly like a self-registered Player. `reduceSession`
+  grows a shared `enqueuePlayer` helper (the `PLAYER_QUEUED` body), reused by
+  `queueOnJoin`. **Skill Level override:** `PLAYER_SKILL_SET` updates the
+  roster Player's level in place; an in-progress Game, the Queue order, and any
+  committed On Deck Foursome are untouched (ADR 0007) — Match Me reads the new
+  level on its next selection; it is **not** undoable (#247), the fix is
+  forward. `floor-ops.ts` gains `addWalkupOutcome` / `overrideSkillOutcome` and
+  a `FloorOutcomeType` (the undoable `FloorEventType` set plus the two
+  non-undoable roster events). The operator roster + skill levels ride a new
+  auth-gated `getFloorRoster` action, **not** the world-readable `RotationView`
+  (a self-declared level is operator-facing). `RotationBoard` gets an "Add a
+  walk-up" form and a collapsed `<details>` "Fix a skill level" list. The
+  Organizer INSERTs both event types directly (the foundation append policy
+  doesn't constrain the type); `on_deck_volunteer_append` learns the two types
+  with guards (a volunteer `PLAYER_JOINED` must be a queued walk-up with a
+  server-minted id, a bounded name, and a valid level; `PLAYER_SKILL_SET` needs
+  a valid level). Tests: `reduce.test.ts` (walk-up join, anchor + Match Me
+  parity with a self-registered Player, a corrected level changing the next
+  selection, committed-Foursome-not-reshuffled, undo-parity),
+  `floor-ops.test.ts`, `on_deck_walkup_skill.test.sql`,
+  `e2e/on-deck-walkup.spec.ts` (add four walk-ups → correct a rating → "Send
+  next four" calls them).
+
 ## Next
 
 The rest of #238 — Queue Together, the interactive Display and Kiosk, Last

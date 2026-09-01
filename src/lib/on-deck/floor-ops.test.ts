@@ -8,9 +8,11 @@ import type {
   SessionEvent,
 } from "./session/types.ts";
 import {
+  addWalkupOutcome,
   bringBackOutcome,
   describeUndo,
   finishCourtOutcome,
+  overrideSkillOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
   tokenForName,
@@ -142,6 +144,61 @@ test("swapNoShowOutcome swaps a Player on the Court for one still waiting", () =
       in: state.queue[0].playerId,
     },
   });
+});
+
+test("addWalkupOutcome yields a queued PLAYER_JOINED with the minted token", () => {
+  const { state } = sessionWithFilledCourt(6);
+  assert.deepEqual(
+    addWalkupOutcome(state, "walkup-abc", " Wanda ", "w", "beginner"),
+    {
+      kind: "event",
+      type: "PLAYER_JOINED",
+      payload: {
+        token: "walkup-abc",
+        firstName: "Wanda",
+        lastInitial: "W",
+        skillLevel: "beginner",
+        queueOnJoin: true,
+      },
+    },
+  );
+});
+
+test("addWalkupOutcome rejects a blank name, blank initial, or unknown skill", () => {
+  const { state } = sessionWithFilledCourt(6);
+  assert.equal(addWalkupOutcome(state, "w1", "  ", "W", "beginner").kind, "error");
+  assert.equal(addWalkupOutcome(state, "w1", "Wanda", "  ", "beginner").kind, "error");
+  assert.equal(addWalkupOutcome(state, "w1", "Wanda", "W", "pro").kind, "error");
+});
+
+test("addWalkupOutcome is a no-op when the minted token is somehow already on the roster", () => {
+  const { state } = sessionWithFilledCourt(6);
+  assert.deepEqual(addWalkupOutcome(state, "p1", "Wanda", "W", "beginner"), {
+    kind: "noop",
+  });
+});
+
+test("overrideSkillOutcome resolves a name and yields PLAYER_SKILL_SET", () => {
+  const { state } = sessionWithFilledCourt(6);
+  assert.deepEqual(overrideSkillOutcome(state, "P1 X.", "advanced"), {
+    kind: "event",
+    type: "PLAYER_SKILL_SET",
+    payload: { token: "p1", skillLevel: "advanced" },
+  });
+});
+
+test("overrideSkillOutcome is a no-op when the level already matches", () => {
+  const { state } = sessionWithFilledCourt(6);
+  // joined() defaults to intermediate.
+  assert.deepEqual(overrideSkillOutcome(state, "P1 X.", "intermediate"), {
+    kind: "noop",
+  });
+});
+
+test("overrideSkillOutcome errors on an unknown player or an unknown level", () => {
+  const { state } = sessionWithFilledCourt(6);
+  assert.equal(overrideSkillOutcome(state, "Ghost X.", "advanced").kind, "error");
+  assert.equal(overrideSkillOutcome(state, "P1 X.", "expert").kind, "error");
 });
 
 test("swapNoShowOutcome rejects an empty Court, a stale board, and a bad pick", () => {
