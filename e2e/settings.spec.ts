@@ -240,6 +240,33 @@ test("turning the friend-request email off sticks, independently of the reminder
   await expect(emailReminders).toBeChecked();
 });
 
+test("the request-accepted email defaults to enabled", async ({ page }) => {
+  await expect(
+    page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected"),
+  ).toBeChecked();
+});
+
+test("turning the request-accepted email off sticks, independently of the other toggles", async ({
+  page,
+}) => {
+  const acceptedEmails = page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected");
+  const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
+
+  await acceptedEmails.uncheck();
+  await formWithField(page, "Email me when someone accepts a friend request I sent, so I know we're connected")
+    .getByRole("button", { name: "Save", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("Saved");
+
+  await page.reload();
+  await expect(
+    page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected"),
+  ).not.toBeChecked();
+
+  // The incoming friend-request email is a separate setting and stays on.
+  await expect(friendRequestEmails).toBeChecked();
+});
+
 test("gender is unset by default", async ({ page }) => {
   await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(
     "aria-checked",

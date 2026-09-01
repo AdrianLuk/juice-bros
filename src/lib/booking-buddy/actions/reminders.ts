@@ -51,6 +51,8 @@ export type NotificationPreferences = {
   bookingWindowEmailEnabled: boolean;
   /** Independent of the two above — governs the friend-request email (issue #228). */
   connectionRequestEmailEnabled: boolean;
+  /** Governs the email the requester gets when their friend request is accepted. */
+  connectionAcceptedEmailEnabled: boolean;
 };
 
 /**
@@ -63,6 +65,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   pushEnabled: false,
   bookingWindowEmailEnabled: true,
   connectionRequestEmailEnabled: true,
+  connectionAcceptedEmailEnabled: true,
 };
 
 /** The signed-in User's own notification preferences, defaulted if they've never set any. */
@@ -73,7 +76,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   const { data, error } = await supabase
     .from("notification_preferences")
     .select(
-      "email_enabled, push_enabled, booking_window_email_enabled, connection_request_email_enabled",
+      "email_enabled, push_enabled, booking_window_email_enabled, connection_request_email_enabled, connection_accepted_email_enabled",
     )
     .eq("user_id", session.userId)
     .maybeSingle();
@@ -90,15 +93,16 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
     pushEnabled: data.push_enabled,
     bookingWindowEmailEnabled: data.booking_window_email_enabled,
     connectionRequestEmailEnabled: data.connection_request_email_enabled,
+    connectionAcceptedEmailEnabled: data.connection_accepted_email_enabled,
   };
 }
 
 /**
  * Save all three email notification opt-ins in one write — the Settings page's
  * "Notifications" card has a single Save button covering every email toggle
- * (issues #11, #36, #228), so this action reads and upserts all three columns
- * at once. An unchecked checkbox sends no field at all — its absence, not a
- * value, is what "off" means here.
+ * (issues #11, #36, #228, plus the "request accepted" email), so this action
+ * reads and upserts all four columns at once. An unchecked checkbox sends no
+ * field at all — its absence, not a value, is what "off" means here.
  *
  * Push has no control on this form (`PushNotificationsForm` manages the
  * per-device subscription itself); the upsert never touches `push_enabled`, so
@@ -115,6 +119,8 @@ export async function updateNotificationPreferences(
   const bookingWindowEmailEnabled = formData.get("booking_window_email_enabled") === "on";
   const connectionRequestEmailEnabled =
     formData.get("connection_request_email_enabled") === "on";
+  const connectionAcceptedEmailEnabled =
+    formData.get("connection_accepted_email_enabled") === "on";
 
   const supabase = await createClient();
   const { error } = await supabase.from("notification_preferences").upsert(
@@ -123,6 +129,7 @@ export async function updateNotificationPreferences(
       email_enabled: emailEnabled,
       booking_window_email_enabled: bookingWindowEmailEnabled,
       connection_request_email_enabled: connectionRequestEmailEnabled,
+      connection_accepted_email_enabled: connectionAcceptedEmailEnabled,
     },
     { onConflict: "user_id" },
   );

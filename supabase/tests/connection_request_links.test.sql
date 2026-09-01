@@ -14,12 +14,16 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(11);
 
 select has_table('public', 'connection_request_links', 'connection_request_links table exists');
 select has_column(
   'public', 'notification_preferences', 'connection_request_email_enabled',
   'notification_preferences.connection_request_email_enabled exists'
+);
+select has_column(
+  'public', 'notification_preferences', 'connection_accepted_email_enabled',
+  'notification_preferences.connection_accepted_email_enabled exists'
 );
 
 insert into auth.users (id, instance_id, aud, role, email) values
@@ -34,6 +38,12 @@ select is(
    where user_id = 'aaaaaaaa-0000-0000-0000-000000000228'),
   true,
   'the friend-request email is opt-out — on by default'
+);
+select is(
+  (select connection_accepted_email_enabled from public.notification_preferences
+   where user_id = 'aaaaaaaa-0000-0000-0000-000000000228'),
+  true,
+  'the request-accepted email is opt-out — on by default'
 );
 
 -- The request. Amy asks Ben.

@@ -121,11 +121,12 @@ function PreferenceCheckbox({
 
 /**
  * The signed-in User's own email notification opt-ins — the Settings page's
- * "Notifications" card. All three toggles (the attendee Reminder from issue
- * #11, the Booking Window Reminder from #36, and the friend-request email from
- * #228) are still independent preferences, each with its own column, but they
- * share one Save button: the form submits every checkbox's current state on
- * each save, so flipping one and saving leaves the others exactly as they sit.
+ * "Notifications" card. Every toggle (the attendee Reminder from issue #11, the
+ * Booking Window Reminder from #36, the friend-request email from #228, and the
+ * "request accepted" email) is an independent preference with its own column,
+ * but they share one Save button: the form submits every checkbox's current
+ * state on each save, so flipping one and saving leaves the others exactly as
+ * they sit.
  * Per-device push has its own control (`PushNotificationsForm`), which saves on
  * toggle and isn't part of this form.
  */
@@ -159,6 +160,12 @@ export function NotificationPreferencesForm({
           name="connection_request_email_enabled"
           defaultChecked={preferences.connectionRequestEmailEnabled}
           label="Email me when someone sends me a friend request, so I can accept it right away"
+        />
+        <PreferenceCheckbox
+          id="connection-accepted-email-enabled"
+          name="connection_accepted_email_enabled"
+          defaultChecked={preferences.connectionAcceptedEmailEnabled}
+          label="Email me when someone accepts a friend request I sent, so I know we're connected"
         />
       </div>
 
