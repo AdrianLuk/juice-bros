@@ -246,7 +246,9 @@ test.describe("Sync from Email", () => {
     await expect(card).toContainText(facility);
     // The facility name matched an existing Org, so the picker is already
     // prefilled rather than left on the "Pick a facility" placeholder.
-    await expect(card.getByLabel("Facility")).not.toHaveValue("");
+    // `exact` so this doesn't also catch the "Why isn't my facility in the
+    // list?" hint button beside the label (#270).
+    await expect(card.getByLabel("Facility", { exact: true })).not.toHaveValue("");
 
     await card.getByRole("button", { name: "Confirm" }).click();
     // insertValidatedBooking's own revalidatePath re-renders the server
