@@ -1,5 +1,7 @@
 import http from "node:http";
 
+import { listenOnFixedPort } from "./mock-server.ts";
+
 /**
  * Fixed rather than OS-assigned, same reasoning as
  * `google-places-mock.ts`'s `GOOGLE_PLACES_MOCK_PORT`: `playwright.config.ts`
@@ -66,10 +68,7 @@ export class GmailMock {
   }
 
   async start(): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      this.#server.once("error", reject);
-      this.#server.listen(GMAIL_MOCK_PORT, "127.0.0.1", () => resolve());
-    });
+    await listenOnFixedPort(this.#server, GMAIL_MOCK_PORT, "gmail-mock");
   }
 
   async stop(): Promise<void> {
