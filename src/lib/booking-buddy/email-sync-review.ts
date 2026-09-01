@@ -19,7 +19,7 @@
  * siblings: `syncFromEmail` resolves the real rows (the caller's Orgs,
  * Bookings, Connections) and the raw message bodies, hands them in as plain
  * data, and does nothing with the result but wrap it in a status envelope.
- * The `processed_gmail_messages` "already seen" filter stays in the action —
+ * The `processed_messages` "already seen" filter stays in the action —
  * it is a database fact that decides which messages to fetch at all, with no
  * bearing on how a fetched one is parsed or matched.
  */
@@ -127,7 +127,7 @@ export type RawCourtReserveEmail = {
 export type OrgForReview = OrgCandidate & { timeZone: string };
 
 export type ReviewCourtReserveEmailsInput = {
-  /** Unseen messages only — the caller has already filtered out anything in `processed_gmail_messages`. */
+  /** Unseen messages only — the caller has already filtered out anything in `processed_messages`. */
   emails: readonly RawCourtReserveEmail[];
   orgs: readonly OrgForReview[];
   /** The caller's existing Bookings, each with the id `confirmCancellationCandidate`/`confirmUpdateCandidate` will act on. */
@@ -166,7 +166,7 @@ type ReviewContext = {
  * confirmation or update with a malformed time range ("no end time" — see
  * courtreserve-email.ts): the review screen has no field for fixing one, so
  * it's dropped here rather than surfaced. Neither is recorded in
- * `processed_gmail_messages` by the caller — there's nothing actionable to
+ * `processed_messages` by the caller — there's nothing actionable to
  * remember either way, and a later sync still sees it fresh.
  */
 function toReconciliationEvents(

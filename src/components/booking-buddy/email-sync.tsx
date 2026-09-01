@@ -5,21 +5,24 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
-  connectGmail,
-  disconnectGmail,
+  connectMailbox,
+  disconnectMailbox,
   type MailboxLink,
 } from "@/lib/booking-buddy/actions/email-sync";
 
 const EMPTY: ActionResult = {};
 
+/** Only Google is wired up today (#281); the provider argument is threaded through for #280's later slices. */
+const connectGmail = connectMailbox.bind(null, "google");
+
 // "email_sync_not_allowed" isn't handled here: this component only ever
 // renders when the Settings page has already decided the caller is
-// allowed, so that error (raised by connectGmail's own authoritative
+// allowed, so that error (raised by connectMailbox's own authoritative
 // re-check) can't occur while this is on screen — see the page's own
 // standalone banner for that case.
 function errorMessage(error: string | undefined): string | null {
   switch (error) {
-    case "gmail_connect_failed":
+    case "mailbox_connect_failed":
       return "Couldn't connect Gmail. Try again.";
     default:
       return null;
@@ -34,7 +37,7 @@ function errorMessage(error: string | undefined): string | null {
  * Only the connect/disconnect pipe ships in this ticket: no "Sync from
  * Email" button yet, no candidates, no review screen — that's #64.
  */
-export function GmailSyncSection({
+export function MailboxSyncSection({
   mailboxLink,
   error,
   justConnected,
@@ -43,7 +46,7 @@ export function GmailSyncSection({
   error?: string;
   justConnected?: boolean;
 }) {
-  const [state, disconnectAction, pending] = useActionState(disconnectGmail, EMPTY);
+  const [state, disconnectAction, pending] = useActionState(disconnectMailbox, EMPTY);
   const message = errorMessage(error);
 
   return (
@@ -62,7 +65,7 @@ export function GmailSyncSection({
       {mailboxLink ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm">
-            Connected as <span className="font-medium">{mailboxLink.googleAccountEmail}</span>
+            Connected as <span className="font-medium">{mailboxLink.accountEmail}</span>
             {mailboxLink.status === "expired" && (
               <span className="ml-2 text-destructive">
                 (Google needs you to reconnect)

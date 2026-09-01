@@ -11,7 +11,7 @@ import { verifySession } from "../dal.ts";
 import { SETTINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { getOwnProfile } from "./profile.ts";
-import { isEmailSyncAllowed } from "../email-sync-allowlist.ts";
+import { isGmailConnectAllowed } from "../email-sync-allowlist.ts";
 import { readEmailSyncAllowlist, requireMailboxLinkEncryptionKey } from "../env.ts";
 import {
   buildGoogleAuthorizeUrl,
@@ -19,7 +19,7 @@ import {
   refreshAccessToken,
   searchGmailMessages,
 } from "../gmail-client.ts";
-import { GMAIL_OAUTH_STATE_COOKIE } from "../gmail-oauth.ts";
+import { MAILBOX_OAUTH_STATE_COOKIE } from "../mailbox-oauth.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
 import { decryptRefreshToken } from "../token-encryption.ts";
 import { buildCourtReserveSearchQuery } from "../courtreserve-email.ts";
@@ -43,45 +43,54 @@ import { listConnections } from "./connections.ts";
 export type { ActionResult } from "./result.ts";
 export type { ReviewItem };
 
+/**
+ * Which identity platform a Mailbox Link's OAuth grant is against. Only
+ * `"google"` is reachable today; `"microsoft"` is added in #280's later
+ * slices. Kept in sync with the `provider` CHECK constraint on
+ * `mailbox_links` / `processed_messages`.
+ */
+export type MailboxProvider = "google" | "microsoft";
+
 export type MailboxLink = {
-  googleAccountEmail: string;
+  provider: MailboxProvider;
+  accountEmail: string;
   status: "active" | "expired";
   connectedAt: string;
 } | null;
 
-function gmailCallbackUrl(): Promise<string> {
+function mailboxCallbackUrl(): Promise<string> {
   return absoluteAppUrl("/booking-buddy/settings/gmail-callback");
 }
 
 /**
  * Whether the signed-in User is allowed to see/use email sync at all
- * (ADR-0009's addendum) — the optimistic half. `connectGmail` below re-checks
+ * (ADR-0009's addendum) — the optimistic half. `connectMailbox` below re-checks
  * this authoritatively.
  *
  * Fetches the profile itself rather than taking a `username` param: the one
  * caller that already has a profile in hand (the Settings page) calls
- * `isEmailSyncAllowed` directly instead of going through here, so this stays
- * the "I don't already have one" convenience path, not a second query on
- * top of one a caller already ran.
+ * `isGmailConnectAllowed` directly instead of going through here, so this
+ * stays the "I don't already have one" convenience path, not a second query
+ * on top of one a caller already ran.
  */
-export async function isEmailSyncAllowedForCaller(): Promise<boolean> {
+export async function isGmailConnectAllowedForCaller(): Promise<boolean> {
   const [profile, session] = await Promise.all([getOwnProfile(), verifySession()]);
-  return isEmailSyncAllowed(profile.username, session.email, readEmailSyncAllowlist());
+  return isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist());
 }
 
-/** The signed-in User's own Mailbox Link, or `null` if Gmail isn't connected. */
+/** The signed-in User's own Mailbox Link, or `null` if no mailbox is connected. */
 export async function getMailboxLink(): Promise<MailboxLink> {
   const session = await verifySession();
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("mailbox_links")
-    .select("google_account_email, status, connected_at")
+    .select("provider, account_email, status, connected_at")
     .eq("owner_id", session.userId)
     .maybeSingle();
 
   if (error) {
-    readFailed("your Gmail connection", error);
+    readFailed("your mailbox connection", error);
   }
 
   if (!data) {
@@ -89,22 +98,29 @@ export async function getMailboxLink(): Promise<MailboxLink> {
   }
 
   return {
-    googleAccountEmail: data.google_account_email,
+    provider: data.provider,
+    accountEmail: data.account_email,
     status: data.status,
     connectedAt: data.connected_at,
   };
 }
 
 /**
- * Starts the Google OAuth redirect. Rejects a non-allowlisted User even if
- * they reach this directly — the Settings page not rendering the button is
- * the optimistic half, this is the authoritative one (ADR-0009's addendum,
- * same shape `verifySession` already established).
+ * Starts a mailbox provider's OAuth redirect. Only Google is wired up today;
+ * `"microsoft"` is added in #280's later slices and is rejected here until
+ * then. For Google, rejects a non-allowlisted User even if they reach this
+ * directly — the Settings page not rendering the button is the optimistic
+ * half, this is the authoritative one (ADR-0009's addendum, same shape
+ * `verifySession` already established).
  */
-export async function connectGmail(): Promise<void> {
+export async function connectMailbox(provider: MailboxProvider): Promise<void> {
   await verifySession();
 
-  const allowed = await isEmailSyncAllowedForCaller();
+  if (provider !== "google") {
+    redirect(`${SETTINGS_PATH}?error=mailbox_connect_failed`);
+  }
+
+  const allowed = await isGmailConnectAllowedForCaller();
   if (!allowed) {
     redirect(`${SETTINGS_PATH}?error=email_sync_not_allowed`);
   }
@@ -117,13 +133,13 @@ export async function connectGmail(): Promise<void> {
   // below should report a normal "couldn't connect" rather than a raw 500.
   let authorizeUrl: string;
   try {
-    authorizeUrl = buildGoogleAuthorizeUrl(await gmailCallbackUrl(), state);
+    authorizeUrl = buildGoogleAuthorizeUrl(await mailboxCallbackUrl(), state);
   } catch (error) {
     console.error("booking-buddy: Gmail OAuth client isn't configured", error);
-    redirect(`${SETTINGS_PATH}?error=gmail_connect_failed`);
+    redirect(`${SETTINGS_PATH}?error=mailbox_connect_failed`);
   }
 
-  (await cookies()).set(GMAIL_OAUTH_STATE_COOKIE, state, {
+  (await cookies()).set(MAILBOX_OAUTH_STATE_COOKIE, state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -134,7 +150,7 @@ export async function connectGmail(): Promise<void> {
   redirect(authorizeUrl);
 }
 
-export async function disconnectGmail(): Promise<ActionResult> {
+export async function disconnectMailbox(): Promise<ActionResult> {
   const session = await verifySession();
   const supabase = await createClient();
 
@@ -174,12 +190,12 @@ export type SyncFromEmailResult =
  * (`email-sync-review.ts`), unit tested against fixture HTML. This function is
  * only the I/O around it: token refresh, the Gmail search + fetch, the
  * Supabase reads that resolve the caller's own Orgs/Bookings/Connections, and
- * the `processed_gmail_messages` "already seen" filter that keeps a fetch from
+ * the `processed_messages` "already seen" filter that keeps a fetch from
  * happening for a message a past sync already settled.
  *
  * A `not_a_booking`/`unparseable`/malformed-time parse is dropped by the
  * review module and, since it produces no candidate, is never recorded in
- * `processed_gmail_messages` here — so a later sync still sees it fresh, which
+ * `processed_messages` here — so a later sync still sees it fresh, which
  * is fine: there's nothing actionable to remember either way.
  */
 export async function syncFromEmail(): Promise<SyncFromEmailResult> {
@@ -189,7 +205,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   // rendering this section at all for a disallowed User is the optimistic
   // half; a User removed from the allowlist after already connecting Gmail
   // must not be able to keep syncing just by having a stale page open.
-  const allowed = await isEmailSyncAllowedForCaller();
+  const allowed = await isGmailConnectAllowedForCaller();
   if (!allowed) {
     return { status: "error", message: "Your account isn't approved for email sync." };
   }
@@ -247,16 +263,17 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   }
 
   const { data: processedRows, error: processedError } = await supabase
-    .from("processed_gmail_messages")
-    .select("gmail_message_id")
-    .eq("owner_id", session.userId);
+    .from("processed_messages")
+    .select("provider_message_id")
+    .eq("owner_id", session.userId)
+    .eq("provider", "google");
 
   if (processedError) {
-    console.error("booking-buddy: reading processed Gmail messages failed", processedError);
+    console.error("booking-buddy: reading processed messages failed", processedError);
     return { status: "error", message: "Couldn't sync from email. Try again." };
   }
 
-  const processedIds = new Set((processedRows ?? []).map((row) => row.gmail_message_id));
+  const processedIds = new Set((processedRows ?? []).map((row) => row.provider_message_id));
   const unseenIds = searchResult.messageIds.filter((id) => !processedIds.has(id));
 
   const [{ orgs, bookings }, connections] = await Promise.all([
@@ -326,7 +343,7 @@ export async function confirmImportCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isEmailSyncAllowedForCaller();
+  const allowed = await isGmailConnectAllowedForCaller();
   if (!allowed) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -347,9 +364,10 @@ export async function confirmImportCandidate(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("processed_gmail_messages").insert({
+  const { error } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    gmail_message_id: gmailMessageId,
+    provider: "google",
+    provider_message_id: gmailMessageId,
     outcome: "confirmed",
   });
 
@@ -376,7 +394,7 @@ export async function confirmCancellationCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isEmailSyncAllowedForCaller();
+  const allowed = await isGmailConnectAllowedForCaller();
   if (!allowed) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -396,9 +414,10 @@ export async function confirmCancellationCandidate(
   }
 
   const supabase = await createClient();
-  const { error: recordError } = await supabase.from("processed_gmail_messages").insert({
+  const { error: recordError } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    gmail_message_id: gmailMessageId,
+    provider: "google",
+    provider_message_id: gmailMessageId,
     outcome: "cancelled",
   });
 
@@ -430,7 +449,7 @@ export async function confirmUpdateCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isEmailSyncAllowedForCaller();
+  const allowed = await isGmailConnectAllowedForCaller();
   if (!allowed) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -458,9 +477,10 @@ export async function confirmUpdateCandidate(
   }
 
   const supabase = await createClient();
-  const { error: recordError } = await supabase.from("processed_gmail_messages").insert({
+  const { error: recordError } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    gmail_message_id: gmailMessageId,
+    provider: "google",
+    provider_message_id: gmailMessageId,
     outcome: "updated",
   });
 
@@ -477,7 +497,7 @@ export async function confirmUpdateCandidate(
 /**
  * Dismissing a review item never touches a Booking (CONTEXT.md's Import
  * Candidate entry) — it only records that this Gmail message is settled, so a
- * later sync's own `processed_gmail_messages` filter skips it. Already
+ * later sync's own `processed_messages` filter skips it. Already
  * kind-generic (it reads only `gmail_message_id`), so one action covers an
  * import, a cancellation, and an update alike — matched or the "no match
  * found" notice.
@@ -488,7 +508,7 @@ export async function dismissReviewItem(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isEmailSyncAllowedForCaller();
+  const allowed = await isGmailConnectAllowedForCaller();
   if (!allowed) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -499,9 +519,10 @@ export async function dismissReviewItem(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("processed_gmail_messages").insert({
+  const { error } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    gmail_message_id: gmailMessageId,
+    provider: "google",
+    provider_message_id: gmailMessageId,
     outcome: "dismissed",
   });
 

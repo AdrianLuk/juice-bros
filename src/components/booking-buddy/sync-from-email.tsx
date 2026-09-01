@@ -27,7 +27,7 @@ import {
   confirmCancellationCandidate,
   confirmImportCandidate,
   confirmUpdateCandidate,
-  connectGmail,
+  connectMailbox,
   dismissReviewItem,
   syncFromEmail,
   type ReviewItem,
@@ -459,7 +459,7 @@ export function SyncFromEmailSection({
           <p className="text-sm text-destructive">
             Google needs you to reconnect Gmail before syncing again.
           </p>
-          <form action={connectGmail}>
+          <form action={connectMailbox.bind(null, "google")}>
             <Button type="submit" variant="outline" size="sm">
               Reconnect Gmail
             </Button>

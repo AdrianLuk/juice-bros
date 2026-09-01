@@ -33,7 +33,7 @@ function parseAllowlist(raw: string | undefined): Set<string> {
  * happen post-signup, but not this function's place to assume) simply
  * matches nothing rather than throwing.
  */
-export function isEmailSyncAllowed(
+export function isGmailConnectAllowed(
   username: string | null,
   email: string | null | undefined,
   allowlistEnv: string | undefined,
