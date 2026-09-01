@@ -230,38 +230,55 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await removePlace(page, facility);
     });
 
-    test("deleting a confirmed Booking lets its email be re-imported on the next sync", async ({
-      page,
-    }) => {
+    test("a confirmed email's ledger row tracks its Booking's lifecycle (#286)", async ({ page }) => {
       const facility = placeName();
       await signIn(page, user, "/booking-buddy/orgs");
       await addPlace(page, facility);
 
-      await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
+      const confirmation = confirmationEmail({ id: messageId(), facility });
+      await connectAndSeed(page, [confirmation]);
 
-      await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
-
-      const card = page
+      const importCard = page
         .getByRole("listitem")
         .filter({ has: page.getByRole("button", { name: "Confirm" }) });
-      await expect(card).toBeVisible();
-      await card.getByRole("button", { name: "Confirm" }).click();
+
+      // Import the confirmation into a real Booking.
+      await page.goto("/booking-buddy/bookings");
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await expect(importCard).toBeVisible();
+      await importCard.getByRole("button", { name: "Confirm" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
       await expect(row(page, "Court 3")).toContainText(facility);
 
-      // Delete the Booking in the UI — the ledger row cascades away, so the
-      // confirmation email is no longer settled and the next sync re-offers it
-      // (issue #286). A deliberate delete just means Dismissing it once, which
-      // the dismiss scenario above already covers.
+      // Deleting that Booking from the UI cascades its ledger row away, so the
+      // next sync re-offers the email — the realistic path here is recovery
+      // (an accidental delete), and a deliberate delete just Dismisses it once.
       await deleteBooking(page, "Court 3");
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await expect(importCard).toBeVisible();
+      await expect(importCard).toContainText(facility);
+
+      // Re-import it, then cancel the reservation by email. That also deletes
+      // the Booking — but confirming a cancellation re-records the confirmation
+      // as settled, so it must NOT come back on a later sync.
+      await importCard.getByRole("button", { name: "Confirm" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+      fixture
+        .getMock()
+        .registerMessages([confirmation, cancellationEmail({ id: messageId(), facility })]);
+      await page.getByRole("button", { name: "Sync from Email" }).click();
+      const cancelCard = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Remove booking" }) });
+      await expect(cancelCard).toBeVisible();
+      await cancelCard.getByRole("button", { name: "Remove booking" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(row(page, "Court 3")).toHaveCount(0);
 
       await page.getByRole("button", { name: "Sync from Email" }).click();
-      const reoffered = page
-        .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
-      await expect(reoffered).toBeVisible();
-      await expect(reoffered).toContainText(facility);
+      await expect(page.getByText("No new bookings found.")).toBeVisible();
+      await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
 
       await removePlace(page, facility);
     });
@@ -344,50 +361,6 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await card.getByRole("button", { name: "Remove booking" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
       await expect(row(page, "Court 3")).toHaveCount(0);
-
-      await removePlace(page, facility);
-    });
-
-    test("confirming a cancellation keeps the original confirmation email suppressed", async ({
-      page,
-    }) => {
-      const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
-      await addPlace(page, facility);
-
-      const confirmation = confirmationEmail({ id: messageId(), facility });
-      await connectAndSeed(page, [confirmation]);
-
-      // Import the confirmation into a real Booking.
-      await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
-      const importCard = page
-        .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
-      await expect(importCard).toBeVisible();
-      await importCard.getByRole("button", { name: "Confirm" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
-      await expect(row(page, "Court 3")).toContainText(facility);
-
-      // A cancellation for that same reservation now lands in the inbox.
-      fixture
-        .getMock()
-        .registerMessages([confirmation, cancellationEmail({ id: messageId(), facility })]);
-      await page.getByRole("button", { name: "Sync from Email" }).click();
-      const cancelCard = page
-        .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Remove booking" }) });
-      await expect(cancelCard).toBeVisible();
-      await cancelCard.getByRole("button", { name: "Remove booking" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
-      await expect(row(page, "Court 3")).toHaveCount(0);
-
-      // Deleting the Booking cascaded the confirmation's ledger row away, but
-      // confirming a cancellation re-records it — so the confirmation must not
-      // resurface as an import candidate (issue #286).
-      await page.getByRole("button", { name: "Sync from Email" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible();
-      await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
 
       await removePlace(page, facility);
     });
