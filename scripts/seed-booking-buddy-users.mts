@@ -40,6 +40,41 @@ export const TEST_ACCOUNTS = [
   { email: "benbackhand2@example.com", displayName: "Ben Backhand" },
 ];
 
+/**
+ * Per-worker copies of the four accounts, so `playwright.config.ts` can run
+ * `workers > 1` without two workers fighting over one account's rows. Worker
+ * `i` gets `amyace-w{i}` / `benbackhand-w{i}` / `amyace2-w{i}` /
+ * `benbackhand2-w{i}`, wired into the same two friendships and left at the
+ * same visibility-lattice bottom as the legacy four (which stay, for clicking
+ * through by hand — see local-test-accounts.md).
+ *
+ * Keep this >= the `workers` in `playwright.config.ts`. The `e2e/support/
+ * accounts.ts` fixture maps `testInfo.parallelIndex` onto one set.
+ *
+ * Display name stays "Amy Ace" / "Ben Backhand" (some specs assert on that
+ * literal, and the two-of-each-name ambiguity is deliberate — ADR 0004), so
+ * the trigger-derived Username would be a non-deterministic `amyace7`-style
+ * collision number. The Username is PATCHed to a fixed `amyacew{i}` right
+ * after creation instead.
+ */
+export const TEST_WORKER_COUNT = Number(process.env.E2E_WORKER_COUNT ?? 4);
+
+type WorkerAccount = { email: string; displayName: string; username: string };
+
+export function workerAccountSet(index: number): {
+  amy: WorkerAccount;
+  ben: WorkerAccount;
+  amy2: WorkerAccount;
+  ben2: WorkerAccount;
+} {
+  return {
+    amy: { email: `amyace-w${index}@example.com`, displayName: "Amy Ace", username: `amyacew${index}` },
+    ben: { email: `benbackhand-w${index}@example.com`, displayName: "Ben Backhand", username: `benbackhandw${index}` },
+    amy2: { email: `amyace2-w${index}@example.com`, displayName: "Amy Ace", username: `amyace2w${index}` },
+    ben2: { email: `benbackhand2-w${index}@example.com`, displayName: "Ben Backhand", username: `benbackhand2w${index}` },
+  };
+}
+
 if (!API_URL.includes("127.0.0.1")) {
   console.error("Refusing to run: this script is for the local stack only.");
   process.exit(1);
@@ -78,6 +113,34 @@ async function createUser({
   }
 
   throw new Error(`Creating ${email} failed (${response.status}): ${body}`);
+}
+
+/**
+ * Forces one account's Username to an exact value, as the User themselves —
+ * `profiles` has an "editable by their owner" UPDATE policy and no
+ * service-role grant, the same "made as the Users themselves" reasoning
+ * `connect` already follows.
+ *
+ * Only the per-worker accounts need this: their display names collide (two
+ * "Amy Ace"s per set), so the signup trigger's own numbering would hand out
+ * `amyace9`-style Usernames that shift with creation order. Idempotent — a
+ * re-run just re-sets the same string (and skips the write when it already
+ * matches, so the unique index doesn't trip on the row's own value).
+ */
+async function forceUsername(email: string, username: string): Promise<void> {
+  const token = await accessToken(email);
+  const id = await userId(token);
+
+  const [current] = (await asUser(
+    token,
+    `profiles?id=eq.${id}&select=username`,
+  )) as { username: string }[];
+  if (current?.username === username) return;
+
+  await asUser(token, `profiles?id=eq.${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ username }),
+  });
 }
 
 /**
@@ -275,4 +338,23 @@ console.log("");
 for (const { requester, addressee } of SEEDED_FRIENDSHIPS) {
   const result = await connect(requester, addressee);
   console.log(`${result}  ${requester} ↔ ${addressee}`);
+}
+
+// Per-worker copies — same four accounts, same two friendships, one set per
+// Playwright worker so `workers > 1` doesn't have two of them writing the
+// same rows.
+console.log(`\nWorker sets (E2E_WORKER_COUNT=${TEST_WORKER_COUNT}):`);
+for (let index = 0; index < TEST_WORKER_COUNT; index++) {
+  const set = workerAccountSet(index);
+  for (const account of [set.amy, set.ben, set.amy2, set.ben2]) {
+    const result = await createUser(account);
+    if (result === "created") created += 1;
+    await forceUsername(account.email, account.username);
+  }
+  await connect(set.amy.email, set.ben.email);
+  await connect(set.amy.email, set.ben2.email);
+  console.log(
+    `  w${index}: @${set.amy.username} ↔ @${set.ben.username}, @${set.amy.username} ↔ @${set.ben2.username} ` +
+      `(@${set.amy2.username} ↔ @${set.ben2.username} left strangers)`,
+  );
 }
