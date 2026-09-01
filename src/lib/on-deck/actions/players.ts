@@ -153,3 +153,69 @@ export async function queueForSession(
   revalidatePath(sessionPath(sessionId));
   return { ok: true };
 }
+
+/**
+ * A Player removes themselves from the Queue (issue #246, door 1) — they land
+ * in Paused with their accrued Wait Time held. Goes through the
+ * `on_deck_pause_player` RPC: `anon`-callable, pinned to `PLAYER_PAUSED` /
+ * `player` / `left`, and a no-op if they are already stepped out.
+ */
+export async function leaveQueue(
+  sessionId: string,
+  token: string,
+): Promise<QueueResult> {
+  const trimmed = token?.trim() ?? "";
+  if (trimmed.length < 8) {
+    return { error: "Couldn't find your spot. Reload and try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("on_deck_pause_player", {
+    p_session_id: sessionId,
+    p_token: trimmed,
+  });
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Scan the club QR again to get set up." };
+    }
+    console.error("on-deck: pausing a Player failed", error);
+    return { error: "Couldn't update that. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
+}
+
+/**
+ * A paused Player rejoins the Queue (issue #246) — the `PLAYER_REQUEUED` door
+ * a Player takes by re-scanning the Club QR. Through the
+ * `on_deck_requeue_player` RPC: `anon`-callable, a no-op when they are not
+ * currently paused. The fold restores their accrued Wait Time.
+ */
+export async function rejoinQueue(
+  sessionId: string,
+  token: string,
+): Promise<QueueResult> {
+  const trimmed = token?.trim() ?? "";
+  if (trimmed.length < 8) {
+    return { error: "Couldn't find your spot. Reload and try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("on_deck_requeue_player", {
+    p_session_id: sessionId,
+    p_token: trimmed,
+  });
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Scan the club QR again to get set up." };
+    }
+    console.error("on-deck: re-queueing a Player failed", error);
+    return { error: "Couldn't add you back. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
+}

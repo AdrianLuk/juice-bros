@@ -92,6 +92,35 @@ event array plus assertions about the resulting state.
   promotion / windowed fresh selection / determinism / undo-parity;
   `e2e/on-deck.spec.ts` floor "On deck" section + screenshots.
 
+- [x] **#246 — Paused: leave, no-show swap, set aside.** The single "not right
+  now" state, three doors, all folding identically. `PLAYER_PAUSED` (reason
+  `left` — a Player removes themselves; `set-aside` — an Operator stands them
+  down) pulls a Player from the Queue and any On Deck Foursome (which tops up),
+  banking their accrued Wait Time. `FOURSOME_MEMBER_SWAPPED` is the no-show
+  door: it pauses the called Player (reason `no-show`) and seats a named
+  replacement on the Court without restarting the Game. `PLAYER_REQUEUED`
+  (Club QR re-scan, or an Operator) returns a paused Player with `waitSince`
+  back-dated by the banked amount, so stepping away costs nothing. The fold
+  tracks `waitStartByPlayer` (set on queue / re-queue / requeue) so the
+  no-show door — where the Player is already off the Queue — preserves equity
+  the same way the other two do. `reduceSession` gains `state.paused`; a paused
+  Player is in no Queue, Court, or Foursome until they return.
+  `bestReplacement` (in `match-me.ts`) scores the healthiest swap-in from the
+  waiting window; `RotationView` carries a per-Court `suggestedReplacement`
+  (name only) and a `paused` list. Migration adds `PLAYER_REQUEUED` to the
+  event-type check (the foundation missed it) plus `on_deck_pause_player` /
+  `on_deck_requeue_player` (`anon`-callable, no-op guards via
+  `on_deck_is_paused`); the Operator doors ride the existing Organizer-append
+  policy. Floor screen: a "Someone didn't show?" picker per in-play Court
+  (Match Me suggestion pre-filled, overridable), a "Set aside" tap per waiting
+  Player, a "Set aside" list with "back in the queue". Player view: "Leave the
+  queue" while waiting / on deck, a "you've stepped out" + "Rejoin" state while
+  paused. Tests: `reduce.test.ts` (each door, wait-time preservation across all
+  three, swap validity, re-queue equity, paused-never-in-a-Foursome,
+  undo-parity), `match-me.test.ts` (`bestReplacement`),
+  `on_deck_paused.test.sql`, `e2e/on-deck.spec.ts` no-show swap → set aside →
+  back in.
+
 ## Next
 
 The rest of #238 — Queue Together, the Volunteer link surface, the Display and

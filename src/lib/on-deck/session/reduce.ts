@@ -201,7 +201,22 @@ export function reduceSession(
     queue: [],
     courts,
     onDeck: [],
+    paused: [],
+    waitStartByPlayer: {},
     completedGames: [],
+  };
+
+  /** Remember when a Player's current wait began — the no-show door reads this
+   * to preserve the equity of a Player who was already off the Queue. */
+  const beginWait = (playerId: string, at: number): void => {
+    state.waitStartByPlayer[playerId] = at;
+  };
+
+  /** Wait Time (ms) a Player has accrued by `at`, floored at zero. Falls back
+   * to zero for a Player the fold never saw queue. */
+  const accruedWait = (playerId: string, at: number): number => {
+    const since = state.waitStartByPlayer[playerId] ?? at;
+    return Math.max(0, at - since);
   };
 
   for (const event of events) {
@@ -245,12 +260,17 @@ export function reduceSession(
         if (!state.roster.some((p) => p.id === event.token)) break;
         if (state.queue.some((e) => e.playerId === event.token)) break;
         if (state.courts.some((c) => c.foursome.includes(event.token))) break;
+        // A paused Player rejoins through PLAYER_REQUEUED, never a second
+        // PLAYER_QUEUED — guard it anyway so a future queue path can't land
+        // them in the Queue and the paused list at once.
+        if (state.paused.some((p) => p.playerId === event.token)) break;
 
         // Naive selection stands in for Match Me here (#243): a queued Player
         // waits until a Court is tapped done. The fold does not pull them onto
         // an empty Court — that only happens on `COURT_FINISHED`, so a Player
         // reliably "joins the Queue and sees their position".
         state.queue.push({ playerId: event.token, waitSince: event.at });
+        beginWait(event.token, event.at);
         sortQueue(state.queue);
 
         // The new waiter fills out an incomplete On Deck Foursome, or forms one
@@ -275,6 +295,7 @@ export function reduceSession(
         // whichever is later").
         for (const playerId of court.foursome) {
           state.queue.push({ playerId, waitSince: event.at });
+          beginWait(playerId, event.at);
         }
         court.foursome = [];
         court.since = null;
@@ -283,6 +304,86 @@ export function reduceSession(
         // ...then the "Up next" On Deck Foursome (or Match Me, if it is not
         // ready) walks onto the freed Court, and On Deck refills behind it.
         seatCourt(state, court, event.at);
+        refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "PLAYER_PAUSED": {
+        if (state.status !== "open") break;
+        const id = event.token;
+        if (!state.roster.some((p) => p.id === id)) break;
+        // Already paused, or present in neither the Queue nor a Court — nothing
+        // to step out of. A replayed event is a no-op.
+        if (state.paused.some((p) => p.playerId === id)) break;
+        const onCourt = state.courts.some((c) => c.foursome.includes(id));
+        const queued = state.queue.some((e) => e.playerId === id);
+        if (!onCourt && !queued) break;
+        // A Player can only remove *themselves* from the Queue — never walk off
+        // a Court mid-Game. An Operator's "set aside" still can (someone who
+        // clearly went home). This also settles the race where a Player taps
+        // "leave" from the On Deck view just as their Foursome is seated.
+        if (event.reason === "left" && onCourt) break;
+
+        state.paused.push({
+          playerId: id,
+          accruedWaitMs: accruedWait(id, event.at),
+          pausedAt: event.at,
+          reason: event.reason,
+        });
+
+        // Leave the Queue and any Court. A Court left a player short stays that
+        // way — the no-show door (FOURSOME_MEMBER_SWAPPED) is the one that pulls
+        // a replacement in.
+        state.queue = state.queue.filter((e) => e.playerId !== id);
+        for (const c of state.courts) {
+          if (c.foursome.includes(id)) {
+            c.foursome = c.foursome.filter((x) => x !== id);
+          }
+        }
+        refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "PLAYER_REQUEUED": {
+        if (state.status !== "open") break;
+        const id = event.token;
+        const paused = state.paused.find((p) => p.playerId === id);
+        if (!paused) break;
+
+        state.paused = state.paused.filter((p) => p.playerId !== id);
+        // Resume from the equity they had — back-date `waitSince` so their
+        // Queue position reflects the wait they had already banked.
+        const waitSince = event.at - paused.accruedWaitMs;
+        state.queue.push({ playerId: id, waitSince });
+        beginWait(id, waitSince);
+        sortQueue(state.queue);
+        refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "FOURSOME_MEMBER_SWAPPED": {
+        if (state.status !== "open") break;
+        const court = state.courts.find((c) => c.number === event.court);
+        if (!court) break;
+        if (!court.foursome.includes(event.out)) break;
+        if (event.in === event.out) break;
+        // The replacement must be a waiting Player, free to be seated.
+        if (!state.queue.some((e) => e.playerId === event.in)) break;
+        if (state.courts.some((c) => c.foursome.includes(event.in))) break;
+        if (state.paused.some((p) => p.playerId === event.in)) break;
+
+        state.paused.push({
+          playerId: event.out,
+          accruedWaitMs: accruedWait(event.out, event.at),
+          pausedAt: event.at,
+          reason: "no-show",
+        });
+
+        // Swap the names on the Court; the Game's clock is untouched.
+        court.foursome = court.foursome.map((x) =>
+          x === event.out ? event.in : x,
+        );
+        state.queue = state.queue.filter((e) => e.playerId !== event.in);
         refreshOnDeck(state, event.at);
         break;
       }

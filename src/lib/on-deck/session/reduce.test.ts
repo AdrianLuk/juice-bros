@@ -622,3 +622,214 @@ function idSkill(
 ): SkillLevel {
   return state.roster.find((p) => p.id === id)!.skillLevel;
 }
+
+// --- Paused: leave, no-show swap, set aside (#246) --------------------
+
+function paused(
+  token: string,
+  reason: "left" | "set-aside" = "left",
+  operator: Operator = reason === "left" ? player : vanessa,
+): SessionEvent {
+  return { type: "PLAYER_PAUSED", at: tick(), operator, token, reason };
+}
+
+function requeued(token: string, operator: Operator = player): SessionEvent {
+  return { type: "PLAYER_REQUEUED", at: tick(), operator, token };
+}
+
+function swapped(
+  court: number,
+  outTok: string,
+  inTok: string,
+  operator: Operator = vanessa,
+): SessionEvent {
+  return {
+    type: "FOURSOME_MEMBER_SWAPPED",
+    at: tick(),
+    operator,
+    court,
+    out: outTok,
+    in: inTok,
+  };
+}
+
+test("door 1 — a Player removes themselves: they land in Paused, out of the Queue", () => {
+  const state = reduceSession(config, [...sessionWith(3), paused("p2", "left")]);
+
+  assert.equal(queuePosition(state, "p2"), null);
+  assert.deepEqual(
+    state.queue.map((e) => e.playerId),
+    ["p1", "p3"],
+  );
+  assert.equal(state.paused.length, 1);
+  assert.equal(state.paused[0].playerId, "p2");
+  assert.equal(state.paused[0].reason, "left");
+});
+
+test("door 3 — an Operator sets a Player aside: same Paused state", () => {
+  const state = reduceSession(config, [
+    ...sessionWith(3),
+    paused("p2", "set-aside", vanessa),
+  ]);
+  assert.equal(state.paused[0].reason, "set-aside");
+  assert.equal(queuePosition(state, "p2"), null);
+});
+
+test("door 2 — a no-show swap pauses the no-show and seats the replacement mid-Game", () => {
+  const base = [...sessionWith(6), courtFinished(1)];
+  const seated = reduceSession(config, base).courts[0].foursome;
+  const noShow = seated[1];
+  // A waiting Player not on the Court.
+  const replacement = reduceSession(config, base).queue[0].playerId;
+
+  const state = reduceSession(config, [...base, swapped(1, noShow, replacement)]);
+  const court = state.courts[0];
+
+  assert.ok(!court.foursome.includes(noShow), "no-show left the Foursome");
+  assert.ok(court.foursome.includes(replacement), "replacement took the seat");
+  assert.equal(court.foursome.length, 4);
+  assert.equal(state.paused.find((p) => p.playerId === noShow)?.reason, "no-show");
+  // The Game's clock is untouched — the swap is not a fresh seating.
+  assert.equal(
+    court.since,
+    reduceSession(config, base).courts[0].since,
+  );
+});
+
+test("a Player cannot remove themselves mid-Game, but an Operator can set them aside", () => {
+  const base = [...sessionWith(4), courtFinished(1)];
+  const onCourt = reduceSession(config, base).courts[0].foursome[0];
+
+  const selfLeave = reduceSession(config, [...base, paused(onCourt, "left")]);
+  assert.equal(playerCourt(selfLeave, onCourt), 1, "still playing");
+  assert.equal(selfLeave.paused.length, 0);
+
+  const setAside = reduceSession(config, [
+    ...base,
+    paused(onCourt, "set-aside", vanessa),
+  ]);
+  assert.equal(playerCourt(setAside, onCourt), null, "pulled off the Court");
+  assert.equal(setAside.courts[0].foursome.length, 3, "Court left a player short");
+  assert.equal(setAside.paused[0].reason, "set-aside");
+});
+
+test("a paused Player is never pulled into a Foursome", () => {
+  // Eight waiting, p1 steps out, then a Court is sent — p1 must not be seated
+  // or put On Deck.
+  const state = reduceSession(config, [
+    ...sessionWith(8),
+    paused("p1", "left"),
+    courtFinished(1),
+  ]);
+
+  assert.equal(playerCourt(state, "p1"), null);
+  assert.ok(!state.onDeck.some((f) => f.players.includes("p1")));
+  assert.ok(state.paused.some((p) => p.playerId === "p1"));
+});
+
+test("pausing an On Deck Player drops them from the Foursome, which tops up", () => {
+  const base = sessionWith(8);
+  const before = reduceSession(config, base);
+  const target = before.onDeck[0].players[1];
+
+  const state = reduceSession(config, [...base, ...addWaiter(9), paused(target, "left")]);
+
+  assert.ok(!state.onDeck.some((f) => f.players.includes(target)));
+  assert.equal(state.onDeck[0].players.length, 4, "the Foursome topped back up");
+});
+
+test("re-queue restores the Player with accrued Wait Time intact", () => {
+  // p2 queues first (so waits longest), steps out, THEN p1 and p3 queue, then
+  // p2 rejoins. p2's banked wait puts them back ahead of p1 and p3.
+  const events: SessionEvent[] = [
+    started(),
+    joined("p1", "P1", "X"),
+    joined("p2", "P2", "X"),
+    joined("p3", "P3", "X"),
+  ];
+  const qp2 = queued("p2");
+  events.push(qp2);
+  const pause = paused("p2", "left");
+  events.push(pause);
+  events.push(queued("p1"));
+  events.push(queued("p3"));
+  const rejoin = requeued("p2");
+  events.push(rejoin);
+
+  const state = reduceSession(config, events);
+  assert.equal(state.paused.length, 0);
+  const p2 = state.queue.find((e) => e.playerId === "p2")!;
+  // Back-dated by exactly the wait banked before pausing — not reset to
+  // rejoin.at, which is what dropping and re-adding would do.
+  assert.equal(p2.waitSince, rejoin.at - (pause.at - qp2.at));
+  assert.ok(p2.waitSince < rejoin.at, "the banked wait was not thrown away");
+});
+
+test("re-queue banks enough wait to jump ahead of shorter waiters", () => {
+  // p1 queues, then a Court is tapped repeatedly so p1 keeps accruing while
+  // fresh Players arrive; p1 pauses deep into the night and rejoins.
+  const events: SessionEvent[] = [started()];
+  for (let i = 1; i <= 5; i++) events.push(joined(`p${i}`, `P${i}`, "X"));
+  events.push(queued("p1"));
+  for (let i = 0; i < 20; i++) tick(); // p1 racks up wait
+  events.push(queued("p2"));
+  events.push(paused("p1", "left"));
+  events.push(queued("p3"));
+  events.push(queued("p4"));
+  events.push(requeued("p1"));
+
+  const state = reduceSession(config, events);
+  assert.equal(queuePosition(state, "p1"), 1, "the long banked wait still leads");
+});
+
+test("all three doors preserve the same accrued Wait Time", () => {
+  // Build one queued Player, let them accrue exactly one tick of wait, pause
+  // via each door, and assert accruedWaitMs matches.
+  function accruedVia(mk: (tok: string) => SessionEvent): number {
+    const evs = [started(), joined("x", "X", "X"), queued("x"), mk("x")];
+    return reduceSession(config, evs).paused[0].accruedWaitMs;
+  }
+  const left = accruedVia((t) => paused(t, "left"));
+  const setAside = accruedVia((t) => paused(t, "set-aside", vanessa));
+  // All doors read the same `waitStartByPlayer` and subtract the event `at`.
+  assert.equal(left, 1000);
+  assert.equal(setAside, 1000);
+});
+
+test("PLAYER_REQUEUED for a Player who is not paused is a no-op", () => {
+  const state = reduceSession(config, [...sessionWith(3), requeued("p1")]);
+  assert.equal(state.queue.length, 3);
+  assert.equal(state.paused.length, 0);
+});
+
+test("a replayed PLAYER_PAUSED for an already-paused Player is a no-op", () => {
+  const state = reduceSession(config, [
+    ...sessionWith(3),
+    paused("p2", "left"),
+    paused("p2", "left"),
+  ]);
+  assert.equal(state.paused.length, 1);
+});
+
+test("a PLAYER_PAUSED before the Session opens is ignored", () => {
+  const state = reduceSession(config, [paused("ghost", "left")]);
+  assert.deepEqual(state.paused, []);
+});
+
+test("a FOURSOME_MEMBER_SWAPPED naming a replacement who isn't waiting is a no-op", () => {
+  const base = [...sessionWith(4), courtFinished(1)];
+  const seated = reduceSession(config, base).courts[0].foursome;
+  const state = reduceSession(config, [...base, swapped(1, seated[0], "nobody")]);
+  assert.deepEqual(state.courts[0].foursome, seated);
+  assert.equal(state.paused.length, 0);
+});
+
+test("undo drops the last PLAYER_PAUSED: re-folding restores the prior state", () => {
+  const base = [...sessionWith(4)];
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [...base, paused("p1", "left")]);
+
+  assert.notDeepEqual(after.queue, before.queue);
+  assert.deepEqual(reduceSession(config, base).queue, before.queue);
+  assert.deepEqual(reduceSession(config, base).paused, before.paused);
+});

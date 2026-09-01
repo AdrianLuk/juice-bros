@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { reduceSession } from "./session/reduce.ts";
-import { isSkillLevel } from "./session/types.ts";
+import { isPauseReason, isSkillLevel } from "./session/types.ts";
 import type {
   Operator,
   SessionConfig,
@@ -104,6 +104,47 @@ function toEvent(row: EventRow): SessionEvent | null {
         return null;
       }
       return { type: "COURT_FINISHED", at, operator, court };
+    }
+
+    case "PLAYER_PAUSED": {
+      const payload = row.payload ?? {};
+      const token = payload.token;
+      const reason = payload.reason;
+      if (typeof token !== "string" || !isPauseReason(reason)) {
+        return null;
+      }
+      return { type: "PLAYER_PAUSED", at, operator, token, reason };
+    }
+
+    case "PLAYER_REQUEUED": {
+      const token = (row.payload ?? {}).token;
+      if (typeof token !== "string") {
+        return null;
+      }
+      return { type: "PLAYER_REQUEUED", at, operator, token };
+    }
+
+    case "FOURSOME_MEMBER_SWAPPED": {
+      const payload = row.payload ?? {};
+      const court = payload.court;
+      const out = payload.out;
+      const inbound = payload.in;
+      if (
+        typeof court !== "number" ||
+        !Number.isInteger(court) ||
+        typeof out !== "string" ||
+        typeof inbound !== "string"
+      ) {
+        return null;
+      }
+      return {
+        type: "FOURSOME_MEMBER_SWAPPED",
+        at,
+        operator,
+        court,
+        out,
+        in: inbound,
+      };
     }
 
     default:

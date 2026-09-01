@@ -5,19 +5,34 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { QueryProvider } from "@/components/on-deck/query-provider";
-import { finishCourt } from "@/lib/on-deck/actions/floor";
+import {
+  bringPlayerBack,
+  finishCourt,
+  setPlayerAside,
+  swapNoShow,
+} from "@/lib/on-deck/actions/floor";
 import {
   getRotationView,
   type RotationView,
 } from "@/lib/on-deck/actions/rotation";
+import type { PauseReason } from "@/lib/on-deck/session/types";
 
 const POLL_MS = 4_000;
+
+const PAUSE_REASON_LABEL: Record<PauseReason, string> = {
+  left: "left the queue",
+  "no-show": "no-show",
+  "set-aside": "set aside",
+};
 
 /**
  * The Organizer's floor screen (issue #243): every Court and who is on it, the
  * Queue in order, and a "Court N done" tap per occupied Court. Polls
  * `getRotationView` every few seconds so it stays current as Players join and
  * queue from their own phones.
+ *
+ * Paused (issue #246) lands here too: a no-show swap per in-play Court, a "set
+ * aside" tap per waiting Player, and a "back in the queue" tap per paused one.
  */
 export function RotationBoard({
   sessionId,
@@ -35,12 +50,6 @@ export function RotationBoard({
 
 const ON_DECK_LABELS = ["Up next", "After that"];
 
-/**
- * The two committed On Deck Foursomes (issue #245): the eight Players who can
- * gather now instead of being hunted down when a Court frees. Named, in wait
- * order; a Foursome still filling out shows the names it has plus how many
- * seats are open.
- */
 function OnDeck({ foursomes }: { foursomes: string[][] }) {
   return (
     <div>
@@ -78,6 +87,118 @@ function OnDeck({ foursomes }: { foursomes: string[][] }) {
   );
 }
 
+/**
+ * "Someone didn't show?" for one in-play Court. Collapsed to a link until the
+ * Organizer needs it; open, it pre-fills the Match Me suggestion but lets them
+ * pick any waiting Player instead.
+ */
+function NoShowSwap({
+  court,
+  players,
+  since,
+  suggested,
+  waiting,
+  onSwap,
+  pending,
+}: {
+  court: number;
+  players: string[];
+  since: number | null;
+  suggested: string | null;
+  waiting: string[];
+  onSwap: (args: {
+    court: number;
+    since: number | null;
+    outName: string;
+    inName: string;
+  }) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  // Track only the Organizer's explicit picks; everything else follows the
+  // live polled props, so a 4s refresh never strands the selects on a stale
+  // name or an empty value.
+  const [outPick, setOutPick] = useState<string | null>(null);
+  const [inPick, setInPick] = useState<string | null>(null);
+  const outName =
+    outPick && players.includes(outPick) ? outPick : (players[0] ?? "");
+  const inName =
+    inPick && waiting.includes(inPick)
+      ? inPick
+      : (suggested && waiting.includes(suggested) ? suggested : waiting[0] ?? "");
+
+  if (waiting.length === 0) {
+    return (
+      <p className="mt-3 text-xs text-muted-foreground">
+        No one waiting to swap in.
+      </p>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="mt-3 text-xs text-muted-foreground underline-offset-4 hover:underline"
+        onClick={() => setOpen(true)}
+      >
+        Someone didn&apos;t show?
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2 rounded-xl border border-dashed p-3">
+      <label className="block text-xs font-medium">
+        Who&apos;s missing
+        <select
+          className="mt-1 block w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+          value={outName}
+          onChange={(e) => setOutPick(e.target.value)}
+        >
+          {players.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs font-medium">
+        Swap in{suggested ? " (suggested)" : ""}
+        <select
+          className="mt-1 block w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+          value={inName}
+          onChange={(e) => setInPick(e.target.value)}
+        >
+          {waiting.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending || !outName || !inName}
+          onClick={() => onSwap({ court, since, outName, inName })}
+        >
+          Swap in
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function RotationBoardInner({
   sessionId,
   initialView,
@@ -95,21 +216,54 @@ function RotationBoardInner({
   });
   const [error, setError] = useState<string | null>(null);
 
+  const refresh = () => queryClient.invalidateQueries({ queryKey });
+  const handle = (result: { ok?: boolean; error?: string }) => {
+    if (!result.ok) {
+      setError(result.error ?? "Something went wrong. Try again.");
+      return;
+    }
+    setError(null);
+    refresh();
+  };
+
   const finish = useMutation({
     mutationFn: ({ number, since }: { number: number; since: number | null }) =>
       finishCourt(sessionId, number, since),
-    onSuccess: (result) => {
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setError(null);
-      queryClient.invalidateQueries({ queryKey });
-    },
+    onSuccess: handle,
     onError: () => setError("Couldn't end that game. Try again."),
   });
 
+  const swap = useMutation({
+    mutationFn: ({
+      court,
+      since,
+      outName,
+      inName,
+    }: {
+      court: number;
+      since: number | null;
+      outName: string;
+      inName: string;
+    }) => swapNoShow(sessionId, court, since, outName, inName),
+    onSuccess: handle,
+    onError: () => setError("Couldn't make that swap. Try again."),
+  });
+
+  const aside = useMutation({
+    mutationFn: (name: string) => setPlayerAside(sessionId, name),
+    onSuccess: handle,
+    onError: () => setError("Couldn't set that player aside. Try again."),
+  });
+
+  const back = useMutation({
+    mutationFn: (name: string) => bringPlayerBack(sessionId, name),
+    onSuccess: handle,
+    onError: () => setError("Couldn't add that player back. Try again."),
+  });
+
   const view = query.data ?? initialView;
+  const busy =
+    finish.isPending || swap.isPending || aside.isPending || back.isPending;
 
   return (
     <div className="space-y-8">
@@ -122,8 +276,6 @@ function RotationBoardInner({
       <div className="grid gap-3 sm:grid-cols-2">
         {view.courts.map((court) => {
           const occupied = court.players.length > 0;
-          // "Send next four" seats the leading On Deck Foursome; enable it once
-          // that Foursome is full (or, with nothing On Deck, once four wait).
           const nextReady =
             view.onDeck[0]?.length === 4 || view.queuedCount >= 4;
           return (
@@ -140,7 +292,7 @@ function RotationBoardInner({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={finish.isPending || (!occupied && !nextReady)}
+                  disabled={busy || (!occupied && !nextReady)}
                   onClick={() =>
                     finish.mutate({ number: court.number, since: court.since })
                   }
@@ -155,6 +307,17 @@ function RotationBoardInner({
                   <li className="text-muted-foreground">Waiting for a foursome</li>
                 )}
               </ul>
+              {occupied && (
+                <NoShowSwap
+                  court={court.number}
+                  players={court.players}
+                  since={court.since}
+                  suggested={court.suggestedReplacement}
+                  waiting={view.queue}
+                  onSwap={swap.mutate}
+                  pending={swap.isPending}
+                />
+              )}
             </div>
           );
         })}
@@ -174,13 +337,58 @@ function RotationBoardInner({
         ) : (
           <ol className="mt-3 space-y-1 text-sm" data-testid="queue-list">
             {view.queue.map((name, i) => (
-              <li key={i}>
-                <span className="text-muted-foreground">{i + 1}.</span> {name}
+              <li
+                key={i}
+                className="flex items-center justify-between gap-2"
+              >
+                <span>
+                  <span className="text-muted-foreground">{i + 1}.</span> {name}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  disabled={busy}
+                  onClick={() => aside.mutate(name)}
+                >
+                  Set aside
+                </button>
               </li>
             ))}
           </ol>
         )}
       </div>
+
+      {view.paused.length > 0 && (
+        <div>
+          <h2 className="font-heading text-xl font-semibold">Set aside</h2>
+          <ul
+            className="mt-3 space-y-1 text-sm"
+            data-testid="paused-list"
+          >
+            {view.paused.map((p, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between gap-2"
+              >
+                <span>
+                  {p.name}{" "}
+                  <span className="text-muted-foreground">
+                    ({PAUSE_REASON_LABEL[p.reason]})
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-brand-orange underline-offset-4 hover:underline"
+                  disabled={busy}
+                  onClick={() => back.mutate(p.name)}
+                >
+                  Back in the queue
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -60,6 +60,30 @@ export const OPERATOR_KINDS = [
  */
 export type SkillLevel = "newbie" | "beginner" | "intermediate" | "advanced";
 
+/**
+ * The one "not right now" state, reached three ways (issue #246). The reason is
+ * kept for the operator surface — "left", a Player who removed themselves;
+ * "no-show", a called Player swapped out because they didn't appear;
+ * "set-aside", a Player an Operator stood down. The fold treats all three
+ * identically: the Player stops being called and their accrued Wait Time is
+ * held until they re-queue.
+ */
+export type PauseReason = "left" | "no-show" | "set-aside";
+
+export const PAUSE_REASONS: readonly PauseReason[] = [
+  "left",
+  "no-show",
+  "set-aside",
+];
+
+/** Narrows an untrusted value (an event payload field) to a `PauseReason`. */
+export function isPauseReason(value: unknown): value is PauseReason {
+  return (
+    typeof value === "string" &&
+    (PAUSE_REASONS as readonly string[]).includes(value)
+  );
+}
+
 export const SKILL_LEVELS: readonly SkillLevel[] = [
   "newbie",
   "beginner",
@@ -105,10 +129,11 @@ export interface SessionConfig {
  * moment it does, replay stops being reproducible and undo (dropping the last
  * event) breaks.
  *
- * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED` and `COURT_FINISHED`
- * exist so far; the rest of the log's vocabulary (groups, pausing, last call,
- * close) lands in later tickets. The DB `on_deck_session_events.type` check
- * already lists the full set so those tickets add rows, not migrations.
+ * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `COURT_FINISHED`,
+ * `PLAYER_PAUSED`, `PLAYER_REQUEUED` and `FOURSOME_MEMBER_SWAPPED` exist so
+ * far; the rest of the log's vocabulary (groups, last call, close) lands in
+ * later tickets. The DB `on_deck_session_events.type` check lists the full set
+ * (the #246 migration adds `PLAYER_REQUEUED`, which the foundation missed).
  */
 export type SessionEvent =
   | {
@@ -156,6 +181,51 @@ export type SessionEvent =
       operator: Operator;
       /** 1-based Court number, within `config.courtCount`. */
       court: number;
+    }
+  | {
+      /**
+       * A Player steps out of the rotation — they removed themselves (`left`),
+       * or an Operator stood them down (`set-aside`). They leave the Queue (and
+       * any On Deck Foursome, which then tops up), stop being called, and their
+       * accrued Wait Time is held. A no-op for a token already paused or one
+       * neither queued nor playing. The no-show door is `FOURSOME_MEMBER_SWAPPED`.
+       */
+      type: "PLAYER_PAUSED";
+      at: number;
+      operator: Operator;
+      token: string;
+      reason: PauseReason;
+    }
+  | {
+      /**
+       * A paused Player re-enters the Queue — by scanning the Club QR again, or
+       * an Operator re-adding them. Their Wait Time resumes from the equity they
+       * had when they paused (`waitSince` is back-dated by the accrued amount),
+       * so stepping away cost them nothing. A no-op for a token that is not
+       * currently paused.
+       */
+      type: "PLAYER_REQUEUED";
+      at: number;
+      operator: Operator;
+      token: string;
+    }
+  | {
+      /**
+       * The no-show door into Paused: an Operator taps a called Player who did
+       * not appear and names a replacement standing there. `out` goes to Paused
+       * (reason `no-show`, Wait Time held); `in` — a waiting Player, never one
+       * paused or already on a Court — takes the open seat on `court`. The
+       * Game's clock (`since`) is untouched; only the four names change.
+       */
+      type: "FOURSOME_MEMBER_SWAPPED";
+      at: number;
+      operator: Operator;
+      /** 1-based Court number the swap happens on. */
+      court: number;
+      /** Device token of the no-show leaving the Foursome. */
+      out: string;
+      /** Device token of the replacement joining it. */
+      in: string;
     };
 
 /** One Player in a Session's roster, as the fold projects them. */
@@ -196,6 +266,22 @@ export interface QueueEntry {
 export interface CompletedGame {
   /** The device tokens of the four who played it. */
   players: string[];
+}
+
+/** One Player who has stepped out of the rotation (issue #246). */
+export interface PausedPlayer {
+  /** The Player's device token — their id within this Session. */
+  playerId: string;
+  /**
+   * Wait Time (ms) the Player had accrued at the moment they paused. On
+   * `PLAYER_REQUEUED` their `waitSince` is back-dated by this, so all three
+   * doors into Paused preserve equity identically.
+   */
+  accruedWaitMs: number;
+  /** When they paused (epoch ms, off the event). */
+  pausedAt: number;
+  /** Which door they came through — for the operator surface only. */
+  reason: PauseReason;
 }
 
 /** One Court in a Session — empty (`foursome` is `[]`) or holding a Game. */
@@ -250,6 +336,20 @@ export interface SessionState {
    */
   onDeck: OnDeckFoursome[];
   /**
+   * Players who have stepped out of the rotation (issue #246), newest last.
+   * They are in no Queue, on no Court, and in no Foursome until a
+   * `PLAYER_REQUEUED` brings them back.
+   */
+  paused: PausedPlayer[];
+  /**
+   * When each Player's current wait began (epoch ms), by device token — set on
+   * `PLAYER_QUEUED`, on the `COURT_FINISHED` that re-queues them, and on
+   * `PLAYER_REQUEUED`. Kept even while a Player is on a Court or On Deck so the
+   * no-show door can preserve the equity they had. Internal to the fold; not
+   * projected.
+   */
+  waitStartByPlayer: Record<string, number>;
+  /**
    * Every finished Game, in finish order — the Variety history Match Me scores
    * candidate Foursomes against. Not projected to any live surface.
    */
@@ -275,4 +375,9 @@ export function playerCourt(
 ): number | null {
   const court = state.courts.find((c) => c.foursome.includes(playerId));
   return court ? court.number : null;
+}
+
+/** Is this Player currently paused (stepped out of the rotation)? */
+export function playerPaused(state: SessionState, playerId: string): boolean {
+  return state.paused.some((p) => p.playerId === playerId);
 }
