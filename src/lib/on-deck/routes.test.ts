@@ -9,6 +9,7 @@ import {
   requiresOrganizerSession,
   safeRedirectTarget,
   sessionPath,
+  volunteerPath,
 } from "./routes.ts";
 
 test("only the Organizer subtree requires a session", () => {
@@ -28,6 +29,17 @@ test("the floor screen under a Session is Organizer-only", () => {
   assert.equal(requiresOrganizerSession("/on-deck/session/abc"), false);
 });
 
+test("the Volunteer Link floor screen is not Organizer-gated — the token is its credential", () => {
+  assert.equal(
+    requiresOrganizerSession("/on-deck/session/abc/volunteer/tok123"),
+    false,
+  );
+  assert.equal(
+    requiresOrganizerSession("/on-deck/session/abc/volunteer/tok123/"),
+    false,
+  );
+});
+
 test("the prefix alone does not make a route On Deck's", () => {
   assert.equal(requiresOrganizerSession("/on-deck-press-kit"), false);
 });
@@ -36,6 +48,10 @@ test("path builders produce the stable shapes the proxy and pages share", () => 
   assert.equal(clubQrPath("club-1"), "/on-deck/c/club-1");
   assert.equal(sessionPath("session-1"), "/on-deck/session/session-1");
   assert.equal(floorPath("session-1"), "/on-deck/session/session-1/floor");
+  assert.equal(
+    volunteerPath("session-1", "tok-abc"),
+    "/on-deck/session/session-1/volunteer/tok-abc",
+  );
 });
 
 test("safeRedirectTarget only ever returns an On Deck path", () => {

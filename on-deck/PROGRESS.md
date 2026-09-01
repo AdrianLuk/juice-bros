@@ -121,7 +121,32 @@ event array plus assertions about the resulting state.
   `on_deck_paused.test.sql`, `e2e/on-deck.spec.ts` no-show swap → set aside →
   back in.
 
+- [x] **#248 — the Volunteer Link.** A per-Session bearer token
+  (`on_deck_sessions.volunteer_token`, minted per Session) grants the
+  operational floor surface with no account — end a Game, view the Queue, set a
+  Player aside, no-show swap — and stops granting the moment the Session closes
+  or its Floor Mode drops volunteers. `anon` can't read the token off the
+  world-readable Session row (the foundation's blanket `select` grant is
+  narrowed to non-secret columns); the volunteer floor route authenticates a
+  link via the SECURITY DEFINER `on_deck_check_volunteer_token`, and every
+  volunteer action re-checks the token through `on_deck_volunteer_append` — the
+  one write path that stamps `operator_kind = 'volunteer'` and whitelists the
+  turnover events (never SESSION_*, FLOOR_MODE_CHANGED, the Group vocabulary).
+  The floor's operational rules moved to `session/floor-ops.ts` (a pure
+  `SessionState → outcome` decision, `node --test`), shared verbatim by the
+  Organizer's INSERT path and the Volunteer's RPC path (ADR 0005 — the Operator
+  is an auth gate, never a fold branch). `RotationBoard` takes a `FloorAuth`
+  prop and dispatches to the right Server Actions; the Organizer floor screen
+  shows a copyable Volunteer Link when Floor Mode isn't `self-serve`. New route
+  `/on-deck/session/[sessionId]/volunteer/[token]` (open, not Organizer-gated).
+  **Undo is out of scope — it is ticket #247**, which builds on this operator
+  scope. Tests: `on_deck_volunteer_link.test.sql` (token secrecy, grant/deny by
+  mode/status/type, `volunteer` Operator recorded), `floor-ops.test.ts`,
+  `routes.test.ts`, `reduce.test.ts` volunteer-folds-identically,
+  `e2e/on-deck-volunteer.spec.ts` (open link → end a game, bogus/self-serve
+  link 404s, Organizer copies the link).
+
 ## Next
 
-The rest of #238 — Queue Together, the Volunteer link surface, the Display and
-Kiosk, Last Call and the Session Summary purge.
+The rest of #238 — Queue Together, the interactive Display and Kiosk, Last
+Call, operator Undo (#247), and the Session Summary purge.

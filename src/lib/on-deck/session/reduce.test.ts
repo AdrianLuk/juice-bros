@@ -390,6 +390,25 @@ test("a PLAYER_QUEUED before the Session opens is ignored", () => {
   assert.deepEqual(state.queue, []);
 });
 
+test("a volunteer-sourced COURT_FINISHED folds identically to an organizer one (#248, ADR 0005)", () => {
+  const base = sessionWith(8);
+  const at = tick();
+  const asOrganizer: SessionEvent = {
+    type: "COURT_FINISHED",
+    at,
+    operator: vanessa,
+    court: 1,
+  };
+  const asVolunteer: SessionEvent = { ...asOrganizer, operator: { kind: "volunteer" } };
+
+  const byOrganizer = reduceSession(smallConfig, [...base, asOrganizer]);
+  const byVolunteer = reduceSession(smallConfig, [...base, asVolunteer]);
+
+  assert.deepEqual(byVolunteer.courts, byOrganizer.courts);
+  assert.deepEqual(byVolunteer.queue, byOrganizer.queue);
+  assert.deepEqual(byVolunteer.onDeck, byOrganizer.onDeck);
+});
+
 // --- Match Me through the fold (#244) -----------------------------------
 
 test("a fresh On Deck Foursome is selected through Match Me's window, not by wait order", () => {

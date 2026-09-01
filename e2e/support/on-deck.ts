@@ -81,6 +81,71 @@ export async function seedClubForOrganizer(
 }
 
 /**
+ * Seeds an open Session for a Club straight against PostgREST, plus its
+ * `SESSION_STARTED` event so `reduceSession` opens it. On Deck has no
+ * seed-a-session app path (the Organizer taps Start), and the Volunteer Link
+ * journey (#248) needs a running Session it did not open itself. Returns the
+ * Session id and its Volunteer Link token.
+ */
+export async function seedOpenSession(
+  email: string,
+  clubId: string,
+  session: {
+    venueName?: string;
+    courtCount?: number;
+    groupCap?: number;
+    floorMode?: "volunteer-run" | "self-serve" | "hybrid";
+  } = {},
+): Promise<{ sessionId: string; volunteerToken: string }> {
+  const ownerId = await userIdForEmail(email);
+  const venueName = session.venueName ?? "Ramsden Park";
+  const courtCount = session.courtCount ?? 8;
+  const groupCap = session.groupCap ?? 4;
+  const floorMode = session.floorMode ?? "hybrid";
+
+  const res = await fetch(`${LOCAL_SUPABASE_API_URL}/rest/v1/on_deck_sessions`, {
+    method: "POST",
+    headers: { ...serviceRoleHeaders(), Prefer: "return=representation" },
+    body: JSON.stringify({
+      club_id: clubId,
+      venue_name: venueName,
+      court_count: courtCount,
+      group_cap: groupCap,
+      floor_mode: floorMode,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`seeding a Session failed: ${res.status} ${await res.text()}`);
+  }
+  const [created] = (await res.json()) as {
+    id: string;
+    volunteer_token: string;
+  }[];
+
+  const eventRes = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/on_deck_session_events`,
+    {
+      method: "POST",
+      headers: serviceRoleHeaders(),
+      body: JSON.stringify({
+        session_id: created.id,
+        type: "SESSION_STARTED",
+        operator_kind: "organizer",
+        operator_user_id: ownerId,
+        payload: { venueName, courtCount, groupCap, floorMode },
+      }),
+    },
+  );
+  if (!eventRes.ok) {
+    throw new Error(
+      `seeding SESSION_STARTED failed: ${eventRes.status} ${await eventRes.text()}`,
+    );
+  }
+
+  return { sessionId: created.id, volunteerToken: created.volunteer_token };
+}
+
+/**
  * Drives the `anon`-callable RPCs a Player's phone would hit — used to stand
  * up a roster and a Queue for the rotation-loop journey (#243) without
  * spinning up a browser context per Player.
