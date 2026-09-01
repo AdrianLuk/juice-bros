@@ -748,6 +748,45 @@
 }
 
 /*
+ * Week-view quick-create (`dashboard-week-view.tsx`, issue #303): every empty
+ * hour row of a non-past day carries a full-width button whose `+` mark
+ * (`.bb-week-quick-add-mark`) is invisible until the row is hovered — a quiet
+ * affordance that keeps the grid uncluttered until you reach for it.
+ *
+ * The whole thing is pointer-driven: on a touch device (`hover: none`) the
+ * button is `pointer-events: none`, so tapping an empty cell scrolls or does
+ * nothing rather than opening the dialog behind an invisible mark — Month
+ * view (issue #307) is where a touch affordance lands. `pointer-events: none`
+ * still allows keyboard focus, so a keyboard user on any device reaches the
+ * button by Tab and sees the mark on `:focus-visible`. Reduced motion keeps
+ * the reveal and drops the fade.
+ */
+.bb-week-quick-add {
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .bb-week-quick-add {
+    pointer-events: auto;
+  }
+}
+.bb-week-quick-add-mark {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bb-week-quick-add-mark {
+    transition: opacity 140ms ease;
+  }
+}
+.bb-week-quick-add:focus-visible .bb-week-quick-add-mark {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .bb-week-quick-add:hover .bb-week-quick-add-mark {
+    opacity: 1;
+  }
+}
+
+/*
  * Route-loading skeleton (`loading.tsx` + `BbPageSkeleton`). The shell — page
  * heading, section pills — is real and paints at once; only the content
  * placeholders sit in `.bb-skeleton-body`, held hidden for a beat so a quick

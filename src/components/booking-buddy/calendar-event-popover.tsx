@@ -41,7 +41,11 @@ export function CalendarEventPopover<T>({
   return (
     <Popover>
       <PopoverTrigger
-        render={<button type="button" />}
+        // Belt-and-braces for the Week-view quick-create `+` (issue #303):
+        // `bookedDayHours` already keeps a `+` off any hour a Booking touches,
+        // so chip and `+` never share space — but stopping the click here
+        // means a chip can never open a create even if that ever changes.
+        render={<button type="button" onClick={(e) => e.stopPropagation()} />}
         className={cn("text-left", className)}
         style={style}
       >

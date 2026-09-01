@@ -51,6 +51,13 @@ const VIEWS: { id: CalendarView; label: string }[] = [
  * — the friend calendar has no creation affordances at all (issue #61),
  * and `undefined` here simply renders nothing.
  *
+ * `onQuickCreate` is the same story for the calendar-cell quick-create
+ * (issue #303): the owner's dashboard passes it and the friend calendar
+ * leaves it out, so the friend grid stays creation-free. Wired to the Week
+ * view here (#306), which passes the clicked row's hour; the Month view
+ * (#307) will pass `null` and let the form keep its own default start time,
+ * hence the `number | null` in the signature.
+ *
  * `restrictToFuture`, when set, is two bounds sharing one floor
  * (`minAnchor`, below), not one: navigation can't move the anchor earlier
  * than today (`clampToMin`, applied everywhere the anchor can change), *and*
@@ -72,6 +79,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
   events,
   availabilityWindows,
   quickActions,
+  onQuickCreate,
   restrictToFuture = false,
   renderWeekEvent,
   renderMonthEvent,
@@ -81,6 +89,13 @@ export function DashboardCalendar<T extends CalendarEvent>({
   events: T[];
   availabilityWindows: AvailabilityWindow[];
   quickActions?: ReactNode;
+  /**
+   * When set, an empty non-past calendar cell reveals a `+` that calls this
+   * with the cell's day and, from the Week view, the clicked row's hour (the
+   * Month view, #307, will pass `null` and keep the form's default start).
+   * Absent on the friend calendar, which renders no creation affordances.
+   */
+  onQuickCreate?: (date: Date, startHour: number | null) => void;
   restrictToFuture?: boolean;
   renderWeekEvent: (
     event: T,
@@ -349,6 +364,11 @@ export function DashboardCalendar<T extends CalendarEvent>({
             busyIntervals={busyIntervals}
             windows={visibleWindows}
             onDayClick={goToDay}
+            onQuickCreate={
+              onQuickCreate
+                ? (day, hour) => onQuickCreate(day, hour)
+                : undefined
+            }
             renderEvent={renderWeekEvent}
             minDay={minAnchor}
             sharedDayNames={gridTransitioning}
