@@ -8,8 +8,10 @@ import {
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
+  addWalkupOutcome,
   bringBackOutcome,
   finishCourtOutcome,
+  overrideSkillOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
   type FloorOpOutcome,
@@ -78,6 +80,32 @@ export async function volunteerBringPlayerBack(
 ): Promise<FloorActionResult> {
   return volunteerAppend(sessionId, token, (state) =>
     bringBackOutcome(state, playerName),
+  );
+}
+
+/** "Add a walk-up" Player (issue #249), fired by a link-authenticated Volunteer. */
+export async function volunteerAddWalkup(
+  sessionId: string,
+  token: string,
+  firstName: string,
+  lastInitial: string,
+  skillLevel: string,
+): Promise<FloorActionResult> {
+  const walkupToken = `walkup-${crypto.randomUUID()}`;
+  return volunteerAppend(sessionId, token, (state) =>
+    addWalkupOutcome(state, walkupToken, firstName, lastInitial, skillLevel),
+  );
+}
+
+/** "Fix a skill level" on any Player (issue #249). */
+export async function volunteerOverridePlayerSkill(
+  sessionId: string,
+  token: string,
+  playerName: string,
+  skillLevel: string,
+): Promise<FloorActionResult> {
+  return volunteerAppend(sessionId, token, (state) =>
+    overrideSkillOutcome(state, playerName, skillLevel),
   );
 }
 
