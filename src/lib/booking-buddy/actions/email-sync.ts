@@ -383,6 +383,11 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
  * re-runs the match against the caller's *current* Connections at this,
  * the actual add-time (ADR 0011), rather than trusting the stale match
  * computed back when the review screen was rendered (issue #100).
+ *
+ * The `processed_messages` row records `booking_id` (issue #286) so that
+ * deleting this Booking later cascades the row away and a future sync
+ * re-offers the email — the realistic "deleted a confirmed booking, want it
+ * back" path is recovery.
  */
 export async function confirmImportCandidate(
   _prev: ActionResult,
@@ -416,6 +421,10 @@ export async function confirmImportCandidate(
     provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "confirmed",
+    // Ties this ledger row to the Booking just created (issue #286): the FK
+    // cascades, so deleting that Booking in the UI removes this row and a
+    // later sync re-offers the email. `result.ok` guarantees `bookingId` here.
+    booking_id: result.bookingId ?? null,
   });
 
   if (error) {
@@ -436,6 +445,13 @@ export async function confirmImportCandidate(
  * field, which only ever holds what `syncFromEmail`'s own
  * `matchCancellationToBooking` resolved server-side, not anything the User
  * (or a tampered request) picks.
+ *
+ * Deleting the Booking would, on its own, cascade away any `confirmed`/
+ * `updated` `processed_messages` rows that point at it (issue #286's FK) —
+ * right when the User deletes a Booking from the UI (they want that email
+ * offered again), wrong here: they're cancelling the reservation, so the
+ * original confirmation must stay suppressed too. So those rows' message ids
+ * are re-recorded as `cancelled` after the delete.
  */
 export async function confirmCancellationCandidate(
   _prev: ActionResult,
@@ -454,6 +470,18 @@ export async function confirmCancellationCandidate(
     return { error: "Couldn't remove that booking. Try again." };
   }
 
+  const supabase = await createClient();
+
+  // Captured before the delete, while the FK still links them. `processed_messages`
+  // is INSERT-only (no update/delete grant), so these rows aren't edited —
+  // the cascade removes them and the matching id is re-inserted as `cancelled`
+  // below, which keeps that confirmation email out of every later sync.
+  const { data: supersededRows } = await supabase
+    .from("processed_messages")
+    .select("provider, provider_message_id")
+    .eq("owner_id", session.userId)
+    .eq("booking_id", bookingId);
+
   // The candidate's own `bookingId` was resolved against this same caller's
   // Bookings a moment ago, so `deleteOwnedBooking`'s own empty-result error
   // here only realistically means a race (deleted from another tab since).
@@ -462,19 +490,27 @@ export async function confirmCancellationCandidate(
     return deleteResult;
   }
 
-  const supabase = await createClient();
-  const { error: recordError } = await supabase.from("processed_messages").insert({
-    owner_id: session.userId,
-    provider: gate.provider,
-    provider_message_id: gmailMessageId,
-    outcome: "cancelled",
-  });
+  const { error: recordError } = await supabase.from("processed_messages").insert([
+    {
+      owner_id: session.userId,
+      provider: gate.provider,
+      provider_message_id: gmailMessageId,
+      outcome: "cancelled",
+    },
+    ...(supersededRows ?? []).map((row) => ({
+      owner_id: session.userId,
+      provider: row.provider,
+      provider_message_id: row.provider_message_id,
+      outcome: "cancelled" as const,
+    })),
+  ]);
 
   if (recordError) {
     // Not fatal — the Booking is already gone either way. Even if this
     // record never lands, the cancellation email simply won't have a
     // matching Booking to resolve to on a later sync, and would instead
-    // surface as the "no match found" notice.
+    // surface as the "no match found" notice; the superseded confirmation
+    // would re-appear once as an import candidate the User can Dismiss.
     console.error("booking-buddy: recording a cancelled Gmail message failed", recordError);
   }
 
@@ -491,6 +527,10 @@ export async function confirmCancellationCandidate(
  * `bookingId` here, same reasoning `confirmCancellationCandidate` doesn't
  * re-parse `formData` through `parseNewBooking` either — the review screen
  * already showed the User exactly what they're about to apply.
+ *
+ * The `processed_messages` row records `booking_id` (issue #286), same as a
+ * confirmed import: deleting that Booking later cascades the row away so a
+ * future sync re-offers the update email.
  */
 export async function confirmUpdateCandidate(
   _prev: ActionResult,
@@ -531,6 +571,10 @@ export async function confirmUpdateCandidate(
     provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "updated",
+    // Ties this ledger row to the Booking the update was applied to (issue
+    // #286) — the FK cascades, so deleting that Booking re-opens the email to
+    // a later sync. `bookingId` was validated non-empty above.
+    booking_id: bookingId,
   });
 
   if (recordError) {
