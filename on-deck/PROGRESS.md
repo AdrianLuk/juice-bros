@@ -232,7 +232,7 @@ migration (the drift lesson `booking-buddy/PROGRESS.md` already carries).
   entry), `groupablePlayers`, `groupCap`, `onDeckIsGroup[]`, `me.group`. Floor
   screen gets a "Queue together" picker + live cap stepper and a "Group" chip on
   the On Deck card; the Player view notes "you're queued with your group".
-  Migration `20260901210000` teaches `on_deck_volunteer_append` the two events
+  Migration `20260901220000` teaches `on_deck_volunteer_append` the two events
   (server-minted `group-<uuid>`, 2-8 member array, 2-8 cap) and
   `on_deck_undo_last_event` the `GROUP_FORMED` type. Tests: `reduce.test.ts`
   (median positioning, no line-jump, wait-time preservation, fill count + level,
