@@ -13,6 +13,8 @@ import {
   addWalkupOutcome,
   bringBackOutcome,
   finishCourtOutcome,
+  formGroupOutcome,
+  lowerGroupCapOutcome,
   overrideSkillOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
@@ -170,6 +172,35 @@ export async function swapNoShow(
 ): Promise<FloorActionResult> {
   return runAsOrganizer(sessionId, ({ loaded }) =>
     swapNoShowOutcome(loaded.state, court, expectedSince, outName, inName),
+  );
+}
+
+/**
+ * "Queue together" (issue #250): the Organizer forms a Group from 2 to the live
+ * cap waiting Players who asked to play together. Appends `GROUP_FORMED` with a
+ * server-minted `group-<uuid>`; the fold queues them as one unit at their
+ * median Wait Time and fills a short Group to four via Match Me.
+ */
+export async function formGroup(
+  sessionId: string,
+  playerNames: string[],
+): Promise<FloorActionResult> {
+  const groupId = `group-${crypto.randomUUID()}`;
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    formGroupOutcome(loaded.state, playerNames, groupId),
+  );
+}
+
+/**
+ * "Lower the group cap" (issue #250): the Organizer trims the live cap. Appends
+ * `GROUP_CAP_CHANGED`; existing larger Groups are untouched.
+ */
+export async function lowerGroupCap(
+  sessionId: string,
+  cap: number,
+): Promise<FloorActionResult> {
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    lowerGroupCapOutcome(loaded.state, cap),
   );
 }
 

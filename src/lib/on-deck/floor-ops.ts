@@ -29,20 +29,25 @@ export const FLOOR_EVENT_TYPES = [
   "PLAYER_PAUSED",
   "PLAYER_REQUEUED",
   "FOURSOME_MEMBER_SWAPPED",
+  "GROUP_FORMED",
 ] as const;
 
 export type FloorEventType = (typeof FLOOR_EVENT_TYPES)[number];
 
 /**
- * Every event a floor decision can emit: the undoable turnover set, plus the
- * two roster corrections a Volunteer may make (issue #249) — add a walk-up
- * (`PLAYER_JOINED`) and override a Skill Level (`PLAYER_SKILL_SET`). The same
- * set `on_deck_volunteer_append` whitelists for a link-authenticated Volunteer.
+ * Every event a floor decision can emit: the undoable turnover set (which now
+ * includes `GROUP_FORMED` — a mis-formed Group is undone, not played out), plus
+ * the roster corrections a Volunteer may make — add a walk-up (`PLAYER_JOINED`)
+ * and override a Skill Level (`PLAYER_SKILL_SET`) (issue #249) — and the live
+ * group cap (`GROUP_CAP_CHANGED`, issue #250), which is corrected forward by
+ * setting it again rather than undone. The same set `on_deck_volunteer_append`
+ * whitelists for a link-authenticated Volunteer.
  */
 export type FloorOutcomeType =
   | FloorEventType
   | "PLAYER_JOINED"
-  | "PLAYER_SKILL_SET";
+  | "PLAYER_SKILL_SET"
+  | "GROUP_CAP_CHANGED";
 
 function isFloorEventType(type: string): type is FloorEventType {
   return (FLOOR_EVENT_TYPES as readonly string[]).includes(type);
@@ -61,6 +66,7 @@ const UNDO_LABEL: Record<FloorEventType, string> = {
   PLAYER_PAUSED: "the last set-aside",
   PLAYER_REQUEUED: "the last re-queue",
   FOURSOME_MEMBER_SWAPPED: "the last no-show swap",
+  GROUP_FORMED: "the last group",
 };
 
 /** The most recent raw event of a Session — the seq/type/at/operator the fold
@@ -297,4 +303,71 @@ export function overrideSkillOutcome(
     type: "PLAYER_SKILL_SET",
     payload: { token, skillLevel },
   };
+}
+
+/**
+ * "Queue together" (issue #250): a Volunteer picks 2 to the live group cap
+ * waiting Players who asked to play together. Every name must resolve to a
+ * Player currently in the Queue and in no other Group. `groupId` is minted by
+ * the caller (`group-<uuid>`) and passed in so this stays pure.
+ */
+export function formGroupOutcome(
+  state: SessionState,
+  playerNames: readonly string[],
+  groupId: string,
+): FloorOpOutcome {
+  const grouped = new Set(state.groups.flatMap((g) => g.memberIds));
+  const seen = new Set<string>();
+  const memberTokens: string[] = [];
+
+  for (const raw of playerNames) {
+    const name = raw?.trim() ?? "";
+    if (!name) continue;
+    const token = tokenForName(state, name);
+    if (!token) {
+      return { kind: "error", error: `Couldn't find ${name}.` };
+    }
+    if (seen.has(token)) continue;
+    seen.add(token);
+    if (!state.queue.some((e) => e.playerId === token)) {
+      return { kind: "error", error: `${name} isn't in the queue right now.` };
+    }
+    if (grouped.has(token)) {
+      return { kind: "error", error: `${name} is already in a group.` };
+    }
+    memberTokens.push(token);
+  }
+
+  if (memberTokens.length < 2) {
+    return { kind: "error", error: "Pick at least two players." };
+  }
+  if (memberTokens.length > state.groupCap) {
+    return {
+      kind: "error",
+      error: `That's more than the group cap of ${state.groupCap}.`,
+    };
+  }
+
+  return { kind: "event", type: "GROUP_FORMED", payload: { groupId, memberTokens } };
+}
+
+/**
+ * "Group cap" (issue #250): a Volunteer sets the live cap — normally trimming it
+ * to stop one Foursome monopolising a Court, but free to move back up to the
+ * Club default (the ceiling) to undo an over-trim. Bounded to
+ * `[2, config.groupCap]`; a no-op when it already matches; existing larger
+ * Groups are untouched (the fold enforces that).
+ */
+export function lowerGroupCapOutcome(
+  state: SessionState,
+  cap: number,
+): FloorOpOutcome {
+  if (!Number.isInteger(cap) || cap < 2 || cap > state.config.groupCap) {
+    return {
+      kind: "error",
+      error: `Pick a cap between 2 and ${state.config.groupCap}.`,
+    };
+  }
+  if (cap === state.groupCap) return { kind: "noop" };
+  return { kind: "event", type: "GROUP_CAP_CHANGED", payload: { cap } };
 }

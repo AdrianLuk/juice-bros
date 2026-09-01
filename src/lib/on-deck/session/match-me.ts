@@ -150,6 +150,68 @@ export function bestReplacement(input: {
 }
 
 /**
+ * Fill a Queue Together Group (issue #250) out to a Foursome. `fixed` is the
+ * 2-3 Group members in wait order; `pool` is the waiting non-members in wait
+ * order. The `4 - fixed.length` fill seats are chosen from a window of `pool`
+ * to minimise the same Skill + Variety cost `selectFoursome` uses over the
+ * whole four — so fill Players skew toward the Group's average Skill Level —
+ * except that Variety between the members themselves is suppressed
+ * (`varietyPenalty`'s `ignoreWithin`).
+ *
+ * Returns `[...fixed, ...fill]` with the fill in wait order, or `null` when
+ * `pool` cannot cover the open seats yet (the caller keeps the Group waiting).
+ */
+export function fillFoursome(input: {
+  fixed: readonly string[];
+  pool: readonly string[];
+  skillOf: (playerId: string) => SkillLevel;
+  completedGames: readonly CompletedGame[];
+  seed: string;
+}): string[] | null {
+  const { fixed, pool, skillOf, completedGames, seed } = input;
+  const need = 4 - fixed.length;
+  if (need <= 0) return [...fixed].slice(0, 4);
+
+  const windowIds = pool.slice(0, SELECTION_WINDOW);
+  if (windowIds.length < need) return null;
+
+  const within = new Set(fixed);
+  let best:
+    | { picks: string[]; idx: number[]; score: number; key: string }
+    | null = null;
+
+  for (const combo of combinations(windowIds.length, need)) {
+    const picks = combo.map((i) => windowIds[i]);
+    const foursome = [...fixed, ...picks];
+    const score = roundScore(
+      skillPenalty(foursome, skillOf) +
+        VARIETY_WEIGHT * varietyPenalty(foursome, completedGames, within),
+    );
+    const key = seededKey(seed, picks);
+    if (best === null || betterThan(score, combo, key, best)) {
+      best = { picks, idx: combo, score, key };
+    }
+  }
+
+  return [...fixed, ...best!.picks];
+}
+
+/** Every ascending `k`-combination of indices `0..n-1`, in lexicographic
+ * order — so iterating them keeps the wait-order tie-break (lower indices are
+ * the longer-waiting Players). */
+function* combinations(n: number, k: number): Generator<number[]> {
+  const idx = Array.from({ length: k }, (_, i) => i);
+  while (true) {
+    yield idx.slice();
+    let i = k - 1;
+    while (i >= 0 && idx[i] === n - k + i) i--;
+    if (i < 0) return;
+    idx[i]++;
+    for (let j = i + 1; j < k; j++) idx[j] = idx[j - 1] + 1;
+  }
+}
+
+/**
  * The tie-break chain, best-first:
  *
  *   1. lower total penalty (Skill + Variety);
@@ -162,12 +224,13 @@ export function bestReplacement(input: {
  */
 function betterThan(
   score: number,
-  idx: [number, number, number],
+  idx: readonly number[],
   key: string,
-  best: { score: number; idx: [number, number, number]; key: string },
+  best: { score: number; idx: readonly number[]; key: string },
 ): boolean {
   if (score !== best.score) return score < best.score;
-  for (let n = 0; n < 3; n++) {
+  const shared = Math.min(idx.length, best.idx.length);
+  for (let n = 0; n < shared; n++) {
     if (idx[n] !== best.idx[n]) return idx[n] < best.idx[n];
   }
   return key < best.key;
@@ -199,10 +262,16 @@ export function skillPenalty(
  * find the most recent finished Game they shared and add a weight that decays
  * the further back it was (`1 / gamesSince`). Tracked at the Foursome level —
  * "shared a Court", never "was my partner" — since teams are never assigned.
+ *
+ * `ignoreWithin` (issue #250) is the members of a Queue Together Group: a pair
+ * where **both** ids are in it contributes nothing — people who chose each
+ * other are not penalised for it — while member-fill and fill-fill pairs still
+ * count.
  */
 export function varietyPenalty(
   foursome: readonly string[],
   completedGames: readonly CompletedGame[],
+  ignoreWithin?: ReadonlySet<string>,
 ): number {
   const total = completedGames.length;
   if (total === 0) return 0;
@@ -213,6 +282,7 @@ export function varietyPenalty(
     for (let b = a + 1; b < foursome.length; b++) {
       const p = foursome[a];
       const q = foursome[b];
+      if (ignoreWithin && ignoreWithin.has(p) && ignoreWithin.has(q)) continue;
       for (let g = total - 1; g >= oldest; g--) {
         const played = completedGames[g].players;
         if (played.includes(p) && played.includes(q)) {

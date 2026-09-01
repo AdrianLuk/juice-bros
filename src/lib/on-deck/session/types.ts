@@ -130,11 +130,12 @@ export interface SessionConfig {
  * event) breaks.
  *
  * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `PLAYER_SKILL_SET`,
- * `COURT_FINISHED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED` and
- * `FOURSOME_MEMBER_SWAPPED` exist so far; the rest of the log's vocabulary
- * (groups, last call, close) lands in later tickets. The DB
- * `on_deck_session_events.type` check lists the full set (the #246 migration
- * adds `PLAYER_REQUEUED`, which the foundation missed).
+ * `COURT_FINISHED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED`,
+ * `FOURSOME_MEMBER_SWAPPED`, `GROUP_FORMED` and `GROUP_CAP_CHANGED` exist so
+ * far; the rest of the log's vocabulary (player-formed groups, last call,
+ * close) lands in later tickets. The DB `on_deck_session_events.type` check
+ * lists the full set (the #246 migration adds `PLAYER_REQUEUED`, which the
+ * foundation missed).
  */
 export type SessionEvent =
   | {
@@ -249,6 +250,37 @@ export type SessionEvent =
       out: string;
       /** Device token of the replacement joining it. */
       in: string;
+    }
+  | {
+      /**
+       * A Volunteer (or the Organizer) forms a **Group** from Players who asked
+       * to play together (issue #250). The members queue as one unit at their
+       * **median** Wait Time; a Group of 2-3 is filled to four by Match Me, and
+       * Variety is suppressed between members. The Group dissolves when its
+       * Game ends (the fold derives that from `COURT_FINISHED`, not a separate
+       * event). A no-op unless every member is rostered, currently in the
+       * Queue, in no other Group, and `2 <= members <= state.groupCap`.
+       */
+      type: "GROUP_FORMED";
+      at: number;
+      operator: Operator;
+      /** Server-minted `group-<uuid>` — the Group's id within this Session. */
+      groupId: string;
+      /** Device tokens of the chosen members, in the order the Operator picked. */
+      memberTokens: string[];
+    }
+  | {
+      /**
+       * A Volunteer lowers the live group cap mid-Session (issue #250) to stop
+       * one Foursome monopolising a Court. Bounded to `[2, config.groupCap]` —
+       * the Club default is the ceiling. Existing larger Groups are left alone;
+       * only later `GROUP_FORMED` events feel the new cap.
+       */
+      type: "GROUP_CAP_CHANGED";
+      at: number;
+      operator: Operator;
+      /** The new cap, 2..`config.groupCap`. */
+      cap: number;
     };
 
 /** One Player in a Session's roster, as the fold projects them. */
@@ -289,6 +321,32 @@ export interface QueueEntry {
 export interface CompletedGame {
   /** The device tokens of the four who played it. */
   players: string[];
+}
+
+/**
+ * A Group of Players queued together (issue #250). Formed by a Volunteer from
+ * members who are all currently in the Queue; queues as one unit at the
+ * **median** Wait Time of its members. A Group of 2-3 has its remaining seats
+ * filled by Match Me (targeting the members' average Skill Level, Variety
+ * suppressed between members). Dissolves when its Game ends.
+ */
+export interface Group {
+  /** `group-<uuid>`, from the `GROUP_FORMED` event. */
+  id: string;
+  /**
+   * Device tokens of the members still in the Group, in pick order. A member
+   * who is later Paused drops out; a Group under two members dissolves.
+   */
+  memberIds: string[];
+  /** When the Group was formed (epoch ms, off the event). */
+  formedAt: number;
+  /**
+   * The Court the Group's Foursome walked onto, or null while it is still
+   * waiting. `COURT_FINISHED` for this Court dissolves the Group — matching on
+   * the Court rather than the members so a no-show swap of a member mid-Game
+   * still ends the Group cleanly.
+   */
+  courtNumber: number | null;
 }
 
 /** One Player who has stepped out of the rotation (issue #246). */
@@ -332,11 +390,26 @@ export interface OnDeckFoursome {
   players: string[];
   /** When this Foursome was first committed (epoch ms, off an event). */
   committedAt: number;
+  /**
+   * Set to a `Group`'s id when this Foursome was formed from a Queue Together
+   * Group (issue #250) — its members are fixed and only the fill seats top up.
+   * `seatCourt` reads it to bind the Group to the Court it walks onto. Null for
+   * an ordinary Match Me Foursome.
+   */
+  groupId: string | null;
 }
 
 /** The live state a folded Session projects to. */
 export interface SessionState {
   config: SessionConfig;
+  /**
+   * The current effective group cap (issue #250) — starts at
+   * `config.groupCap` and is lowered by `GROUP_CAP_CHANGED`, never above the
+   * Club default. `GROUP_FORMED` is bound by this, not by `config.groupCap`.
+   */
+  groupCap: number;
+  /** Active Queue Together Groups (issue #250), in formation order. */
+  groups: Group[];
   /** Null until `SESSION_STARTED` is folded. */
   startedAt: number | null;
   /** The Operator that started the Session — always an organizer for now. */
@@ -403,4 +476,57 @@ export function playerCourt(
 /** Is this Player currently paused (stepped out of the rotation)? */
 export function playerPaused(state: SessionState, playerId: string): boolean {
   return state.paused.some((p) => p.playerId === playerId);
+}
+
+/**
+ * The median of a non-empty list of numbers. For an even count it is the
+ * average of the two middle values — a Group's Queue position (issue #250) so
+ * that adding a longer-waiting member moves the Group only partway up, never to
+ * that member's own spot.
+ */
+export function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
+/**
+ * One entry in the Queue as a surface should show it (issue #250): a solo
+ * Player, or a whole Group collapsed to a single unit. Group members are
+ * contiguous in `state.queue`, so this is a straight walk over it.
+ */
+export type QueueUnit =
+  | { kind: "solo"; playerId: string }
+  | { kind: "group"; groupId: string; memberIds: string[] };
+
+/**
+ * Collapse the ordered Queue into units — a Group is one entry, positioned
+ * where its (contiguous) members sit. Used by the read model so the floor and
+ * Display show "Group: A, B, C" as a single line rather than three.
+ */
+export function queueUnits(state: SessionState): QueueUnit[] {
+  const groupOfMember = new Map<string, Group>();
+  for (const group of state.groups) {
+    for (const id of group.memberIds) groupOfMember.set(id, group);
+  }
+
+  const units: QueueUnit[] = [];
+  const emitted = new Set<string>();
+  for (const entry of state.queue) {
+    const group = groupOfMember.get(entry.playerId);
+    if (!group) {
+      units.push({ kind: "solo", playerId: entry.playerId });
+      continue;
+    }
+    if (emitted.has(group.id)) continue;
+    emitted.add(group.id);
+    const memberIds = state.queue
+      .filter((e) => groupOfMember.get(e.playerId) === group)
+      .map((e) => e.playerId);
+    units.push({ kind: "group", groupId: group.id, memberIds });
+  }
+  return units;
 }

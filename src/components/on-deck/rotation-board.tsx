@@ -11,6 +11,8 @@ import {
   addWalkup,
   bringPlayerBack,
   finishCourt,
+  formGroup,
+  lowerGroupCap,
   overridePlayerSkill,
   setPlayerAside,
   swapNoShow,
@@ -20,6 +22,8 @@ import {
   volunteerAddWalkup,
   volunteerBringPlayerBack,
   volunteerFinishCourt,
+  volunteerFormGroup,
+  volunteerLowerGroupCap,
   volunteerOverridePlayerSkill,
   volunteerSetPlayerAside,
   volunteerSwapNoShow,
@@ -138,12 +142,26 @@ function boundFloorActions(sessionId: string, auth: FloorAuth) {
       auth.kind === "volunteer"
         ? volunteerOverridePlayerSkill(sessionId, auth.token, name, skill)
         : overridePlayerSkill(sessionId, name, skill),
+    formGroup: (names: string[]) =>
+      auth.kind === "volunteer"
+        ? volunteerFormGroup(sessionId, auth.token, names)
+        : formGroup(sessionId, names),
+    lowerGroupCap: (cap: number) =>
+      auth.kind === "volunteer"
+        ? volunteerLowerGroupCap(sessionId, auth.token, cap)
+        : lowerGroupCap(sessionId, cap),
   };
 }
 
 const ON_DECK_LABELS = ["Up next", "After that"];
 
-function OnDeck({ foursomes }: { foursomes: string[][] }) {
+function OnDeck({
+  foursomes,
+  isGroup,
+}: {
+  foursomes: string[][];
+  isGroup: boolean[];
+}) {
   return (
     <div>
       <h2 className="font-heading text-xl font-semibold">On deck</h2>
@@ -161,6 +179,11 @@ function OnDeck({ foursomes }: { foursomes: string[][] }) {
             >
               <p className="font-heading text-sm font-semibold tracking-[0.15em] text-brand-orange uppercase">
                 {ON_DECK_LABELS[i]}
+                {isGroup[i] ? (
+                  <span className="ml-2 rounded-full bg-brand-orange px-2 py-0.5 text-[0.65rem] tracking-normal text-white">
+                    Group
+                  </span>
+                ) : null}
               </p>
               <ul className="mt-2 space-y-1 text-sm">
                 {players.map((name, j) => (
@@ -431,6 +454,118 @@ function SkillLevels({
   );
 }
 
+/**
+ * "Queue together" (issue #250): an Operator picks 2 to the live cap waiting
+ * Players who asked to play together and queues them as one Group. A short
+ * Group is filled to four by Match Me; the Group dissolves when its Game ends.
+ * The cap has a live "lower it" control so one Foursome can't monopolise a
+ * Court.
+ */
+function QueueTogether({
+  waiting,
+  groupCap,
+  groupCapMax,
+  onForm,
+  onSetCap,
+  pending,
+}: {
+  waiting: string[];
+  groupCap: number;
+  groupCapMax: number;
+  onForm: (names: string[]) => Promise<{ ok?: boolean } | undefined>;
+  onSetCap: (cap: number) => void;
+  pending: boolean;
+}) {
+  const [picked, setPicked] = useState<string[]>([]);
+  const chosen = picked.filter((name) => waiting.includes(name));
+  const ready = chosen.length >= 2 && chosen.length <= groupCap;
+  const capOptions = Array.from(
+    { length: Math.max(0, groupCapMax - 1) },
+    (_, i) => i + 2,
+  );
+
+  const toggle = (name: string) =>
+    setPicked((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+
+  return (
+    <div className="rounded-2xl border bg-card p-4" data-testid="queue-together">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-heading text-xl font-semibold">Queue together</h2>
+        <label className="text-xs text-muted-foreground">
+          Group cap{" "}
+          <select
+            aria-label="Group cap"
+            className="ml-1 h-8 rounded-md border bg-background px-1.5 text-sm"
+            value={groupCap}
+            disabled={pending}
+            onChange={(e) => onSetCap(Number(e.target.value))}
+          >
+            {capOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pick the players who asked to play together — we&apos;ll fill any open
+        spots and keep them in line by their median wait.
+      </p>
+      {waiting.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Nobody waiting to group up right now.
+        </p>
+      ) : (
+        <>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {waiting.map((name) => {
+              const on = chosen.includes(name);
+              return (
+                <li key={name}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    disabled={pending}
+                    className={`rounded-full border px-3 py-1 text-sm ${
+                      on
+                        ? "border-brand-orange bg-brand-orange text-white"
+                        : "border-input"
+                    }`}
+                    onClick={() => toggle(name)}
+                  >
+                    {name}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3"
+            disabled={!ready || pending}
+            onClick={() => {
+              onForm(chosen)
+                .then((result) => {
+                  if (result && result.ok === false) return;
+                  setPicked([]);
+                })
+                .catch(() => {});
+            }}
+          >
+            {chosen.length >= 2 && chosen.length > groupCap
+              ? `Cap is ${groupCap}`
+              : `Form group${chosen.length ? ` (${chosen.length})` : ""}`}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function RotationBoardInner({
   sessionId,
   initialView,
@@ -534,6 +669,18 @@ function RotationBoardInner({
     onError: () => setError("Couldn't change that skill level. Try again."),
   });
 
+  const group = useMutation({
+    mutationFn: (names: string[]) => ops.formGroup(names),
+    onSuccess: handle,
+    onError: () => setError("Couldn't form that group. Try again."),
+  });
+
+  const capChange = useMutation({
+    mutationFn: (cap: number) => ops.lowerGroupCap(cap),
+    onSuccess: handle,
+    onError: () => setError("Couldn't change the cap. Try again."),
+  });
+
   const view = query.data ?? initialView;
   const undoTarget = view.undo;
   const roster = rosterQuery.data ?? initialRoster;
@@ -544,7 +691,9 @@ function RotationBoardInner({
     back.isPending ||
     undo.isPending ||
     walkup.isPending ||
-    skillOverride.isPending;
+    skillOverride.isPending ||
+    group.isPending ||
+    capChange.isPending;
 
   return (
     <div className="space-y-8">
@@ -581,8 +730,10 @@ function RotationBoardInner({
       <div className="grid gap-3 sm:grid-cols-2">
         {view.courts.map((court) => {
           const occupied = court.players.length > 0;
-          const nextReady =
-            view.onDeck[0]?.length === 4 || view.queuedCount >= 4;
+          // A clean Foursome is ready only when On Deck has actually committed
+          // one — with Groups in the mix `queuedCount >= 4` no longer implies a
+          // seatable four (a Group at the front may be short a fill Player).
+          const nextReady = view.onDeck[0]?.length === 4;
           return (
             <div
               key={court.number}
@@ -618,7 +769,7 @@ function RotationBoardInner({
                   players={court.players}
                   since={court.since}
                   suggested={court.suggestedReplacement}
-                  waiting={view.queue}
+                  waiting={view.waitingNames}
                   onSwap={swap.mutate}
                   pending={swap.isPending}
                 />
@@ -628,7 +779,7 @@ function RotationBoardInner({
         })}
       </div>
 
-      <OnDeck foursomes={view.onDeck} />
+      <OnDeck foursomes={view.onDeck} isGroup={view.onDeckIsGroup} />
 
       <AddWalkup
         onAdd={(args) => walkup.mutateAsync(args)}
@@ -646,27 +797,64 @@ function RotationBoardInner({
           </p>
         ) : (
           <ol className="mt-3 space-y-1 text-sm" data-testid="queue-list">
-            {view.queue.map((name, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between gap-2"
-              >
-                <span>
-                  <span className="text-muted-foreground">{i + 1}.</span> {name}
-                </span>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  disabled={busy}
-                  onClick={() => aside.mutate(name)}
+            {view.queue.map((entry, i) =>
+              entry.kind === "solo" ? (
+                <li key={i} className="flex items-center justify-between gap-2">
+                  <span>
+                    <span className="text-muted-foreground">{i + 1}.</span>{" "}
+                    {entry.name}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    disabled={busy}
+                    onClick={() => aside.mutate(entry.name)}
+                  >
+                    Set aside
+                  </button>
+                </li>
+              ) : (
+                <li
+                  key={i}
+                  className="rounded-lg border border-brand-orange/40 bg-brand-orange/5 px-2 py-1.5"
+                  data-testid="queue-group"
                 >
-                  Set aside
-                </button>
-              </li>
-            ))}
+                  <span className="text-xs font-semibold tracking-wide text-brand-orange uppercase">
+                    <span className="text-muted-foreground">{i + 1}.</span> Group
+                  </span>
+                  <ul className="mt-1 space-y-0.5">
+                    {entry.names.map((name) => (
+                      <li
+                        key={name}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span>{name}</span>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                          disabled={busy}
+                          onClick={() => aside.mutate(name)}
+                        >
+                          Set aside
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ),
+            )}
           </ol>
         )}
       </div>
+
+      <QueueTogether
+        waiting={view.groupablePlayers}
+        groupCap={view.groupCap}
+        groupCapMax={view.groupCapMax}
+        onForm={(names) => group.mutateAsync(names)}
+        onSetCap={capChange.mutate}
+        pending={group.isPending || capChange.isPending}
+      />
 
       <SkillLevels
         roster={roster}

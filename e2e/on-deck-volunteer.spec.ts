@@ -98,7 +98,7 @@ test("a volunteer opens the link with no login, ends a game, and reads the queue
     page.getByRole("heading", { name: "Ramsden Park" }),
   ).toBeVisible();
   // The Queue is readable.
-  await expect(page.getByRole("heading", { name: /^Queue/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Queue \(/ })).toBeVisible();
 
   const court1 = page.getByTestId("court-1");
   await court1.getByRole("button", { name: "Send next four" }).click();
@@ -184,7 +184,7 @@ test("the self-serve Organizer gets no Volunteer Link", async ({ page }) => {
   await signIn(page, SELF_SERVE_ORGANIZER);
   await page.goto(`/on-deck/session/${selfServeSessionId}/floor`);
 
-  await expect(page.getByRole("heading", { name: /^Queue/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Queue \(/ })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Volunteer link" }),
   ).toHaveCount(0);

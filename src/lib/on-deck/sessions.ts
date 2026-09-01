@@ -161,6 +161,28 @@ function toEvent(row: EventRow): SessionEvent | null {
       };
     }
 
+    case "GROUP_FORMED": {
+      const payload = row.payload ?? {};
+      const groupId = payload.groupId;
+      const memberTokens = payload.memberTokens;
+      if (
+        typeof groupId !== "string" ||
+        !Array.isArray(memberTokens) ||
+        !memberTokens.every((t): t is string => typeof t === "string")
+      ) {
+        return null;
+      }
+      return { type: "GROUP_FORMED", at, operator, groupId, memberTokens };
+    }
+
+    case "GROUP_CAP_CHANGED": {
+      const cap = (row.payload ?? {}).cap;
+      if (typeof cap !== "number" || !Number.isInteger(cap)) {
+        return null;
+      }
+      return { type: "GROUP_CAP_CHANGED", at, operator, cap };
+    }
+
     default:
       return null;
   }

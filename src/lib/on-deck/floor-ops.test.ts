@@ -12,6 +12,8 @@ import {
   bringBackOutcome,
   describeUndo,
   finishCourtOutcome,
+  formGroupOutcome,
+  lowerGroupCapOutcome,
   overrideSkillOutcome,
   setAsideOutcome,
   swapNoShowOutcome,
@@ -267,4 +269,81 @@ test("describeUndo declines an event past the undo window, and an empty log", ()
     null,
   );
   assert.equal(describeUndo(null, NOW), null);
+});
+
+// --- Queue Together (#250) ---------------------------------------------
+
+/** A Session with `n` joined-and-queued Players, no Court filled. */
+function queuedSession(n: number) {
+  const events: SessionEvent[] = [started()];
+  for (let i = 1; i <= n; i++) events.push(joined(`p${i}`, `P${i}`));
+  for (let i = 1; i <= n; i++) events.push(queued(`p${i}`));
+  const state = reduceSession(config, events);
+  return { state };
+}
+
+test("formGroupOutcome resolves names to a GROUP_FORMED event", () => {
+  const { state } = queuedSession(6);
+  assert.deepEqual(
+    formGroupOutcome(state, ["P1 X.", " P3 X. "], "group-abc"),
+    {
+      kind: "event",
+      type: "GROUP_FORMED",
+      payload: { groupId: "group-abc", memberTokens: ["p1", "p3"] },
+    },
+  );
+});
+
+test("formGroupOutcome needs at least two players and no more than the cap", () => {
+  const { state } = queuedSession(6);
+  assert.equal(formGroupOutcome(state, ["P1 X."], "g").kind, "error");
+  assert.equal(
+    formGroupOutcome(state, ["P1 X.", "P2 X.", "P3 X.", "P4 X.", "P5 X."], "g").kind,
+    "error",
+  );
+});
+
+test("formGroupOutcome errors on an unknown name or a Player not in the queue", () => {
+  const withCourt = sessionWithFilledCourt(8);
+  const playing = withCourt.nameOf(withCourt.state.courts[0].foursome[0]);
+  const waiting = withCourt.nameOf(withCourt.state.queue[0].playerId);
+
+  assert.equal(formGroupOutcome(withCourt.state, [waiting, "Ghost X."], "g").kind, "error");
+  assert.equal(formGroupOutcome(withCourt.state, [waiting, playing], "g").kind, "error");
+});
+
+test("formGroupOutcome rejects a Player already in another Group", () => {
+  const events: SessionEvent[] = [started()];
+  for (let i = 1; i <= 6; i++) events.push(joined(`p${i}`, `P${i}`));
+  for (let i = 1; i <= 6; i++) events.push(queued(`p${i}`));
+  events.push({
+    type: "GROUP_FORMED",
+    at: tick(),
+    operator: organizer,
+    groupId: "group-1",
+    memberTokens: ["p1", "p2"],
+  });
+  const grouped = reduceSession(config, events);
+  assert.equal(formGroupOutcome(grouped, ["P1 X.", "P3 X."], "g").kind, "error");
+});
+
+test("lowerGroupCapOutcome trims the live cap, no-ops when unchanged, rejects out of range", () => {
+  const { state } = queuedSession(4);
+  assert.deepEqual(lowerGroupCapOutcome(state, 2), {
+    kind: "event",
+    type: "GROUP_CAP_CHANGED",
+    payload: { cap: 2 },
+  });
+  assert.deepEqual(lowerGroupCapOutcome(state, 4), { kind: "noop" });
+  assert.equal(lowerGroupCapOutcome(state, 1).kind, "error");
+  assert.equal(lowerGroupCapOutcome(state, 5).kind, "error");
+  assert.equal(lowerGroupCapOutcome(state, 2.5).kind, "error");
+});
+
+test("describeUndo offers GROUP_FORMED", () => {
+  assert.deepEqual(describeUndo(last("GROUP_FORMED", NOW - 1000), NOW), {
+    seq: 42,
+    label: "the last group",
+    by: "organizer",
+  });
 });
