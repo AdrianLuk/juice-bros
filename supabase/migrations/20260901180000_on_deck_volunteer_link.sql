@@ -45,6 +45,11 @@
 -- bearer link that only lives for one Session's few hours. Adding the column
 -- with a volatile default rewrites the table, so every existing open Session
 -- picks up its own distinct token.
+--
+-- The `>= 24` floor the check functions below apply is deliberately lenient of
+-- the 32 we mint: it only rules out an obviously-truncated or empty value
+-- before the exact-match comparison, and stays valid if the mint format ever
+-- shortens.
 alter table public.on_deck_sessions
   add column volunteer_token text not null
     default replace(gen_random_uuid()::text, '-', '');

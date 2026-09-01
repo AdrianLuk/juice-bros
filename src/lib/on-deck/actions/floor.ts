@@ -1,12 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
-import { sessionPath } from "../routes.ts";
+import { commitFloorOutcome, type FloorActionResult } from "../floor-commit.ts";
 import {
   bringBackOutcome,
   finishCourtOutcome,
@@ -15,7 +13,7 @@ import {
   type FloorOpOutcome,
 } from "../floor-ops.ts";
 
-export type FloorActionResult = { ok: true } | { ok?: false; error: string };
+export type { FloorActionResult } from "../floor-commit.ts";
 export type FinishCourtResult = FloorActionResult;
 
 /**
@@ -45,34 +43,30 @@ async function loadOwnedOpenSession(
 }
 
 /**
- * Turn a `FloorOpOutcome` into an appended event under the Organizer's own
- * "an Organizer appends events to their own open Session" policy — a plain
- * INSERT, no RPC. A link-authenticated Volunteer takes the same outcome to
+ * Run a `floor-ops` decision as the Organizer: append the event with a plain
+ * INSERT under the foundation's "an Organizer appends events to their own open
+ * Session" policy. A link-authenticated Volunteer takes the same outcome to
  * `on_deck_volunteer_append` instead (`actions/volunteer.ts`).
  */
-async function appendAsOrganizer(
-  owned: OwnedSession,
+async function runAsOrganizer(
   sessionId: string,
-  outcome: FloorOpOutcome,
+  decide: (owned: OwnedSession) => FloorOpOutcome,
 ): Promise<FloorActionResult> {
-  if (outcome.kind === "error") return { error: outcome.error };
-  if (outcome.kind === "noop") return { ok: true };
+  const owned = await loadOwnedOpenSession(sessionId);
+  if ("error" in owned) return owned;
 
-  const { error } = await owned.supabase.from("on_deck_session_events").insert({
-    session_id: sessionId,
-    type: outcome.type,
-    operator_kind: "organizer",
-    operator_user_id: owned.organizer.userId,
-    payload: outcome.payload,
+  return commitFloorOutcome(sessionId, decide(owned), async (event) => {
+    const { error } = await owned.supabase
+      .from("on_deck_session_events")
+      .insert({
+        session_id: sessionId,
+        type: event.type,
+        operator_kind: "organizer",
+        operator_user_id: owned.organizer.userId,
+        payload: event.payload,
+      });
+    return { error };
   });
-
-  if (error) {
-    console.error("on-deck: floor action failed", outcome.type, error);
-    return { error: "That didn't go through. Try again." };
-  }
-
-  revalidatePath(sessionPath(sessionId));
-  return { ok: true };
 }
 
 /**
@@ -89,12 +83,8 @@ export async function finishCourt(
   court: number,
   expectedSince: number | null,
 ): Promise<FinishCourtResult> {
-  const owned = await loadOwnedOpenSession(sessionId);
-  if ("error" in owned) return owned;
-  return appendAsOrganizer(
-    owned,
-    sessionId,
-    finishCourtOutcome(owned.loaded.state, court, expectedSince),
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    finishCourtOutcome(loaded.state, court, expectedSince),
   );
 }
 
@@ -108,12 +98,8 @@ export async function setPlayerAside(
   sessionId: string,
   playerName: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOpenSession(sessionId);
-  if ("error" in owned) return owned;
-  return appendAsOrganizer(
-    owned,
-    sessionId,
-    setAsideOutcome(owned.loaded.state, playerName),
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    setAsideOutcome(loaded.state, playerName),
   );
 }
 
@@ -125,12 +111,8 @@ export async function bringPlayerBack(
   sessionId: string,
   playerName: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOpenSession(sessionId);
-  if ("error" in owned) return owned;
-  return appendAsOrganizer(
-    owned,
-    sessionId,
-    bringBackOutcome(owned.loaded.state, playerName),
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    bringBackOutcome(loaded.state, playerName),
   );
 }
 
@@ -147,11 +129,7 @@ export async function swapNoShow(
   outName: string,
   inName: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOpenSession(sessionId);
-  if ("error" in owned) return owned;
-  return appendAsOrganizer(
-    owned,
-    sessionId,
-    swapNoShowOutcome(owned.loaded.state, court, expectedSince, outName, inName),
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    swapNoShowOutcome(loaded.state, court, expectedSince, outName, inName),
   );
 }

@@ -50,7 +50,7 @@ export default async function VolunteerFloorPage({
       <section className="w-full px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <p className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-            {view.status === "open" ? "Volunteer floor" : "Session closed"}
+            Volunteer floor
           </p>
           <h1 className="mt-3 font-heading text-3xl font-semibold">
             {view.venueName}

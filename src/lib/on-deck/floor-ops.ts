@@ -18,12 +18,22 @@
 import type { SessionState } from "./session/types.ts";
 
 /**
+ * The operational turnover events a floor tap can produce. The same closed set
+ * `on_deck_volunteer_append` whitelists for a link-authenticated Volunteer.
+ */
+export type FloorEventType =
+  | "COURT_FINISHED"
+  | "PLAYER_PAUSED"
+  | "PLAYER_REQUEUED"
+  | "FOURSOME_MEMBER_SWAPPED";
+
+/**
  * `event` — append this. `noop` — the board already moved on (a double tap, a
  * stale poll); do nothing, report success. `error` — the tap does not apply;
  * show the message.
  */
 export type FloorOpOutcome =
-  | { kind: "event"; type: string; payload: Record<string, unknown> }
+  | { kind: "event"; type: FloorEventType; payload: Record<string, unknown> }
   | { kind: "noop" }
   | { kind: "error"; error: string };
 

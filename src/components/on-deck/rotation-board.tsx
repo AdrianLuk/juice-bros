@@ -77,7 +77,7 @@ export function RotationBoard({
  * Organizer's account-backed Server Actions, or the Volunteer's token-carrying
  * ones. `auth.kind` is checked inline so TypeScript narrows `auth.token`.
  */
-function floorOps(sessionId: string, auth: FloorAuth) {
+function boundFloorActions(sessionId: string, auth: FloorAuth) {
   return {
     finishCourt: (court: number, since: number | null) =>
       auth.kind === "volunteer"
@@ -272,7 +272,7 @@ function RotationBoardInner({
     initialData: initialView,
   });
   const [error, setError] = useState<string | null>(null);
-  const ops = floorOps(sessionId, auth);
+  const ops = boundFloorActions(sessionId, auth);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey });
   const handle = (result: { ok?: boolean; error?: string }) => {

@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(22);
+select plan(25);
 
 select has_column(
   'public', 'on_deck_sessions', 'volunteer_token',
@@ -138,6 +138,20 @@ select lives_ok(
   'a Volunteer sets a Player aside'
 );
 
+-- A Volunteer does a no-show swap.
+select lives_ok(
+  $$select public.on_deck_volunteer_append(
+      '5e553033-0000-0000-0000-00000000000a', 'vol-token-aaaaaaaaaaaaaaaaaaaaaaaaaa',
+      'FOURSOME_MEMBER_SWAPPED', '{"court": 1, "out": "device-token-x", "in": "device-token-y"}'::jsonb)$$,
+  'a Volunteer swaps a no-show'
+);
+select is(
+  (select operator_kind from public.on_deck_session_events
+   where session_id = '5e553033-0000-0000-0000-00000000000a' and type = 'FOURSOME_MEMBER_SWAPPED'),
+  'volunteer',
+  'the swap is recorded as a volunteer action'
+);
+
 -- The scope: wrong token, self-serve, closed, wrong type, wrong pause reason.
 select throws_ok(
   $$select public.on_deck_volunteer_append(
@@ -166,6 +180,13 @@ select throws_ok(
       'SESSION_CLOSED', '{}'::jsonb)$$,
   '42501', null,
   'a Volunteer cannot fire a non-turnover event (closing the Session)'
+);
+select throws_ok(
+  $$select public.on_deck_volunteer_append(
+      '5e553033-0000-0000-0000-00000000000a', 'vol-token-aaaaaaaaaaaaaaaaaaaaaaaaaa',
+      'FLOOR_MODE_CHANGED', '{"floorMode": "self-serve"}'::jsonb)$$,
+  '42501', null,
+  'a Volunteer cannot change a Club/Session setting'
 );
 select throws_ok(
   $$select public.on_deck_volunteer_append(

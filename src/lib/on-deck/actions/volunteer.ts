@@ -1,10 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { createClient } from "../supabase/server.ts";
 import { loadVolunteerSession } from "../volunteer.ts";
-import { sessionPath } from "../routes.ts";
+import { commitFloorOutcome, type FloorActionResult } from "../floor-commit.ts";
 import {
   bringBackOutcome,
   finishCourtOutcome,
@@ -13,9 +11,8 @@ import {
   type FloorOpOutcome,
 } from "../floor-ops.ts";
 import type { SessionState } from "../session/types.ts";
-import type { FloorActionResult } from "./floor.ts";
 
-export type { FloorActionResult } from "./floor.ts";
+export type { FloorActionResult } from "../floor-commit.ts";
 
 const LINK_DEAD = "This volunteer link isn't active anymore.";
 
@@ -34,25 +31,16 @@ async function volunteerAppend(
   const loaded = await loadVolunteerSession(sessionId, token);
   if (!loaded) return { error: LINK_DEAD };
 
-  const outcome = decide(loaded.state);
-  if (outcome.kind === "error") return { error: outcome.error };
-  if (outcome.kind === "noop") return { ok: true };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("on_deck_volunteer_append", {
-    p_session_id: sessionId,
-    p_token: token.trim(),
-    p_type: outcome.type,
-    p_payload: outcome.payload,
+  return commitFloorOutcome(sessionId, decide(loaded.state), async (event) => {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("on_deck_volunteer_append", {
+      p_session_id: sessionId,
+      p_token: token.trim(),
+      p_type: event.type,
+      p_payload: event.payload,
+    });
+    return { error };
   });
-
-  if (error) {
-    console.error("on-deck: volunteer append failed", outcome.type, error);
-    return { error: "That didn't go through. Try again." };
-  }
-
-  revalidatePath(sessionPath(sessionId));
-  return { ok: true };
 }
 
 /** "Court N done" / "Send next four", fired by a link-authenticated Volunteer. */

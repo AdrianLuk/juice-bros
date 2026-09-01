@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
@@ -10,6 +9,7 @@ import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSession } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { getVolunteerToken } from "@/lib/on-deck/volunteer";
+import { onDeckAbsoluteUrl } from "@/lib/on-deck/request-origin";
 import { clubQrPath, floorPath, volunteerPath } from "@/lib/on-deck/routes";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
 import { VolunteerLinkCard } from "@/components/on-deck/volunteer-link-card";
@@ -53,24 +53,16 @@ export default async function FloorPage({
 
   const view = rotationViewFrom(loaded);
 
-  // The Volunteer Link is issued only when Floor Mode includes volunteers
-  // (volunteer-run / hybrid); under self-serve it is inert, so it isn't shown.
+  // The Volunteer Link is offered only for the *open* Session, and only when
+  // Floor Mode includes volunteers (volunteer-run / hybrid) — under self-serve
+  // it is inert, so it isn't shown.
   const volunteerToken =
-    loaded.config.floorMode === "self-serve"
-      ? null
-      : await getVolunteerToken(supabase, sessionId);
-
-  let volunteerUrl: string | null = null;
-  if (volunteerToken) {
-    // Absolute, off the request host — works unchanged on localhost, a preview,
-    // and production.
-    const host = (await headers()).get("host") ?? "localhost:3000";
-    const protocol = host.startsWith("localhost") ? "http" : "https";
-    volunteerUrl = `${protocol}://${host}${volunteerPath(
-      sessionId,
-      volunteerToken,
-    )}`;
-  }
+    loaded.status === "open" && loaded.config.floorMode !== "self-serve"
+      ? await getVolunteerToken(supabase, sessionId)
+      : null;
+  const volunteerUrl = volunteerToken
+    ? await onDeckAbsoluteUrl(volunteerPath(sessionId, volunteerToken))
+    : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
