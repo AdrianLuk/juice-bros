@@ -1,7 +1,8 @@
 import "server-only";
 
 import { getSession, type LoadedSession } from "./sessions.ts";
-import { playerCourt } from "./session/types.ts";
+import { playerCourt, playerPaused, type PauseReason } from "./session/types.ts";
+import { bestReplacement } from "./session/match-me.ts";
 import { createClient } from "./supabase/server.ts";
 
 /**
@@ -25,6 +26,13 @@ export type RotationCourt = {
    * tap can't end a Game that has already turned over.
    */
   since: number | null;
+  /**
+   * Display name of the Match Me-suggested replacement for a no-show on this
+   * Court (issue #246), or null when the Court is empty or nobody waits. The
+   * Organizer can swap in this name with one tap, or override it with any
+   * waiting Player.
+   */
+  suggestedReplacement: string | null;
 };
 
 export type RotationView = {
@@ -44,6 +52,12 @@ export type RotationView = {
    * (Queue was thin when it formed) comes back with fewer names.
    */
   onDeck: string[][];
+  /**
+   * Players who have stepped out (issue #246), newest last — display name plus
+   * which door they came through, for the Organizer's "set aside" list and its
+   * "back in the queue" tap.
+   */
+  paused: { name: string; reason: PauseReason }[];
   /** The caller's own standing, when they passed a token. */
   me: {
     /** 1-based place among the waiters not yet On Deck, or null. */
@@ -51,6 +65,8 @@ export type RotationView = {
     court: number | null;
     /** Which On Deck Foursome the caller is in — 0 "up next", 1 "after that". */
     onDeck: number | null;
+    /** The caller has stepped out and is not being called. */
+    paused: boolean;
   } | null;
 };
 
@@ -65,6 +81,22 @@ export function rotationViewFrom(
 
   const onDeckIds = new Set(state.onDeck.flatMap((f) => f.players));
   const waiting = state.queue.filter((e) => !onDeckIds.has(e.playerId));
+  const skillOf = (id: string) =>
+    state.roster.find((p) => p.id === id)?.skillLevel ?? "intermediate";
+
+  /** Match Me's suggested no-show replacement for one Court, as a display
+   * name — the longest-waiting Players make the healthiest fit against the
+   * three still standing there. */
+  const suggestFor = (foursome: string[]): string | null => {
+    if (foursome.length === 0 || waiting.length === 0) return null;
+    const id = bestReplacement({
+      courtmates: foursome,
+      waiting: waiting.map((e) => e.playerId),
+      skillOf,
+      completedGames: state.completedGames,
+    });
+    return id ? nameOf(id) : null;
+  };
 
   const trimmed = token?.trim() ?? "";
   let me: RotationView["me"] = null;
@@ -77,6 +109,7 @@ export function rotationViewFrom(
       position: waitingIndex < 0 ? null : waitingIndex + 1,
       court: playerCourt(state, trimmed),
       onDeck: onDeckIndex < 0 ? null : onDeckIndex,
+      paused: playerPaused(state, trimmed),
     };
   }
 
@@ -87,10 +120,12 @@ export function rotationViewFrom(
       number: c.number,
       players: c.foursome.map(nameOf),
       since: c.since,
+      suggestedReplacement: suggestFor(c.foursome),
     })),
     queue: waiting.map((e) => nameOf(e.playerId)),
     queuedCount: waiting.length,
     onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
+    paused: state.paused.map((p) => ({ name: nameOf(p.playerId), reason: p.reason })),
     me,
   };
 }

@@ -5,6 +5,7 @@ import {
   SELECTION_WINDOW,
   SKILL_PAIR_COST,
   VARIETY_WEIGHT,
+  bestReplacement,
   selectFoursome,
   skillPenalty,
   varietyPenalty,
@@ -290,4 +291,45 @@ test("no seed collision across a spread of seeds leaves the anchor out", () => {
     assert.equal(four?.[0], "q1");
     assert.equal(new Set(four).size, 4);
   }
+});
+
+// --- bestReplacement (no-show swap, #246) -------------------------------
+
+test("bestReplacement pulls the waiting Player who fits the three still on the Court", () => {
+  const skills: Record<string, SkillLevel> = {
+    a1: "advanced",
+    a2: "advanced",
+    a3: "advanced",
+    nA: "newbie",
+    nB: "advanced",
+  };
+  const pick = bestReplacement({
+    courtmates: ["a1", "a2", "a3"],
+    waiting: ["nA", "nB"],
+    skillOf: (id) => skills[id] ?? "intermediate",
+    completedGames: [],
+  });
+  assert.equal(pick, "nB", "the advanced waiter beats the newbie for an advanced court");
+});
+
+test("bestReplacement falls to the longest-waiting on a fit tie", () => {
+  const pick = bestReplacement({
+    courtmates: ["q1", "q2", "q3"],
+    waiting: ["q4", "q5", "q6"],
+    skillOf: () => "intermediate",
+    completedGames: [],
+  });
+  assert.equal(pick, "q4");
+});
+
+test("bestReplacement returns null when nobody is waiting", () => {
+  assert.equal(
+    bestReplacement({
+      courtmates: ["q1", "q2", "q3"],
+      waiting: [],
+      skillOf: () => "intermediate",
+      completedGames: [],
+    }),
+    null,
+  );
 });

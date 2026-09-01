@@ -5,7 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { QueryProvider } from "@/components/on-deck/query-provider";
-import { queueForSession } from "@/lib/on-deck/actions/players";
+import {
+  leaveQueue,
+  queueForSession,
+  rejoinQueue,
+} from "@/lib/on-deck/actions/players";
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
 
 const POLL_MS = 4_000;
@@ -44,23 +48,61 @@ function QueueStatusInner({
   const query = useQuery(rotationQuery(sessionId, token));
   const [error, setError] = useState<string | null>(null);
 
+  const settle = (result: { ok?: boolean; error?: string }) => {
+    if (!result.ok) {
+      setError(result.error ?? "Something went wrong. Try again.");
+      return;
+    }
+    setError(null);
+    queryClient.invalidateQueries({ queryKey });
+  };
+
   const join = useMutation({
     mutationFn: () => queueForSession(sessionId, token),
-    onSuccess: (result) => {
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setError(null);
-      queryClient.invalidateQueries({ queryKey });
-    },
+    onSuccess: settle,
     onError: () => setError("Couldn't add you to the queue. Try again."),
+  });
+
+  const leave = useMutation({
+    mutationFn: () => leaveQueue(sessionId, token),
+    onSuccess: settle,
+    onError: () => setError("Couldn't update that. Try again."),
+  });
+
+  const rejoin = useMutation({
+    mutationFn: () => rejoinQueue(sessionId, token),
+    onSuccess: settle,
+    onError: () => setError("Couldn't add you back. Try again."),
   });
 
   const me = query.data?.me ?? null;
 
   if (query.data && query.data.status !== "open") {
     return null;
+  }
+
+  if (me?.paused) {
+    return (
+      <div className="mt-6" data-testid="queue-paused">
+        <p className="text-sm text-muted-foreground">
+          You&apos;ve stepped out — you won&apos;t be called until you&apos;re
+          back. Your wait so far is saved.
+        </p>
+        <Button
+          type="button"
+          className="mt-3 h-12 w-full text-base"
+          disabled={rejoin.isPending}
+          onClick={() => rejoin.mutate()}
+        >
+          {rejoin.isPending ? "Adding you back…" : "Rejoin the queue"}
+        </Button>
+        {error && (
+          <p className="mt-2 text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    );
   }
 
   if (me?.court) {
@@ -71,27 +113,51 @@ function QueueStatusInner({
     );
   }
 
+  const stepOut = (
+    <>
+      <button
+        type="button"
+        className="mt-3 block text-sm text-muted-foreground underline-offset-4 hover:underline"
+        disabled={leave.isPending}
+        onClick={() => leave.mutate()}
+      >
+        {leave.isPending ? "Stepping you out…" : "Leave the queue"}
+      </button>
+      {error && (
+        <p className="mt-2 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  );
+
   if (me?.onDeck != null) {
     return (
-      <p className="mt-6 rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
-        {me.onDeck === 0
-          ? "You're up next — head to the courts"
-          : "You're on deck — the foursome after next"}
-      </p>
+      <div className="mt-6">
+        <p className="rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
+          {me.onDeck === 0
+            ? "You're up next — head to the courts"
+            : "You're on deck — the foursome after next"}
+        </p>
+        {stepOut}
+      </div>
     );
   }
 
   if (me?.position) {
     return (
-      <p className="mt-6 text-sm text-muted-foreground" data-testid="queue-position">
-        You&apos;re{" "}
-        <span className="font-heading text-2xl font-semibold text-foreground">
-          #{me.position}
-        </span>{" "}
-        in the queue
-        {query.data ? ` of ${query.data.queuedCount}` : ""}. Hang around, you
-        don&apos;t need to touch anything.
-      </p>
+      <div className="mt-6" data-testid="queue-position">
+        <p className="text-sm text-muted-foreground">
+          You&apos;re{" "}
+          <span className="font-heading text-2xl font-semibold text-foreground">
+            #{me.position}
+          </span>{" "}
+          in the queue
+          {query.data ? ` of ${query.data.queuedCount}` : ""}. Hang around, you
+          don&apos;t need to touch anything.
+        </p>
+        {stepOut}
+      </div>
     );
   }
 

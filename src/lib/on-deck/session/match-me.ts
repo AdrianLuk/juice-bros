@@ -114,6 +114,42 @@ export function selectFoursome(input: SelectionInput): string[] | null {
 }
 
 /**
+ * The best single replacement for a no-show (issue #246): given the three
+ * Players still on the Court and the Queue in wait order, pick the waiting
+ * Player who makes the healthiest Foursome — lowest Skill + Variety penalty
+ * against those three — from a window of the longest-waiting. Ties fall to Wait
+ * Time (further up the Queue). `null` when nobody waits.
+ *
+ * The Organizer sees this as a suggestion and can override it with any waiter.
+ */
+export function bestReplacement(input: {
+  courtmates: readonly string[];
+  waiting: readonly string[];
+  skillOf: (playerId: string) => SkillLevel;
+  completedGames: readonly CompletedGame[];
+}): string | null {
+  const { courtmates, waiting, skillOf, completedGames } = input;
+  const windowIds = waiting.slice(0, SELECTION_WINDOW);
+  if (windowIds.length === 0) return null;
+
+  // Iterating the window in wait order means a Skill/Variety tie already falls
+  // to the longer-waiting Player — only replace `best` on a strictly lower
+  // score.
+  let best: { id: string; score: number } | null = null;
+  for (const candidate of windowIds) {
+    const foursome = [...courtmates, candidate];
+    const score = roundScore(
+      skillPenalty(foursome, skillOf) +
+        VARIETY_WEIGHT * varietyPenalty(foursome, completedGames),
+    );
+    if (best === null || score < best.score) {
+      best = { id: candidate, score };
+    }
+  }
+  return best!.id;
+}
+
+/**
  * The tie-break chain, best-first:
  *
  *   1. lower total penalty (Skill + Variety);
