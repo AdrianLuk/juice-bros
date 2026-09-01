@@ -12,8 +12,6 @@ import {
   formatCourtLabel,
   formatTimeLabel,
   parseNewBooking,
-  splitOverlongCourtLabel,
-  stripCourtLabelPrefix,
 } from "./bookings.ts";
 
 const VALID = {
@@ -179,45 +177,15 @@ test("a court label renders as 'Court <label>', and a missing one as a plain fal
   assert.equal(formatCourtLabel(null), "No court noted");
 });
 
-test("a leading 'Court' word is stripped from a CourtReserve email's own court text", () => {
-  assert.equal(stripCourtLabelPrefix("Court #6 - Hard"), "#6 - Hard");
-  assert.equal(stripCourtLabelPrefix("Court 3"), "3");
-  assert.equal(stripCourtLabelPrefix("COURT 3"), "3");
-});
-
-test("court text with no leading 'Court' word is left as-is", () => {
-  assert.equal(stripCourtLabelPrefix("#6 - Hard"), "#6 - Hard");
-});
-
-test("a null or blank-after-stripping court label stays null", () => {
-  assert.equal(stripCourtLabelPrefix(null), null);
-  assert.equal(stripCourtLabelPrefix("Court"), null);
-  assert.equal(stripCourtLabelPrefix("Court  "), null);
-});
-
 test("an over-long court label is refused before the database has to", () => {
   const parsed = parse({ court_label: "a".repeat(COURT_LABEL_MAX_LENGTH + 1) });
   assert.ok("error" in parsed);
   assert.match(parsed.error, new RegExp(String(COURT_LABEL_MAX_LENGTH)));
 });
 
-test("a court label within the length limit passes through unchanged, with no notes", () => {
-  assert.deepEqual(splitOverlongCourtLabel("3"), { courtLabel: "3", notes: null });
-  assert.deepEqual(splitOverlongCourtLabel(null), { courtLabel: null, notes: null });
-});
-
-test("a court label over the length limit (e.g. a Partner Play session listing every court) moves to notes instead", () => {
-  const courts = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14";
-  assert.ok(courts.length > COURT_LABEL_MAX_LENGTH);
-  assert.deepEqual(splitOverlongCourtLabel(courts), { courtLabel: null, notes: courts });
-});
-
-test("a court label over even the notes length limit is truncated rather than refused", () => {
-  const huge = "a".repeat(NOTES_MAX_LENGTH + 50);
-  const result = splitOverlongCourtLabel(huge);
-  assert.equal(result.courtLabel, null);
-  assert.equal(result.notes, huge.slice(0, NOTES_MAX_LENGTH));
-});
+// `stripCourtLabelPrefix` / `splitOverlongCourtLabel` moved to
+// `import-candidate-shaping.ts` (#288); their tests moved with them to
+// `import-candidate-shaping.test.ts`.
 
 test("a date that isn't a date is refused", () => {
   for (const date of ["", "20/08/2026", "2026-8-20", "not a date", "2026-13-01"]) {
