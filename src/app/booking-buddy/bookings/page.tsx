@@ -54,17 +54,17 @@ export default async function BookingsPage() {
     .reverse();
 
   // Optimistic half of ADR-0009's addendum — syncFromEmail and the confirm/
-  // dismiss actions re-check authoritatively.
-  const emailSyncAllowed = isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist());
-  const mailboxLink = emailSyncAllowed ? await getMailboxLink() : null;
-
-  // Microsoft mailbox *sync* isn't wired up yet (spec #280's third slice), so
-  // a User who connected Outlook has nothing actionable here — hide the
-  // section rather than hand them a "Sync from Email" button that can only
-  // ever fail. An allowlisted User with no link yet still sees it (the
-  // "connect a mailbox in Settings" prompt).
-  const canSyncFromEmail =
-    emailSyncAllowed && (mailboxLink === null || mailboxLink.provider === "google");
+  // dismiss actions re-check authoritatively. The Gmail allowlist gates
+  // *connecting* Gmail; an Outlook link has no allowlist (spec #280), so the
+  // section shows for a Gmail-allowlisted User (with or without a link yet,
+  // to point them at Settings) or for anyone who already has a Mailbox Link.
+  const gmailConnectAllowed = isGmailConnectAllowed(
+    profile.username,
+    session.email,
+    readEmailSyncAllowlist(),
+  );
+  const mailboxLink = await getMailboxLink();
+  const canSyncFromEmail = gmailConnectAllowed || mailboxLink !== null;
 
   return (
     <div className="flex w-full flex-1 flex-col">

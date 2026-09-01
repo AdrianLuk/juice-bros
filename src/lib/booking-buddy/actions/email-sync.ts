@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
@@ -39,6 +40,7 @@ import {
   updateOwnedBookingFormatAndCourt,
 } from "./bookings.ts";
 import { listConnections } from "./connections.ts";
+import { trackEmailSyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
 export type { ReviewItem };
@@ -97,6 +99,51 @@ export async function getMailboxLink(): Promise<MailboxLink> {
     status: data.status,
     connectedAt: data.connected_at,
   };
+}
+
+/**
+ * The one provider-authorization rule, shared by `syncFromEmail` and the
+ * candidate actions so it can't drift between "run a sync" and "act on its
+ * results" (spec #280): a Gmail link still needs the caller on the allowlist
+ * (ADR-0009's addendum — a User removed from it after connecting must not
+ * keep syncing); a Microsoft link needs nothing more, its consumer identity
+ * platform has no equivalent of Google's capped Testing mode.
+ */
+async function providerSyncAllowed(provider: MailboxProvider): Promise<boolean> {
+  return provider === "google" ? isGmailConnectAllowedForCaller() : true;
+}
+
+/**
+ * Whether the signed-in User may act on a review candidate, and under which
+ * provider to record the `processed_messages` row.
+ *
+ * Reads the Mailbox Link's provider when there is one. When there isn't — the
+ * User disconnected their mailbox while a review screen was still open — a
+ * Gmail-allowlisted caller is still allowed (confirming just re-validates a
+ * Booking form; dismissing just records an outcome), recorded under `google`,
+ * exactly the pre-#284 behaviour. A non-allowlisted caller with no link has
+ * nothing to act on.
+ */
+async function authorizeEmailSyncForCaller(
+  userId: string,
+): Promise<{ ok: true; provider: MailboxProvider } | { ok: false }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mailbox_links")
+    .select("provider")
+    .eq("owner_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false };
+  }
+
+  const provider: MailboxProvider = data?.provider ?? "google";
+  if (!(await providerSyncAllowed(provider))) {
+    return { ok: false };
+  }
+
+  return { ok: true, provider };
 }
 
 /**
@@ -198,15 +245,6 @@ export type SyncFromEmailResult =
 export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   const session = await verifySession();
 
-  // Authoritative re-check (ADR-0009's addendum) — the Bookings page not
-  // rendering this section at all for a disallowed User is the optimistic
-  // half; a User removed from the allowlist after already connecting Gmail
-  // must not be able to keep syncing just by having a stale page open.
-  const allowed = await isGmailConnectAllowedForCaller();
-  if (!allowed) {
-    return { status: "error", message: "Your account isn't approved for email sync." };
-  }
-
   const supabase = await createClient();
 
   const { data: link, error: linkError } = await supabase
@@ -224,13 +262,12 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     return { status: "reconnect_required" };
   }
 
-  // Microsoft mailbox sync lands in spec #280's third slice. A microsoft link
-  // can already be created from Settings, and the Bookings page hides this
-  // section for it — but guard here too so a direct call can't spin the
-  // Microsoft adapter (and pointlessly rotate its refresh token) against a
-  // search path that only ever returns `unreachable`.
-  if (link.provider !== "google") {
-    return { status: "error", message: "Syncing this mailbox isn't available yet." };
+  // Authoritative re-check (ADR-0009's addendum) — the Bookings page not
+  // rendering this section for a disallowed User is the optimistic half; a
+  // User removed from the allowlist after connecting Gmail must not keep
+  // syncing off a stale page. `providerSyncAllowed` is Gmail-only by design.
+  if (!(await providerSyncAllowed(link.provider))) {
+    return { status: "error", message: "Your account isn't approved for email sync." };
   }
 
   let encryptionKey: string;
@@ -328,6 +365,10 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     now,
   });
 
+  after(() =>
+    trackEmailSyncEvent("bb_email_sync_run", link.provider, { candidates: items.length }),
+  );
+
   return { status: "ok", items };
 }
 
@@ -349,8 +390,8 @@ export async function confirmImportCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isGmailConnectAllowedForCaller();
-  if (!allowed) {
+  const gate = await authorizeEmailSyncForCaller(session.userId);
+  if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
 
@@ -372,7 +413,7 @@ export async function confirmImportCandidate(
   const supabase = await createClient();
   const { error } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    provider: "google",
+    provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "confirmed",
   });
@@ -383,6 +424,8 @@ export async function confirmImportCandidate(
     // re-parse of the same email against the Booking just created.
     console.error("booking-buddy: recording a confirmed Gmail message failed", error);
   }
+
+  after(() => trackEmailSyncEvent("bb_email_sync_import", gate.provider));
 
   return { ok: true };
 }
@@ -400,8 +443,8 @@ export async function confirmCancellationCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isGmailConnectAllowedForCaller();
-  if (!allowed) {
+  const gate = await authorizeEmailSyncForCaller(session.userId);
+  if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
 
@@ -422,7 +465,7 @@ export async function confirmCancellationCandidate(
   const supabase = await createClient();
   const { error: recordError } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    provider: "google",
+    provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "cancelled",
   });
@@ -455,8 +498,8 @@ export async function confirmUpdateCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isGmailConnectAllowedForCaller();
-  if (!allowed) {
+  const gate = await authorizeEmailSyncForCaller(session.userId);
+  if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
 
@@ -485,7 +528,7 @@ export async function confirmUpdateCandidate(
   const supabase = await createClient();
   const { error: recordError } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    provider: "google",
+    provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "updated",
   });
@@ -514,8 +557,8 @@ export async function dismissReviewItem(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const allowed = await isGmailConnectAllowedForCaller();
-  if (!allowed) {
+  const gate = await authorizeEmailSyncForCaller(session.userId);
+  if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
 
@@ -527,7 +570,7 @@ export async function dismissReviewItem(
   const supabase = await createClient();
   const { error } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
-    provider: "google",
+    provider: gate.provider,
     provider_message_id: gmailMessageId,
     outcome: "dismissed",
   });

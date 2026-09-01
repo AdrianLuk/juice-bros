@@ -11,11 +11,12 @@ import http from "node:http";
  * server boots. A different port from Gmail's 5603 so both mocks run in one
  * Playwright process.
  *
- * Covers the OAuth half only (issue #283 — "Microsoft connect"): `/authorize`
- * simulates instant consent by redirecting straight back with a one-time code,
- * and `/token` handles the auth-code exchange (and the rotating-refresh-token
- * exchange, for the sync slice that lands later). The Graph mailbox endpoints
- * arrive with the Microsoft sync slice.
+ * `/authorize` simulates instant consent by redirecting straight back with a
+ * one-time code; `/token` handles the auth-code exchange and the
+ * rotating-refresh-token exchange; and `/v1.0/me/messages` + `/v1.0/me/messages/{id}`
+ * stand in for the Microsoft Graph list/get the Outlook adapter reads
+ * CourtReserve mail through (issue #284 — "Microsoft sync"), against the real
+ * Graph response shapes reduced to what `graph-query.ts` / the adapter read.
  */
 export const MICROSOFT_MOCK_PORT = 5604;
 export const MICROSOFT_MOCK_URL = `http://127.0.0.1:${MICROSOFT_MOCK_PORT}`;
@@ -24,6 +25,19 @@ export type MockMicrosoftAccount = {
   email: string;
   accessToken: string;
   refreshToken: string;
+};
+
+/**
+ * One message a fixture Outlook inbox holds — the same shape `GmailMock`'s
+ * `MockGmailMessage` uses, so `sync-from-email-scenarios.ts` can seed either
+ * mock from one fixture list. `receivedAt` (epoch ms) becomes Graph's
+ * `receivedDateTime`.
+ */
+export type MockGraphMessage = {
+  id: string;
+  subject: string;
+  html: string;
+  receivedAt?: number;
 };
 
 type TokenFailure = "unreachable" | "invalid_grant";
@@ -51,6 +65,7 @@ export class MicrosoftMock {
   // Microsoft rotates the refresh token on every exchange; this holds the one
   // currently considered valid, so a test can assert rotation is persisted.
   #currentRefreshToken: string | null = null;
+  #messages: MockGraphMessage[] = [];
 
   constructor() {
     this.#server = http.createServer((req, res) => {
@@ -86,11 +101,17 @@ export class MicrosoftMock {
     this.#tokenFailure = reason;
   }
 
+  /** What a live "Sync from Email" Graph search finds (issue #284). */
+  registerMessages(messages: MockGraphMessage[]): void {
+    this.#messages = messages;
+  }
+
   reset(): void {
     this.#account = null;
     this.#tokenFailure = null;
     this.#issuedCode = null;
     this.#currentRefreshToken = null;
+    this.#messages = [];
   }
 
   async #handle(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -171,6 +192,65 @@ export class MicrosoftMock {
       return;
     }
 
+    // Issue #284's "Sync from Email" — the Outlook adapter's Graph
+    // list/get (`GET /me/messages` + `GET /me/messages/{id}`), reduced to what
+    // `graph-query.ts` and `fetchMessage` actually read. The fixture set is
+    // small enough to fit one page, so `@odata.nextLink` is never emitted —
+    // the pagination loop itself is covered by `graph-query.test.ts`.
+    if (req.method === "GET" && url.pathname === "/v1.0/me/messages") {
+      if (!this.#bearerTokenValid(req)) {
+        res
+          .writeHead(401, { "Content-Type": "application/json" })
+          .end(JSON.stringify({ error: { code: "InvalidAuthenticationToken" } }));
+        return;
+      }
+
+      // Newest-first, mirroring the adapter's own `$orderby=receivedDateTime desc`.
+      const ordered = [...this.#messages].sort(
+        (a, b) => (b.receivedAt ?? 0) - (a.receivedAt ?? 0),
+      );
+      res
+        .writeHead(200, { "Content-Type": "application/json" })
+        .end(JSON.stringify({ value: ordered.map((message) => ({ id: message.id })) }));
+      return;
+    }
+
+    const messageMatch = /^\/v1\.0\/me\/messages\/([^/]+)$/.exec(url.pathname);
+    if (req.method === "GET" && messageMatch) {
+      if (!this.#bearerTokenValid(req)) {
+        res
+          .writeHead(401, { "Content-Type": "application/json" })
+          .end(JSON.stringify({ error: { code: "InvalidAuthenticationToken" } }));
+        return;
+      }
+
+      const message = this.#messages.find(
+        (candidate) => candidate.id === decodeURIComponent(messageMatch[1]),
+      );
+      if (!message) {
+        res
+          .writeHead(404, { "Content-Type": "application/json" })
+          .end(JSON.stringify({ error: { code: "ErrorItemNotFound" } }));
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" }).end(
+        JSON.stringify({
+          id: message.id,
+          subject: message.subject,
+          receivedDateTime: new Date(message.receivedAt ?? 0).toISOString(),
+          body: { contentType: "html", content: message.html },
+        }),
+      );
+      return;
+    }
+
     res.writeHead(404).end();
+  }
+
+  #bearerTokenValid(req: http.IncomingMessage): boolean {
+    const authHeader = req.headers.authorization ?? "";
+    const accessToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    return this.#account !== null && accessToken === this.#account.accessToken;
   }
 }
