@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  readCalendarFeedAllowedHosts,
   readGooglePlacesApiBaseUrl,
   readMicrosoftApiBaseUrl,
   readMicrosoftOAuthClientId,
@@ -80,6 +81,20 @@ test("readGooglePlacesApiBaseUrl uses the override when set", () => {
   assert.equal(
     readGooglePlacesApiBaseUrl({ GOOGLE_PLACES_API_BASE_URL: "http://127.0.0.1:5602" }),
     "http://127.0.0.1:5602",
+  );
+});
+
+test("readCalendarFeedAllowedHosts is empty when unset or blank", () => {
+  assert.deepEqual(readCalendarFeedAllowedHosts({}), []);
+  assert.deepEqual(readCalendarFeedAllowedHosts({ CALENDAR_FEED_ALLOWED_HOSTS: "   " }), []);
+});
+
+test("readCalendarFeedAllowedHosts splits, trims, and lower-cases the host list", () => {
+  assert.deepEqual(
+    readCalendarFeedAllowedHosts({
+      CALENDAR_FEED_ALLOWED_HOSTS: " 127.0.0.1 , Localhost ,,mock.test ",
+    }),
+    ["127.0.0.1", "localhost", "mock.test"],
   );
 });
 

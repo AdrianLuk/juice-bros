@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { GOOGLE_PLACES_MOCK_URL } from "./e2e/support/google-places-mock.ts";
 import { GMAIL_MOCK_URL } from "./e2e/support/gmail-mock.ts";
 import { MICROSOFT_MOCK_URL } from "./e2e/support/microsoft-mock.ts";
+import { CALENDAR_FEED_MOCK_HOST } from "./e2e/support/calendar-feed-mock.ts";
 import { TEST_WORKER_COUNT, allWorkerBenHandles } from "./e2e/support/account-sets.ts";
 
 /**
@@ -105,6 +106,12 @@ export default defineConfig({
         process.env.MICROSOFT_OAUTH_CLIENT_ID ?? "test-ms-client-id-for-e2e",
       MICROSOFT_OAUTH_CLIENT_SECRET:
         process.env.MICROSOFT_OAUTH_CLIENT_SECRET ?? "test-ms-client-secret-for-e2e",
+      // Issue #294's Calendar Feed (calendar-feed.spec.ts) — the SSRF host
+      // allowlist is widened to the local ICS mock's host so the feed fetch
+      // lands there instead of courtreserve.com. Same test-only host-override
+      // shape and accepted risk as GMAIL_API_BASE_URL. `E2E_WEB_SERVER=1`
+      // above also gates the test-only `/api/e2e/calendar-feed` bridge route.
+      CALENDAR_FEED_ALLOWED_HOSTS: CALENDAR_FEED_MOCK_HOST,
       // A throwaway 32-byte key — real ones are generated per docs in
       // .env.example and never checked in.
       MAILBOX_LINK_ENCRYPTION_KEY:
