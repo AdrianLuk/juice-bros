@@ -14,8 +14,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { SyncFromEmailSection } from "@/components/booking-buddy/sync-from-email";
-import { SyncFacilitiesSection } from "@/components/booking-buddy/sync-facilities";
+import { SyncBookingsSection } from "@/components/booking-buddy/sync-bookings";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
@@ -56,9 +55,9 @@ export default async function BookingsPage() {
 
   // Optimistic half of ADR-0009's addendum — syncFromEmail and the confirm/
   // dismiss actions re-check authoritatively. The Gmail allowlist gates
-  // *connecting* Gmail; an Outlook link has no allowlist (spec #280), so the
-  // section shows for a Gmail-allowlisted User (with or without a link yet,
-  // to point them at Settings) or for anyone who already has a Mailbox Link.
+  // *connecting* Gmail; an Outlook link has no allowlist (spec #280), so email
+  // sync is available to a Gmail-allowlisted User (with or without a link yet,
+  // to point them at Settings) or to anyone who already has a Mailbox Link.
   const gmailConnectAllowed = isGmailConnectAllowed(
     profile.username,
     session.email,
@@ -67,9 +66,9 @@ export default async function BookingsPage() {
   const mailboxLink = await getMailboxLink();
   const canSyncFromEmail = gmailConnectAllowed || mailboxLink !== null;
 
-  // A Calendar Feed isn't allowlist-gated (ADR-0019) — the "From facility
-  // feeds" section shows whenever the User has at least one feed-configured
-  // Facility.
+  // A Calendar Feed isn't allowlist-gated (ADR-0019) — feed sync is available
+  // whenever the User has at least one feed-configured Facility. The unified
+  // "Sync bookings" section (issue #336) shows if either source is available.
   const hasConfiguredFeed = orgs.some((org) => org.hasCalendarFeed);
 
   return (
@@ -137,16 +136,14 @@ export default async function BookingsPage() {
                 )}
               </section>
 
-              {canSyncFromEmail && (
-                <section>
-                  <h2 className="font-heading text-lg font-semibold tracking-tight">
-                    Sync from Email
-                  </h2>
-                  <SyncFromEmailSection orgs={orgs} mailboxProvider={mailboxLink?.provider ?? null} />
-                </section>
+              {(canSyncFromEmail || hasConfiguredFeed) && (
+                <SyncBookingsSection
+                  orgs={orgs}
+                  canSyncFromEmail={canSyncFromEmail}
+                  mailboxProvider={mailboxLink?.provider ?? null}
+                  hasConfiguredFeed={hasConfiguredFeed}
+                />
               )}
-
-              <SyncFacilitiesSection orgs={orgs} hasConfiguredFeed={hasConfiguredFeed} />
 
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">

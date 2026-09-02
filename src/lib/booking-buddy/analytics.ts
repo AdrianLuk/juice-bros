@@ -44,12 +44,17 @@ export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
  * "Sync facilities" (Calendar Feed) events (issue #294, ADR-0019). The feed
  * counterpart of `EmailSyncEvent` — a separate, independent import source, so
  * its own events rather than a `source` dimension on the email ones.
- * `bb_facility_sync_run` fires once per "Sync facilities" click that reached
- * at least one feed (carrying the feed count, candidate count, and how many
- * feeds errored); `bb_facility_sync_import` fires when a feed candidate is
- * confirmed into a Booking; `bb_facility_sync_cancellation` fires when a
- * feed-diff cancellation candidate is confirmed and its Booking removed
- * (issue #296).
+ * `bb_facility_sync_run` fires once per feed run that reached at least one
+ * feed (carrying the feed count, candidate count, and how many feeds errored);
+ * `bb_facility_sync_import` fires when a feed candidate is confirmed into a
+ * Booking; `bb_facility_sync_cancellation` fires when a feed-diff cancellation
+ * candidate is confirmed and its Booking removed (issue #296).
+ *
+ * Issue #336 unified the two sync buttons into one "Sync bookings" action but
+ * deliberately kept these two event families separate: a `bb_*_sync_run`
+ * still fires per source that actually ran (both, when both are configured),
+ * and the per-source dimensions (`provider`, feed/error counts) stay cleaner
+ * than one event with a `source` discriminator would.
  */
 export type FacilitySyncEvent =
   | "bb_facility_sync_run"

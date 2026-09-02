@@ -60,16 +60,20 @@ export async function clearFeedUrlViaForm(page: Page, facility: string) {
   await expect(row.getByLabel("Import from a calendar feed")).toBeVisible();
 }
 
-/** Clicks "Sync facilities" in the "From facility feeds" section on the Bookings page. */
+/** Clicks "Sync bookings" in the unified sync section on the Bookings page (issue #336). */
 export async function syncFacilities(page: Page) {
   await page.goto(BOOKINGS_PATH);
-  await page.getByRole("button", { name: "Sync facilities" }).click();
+  await page.getByRole("button", { name: "Sync bookings" }).click();
 }
 
-/** The "From facility feeds" section, by its heading's section landmark. */
+/**
+ * The unified "Sync bookings" section. The Bookings page nests its content in
+ * an outer `<section>`, so filter to the *innermost* match — the one whose
+ * heading is a direct child — or list items get double-counted (issue #336).
+ */
 export function feedSection(page: Page) {
-  return page.locator("section").filter({
-    has: page.getByRole("heading", { name: "From facility feeds" }),
+  return page.locator("section:has(> h2)").filter({
+    has: page.getByRole("heading", { name: "Sync bookings" }),
   });
 }
 
