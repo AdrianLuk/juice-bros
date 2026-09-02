@@ -132,10 +132,9 @@ export interface SessionConfig {
  * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `PLAYER_SKILL_SET`,
  * `COURT_FINISHED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED`,
  * `FOURSOME_MEMBER_SWAPPED`, `GROUP_FORMED`, `GROUP_CAP_CHANGED`,
- * `GROUP_MEMBER_REMOVED` and `GROUP_DISSOLVED` exist so far; the rest of the
- * log's vocabulary (last call, close) lands in later tickets. The DB
- * `on_deck_session_events.type` check lists the full set (the #246 migration
- * adds `PLAYER_REQUEUED`, which the foundation missed).
+ * `GROUP_MEMBER_REMOVED`, `GROUP_DISSOLVED`, `LAST_CALL` and `SESSION_CLOSED`
+ * exist. The DB `on_deck_session_events.type` check lists the full set (the
+ * #246 migration adds `PLAYER_REQUEUED`, which the foundation missed).
  *
  * `GROUP_FORMED` is fired both ways — a Volunteer picking members (issue #250)
  * and a Player forming a Group from their own phone (issue #251). The fold
@@ -313,6 +312,33 @@ export type SessionEvent =
       operator: Operator;
       /** The new cap, 2..`config.groupCap`. */
       cap: number;
+    }
+  | {
+      /**
+       * Last Call (issue #255): an Operator — the Organizer or a Volunteer,
+       * never a Kiosk (it is a judgment about the night, not a Court turnover,
+       * ADR 0002) — ends new play. After it the fold assigns no further
+       * Foursomes and forms no new On Deck Foursomes; Games already on Courts
+       * finish normally (a `COURT_FINISHED` still re-queues the four and records
+       * the Game, it just doesn't seat a replacement). A replayed event is a
+       * no-op — the first Last Call wins.
+       */
+      type: "LAST_CALL";
+      at: number;
+      operator: Operator;
+    }
+  | {
+      /**
+       * The Organizer closes the Session (issue #255). In the live fold this
+       * only flips `status` to `closed`; the permanent Session Summary
+       * projection and the purge of the event log and Player roster (ADR 0001)
+       * happen in `on_deck_close_session` at the database, not here. Present in
+       * the fold so a log that still carries the event (before the purge, or in
+       * a test) reduces sensibly.
+       */
+      type: "SESSION_CLOSED";
+      at: number;
+      operator: Operator;
     };
 
 /**
@@ -362,6 +388,13 @@ export interface QueueEntry {
 export interface CompletedGame {
   /** The device tokens of the four who played it. */
   players: string[];
+  /**
+   * The 1-based Court it finished on — feeds the Session Summary's per-Court
+   * utilization (issue #255). Optional only for the sake of Match Me's unit
+   * tests, which build `CompletedGame` literals for Variety scoring and don't
+   * care where a Game happened; `reduceSession` always sets it.
+   */
+  court?: number;
 }
 
 /**
@@ -455,7 +488,13 @@ export interface SessionState {
   startedAt: number | null;
   /** The Operator that started the Session — always an organizer for now. */
   startedBy: Operator | null;
-  status: "pending" | "open";
+  /**
+   * When Last Call was tapped (issue #255), or null. Once set, the fold assigns
+   * no further Foursomes and forms no new On Deck ones; Games on Courts play
+   * out. The floor and Display read it to flip to "final games".
+   */
+  lastCallAt: number | null;
+  status: "pending" | "open" | "closed";
   /** Everyone who has joined this Session, in join order. */
   roster: RosterPlayer[];
   /**
@@ -491,6 +530,14 @@ export interface SessionState {
    * candidate Foursomes against. Not projected to any live surface.
    */
   completedGames: CompletedGame[];
+  /**
+   * Every Wait Time (ms) that has actually ended — one entry per Player each
+   * time they are seated onto a Court, measured from when their wait began.
+   * The Session Summary's wait-time distribution and longest wait (issue #255)
+   * are projected from this. Internal to the fold; not projected to a live
+   * surface.
+   */
+  completedWaits: number[];
 }
 
 /**

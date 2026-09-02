@@ -1,7 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createClient } from "../supabase/server.ts";
 import { loadVolunteerSession } from "../volunteer.ts";
+import { sessionPath } from "../routes.ts";
 import {
   commitFloorOutcome,
   runUndo,
@@ -173,4 +176,32 @@ export async function volunteerUndoLastAction(
   const loaded = await loadVolunteerSession(sessionId, token);
   if (!loaded) return { error: LINK_DEAD };
   return runUndo(await createClient(), sessionId, expectedSeq, token.trim());
+}
+
+/**
+ * "Last Call" fired by a link-authenticated Volunteer (issue #255). Goes
+ * through `on_deck_last_call` with the token carried back so the database
+ * re-checks the volunteer scope. Close stays the Organizer's alone — a
+ * Volunteer has no close action.
+ */
+export async function volunteerCallLastCall(
+  sessionId: string,
+  token: string,
+): Promise<FloorActionResult> {
+  const loaded = await loadVolunteerSession(sessionId, token);
+  if (!loaded) return { error: LINK_DEAD };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("on_deck_last_call", {
+    p_session_id: sessionId,
+    p_volunteer_token: token.trim(),
+  });
+  if (error) {
+    console.error("on-deck: volunteer last call failed", error);
+    if (error.code === "42501") return { error: LINK_DEAD };
+    return { error: "Couldn't call it. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
 }

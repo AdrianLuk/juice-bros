@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import {
   addWalkup,
   bringPlayerBack,
+  callLastCall,
+  closeSession,
   dissolveGroup,
   finishCourt,
   formGroup,
@@ -23,6 +25,7 @@ import {
 import {
   volunteerAddWalkup,
   volunteerBringPlayerBack,
+  volunteerCallLastCall,
   volunteerDissolveGroup,
   volunteerFinishCourt,
   volunteerFormGroup,
@@ -156,6 +159,12 @@ function boundFloorActions(sessionId: string, auth: FloorAuth) {
       auth.kind === "volunteer"
         ? volunteerDissolveGroup(sessionId, auth.token, groupId)
         : dissolveGroup(sessionId, groupId),
+    callLastCall: () =>
+      auth.kind === "volunteer"
+        ? volunteerCallLastCall(sessionId, auth.token)
+        : callLastCall(sessionId),
+    // Close is the Organizer's alone — a Volunteer link has no close path.
+    closeSession: () => closeSession(sessionId),
   };
 }
 
@@ -572,6 +581,159 @@ function QueueTogether({
   );
 }
 
+/**
+ * "Wrap up the night" (issue #255): Last Call, then Close. Last Call takes a
+ * confirm — it is a judgment about the night, not a Court turnover, and there
+ * is no undo for it. After it, the board shows "final games" and Close appears
+ * (Organizer only — a Volunteer can call it but not close it).
+ */
+/** How long before the venue permit ends the floor screen starts nudging
+ * "call it?" (ADR 0002). A prompt only — the tap stays a human decision. */
+export const LAST_CALL_NUDGE_LEAD_MS = 15 * 60 * 1000;
+
+function WrapUp({
+  lastCall,
+  canClose,
+  permitEndsAt,
+  onLastCall,
+  onClose,
+  pending,
+}: {
+  lastCall: boolean;
+  canClose: boolean;
+  permitEndsAt: number | null;
+  onLastCall: () => void;
+  onClose: () => void;
+  pending: boolean;
+}) {
+  const [confirming, setConfirming] = useState<"last-call" | "close" | null>(
+    null,
+  );
+  // Re-render on a slow tick so the nudge appears as the permit end approaches
+  // without a poll.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const nudging =
+    !lastCall &&
+    permitEndsAt !== null &&
+    permitEndsAt - now <= LAST_CALL_NUDGE_LEAD_MS;
+
+  return (
+    <div
+      className="rounded-2xl border bg-card p-4"
+      data-testid="wrap-up"
+    >
+      <h2 className="font-heading text-xl font-semibold">Wrapping up</h2>
+      {!lastCall ? (
+        <>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Last Call stops new games starting. Games already on court finish
+            normally.
+          </p>
+          {nudging && (
+            <p
+              className="mt-2 text-sm font-medium text-brand-orange"
+              data-testid="last-call-nudge"
+            >
+              The permit ends soon — call it?
+            </p>
+          )}
+          {confirming === "last-call" ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-sm">Call it? This can&apos;t be undone.</span>
+              <Button
+                type="button"
+                size="sm"
+                disabled={pending}
+                data-testid="last-call-confirm"
+                onClick={() => {
+                  onLastCall();
+                  setConfirming(null);
+                }}
+              >
+                Yes, last call
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirming(null)}
+              >
+                Not yet
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              disabled={pending}
+              data-testid="last-call-button"
+              onClick={() => setConfirming("last-call")}
+            >
+              Last call
+            </Button>
+          )}
+        </>
+      ) : (
+        <>
+          <p
+            className="mt-1 text-sm font-medium text-brand-orange"
+            data-testid="last-call-banner"
+          >
+            Last call — final games. No new foursomes.
+          </p>
+          {canClose &&
+            (confirming === "close" ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-sm">
+                  Close the session? The player list is wiped — only the summary
+                  is kept.
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pending}
+                  data-testid="close-session-confirm"
+                  onClick={() => {
+                    onClose();
+                    setConfirming(null);
+                  }}
+                >
+                  Close it
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfirming(null)}
+                >
+                  Not yet
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                disabled={pending}
+                data-testid="close-session-button"
+                onClick={() => setConfirming("close")}
+              >
+                Close the session
+              </Button>
+            ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 function RotationBoardInner({
   sessionId,
   initialView,
@@ -697,6 +859,18 @@ function RotationBoardInner({
     onError: () => setError("Couldn't break up that group. Try again."),
   });
 
+  const lastCallMut = useMutation({
+    mutationFn: () => ops.callLastCall(),
+    onSuccess: handle,
+    onError: () => setError("Couldn't call it. Try again."),
+  });
+
+  const closeMut = useMutation({
+    mutationFn: () => ops.closeSession(),
+    onSuccess: handle,
+    onError: () => setError("Couldn't close the session. Try again."),
+  });
+
   const view = query.data ?? initialView;
   const undoTarget = view.undo;
   const roster = rosterQuery.data ?? initialRoster;
@@ -710,7 +884,9 @@ function RotationBoardInner({
     skillOverride.isPending ||
     group.isPending ||
     capChange.isPending ||
-    breakUp.isPending;
+    breakUp.isPending ||
+    lastCallMut.isPending ||
+    closeMut.isPending;
 
   return (
     <div className="space-y-8">
@@ -750,7 +926,9 @@ function RotationBoardInner({
           // A clean Foursome is ready only when On Deck has actually committed
           // one — with Groups in the mix `queuedCount >= 4` no longer implies a
           // seatable four (a Group at the front may be short a fill Player).
-          const nextReady = view.onDeck[0]?.length === 4;
+          // After Last Call no new foursome is assigned — only a Game already
+          // on court can still be tapped done.
+          const nextReady = !view.lastCall && view.onDeck[0]?.length === 4;
           return (
             <div
               key={court.number}
@@ -796,19 +974,28 @@ function RotationBoardInner({
         })}
       </div>
 
-      <OnDeck foursomes={view.onDeck} isGroup={view.onDeckIsGroup} />
+      {!view.lastCall && (
+        <>
+          <OnDeck foursomes={view.onDeck} isGroup={view.onDeckIsGroup} />
 
-      <AddWalkup
-        onAdd={(args) => walkup.mutateAsync(args)}
-        pending={walkup.isPending}
-      />
+          <AddWalkup
+            onAdd={(args) => walkup.mutateAsync(args)}
+            pending={walkup.isPending}
+          />
+        </>
+      )}
 
       <div>
         <h2 className="font-heading text-xl font-semibold">
-          Queue{" "}
+          {view.lastCall ? "Not playing tonight" : "Queue"}{" "}
           <span className="text-muted-foreground">({view.queuedCount})</span>
         </h2>
-        {view.queue.some((e) => e.kind === "group") && (
+        {view.lastCall && view.queuedCount > 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Last call was made before a court opened for these players.
+          </p>
+        )}
+        {!view.lastCall && view.queue.some((e) => e.kind === "group") && (
           <p className="mt-1 text-xs text-muted-foreground">
             {QUEUE_TOGETHER_EXPLAINER}
           </p>
@@ -826,14 +1013,16 @@ function RotationBoardInner({
                     <span className="text-muted-foreground">{i + 1}.</span>{" "}
                     {entry.name}
                   </span>
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                    disabled={busy}
-                    onClick={() => aside.mutate(entry.name)}
-                  >
-                    Set aside
-                  </button>
+                  {!view.lastCall && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      disabled={busy}
+                      onClick={() => aside.mutate(entry.name)}
+                    >
+                      Set aside
+                    </button>
+                  )}
                 </li>
               ) : (
                 <li
@@ -880,20 +1069,35 @@ function RotationBoardInner({
         )}
       </div>
 
-      <QueueTogether
-        waiting={view.groupablePlayers}
-        groupCap={view.groupCap}
-        groupCapMax={view.groupCapMax}
-        onForm={(names) => group.mutateAsync(names)}
-        onSetCap={capChange.mutate}
-        pending={group.isPending || capChange.isPending}
-      />
+      {!view.lastCall && (
+        <>
+          <QueueTogether
+            waiting={view.groupablePlayers}
+            groupCap={view.groupCap}
+            groupCapMax={view.groupCapMax}
+            onForm={(names) => group.mutateAsync(names)}
+            onSetCap={capChange.mutate}
+            pending={group.isPending || capChange.isPending}
+          />
 
-      <SkillLevels
-        roster={roster}
-        onOverride={skillOverride.mutate}
-        pending={skillOverride.isPending}
-      />
+          <SkillLevels
+            roster={roster}
+            onOverride={skillOverride.mutate}
+            pending={skillOverride.isPending}
+          />
+        </>
+      )}
+
+      {view.status === "open" && (
+        <WrapUp
+          lastCall={view.lastCall}
+          canClose={auth.kind === "organizer"}
+          permitEndsAt={view.permitEndsAt}
+          onLastCall={() => lastCallMut.mutate()}
+          onClose={() => closeMut.mutate()}
+          pending={busy}
+        />
+      )}
 
       {view.paused.length > 0 && (
         <div>
