@@ -14,6 +14,7 @@ import {
   clubQrPath,
   displayPath,
   floorPath,
+  kioskPath,
   volunteerPath,
 } from "@/lib/on-deck/routes";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
@@ -101,6 +102,20 @@ export default async function FloorPage({
               </Link>{" "}
               on it — a read-only board of courts, the queue, and who&apos;s on
               deck.
+              {loaded.config.floorMode !== "volunteer-run" && (
+                <>
+                  {" "}
+                  For a screen by the courts,{" "}
+                  <Link
+                    href={kioskPath(sessionId)}
+                    className="underline underline-offset-4"
+                  >
+                    open the kiosk
+                  </Link>{" "}
+                  instead — the same board plus the turnover buttons, tappable by
+                  anyone playing.
+                </>
+              )}
             </p>
           )}
 

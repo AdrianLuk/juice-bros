@@ -379,6 +379,7 @@ export function reduceSession(
     onDeck: [],
     paused: [],
     waitStartByPlayer: {},
+    courtConfirmedAt: {},
     completedGames: [],
     completedWaits: [],
   };
@@ -508,12 +509,27 @@ export function reduceSession(
         }
         court.foursome = [];
         court.since = null;
+        // This Court turned over — any "still going" confirmation (issue #259)
+        // was about the Game that just ended, so it can't carry to the next.
+        delete state.courtConfirmedAt[event.court];
         sortQueue(state);
 
         // ...then the "Up next" On Deck Foursome (or Match Me, if it is not
         // ready) walks onto the freed Court, and On Deck refills behind it.
         seatCourt(state, court, event.at);
         refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "COURT_CONFIRMED": {
+        if (state.status !== "open") break;
+        const court = state.courts.find((c) => c.number === event.court);
+        // Only a Court in play, and only while the Game the confirming surface
+        // saw is still the one on the Court — otherwise the "still going" tap
+        // was about a Game that has already ended (issue #259).
+        if (!court || court.foursome.length === 0) break;
+        if (court.since !== event.since) break;
+        state.courtConfirmedAt[event.court] = event.at;
         break;
       }
 

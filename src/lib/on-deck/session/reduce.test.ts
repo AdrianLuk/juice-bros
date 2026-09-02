@@ -1657,3 +1657,105 @@ test("events after SESSION_CLOSED are ignored", () => {
   assert.deepEqual(withStray.queue, closed.queue);
   assert.deepEqual(withStray.roster, closed.roster);
 });
+
+// --- the Kiosk: self-serve floor (issue #259) ---------------------------------
+
+const kiosk: Operator = { kind: "kiosk" };
+
+test("a kiosk-sourced COURT_FINISHED folds identically to a volunteer-sourced one", () => {
+  const base = sessionWith(8);
+  base.push(courtFinished(1, volunteer)); // seat Court 1
+  base.push(courtFinished(2, volunteer)); // seat Court 2
+
+  // One event, folded twice with only the operator swapped — same `at`.
+  const finishAt = tick();
+  const viaVolunteer = reduceSession(config, [
+    ...base,
+    { type: "COURT_FINISHED", at: finishAt, operator: volunteer, court: 1 },
+  ]);
+  const viaKiosk = reduceSession(config, [
+    ...base,
+    { type: "COURT_FINISHED", at: finishAt, operator: kiosk, court: 1 },
+  ]);
+
+  // Same board — occupants, queue order, on-deck, everything the fold projects.
+  // Only the operator on the dropped-from-view event differed.
+  assert.deepEqual(viaKiosk.courts, viaVolunteer.courts);
+  assert.deepEqual(viaKiosk.queue, viaVolunteer.queue);
+  assert.deepEqual(viaKiosk.onDeck, viaVolunteer.onDeck);
+  assert.deepEqual(viaKiosk.completedGames, viaVolunteer.completedGames);
+  assert.deepEqual(viaKiosk.completedWaits, viaVolunteer.completedWaits);
+});
+
+test("COURT_CONFIRMED records the confirmation time for an in-play Court", () => {
+  const events = sessionWith(4);
+  events.push(courtFinished(1, kiosk)); // seat Court 1
+  const seated = reduceSession(config, events);
+  const since = seated.courts.find((c) => c.number === 1)!.since;
+
+  const confirmAt = tick();
+  const withConfirm = reduceSession(config, [
+    ...events,
+    { type: "COURT_CONFIRMED", at: confirmAt, operator: kiosk, court: 1, since },
+  ]);
+  assert.equal(withConfirm.courtConfirmedAt[1], confirmAt);
+  // Nothing else moved — it is not a turnover.
+  assert.deepEqual(withConfirm.courts, seated.courts);
+  assert.deepEqual(withConfirm.queue, seated.queue);
+});
+
+test("COURT_CONFIRMED for an empty Court, or with a stale since, is a no-op", () => {
+  const events = sessionWith(4);
+  events.push(courtFinished(1, kiosk));
+  const seated = reduceSession(config, events);
+  const since = seated.courts.find((c) => c.number === 1)!.since;
+
+  const emptyCourt = reduceSession(config, [
+    ...events,
+    { type: "COURT_CONFIRMED", at: tick(), operator: kiosk, court: 5, since: null },
+  ]);
+  assert.deepEqual(emptyCourt.courtConfirmedAt, {});
+
+  const staleSince = reduceSession(config, [
+    ...events,
+    { type: "COURT_CONFIRMED", at: tick(), operator: kiosk, court: 1, since: (since ?? 0) - 1 },
+  ]);
+  assert.deepEqual(staleSince.courtConfirmedAt, {});
+});
+
+test("a Court turning over clears its COURT_CONFIRMED", () => {
+  const events = sessionWith(12);
+  events.push(courtFinished(1, kiosk)); // seat Court 1
+  const seated = reduceSession(config, events);
+  const since = seated.courts.find((c) => c.number === 1)!.since;
+  events.push({
+    type: "COURT_CONFIRMED",
+    at: tick(),
+    operator: kiosk,
+    court: 1,
+    since,
+  });
+  events.push(courtFinished(1, kiosk)); // Court 1's Game ends, next walks on
+
+  const state = reduceSession(config, events);
+  assert.equal(state.courtConfirmedAt[1], undefined);
+});
+
+test("undo drops the last COURT_CONFIRMED: re-folding restores the prior state", () => {
+  const events = sessionWith(4);
+  events.push(courtFinished(1, kiosk));
+  const before = reduceSession(config, events);
+  const since = before.courts.find((c) => c.number === 1)!.since;
+  const withConfirm = [
+    ...events,
+    {
+      type: "COURT_CONFIRMED" as const,
+      at: tick(),
+      operator: kiosk,
+      court: 1,
+      since,
+    },
+  ];
+  assert.equal(reduceSession(config, withConfirm).courtConfirmedAt[1] !== undefined, true);
+  assert.deepEqual(reduceSession(config, withConfirm.slice(0, -1)), before);
+});

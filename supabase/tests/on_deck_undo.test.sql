@@ -16,8 +16,8 @@ create extension if not exists pgtap with schema extensions;
 select plan(15);
 
 select has_function(
-  'public', 'on_deck_undo_last_event', array['uuid', 'bigint', 'text'],
-  'on_deck_undo_last_event(uuid, bigint, text) exists'
+  'public', 'on_deck_undo_last_event', array['uuid', 'bigint', 'text', 'boolean'],
+  'on_deck_undo_last_event(uuid, bigint, text, boolean) exists (the boolean is the #259 Kiosk opt-in)'
 );
 
 insert into auth.users (id, instance_id, aud, role, email) values

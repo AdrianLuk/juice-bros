@@ -53,11 +53,15 @@ export async function runUndo(
   sessionId: string,
   expectedSeq: number,
   volunteerToken?: string,
+  /** The caller is a courtside Kiosk (issue #259) — no account, no token. The
+   * RPC then authorizes on Floor Mode alone (`self-serve` / `hybrid`). */
+  kiosk?: boolean,
 ): Promise<FloorActionResult> {
   const { error } = await supabase.rpc("on_deck_undo_last_event", {
     p_session_id: sessionId,
     p_expected_seq: expectedSeq,
     ...(volunteerToken ? { p_volunteer_token: volunteerToken } : {}),
+    ...(kiosk ? { p_kiosk: true } : {}),
   });
 
   if (error) {

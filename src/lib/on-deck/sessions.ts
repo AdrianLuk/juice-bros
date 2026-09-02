@@ -120,6 +120,20 @@ function toEvent(row: EventRow): SessionEvent | null {
       return { type: "COURT_FINISHED", at, operator, court };
     }
 
+    case "COURT_CONFIRMED": {
+      const payload = row.payload ?? {};
+      const court = payload.court;
+      const since = payload.since;
+      if (typeof court !== "number" || !Number.isInteger(court)) {
+        return null;
+      }
+      // `since` is the Game's seat time the confirming surface saw, or null.
+      if (since !== null && typeof since !== "number") {
+        return null;
+      }
+      return { type: "COURT_CONFIRMED", at, operator, court, since };
+    }
+
     case "PLAYER_PAUSED": {
       const payload = row.payload ?? {};
       const token = payload.token;

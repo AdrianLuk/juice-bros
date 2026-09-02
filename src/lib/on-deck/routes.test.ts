@@ -10,6 +10,7 @@ import {
   displayPath,
   editSessionPath,
   floorPath,
+  kioskPath,
   requiresOrganizerSession,
   safeRedirectTarget,
   sessionPath,
@@ -55,6 +56,11 @@ test("the read-only Display is not Organizer-gated — it renders only wall-publ
   assert.equal(requiresOrganizerSession("/on-deck/session/abc/display/"), false);
 });
 
+test("the Kiosk is not Organizer-gated — the session id is its credential (ADR 0005)", () => {
+  assert.equal(requiresOrganizerSession("/on-deck/session/abc/kiosk"), false);
+  assert.equal(requiresOrganizerSession("/on-deck/session/abc/kiosk/"), false);
+});
+
 test("the prefix alone does not make a route On Deck's", () => {
   assert.equal(requiresOrganizerSession("/on-deck-press-kit"), false);
 });
@@ -70,6 +76,10 @@ test("path builders produce the stable shapes the proxy and pages share", () => 
   assert.equal(
     volunteerPath("session-1", "tok-abc"),
     "/on-deck/session/session-1/volunteer/tok-abc",
+  );
+  assert.equal(
+    kioskPath("session-1"),
+    "/on-deck/session/session-1/kiosk",
   );
   assert.equal(
     editSessionPath("session-1"),
