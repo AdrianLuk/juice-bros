@@ -39,15 +39,24 @@ async function kioskAppend(
   const loaded = await loadKioskSession(sessionId);
   if (!loaded) return { error: KIOSK_OFF };
 
-  return commitFloorOutcome(sessionId, decide(loaded.state), async (event) => {
-    const supabase = await createClient();
-    const { error } = await supabase.rpc("on_deck_kiosk_append", {
-      p_session_id: sessionId,
-      p_type: event.type,
-      p_payload: event.payload,
-    });
-    return { error };
-  });
+  return commitFloorOutcome(
+    sessionId,
+    decide(loaded.state),
+    async (event) => {
+      const supabase = await createClient();
+      const { error } = await supabase.rpc("on_deck_kiosk_append", {
+        p_session_id: sessionId,
+        p_type: event.type,
+        p_payload: event.payload,
+      });
+      return { error };
+    },
+    // The Kiosk is the self-serve floor with no Volunteer calling names — the
+    // exact case the opt-in turn notification (issue #260) exists for. A
+    // Kiosk "Court done" that moves a Foursome On Deck or onto a Court fires
+    // the push.
+    loaded.state,
+  );
 }
 
 /** "Court N done" fired at the Kiosk — identical fold to a Volunteer's tap. */

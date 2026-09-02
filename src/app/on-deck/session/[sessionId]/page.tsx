@@ -75,7 +75,10 @@ export default async function SessionPage({
           </dl>
 
           {status === "open" ? (
-            <PlayerJoin sessionId={config.sessionId} />
+            <PlayerJoin
+              sessionId={config.sessionId}
+              floorMode={config.floorMode}
+            />
           ) : (
             <p className="mt-8 text-sm text-muted-foreground">
               This session has wrapped up. Thanks for playing.
