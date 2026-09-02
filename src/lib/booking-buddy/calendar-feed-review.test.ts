@@ -45,6 +45,7 @@ test("a future-dated, unmatched, non-dismissed event becomes an import candidate
     feedEventUid: "vevent-1",
     sequence: 0,
     facilityName: "Vaughan Pickleball",
+    startsAt: "2026-10-01T22:00:00.000Z",
     date: "2026-10-01",
     startTime: "18:00",
     endTime: "20:00",

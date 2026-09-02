@@ -36,6 +36,13 @@ export type Org = {
   bookingWindow: BookingWindow | null;
   /** Pre-selects this Org in the Booking form (issue #47). At most one per owner. */
   isDefault: boolean;
+  /**
+   * Whether a CourtReserve Calendar Feed URL is configured for this Org (issue
+   * #295). The URL itself is ciphertext and server-only (ADR-0019) — only its
+   * presence is ever surfaced, so the form can show a "configured / clear it"
+   * state without the token leaving the server.
+   */
+  hasCalendarFeed: boolean;
   createdAt: string;
 };
 
@@ -54,7 +61,7 @@ export async function listOrgs(): Promise<Org[]> {
   const { data: rows, error } = await supabase
     .from("orgs")
     .select(
-      "id, google_place_id, name, time_zone, booking_window_days_before, booking_window_time, is_default, created_at",
+      "id, google_place_id, name, time_zone, booking_window_days_before, booking_window_time, is_default, calendar_feed_url, created_at",
     )
     .order("created_at", { ascending: false });
 
@@ -132,6 +139,7 @@ export async function listOrgs(): Promise<Org[]> {
           ? { daysBefore: row.booking_window_days_before, time: row.booking_window_time }
           : null,
       isDefault: row.is_default,
+      hasCalendarFeed: row.calendar_feed_url !== null,
       createdAt: row.created_at,
     };
   });
