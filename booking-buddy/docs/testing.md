@@ -30,6 +30,14 @@ They only exist locally and none of it is secret. `seed:users` also restores the
 two accepted Connections the browser tests assume — without them five of those
 tests fail for reasons unrelated to the code under test.
 
+`seed:users` additionally creates **per-worker copies** of the four accounts
+(`amyace-w0@example.com` … `amyace-w3@example.com` and so on) — that's what
+lets `test:e2e` run more than one Playwright worker. It seeds
+`E2E_WORKER_COUNT` sets (default 4); `playwright.config.ts` actually runs
+`workers: 2`, because past that the local GoTrue + Postgres pools 500 under
+the auth load faster than a retry absorbs. Raising `workers` is a one-line
+change once the local stack can take it — the account sets are already there.
+
 If you've pulled new migrations, apply them without wiping your data:
 
 ```
@@ -111,8 +119,22 @@ Some things worth knowing before writing more of them:
 - **They mutate the local database**, as any real click does. Each test deletes
   the group it made, and `afterEach` sweeps up anything a failed run left
   behind — without that, strays pile up one per broken run.
-- **`workers: 1`, deliberately.** Two tests writing the same account's groups at
-  once would fight over each other's rows.
+- **`workers: 2`, `fullyParallel: false` — file-level parallelism.** Each spec
+  file runs whole on one worker (so intra-file ordering and the per-file mock
+  singletons hold), but different files run at once. Each worker gets its own
+  seeded account set via the `accounts` fixture (`e2e/support/accounts.ts`),
+  keyed on `parallelIndex` — that's what makes it safe. Any spec that signs in
+  as a seeded account imports `test`/`expect` from that fixture and reaches for
+  `accounts.amy.email` / `accounts.ben2.username`, never a hard-coded constant.
+  Specs on fresh throwaway signups (onboarding, on-deck, pickle-point-pal) are
+  already isolated and don't use the fixture.
+- **Teardown resets straight at Postgres, not through the UI.** Under two
+  workers loading one server, an `afterEach` that clicked a route to undo its
+  state raced `revalidatePath` and left the row behind. `e2e/support/db-reset.ts`
+  (via a cached token — `fixture-token.ts`) resets Friend Groups, Facilities,
+  notification toggles, Usernames, Mailbox Links and Visibility as the User
+  themselves. A test's own in-body cleanup still goes through the UI where
+  that's part of what it asserts.
 - **Address friends by Username, never by display name.** The local data holds
   two "Ben Backhand"s on purpose (that ambiguity is why Usernames exist — see
   [adr/0004-user-search-is-not-a-directory.md](adr/0004-user-search-is-not-a-directory.md)),

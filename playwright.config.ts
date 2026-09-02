@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { GOOGLE_PLACES_MOCK_URL } from "./e2e/support/google-places-mock.ts";
 import { GMAIL_MOCK_URL } from "./e2e/support/gmail-mock.ts";
 import { MICROSOFT_MOCK_URL } from "./e2e/support/microsoft-mock.ts";
+import { TEST_WORKER_COUNT, allWorkerBenHandles } from "./e2e/support/account-sets.ts";
 
 /**
  * Browser tests, kept apart from `npm test`.
@@ -18,11 +19,34 @@ export default defineConfig({
   // one Playwright configured (a reused `next dev` with no mock env) — see
   // `e2e/support/global-setup.ts`.
   globalSetup: "./e2e/support/global-setup.ts",
-  // Server Actions mutate shared rows in one local database, so two workers
-  // racing on the same account would fight over each other's groups.
-  workers: 1,
+  // File-level parallelism: each spec file runs whole on one worker (so
+  // intra-file ordering and the per-file mock singletons hold), but different
+  // files run concurrently. Each worker gets its own seeded account set
+  // (`e2e/support/accounts.ts`, keyed on parallelIndex), which is what makes
+  // it safe — two workers on the same account would fight over its rows.
+  // `fullyParallel` stays off: it would split a file's tests across workers.
+  //
+  // 2, not `TEST_WORKER_COUNT` (4): the bottleneck is the local backend, not
+  // CPU — one Next server, and local GoTrue + Postgres on small connection
+  // pools. Past 2 the Server-Action round trips balloon and GoTrue starts
+  // 500ing under the auth load, faster than a retry can absorb. Every
+  // `afterEach` that mutated shared state now resets straight at Postgres
+  // through a cached token (`e2e/support/db-reset.ts` / `fixture-token.ts`)
+  // rather than clicking a route that `revalidatePath` is still settling.
+  // Seeding makes 4 sets, so raising this is a one-liner if the backend ever
+  // stops being the ceiling.
+  workers: process.env.CI ? 2 : Math.min(2, TEST_WORKER_COUNT),
   fullyParallel: false,
+  // One retry locally: a spec that lost a race with three other workers'
+  // Server Actions almost always passes on its own the second time. CI stays
+  // strict.
+  retries: process.env.CI ? 0 : 1,
   reporter: process.env.CI ? "github" : "list",
+  // Generous vs the defaults (30s / 5s) — under concurrent load a Server Action
+  // that normally lands in ~1s can take several, and a passing assertion only
+  // ever waits as long as it needs to.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   use: {
     baseURL: "http://localhost:3000",
     // Kept only for failures — a passing run shouldn't leave artefacts behind.
@@ -86,9 +110,11 @@ export default defineConfig({
       MAILBOX_LINK_ENCRYPTION_KEY:
         process.env.MAILBOX_LINK_ENCRYPTION_KEY ??
         "AQLUlv/74SRdU//nBKzF5XhSna1Vm6jEdcbt5AplNuQ=",
-      // Only Ben is approved in this fixture list — email-sync.spec.ts relies
-      // on Amy being unlisted to prove the section stays absent for her.
-      EMAIL_SYNC_ALLOWLIST: process.env.EMAIL_SYNC_ALLOWLIST ?? "benbackhand",
+      // Every worker's Ben is approved; no worker's Amy is — email-sync relies
+      // on the signed-in Amy being unlisted to prove the section stays absent
+      // for her. `benbackhand` (the legacy account) stays listed for manual runs.
+      EMAIL_SYNC_ALLOWLIST:
+        process.env.EMAIL_SYNC_ALLOWLIST ?? ["benbackhand", ...allWorkerBenHandles()].join(","),
     },
   },
 });

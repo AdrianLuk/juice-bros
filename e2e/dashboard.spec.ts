@@ -1,16 +1,16 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import {
   PREFIX,
   addPlace,
   logBooking,
   placeName,
   removePlace,
-  row,
   selectDuration,
 } from "./support/places.ts";
 import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/availability.ts";
+import { deleteOrgs } from "./support/db-reset.ts";
 
 /**
  * The dashboard calendar (issue #23) — Month/Week/Agenda toggling, a
@@ -62,7 +62,7 @@ function requireTestBookingDate(): { iso: string; label: string } {
 
 /**
  * Post-#176 (PR #192) the onboarding modal (`OnboardingModal`) opens on the
- * dashboard for anyone with **no Booking and no Slot** — which AMY is, straight
+ * dashboard for anyone with **no Booking and no Slot** — which every worker's Amy is, straight
  * out of `npm run seed:users` (the seed creates accounts and friendships only).
  * Its "What do you want to start with?" dialog then sits over the calendar and
  * intercepts every click. These tests are about the calendar, not onboarding
@@ -74,7 +74,7 @@ function requireTestBookingDate(): { iso: string; label: string } {
  */
 const ONBOARDING_SNOOZE_KEY = "bb-onboarding-snoozed-until";
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, accounts }) => {
   await page.addInitScript((key) => {
     try {
       window.localStorage.setItem(key, String(Date.now() + 60 * 60 * 1000));
@@ -83,7 +83,7 @@ test.beforeEach(async ({ page }) => {
     }
   }, ONBOARDING_SNOOZE_KEY);
 
-  await signIn(page, AMY, "/booking-buddy");
+  await signIn(page, accounts.amy.email, "/booking-buddy");
 });
 
 /**
@@ -94,16 +94,12 @@ test.beforeEach(async ({ page }) => {
  * leftover `Playwright …`-named Org/Booking collides with the next run's
  * fresh one, since both share a court label this suite asserts against).
  */
-test.afterEach(async ({ page }) => {
-  await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
-
-  await page.goto("/booking-buddy/orgs");
-  const strays = row(page, PREFIX);
-  for (let left = await strays.count(); left > 0; left--) {
-    await strays.first().getByRole("button", { name: "Remove" }).click();
-    await page.getByRole("button", { name: "Remove facility" }).click();
-    await expect(strays).toHaveCount(left - 1);
-  }
+test.afterEach(async ({ accounts }) => {
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await deleteAvailabilityWindows(amy);
+  // Straight at Postgres (Org delete cascades its Bookings) — the
+  // click-through sweep raced `revalidatePath` under parallel load.
+  await deleteOrgs(amy, PREFIX);
 });
 
 test("the calendar defaults to Week view, and Month/Agenda toggle without navigating away", async ({
@@ -412,9 +408,10 @@ test("a past day in the current month shows no quick-create +", async ({ page })
 
 test("a Booking always renders as busy over an overlapping Availability Window", async ({
   page,
+  accounts,
 }) => {
   const bookingDate = requireTestBookingDate();
-  const user = { email: AMY, password: TEST_PASSWORD };
+  const user = { email: accounts.amy.email, password: accounts.password };
   await deleteAvailabilityWindows(user);
 
   // Busy declared noon-2pm local (EDT); a Booking then covers 1-2pm of it.

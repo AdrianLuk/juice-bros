@@ -1,33 +1,30 @@
 import type { Cookie, Page } from "@playwright/test";
 
 /**
- * The local test accounts, documented in
- * booking-buddy/docs/local-test-accounts.md. Local-only: these addresses have
- * no inbox and the password is public on purpose.
+ * The local test account password, documented in
+ * booking-buddy/docs/local-test-accounts.md. Local-only and public on purpose.
+ * Account emails/handles come from the `accounts` fixture (`accounts.ts`), not
+ * from here.
  */
 export const TEST_PASSWORD = "pickleball123";
 
-export const AMY = "amyace@example.com";
-export const BEN = "benbackhand@example.com";
-export const BEN2 = "benbackhand2@example.com";
-
 /**
- * Session cookies from the first real form sign-in of each account, kept for
- * the life of the Playwright worker (with `workers: 1`, the whole run).
+ * Session cookies from a recent real form sign-in of each account, reused
+ * within one Playwright worker.
  *
- * The first `signIn` for an account still drives the real form — that flow is
- * part of what these tests cover, and a hand-built cookie would drift from
- * whatever @supabase/ssr actually writes. Every later `signIn` for the same
- * account replants those cookies and does one `goto` instead, turning a
- * ~3s navigation + auth round trip into near-nothing.
+ * The first `signIn` for an account drives the real form — that flow is part
+ * of what these tests cover, and a hand-built cookie would drift from whatever
+ * @supabase/ssr actually writes. Later calls replant those cookies and do one
+ * `goto` instead, turning a ~3s navigation + auth round trip into near-nothing.
  *
- * Safe because @supabase/ssr only refreshes a session once its access token
- * has expired (`jwt_expiry`, 1h locally) — a full suite run finishes well
- * inside that window, so the cached cookies are never rotated out from under a
- * later test. If a run somehow outlives the token, the fast path notices it
- * landed back on `/sign-in` and falls back to the real form.
+ * Re-authed once an entry is older than `MAX_AGE_MS`: with several workers
+ * hammering one server, a mid-test token refresh can rotate the refresh token
+ * and strand a long-lived cached copy, so a later replant lands a dead
+ * session. Keeping entries fresh sidesteps that; the `/sign-in` bounce check
+ * below is the backstop.
  */
-const sessionCookies = new Map<string, Cookie[]>();
+const sessionCookies = new Map<string, { cookies: Cookie[]; at: number }>();
+const MAX_AGE_MS = 90_000;
 
 async function formSignIn(page: Page, email: string, next: string) {
   await page.goto(`/booking-buddy/sign-in?next=${encodeURIComponent(next)}`);
@@ -46,8 +43,8 @@ async function formSignIn(page: Page, email: string, next: string) {
  */
 export async function signIn(page: Page, email: string, next = "/booking-buddy") {
   const cached = sessionCookies.get(email);
-  if (cached) {
-    await page.context().addCookies(cached);
+  if (cached && Date.now() - cached.at < MAX_AGE_MS) {
+    await page.context().addCookies(cached.cookies);
     await page.goto(next);
     if (!new URL(page.url()).pathname.includes("/sign-in")) return;
     // The cached session went stale mid-run — drop it and sign in for real.
@@ -55,7 +52,7 @@ export async function signIn(page: Page, email: string, next = "/booking-buddy")
   }
 
   await formSignIn(page, email, next);
-  sessionCookies.set(email, await page.context().cookies());
+  sessionCookies.set(email, { cookies: await page.context().cookies(), at: Date.now() });
 }
 
 /**

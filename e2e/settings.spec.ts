@@ -1,18 +1,17 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
+import { resetNotificationPreferences, resetProfile } from "./support/db-reset.ts";
 
 /**
  * Changing a Username.
  *
- * Every test here puts the handle back to `amyace` before it ends: the rest of
- * the suite finds Amy by that handle, and the seed script won't restore it
- * without a database reset.
+ * Every test here puts the handle back to this worker's Amy handle before it
+ * ends: the rest of the suite finds her by it, and the seed script won't
+ * restore it without a database reset. This worker's Ben holds
+ * `accounts.ben.username`, so that one can never be claimed.
  */
-const ORIGINAL = "amyace";
-
-/** Taken by another seeded account, so it can never be claimed. */
-const TAKEN = "benbackhand";
 
 /**
  * The form's own error, not Next's route announcer — that is also
@@ -34,71 +33,23 @@ const formWithField = (page: Page, labelText: string) =>
 const genderForm = (page: Page) =>
   page.locator("form").filter({ has: page.getByRole("radio", { name: "Prefer not to say" }) });
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/settings");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/settings");
 });
 
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/settings");
-  const field = page.getByLabel("Username");
-
-  if ((await field.inputValue()) !== ORIGINAL) {
-    await field.fill(ORIGINAL);
-    await page.getByRole("button", { name: "Save username" }).click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  // Same reasoning as the username reset above: the seed script won't put
-  // these back on their own, so a test that flips either off has to flip it
-  // back.
-  const emailReminders = page.getByLabel("Email me a reminder before games I've said yes to, so I don't forget to show up");
-  if (!(await emailReminders.isChecked())) {
-    await emailReminders.check();
-    await formWithField(page, "Email me a reminder before games I've said yes to, so I don't forget to show up")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  const bookingWindowReminders = page.getByLabel("Email me once a facility's booking window opens, so I don't forget to reserve a court");
-  if (!(await bookingWindowReminders.isChecked())) {
-    await bookingWindowReminders.check();
-    await formWithField(page, "Email me once a facility's booking window opens, so I don't forget to reserve a court")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  const friendRequestEmails = page.getByLabel("Email me when someone sends me a friend request, so I can accept it right away");
-  if (!(await friendRequestEmails.isChecked())) {
-    await friendRequestEmails.check();
-    await formWithField(page, "Email me when someone sends me a friend request, so I can accept it right away")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  const requestAcceptedEmails = page.getByLabel("Email me when someone accepts a friend request I sent, so I know we're connected");
-  if (!(await requestAcceptedEmails.isChecked())) {
-    await requestAcceptedEmails.check();
-    await formWithField(page, "Email me when someone accepts a friend request I sent, so I know we're connected")
-      .getByRole("button", { name: "Save", exact: true })
-      .click();
-    await expect(page.getByRole("status")).toBeVisible();
-  }
-
-  // Same reasoning as Username above — Gender (issue #79) is unset by
-  // default for the seeded account, and a test that sets it has to unset it.
-  const genderUnset = page.getByRole("radio", { name: "Prefer not to say" });
-  if ((await genderUnset.getAttribute("aria-checked")) !== "true") {
-    await genderUnset.click();
-    await genderForm(page).getByRole("button", { name: "Save gender" }).click();
-    await expect(genderForm(page).getByRole("status")).toBeVisible();
-  }
+// Every test here flips something the seed script won't put back on its own —
+// the Username, one of the e-mail toggles, or Gender. Restore it straight at
+// Postgres: the click-through restore (goto Settings, read each control, save)
+// raced the streamed route under parallel load and left the account dirty for
+// the next test.
+test.afterEach(async ({ accounts }) => {
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await resetProfile(amy, accounts.amy.username);
+  await resetNotificationPreferences(amy);
 });
 
-test("the handle assigned at signup is what the form starts on", async ({ page }) => {
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+test("the handle assigned at signup is what the form starts on", async ({ page, accounts }) => {
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
 test("a new handle can be chosen, and it sticks", async ({ page }) => {
@@ -113,34 +64,34 @@ test("a new handle can be chosen, and it sticks", async ({ page }) => {
   await expect(page.getByLabel("Username")).toHaveValue(chosen);
 });
 
-test("a handle someone else holds is refused", async ({ page }) => {
-  await page.getByLabel("Username").fill(TAKEN);
+test("a handle someone else holds is refused", async ({ page, accounts }) => {
+  await page.getByLabel("Username").fill(accounts.ben.username);
   await page.getByRole("button", { name: "Save username" }).click();
 
   await expect(alertIn(page)).toContainText("taken");
 
   await page.reload();
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
-test("the same handle in different case is still someone else's", async ({ page }) => {
+test("the same handle in different case is still someone else's", async ({ page, accounts }) => {
   // Uniqueness is on lower(username): `BenBackhand` and `benbackhand` are one
   // handle, or impersonation would be a matter of pressing shift.
-  await page.getByLabel("Username").fill(TAKEN.toUpperCase());
+  await page.getByLabel("Username").fill(accounts.ben.username.toUpperCase());
   await page.getByRole("button", { name: "Save username" }).click();
 
   await expect(alertIn(page)).toContainText("taken");
 });
 
-test("your own handle in a different case is not a collision", async ({ page }) => {
+test("your own handle in a different case is not a collision", async ({ page, accounts }) => {
   // It normalises to what is already stored, so this is a no-op, not a clash
   // with yourself.
-  await page.getByLabel("Username").fill(ORIGINAL.toUpperCase());
+  await page.getByLabel("Username").fill(accounts.amy.username.toUpperCase());
   await page.getByRole("button", { name: "Save username" }).click();
 
   await expect(page.getByRole("status")).toContainText("Saved");
   await page.reload();
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
 test("punctuation is refused with a reason, not silently stripped", async ({
@@ -283,7 +234,7 @@ test("gender is unset by default", async ({ page }) => {
   );
 });
 
-test("a gender can be chosen, and it sticks — independently of Username", async ({ page }) => {
+test("a gender can be chosen, and it sticks — independently of Username", async ({ page, accounts }) => {
   await page.getByRole("radio", { name: "Male", exact: true }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
   await expect(genderForm(page).getByRole("status")).toContainText("Saved");
@@ -292,17 +243,20 @@ test("a gender can be chosen, and it sticks — independently of Username", asyn
   await page.reload();
   await expect(page.getByRole("radio", { name: "Male", exact: true })).toHaveAttribute("aria-checked", "true");
   // Choosing a Gender never touched the Username saved right next to it.
-  await expect(page.getByLabel("Username")).toHaveValue(ORIGINAL);
+  await expect(page.getByLabel("Username")).toHaveValue(accounts.amy.username);
 });
 
 test("a gender can be cleared back to unset", async ({ page }) => {
   await page.getByRole("radio", { name: "Female" }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
-  await expect(genderForm(page).getByRole("status")).toBeVisible();
+  await expect(genderForm(page).getByRole("status")).toContainText("Saved");
 
   await page.getByRole("radio", { name: "Prefer not to say" }).click();
   await genderForm(page).getByRole("button", { name: "Save gender" }).click();
-  await expect(genderForm(page).getByRole("status")).toBeVisible();
+  // "Saved", not just any status — bare `toBeVisible()` matched the stale
+  // confirmation from the first save and let the reload race the second
+  // Server Action under parallel load.
+  await expect(genderForm(page).getByRole("status")).toContainText("Saved");
 
   await page.reload();
   await expect(page.getByRole("radio", { name: "Prefer not to say" })).toHaveAttribute(

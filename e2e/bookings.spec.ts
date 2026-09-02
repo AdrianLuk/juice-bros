@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, BEN, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import {
   PREFIX,
   addPlace,
@@ -11,6 +11,7 @@ import {
   row,
   selectDuration,
 } from "./support/places.ts";
+import { deleteOrgs } from "./support/db-reset.ts";
 
 /**
  * The Org → Booking journey, clicked rather than asserted against the database.
@@ -30,24 +31,18 @@ import {
  * where a non-default zone is actually reachable: `places.spec.ts`'s
  * coordinate-derivation test.
  */
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/orgs");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/orgs");
 });
 
 /**
- * Sweeps up anything a failed run left behind. Each test still removes its own
- * place as part of what it asserts; this is only the safety net.
+ * Sweeps up anything a failed run left behind — straight at Postgres (removing
+ * an Org cascades its Bookings away), since under parallel load the
+ * click-through sweep raced `revalidatePath`. Each test still removes its own
+ * place through the UI as part of what it asserts; this is only the safety net.
  */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/orgs");
-
-  const strays = row(page, PREFIX);
-
-  for (let left = await strays.count(); left > 0; left--) {
-    await strays.first().getByRole("button", { name: "Remove" }).click();
-    await page.getByRole("button", { name: "Remove facility" }).click();
-    await expect(strays).toHaveCount(left - 1);
-  }
+test.afterEach(async ({ accounts }) => {
+  await deleteOrgs({ email: accounts.amy.email, password: accounts.password }, PREFIX);
 });
 
 test("a place can be added, booked at, and removed again", async ({ page }) => {
@@ -274,7 +269,7 @@ test("a place's booking window can be set, and it survives a reload", async ({
   await removePlace(page, place);
 });
 
-test("another User sees none of it", async ({ page, browser }) => {
+test("another User sees none of it", async ({ page, browser, accounts }) => {
   const place = placeName();
 
   await addPlace(page, place);
@@ -294,7 +289,7 @@ test("another User sees none of it", async ({ page, browser }) => {
   const bens = await bensContext.newPage();
 
   try {
-    await signIn(bens, BEN, "/booking-buddy/orgs");
+    await signIn(bens, accounts.ben.email, "/booking-buddy/orgs");
     await expect(row(bens, place)).toHaveCount(0);
 
     await bens.goto("/booking-buddy/bookings");

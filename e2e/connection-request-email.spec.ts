@@ -1,5 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
+import { expect, test, type Accounts } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import {
   clearConnectionBetween,
@@ -14,22 +15,19 @@ import {
  * with no session at all. Each test sends a real request through the Friends
  * page, reads the `connection_request_links` token direct from Postgres (it's
  * service_role-only, same as `slot_links`), and drives the public page.
+ *
+ * `accounts.amy2` and `accounts.ben2` are this worker's seeded strangers.
  */
-
-const AMY_2 = "amyace2@example.com";
-const BEN_2 = "benbackhand2@example.com";
-const AMY_2_HANDLE = "amyace2";
-const BEN_2_HANDLE = "benbackhand2";
 
 // These two aren't connected in the seed data, and every test here changes
 // that — so each starts from a hard reset direct against Postgres rather than
 // clicking the previous test's friendship apart through the UI.
-test.beforeEach(async () => {
-  await clearConnectionBetween(AMY_2_HANDLE, BEN_2_HANDLE);
+test.beforeEach(async ({ accounts }) => {
+  await clearConnectionBetween(accounts.amy2.username, accounts.ben2.username);
 });
 
-test.afterAll(async () => {
-  await clearConnectionBetween(AMY_2_HANDLE, BEN_2_HANDLE);
+test.afterAll(async ({ accounts }) => {
+  await clearConnectionBetween(accounts.amy2.username, accounts.ben2.username);
 });
 
 function section(page: Page, heading: string) {
@@ -43,28 +41,29 @@ function personRow(page: Page, handle: string) {
   return page.getByRole("listitem").filter({ hasText: `@${handle}` });
 }
 
-async function amySendsBenARequest(amy: Page): Promise<string> {
+async function amySendsBenARequest(amy: Page, accounts: Accounts): Promise<string> {
   await amy.goto("/booking-buddy/friends");
-  await amy.getByLabel("Search for someone").fill(BEN_2_HANDLE);
+  await amy.getByLabel("Search for someone").fill(accounts.ben2.username);
   const searchRow = section(amy, "Find a friend")
     .getByRole("listitem")
-    .filter({ hasText: `@${BEN_2_HANDLE}` });
+    .filter({ hasText: `@${accounts.ben2.username}` });
   await expect(searchRow).toBeVisible();
   await searchRow.getByRole("button", { name: "Add friend" }).click();
   await expect(searchRow).toContainText("Request sent");
 
-  return connectionRequestToken(AMY_2_HANDLE, BEN_2_HANDLE);
+  return connectionRequestToken(accounts.amy2.username, accounts.ben2.username);
 }
 
 test.describe("friend-request email links", () => {
   test("Accept from the link connects both sides, and the link is single-use", async ({
     browser,
+    accounts,
   }) => {
     const amyContext = await browser.newContext();
     const amy = await amyContext.newPage();
-    await signIn(amy, AMY_2, "/booking-buddy/friends");
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
 
-    const token = await amySendsBenARequest(amy);
+    const token = await amySendsBenARequest(amy, accounts);
 
     // Ben opens the link straight from his inbox — no session.
     const guestContext = await browser.newContext();
@@ -73,7 +72,7 @@ test.describe("friend-request email links", () => {
 
     await expect(
       guest.getByRole("heading", { name: /wants to connect/ }),
-    ).toContainText(AMY_2_HANDLE);
+    ).toContainText(accounts.amy2.username);
 
     await guest.getByRole("button", { name: "Accept" }).click();
     await expect(guest.getByRole("heading", { name: "You're connected" })).toBeVisible();
@@ -86,12 +85,12 @@ test.describe("friend-request email links", () => {
 
     // The friendship is real on both sides.
     await amy.goto("/booking-buddy/friends");
-    await expect(section(amy, "Your friends")).toContainText(`@${BEN_2_HANDLE}`);
+    await expect(section(amy, "Your friends")).toContainText(`@${accounts.ben2.username}`);
 
     const benContext = await browser.newContext();
     const ben = await benContext.newPage();
-    await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await expect(section(ben, "Your friends")).toContainText(`@${AMY_2_HANDLE}`);
+    await signIn(ben, accounts.ben2.email, "/booking-buddy/friends");
+    await expect(section(ben, "Your friends")).toContainText(`@${accounts.amy2.username}`);
 
     await amyContext.close();
     await benContext.close();
@@ -100,12 +99,13 @@ test.describe("friend-request email links", () => {
 
   test("Decline from the link removes the request and the pair can try again", async ({
     browser,
+    accounts,
   }) => {
     const amyContext = await browser.newContext();
     const amy = await amyContext.newPage();
-    await signIn(amy, AMY_2, "/booking-buddy/friends");
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
 
-    const token = await amySendsBenARequest(amy);
+    const token = await amySendsBenARequest(amy, accounts);
 
     const guestContext = await browser.newContext();
     const guest = await guestContext.newPage();
@@ -115,12 +115,12 @@ test.describe("friend-request email links", () => {
 
     // The request is gone, and Amy can send a fresh one.
     await amy.goto("/booking-buddy/friends");
-    await expect(personRow(amy, BEN_2_HANDLE)).toHaveCount(0);
-    await amy.getByLabel("Search for someone").fill(BEN_2_HANDLE);
+    await expect(personRow(amy, accounts.ben2.username)).toHaveCount(0);
+    await amy.getByLabel("Search for someone").fill(accounts.ben2.username);
     await expect(
       section(amy, "Find a friend")
         .getByRole("listitem")
-        .filter({ hasText: `@${BEN_2_HANDLE}` })
+        .filter({ hasText: `@${accounts.ben2.username}` })
         .getByRole("button", { name: "Add friend" }),
     ).toBeVisible();
 

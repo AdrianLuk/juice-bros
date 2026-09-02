@@ -1,6 +1,5 @@
-import { expect, test } from "@playwright/test";
-
-import { AMY, signIn } from "./support/sign-in.ts";
+import { expect, test } from "./support/accounts.ts";
+import { signIn } from "./support/sign-in.ts";
 
 /**
  * Web push opt-in on the Settings page (issue #12).
@@ -19,15 +18,15 @@ import { AMY, signIn } from "./support/sign-in.ts";
  * trip was verified manually — see PROGRESS.md's Phase 8 notes.
  */
 
-test("the push toggle renders, unchecked, when the browser supports it", async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/settings");
+test("the push toggle renders, unchecked, when the browser supports it", async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/settings");
 
   const pushToggle = page.getByLabel("Push me a reminder on this device");
   await expect(pushToggle).toBeVisible();
   await expect(pushToggle).not.toBeChecked();
 });
 
-test("an unsupported browser sees a fallback message instead of the toggle", async ({ page }) => {
+test("an unsupported browser sees a fallback message instead of the toggle", async ({ page, accounts }) => {
   // Simulates Safari-without-PWA-install and any other browser missing the
   // Push API — deleting the constructor before any page script runs is the
   // same feature-detection branch the component itself checks.
@@ -36,7 +35,7 @@ test("an unsupported browser sees a fallback message instead of the toggle", asy
     delete window.PushManager;
   });
 
-  await signIn(page, AMY, "/booking-buddy/settings");
+  await signIn(page, accounts.amy.email, "/booking-buddy/settings");
 
   await expect(
     page.getByText("Push notifications aren't supported in this browser"),

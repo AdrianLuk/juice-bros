@@ -1,10 +1,13 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { type Browser, type Page } from "@playwright/test";
 
-import { AMY, BEN2, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
+import { expect, test, type Accounts } from "./support/accounts.ts";
+
+import { signIn } from "./support/sign-in.ts";
 import {
   deleteAvailabilityWindows,
   insertAvailabilityWindow,
 } from "./support/availability.ts";
+import { deleteFriendGroups } from "./support/db-reset.ts";
 
 /**
  * "Find a time" (issue #195) — Plan's third child. Pick friends who share their
@@ -14,11 +17,11 @@ import {
  *
  * The seeded `@amyace` ↔ `@benbackhand2` pair starts at the visibility
  * lattice's bottom (see booking-buddy/docs/local-test-accounts.md), so each
- * test first has BEN2 put AMY in an `open_time` group, torn down after.
+ * test first has Ben2 put Amy in an `open_time` group, torn down after.
  * `@amyace` ↔ `@benbackhand` stays at the bottom — that pair is the negative
  * case: a friend with no grant never appears in the picker.
  *
- * BEN2's grant is done in its own browser context — `signIn` bounces off the
+ * Ben2's grant is done in its own browser context — `signIn` bounces off the
  * sign-in page when a session already exists, so one context can't switch
  * users (same reason slots.spec.ts opens a second context for Ben2).
  */
@@ -28,13 +31,13 @@ const PREFIX = "PlaywrightOverlap";
 const groupName = () =>
   `${PREFIX} ${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
 
-/** As BEN2, in a fresh context, grant AMY `open_time` through a new group. */
-async function grantAmyOpenTime(browser: Browser): Promise<void> {
+/** As this worker's Ben2, in a fresh context, grant its Amy `open_time` through a new group. */
+async function grantAmyOpenTime(browser: Browser, accounts: Accounts): Promise<void> {
   const context = await browser.newContext();
   try {
     const ben2 = await context.newPage();
     const name = groupName();
-    await signIn(ben2, BEN2, "/booking-buddy/groups");
+    await signIn(ben2, accounts.ben2.email, "/booking-buddy/groups");
     await ben2.getByLabel("Group name").fill(name);
     await ben2.getByLabel("What they can see").selectOption("open_time");
     await ben2.getByRole("button", { name: "Create group" }).click();
@@ -43,7 +46,7 @@ async function grantAmyOpenTime(browser: Browser): Promise<void> {
     const card = ben2.locator("section").filter({ hasText: name }).last();
     const picker = card.getByLabel("Add a friend");
     const value = await picker
-      .locator("option", { hasText: "(@amyace)" })
+      .locator("option", { hasText: `(@${accounts.amy.username})` })
       .getAttribute("value");
     await picker.selectOption(value!);
     await card.getByRole("button", { name: "Add" }).click();
@@ -61,36 +64,26 @@ function friendCheckbox(page: Page, handle: string) {
     .getByRole("checkbox");
 }
 
-test.afterEach(async ({ browser }) => {
-  await deleteAvailabilityWindows({ email: BEN2, password: TEST_PASSWORD });
-  await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
-
-  // Sweep any group a failed run left behind — each grants AMY visibility she
-  // shouldn't keep.
-  const context = await browser.newContext();
-  try {
-    const ben2 = await context.newPage();
-    await signIn(ben2, BEN2, "/booking-buddy/groups");
-    const strays = ben2.getByRole("heading", { name: new RegExp(`^${PREFIX} `) });
-    for (let left = await strays.count(); left > 0; left--) {
-      const name = (await strays.first().textContent())!;
-      const card = ben2.locator("section").filter({ hasText: name }).last();
-      await card.getByRole("button", { name: "Delete" }).click();
-      await ben2.getByRole("button", { name: "Delete group" }).click();
-      await expect(ben2.getByRole("heading", { name })).toHaveCount(0);
-    }
-  } finally {
-    await context.close();
-  }
+test.afterEach(async ({ accounts }) => {
+  const ben2 = { email: accounts.ben2.email, password: accounts.password };
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await deleteAvailabilityWindows(ben2);
+  await deleteAvailabilityWindows(amy);
+  // Ben2 owns the `open_time` group each test creates to grant Amy visibility;
+  // clear it straight at Postgres so a failed run can't leave Amy able to see
+  // more than she should. (The click-through sweep raced `revalidatePath`
+  // under parallel load and needed its own browser context besides.)
+  await deleteFriendGroups(ben2, PREFIX);
 });
 
 test("only friends who share their availability show in the picker", async ({
   page,
   browser,
+  accounts,
 }) => {
-  await grantAmyOpenTime(browser);
+  await grantAmyOpenTime(browser, accounts);
 
-  await signIn(page, AMY, "/booking-buddy/overlap");
+  await signIn(page, accounts.amy.email, "/booking-buddy/overlap");
 
   await expect(
     page
@@ -98,20 +91,21 @@ test("only friends who share their availability show in the picker", async ({
       .getByRole("link", { name: "Find a time" }),
   ).toHaveAttribute("aria-current", "page");
 
-  await expect(friendCheckbox(page, "benbackhand2")).toBeVisible();
+  await expect(friendCheckbox(page, accounts.ben2.username)).toBeVisible();
   await expect(
-    page.locator("label").filter({ hasText: "(@benbackhand)" }),
+    page.locator("label").filter({ hasText: `(@${accounts.ben.username})` }),
   ).toHaveCount(0);
 });
 
 test("free days appear, then a friend's busy window carves them away", async ({
   page,
   browser,
+  accounts,
 }) => {
-  await grantAmyOpenTime(browser);
+  await grantAmyOpenTime(browser, accounts);
 
-  await signIn(page, AMY, "/booking-buddy/overlap");
-  await friendCheckbox(page, "benbackhand2").check();
+  await signIn(page, accounts.amy.email, "/booking-buddy/overlap");
+  await friendCheckbox(page, accounts.ben2.username).check();
 
   // Nobody's marked anything busy, so the range is free — at least one day
   // with a "Propose a game" action.
@@ -127,9 +121,9 @@ test("free days appear, then a friend's busy window carves them away", async ({
   await page.waitForURL(/\/booking-buddy\/slots(\?|#|$)/);
   await expect(page.getByLabel("Date")).toHaveValue(date!);
 
-  // BEN2 blocks off the whole range, in any timezone. Now nothing overlaps.
+  // Ben2 blocks off the whole range, in any timezone. Now nothing overlaps.
   await insertAvailabilityWindow(
-    { email: BEN2, password: TEST_PASSWORD },
+    { email: accounts.ben2.email, password: accounts.password },
     {
       type: "busy",
       startsAt: new Date(Date.now() - 86_400_000).toISOString(),
@@ -138,7 +132,7 @@ test("free days appear, then a friend's busy window carves them away", async ({
   );
 
   await page.goto("/booking-buddy/overlap");
-  await friendCheckbox(page, "benbackhand2").check();
+  await friendCheckbox(page, accounts.ben2.username).check();
   await expect(
     page.getByText("No shared free time in this range"),
   ).toBeVisible();
@@ -148,16 +142,17 @@ test("free days appear, then a friend's busy window carves them away", async ({
 test("the Games page lists a friend who's looking to play, with a prefilled Propose link", async ({
   page,
   browser,
+  accounts,
 }) => {
-  await signIn(page, AMY, "/booking-buddy/slots");
-  // Before BEN2 grants anything, the pool is empty and says so.
+  await signIn(page, accounts.amy.email, "/booking-buddy/slots");
+  // Before Ben2 grants anything, the pool is empty and says so.
   await expect(
     page.getByText("Nobody's marked themselves looking to play right now"),
   ).toBeVisible();
 
-  await grantAmyOpenTime(browser);
+  await grantAmyOpenTime(browser, accounts);
 
-  // BEN2 marks a 3-hour "looking to play" window two days out, 6-9pm local.
+  // Ben2 marks a 3-hour "looking to play" window two days out, 6-9pm local.
   const start = new Date();
   start.setDate(start.getDate() + 2);
   start.setHours(18, 0, 0, 0);
@@ -165,7 +160,7 @@ test("the Games page lists a friend who's looking to play, with a prefilled Prop
   end.setHours(21, 0, 0, 0);
   const targetDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
   await insertAvailabilityWindow(
-    { email: BEN2, password: TEST_PASSWORD },
+    { email: accounts.ben2.email, password: accounts.password },
     { type: "looking", startsAt: start.toISOString(), endsAt: end.toISOString() },
   );
 
@@ -205,8 +200,9 @@ test("the Games page lists a friend who's looking to play, with a prefilled Prop
 test("Find a time flags a free block a picked friend is looking over", async ({
   page,
   browser,
+  accounts,
 }) => {
-  await grantAmyOpenTime(browser);
+  await grantAmyOpenTime(browser, accounts);
 
   const start = new Date();
   start.setDate(start.getDate() + 2);
@@ -214,12 +210,12 @@ test("Find a time flags a free block a picked friend is looking over", async ({
   const end = new Date(start);
   end.setHours(21, 0, 0, 0);
   await insertAvailabilityWindow(
-    { email: BEN2, password: TEST_PASSWORD },
+    { email: accounts.ben2.email, password: accounts.password },
     { type: "looking", startsAt: start.toISOString(), endsAt: end.toISOString() },
   );
 
-  await signIn(page, AMY, "/booking-buddy/overlap");
-  await friendCheckbox(page, "benbackhand2").check();
+  await signIn(page, accounts.amy.email, "/booking-buddy/overlap");
+  await friendCheckbox(page, accounts.ben2.username).check();
 
   await expect(page.getByText(/looking to play$/).first()).toBeVisible();
 });
@@ -227,10 +223,11 @@ test("Find a time flags a free block a picked friend is looking over", async ({
 test("a day with a midday busy stretch splits into a window before and after, each proposable", async ({
   page,
   browser,
+  accounts,
 }) => {
-  await grantAmyOpenTime(browser);
+  await grantAmyOpenTime(browser, accounts);
 
-  // BEN2 is busy 12:00-14:00 local, three days out.
+  // Ben2 is busy 12:00-14:00 local, three days out.
   const target = new Date();
   target.setDate(target.getDate() + 3);
   target.setHours(12, 0, 0, 0);
@@ -239,12 +236,12 @@ test("a day with a midday busy stretch splits into a window before and after, ea
   const targetDate = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
 
   await insertAvailabilityWindow(
-    { email: BEN2, password: TEST_PASSWORD },
+    { email: accounts.ben2.email, password: accounts.password },
     { type: "busy", startsAt: target.toISOString(), endsAt: end.toISOString() },
   );
 
-  await signIn(page, AMY, "/booking-buddy/overlap");
-  await friendCheckbox(page, "benbackhand2").check();
+  await signIn(page, accounts.amy.email, "/booking-buddy/overlap");
+  await friendCheckbox(page, accounts.ben2.username).check();
   await expect(
     page.getByRole("heading", { name: "When you're all free" }),
   ).toBeVisible();

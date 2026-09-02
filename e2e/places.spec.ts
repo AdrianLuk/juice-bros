@@ -1,7 +1,9 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import { GooglePlacesMock, deleteCachedPlaces } from "./support/google-places-mock.ts";
+import { deleteOrgs } from "./support/db-reset.ts";
 
 /**
  * The Google Places journey: search → pick a candidate → cached Org appears.
@@ -74,20 +76,15 @@ test.afterAll(async () => {
   await mock.stop();
 });
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/orgs");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/orgs");
 });
 
-/** Sweeps up anything a failed run left behind, same shape as bookings.spec.ts. */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/orgs");
-
-  const strays = row(page, PREFIX);
-  for (let left = await strays.count(); left > 0; left--) {
-    await strays.first().getByRole("button", { name: "Remove" }).click();
-    await page.getByRole("button", { name: "Remove facility" }).click();
-    await expect(strays).toHaveCount(left - 1);
-  }
+/** Sweeps up anything a failed run left behind — straight at Postgres, since
+ * under parallel load the click-through sweep raced `revalidatePath`. Each test
+ * still removes its own Org through the UI as part of what it asserts. */
+test.afterEach(async ({ accounts }) => {
+  await deleteOrgs({ email: accounts.amy.email, password: accounts.password }, PREFIX);
 });
 
 test("picking a search result caches the Place and creates an Org", async ({ page }) => {
