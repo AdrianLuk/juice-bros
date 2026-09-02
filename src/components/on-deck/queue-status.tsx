@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { QueryProvider } from "@/components/on-deck/query-provider";
+import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import {
   formGroupAsPlayer,
   leaveGroup,
@@ -15,14 +16,8 @@ import {
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
 import { QUEUE_TOGETHER_EXPLAINER } from "@/lib/on-deck/session/types";
 
-const POLL_MS = 4_000;
-
-function rotationQuery(sessionId: string, token: string) {
-  return {
-    queryKey: ["on-deck", "rotation", sessionId, "me"] as const,
-    queryFn: () => getRotationView(sessionId, token),
-    refetchInterval: POLL_MS,
-  };
+function rotationQueryKey(sessionId: string) {
+  return ["on-deck", "rotation", sessionId, "me"] as const;
 }
 
 /**
@@ -47,8 +42,16 @@ function QueueStatusInner({
   token: string;
 }) {
   const queryClient = useQueryClient();
-  const { queryKey } = rotationQuery(sessionId, token);
-  const query = useQuery(rotationQuery(sessionId, token));
+  const queryKey = rotationQueryKey(sessionId);
+  // Realtime nudges this to re-fetch within ~1s of any event (issue #252);
+  // the interval it hands back is a slow backstop while the socket is live and
+  // the ~4s fallback while it's connecting or dropped.
+  const pollInterval = useRotationSync(sessionId, [queryKey]);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => getRotationView(sessionId, token),
+    refetchInterval: pollInterval,
+  });
   const [error, setError] = useState<string | null>(null);
 
   const settle = (result: { ok?: boolean; error?: string }) => {

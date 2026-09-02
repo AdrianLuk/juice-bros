@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * TanStack Query for On Deck's live surfaces — the floor screen and a Player's
- * own position line, both of which poll `getRotationView` every few seconds
- * (issue #243). Realtime is a later upgrade (#238 ticket 13).
+ * own position line. Both re-fetch `getRotationView` on a Realtime notify
+ * (issue #252), with a poll as the fallback when the socket drops (issue #243).
  *
  * Scoped to these routes deliberately, the same posture as Booking Buddy's
  * provider (see CLAUDE.md) — the marketing pages stay on plain server
