@@ -19,15 +19,16 @@ import { isKnownTimeZone } from "../timezone.ts";
 import {
   reviewCalendarFeed,
   type CalendarFeedReviewItem,
+  type CalendarFeedCancellationItem,
   type SeenFeedEvent,
 } from "../calendar-feed-review.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
 import { parseNewBooking } from "../bookings.ts";
-import { insertValidatedBooking } from "./bookings.ts";
+import { insertValidatedBooking, deleteOwnedBooking } from "./bookings.ts";
 import { trackFacilitySyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
-export type { CalendarFeedReviewItem };
+export type { CalendarFeedReviewItem, CalendarFeedCancellationItem };
 
 /* -------------------------------------------------------------------------- */
 /* Set / clear the feed URL                                                    */
@@ -172,7 +173,15 @@ export async function clearCalendarFeedUrl(
 
 /** One feed's contribution to a "Sync facilities" run — the same envelope shape the email sync returns, per Facility. */
 export type FacilityFeedResult =
-  | { orgId: string; status: "ok"; items: CalendarFeedReviewItem[] }
+  | {
+      orgId: string;
+      status: "ok";
+      items: CalendarFeedReviewItem[];
+      /** Feed-diff cancellation candidates (issue #296). Empty when `feedLooksWrong`. */
+      cancellations: CalendarFeedCancellationItem[];
+      /** Rail 4 tripped — show the "this feed looks wrong — check the URL" warning instead of the candidates. */
+      feedLooksWrong: boolean;
+    }
   | { orgId: string; status: "error"; message: string };
 
 export type SyncFacilityFeedsResult =
@@ -225,6 +234,20 @@ async function syncOneFeed(
   const zone = feedFallbackZone(org.time_zone);
   const { events, unreadableUids } = parseCourtReserveFeed(fetched.text, { fallbackTimeZone: zone });
 
+  // Rail 1 — the healthy-fetch gate (ADR-0019). A 2xx body that parses to zero
+  // usable events (an empty calendar, junk that isn't a calendar at all, or a
+  // body every VEVENT of which failed to parse) is treated as an unhealthy
+  // sync: a sync error, and **no diff runs**. A CourtReserve hiccup must never
+  // read as "every reservation cancelled". The non-2xx / timeout / redirect /
+  // oversize cases are already `fetched.ok === false` above.
+  if (events.length === 0) {
+    return {
+      orgId: org.id,
+      status: "error",
+      message: "That feed came back empty. If it keeps happening, re-copy the URL from CourtReserve.",
+    };
+  }
+
   const supabase = await createClient();
 
   const [{ data: bookingRows, error: bookingError }, { data: seenRows, error: seenError }] =
@@ -236,7 +259,7 @@ async function syncOneFeed(
         .eq("org_id", org.id),
       supabase
         .from("org_feed_events")
-        .select("uid, status")
+        .select("uid, status, starts_at, booking_id")
         .eq("owner_id", ownerId)
         .eq("org_id", org.id),
     ]);
@@ -257,13 +280,16 @@ async function syncOneFeed(
   const seenEvents: SeenFeedEvent[] = (seenRows ?? []).map((row) => ({
     uid: row.uid,
     status: row.status,
+    startsAt: new Date(row.starts_at).toISOString(),
+    bookingId: row.booking_id,
   }));
 
-  const { items, autoLinked } = reviewCalendarFeed({
+  const { items, autoLinked, cancellations, feedLooksWrong } = reviewCalendarFeed({
     events,
     org: { id: org.id, timeZone: zone },
     existingBookings,
     seenEvents,
+    unreadableUids,
     now,
   });
 
@@ -337,7 +363,7 @@ async function syncOneFeed(
     }
   }
 
-  return { orgId: org.id, status: "ok", items };
+  return { orgId: org.id, status: "ok", items, cancellations, feedLooksWrong };
 }
 
 /** The parsed event's start instant, for the seen-event row's `starts_at`. */
@@ -415,7 +441,8 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
   }
 
   const candidateCount = feeds.reduce(
-    (sum, feed) => sum + (feed.status === "ok" ? feed.items.length : 0),
+    (sum, feed) =>
+      sum + (feed.status === "ok" ? feed.items.length + feed.cancellations.length : 0),
     0,
   );
   const erroredCount = feeds.filter((feed) => feed.status === "error").length;
@@ -547,6 +574,13 @@ export async function confirmFeedCandidate(
  * Candidate entry) — it writes the `org_feed_events` row `status = 'dismissed'`
  * so a later sync skips this event even though it's still in the feed (issue
  * #294 acceptance criteria).
+ *
+ * The "From facility feeds" section reuses this for the "Keep booking" control
+ * on a cancellation candidate (issue #296): the User has seen that the
+ * reservation left the feed and wants to keep the record anyway, so the same
+ * `dismissed` row is what stops the vanished event being re-flagged on every
+ * future sync. That does clear the Booking link (`booking_id` -> null), which
+ * is the intended effect — the feed is no longer tracking this reservation.
  */
 export async function dismissFeedCandidate(
   _prev: ActionResult,
@@ -581,6 +615,77 @@ export async function dismissFeedCandidate(
     return { error: "Couldn't dismiss that. Try again." };
   }
 
+  return { ok: true };
+}
+
+/**
+ * Confirming a feed-diff cancellation candidate (issue #296) removes the
+ * Booking it maps to. `booking_id` and `feed_event_uid` come from the review
+ * screen's own hidden fields — the same posture as
+ * `confirmCancellationCandidate` (email) — but this action does not trust
+ * them: it re-reads the `org_feed_events` row and only proceeds if that row is
+ * `imported` and still linked to the same Booking the form names. That link
+ * is what `reviewCalendarFeed` resolved server-side.
+ *
+ * After the delete, the seen-event row is marked `dismissed` with its
+ * `booking_id` cleared, so a later sync neither re-flags the (still-present,
+ * explicitly-cancelled) event nor offers the vanished one again.
+ */
+export async function confirmFeedCancellation(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+
+  const feedEventUid = String(formData.get("feed_event_uid") ?? "").trim();
+  const orgId = String(formData.get("org_id") ?? "").trim();
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+  if (!feedEventUid || !orgId || !bookingId) {
+    return { error: "Couldn't remove that booking. Try again." };
+  }
+
+  const supabase = await createClient();
+
+  // Re-verify the link server-side — the review already resolved it, but the
+  // form field must not be trusted to still hold.
+  const { data: seenRow } = await supabase
+    .from("org_feed_events")
+    .select("status, booking_id")
+    .eq("owner_id", session.userId)
+    .eq("org_id", orgId)
+    .eq("uid", feedEventUid)
+    .maybeSingle();
+
+  if (!seenRow || seenRow.status !== "imported" || seenRow.booking_id !== bookingId) {
+    return { error: "That booking has already changed. Sync again." };
+  }
+
+  const deleteResult = await deleteOwnedBooking(bookingId);
+  if (!deleteResult.ok) {
+    return deleteResult;
+  }
+
+  // `on delete set null` has already nulled `booking_id`; mark it dismissed so
+  // the intent ("this reservation is gone") sticks across future syncs.
+  const { error: markError } = await supabase
+    .from("org_feed_events")
+    .update({ status: "dismissed", booking_id: null, last_seen_at: new Date().toISOString() })
+    .eq("owner_id", session.userId)
+    .eq("org_id", orgId)
+    .eq("uid", feedEventUid);
+
+  if (markError) {
+    // Not fatal — the Booking is gone, which is what the User asked for. A
+    // stale `imported`/null row is already excluded from the cancellation diff
+    // (it needs a non-null `booking_id`), so the worst case is the event
+    // re-surfacing once as an import candidate the User can dismiss.
+    console.error("booking-buddy: marking a confirmed feed cancellation dismissed failed", markError);
+  }
+
+  after(() => trackFacilitySyncEvent("bb_facility_sync_cancellation"));
+
+  revalidatePath(BOOKINGS_PATH);
+  revalidatePath(BOOKING_BUDDY_ROOT);
   return { ok: true };
 }
 

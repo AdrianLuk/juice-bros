@@ -47,9 +47,14 @@ export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
  * `bb_facility_sync_run` fires once per "Sync facilities" click that reached
  * at least one feed (carrying the feed count, candidate count, and how many
  * feeds errored); `bb_facility_sync_import` fires when a feed candidate is
- * confirmed into a Booking.
+ * confirmed into a Booking; `bb_facility_sync_cancellation` fires when a
+ * feed-diff cancellation candidate is confirmed and its Booking removed
+ * (issue #296).
  */
-export type FacilitySyncEvent = "bb_facility_sync_run" | "bb_facility_sync_import";
+export type FacilitySyncEvent =
+  | "bb_facility_sync_run"
+  | "bb_facility_sync_import"
+  | "bb_facility_sync_cancellation";
 
 /** Emit one "Sync facilities" event. Same fail-quiet posture as `trackFunnelEvent`. */
 export async function trackFacilitySyncEvent(
