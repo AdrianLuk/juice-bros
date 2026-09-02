@@ -320,7 +320,39 @@ migration's timestamp past whatever else merged (the drift lesson
   floor / player leaves the queue — each appears in the other within ~1s with
   no reload).
 
+- [x] **#253 — the Display.** A read-only board for a tablet on the snack
+  table, at `/on-deck/session/[sessionId]/display` — open, no account and no
+  token (`routes.ts` `displayPath`; not added to the Organizer-gated set). It
+  renders the same `RotationView` every other surface folds — Courts and
+  occupants, the two On Deck Foursomes as the visually prominent element (big
+  bordered brand cards up top), and the full Queue in order — plus **Wait
+  Times**: `QueueEntryView` grew a `waitSince` (a solo's Queue anchor; a
+  Group's is the median of its members', matching where it queues), rendered
+  through `session/wait.ts` `formatWaitLabel` (pure, `now`-injected, relative
+  imports only — "just now" / "7 min" / "1 hr 12 min", future-skew clamped).
+  `DisplayBoard` polls `getRotationView` with **no token** (display names only
+  — no Skill Level, no contact data ever reach it) and rides `useRotationSync`
+  (#252) for ~1s updates, with a 30s local clock tick so idle Wait Times still
+  advance. Zero operational buttons. The `QUEUE_TOGETHER_EXPLAINER` line is
+  always shown. A Session runs identically with no Display open — it only ever
+  reads. The Organizer floor screen links to it ("Got a spare screen?"). Tests:
+  `wait.test.ts`, `routes.test.ts` (Display is not Organizer-gated),
+  `e2e/on-deck-display.spec.ts` (courts / queue+wait-times / both On Deck
+  Foursomes render, no Skill Level, no buttons, no horizontal scroll on a
+  tablet; reflects a join, a Court finish, and an On Deck change).
+
+  **App shell.** Every surface under `/on-deck/` (session view, Display, floor,
+  Volunteer Link, `home`, `sign-in`, `auth`) now runs inside On Deck's own bare
+  chrome — `src/app/on-deck/layout.tsx` + `OnDeckShellHeader` /
+  `OnDeckShellFooter` (a brand bar linking to the landing, a one-line footer,
+  no navigation — the same restraint as Booking Buddy's `BbAppShell`).
+  `SiteChromeSlot` now suppresses the global Juice Bros header/footer for
+  `/on-deck/*` the way it already did for `/booking-buddy`; the marketing
+  landing at **exactly `/on-deck`** keeps the full site chrome (both shell
+  components no-op there). It's a walk-up tool — a phone at the courts, a tablet
+  on a table — so there's nowhere to navigate to.
+
 ## Next
 
-The rest of #238 — the interactive Display and Kiosk, Last Call, and the
-Session Summary purge.
+The rest of #238 — the interactive Kiosk, Last Call, and the Session Summary
+purge.
