@@ -244,7 +244,11 @@ export async function getOpenSessionForClub(
   return loadSession(supabase, data as SessionRow);
 }
 
-/** One Session by id, folded with its event log. */
+/**
+ * One Session by id, folded with its event log. A `scheduled` Session
+ * (issue #254) is pre-start and has no event log — it is edited through
+ * `getScheduledSession`, never folded — so it is not returned here.
+ */
 export async function getSession(
   supabase: SupabaseClient,
   sessionId: string,
@@ -253,6 +257,7 @@ export async function getSession(
     .from("on_deck_sessions")
     .select(SESSION_COLUMNS)
     .eq("id", sessionId)
+    .neq("status", "scheduled")
     .maybeSingle();
 
   if (error) {
@@ -301,4 +306,80 @@ async function loadSession(
     state: reduceSession(config, events),
     lastEvent,
   };
+}
+
+/**
+ * A Session the Organizer set up ahead of time (issue #254) — sitting in the
+ * `scheduled` state with its own date, venue, and court count, no event log
+ * yet. Start promotes the due one into the open Session carrying these values.
+ */
+export type ScheduledSession = {
+  id: string;
+  clubId: string;
+  /** ISO date (`YYYY-MM-DD`) the night is planned for. */
+  scheduledFor: string;
+  venueName: string;
+  courtCount: number;
+};
+
+type ScheduledRow = {
+  id: string;
+  club_id: string;
+  scheduled_for: string;
+  venue_name: string;
+  court_count: number;
+};
+
+const SCHEDULED_COLUMNS = "id, club_id, scheduled_for, venue_name, court_count";
+
+function toScheduled(row: ScheduledRow): ScheduledSession {
+  return {
+    id: row.id,
+    clubId: row.club_id,
+    scheduledFor: row.scheduled_for,
+    venueName: row.venue_name,
+    courtCount: row.court_count,
+  };
+}
+
+/**
+ * Every not-yet-open Session for a Club, soonest first. RLS already scopes
+ * `on_deck_sessions` to the owner for the non-open rows, so no `owner_id`
+ * filter is needed here.
+ */
+export async function getScheduledSessionsForClub(
+  supabase: SupabaseClient,
+  clubId: string,
+): Promise<ScheduledSession[]> {
+  const { data, error } = await supabase
+    .from("on_deck_sessions")
+    .select(SCHEDULED_COLUMNS)
+    .eq("club_id", clubId)
+    .eq("status", "scheduled")
+    .order("scheduled_for", { ascending: true });
+
+  if (error) {
+    throw new Error(`loading scheduled Sessions failed: ${error.message}`);
+  }
+
+  return (data as ScheduledRow[]).map(toScheduled);
+}
+
+/** One scheduled Session by id, or null if it is not scheduled (or not yours). */
+export async function getScheduledSession(
+  supabase: SupabaseClient,
+  sessionId: string,
+): Promise<ScheduledSession | null> {
+  const { data, error } = await supabase
+    .from("on_deck_sessions")
+    .select(SCHEDULED_COLUMNS)
+    .eq("id", sessionId)
+    .eq("status", "scheduled")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`loading the scheduled Session failed: ${error.message}`);
+  }
+
+  return data ? toScheduled(data as ScheduledRow) : null;
 }
