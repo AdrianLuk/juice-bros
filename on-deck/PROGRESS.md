@@ -536,5 +536,16 @@ migration's timestamp past whatever else merged (the drift lesson
 
 ## Next
 
-#238 — nothing outstanding on the Kiosk. Remaining spec items:
-Playing Style / Queue Mode (v2), opt-in turn push (#260, parallel branch).
+**v1 is complete** — every ticket in the #238 breakdown is merged and its
+migration pushed (#241–#260, closed 2026-09-02). Nothing outstanding.
+
+Deferred, per the spec's "Out of Scope":
+
+- **Playing Style (casual / competitive), and the Queue Mode UI around it** —
+  v2. The v1 skill-fit penalty is already per-Player (`match-me.ts`), so this
+  is a weighting change, not a rewrite.
+- **Reporting UI** — `on_deck_session_summaries` is populated from day one
+  (#255); the reader on top is later work.
+- **Self-serve Club creation / onboarding** — the first Club is seeded by hand.
+- **`/tools` Apps-shelf entry** — a one-line `apps.ts` add when the club wants
+  to point people at it.
