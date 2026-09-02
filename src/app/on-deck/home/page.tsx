@@ -13,26 +13,14 @@ import {
   getScheduledSessionsForClub,
 } from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
-import { StartSessionButton } from "@/components/on-deck/start-session-button";
+import { TonightControls } from "@/components/on-deck/tonight-controls";
 import {
-  ON_DECK_NEW_SESSION_PATH,
   ON_DECK_SETTINGS_PATH,
   clubQrPath,
-  editSessionPath,
   floorPath,
   sessionPath,
 } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
-
-/** `YYYY-MM-DD` → "Sat, Mar 14" (dates carry no time; read them as UTC). */
-function formatSessionDate(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export const metadata: Metadata = pageMetadata({
   title: "On Deck home",
@@ -51,12 +39,6 @@ export default async function OnDeckHomePage() {
     club && !openSession
       ? await getScheduledSessionsForClub(supabase, club.id)
       : [];
-  const todayIso = new Date().toISOString().slice(0, 10);
-  // Matches `on_deck_start_session`: the most recent due date is the one Start
-  // opens (`scheduledSessions` is soonest-first, so that is the last due one).
-  const dueSession = scheduledSessions
-    .filter((s) => s.scheduledFor <= todayIso)
-    .at(-1);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -131,82 +113,7 @@ export default async function OnDeckHomePage() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border bg-card p-6">
-                  <p className="text-sm text-muted-foreground">
-                    {dueSession ? (
-                      <>
-                        Start opens the session you set up for{" "}
-                        <span className="text-foreground">
-                          {formatSessionDate(dueSession.scheduledFor)}
-                        </span>
-                        : {dueSession.venueName}, {dueSession.courtCount} courts.
-                      </>
-                    ) : (
-                      <>
-                        Opens a session from the defaults above. You can rename
-                        courts and adjust things once it&apos;s running.
-                      </>
-                    )}
-                  </p>
-                  <StartSessionButton />
-                </div>
-              )}
-
-              {!openSession && (
-                <div className="rounded-2xl border bg-card p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <h2 className="font-heading text-lg font-semibold">
-                      Scheduled sessions
-                    </h2>
-                    <Link
-                      href={ON_DECK_NEW_SESSION_PATH}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                      )}
-                    >
-                      Schedule a session
-                    </Link>
-                  </div>
-
-                  {scheduledSessions.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      Nothing scheduled. Set one up ahead of time to give a night
-                      its own venue or court count.
-                    </p>
-                  ) : (
-                    <ul
-                      className="mt-4 divide-y"
-                      data-testid="scheduled-sessions"
-                    >
-                      {scheduledSessions.map((session) => (
-                        <li
-                          key={session.id}
-                          className="flex items-center justify-between gap-4 py-3 text-sm"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {formatSessionDate(session.scheduledFor)}
-                              {dueSession?.id === session.id && (
-                                <span className="ml-2 rounded-full bg-brand-orange/10 px-2 py-0.5 text-xs font-medium text-brand-orange">
-                                  Start opens this
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {session.venueName}, {session.courtCount} courts
-                            </p>
-                          </div>
-                          <Link
-                            href={editSessionPath(session.id)}
-                            className="underline underline-offset-4"
-                          >
-                            Edit
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                <TonightControls scheduledSessions={scheduledSessions} />
               )}
             </div>
           )}

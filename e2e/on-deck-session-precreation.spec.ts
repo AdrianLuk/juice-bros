@@ -20,7 +20,9 @@ import {
 const ORGANIZER_EMAIL = `on-deck-precreate-${Date.now()}@example.com`;
 const ORGANIZER_PASSWORD = "pickleball123";
 
-const TODAY = new Date().toISOString().slice(0, 10);
+// The Organizer's *local* calendar date — what the home screen's Start control
+// keys "due today" off, and what it sends the promote RPC. `sv-SE` → YYYY-MM-DD.
+const TODAY = new Date().toLocaleDateString("sv-SE");
 
 test.beforeAll(async ({ browser }) => {
   const page = await browser.newPage();
