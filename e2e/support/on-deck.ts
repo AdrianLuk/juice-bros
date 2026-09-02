@@ -193,6 +193,34 @@ export async function queuePlayerViaRpc(
   }
 }
 
+/**
+ * Drives `on_deck_form_group` the way a Player's phone would (issue #251) —
+ * `actorToken` picks `memberTokens` (which must include the actor). The server
+ * mints the group id, so this passes one too.
+ */
+export async function formGroupViaRpc(
+  sessionId: string,
+  actorToken: string,
+  memberTokens: string[],
+): Promise<void> {
+  const res = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/rpc/on_deck_form_group`,
+    {
+      method: "POST",
+      headers: anonHeaders(),
+      body: JSON.stringify({
+        p_session_id: sessionId,
+        p_actor_token: actorToken,
+        p_group_id: `group-${crypto.randomUUID()}`,
+        p_member_tokens: memberTokens,
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`form-group RPC failed: ${res.status} ${await res.text()}`);
+  }
+}
+
 /** Tears down the Club and everything cascading off it (Sessions, events). */
 export async function deleteClubForOrganizer(email: string): Promise<void> {
   const ownerId = await userIdForEmail(email);

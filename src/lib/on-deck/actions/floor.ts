@@ -12,6 +12,7 @@ import {
 import {
   addWalkupOutcome,
   bringBackOutcome,
+  dissolveGroupOutcome,
   finishCourtOutcome,
   formGroupOutcome,
   lowerGroupCapOutcome,
@@ -188,6 +189,20 @@ export async function formGroup(
   const groupId = `group-${crypto.randomUUID()}`;
   return runAsOrganizer(sessionId, ({ loaded }) =>
     formGroupOutcome(loaded.state, playerNames, groupId),
+  );
+}
+
+/**
+ * "Break up this group" (issue #251): the Organizer dissolves a waiting Group.
+ * Appends `GROUP_DISSOLVED`; the fold drops the Group and its members re-sort as
+ * solos. A no-op for a Group already on a Court.
+ */
+export async function dissolveGroup(
+  sessionId: string,
+  groupId: string,
+): Promise<FloorActionResult> {
+  return runAsOrganizer(sessionId, ({ loaded }) =>
+    dissolveGroupOutcome(loaded.state, groupId),
   );
 }
 

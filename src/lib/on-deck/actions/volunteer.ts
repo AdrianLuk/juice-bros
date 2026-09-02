@@ -10,6 +10,7 @@ import {
 import {
   addWalkupOutcome,
   bringBackOutcome,
+  dissolveGroupOutcome,
   finishCourtOutcome,
   formGroupOutcome,
   lowerGroupCapOutcome,
@@ -134,6 +135,17 @@ export async function volunteerFormGroup(
   const groupId = `group-${crypto.randomUUID()}`;
   return volunteerAppend(sessionId, token, (state) =>
     formGroupOutcome(state, playerNames, groupId),
+  );
+}
+
+/** "Break up this group" (issue #251), fired by a link-authenticated Volunteer. */
+export async function volunteerDissolveGroup(
+  sessionId: string,
+  token: string,
+  groupId: string,
+): Promise<FloorActionResult> {
+  return volunteerAppend(sessionId, token, (state) =>
+    dissolveGroupOutcome(state, groupId),
   );
 }
 

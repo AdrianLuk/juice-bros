@@ -6,6 +6,10 @@ import { createClient } from "../supabase/server.ts";
 import { getSession } from "../sessions.ts";
 import { sessionPath } from "../routes.ts";
 import { isSkillLevel, type SkillLevel } from "../session/types.ts";
+import {
+  formGroupByPlayerOutcome,
+  leaveGroupByPlayerOutcome,
+} from "../floor-ops.ts";
 
 /** What the "you're in" screen shows — the Player's own token is never echoed back. */
 export type RecognizedPlayer = { displayName: string; skillLevel: SkillLevel };
@@ -214,6 +218,102 @@ export async function rejoinQueue(
     }
     console.error("on-deck: re-queueing a Player failed", error);
     return { error: "Couldn't add you back. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
+}
+
+/**
+ * A Player forms a Queue Together Group from their own phone (issue #251): they
+ * pick the other members from the current-Session Player list (display names —
+ * a device token never reaches the client, ADR 0001). This resolves the names
+ * to tokens against the folded roster, always folds the acting Player in, and
+ * appends `GROUP_FORMED` / `player` through the `anon` `on_deck_form_group`
+ * RPC. Same Group semantics as the Volunteer path (`reduceSession`, ADR 0005).
+ */
+export async function formGroupAsPlayer(
+  sessionId: string,
+  token: string,
+  memberNames: string[],
+): Promise<QueueResult> {
+  const trimmed = token?.trim() ?? "";
+  if (trimmed.length < 8) {
+    return { error: "Couldn't find your spot. Reload and try again." };
+  }
+
+  const supabase = await createClient();
+  const loaded = await getSession(supabase, sessionId).catch(() => null);
+  if (!loaded) {
+    return { error: "This session isn't running anymore." };
+  }
+
+  const groupId = `group-${crypto.randomUUID()}`;
+  const outcome = formGroupByPlayerOutcome(
+    loaded.state,
+    trimmed,
+    memberNames,
+    groupId,
+  );
+  if (outcome.kind === "error") return { error: outcome.error };
+  if (outcome.kind === "noop") return { ok: true };
+
+  const { error } = await supabase.rpc("on_deck_form_group", {
+    p_session_id: sessionId,
+    p_actor_token: trimmed,
+    p_group_id: outcome.payload.groupId,
+    p_member_tokens: outcome.payload.memberTokens,
+  });
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Scan the club QR again to get set up." };
+    }
+    console.error("on-deck: forming a player Group failed", error);
+    return { error: "Couldn't group you up just now. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  return { ok: true };
+}
+
+/**
+ * A member removes themselves from their Queue Together Group (issue #251) —
+ * they stay in the Queue as a solo. Folds the Session to find which Group the
+ * token is in, then appends `GROUP_MEMBER_REMOVED` / `player` through the
+ * `anon` `on_deck_leave_group` RPC. A no-op when they are in no waiting Group.
+ */
+export async function leaveGroup(
+  sessionId: string,
+  token: string,
+): Promise<QueueResult> {
+  const trimmed = token?.trim() ?? "";
+  if (trimmed.length < 8) {
+    return { error: "Couldn't find your spot. Reload and try again." };
+  }
+
+  const supabase = await createClient();
+  const loaded = await getSession(supabase, sessionId).catch(() => null);
+  if (!loaded) {
+    return { error: "This session isn't running anymore." };
+  }
+
+  const outcome = leaveGroupByPlayerOutcome(loaded.state, trimmed);
+  if (outcome.kind === "error") return { error: outcome.error };
+  if (outcome.kind === "noop") return { ok: true };
+
+  const { error } = await supabase.rpc("on_deck_leave_group", {
+    p_session_id: sessionId,
+    p_token: trimmed,
+    p_group_id: outcome.payload.groupId,
+  });
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Scan the club QR again to get set up." };
+    }
+    console.error("on-deck: leaving a Group failed", error);
+    return { error: "Couldn't update that. Try again." };
   }
 
   revalidatePath(sessionPath(sessionId));
