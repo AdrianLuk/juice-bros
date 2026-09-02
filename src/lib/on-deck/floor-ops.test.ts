@@ -10,6 +10,7 @@ import type {
 import {
   addWalkupOutcome,
   bringBackOutcome,
+  confirmCourtOutcome,
   describeUndo,
   dissolveGroupOutcome,
   finishCourtOutcome,
@@ -111,6 +112,30 @@ test("finishCourtOutcome: a Court number off the Session is an error", () => {
   assert.equal(finishCourtOutcome(state, 0, null).kind, "error");
   assert.equal(finishCourtOutcome(state, 99, null).kind, "error");
   assert.equal(finishCourtOutcome(state, 1.5, null).kind, "error");
+});
+
+test("confirmCourtOutcome: an in-play Court with a matching since yields COURT_CONFIRMED", () => {
+  const { state } = sessionWithFilledCourt(8);
+  const since = state.courts[0].since;
+  assert.deepEqual(confirmCourtOutcome(state, 1, since), {
+    kind: "event",
+    type: "COURT_CONFIRMED",
+    payload: { court: 1, since },
+  });
+});
+
+test("confirmCourtOutcome: a stale since or an empty Court is a silent no-op", () => {
+  const { state } = sessionWithFilledCourt(8);
+  const since = state.courts[0].since ?? 0;
+  assert.deepEqual(confirmCourtOutcome(state, 1, since + 999), { kind: "noop" });
+  assert.equal(state.courts[1].foursome.length, 0);
+  assert.deepEqual(confirmCourtOutcome(state, 2, null), { kind: "noop" });
+});
+
+test("confirmCourtOutcome: a Court number off the Session is an error", () => {
+  const { state } = sessionWithFilledCourt(8);
+  assert.equal(confirmCourtOutcome(state, 0, null).kind, "error");
+  assert.equal(confirmCourtOutcome(state, 99, null).kind, "error");
 });
 
 test("setAsideOutcome pauses a named Player as a set-aside", () => {

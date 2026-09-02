@@ -130,11 +130,12 @@ export interface SessionConfig {
  * event) breaks.
  *
  * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `PLAYER_SKILL_SET`,
- * `COURT_FINISHED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED`,
+ * `COURT_FINISHED`, `COURT_CONFIRMED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED`,
  * `FOURSOME_MEMBER_SWAPPED`, `GROUP_FORMED`, `GROUP_CAP_CHANGED`,
  * `GROUP_MEMBER_REMOVED`, `GROUP_DISSOLVED`, `LAST_CALL` and `SESSION_CLOSED`
  * exist. The DB `on_deck_session_events.type` check lists the full set (the
- * #246 migration adds `PLAYER_REQUEUED`, which the foundation missed).
+ * #246 migration adds `PLAYER_REQUEUED`, which the foundation missed; the #259
+ * migration adds `COURT_CONFIRMED`).
  *
  * `GROUP_FORMED` is fired both ways — a Volunteer picking members (issue #250)
  * and a Player forming a Group from their own phone (issue #251). The fold
@@ -209,6 +210,31 @@ export type SessionEvent =
       operator: Operator;
       /** 1-based Court number, within `config.courtCount`. */
       court: number;
+    }
+  | {
+      /**
+       * The idle-court nudge's "yes, still going" tap (issue #259). When a Court
+       * has been in play well past a normal Game length, every live surface
+       * shows "Is Court N still going?"; a Player at the Kiosk (or an Operator)
+       * confirms it, and the nudge clears for everyone until roughly another
+       * Game length has passed. Records `state.courtConfirmedAt[court]`, which
+       * `idleCourts` (the render-layer projection) measures the idle interval
+       * from instead of `court.since`. A no-op for a Court not currently in
+       * play, or one whose `since` no longer matches (the Game already turned
+       * over) — the fold clears a stale confirmation on the next
+       * `COURT_FINISHED` for that Court anyway.
+       */
+      type: "COURT_CONFIRMED";
+      at: number;
+      operator: Operator;
+      /** 1-based Court number, within `config.courtCount`. */
+      court: number;
+      /**
+       * The `since` the confirming surface last rendered for this Court — a
+       * mismatch means the Game turned over between render and tap, so the
+       * confirmation is dropped rather than pinned to a Game that has ended.
+       */
+      since: number | null;
     }
   | {
       /**
@@ -525,6 +551,15 @@ export interface SessionState {
    * projected.
    */
   waitStartByPlayer: Record<string, number>;
+  /**
+   * When the current Game on each Court was last confirmed "still going" via
+   * the idle-court nudge (issue #259), keyed by 1-based Court number. Cleared
+   * whenever a Court turns over (a new Game is not "confirmed"). The render
+   * layer's `idleCourts` measures how long a Court has sat unconfirmed from
+   * `max(court.since, courtConfirmedAt[n])`. Internal to the fold; not
+   * projected directly.
+   */
+  courtConfirmedAt: Record<number, number>;
   /**
    * Every finished Game, in finish order — the Variety history Match Me scores
    * candidate Foursomes against. Not projected to any live surface.
