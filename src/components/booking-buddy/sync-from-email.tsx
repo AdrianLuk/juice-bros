@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import Link from "next/link";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,24 +25,21 @@ import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
-  MAILBOX_PROVIDER_IDENTITY_LABEL,
-  MAILBOX_PROVIDER_LABEL,
-  type MailboxProvider,
-} from "@/lib/booking-buddy/mailbox-provider";
-import {
   confirmCancellationCandidate,
   confirmImportCandidate,
   confirmUpdateCandidate,
-  connectMailbox,
   dismissReviewItem,
-  syncFromEmail,
   type ReviewItem,
-  type SyncFromEmailResult,
 } from "@/lib/booking-buddy/actions/email-sync";
 
 const EMPTY: ActionResult = {};
 
-const SYNC_QUERY_KEY = ["booking-buddy", "email-sync-candidates"] as const;
+/**
+ * The email ("Sync from Email") review cards, rendered by the unified "Sync
+ * bookings" section (issue #336) — this file no longer owns a section wrapper
+ * or a TanStack Query; `SyncBookingsSection` runs the email sync and merges
+ * its candidates with the feed's into one review list.
+ */
 
 /** The three kinds, in the order the review screen groups them for display. */
 const REVIEW_KINDS = ["import", "cancellation", "update"] as const;
@@ -348,8 +344,12 @@ export function ReviewItemCard({
  * (import, then cancellation, then update) the screen has always shown. The
  * list arrives `byDateAndStartTime`-sorted, and `filter` preserves that
  * order, so each group stays date-sorted exactly as before.
+ *
+ * Renders nothing when empty — the unified "Sync bookings" section (issue
+ * #336) owns the one shared "No new bookings found." line now that email and
+ * feed candidates land in the same list.
  */
-function ReviewItemGroups({
+export function ReviewItemGroups({
   items,
   orgs,
   onResolved,
@@ -359,7 +359,7 @@ function ReviewItemGroups({
   onResolved: (gmailMessageId: string) => void;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">No new bookings found.</p>;
+    return null;
   }
 
   return (
@@ -379,89 +379,5 @@ function ReviewItemGroups({
         );
       })}
     </>
-  );
-}
-
-/**
- * "Sync from Email" (issue #64) — a click-triggered live search rather than
- * something the page loads eagerly, same `enabled` pattern
- * `FriendCalendarDialog` uses for its own click-triggered fetch. Rendered on
- * the Bookings page for a User who can sync; `mailboxProvider` being `null`
- * distinguishes "not connected at all" (send them to Settings) from every
- * other outcome, which `syncFromEmail`'s own result handles once clicked. A
- * non-null provider also names itself in the reconnect prompt so the button
- * restarts the right provider's OAuth flow.
- */
-export function SyncFromEmailSection({
-  orgs,
-  mailboxProvider,
-}: {
-  orgs: Org[];
-  /** The connected Mailbox Link's provider, or `null` when nothing is connected. */
-  mailboxProvider: MailboxProvider | null;
-}) {
-  const [hasSynced, setHasSynced] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data, isFetching, refetch } = useQuery<SyncFromEmailResult>({
-    queryKey: SYNC_QUERY_KEY,
-    queryFn: () => syncFromEmail(),
-    enabled: hasSynced,
-  });
-
-  function handleResolved(gmailMessageId: string) {
-    queryClient.setQueryData<SyncFromEmailResult>(SYNC_QUERY_KEY, (previous) =>
-      previous?.status === "ok"
-        ? { ...previous, items: previous.items.filter((item) => item.gmailMessageId !== gmailMessageId) }
-        : previous,
-    );
-  }
-
-  if (!mailboxProvider) {
-    return (
-      <p className="mt-4 text-sm text-muted-foreground">
-        Connect a mailbox in Settings to pull in bookings you&apos;ve made at
-        CourtReserve-powered facilities.
-      </p>
-    );
-  }
-
-  return (
-    <div className="mt-4 flex flex-col gap-4">
-      <div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isFetching}
-          onClick={() => (hasSynced ? refetch() : setHasSynced(true))}
-        >
-          {isFetching ? "Checking your inbox…" : "Sync from Email"}
-        </Button>
-      </div>
-
-      {data?.status === "reconnect_required" && (
-        <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4">
-          <p className="text-sm text-destructive">
-            {MAILBOX_PROVIDER_IDENTITY_LABEL[mailboxProvider]} needs you to reconnect{" "}
-            {MAILBOX_PROVIDER_LABEL[mailboxProvider]} before syncing again.
-          </p>
-          <form action={connectMailbox.bind(null, mailboxProvider)}>
-            <Button type="submit" variant="outline" size="sm">
-              Reconnect {MAILBOX_PROVIDER_LABEL[mailboxProvider]}
-            </Button>
-          </form>
-        </div>
-      )}
-
-      {data?.status === "error" && (
-        <p className="text-sm text-destructive" role="alert">
-          {data.message}
-        </p>
-      )}
-
-      {data?.status === "ok" && (
-        <ReviewItemGroups items={data.items} orgs={orgs} onResolved={handleResolved} />
-      )}
-    </div>
   );
 }

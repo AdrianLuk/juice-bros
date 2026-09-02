@@ -193,7 +193,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       const card = page
         .getByRole("listitem")
@@ -219,14 +219,14 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       const card = page.getByRole("listitem").filter({ hasText: facility });
       await expect(card).toBeVisible();
       await card.getByRole("button", { name: "Dismiss" }).click();
       await expect(card).toHaveCount(0);
 
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible();
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
 
@@ -249,7 +249,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
       // Import the confirmation into a real Booking.
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
       await expect(importCard).toBeVisible();
       await importCard.getByRole("button", { name: "Confirm" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
@@ -259,7 +259,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       // next sync re-offers the email — the realistic path here is recovery
       // (an accidental delete), and a deliberate delete just Dismisses it once.
       await deleteBooking(page, "Court 3");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
       await expect(importCard).toBeVisible();
       await expect(importCard).toContainText(facility);
 
@@ -298,7 +298,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       ]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
 
@@ -335,7 +335,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await connectAndSeed(page, [cancellationEmail({ id: messageId(), facility })]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       const card = page
         .getByRole("listitem")
@@ -358,7 +358,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await connectAndSeed(page, [cancellationEmail({ id: messageId(), facility })]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       const card = page.getByRole("listitem").filter({ hasText: facility });
       await expect(card).toBeVisible();
@@ -368,7 +368,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await card.getByRole("button", { name: "Dismiss" }).click();
       await expect(card).toHaveCount(0);
 
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
       await expect(page.getByText("No new bookings found.")).toBeVisible();
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(0);
 
@@ -395,7 +395,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       ]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
 
@@ -437,7 +437,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       ]);
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       const card = page
         .getByRole("listitem")
@@ -468,7 +468,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       fixture.getMock().registerTokenFailure("invalid_grant");
 
       await page.goto("/booking-buddy/bookings");
-      await page.getByRole("button", { name: "Sync from Email" }).click();
+      await page.getByRole("button", { name: "Sync bookings" }).click();
 
       await expect(page.getByText(fixture.reconnectPromptText)).toBeVisible();
       await expect(page.getByRole("button", { name: fixture.reconnectButtonName })).toBeVisible();
