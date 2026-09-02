@@ -77,6 +77,11 @@ test("the Display renders courts, the ordered queue with wait times, and the On 
   const board = page.getByTestId("display-board");
   await expect(board).toBeVisible();
 
+  // The whole app runs in On Deck's bare shell — its brand bar, none of the
+  // main Juice Bros site nav.
+  await expect(page.getByRole("link", { name: "On Deck" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Podcast" })).toHaveCount(0);
+
   // Both On Deck Foursomes are shown and are the prominent element.
   await expect(page.getByTestId("display-on-deck-0")).toContainText("Up next");
   await expect(page.getByTestId("display-on-deck-1")).toContainText("After that");

@@ -341,6 +341,17 @@ migration's timestamp past whatever else merged (the drift lesson
   Foursomes render, no Skill Level, no buttons, no horizontal scroll on a
   tablet; reflects a join, a Court finish, and an On Deck change).
 
+  **App shell.** Every surface under `/on-deck/` (session view, Display, floor,
+  Volunteer Link, `home`, `sign-in`, `auth`) now runs inside On Deck's own bare
+  chrome — `src/app/on-deck/layout.tsx` + `OnDeckShellHeader` /
+  `OnDeckShellFooter` (a brand bar linking to the landing, a one-line footer,
+  no navigation — the same restraint as Booking Buddy's `BbAppShell`).
+  `SiteChromeSlot` now suppresses the global Juice Bros header/footer for
+  `/on-deck/*` the way it already did for `/booking-buddy`; the marketing
+  landing at **exactly `/on-deck`** keeps the full site chrome (both shell
+  components no-op there). It's a walk-up tool — a phone at the courts, a tablet
+  on a table — so there's nowhere to navigate to.
+
 ## Next
 
 The rest of #238 — the interactive Kiosk, Last Call, and the Session Summary
