@@ -6,6 +6,7 @@ import { MapPinIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   pickPlace,
@@ -61,11 +62,7 @@ export function SearchPlaceForm() {
           <Button type="submit" disabled={pending}>
             {pending ? "Searching…" : "Search"}
           </Button>
-          {state.error && (
-            <p className="text-xs text-destructive" role="alert">
-              {state.error}
-            </p>
-          )}
+          <ActionError state={state} />
         </div>
       </form>
 
@@ -107,11 +104,7 @@ function PlaceCandidateRow({ candidate }: { candidate: PlaceCandidate }) {
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Adding…" : "Add this facility"}
         </Button>
-        {state.error && (
-          <p className="text-xs text-destructive" role="alert">
-            {state.error}
-          </p>
-        )}
+        <ActionError state={state} />
       </form>
     </li>
   );

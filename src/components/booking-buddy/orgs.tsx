@@ -24,6 +24,7 @@ import {
 } from "@/lib/booking-buddy/booking-window";
 import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/bookings";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   createOrg,
@@ -38,18 +39,6 @@ import {
 } from "@/lib/booking-buddy/actions/calendar-feed";
 
 const EMPTY: ActionResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 /**
  * The hand-typed path — for a venue Google has no listing for.

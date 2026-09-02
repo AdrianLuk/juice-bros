@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PersonName } from "@/components/booking-buddy/connection-list";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   FormSelect,
   VisibilitySelect,
@@ -33,18 +34,6 @@ import {
 } from "@/lib/booking-buddy/actions/friend-groups";
 
 const EMPTY: ActionResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 export function CreateGroupForm() {
   const [state, formAction, pending] = useActionState(createFriendGroup, EMPTY);
