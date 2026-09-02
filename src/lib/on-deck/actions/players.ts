@@ -10,6 +10,8 @@ import {
   formGroupByPlayerOutcome,
   leaveGroupByPlayerOutcome,
 } from "../floor-ops.ts";
+import { dispatchTurnNotifications } from "../turn-notify-dispatch.ts";
+import { readWebPushEnv } from "../env.ts";
 
 /** What the "you're in" screen shows — the Player's own token is never echoed back. */
 export type RecognizedPlayer = { displayName: string; skillLevel: SkillLevel };
@@ -137,6 +139,12 @@ export async function queueForSession(
   }
 
   const supabase = await createClient();
+  // Only fold the "before" state when push is actually configured — on a
+  // deploy with no VAPID keys the dispatch is a no-op, so the extra fold on
+  // this hot Player path would be pure waste.
+  const before = readWebPushEnv()
+    ? await getSession(supabase, sessionId).catch(() => null)
+    : null;
   const { error } = await supabase.rpc("on_deck_queue_player", {
     p_session_id: sessionId,
     p_token: trimmed,
@@ -155,6 +163,8 @@ export async function queueForSession(
   }
 
   revalidatePath(sessionPath(sessionId));
+  // A Player joining can fill a partial On Deck Foursome (issue #260).
+  if (before) await dispatchTurnNotifications(before.state, sessionId);
   return { ok: true };
 }
 
@@ -207,6 +217,9 @@ export async function rejoinQueue(
   }
 
   const supabase = await createClient();
+  const before = readWebPushEnv()
+    ? await getSession(supabase, sessionId).catch(() => null)
+    : null;
   const { error } = await supabase.rpc("on_deck_requeue_player", {
     p_session_id: sessionId,
     p_token: trimmed,
@@ -221,6 +234,7 @@ export async function rejoinQueue(
   }
 
   revalidatePath(sessionPath(sessionId));
+  if (before) await dispatchTurnNotifications(before.state, sessionId);
   return { ok: true };
 }
 
@@ -274,6 +288,8 @@ export async function formGroupAsPlayer(
   }
 
   revalidatePath(sessionPath(sessionId));
+  // Forming a Group rebuilds On Deck — its Foursome can take "Up next".
+  await dispatchTurnNotifications(loaded.state, sessionId);
   return { ok: true };
 }
 
@@ -317,5 +333,6 @@ export async function leaveGroup(
   }
 
   revalidatePath(sessionPath(sessionId));
+  await dispatchTurnNotifications(loaded.state, sessionId);
   return { ok: true };
 }

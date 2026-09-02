@@ -43,16 +43,21 @@ async function volunteerAppend(
   const loaded = await loadVolunteerSession(sessionId, token);
   if (!loaded) return { error: LINK_DEAD };
 
-  return commitFloorOutcome(sessionId, decide(loaded.state), async (event) => {
-    const supabase = await createClient();
-    const { error } = await supabase.rpc("on_deck_volunteer_append", {
-      p_session_id: sessionId,
-      p_token: token.trim(),
-      p_type: event.type,
-      p_payload: event.payload,
-    });
-    return { error };
-  });
+  return commitFloorOutcome(
+    sessionId,
+    decide(loaded.state),
+    async (event) => {
+      const supabase = await createClient();
+      const { error } = await supabase.rpc("on_deck_volunteer_append", {
+        p_session_id: sessionId,
+        p_token: token.trim(),
+        p_type: event.type,
+        p_payload: event.payload,
+      });
+      return { error };
+    },
+    loaded.state,
+  );
 }
 
 /** "Court N done" / "Send next four", fired by a link-authenticated Volunteer. */

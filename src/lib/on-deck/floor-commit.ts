@@ -4,7 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 import { sessionPath } from "./routes.ts";
+import { dispatchTurnNotifications } from "./turn-notify-dispatch.ts";
 import type { FloorOutcomeType, FloorOpOutcome } from "./floor-ops.ts";
+import type { SessionState } from "./session/types.ts";
 
 /** `{ ok: true }` on success (an appended event or a harmless no-op), or an
  * error string for the floor screen to show. */
@@ -24,6 +26,14 @@ export async function commitFloorOutcome(
     type: FloorOutcomeType;
     payload: Record<string, unknown>;
   }) => Promise<{ error: unknown }>,
+  /**
+   * The folded `SessionState` from *before* this write. When given, a
+   * successful append fires the opt-in turn notification (issue #260): the
+   * dispatch re-folds the Session and pushes any Player whose Foursome just
+   * entered On Deck or was assigned a Court. Omitted by callers whose event
+   * can't move a Foursome (none currently) and by tests.
+   */
+  beforeState?: SessionState,
 ): Promise<FloorActionResult> {
   if (outcome.kind === "error") return { error: outcome.error };
   if (outcome.kind === "noop") return { ok: true };
@@ -35,6 +45,10 @@ export async function commitFloorOutcome(
   }
 
   revalidatePath(sessionPath(sessionId));
+  if (beforeState) {
+    // Never throws — a push hiccup must not fail the operational action.
+    await dispatchTurnNotifications(beforeState, sessionId);
+  }
   return { ok: true };
 }
 

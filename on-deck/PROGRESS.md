@@ -18,15 +18,18 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
-`supabase db push` is done through **`20260902170000`** (#259 — the Kiosk:
-`COURT_CONFIRMED` added to the event-type check, `on_deck_check_kiosk_access` +
-`on_deck_kiosk_append`, `on_deck_undo_last_event` recreated with a `p_kiosk
-boolean` arg — a Kiosk may only undo a `kiosk`-sourced event), pushed
-2026-09-02 right after PR #343 merged. `supabase migration list --linked` shows
-local and remote in sync. The parallel #260 branch still carries an unmerged
-`20260902160000_on_deck_turn_notifications.sql` — it sorts *before* `170000`, so
-whoever pushes it next needs `--include-all` (or to rebase its timestamp past
-`170000`), the same out-of-order footgun #250 hit.
+`supabase db push` is done through **`20260902180000`** (#260 —
+turn-notification tables + `on_deck_subscribe_turn_notification` /
+`on_deck_unsubscribe_turn_notification` RPCs), pushed 2026-09-02 right after
+PR #342 merged. Its file was authored as `20260902160000` while #259's Kiosk
+migration (`20260902170000`) was still on a parallel branch; #259 merged and
+pushed first, so #260's timestamp was rebased to `20260902180000` *before*
+pushing — the out-of-order footgun #250 hit, avoided this time. `supabase
+migration list --linked` shows local and remote in sync.
+**`20260902170000`** (#259 — the Kiosk: `COURT_CONFIRMED` added to the
+event-type check, `on_deck_check_kiosk_access` + `on_deck_kiosk_append`,
+`on_deck_undo_last_event` recreated with a `p_kiosk boolean` arg — a Kiosk may
+only undo a `kiosk`-sourced event) was pushed right after PR #343 merged.
 **`20260902150000`** (#255 — Last Call / close / Session Summary:
 `on_deck_session_summaries` + `on_deck_last_call` + `on_deck_close_session`) was
 pushed right after PR #340 merged.
@@ -472,6 +475,64 @@ migration's timestamp past whatever else merged (the drift lesson
   direct INSERT, Kiosk undo by mode), `e2e/on-deck-kiosk.spec.ts` (self-serve
   court-done + add-me + a-player-short on the Kiosk alone, no Volunteer Link
   issued; inert under `volunteer-run`).
+
+- [x] **#260 — the opt-in turn notification.** A Player may turn on a single
+  push — "you're up, Court 5" — fired when their Foursome enters On Deck or is
+  assigned a Court, because a `self-serve` Session has no Volunteer calling
+  names (ADR 0005). Off by default; a one-tap enable on the Player's own status
+  screen, shown only under `self-serve` / `hybrid`. Per-Player, never a
+  broadcast; at most one buzz per step. Reuses Booking Buddy's `web-push` setup
+  (issue #12) — the same VAPID pair. Degrades silently where the browser can't
+  subscribe or the deploy has no VAPID keys.
+
+  The fold-exposed transition is `session/turn-notify.ts` `turnTransitions(before,
+  after)` — a pure diff of two folded `SessionState`s returning who is *newly*
+  On Deck or *newly* on a Court (a Court transition supersedes an On Deck one —
+  "one buzz"; a Player who skips On Deck from a thin Queue or a no-show swap
+  still gets one `court` transition; queue-position movement short of On Deck
+  fires nothing). Each transition carries a `turnKey` — `court:<n>:<since>` /
+  `on-deck:<committedAt>` — so the idempotency log dedupes per *turn*, not per
+  Player: a Player rotating through many Games gets buzzed every turn, not just
+  the first. `turn-notify-run.ts` `planTurnNotificationRun` is the plan
+  half (no Next/Supabase imports, like `booking-buddy/reminder-run.ts`):
+  transition × opted-in subscription × not-already-sent → a flat send list.
+  On Deck has no cron, so `turn-notify-dispatch.ts` `dispatchTurnNotifications`
+  runs the sends *inline* right after an operational event is appended —
+  threaded through `commitFloorOutcome` (Organizer + Volunteer floor ops) and
+  the four Player actions that can move a Foursome (`queueForSession`,
+  `rejoinQueue`, `formGroupAsPlayer`, `leaveGroup`). It re-folds via the admin
+  client, reads every `on_deck_push_subscriptions` row for the Session, sends
+  through `web-push` (pruning 404/410), and writes the
+  `on_deck_turn_notification_sends` idempotency log. **It never throws** — a
+  push hiccup must not fail the "Court N done" tap.
+
+  Migration `20260902180000` (authored as `160000`, rebased past #259's Kiosk
+  `170000` before pushing): `on_deck_push_subscriptions` (per device, scoped
+  to one Session, keyed by the device token — not `auth.users`, On Deck has no
+  accounts; `on delete cascade` on `session_id` — note close only purges the
+  event rows, not the Session row, so these linger harmlessly until the Session
+  row is removed) and `on_deck_turn_notification_sends` (unique `(session,
+  player, transition)` where `transition` is the per-turn key — the "one buzz
+  per turn" guarantee). Neither table is readable by `anon` /
+  `authenticated` — a device token is a Player's whole identity. A Player writes
+  a subscription through `on_deck_subscribe_turn_notification` (`anon`-callable,
+  SECURITY DEFINER, roster- and open-Session-gated, idempotent on the endpoint)
+  and clears it through `on_deck_unsubscribe_turn_notification` (keyed by the
+  endpoint — the browser's own secret). New service worker `public/on-deck-sw.js`
+  (scope `/on-deck`), new `src/components/on-deck/turn-notifications.tsx` (the
+  one-tap control, in `QueueStatus` under self-serve/hybrid; every failure
+  fails silent). `PlayerJoin` / `QueueStatus` gained a `floorMode` prop.
+
+  Tests: `turn-notify.test.ts` (each transition, the supersede rule, thin-Queue
+  and no-show paths, no-op cases, determinism), `turn-notify-run.test.ts`
+  (opt-in gating, idempotency, `pushConfigured` off, payload),
+  `on_deck_turn_notifications.test.sql` (subscribe roster/open-Session gating,
+  upsert, unsubscribe no-op, tables not `anon`-readable, send-log uniqueness),
+  `e2e/on-deck-turn-notification.spec.ts` (control shows under self-serve, is
+  absent under volunteer-run and on an unsupported browser, subscribe stores a
+  row). Real push *delivery* is out of e2e scope — same posture as
+  `push-notifications.spec.ts` (Chrome ↔ FCM is outbound network the suite
+  can't assume; the e2e web server carries no VAPID keys).
 
 ## Next
 

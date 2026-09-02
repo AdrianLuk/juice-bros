@@ -76,18 +76,23 @@ async function runAsOrganizer(
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
 
-  return commitFloorOutcome(sessionId, decide(owned), async (event) => {
-    const { error } = await owned.supabase
-      .from("on_deck_session_events")
-      .insert({
-        session_id: sessionId,
-        type: event.type,
-        operator_kind: "organizer",
-        operator_user_id: owned.organizer.userId,
-        payload: event.payload,
-      });
-    return { error };
-  });
+  return commitFloorOutcome(
+    sessionId,
+    decide(owned),
+    async (event) => {
+      const { error } = await owned.supabase
+        .from("on_deck_session_events")
+        .insert({
+          session_id: sessionId,
+          type: event.type,
+          operator_kind: "organizer",
+          operator_user_id: owned.organizer.userId,
+          payload: event.payload,
+        });
+      return { error };
+    },
+    owned.loaded.state,
+  );
 }
 
 /**

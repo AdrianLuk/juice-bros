@@ -271,6 +271,57 @@ export async function pausePlayerViaRpc(
   }
 }
 
+/**
+ * Subscribes a Player device to the turn notification (issue #260) the way the
+ * `on_deck_subscribe_turn_notification` RPC does — so a spec can verify the
+ * downstream send job without driving a real browser `PushManager.subscribe()`
+ * (which talks to Google's FCM, outbound network this suite can't assume).
+ */
+export async function subscribeTurnNotificationViaRpc(
+  sessionId: string,
+  token: string,
+  endpoint: string,
+): Promise<void> {
+  const res = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/rpc/on_deck_subscribe_turn_notification`,
+    {
+      method: "POST",
+      headers: anonHeaders(),
+      body: JSON.stringify({
+        p_session_id: sessionId,
+        p_token: token,
+        p_endpoint: endpoint,
+        p_p256dh: "p256dh-key",
+        p_auth: "auth-key",
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `subscribe-turn-notification RPC failed: ${res.status} ${await res.text()}`,
+    );
+  }
+}
+
+/** How many turn-notification sends are logged for a Session — the "one buzz" check. */
+export async function turnNotificationSendCount(
+  sessionId: string,
+): Promise<number> {
+  const url = new URL(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/on_deck_turn_notification_sends`,
+  );
+  url.searchParams.set("session_id", `eq.${sessionId}`);
+  url.searchParams.set("select", "id");
+
+  const res = await fetch(url, { headers: serviceRoleHeaders() });
+  if (!res.ok) {
+    throw new Error(
+      `reading turn-notification sends failed: ${res.status} ${await res.text()}`,
+    );
+  }
+  return ((await res.json()) as unknown[]).length;
+}
+
 /** Tears down the Club and everything cascading off it (Sessions, events). */
 export async function deleteClubForOrganizer(email: string): Promise<void> {
   const ownerId = await userIdForEmail(email);

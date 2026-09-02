@@ -14,6 +14,7 @@ import {
 import {
   SKILL_LEVELS,
   SKILL_LEVEL_LABEL,
+  type FloorMode,
   type SkillLevel,
 } from "@/lib/on-deck/session/types";
 import { newPlayerToken, savePlayerToken } from "@/components/on-deck/player-token";
@@ -32,7 +33,13 @@ import { QueueStatus } from "@/components/on-deck/queue-status";
  * (ADR 0001), so the page must not broadcast every token to everyone viewing
  * it. `recognizePlayer` confirms only the token this device already holds.
  */
-export function PlayerJoin({ sessionId }: { sessionId: string }) {
+export function PlayerJoin({
+  sessionId,
+  floorMode,
+}: {
+  sessionId: string;
+  floorMode: FloorMode;
+}) {
   const router = useRouter();
   const token = usePlayerToken(sessionId);
 
@@ -115,7 +122,13 @@ export function PlayerJoin({ sessionId }: { sessionId: string }) {
           Reopen the sign any time on this device and it&apos;ll know it&apos;s
           you.
         </p>
-        {token && <QueueStatus sessionId={sessionId} token={token} />}
+        {token && (
+          <QueueStatus
+            sessionId={sessionId}
+            token={token}
+            floorMode={floorMode}
+          />
+        )}
       </div>
     );
   }
