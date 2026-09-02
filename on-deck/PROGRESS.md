@@ -393,7 +393,41 @@ migration's timestamp past whatever else merged (the drift lesson
   with its own court count → Start opens it → floor shows that many Courts;
   edit-ahead → Start uses the edited values).
 
+- [x] **#255 — Last Call, close, and the Session Summary.** Two events reach
+  the fold: `LAST_CALL` (Organizer or Volunteer, never a Kiosk — ADR 0002) sets
+  `state.lastCallAt`, clears On Deck, and gates `seatCourt` / `refreshOnDeck` so
+  no new Foursome assigns and no new On Deck forms while Games on Courts finish
+  normally; `SESSION_CLOSED` flips `state.status` to `closed`. The permanent
+  anonymous **Session Summary** is a new pure projection,
+  `session/summary.ts` `projectSummary(config, events)` — attendance, games
+  played (occupied-Court finishes, split per Court via a new optional
+  `CompletedGame.court`), court utilization, wait-time distribution + longest +
+  average (from a new `state.completedWaits`, banked each time a Player is
+  seated), skill mix. Migration `20260902150000`: `on_deck_session_summaries`
+  (permanent, Organizer-readable, RLS); `on_deck_last_call(session, token?)` —
+  one write path for both Operators, idempotent; `on_deck_close_session(session,
+  summary)` — one transaction that stores the Summary (computed in the Server
+  Action from `projectSummary`, not re-folded in SQL), flips `status`, and
+  **purges every `on_deck_session_events` row for the Session — the Player
+  roster with it, ADR 0001**. The "SESSION_CLOSED of the vocabulary" is the
+  `status = 'closed'` flag; appending a row only to purge it in the same
+  breath would be theatre. Close is idempotent and frees the "one open per
+  Club" index; the Club QR resolver then shows "nothing running". Actions:
+  `callLastCall` / `closeSession` (`actions/floor.ts`), `volunteerCallLastCall`
+  (`actions/volunteer.ts` — no volunteer close). `RotationView` grew `lastCall`
+  and `permitEndsAt` (always null for now — no `permit_ends_at` column yet; the
+  floor's soft "call it?" nudge at `LAST_CALL_NUDGE_LEAD_MS` reads it and stays
+  hidden while null). Floor screen: a
+  "Wrapping up" card with a confirm on Last Call (no undo for it) and, once
+  called, a confirm on Close (Organizer only). The Player line and the Display
+  flip to "final games". Tests: `reduce.test.ts` (Last Call halts assignment
+  while in-progress Games persist; close; replay/undo parity),
+  `summary.test.ts` (every aggregate against a known log; determinism),
+  `on_deck_last_call_close.test.sql` (both Operators, idempotency, the purge,
+  the freed index, a Player can't append the vocabulary),
+  `e2e/on-deck-last-call.spec.ts` (last-call → finish → close → QR shows
+  nothing running).
+
 ## Next
 
-The rest of #238 — the interactive Kiosk, Last Call, and the Session Summary
-purge.
+The rest of #238 — the interactive Kiosk.

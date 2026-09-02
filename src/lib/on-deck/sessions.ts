@@ -201,6 +201,12 @@ function toEvent(row: EventRow): SessionEvent | null {
       return { type: "GROUP_DISSOLVED", at, operator, groupId };
     }
 
+    case "LAST_CALL":
+      return { type: "LAST_CALL", at, operator };
+
+    case "SESSION_CLOSED":
+      return { type: "SESSION_CLOSED", at, operator };
+
     default:
       return null;
   }
@@ -210,6 +216,12 @@ export type LoadedSession = {
   config: SessionConfig;
   status: "open" | "closed";
   state: SessionState;
+  /**
+   * The Session's full event log, in append order — the input the fold and the
+   * Session Summary projection (#255) both take. Empty for a Session whose log
+   * has been purged at close.
+   */
+  events: SessionEvent[];
   /**
    * The raw most recent event row, or null for an eventless Session. What
    * operator Undo (#247) needs that the fold discards: the seq to target, and
@@ -304,6 +316,7 @@ async function loadSession(
     config,
     status: row.status,
     state: reduceSession(config, events),
+    events,
     lastEvent,
   };
 }

@@ -76,6 +76,15 @@ function DisplayBoardInner({
 
   return (
     <div className="space-y-10" data-testid="display-board">
+      {view.lastCall && (
+        <p
+          className="rounded-2xl bg-brand-orange px-6 py-4 font-heading text-xl font-semibold text-white"
+          data-testid="display-last-call"
+        >
+          Last call — final games. No new foursomes tonight.
+        </p>
+      )}
+
       {/* On Deck — the prominent element. */}
       <section>
         <h2 className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">

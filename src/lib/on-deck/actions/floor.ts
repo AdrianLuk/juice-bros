@@ -1,9 +1,13 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
+import { sessionPath, floorPath } from "../routes.ts";
+import { projectSummary } from "../session/summary.ts";
 import {
   commitFloorOutcome,
   runUndo,
@@ -35,7 +39,7 @@ type OwnedSession = {
   loaded: NonNullable<Awaited<ReturnType<typeof getSession>>>;
 };
 
-async function loadOwnedOpenSession(
+async function loadOwnedSession(
   sessionId: string,
 ): Promise<OwnedSession | { error: string }> {
   const organizer = await verifyOrganizer();
@@ -45,10 +49,18 @@ async function loadOwnedOpenSession(
   if (!club || !loaded || loaded.config.clubId !== club.id) {
     return { error: "That session isn't yours to run." };
   }
-  if (loaded.status !== "open") {
+  return { organizer, supabase, loaded };
+}
+
+async function loadOwnedOpenSession(
+  sessionId: string,
+): Promise<OwnedSession | { error: string }> {
+  const owned = await loadOwnedSession(sessionId);
+  if ("error" in owned) return owned;
+  if (owned.loaded.status !== "open") {
     return { error: "This session has already wrapped up." };
   }
-  return { organizer, supabase, loaded };
+  return owned;
 }
 
 /**
@@ -232,4 +244,66 @@ export async function undoLastAction(
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
   return runUndo(owned.supabase, sessionId, expectedSeq);
+}
+
+/**
+ * "Last Call" (issue #255), fired by the Organizer. Appends `LAST_CALL` through
+ * `on_deck_last_call`; the fold then assigns no new Foursomes and forms no new
+ * On Deck ones, while Games on Courts finish normally. Idempotent — a second
+ * tap is a no-op.
+ */
+export async function callLastCall(
+  sessionId: string,
+): Promise<FloorActionResult> {
+  const owned = await loadOwnedSession(sessionId);
+  if ("error" in owned) return owned;
+  // Already closed — Last Call is moot but not an error (a stale board, a
+  // double tap after close).
+  if (owned.loaded.status !== "open") return { ok: true };
+
+  const { error } = await owned.supabase.rpc("on_deck_last_call", {
+    p_session_id: sessionId,
+  });
+  if (error) {
+    console.error("on-deck: last call failed", error);
+    if (error.code === "42501") return { error: "That session isn't yours to call." };
+    return { error: "Couldn't call it. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  revalidatePath(floorPath(sessionId));
+  return { ok: true };
+}
+
+/**
+ * "Close the session" (issue #255), the Organizer's alone. Projects the
+ * permanent anonymous Session Summary from the fold, then
+ * `on_deck_close_session` stores it, flips the Session to `closed`, and purges
+ * the event log and Player roster (ADR 0001) in one transaction. Idempotent on
+ * an already-closed Session.
+ */
+export async function closeSession(
+  sessionId: string,
+): Promise<FloorActionResult> {
+  const owned = await loadOwnedSession(sessionId);
+  if ("error" in owned) return owned;
+  // Already closed — a double tap or a retry after a dropped response. The RPC
+  // is idempotent too, but there is nothing to send and no summary to project.
+  if (owned.loaded.status !== "open") return { ok: true };
+
+  const summary = projectSummary(owned.loaded.config, owned.loaded.events);
+
+  const { error } = await owned.supabase.rpc("on_deck_close_session", {
+    p_session_id: sessionId,
+    p_summary: summary,
+  });
+  if (error) {
+    console.error("on-deck: close session failed", error);
+    if (error.code === "42501") return { error: "That session isn't yours to close." };
+    return { error: "Couldn't close the session. Try again." };
+  }
+
+  revalidatePath(sessionPath(sessionId));
+  revalidatePath(floorPath(sessionId));
+  return { ok: true };
 }

@@ -104,6 +104,27 @@ function QueueStatusInner({
     return null;
   }
 
+  // After Last Call, a Player still on a Court finishes their Game; everyone
+  // else is done for the night (issue #255).
+  if (query.data?.lastCall && !me?.court) {
+    return (
+      <p
+        className="mt-6 rounded-xl border px-4 py-3 text-sm text-muted-foreground"
+        data-testid="queue-last-call"
+      >
+        Last call — no more games tonight. Thanks for playing.
+      </p>
+    );
+  }
+
+  if (me?.court) {
+    return (
+      <p className="mt-6 rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
+        You&apos;re up, Court {me.court}
+      </p>
+    );
+  }
+
   if (me?.paused) {
     return (
       <div className="mt-6" data-testid="queue-paused">
@@ -125,14 +146,6 @@ function QueueStatusInner({
           </p>
         )}
       </div>
-    );
-  }
-
-  if (me?.court) {
-    return (
-      <p className="mt-6 rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
-        You&apos;re up, Court {me.court}
-      </p>
     );
   }
 

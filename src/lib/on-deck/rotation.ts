@@ -55,6 +55,20 @@ export type QueueEntryView =
 
 export type RotationView = {
   status: "open" | "closed";
+  /**
+   * Last Call has been tapped (issue #255): no new Foursomes assign, no new On
+   * Deck forms, Games on Courts play out. The floor and Display flip to "final
+   * games". Always false once `status` is `closed`.
+   */
+  lastCall: boolean;
+  /**
+   * When the venue permit ends (epoch ms), or null when the Session carries no
+   * permit end. The floor screen uses it for the soft "call it?" nudge at a
+   * configurable lead time (issue #255, ADR 0002) — a prompt, never an
+   * automatic Last Call. Always null for now (no `permit_ends_at` column on
+   * `on_deck_sessions` yet); the nudge simply doesn't show while it is null.
+   */
+  permitEndsAt: number | null;
   venueName: string;
   courts: RotationCourt[];
   /**
@@ -222,6 +236,10 @@ export function rotationViewFrom(
 
   return {
     status,
+    lastCall: status === "open" && state.lastCallAt !== null,
+    // Wired once `permit_ends_at` lands on the Session; null keeps the nudge
+    // hidden until then.
+    permitEndsAt: null,
     venueName: state.config.venueName,
     courts: state.courts.map((c) => ({
       number: c.number,
