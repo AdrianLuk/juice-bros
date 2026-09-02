@@ -56,6 +56,19 @@ const FUTURE_EVENT = {
   end: "2026-10-02T00:00:00Z", // 20:00 EDT
 };
 
+/** A distinct future reservation on 2026-10-`n` (n = 2..20), Court #n, 6-8pm EDT. */
+function futureEvent(n: number) {
+  const day = String(n).padStart(2, "0");
+  return {
+    uid: `feed-evt-${n}`,
+    summary: "Doubles",
+    description: `Court #${n}`,
+    location: CLUB,
+    start: `2026-10-${day}T22:00:00Z`,
+    end: `2026-10-${day}T23:00:00Z`,
+  };
+}
+
 test("the feed field rejects an invalid URL inline and does not save it", async ({ page, accounts }) => {
   const user = { email: accounts.amy.email, password: accounts.password };
   const facility = `${PREFIX} Reject`;
@@ -243,6 +256,146 @@ test("the feed field and section are available to a User not on EMAIL_SYNC_ALLOW
       .getByRole("listitem")
       .filter({ has: page.getByRole("button", { name: "Confirm" }) }),
   ).toBeVisible();
+});
+
+test("a reservation that vanishes from the feed becomes a cancellation candidate; confirming removes the Booking", async ({
+  page,
+  accounts,
+}) => {
+  const user = { email: accounts.amy.email, password: accounts.password };
+  const facility = `${PREFIX} Cancel`;
+  const orgId = await seedFacility(user, facility);
+
+  // Two future reservations to start — one tracked Booking left after the diff
+  // keeps rail 4's >50% guard from firing (1 of 2, and 1 ≤ the absolute cap).
+  const kept = futureEvent(2);
+  const gone = futureEvent(9);
+  mock.registerFeed("/feed/cancel", { kind: "ics", body: icsBody([kept, gone]) });
+
+  await signIn(page, accounts.amy.email);
+  await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/cancel"));
+
+  // Sync and confirm both — two Bookings, two `imported` feed rows.
+  await syncFacilities(page);
+  const section = feedSection(page);
+  for (let i = 0; i < 2; i++) {
+    await section
+      .getByRole("listitem")
+      .filter({ has: page.getByRole("button", { name: "Confirm" }) })
+      .first()
+      .getByRole("button", { name: "Confirm" })
+      .click();
+    await page.waitForTimeout(300);
+  }
+  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(2);
+
+  // The `gone` reservation drops out of the feed.
+  mock.registerFeed("/feed/cancel", { kind: "ics", body: icsBody([kept]) });
+  await syncFacilities(page);
+
+  const cancelCard = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Remove booking" }) });
+  await expect(cancelCard).toBeVisible();
+  await expect(cancelCard).toContainText("10-09-2026");
+
+  await cancelCard.getByRole("button", { name: "Remove booking" }).click();
+  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+  const remaining = await bookingsForOrg(user, orgId);
+  expect(remaining).toHaveLength(1);
+  expect(remaining[0].court_label).toBe("#2");
+
+  // A further sync doesn't re-offer it.
+  await syncFacilities(page);
+  await expect(
+    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) }),
+  ).toHaveCount(0);
+});
+
+test("an unhealthy feed fetch produces zero cancellation candidates — nothing is removed", async ({
+  page,
+  accounts,
+}) => {
+  const user = { email: accounts.amy.email, password: accounts.password };
+  const facility = `${PREFIX} Unhealthy`;
+  const orgId = await seedFacility(user, facility);
+  mock.registerFeed("/feed/unhealthy", { kind: "ics", body: icsBody([FUTURE_EVENT]) });
+
+  await signIn(page, accounts.amy.email);
+  await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/unhealthy"));
+
+  await syncFacilities(page);
+  const section = feedSection(page);
+  await section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) })
+    .getByRole("button", { name: "Confirm" })
+    .click();
+  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+
+  // The feed now 500s — the diff must not run, so no cancellation candidate and
+  // the Booking stays.
+  mock.registerFeed("/feed/unhealthy", { kind: "status", status: 500 });
+  await syncFacilities(page);
+  await expect(section.getByRole("alert").filter({ hasText: facility })).toBeVisible();
+  await expect(
+    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) }),
+  ).toHaveCount(0);
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+
+  // An empty (but 200) body is unhealthy the same way.
+  mock.registerFeed("/feed/unhealthy", { kind: "empty" });
+  await syncFacilities(page);
+  await expect(section.getByRole("alert").filter({ hasText: facility })).toBeVisible();
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+});
+
+test("a sync that would flag more than the cap shows the 'feed looks wrong' warning instead of removing bookings", async ({
+  page,
+  accounts,
+}) => {
+  const user = { email: accounts.amy.email, password: accounts.password };
+  const facility = `${PREFIX} Cap`;
+  const orgId = await seedFacility(user, facility);
+
+  // The anchor stays in the feed and starts *before* the ones that vanish, so
+  // rail 2's "at or after the earliest event still present" floor doesn't
+  // exclude them — this test is about rail 4, not rail 2.
+  const anchor = futureEvent(2);
+  const events = [3, 4, 5, 6, 7].map(futureEvent);
+  mock.registerFeed("/feed/cap", { kind: "ics", body: icsBody([...events, anchor]) });
+
+  await signIn(page, accounts.amy.email);
+  await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/cap"));
+
+  await syncFacilities(page);
+  const section = feedSection(page);
+  // Confirm all six.
+  for (let i = 0; i < 6; i++) {
+    await section
+      .getByRole("listitem")
+      .filter({ has: page.getByRole("button", { name: "Confirm" }) })
+      .first()
+      .getByRole("button", { name: "Confirm" })
+      .click();
+    await page.waitForTimeout(300);
+  }
+  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(6);
+
+  // Feed collapses to just the anchor — five reservations vanish at once.
+  mock.registerFeed("/feed/cap", { kind: "ics", body: icsBody([anchor]) });
+  await syncFacilities(page);
+
+  await expect(section.getByRole("alert").filter({ hasText: /looks wrong/i })).toBeVisible();
+  await expect(
+    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) }),
+  ).toHaveCount(0);
+  // Nothing removed.
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(6);
 });
 
 test('"From facility feeds" is a section separate from "Sync from Email"', async ({ page, accounts }) => {

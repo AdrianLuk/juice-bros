@@ -4,12 +4,24 @@
  * ADR-0019) — the feed counterpart of `reviewCourtReserveEmails`
  * (`email-sync-review.ts`).
  *
- * `import` kind only in this slice. The feed-diff cancellation mechanism (a
- * previously-seen event that has vanished or gone cancelled) and its four
- * safety rails are the next ticket; this one takes the fresh fetch and turns
- * every future-dated event that isn't already a Booking and isn't dismissed
- * into an import candidate, and records the ones that already match a Booking
- * as `imported` + linked.
+ * `import` and `cancellation` kinds (issue #296). The fresh fetch turns every
+ * future-dated event that isn't already a Booking and isn't dismissed into an
+ * import candidate, records the ones that already match a Booking as
+ * `imported` + linked, and — the feed-diff cancellation mechanism — flags a
+ * previously-seen, Booking-linked event that has vanished from the feed (or
+ * now carries a cancelled status) as a cancellation candidate. Four safety
+ * rails guard the diff (ADR-0019):
+ *
+ *   1. Healthy-fetch gate — a failed / empty / unparseable fetch never reaches
+ *      here (the caller bails before calling `reviewCalendarFeed`). This module
+ *      only ever runs off a clean parse with at least one event.
+ *   2. In-window only — a vanished UID counts only if its start is still in the
+ *      future *and* at or after the earliest event still present in the feed.
+ *   3. Explicit cancelled status is unconditional — an event still in the feed
+ *      carrying a cancelled status is flagged regardless of rail 2.
+ *   4. Sanity cap — a sync that would flag more than `CANCELLATION_ABSOLUTE_CAP`
+ *      or more than half an Org's feed-tracked Bookings surfaces a
+ *      `feedLooksWrong` warning instead of the cancellation candidates.
  *
  * Pure, and free of Next.js / Supabase imports — same discipline as
  * `import-candidate-shaping.ts`, whose shared helpers it reuses
@@ -79,6 +91,31 @@ export type CalendarFeedReviewItem = {
 };
 
 /**
+ * A previously-seen, Booking-linked feed event that has vanished from the feed
+ * or now carries a cancelled status — a cancellation candidate the review
+ * screen renders. Confirming it removes the linked Booking (`confirmFeedCancellation`).
+ * Matched by the `booking_id` on the seen-event row, so it works for a Booking
+ * imported from email or entered by hand, not only feed-imported ones.
+ */
+export type CalendarFeedCancellationItem = {
+  kind: "cancellation";
+  /** The owning Org. */
+  orgId: string;
+  /** The VEVENT UID of the vanished / cancelled event — the seen-event row's key. */
+  feedEventUid: string;
+  /** The Booking this event was linked to; confirming removes it. */
+  bookingId: string;
+  /** Start instant, ISO 8601 — from the seen-event row. */
+  startsAt: string;
+  /** `YYYY-MM-DD` in the Org's own zone. */
+  date: string;
+  /** `HH:MM`, 24-hour, in the Org's own zone. */
+  startTime: string;
+  /** Why it was flagged — `"vanished"` (gone from the feed) or `"cancelled"` (explicit status). */
+  reason: "vanished" | "cancelled";
+};
+
+/**
  * A feed event that maps to an existing Booking (same Org, court, date/time)
  * — filtered out of the review list and its `org_feed_events` row written
  * `status = 'imported'` with `booking_id` set, regardless of how that Booking
@@ -93,11 +130,18 @@ export type AutoLinkedFeedEvent = {
   startsAt: string;
 };
 
-/** A seen-event row already on file, the minimum the review needs to skip a dismissed event. */
+/** A seen-event row already on file — what the review needs to skip a dismissed event and run the cancellation diff. */
 export type SeenFeedEvent = {
   uid: string;
   status: "pending" | "imported" | "dismissed";
+  /** Start instant, ISO 8601 — the cancellation diff's in-window check reads this. */
+  startsAt: string;
+  /** The Booking this row settled to, when `status === "imported"`. Null otherwise. */
+  bookingId: string | null;
 };
+
+/** More than this many cancellation candidates in one sync trips the sanity cap (rail 4). */
+export const CANCELLATION_ABSOLUTE_CAP = 3;
 
 export type ReviewCalendarFeedInput = {
   /** The fresh fetch, already parsed and mapped (`parseCourtReserveFeed`). */
@@ -107,6 +151,12 @@ export type ReviewCalendarFeedInput = {
   existingBookings: readonly ExistingBookingForFeedReview[];
   /** Every `org_feed_events` row already on file for this Org. */
   seenEvents: readonly SeenFeedEvent[];
+  /**
+   * UIDs the parser saw but couldn't turn into a usable event this sync
+   * (`parseCourtReserveFeed`'s `unreadableUids`) — treated as *still present*
+   * by the cancellation diff so a one-sync parse gap never reads as a vanish.
+   */
+  unreadableUids?: readonly string[];
   /** Passed in, never read from the clock — determinism, same as the rest of this app. */
   now: Date;
 };
@@ -116,6 +166,15 @@ export type ReviewedCalendarFeed = {
   items: CalendarFeedReviewItem[];
   /** Events that already match a Booking — the caller records these as imported + linked. */
   autoLinked: AutoLinkedFeedEvent[];
+  /** Previously-seen, Booking-linked events that vanished or went cancelled — earliest slot first. Empty when `feedLooksWrong`. */
+  cancellations: CalendarFeedCancellationItem[];
+  /**
+   * Rail 4 tripped — the diff would have flagged more than
+   * `CANCELLATION_ABSOLUTE_CAP` or more than half this Org's feed-tracked
+   * Bookings, so `cancellations` is suppressed and the caller shows a
+   * "this feed looks wrong — check the URL" warning instead.
+   */
+  feedLooksWrong: boolean;
 };
 
 /** Earliest slot first — `date` / `startTime` both sort correctly as plain strings. */
@@ -137,6 +196,7 @@ export function reviewCalendarFeed({
   org,
   existingBookings,
   seenEvents,
+  unreadableUids = [],
   now,
 }: ReviewCalendarFeedInput): ReviewedCalendarFeed {
   const dismissedUids = new Set(
@@ -219,5 +279,99 @@ export function reviewCalendarFeed({
 
   items.sort(byDateAndStartTime);
 
-  return { items, autoLinked };
+  /* ---------------------------------------------------------------------- */
+  /* The feed-diff cancellation mechanism + its four safety rails.          */
+  /* ---------------------------------------------------------------------- */
+
+  // Rail 1 is the caller's: a failed / empty / unparseable fetch never gets
+  // here. By this point `events` is a clean parse with at least one event.
+
+  // Every UID the current feed still carries — readable events plus the ones
+  // the parser couldn't decode this sync (a parse gap must never read as a
+  // vanish).
+  const presentUids = new Set<string>([
+    ...events.map((event) => event.uid),
+    ...unreadableUids,
+  ]);
+
+  // An event still in the feed, keyed by UID, so rail 3 can spot an explicit
+  // cancelled status.
+  const currentByUid = new Map(events.map((event) => [event.uid, event]));
+
+  const nowMs = now.getTime();
+
+  // Rail 2's floor: the earliest *future* start still present in the feed. A
+  // vanished UID older than this is "the feed's window simply moved past it",
+  // not a cancellation. Only future present events count toward the floor — a
+  // stale past event lingering in the feed must not drag the floor into the
+  // past and disable the rail.
+  const earliestPresentStartMs = events.reduce((min, event) => {
+    const startMs = new Date(event.startsAt).getTime();
+    return startMs > nowMs ? Math.min(min, startMs) : min;
+  }, Number.POSITIVE_INFINITY);
+
+  // Only an `imported`, Booking-linked seen row can be a cancellation
+  // candidate — that link is the whole matching mechanism, and it exists
+  // however the Booking was made.
+  const linkedSeen = seenEvents.filter(
+    (seen): seen is SeenFeedEvent & { bookingId: string } =>
+      seen.status === "imported" && seen.bookingId !== null,
+  );
+
+  const cancellations: CalendarFeedCancellationItem[] = [];
+
+  for (const seen of linkedSeen) {
+    const seenStartMs = new Date(seen.startsAt).getTime();
+    const startInstant = new Date(seen.startsAt);
+    const shaped = {
+      kind: "cancellation" as const,
+      orgId: org.id,
+      feedEventUid: seen.uid,
+      bookingId: seen.bookingId,
+      startsAt: startInstant.toISOString(),
+      date: todayInZone(org.timeZone, startInstant),
+      startTime: clockInZone(org.timeZone, startInstant),
+    };
+
+    const stillPresent = currentByUid.get(seen.uid);
+    if (stillPresent) {
+      // Rail 3: an explicit cancelled status is unconditional — flag it
+      // regardless of rail 2's window.
+      if (stillPresent.cancelled) {
+        cancellations.push({ ...shaped, reason: "cancelled" });
+      }
+      continue;
+    }
+
+    // Vanished from the feed. Rail 2: only counts if its start is still in the
+    // future *and* at or after the earliest event the feed still shows.
+    if (
+      !presentUids.has(seen.uid) &&
+      seenStartMs > nowMs &&
+      seenStartMs >= earliestPresentStartMs
+    ) {
+      cancellations.push({ ...shaped, reason: "vanished" });
+    }
+  }
+
+  cancellations.sort(byDateAndStartTime);
+
+  // Rail 4: a narrowed or swapped feed must not quietly gut a User's records.
+  // Two independent triggers (ADR-0019's "more than ~3, or more than ~50%"):
+  //  - more than `CANCELLATION_ABSOLUTE_CAP` candidates in one sync; or
+  //  - more than half an Org's feed-tracked Bookings at once — but only when
+  //    that's at least two candidates, so an ordinary lone cancellation
+  //    (which is 100% of a one-Booking feed) still comes through.
+  const feedTrackedBookingCount = linkedSeen.length;
+  const feedLooksWrong =
+    cancellations.length > CANCELLATION_ABSOLUTE_CAP ||
+    (cancellations.length >= 2 &&
+      cancellations.length * 2 > feedTrackedBookingCount);
+
+  return {
+    items,
+    autoLinked,
+    cancellations: feedLooksWrong ? [] : cancellations,
+    feedLooksWrong,
+  };
 }

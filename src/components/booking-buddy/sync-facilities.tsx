@@ -19,9 +19,11 @@ import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
+  confirmFeedCancellation,
   confirmFeedCandidate,
   dismissFeedCandidate,
   syncFacilityFeeds,
+  type CalendarFeedCancellationItem,
   type CalendarFeedReviewItem,
   type SyncFacilityFeedsResult,
 } from "@/lib/booking-buddy/actions/calendar-feed";
@@ -123,6 +125,73 @@ function FeedCandidateCard({
 }
 
 /**
+ * One feed-diff cancellation candidate (issue #296) — a reservation that was
+ * in the feed on a previous sync and has vanished, or now carries a cancelled
+ * status, and maps to a logged future Booking. Confirming removes that
+ * Booking. Mirrors the email sync's `CancellationBody` — no Org picker, no
+ * editable fields, just Remove / Dismiss.
+ */
+function FeedCancellationCard({
+  item,
+  onResolved,
+}: {
+  item: CalendarFeedCancellationItem;
+  onResolved: (feedEventUid: string) => void;
+}) {
+  const [confirmState, confirmAction, confirmPending] = useActionState(
+    confirmFeedCancellation,
+    EMPTY,
+  );
+  const [dismissState, dismissAction, dismissPending] = useActionState(
+    dismissFeedCandidate,
+    EMPTY,
+  );
+  const busy = confirmPending || dismissPending;
+
+  useResolveOnSuccess(confirmState, () => onResolved(item.feedEventUid));
+  useResolveOnSuccess(dismissState, () => onResolved(item.feedEventUid));
+
+  return (
+    <li className="bb-card flex flex-col gap-3 border-destructive/30 p-4">
+      <div>
+        <p className="font-medium">
+          {item.reason === "cancelled"
+            ? "Cancelled at the facility"
+            : "No longer on the facility's calendar"}
+        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Confirm to remove the matching booking from Booking Buddy.
+        </p>
+      </div>
+
+      <form action={confirmAction} className="self-start">
+        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
+        <input type="hidden" name="org_id" value={item.orgId} />
+        <input type="hidden" name="booking_id" value={item.bookingId} />
+        <Button type="submit" variant="destructive" disabled={busy}>
+          {confirmPending ? "Removing…" : "Remove booking"}
+        </Button>
+      </form>
+      <ActionError state={confirmState} />
+
+      <form action={dismissAction} className="self-start">
+        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
+        <input type="hidden" name="org_id" value={item.orgId} />
+        <input type="hidden" name="sequence" value={0} />
+        <input type="hidden" name="starts_at" value={item.startsAt} />
+        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
+          {dismissPending ? "Dismissing…" : "Keep booking"}
+        </Button>
+      </form>
+      <ActionError state={dismissState} />
+    </li>
+  );
+}
+
+/**
  * "From facility feeds" (issue #295) — the Calendar Feed counterpart of the
  * "Sync from Email" section, rendered adjacent to it on the Bookings page but
  * as its own section. A click-triggered sync (same `enabled` pattern), one
@@ -162,6 +231,9 @@ export function SyncFacilitiesSection({
                 items: feed.items.filter(
                   (item) => item.feedEventUid !== feedEventUid,
                 ),
+                cancellations: feed.cancellations.filter(
+                  (item) => item.feedEventUid !== feedEventUid,
+                ),
               }
             : feed,
         ),
@@ -186,6 +258,15 @@ export function SyncFacilitiesSection({
         )
       : [];
   const candidates: CalendarFeedReviewItem[] = okFeeds.flatMap((feed) => feed.items);
+  const cancellations: CalendarFeedCancellationItem[] = okFeeds.flatMap(
+    (feed) => feed.cancellations,
+  );
+  const feedsLookingWrong = okFeeds.filter((feed) => feed.feedLooksWrong);
+  const nothingToReview =
+    candidates.length === 0 &&
+    cancellations.length === 0 &&
+    erroredFeeds.length === 0 &&
+    feedsLookingWrong.length === 0;
 
   if (!hasConfiguredFeed) {
     return null;
@@ -240,25 +321,61 @@ export function SyncFacilitiesSection({
           </div>
         ))}
 
-        {data?.status === "ok" &&
-          (candidates.length === 0 ? (
-            erroredFeeds.length === 0 && (
+        {feedsLookingWrong.map((feed) => (
+          <div
+            key={feed.orgId}
+            className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
+            role="alert"
+          >
+            <p className="font-medium">
+              {orgNameById.get(feed.orgId) ?? "That facility"}&apos;s feed looks
+              wrong.
+            </p>
+            <p className="mt-0.5">
+              It dropped far more of your bookings at once than a normal
+              cancellation would. Nothing was removed. Check the feed URL on the{" "}
+              <Link href={ORGS_PATH} className="underline underline-offset-4">
+                Facilities
+              </Link>{" "}
+              page and sync again.
+            </p>
+          </div>
+        ))}
+
+        {data?.status === "ok" && (
+          <>
+            {cancellations.length > 0 && (
+              <ul className="flex flex-col gap-4">
+                {cancellations.map((item) => (
+                  <FeedCancellationCard
+                    key={item.feedEventUid}
+                    item={item}
+                    onResolved={handleResolved}
+                  />
+                ))}
+              </ul>
+            )}
+
+            {candidates.length > 0 && (
+              <ul className="flex flex-col gap-4">
+                {candidates.map((item) => (
+                  <FeedCandidateCard
+                    key={item.feedEventUid}
+                    item={item}
+                    orgs={orgs}
+                    onResolved={handleResolved}
+                  />
+                ))}
+              </ul>
+            )}
+
+            {nothingToReview && (
               <p className="text-sm text-muted-foreground">
                 No new bookings found.
               </p>
-            )
-          ) : (
-            <ul className="flex flex-col gap-4">
-              {candidates.map((item) => (
-                <FeedCandidateCard
-                  key={item.feedEventUid}
-                  item={item}
-                  orgs={orgs}
-                  onResolved={handleResolved}
-                />
-              ))}
-            </ul>
-          ))}
+            )}
+          </>
+        )}
       </div>
     </section>
   );
