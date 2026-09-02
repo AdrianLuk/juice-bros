@@ -52,7 +52,11 @@ export type FloorOutcomeType =
   // Player-sourced (issue #251) — decided by the same pure `floor-ops`
   // helpers but committed through an `anon` Player RPC, not the operator write
   // paths, and never operator-undoable (kept out of `FLOOR_EVENT_TYPES`).
-  | "GROUP_MEMBER_REMOVED";
+  | "GROUP_MEMBER_REMOVED"
+  // The idle-court nudge's "still going" tap (issue #259). Corrected forward
+  // (tap it again, or "Court N done"), never undone — kept out of
+  // `FLOOR_EVENT_TYPES`.
+  | "COURT_CONFIRMED";
 
 function isFloorEventType(type: string): type is FloorEventType {
   return (FLOOR_EVENT_TYPES as readonly string[]).includes(type);
@@ -161,6 +165,41 @@ export function finishCourtOutcome(
   }
 
   return { kind: "event", type: "COURT_FINISHED", payload: { court } };
+}
+
+/**
+ * The idle-court nudge's "yes, Court N is still going" tap (issue #259).
+ * `expectedSince` is the `since` the nudging surface last rendered for the
+ * Court; a mismatch (the Game already turned over) makes this a no-op, not an
+ * event. A no-op too for a Court not in play — the nudge only ever shows for an
+ * occupied Court, so a tap on an empty one is a stale board.
+ */
+export function confirmCourtOutcome(
+  state: SessionState,
+  court: number,
+  expectedSince: number | null,
+): FloorOpOutcome {
+  if (
+    !Number.isInteger(court) ||
+    court < 1 ||
+    court > state.config.courtCount
+  ) {
+    return { kind: "error", error: "That court number isn't on this session." };
+  }
+
+  const current = state.courts.find((c) => c.number === court);
+  if (!current || current.foursome.length === 0) {
+    return { kind: "noop" };
+  }
+  if ((current.since ?? null) !== expectedSince) {
+    return { kind: "noop" };
+  }
+
+  return {
+    kind: "event",
+    type: "COURT_CONFIRMED",
+    payload: { court, since: expectedSince },
+  };
 }
 
 /** "Set aside": an Operator stands a Player down (reason `set-aside`). */
