@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QueryProvider } from "@/components/on-deck/query-provider";
+import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import {
   addWalkup,
   bringPlayerBack,
@@ -55,8 +56,6 @@ export type FloorAuth =
   | { kind: "volunteer"; token: string };
 
 const ORGANIZER_AUTH: FloorAuth = { kind: "organizer" };
-
-const POLL_MS = 4_000;
 
 const PAUSE_REASON_LABEL: Record<PauseReason, string> = {
   left: "left the queue",
@@ -588,16 +587,20 @@ function RotationBoardInner({
   const authToken = auth.kind === "volunteer" ? auth.token : undefined;
   const queryKey = ["on-deck", "rotation", sessionId, "floor"] as const;
   const rosterKey = ["on-deck", "roster", sessionId, "floor"] as const;
+  // Realtime carries the updates when the socket is healthy (issue #252) and
+  // this drops to a slow backstop poll; a socket drop returns it to the ~4s
+  // fallback automatically, a reconnect resumes Realtime.
+  const pollInterval = useRotationSync(sessionId, [queryKey, rosterKey]);
   const query = useQuery({
     queryKey,
     queryFn: () => getRotationView(sessionId),
-    refetchInterval: POLL_MS,
+    refetchInterval: pollInterval,
     initialData: initialView,
   });
   const rosterQuery = useQuery({
     queryKey: rosterKey,
     queryFn: () => getFloorRoster(sessionId, authToken),
-    refetchInterval: POLL_MS,
+    refetchInterval: pollInterval,
     initialData: initialRoster,
   });
   const [error, setError] = useState<string | null>(null);

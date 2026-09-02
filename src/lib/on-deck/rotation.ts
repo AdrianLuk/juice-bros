@@ -14,9 +14,10 @@ import { createClient } from "./supabase/server.ts";
 
 /**
  * The rotation loop's read model (issue #243). Every live surface — the
- * Organizer floor screen and a Player's own "where am I" line — polls this
- * (via the `getRotationView` Server Action, TanStack Query `refetchInterval`
- * ~4s) and re-renders; realtime is a later upgrade (#238 ticket 13).
+ * Organizer floor screen and a Player's own "where am I" line — re-fetches this
+ * (via the `getRotationView` Server Action) on a Realtime notify (issue #252),
+ * falling back to a ~4s TanStack Query poll when the socket drops, and
+ * re-renders.
  *
  * Device tokens never leave the server: a token is a Player's whole identity
  * (ADR 0001), and the open Session is world-readable. A caller passes their
