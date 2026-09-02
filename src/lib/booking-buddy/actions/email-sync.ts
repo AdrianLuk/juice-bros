@@ -33,6 +33,7 @@ import {
 import { parseNewBooking } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
 import { isBookingFormat } from "../capacity.ts";
+import { isKnownTimeZone } from "../timezone.ts";
 import {
   deleteOwnedBooking,
   getBookingsPageData,
@@ -388,6 +389,14 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
  * deleting this Booking later cascades the row away and a future sync
  * re-offers the email — the realistic "deleted a confirmed booking, want it
  * back" path is recovery.
+ *
+ * Confirm-time duplicate guard (issue #294 / ADR-0019): the duplicate-Booking
+ * check the review list already applies when it's shaped also runs here,
+ * against the caller's Bookings as they are at confirm time. Without it,
+ * confirming a feed candidate first and then this email candidate for the same
+ * slot in one session would create a second Booking — the email review ran
+ * before the feed confirm existed. On a hit the message is recorded settled
+ * and no Booking is created.
  */
 export async function confirmImportCandidate(
   _prev: ActionResult,
@@ -410,12 +419,65 @@ export async function confirmImportCandidate(
     return parsed;
   }
 
+  const supabase = await createClient();
+
+  const { data: guardOrg } = await supabase
+    .from("orgs")
+    .select("time_zone")
+    .eq("id", parsed.orgId)
+    .eq("owner_id", session.userId)
+    .maybeSingle();
+  const guardZone =
+    guardOrg?.time_zone && isKnownTimeZone(guardOrg.time_zone) ? guardOrg.time_zone : "UTC";
+
+  const { data: guardBookings } = await supabase
+    .from("bookings")
+    .select("id, org_id, court_label, starts_at")
+    .eq("owner_id", session.userId)
+    .eq("org_id", parsed.orgId);
+
+  const alreadyBookedRow = (guardBookings ?? [])
+    .map((row) => ({
+      id: row.id,
+      identity: {
+        orgId: row.org_id,
+        courtLabel: row.court_label,
+        date: todayInZone(guardZone, new Date(row.starts_at)),
+        startTime: clockInZone(guardZone, new Date(row.starts_at)),
+      },
+    }))
+    .find(
+      ({ identity }) =>
+        identity.orgId === parsed.orgId &&
+        identity.courtLabel === parsed.courtLabel &&
+        identity.date === parsed.date &&
+        identity.startTime === parsed.startTime,
+    );
+
+  if (alreadyBookedRow) {
+    // Record the message as settled, tied to the Booking that already covers
+    // this slot (issue #286) — so deleting *that* Booking later still cascades
+    // the ledger row away and a future sync re-offers the email, exactly as if
+    // this confirm had created it. A null `booking_id` here would suppress the
+    // email permanently, reintroducing the bug #286's FK fixed.
+    const { error } = await supabase.from("processed_messages").insert({
+      owner_id: session.userId,
+      provider: gate.provider,
+      provider_message_id: gmailMessageId,
+      outcome: "confirmed",
+      booking_id: alreadyBookedRow.id,
+    });
+    if (error && (error as { code?: string }).code !== "23505") {
+      console.error("booking-buddy: recording a duplicate-skipped Gmail message failed", error);
+    }
+    return { ok: true };
+  }
+
   const result = await insertValidatedBooking(session.userId, parsed);
   if (!result.ok) {
     return result;
   }
 
-  const supabase = await createClient();
   const { error } = await supabase.from("processed_messages").insert({
     owner_id: session.userId,
     provider: gate.provider,
