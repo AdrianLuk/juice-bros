@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Info } from "lucide-react";
@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
+import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import {
   formatCandidateDate,
@@ -52,18 +53,6 @@ const CONFIRM_ACTION = {
   cancellation: confirmCancellationCandidate,
   update: confirmUpdateCandidate,
 } as const;
-
-/** `onResolved` is idempotent, so a confirm and a dismiss each get their own effect rather than one watching both. */
-function useResolveOnSuccess(state: ActionResult, resolve: () => void) {
-  useEffect(() => {
-    if (state.ok) {
-      resolve();
-    }
-    // Only the action state should re-trigger this — `resolve` closes over
-    // values stable within one card's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
-}
 
 function ActionError({ state }: { state: ActionResult }) {
   if (!state.error) {

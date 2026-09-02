@@ -32,6 +32,10 @@ import {
   updateBookingWindow,
   type Org,
 } from "@/lib/booking-buddy/actions/orgs";
+import {
+  clearCalendarFeedUrl,
+  setCalendarFeedUrl,
+} from "@/lib/booking-buddy/actions/calendar-feed";
 
 const EMPTY: ActionResult = {};
 
@@ -124,7 +128,89 @@ export function OrgRow({ org }: { org: Org }) {
         key={`${org.bookingWindow?.daysBefore ?? "unset"}-${org.bookingWindow?.time ?? "unset"}`}
         org={org}
       />
+      <CalendarFeedForm key={`feed-${org.hasCalendarFeed}`} org={org} />
     </li>
+  );
+}
+
+/**
+ * The CourtReserve Calendar Feed URL for this facility (issue #295, ADR-0019).
+ * Paste the club feed URL from CourtReserve and "Sync facilities" on the
+ * Bookings page pulls its reservations in as Import Candidates. The URL is
+ * validated at save time (`https:` only, a CourtReserve host) and stored
+ * encrypted — only its presence ever comes back, so a configured feed shows a
+ * "Remove" control rather than the URL itself.
+ */
+function CalendarFeedForm({ org }: { org: Org }) {
+  const [setState, setAction, setPending] = useActionState(setCalendarFeedUrl, EMPTY);
+  const [clearState, clearAction, clearPending] = useActionState(
+    clearCalendarFeedUrl,
+    EMPTY,
+  );
+  const fieldId = `calendar-feed-url-${org.id}`;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md bg-muted/40 p-3">
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={fieldId} className="text-xs font-medium">
+          Import from a calendar feed
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          In CourtReserve, open your name in the top corner and choose
+          &ldquo;Calendar feed&rdquo;. Paste that link here and Booking Buddy can
+          pull your reservations at this facility into your bookings.
+        </p>
+      </div>
+
+      {org.hasCalendarFeed ? (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs text-muted-foreground">
+            A feed is configured for this facility.
+          </p>
+          <form action={clearAction} className="flex flex-col items-start gap-1">
+            <input type="hidden" name="org_id" value={org.id} />
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={clearPending}
+            >
+              {clearPending ? "Removing…" : "Remove feed"}
+            </Button>
+            <ActionError state={clearState} />
+          </form>
+        </div>
+      ) : (
+        <form
+          action={setAction}
+          className="flex flex-col gap-2 sm:flex-row sm:items-end"
+        >
+          <input type="hidden" name="org_id" value={org.id} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <Input
+              id={fieldId}
+              name="feed_url"
+              type="url"
+              inputMode="url"
+              placeholder="https://…courtreserve.com/…/calendar-feed"
+              className="bg-background"
+              required
+            />
+          </div>
+          <div className="flex flex-col items-start gap-1">
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={setPending}
+            >
+              {setPending ? "Adding…" : "Add feed"}
+            </Button>
+            <ActionError state={setState} />
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
 

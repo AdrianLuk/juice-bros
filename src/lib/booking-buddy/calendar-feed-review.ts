@@ -62,6 +62,8 @@ export type CalendarFeedReviewItem = {
   sequence: number;
   /** `LOCATION` verbatim — informational, shown on the card the same as an email import's facility name. */
   facilityName: string;
+  /** Start instant, ISO 8601 — the seen-event row's `starts_at` when this candidate is confirmed or dismissed. */
+  startsAt: string;
   /** `YYYY-MM-DD` in the Org's own zone. */
   date: string;
   /** `HH:MM`, 24-hour, in the Org's own zone. */
@@ -204,6 +206,7 @@ export function reviewCalendarFeed({
       feedEventUid: event.uid,
       sequence: event.sequence,
       facilityName: event.facilityName,
+      startsAt: startInstant.toISOString(),
       date,
       startTime,
       endTime,

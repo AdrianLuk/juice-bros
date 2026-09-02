@@ -112,6 +112,7 @@ export async function setCalendarFeedUrl(
   }
 
   revalidatePath(ORGS_PATH);
+  revalidatePath(BOOKINGS_PATH);
   return { ok: true };
 }
 
@@ -161,6 +162,7 @@ export async function clearCalendarFeedUrl(
   }
 
   revalidatePath(ORGS_PATH);
+  revalidatePath(BOOKINGS_PATH);
   return { ok: true };
 }
 
