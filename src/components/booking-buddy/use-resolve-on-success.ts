@@ -4,8 +4,8 @@ import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 
 /**
  * Runs `resolve` once a Server Action's state flips to `ok` — the shared
- * "drop this card from the review list on success" effect for the two sync
- * review screens ("Sync from Email" and "From facility feeds").
+ * "drop this card from the review list on success" effect for the email and
+ * feed review cards, now merged into the one "Sync bookings" section.
  *
  * `resolve` is expected to be idempotent, so a confirm and a dismiss each get
  * their own call rather than one effect watching both.

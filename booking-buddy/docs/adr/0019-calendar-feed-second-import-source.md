@@ -45,7 +45,11 @@ mechanism below resolves.
   the `ReviewItem` union, and the review UI components (the shared shaping
   helpers were pulled into a pure module in #291). It does **not** share a sync
   button or a review section with email sync; the two stay visually separate
-  ("Sync from Email" vs "Sync facilities").
+  ("Sync from Email" vs "Sync facilities"). *(Superseded by #336: once #280
+  also landed, the two sync buttons and review sections were unified into one
+  "Sync bookings" action + list. The sources stay independent underneath —
+  two Server Actions, two analytics event families, per-source failure
+  reporting — only the UI merged.)*
 
 - **Encrypted-URL storage, reusing the Mailbox Link key.** The feed URL carries
   a private member token, so it is encrypted at rest with the same utility and
@@ -92,7 +96,7 @@ mechanism below resolves.
      cancellation candidates.
 
 - **On-demand only in v1.** A "Sync facilities" action the User triggers,
-  mirroring email sync's model. No cron. The consumer-side feed-refresh delay
+  mirroring email sync's model (folded into "Sync bookings" by #336). No cron. The consumer-side feed-refresh delay
   CourtReserve documents (hours for Google Calendar, minutes for Apple) does
   not affect Booking Buddy — it fetches the feed live each sync — but a
   very-recently-made or -cancelled reservation may not be in the feed yet; the

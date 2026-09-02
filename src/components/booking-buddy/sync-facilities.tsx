@@ -1,15 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import Link from "next/link";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ActionError } from "@/components/booking-buddy/action-error";
-import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import {
   formatCandidateDate,
   formatCourtLabel,
@@ -22,15 +19,18 @@ import {
   confirmFeedCancellation,
   confirmFeedCandidate,
   dismissFeedCandidate,
-  syncFacilityFeeds,
   type CalendarFeedCancellationItem,
   type CalendarFeedReviewItem,
-  type SyncFacilityFeedsResult,
 } from "@/lib/booking-buddy/actions/calendar-feed";
 
 const EMPTY: ActionResult = {};
 
-const SYNC_QUERY_KEY = ["booking-buddy", "facility-feed-candidates"] as const;
+/**
+ * The Calendar Feed review cards, rendered by the unified "Sync bookings"
+ * section (issue #336) — this file no longer owns a section wrapper or a
+ * TanStack Query of its own; `SyncBookingsSection` runs the feed sync
+ * alongside email sync and merges both into one review list.
+ */
 
 /**
  * One feed Import Candidate — the `bb-card` shell, detail-line formatters and
@@ -43,7 +43,7 @@ const SYNC_QUERY_KEY = ["booking-buddy", "facility-feed-candidates"] as const;
  * `confirmFeedCandidate` re-runs `parseNewBooking` over the same field names
  * `CreateBookingForm` posts.
  */
-function FeedCandidateCard({
+export function FeedCandidateCard({
   item,
   orgs,
   onResolved,
@@ -131,7 +131,7 @@ function FeedCandidateCard({
  * Booking. Mirrors the email sync's `CancellationBody` — no Org picker, no
  * editable fields, just Remove / Dismiss.
  */
-function FeedCancellationCard({
+export function FeedCancellationCard({
   item,
   onResolved,
 }: {
@@ -188,195 +188,5 @@ function FeedCancellationCard({
       </form>
       <ActionError state={dismissState} />
     </li>
-  );
-}
-
-/**
- * "From facility feeds" (issue #295) — the Calendar Feed counterpart of the
- * "Sync from Email" section, rendered adjacent to it on the Bookings page but
- * as its own section. A click-triggered sync (same `enabled` pattern), one
- * error line per Facility that couldn't be fetched (named), and the import
- * candidates rendered through the same card shell as an email import.
- *
- * Not allowlist-gated — a Calendar Feed is available to every User (ADR-0019).
- */
-export function SyncFacilitiesSection({
-  orgs,
-  hasConfiguredFeed,
-}: {
-  orgs: Org[];
-  /** Whether the caller has at least one feed-configured Facility — the section renders only then. */
-  hasConfiguredFeed: boolean;
-}) {
-  const [hasSynced, setHasSynced] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data, isFetching, refetch } = useQuery<SyncFacilityFeedsResult>({
-    queryKey: SYNC_QUERY_KEY,
-    queryFn: () => syncFacilityFeeds(),
-    enabled: hasSynced,
-  });
-
-  function handleResolved(feedEventUid: string) {
-    queryClient.setQueryData<SyncFacilityFeedsResult>(SYNC_QUERY_KEY, (previous) => {
-      if (previous?.status !== "ok") {
-        return previous;
-      }
-      return {
-        ...previous,
-        feeds: previous.feeds.map((feed) =>
-          feed.status === "ok"
-            ? {
-                ...feed,
-                items: feed.items.filter(
-                  (item) => item.feedEventUid !== feedEventUid,
-                ),
-                cancellations: feed.cancellations.filter(
-                  (item) => item.feedEventUid !== feedEventUid,
-                ),
-              }
-            : feed,
-        ),
-      };
-    });
-  }
-
-  const orgNameById = new Map(orgs.map((org) => [org.id, org.displayName]));
-
-  const okFeeds =
-    data?.status === "ok"
-      ? data.feeds.filter(
-          (feed): feed is Extract<typeof feed, { status: "ok" }> =>
-            feed.status === "ok",
-        )
-      : [];
-  const erroredFeeds =
-    data?.status === "ok"
-      ? data.feeds.filter(
-          (feed): feed is Extract<typeof feed, { status: "error" }> =>
-            feed.status === "error",
-        )
-      : [];
-  const candidates: CalendarFeedReviewItem[] = okFeeds.flatMap((feed) => feed.items);
-  const cancellations: CalendarFeedCancellationItem[] = okFeeds.flatMap(
-    (feed) => feed.cancellations,
-  );
-  const feedsLookingWrong = okFeeds.filter((feed) => feed.feedLooksWrong);
-  const nothingToReview =
-    candidates.length === 0 &&
-    cancellations.length === 0 &&
-    erroredFeeds.length === 0 &&
-    feedsLookingWrong.length === 0;
-
-  if (!hasConfiguredFeed) {
-    return null;
-  }
-
-  return (
-    <section>
-      <h2 className="font-heading text-lg font-semibold tracking-tight">
-        From facility feeds
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Pull in the reservations you&apos;ve made at facilities with a calendar
-        feed set up on the{" "}
-        <Link href={ORGS_PATH} className="underline underline-offset-4">
-          Facilities
-        </Link>{" "}
-        page.
-      </p>
-
-      <div className="mt-4 flex flex-col gap-4">
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isFetching}
-            onClick={() => (hasSynced ? refetch() : setHasSynced(true))}
-          >
-            {isFetching ? "Checking your feeds…" : "Sync facilities"}
-          </Button>
-        </div>
-
-        {data?.status === "error" && (
-          <p className="text-sm text-destructive" role="alert">
-            {data.message}
-          </p>
-        )}
-
-        {erroredFeeds.map((feed) => (
-          <div
-            key={feed.orgId}
-            className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
-            role="alert"
-          >
-            <p className="font-medium">
-              Couldn&apos;t fetch{" "}
-              {orgNameById.get(feed.orgId) ?? "that facility"}&apos;s feed.
-            </p>
-            <p className="mt-0.5">
-              {feed.message} If this keeps happening, re-copy the feed URL from
-              CourtReserve and save it again.
-            </p>
-          </div>
-        ))}
-
-        {feedsLookingWrong.map((feed) => (
-          <div
-            key={feed.orgId}
-            className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
-            role="alert"
-          >
-            <p className="font-medium">
-              {orgNameById.get(feed.orgId) ?? "That facility"}&apos;s feed looks
-              wrong.
-            </p>
-            <p className="mt-0.5">
-              It dropped far more of your bookings at once than a normal
-              cancellation would. Nothing was removed. Check the feed URL on the{" "}
-              <Link href={ORGS_PATH} className="underline underline-offset-4">
-                Facilities
-              </Link>{" "}
-              page and sync again.
-            </p>
-          </div>
-        ))}
-
-        {data?.status === "ok" && (
-          <>
-            {cancellations.length > 0 && (
-              <ul className="flex flex-col gap-4">
-                {cancellations.map((item) => (
-                  <FeedCancellationCard
-                    key={item.feedEventUid}
-                    item={item}
-                    onResolved={handleResolved}
-                  />
-                ))}
-              </ul>
-            )}
-
-            {candidates.length > 0 && (
-              <ul className="flex flex-col gap-4">
-                {candidates.map((item) => (
-                  <FeedCandidateCard
-                    key={item.feedEventUid}
-                    item={item}
-                    orgs={orgs}
-                    onResolved={handleResolved}
-                  />
-                ))}
-              </ul>
-            )}
-
-            {nothingToReview && (
-              <p className="text-sm text-muted-foreground">
-                No new bookings found.
-              </p>
-            )}
-          </>
-        )}
-      </div>
-    </section>
   );
 }

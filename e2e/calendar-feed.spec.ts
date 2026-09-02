@@ -16,8 +16,9 @@ import {
 
 /**
  * The Calendar Feed user-facing surface (issue #295) — the Facility-form feed
- * field and the Bookings-page "From facility feeds" review section, driven
- * against a local ICS mock.
+ * field and the feed's contribution to the Bookings-page "Sync bookings"
+ * review section (unified with email sync in issue #336), driven against a
+ * local ICS mock.
  *
  * Runs as Amy, who is *not* on `EMAIL_SYNC_ALLOWLIST` for any worker — a
  * Calendar Feed isn't allowlist-gated (ADR-0019), and this proves it. Every
@@ -95,7 +96,7 @@ test("the feed field rejects an invalid URL inline and does not save it", async 
   await expect(orgRow.getByRole("button", { name: "Remove feed" })).toHaveCount(0);
 });
 
-test("paste → Sync facilities → confirm → a Booking with facility / date / time / court / format", async ({
+test("paste → Sync bookings → confirm → a Booking with facility / date / time / court / format", async ({
   page,
   accounts,
 }) => {
@@ -232,9 +233,9 @@ test("a per-Facility fetch error names the Facility and doesn't stop the others"
 });
 
 test("the feed field and section are available to a User not on EMAIL_SYNC_ALLOWLIST", async ({ page, accounts }) => {
-  // Amy is not allowlisted for any worker — she has no Gmail-connect button and
-  // no "Sync from Email" section unless she connects a mailbox, but the feed
-  // field and "From facility feeds" are hers regardless.
+  // Amy is not allowlisted for any worker — she has no Gmail-connect button,
+  // but the unified "Sync bookings" section still shows for her because she
+  // has a configured feed; the feed field and the section are hers regardless.
   const user = { email: accounts.amy.email, password: accounts.password };
   const facility = `${PREFIX} Allow`;
   await seedFacility(user, facility);
@@ -250,7 +251,7 @@ test("the feed field and section are available to a User not on EMAIL_SYNC_ALLOW
 
   await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/allow"));
   await syncFacilities(page);
-  await expect(page.getByRole("heading", { name: "From facility feeds" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sync bookings" })).toBeVisible();
   await expect(
     feedSection(page)
       .getByRole("listitem")
@@ -398,7 +399,7 @@ test("a sync that would flag more than the cap shows the 'feed looks wrong' warn
   expect(await bookingsForOrg(user, orgId)).toHaveLength(6);
 });
 
-test('"From facility feeds" is a section separate from "Sync from Email"', async ({ page, accounts }) => {
+test('a feed-only User sees the one unified "Sync bookings" section (issue #336)', async ({ page, accounts }) => {
   const user = { email: accounts.amy.email, password: accounts.password };
   const facility = `${PREFIX} Separate`;
   await seedFacility(user, facility);
@@ -407,8 +408,12 @@ test('"From facility feeds" is a section separate from "Sync from Email"', async
   await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/none"));
 
   await page.goto("/booking-buddy/bookings");
-  // The feed section renders; Amy (unconnected, non-allowlisted) has no email
-  // section — they are never merged into one list.
-  await expect(page.getByRole("heading", { name: "From facility feeds" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sync facilities" })).toBeVisible();
+  // One section, one button. Amy (unconnected, non-allowlisted) has no email
+  // source, so the section runs the feed alone — and the old separate "Sync
+  // from Email" / "Sync facilities" headings and buttons are gone.
+  await expect(page.getByRole("heading", { name: "Sync bookings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sync bookings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "From facility feeds" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Sync from Email", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Sync facilities" })).toHaveCount(0);
 });
