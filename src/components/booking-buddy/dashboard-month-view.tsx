@@ -52,12 +52,14 @@ function formatSpanLabel(segment: AvailabilitySegment): string {
  * on a past day silently lands on today's week instead, contradicting its
  * own `aria-label`.
  *
- * `onQuickCreate`, when set (the owner's dashboard, issue #303), puts a `+`
- * at each non-past day cell's top-right, mirroring the day number — clicking
- * it opens the shared booking dialog prefilled with that cell's date only
- * (the Week view also passes an hour; the Month view keeps the form's 18:00
- * default). Past days (`isPastDay`) get no `+`. Absent on the friend
- * calendar, which stays creation-free.
+ * `onQuickCreate`, when set (the owner's dashboard, issue #303), opens the
+ * shared booking dialog prefilled with a cell's date only (the Week view
+ * also passes an hour; the Month view keeps the form's 18:00 default). On a
+ * pointer with hover it's a hover-revealed `+` at each non-past day cell's
+ * top-right, mirroring the day number; on touch (#327) the `+` is dropped
+ * and the empty area of the cell is the tap target instead — a full-cell
+ * surface behind the day number and event chips. Past days (`isPastDay`) get
+ * neither. Absent on the friend calendar, which stays creation-free.
  */
 export function DashboardMonthView<T extends CalendarEvent>({
   month,
@@ -150,6 +152,28 @@ export function DashboardMonthView<T extends CalendarEvent>({
                   day.getMonth() !== currentMonth && "bg-muted/40",
                 )}
               >
+                {/* Full-cell quick-create tap surface (issue #327). Inert on
+                    a pointer with hover — the corner `+` below is that
+                    device's affordance and this must not swallow a click
+                    meant for the day number or an event chip. On touch it's
+                    `pointer-events: auto` (see `.bb-month-quick-add-surface`
+                    in globals.css): tapping the empty area of a non-past cell
+                    opens the prefilled dialog, the phone-native pattern, with
+                    no `+` clutter. `aria-hidden` + `tabIndex={-1}` keep it
+                    out of the a11y tree — the corner `+` is the labelled
+                    control screen readers and keyboards use. Rendered first
+                    and left at the default stacking level so the content
+                    below (`relative z-10`) paints and taps above it. */}
+                {onQuickCreate && !isPastDay(day, today) && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-hidden
+                    onClick={() => onQuickCreate(day)}
+                    className="bb-month-quick-add-surface absolute inset-0"
+                  />
+                )}
+
                 <button
                   type="button"
                   onClick={() => onDayClick(day)}
@@ -169,8 +193,9 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     // the full 44px guideline on purpose — this cell also
                     // stacks an availability bar and event chips a few px
                     // below the button, and a bigger bleed would swallow taps
-                    // meant for those.
-                    "relative flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
+                    // meant for those. `z-10` keeps it (and its `after:` tap
+                    // pad) above the full-cell quick-create surface (#327).
+                    "relative z-10 flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
                     day.getMonth() !== currentMonth && "text-muted-foreground",
                     isSameDay(day, today) &&
                       "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -184,22 +209,25 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     the cell's other top corner. Absolutely positioned so it
                     never shifts the day number or the availability/event
                     stack, and never nests inside another button. Hidden on
-                    past days; the reveal (hover on `(hover: hover)`, a faint
-                    always-on where there's no hover, plus `:focus-visible`)
-                    lives in `globals.css` under `.bb-month-quick-add`. */}
+                    past days; on a pointer with hover it reveals on cell
+                    hover / `:focus-visible`, and on touch it stays fully
+                    transparent (the full-cell surface above is that device's
+                    affordance, #327) while remaining the labelled control for
+                    screen readers and keyboards. See `.bb-month-quick-add` in
+                    `globals.css`. */}
                 {onQuickCreate && !isPastDay(day, today) && (
                   <button
                     type="button"
                     onClick={() => onQuickCreate(day)}
                     aria-label={`Log a booking on ${dayLabel(day)}`}
-                    className="bb-month-quick-add absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
+                    className="bb-month-quick-add absolute right-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
                   >
                     <PlusIcon className="size-3.5" aria-hidden />
                   </button>
                 )}
 
                 {availabilitySpans.length > 0 && (
-                  <div className="flex flex-col gap-0.5">
+                  <div className="relative z-10 flex flex-col gap-0.5">
                     {availabilitySpans.map(
                       ({ event: segment, isStart, isEnd }) => (
                         <AvailabilitySpanBar
@@ -213,7 +241,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                   </div>
                 )}
 
-                <div className="flex flex-col gap-0.5">
+                <div className="relative z-10 flex flex-col gap-0.5">
                   {dayEvents
                     .slice(0, VISIBLE_PER_DAY)
                     .map((event) => renderEvent(event))}
