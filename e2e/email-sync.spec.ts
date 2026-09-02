@@ -1,8 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, BEN, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import { GmailMock } from "./support/gmail-mock.ts";
 import { defineSyncFromEmailScenarios } from "./support/sync-from-email-scenarios.ts";
+import { disconnectMailbox } from "./support/db-reset.ts";
 
 /**
  * Connect / disconnect Gmail (issue #62), and the Gmail run of the shared
@@ -30,28 +31,14 @@ test.beforeEach(() => {
   mock.reset();
 });
 
-/** Leaves Ben disconnected for the next test/run, same discipline settings.spec.ts uses for Username. */
-test.afterEach(async ({ page }) => {
-  await page.goto("/booking-buddy/settings");
-
-  // The Settings route streams through its own `loading.tsx` and the
-  // connect/disconnect controls are a client component. A bare
-  // `disconnect.isVisible()` here doesn't auto-wait — it races the skeleton,
-  // reads "nothing connected", and skips a disconnect that was actually
-  // needed. The "Sync from Email" heading renders only on the real page
-  // (never the skeleton) and for every User, so waiting on it lands us past
-  // the swap before probing (issue #279).
-  await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
-
-  const disconnect = page.getByRole("button", { name: "Disconnect" });
-  if (await disconnect.isVisible()) {
-    await disconnect.click();
-    await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
-  }
+/** Leaves Ben disconnected for the next test/run — straight at Postgres, so it
+ * doesn't race the streamed Settings route under parallel load. */
+test.afterEach(async ({ accounts }) => {
+  await disconnectMailbox({ email: accounts.ben.email, password: accounts.password });
 });
 
-test("a non-allowlisted User sees the section but no Connect Gmail button", async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/settings");
+test("a non-allowlisted User sees the section but no Connect Gmail button", async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/settings");
 
   await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toHaveCount(0);
@@ -60,22 +47,22 @@ test("a non-allowlisted User sees the section but no Connect Gmail button", asyn
   await expect(page.getByRole("button", { name: "Connect Outlook" })).toBeVisible();
 });
 
-test("an allowlisted User sees both connect options, with no Mailbox Link connected yet", async ({ page }) => {
-  await signIn(page, BEN, "/booking-buddy/settings");
+test("an allowlisted User sees both connect options, with no Mailbox Link connected yet", async ({ page, accounts }) => {
+  await signIn(page, accounts.ben.email, "/booking-buddy/settings");
 
   await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Connect Outlook" })).toBeVisible();
 });
 
-test("connecting runs the real OAuth redirect and stores the Mailbox Link", async ({ page }) => {
+test("connecting runs the real OAuth redirect and stores the Mailbox Link", async ({ page, accounts }) => {
   mock.registerAccount({
     email: "ben.pickleball@gmail.com",
     accessToken: "mock-access-token",
     refreshToken: "mock-refresh-token",
   });
 
-  await signIn(page, BEN, "/booking-buddy/settings");
+  await signIn(page, accounts.ben.email, "/booking-buddy/settings");
   await page.getByRole("button", { name: "Connect Gmail" }).click();
 
   await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
@@ -87,14 +74,14 @@ test("connecting runs the real OAuth redirect and stores the Mailbox Link", asyn
   await expect(page.getByRole("button", { name: "Disconnect" })).toBeVisible();
 });
 
-test("disconnecting removes the Mailbox Link", async ({ page }) => {
+test("disconnecting removes the Mailbox Link", async ({ page, accounts }) => {
   mock.registerAccount({
     email: "ben.pickleball@gmail.com",
     accessToken: "mock-access-token",
     refreshToken: "mock-refresh-token",
   });
 
-  await signIn(page, BEN, "/booking-buddy/settings");
+  await signIn(page, accounts.ben.email, "/booking-buddy/settings");
   await page.getByRole("button", { name: "Connect Gmail" }).click();
   await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
@@ -106,10 +93,10 @@ test("disconnecting removes the Mailbox Link", async ({ page }) => {
   await expect(page.getByText("Connected as", { exact: false })).toHaveCount(0);
 });
 
-test("a failed token exchange reports it honestly, without creating a Mailbox Link", async ({ page }) => {
+test("a failed token exchange reports it honestly, without creating a Mailbox Link", async ({ page, accounts }) => {
   mock.registerTokenFailure("unreachable");
 
-  await signIn(page, BEN, "/booking-buddy/settings");
+  await signIn(page, accounts.ben.email, "/booking-buddy/settings");
   await page.getByRole("button", { name: "Connect Gmail" }).click();
 
   await page.waitForURL((url) => url.searchParams.get("error") === "mailbox_connect_failed");
@@ -124,7 +111,8 @@ test("a failed token exchange reports it honestly, without creating a Mailbox Li
 
 defineSyncFromEmailScenarios({
   label: "Gmail",
-  user: BEN,
+  // Gmail is allowlist-gated, and every worker's Ben is on EMAIL_SYNC_ALLOWLIST.
+  resolveUser: (accounts) => accounts.ben.email,
   account: {
     email: "ben.pickleball@gmail.com",
     accessToken: "mock-access-token",

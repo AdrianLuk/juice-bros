@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { BEN, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 
 /**
  * The two-tier navigation (ADR 0016): a desktop top bar with section dropdowns,
@@ -8,7 +8,7 @@ import { BEN, signIn } from "./support/sign-in.ts";
  * out moved off the nav onto the Settings page.
  *
  * Read-only — every test just signs in and navigates, so it's safe to run
- * against the shared `BEN` account alongside the rest of the suite.
+ * as this worker's Ben alongside the rest of the suite.
  */
 
 const MOBILE = { width: 390, height: 844 };
@@ -16,9 +16,10 @@ const DESKTOP = { width: 1280, height: 800 };
 
 test("desktop: the active section is marked and its dropdown exposes the siblings", async ({
   page,
+  accounts,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await signIn(page, BEN, "/booking-buddy/friends");
+  await signIn(page, accounts.ben.email, "/booking-buddy/friends");
 
   const bar = page.locator("header");
   await expect(bar).toBeVisible();
@@ -41,9 +42,10 @@ test("desktop: the active section is marked and its dropdown exposes the sibling
 
 test("desktop: Facilities has moved under the Settings dropdown", async ({
   page,
+  accounts,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await signIn(page, BEN, "/booking-buddy/settings");
+  await signIn(page, accounts.ben.email, "/booking-buddy/settings");
 
   const bar = page.locator("header");
 
@@ -59,11 +61,12 @@ test("desktop: Facilities has moved under the Settings dropdown", async ({
 
 test("mobile: a bottom tab bar replaces the top bar, with all five sections", async ({
   page,
+  accounts,
 }) => {
   await page.setViewportSize(MOBILE);
   // A section page, not the dashboard — the onboarding modal there sets
   // `aria-hidden` on the rest of the page, nav included.
-  await signIn(page, BEN, "/booking-buddy/friends");
+  await signIn(page, accounts.ben.email, "/booking-buddy/friends");
 
   await expect(page.locator("header")).toBeHidden();
 
@@ -76,9 +79,10 @@ test("mobile: a bottom tab bar replaces the top bar, with all five sections", as
 
 test("the sibling pill row shows on a section page and is absent on the dashboard", async ({
   page,
+  accounts,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await signIn(page, BEN, "/booking-buddy/orgs");
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
 
   const pills = page.getByRole("navigation", { name: "Section" });
   await expect(pills.getByRole("link", { name: "Settings" })).toBeVisible();
@@ -93,9 +97,10 @@ test("the sibling pill row shows on a section page and is absent on the dashboar
 
 test("Sign out is off the nav and reachable from the Settings page", async ({
   page,
+  accounts,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await signIn(page, BEN, "/booking-buddy/settings");
+  await signIn(page, accounts.ben.email, "/booking-buddy/settings");
 
   await expect(
     page.locator("header").getByRole("button", { name: "Sign out" }),

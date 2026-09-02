@@ -1,6 +1,7 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./support/accounts.ts";
 
-import { AMY, signIn } from "./support/sign-in.ts";
+import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import { addPlace, placeName, removePlace, selectDuration } from "./support/places.ts";
 
@@ -34,13 +35,14 @@ async function createSlot(
   return page.url().split("/").pop()!;
 }
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/slots");
+test.beforeEach(async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/slots");
 });
 
 test("the owner can create an invite link and a guest can RSVP through it with no account", async ({
   page,
   browser,
+  accounts,
 }) => {
   const slotId = await createSlot(page, {
     date: "2031-04-04",
@@ -84,13 +86,14 @@ test("the owner can create an invite link and a guest can RSVP through it with n
     await page.goto("/booking-buddy/friends");
     await expect(page.getByText("Priya Guest")).toHaveCount(0);
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 
 test("a guest sees which facility the slot is for, even for a bare proposal", async ({
   page,
   browser,
+  accounts,
 }) => {
   const place = placeName();
   await addPlace(page, place);
@@ -123,12 +126,12 @@ test("a guest sees which facility the slot is for, even for a bare proposal", as
 
     await guestContext.close();
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
   }
 });
 
-test("generating an invite link twice reuses the same one", async ({ page }) => {
+test("generating an invite link twice reuses the same one", async ({ page, accounts }) => {
   const slotId = await createSlot(page, {
     date: "2031-04-05",
     start: "09:00",
@@ -145,7 +148,7 @@ test("generating an invite link twice reuses the same one", async ({ page }) => 
     await page.reload();
     await expect(linkInput).toHaveValue(firstUrl);
   } finally {
-    await deleteSlots([slotId]);
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
   }
 });
 

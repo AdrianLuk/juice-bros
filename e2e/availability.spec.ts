@@ -1,6 +1,5 @@
-import { expect, test } from "@playwright/test";
-
-import { AMY, TEST_PASSWORD, signIn } from "./support/sign-in.ts";
+import { expect, test } from "./support/accounts.ts";
+import { signIn } from "./support/sign-in.ts";
 import { deleteAvailabilityWindows } from "./support/availability.ts";
 
 /**
@@ -12,14 +11,14 @@ import { deleteAvailabilityWindows } from "./support/availability.ts";
  * `dashboard.spec.ts`'s; this is only the standalone page and its create /
  * delete round trip.
  */
-test.afterEach(async () => {
+test.afterEach(async ({ accounts }) => {
   // Safety net for a failed run — the test itself removes its window through
   // the UI as part of what it asserts.
-  await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
+  await deleteAvailabilityWindows({ email: accounts.amy.email, password: accounts.password });
 });
 
-test("the Availability pill shows in the Plan section's secondary nav", async ({ page }) => {
-  await signIn(page, AMY, "/booking-buddy/availability");
+test("the Availability pill shows in the Plan section's secondary nav", async ({ page, accounts }) => {
+  await signIn(page, accounts.amy.email, "/booking-buddy/availability");
 
   const pills = page.getByRole("navigation", { name: "Section" });
   await expect(pills.getByRole("link", { name: "Games" })).toBeVisible();
@@ -29,9 +28,9 @@ test("the Availability pill shows in the Plan section's secondary nav", async ({
   );
 });
 
-test("an availability window can be blocked off, listed, and removed again", async ({ page }) => {
-  await deleteAvailabilityWindows({ email: AMY, password: TEST_PASSWORD });
-  await signIn(page, AMY, "/booking-buddy/availability");
+test("an availability window can be blocked off, listed, and removed again", async ({ page, accounts }) => {
+  await deleteAvailabilityWindows({ email: accounts.amy.email, password: accounts.password });
+  await signIn(page, accounts.amy.email, "/booking-buddy/availability");
 
   // All day is the default; a fixed, far-future range keeps this "upcoming"
   // for years and reads as "Jun 1 - Jun 7" (en dash) once saved.

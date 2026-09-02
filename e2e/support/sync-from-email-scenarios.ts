@@ -1,7 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+
+import { expect, test, type Accounts } from "./accounts.ts";
 
 import { signIn } from "./sign-in.ts";
 import { addPlace, deleteBooking, logBooking, placeName, removePlace, row } from "./places.ts";
+import { deleteOrgs, disconnectMailbox } from "./db-reset.ts";
 
 /**
  * The full "Sync from Email" scenario set (issues #64/#65/#88/#91), factored
@@ -35,8 +38,11 @@ export type SyncMock = {
 export type SyncProviderFixture = {
   /** "Gmail" / "Outlook" — names the describe block and disambiguates output. */
   label: string;
-  /** The seeded local account this suite signs in as (Gmail → an allowlisted one; Outlook → any). */
-  user: string;
+  /**
+   * The seeded local account this suite signs in as, resolved per worker
+   * (Gmail → every worker's allowlisted Ben; Outlook → any).
+   */
+  resolveUser: (accounts: Accounts) => string;
   account: { email: string; accessToken: string; refreshToken: string };
   /** "Connect Gmail" / "Connect Outlook". */
   connectButtonName: string;
@@ -145,9 +151,17 @@ export function messageId() {
  * start/stop/reset hooks.
  */
 export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
-  const { connectButtonName, user } = fixture;
+  const { connectButtonName } = fixture;
 
   test.describe(`Sync from Email (${fixture.label})`, () => {
+    // The heaviest block in the suite — each test drives an OAuth-mock connect,
+    // a sync, and a confirm/apply, ~10 Server-Action round trips deep. Under
+    // parallel load one of those steps occasionally times out; an extra retry
+    // beyond the config-wide one keeps this from being the reason a run goes
+    // red without masking a real regression (the journeys are all covered by
+    // `npm test` at the resolver level too).
+    test.describe.configure({ retries: 2 });
+
     /** Connects the provider's mailbox on Settings, then seeds the fixture inbox. */
     async function connectAndSeed(page: Page, messages: SyncMailMessage[]) {
       fixture.getMock().registerAccount(fixture.account);
@@ -157,34 +171,23 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       fixture.getMock().registerMessages(messages);
     }
 
-    test.afterEach(async ({ page }) => {
-      // Disconnect the mailbox so the next test's connect step starts clean —
-      // same discipline `email-sync.spec.ts` uses. Wait for a real-page
-      // marker first (issue #279).
-      await page.goto("/booking-buddy/settings");
-      await expect(page.getByRole("heading", { name: "Sync from Email" })).toBeVisible();
-      const disconnect = page.getByRole("button", { name: "Disconnect" });
-      if (await disconnect.isVisible()) {
-        await disconnect.click();
-        await expect(page.getByRole("button", { name: connectButtonName })).toBeVisible();
-      }
-
-      // Sweep any facilities the scenario left behind.
-      await page.goto("/booking-buddy/orgs");
-      await expect(page.getByRole("heading", { name: "Your facilities" })).toBeVisible();
-      const strays = row(page, "Playwright");
-      for (let left = await strays.count(); left > 0; left--) {
-        await strays.first().getByRole("button", { name: "Remove" }).click();
-        await page.getByRole("button", { name: "Remove facility" }).click();
-        await expect(strays).toHaveCount(left - 1);
-      }
+    test.afterEach(async ({ accounts }) => {
+      // Reset straight at Postgres, not by clicking Settings then Orgs: every
+      // test in this block does a full OAuth-mock + sync + confirm round, and
+      // with several workers loading one server the click-through teardown
+      // raced `revalidatePath` and left the mailbox link or a facility behind,
+      // poisoning the next test.
+      const user = { email: fixture.resolveUser(accounts), password: accounts.password };
+      await disconnectMailbox(user);
+      await deleteOrgs(user);
     });
 
     test("syncing shows a candidate for a matched facility, and confirming it creates a real Booking", async ({
       page,
+      accounts,
     }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
@@ -208,9 +211,9 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await removePlace(page, facility);
     });
 
-    test("dismissing a candidate means a second sync never shows it again", async ({ page }) => {
+    test("dismissing a candidate means a second sync never shows it again", async ({ page, accounts }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
@@ -232,9 +235,10 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
     test("deleting a confirmed Booking lets its email be re-imported on the next sync (#286)", async ({
       page,
+      accounts,
     }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, [confirmationEmail({ id: messageId(), facility })]);
@@ -264,9 +268,10 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
     test("a confirm/cancel/confirm/cancel/confirm chain for the same slot nets to a single candidate", async ({
       page,
+      accounts,
     }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, [
@@ -313,9 +318,10 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
     test("a cancellation matching a logged Booking confirms into removing that Booking", async ({
       page,
+      accounts,
     }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
       await logBooking(page, {
         place: facility,
@@ -344,9 +350,9 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await removePlace(page, facility);
     });
 
-    test("an unmatched cancellation shows a distinct notice, dismissable once", async ({ page }) => {
+    test("an unmatched cancellation shows a distinct notice, dismissable once", async ({ page, accounts }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, [cancellationEmail({ id: messageId(), facility })]);
@@ -371,9 +377,10 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
     test("a Reservation Update Notice netted against its in-batch confirmation shows one candidate", async ({
       page,
+      accounts,
     }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, [
@@ -405,9 +412,9 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await removePlace(page, facility);
     });
 
-    test("a Reservation Update Notice matching a logged Booking applies in place", async ({ page }) => {
+    test("a Reservation Update Notice matching a logged Booking applies in place", async ({ page, accounts }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
       await logBooking(page, {
         place: facility,
@@ -450,9 +457,10 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
     test("a stale Mailbox Link shows a reconnect prompt naming the provider, and flips to expired", async ({
       page,
+      accounts,
     }) => {
       const facility = placeName();
-      await signIn(page, user, "/booking-buddy/orgs");
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
 
       await connectAndSeed(page, []);

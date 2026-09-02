@@ -1,6 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
-import { AMY, BEN, signIn } from "./support/sign-in.ts";
+import { expect, test, type Accounts } from "./support/accounts.ts";
+import { signIn } from "./support/sign-in.ts";
 import { clearConnectionBetween } from "./support/connection-request-link.ts";
 
 /**
@@ -10,24 +11,12 @@ import { clearConnectionBetween } from "./support/connection-request-link.ts";
  * Two browser contexts rather than two tests, because the point is that the
  * two Users see different things about the same row at the same moment. One
  * context signing in as the other would replace the session, not add one.
- */
-
-/** Amy and Ben are already friends in the seeded data; these two are not. */
-const AMY_2 = "amyace2@example.com";
-const BEN_2 = "benbackhand2@example.com";
-
-const AMY_2_HANDLE = "amyace2";
-const BEN_2_HANDLE = "benbackhand2";
-
-/**
- * One of the friends page's sections, by its heading.
  *
- * Scoped rather than page-wide because the same person appears in up to three
- * of them at once — a search result, a pending request and a friend all carry
- * the same handle, and an unscoped locator matches whichever it finds. `.last()`
- * picks the innermost match, since the page's own wrapper <section> contains
- * every heading too.
+ * This worker's `accounts.amy`/`accounts.ben` are seeded friends; its
+ * `accounts.amy2`/`accounts.ben2` are seeded strangers, and every test in the
+ * first describe changes that and resets it.
  */
+
 function section(page: Page, heading: string) {
   return page
     .locator("section")
@@ -60,39 +49,40 @@ async function search(page: Page, handle: string) {
  * doesn't retry — and left the pair half-connected often enough to be the
  * suite's flakiest spot.
  */
-async function disconnect() {
-  await clearConnectionBetween(AMY_2_HANDLE, BEN_2_HANDLE);
+async function disconnect(accounts: Accounts) {
+  await clearConnectionBetween(accounts.amy2.username, accounts.ben2.username);
 }
 
 test.describe("two Users, one Connection", () => {
   test("a request is sent, seen by the other side, and accepted by them", async ({
     browser,
+    accounts,
   }) => {
     const amyContext = await browser.newContext();
     const benContext = await browser.newContext();
     const amy = await amyContext.newPage();
     const ben = await benContext.newPage();
 
-    await signIn(amy, AMY_2, "/booking-buddy/friends");
-    await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await disconnect();
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
+    await signIn(ben, accounts.ben2.email, "/booking-buddy/friends");
+    await disconnect(accounts);
 
     // Amy finds Ben by his handle and asks.
-    await search(amy, BEN_2_HANDLE);
-    await searchRow(amy, BEN_2_HANDLE)
+    await search(amy, accounts.ben2.username);
+    await searchRow(amy, accounts.ben2.username)
       .getByRole("button", { name: "Add friend" })
       .click();
-    await expect(searchRow(amy, BEN_2_HANDLE)).toContainText("Request sent");
+    await expect(searchRow(amy, accounts.ben2.username)).toContainText("Request sent");
 
     // Ben sees it as his to answer, with her name on it — not an anonymous row.
     await ben.reload();
     const requestForBen = section(ben, "Requests for you");
-    await expect(requestForBen).toContainText(`@${AMY_2_HANDLE}`);
+    await expect(requestForBen).toContainText(`@${accounts.amy2.username}`);
 
     // Amy sees the same row as hers to wait on, and cannot accept it herself.
     await amy.goto("/booking-buddy/friends");
     const sentByAmy = section(amy, "Requests you've sent");
-    await expect(sentByAmy).toContainText(`@${BEN_2_HANDLE}`);
+    await expect(sentByAmy).toContainText(`@${accounts.ben2.username}`);
     await expect(sentByAmy.getByRole("button", { name: "Accept" })).toHaveCount(0);
 
     await requestForBen.getByRole("button", { name: "Accept" }).click();
@@ -103,42 +93,43 @@ test.describe("two Users, one Connection", () => {
 
     // Both sides now hold the same friendship.
     for (const [page, handle] of [
-      [ben, AMY_2_HANDLE],
-      [amy, BEN_2_HANDLE],
+      [ben, accounts.amy2.username],
+      [amy, accounts.ben2.username],
     ] as const) {
       await page.goto("/booking-buddy/friends");
       const friends = section(page, "Your friends");
       await expect(friends).toContainText(`@${handle}`);
     }
 
-    await disconnect();
+    await disconnect(accounts);
     await amyContext.close();
     await benContext.close();
   });
 
   test("a request can be declined, and the pair are strangers again", async ({
     browser,
+    accounts,
   }) => {
     const amyContext = await browser.newContext();
     const benContext = await browser.newContext();
     const amy = await amyContext.newPage();
     const ben = await benContext.newPage();
 
-    await signIn(amy, AMY_2, "/booking-buddy/friends");
-    await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await disconnect();
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
+    await signIn(ben, accounts.ben2.email, "/booking-buddy/friends");
+    await disconnect(accounts);
 
-    await search(amy, BEN_2_HANDLE);
-    await searchRow(amy, BEN_2_HANDLE)
+    await search(amy, accounts.ben2.username);
+    await searchRow(amy, accounts.ben2.username)
       .getByRole("button", { name: "Add friend" })
       .click();
-    await expect(searchRow(amy, BEN_2_HANDLE)).toContainText("Request sent");
+    await expect(searchRow(amy, accounts.ben2.username)).toContainText("Request sent");
 
     await ben.reload();
     // Declining is deliberately not behind a confirmation: it is re-sendable.
     await section(ben, "Requests for you")
       .getByRole("listitem")
-      .filter({ hasText: `@${AMY_2_HANDLE}` })
+      .filter({ hasText: `@${accounts.amy2.username}` })
       .getByRole("button", { name: "Decline" })
       .click();
 
@@ -146,33 +137,33 @@ test.describe("two Users, one Connection", () => {
 
     // And Amy can ask again — declining removes the row rather than blocking.
     await amy.goto("/booking-buddy/friends");
-    await search(amy, BEN_2_HANDLE);
+    await search(amy, accounts.ben2.username);
     await expect(
-      searchRow(amy, BEN_2_HANDLE).getByRole("button", { name: "Add friend" }),
+      searchRow(amy, accounts.ben2.username).getByRole("button", { name: "Add friend" }),
     ).toBeVisible();
 
     await amyContext.close();
     await benContext.close();
   });
 
-  test("removing a friend needs the confirmation dialog", async ({ browser }) => {
+  test("removing a friend needs the confirmation dialog", async ({ browser, accounts }) => {
     const amyContext = await browser.newContext();
     const benContext = await browser.newContext();
     const amy = await amyContext.newPage();
     const ben = await benContext.newPage();
 
-    await signIn(amy, AMY_2, "/booking-buddy/friends");
-    await signIn(ben, BEN_2, "/booking-buddy/friends");
-    await disconnect();
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
+    await signIn(ben, accounts.ben2.email, "/booking-buddy/friends");
+    await disconnect(accounts);
 
-    await search(amy, BEN_2_HANDLE);
-    await searchRow(amy, BEN_2_HANDLE)
+    await search(amy, accounts.ben2.username);
+    await searchRow(amy, accounts.ben2.username)
       .getByRole("button", { name: "Add friend" })
       .click();
     // Wait for the request to actually land before Ben looks for it —
     // otherwise his reload races Amy's Server Action and finds no row to
     // accept (tests above already wait on this; this one didn't).
-    await expect(searchRow(amy, BEN_2_HANDLE)).toContainText("Request sent");
+    await expect(searchRow(amy, accounts.ben2.username)).toContainText("Request sent");
 
     await ben.reload();
     await section(ben, "Requests for you")
@@ -187,7 +178,7 @@ test.describe("two Users, one Connection", () => {
     // the row's button opens it, the dialog's button is what destroys.
     await friends.getByRole("button", { name: "Remove" }).first().click();
     await amy.getByRole("button", { name: "Keep friend" }).click();
-    await expect(personRow(amy, BEN_2_HANDLE)).toBeVisible();
+    await expect(personRow(amy, accounts.ben2.username)).toBeVisible();
 
     await friends.getByRole("button", { name: "Remove" }).first().click();
     await amy.getByRole("button", { name: "Remove", exact: true }).last().click();
@@ -195,7 +186,7 @@ test.describe("two Users, one Connection", () => {
     await amy.goto("/booking-buddy/friends");
     await expect(
       section(amy, "Your friends").getByRole("listitem").filter({
-        hasText: `@${BEN_2_HANDLE}`,
+        hasText: `@${accounts.ben2.username}`,
       }),
     ).toHaveCount(0);
 
@@ -205,17 +196,17 @@ test.describe("two Users, one Connection", () => {
 });
 
 test.describe("the friends Amy already has", () => {
-  test("an existing friendship shows on both sides", async ({ browser }) => {
+  test("an existing friendship shows on both sides", async ({ browser, accounts }) => {
     const amyContext = await browser.newContext();
     const benContext = await browser.newContext();
     const amy = await amyContext.newPage();
     const ben = await benContext.newPage();
 
-    await signIn(amy, AMY, "/booking-buddy/friends");
-    await signIn(ben, BEN, "/booking-buddy/friends");
+    await signIn(amy, accounts.amy.email, "/booking-buddy/friends");
+    await signIn(ben, accounts.ben.email, "/booking-buddy/friends");
 
-    await expect(personRow(amy, "benbackhand").first()).toBeVisible();
-    await expect(personRow(ben, "amyace").first()).toBeVisible();
+    await expect(personRow(amy, accounts.ben.username).first()).toBeVisible();
+    await expect(personRow(ben, accounts.amy.username).first()).toBeVisible();
 
     await amyContext.close();
     await benContext.close();

@@ -18,6 +18,13 @@
  * booking-buddy/docs/local-test-accounts.md.
  */
 
+import {
+  LEGACY_ACCOUNTS,
+  TEST_PASSWORD,
+  TEST_WORKER_COUNT,
+  workerAccountSet,
+} from "../e2e/support/account-sets.ts";
+
 /** Local Docker stack only. These are Supabase's published demo keys. */
 const API_URL = "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY =
@@ -25,7 +32,7 @@ const SERVICE_ROLE_KEY =
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
-export const TEST_PASSWORD = "pickleball123";
+export { TEST_PASSWORD };
 
 /**
  * Order matters. Usernames are derived from the display name at signup, so the
@@ -33,12 +40,7 @@ export const TEST_PASSWORD = "pickleball123";
  * which is what keeps each email's local part equal to that account's Username
  * across a reset. Reorder these and the numbering swaps.
  */
-export const TEST_ACCOUNTS = [
-  { email: "amyace@example.com", displayName: "Amy Ace" },
-  { email: "benbackhand@example.com", displayName: "Ben Backhand" },
-  { email: "amyace2@example.com", displayName: "Amy Ace" },
-  { email: "benbackhand2@example.com", displayName: "Ben Backhand" },
-];
+const TEST_ACCOUNTS = LEGACY_ACCOUNTS;
 
 if (!API_URL.includes("127.0.0.1")) {
   console.error("Refusing to run: this script is for the local stack only.");
@@ -78,6 +80,34 @@ async function createUser({
   }
 
   throw new Error(`Creating ${email} failed (${response.status}): ${body}`);
+}
+
+/**
+ * Forces one account's Username to an exact value, as the User themselves —
+ * `profiles` has an "editable by their owner" UPDATE policy and no
+ * service-role grant, the same "made as the Users themselves" reasoning
+ * `connect` already follows.
+ *
+ * Only the per-worker accounts need this: their display names collide (two
+ * "Amy Ace"s per set), so the signup trigger's own numbering would hand out
+ * `amyace9`-style Usernames that shift with creation order. Idempotent — a
+ * re-run just re-sets the same string (and skips the write when it already
+ * matches, so the unique index doesn't trip on the row's own value).
+ */
+async function forceUsername(email: string, username: string): Promise<void> {
+  const token = await accessToken(email);
+  const id = await userId(token);
+
+  const [current] = (await asUser(
+    token,
+    `profiles?id=eq.${id}&select=username`,
+  )) as { username: string }[];
+  if (current?.username === username) return;
+
+  await asUser(token, `profiles?id=eq.${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ username }),
+  });
 }
 
 /**
@@ -275,4 +305,23 @@ console.log("");
 for (const { requester, addressee } of SEEDED_FRIENDSHIPS) {
   const result = await connect(requester, addressee);
   console.log(`${result}  ${requester} ↔ ${addressee}`);
+}
+
+// Per-worker copies — same four accounts, same two friendships, one set per
+// Playwright worker so `workers > 1` doesn't have two of them writing the
+// same rows.
+console.log(`\nWorker sets (E2E_WORKER_COUNT=${TEST_WORKER_COUNT}):`);
+for (let index = 0; index < TEST_WORKER_COUNT; index++) {
+  const set = workerAccountSet(index);
+  for (const account of [set.amy, set.ben, set.amy2, set.ben2]) {
+    const result = await createUser(account);
+    if (result === "created") created += 1;
+    await forceUsername(account.email, account.username);
+  }
+  await connect(set.amy.email, set.ben.email);
+  await connect(set.amy.email, set.ben2.email);
+  console.log(
+    `  w${index}: @${set.amy.username} ↔ @${set.ben.username}, @${set.amy.username} ↔ @${set.ben2.username} ` +
+      `(@${set.amy2.username} ↔ @${set.ben2.username} left strangers)`,
+  );
 }
