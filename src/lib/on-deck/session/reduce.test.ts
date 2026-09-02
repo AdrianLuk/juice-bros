@@ -1564,3 +1564,96 @@ test("undo drops the last GROUP_MEMBER_REMOVED: re-folding restores the member i
   assert.notDeepEqual(reduceSession(config, removed).groups, before.groups);
   assert.deepEqual(reduceSession(config, removed.slice(0, -1)), before);
 });
+
+// --- Last Call, close (#255) -------------------------------------------
+
+function lastCall(operator: Operator = vanessa): SessionEvent {
+  return { type: "LAST_CALL", at: tick(), operator };
+}
+
+function sessionClosed(operator: Operator = vanessa): SessionEvent {
+  return { type: "SESSION_CLOSED", at: tick(), operator };
+}
+
+test("LAST_CALL records when, and halts new Foursome assignment", () => {
+  // One Court, 12 waiting. Courts start empty — courtFinished(1) seats p1-4.
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  const base = [...sessionWith(12), courtFinished(1)];
+  const call = lastCall();
+  const state = reduceSession(oneCourt, [...base, call, courtFinished(1)]);
+
+  assert.equal(state.lastCallAt, call.at);
+  // The Game on Court 1 finished — its four re-queued — but nobody walked back
+  // on: no new assignment after Last Call.
+  assert.deepEqual(state.courts[0].foursome, []);
+  // That finished Game is still recorded (the seating one carried no Game).
+  assert.equal(state.completedGames.length, 1);
+  // On Deck was cleared — queued Players are done.
+  assert.deepEqual(state.onDeck, []);
+  // The four coming off are not re-queued after Last Call — their night is over.
+  for (const id of ["p1", "p2", "p3", "p4"]) {
+    assert.equal(
+      state.queue.some((e) => e.playerId === id),
+      false,
+      `${id} is not put back in the Queue`,
+    );
+  }
+});
+
+test("Games already on Courts are untouched by LAST_CALL and finish normally", () => {
+  const smallC: SessionConfig = { ...config, courtCount: 2 };
+  // Seat both Courts, then everything is in progress.
+  const running = [...sessionWith(8), courtFinished(1), courtFinished(2)];
+  const seated = reduceSession(smallC, running);
+  assert.equal(seated.courts[0].foursome.length, 4);
+  assert.equal(seated.courts[1].foursome.length, 4);
+
+  const afterCall = reduceSession(smallC, [...running, lastCall()]);
+  // Both Games still in progress, unchanged.
+  assert.deepEqual(afterCall.courts, seated.courts);
+
+  // Court 1 finishes: its four re-queue, no replacement seated, Court 2 plays on.
+  const afterFinish = reduceSession(smallC, [
+    ...running,
+    lastCall(),
+    courtFinished(1),
+  ]);
+  assert.deepEqual(afterFinish.courts[0].foursome, []);
+  assert.equal(afterFinish.courts[1].foursome.length, 4);
+});
+
+test("a replayed LAST_CALL does not move the time", () => {
+  const first = lastCall();
+  const state = reduceSession(config, [started(), first, lastCall()]);
+  assert.equal(state.lastCallAt, first.at);
+});
+
+test("LAST_CALL before the Session opens is ignored", () => {
+  const state = reduceSession(config, [lastCall()]);
+  assert.equal(state.lastCallAt, null);
+});
+
+test("undo drops the last LAST_CALL: re-folding restores the running Session", () => {
+  const base = [...sessionWith(12)];
+  const before = reduceSession(config, base);
+  const withCall = [...base, lastCall()];
+  assert.notEqual(reduceSession(config, withCall).lastCallAt, null);
+  assert.deepEqual(reduceSession(config, withCall.slice(0, -1)), before);
+});
+
+test("SESSION_CLOSED flips status to closed", () => {
+  const state = reduceSession(config, [started(), sessionClosed()]);
+  assert.equal(state.status, "closed");
+});
+
+test("events after SESSION_CLOSED are ignored", () => {
+  const base = [started(), joined("p1", "P1", "X"), sessionClosed()];
+  const closed = reduceSession(config, base);
+  const withStray = reduceSession(config, [
+    ...base,
+    queued("p1"),
+    joined("p2", "P2", "X"),
+  ]);
+  assert.deepEqual(withStray.queue, closed.queue);
+  assert.deepEqual(withStray.roster, closed.roster);
+});

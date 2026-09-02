@@ -76,7 +76,18 @@ function DisplayBoardInner({
 
   return (
     <div className="space-y-10" data-testid="display-board">
-      {/* On Deck — the prominent element. */}
+      {view.lastCall && (
+        <p
+          className="rounded-2xl bg-brand-orange px-6 py-4 font-heading text-xl font-semibold text-white"
+          data-testid="display-last-call"
+        >
+          Last call — final games. No new foursomes tonight.
+        </p>
+      )}
+
+      {/* On Deck — the prominent element. Gone once Last Call is made: no new
+          foursome forms (issue #255). */}
+      {!view.lastCall && (
       <section>
         <h2 className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
           On deck
@@ -121,10 +132,13 @@ function DisplayBoardInner({
           })}
         </div>
       </section>
+      )}
 
       {/* Courts. */}
       <section>
-        <h2 className="font-heading text-xl font-semibold">On the courts</h2>
+        <h2 className="font-heading text-xl font-semibold">
+          {view.lastCall ? "Final games" : "On the courts"}
+        </h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {view.courts.map((court) => (
             <div
@@ -152,15 +166,17 @@ function DisplayBoardInner({
       {/* Queue with Wait Times. */}
       <section>
         <h2 className="font-heading text-xl font-semibold">
-          In the queue{" "}
+          {view.lastCall ? "Not playing tonight" : "In the queue"}{" "}
           <span className="text-muted-foreground">({view.queuedCount})</span>
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {QUEUE_TOGETHER_EXPLAINER}
-        </p>
+        {!view.lastCall && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {QUEUE_TOGETHER_EXPLAINER}
+          </p>
+        )}
         {view.queue.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
-            Nobody waiting right now.
+            {view.lastCall ? "Everyone got a game in." : "Nobody waiting right now."}
           </p>
         ) : (
           <ol className="mt-3 space-y-1 text-sm" data-testid="display-queue">

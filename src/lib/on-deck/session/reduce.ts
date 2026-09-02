@@ -208,6 +208,10 @@ function formFoursome(
  * from the Queue before the next Court is filled.
  */
 function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
+  // After Last Call (issue #255) no further Foursome is assigned — the Court
+  // stays empty and the four who just came off wait out the night.
+  if (state.lastCallAt !== null) return;
+
   const queuedIds = new Set(state.queue.map((e) => e.playerId));
 
   let foursome: string[] | null = null;
@@ -239,6 +243,14 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
 
   const seated = new Set(foursome);
   state.queue = state.queue.filter((e) => !seated.has(e.playerId));
+  // Each seated Player's wait has now ended — bank it for the Session Summary's
+  // wait-time distribution and longest wait (issue #255).
+  for (const playerId of foursome) {
+    const since = state.waitStartByPlayer[playerId];
+    if (since !== undefined) {
+      state.completedWaits.push(Math.max(0, at - since));
+    }
+  }
   court.foursome = foursome;
   court.since = at;
 }
@@ -262,6 +274,10 @@ function seatCourt(state: SessionState, court: CourtSlot, at: number): void {
  *      Queue", not "on deck". A *second* Foursome may form partial.
  */
 function refreshOnDeck(state: SessionState, at: number): void {
+  // After Last Call (issue #255) no new On Deck Foursome forms. `LAST_CALL`
+  // itself clears any already committed — nobody else walks on.
+  if (state.lastCallAt !== null) return;
+
   const queuedIds = new Set(state.queue.map((e) => e.playerId));
   const groupOf = groupByMember(state);
 
@@ -355,6 +371,7 @@ export function reduceSession(
     groups: [],
     startedAt: null,
     startedBy: null,
+    lastCallAt: null,
     status: "pending",
     roster: [],
     queue: [],
@@ -363,6 +380,7 @@ export function reduceSession(
     paused: [],
     waitStartByPlayer: {},
     completedGames: [],
+    completedWaits: [],
   };
 
   /** Remember when a Player's current wait began — the no-show door reads this
@@ -470,15 +488,23 @@ export function reduceSession(
         // A real Game (an occupied Court) ending is the Variety history Match
         // Me scores against; an empty Court tapped done carries no Game.
         if (court.foursome.length > 0) {
-          state.completedGames.push({ players: [...court.foursome] });
+          state.completedGames.push({
+            players: [...court.foursome],
+            court: court.number,
+          });
         }
 
         // The four coming off re-queue automatically, Wait Time measured from
         // this event (CONTEXT: "or from the moment they last came off a Court,
-        // whichever is later").
-        for (const playerId of court.foursome) {
-          state.queue.push({ playerId, waitSince: event.at });
-          beginWait(playerId, event.at);
+        // whichever is later") — unless Last Call has been tapped (issue #255),
+        // in which case their night is over: they leave the Court and are not
+        // re-queued, so no surface shows them waiting for a Court that will
+        // never be assigned.
+        if (state.lastCallAt === null) {
+          for (const playerId of court.foursome) {
+            state.queue.push({ playerId, waitSince: event.at });
+            beginWait(playerId, event.at);
+          }
         }
         court.foursome = [];
         court.since = null;
@@ -661,6 +687,24 @@ export function reduceSession(
         if (!Number.isInteger(event.cap)) break;
         if (event.cap < 2 || event.cap > state.config.groupCap) break;
         state.groupCap = event.cap;
+        break;
+      }
+
+      case "LAST_CALL": {
+        if (state.status !== "open") break;
+        // First Last Call wins — a replayed event must not move the time.
+        if (state.lastCallAt !== null) break;
+        state.lastCallAt = event.at;
+        // No new Foursome forms and nobody already On Deck walks on — clear it
+        // so "queued Players are told they're done". Games on Courts are
+        // untouched and finish normally.
+        state.onDeck = [];
+        break;
+      }
+
+      case "SESSION_CLOSED": {
+        if (state.status !== "open") break;
+        state.status = "closed";
         break;
       }
     }
