@@ -143,20 +143,20 @@ export function TurnNotifications({
   }
 
   return (
-    <div className="mt-3" data-testid="turn-notify">
-      <label className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="mt-4 border-t pt-3" data-testid="turn-notify">
+      <label className="flex items-center gap-2.5 text-sm">
         <input
           type="checkbox"
           checked={enabled}
           disabled={pending}
           onChange={(event) => (event.target.checked ? enable() : disable())}
-          className="h-5 w-5 rounded border-input accent-brand-orange"
+          className="h-5 w-5 shrink-0 rounded border-input accent-brand-orange"
         />
-        Buzz my phone when I&apos;m up
+        <span className="font-medium">Buzz my phone when I&apos;m up</span>
       </label>
-      <p className="mt-1 text-xs text-muted-foreground">
-        One notification when your foursome is on deck, one when you&apos;re on a
-        court. Nothing else.
+      <p className="mt-1.5 pl-7.5 text-xs text-muted-foreground">
+        One buzz when your foursome is on deck, one when you&apos;re on a court.
+        That&apos;s it.
       </p>
     </div>
   );
