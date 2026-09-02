@@ -18,11 +18,10 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
-`supabase db push` is done through **`20260901220000`** (#250) — `supabase
-migration list --linked` shows local and remote in sync. **`20260901230000`**
-(#251) is written but **not yet pushed** — push it with the PR. #248 / #249 / #247 went
-up together on 2026-09-01 after sitting merged-but-unpushed; #250 followed the
-same day. Note the timestamp collision it caused: `create_calendar_feed` (#293)
+`supabase db push` is done through **`20260901230000`** (#251) — `supabase
+migration list --linked` shows local and remote in sync. #248 / #249 / #247 went
+up together on 2026-09-01 after sitting merged-but-unpushed; #250 and #251
+followed the same day (#251 pushed right after its PR merged). Note the timestamp collision it caused: `create_calendar_feed` (#293)
 and `on_deck_queue_together` (#250) both landed as `20260901210000`, so #250 was
 renamed to `20260901220000` (#314) *after* it had already been pushed under that
 version — master's filename now matches remote. Check `migration list --linked`
