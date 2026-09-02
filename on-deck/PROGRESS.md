@@ -18,15 +18,18 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
-`supabase db push` is done through **`20260902150000`** (#255 — Last Call /
-close / Session Summary: `on_deck_session_summaries` + `on_deck_last_call` +
-`on_deck_close_session`), pushed 2026-09-02 right after PR #340 merged.
-**`20260902170000`** (#259 — the Kiosk: `COURT_CONFIRMED` added to the
-event-type check, `on_deck_check_kiosk_access` + `on_deck_kiosk_append`,
-`on_deck_undo_last_event` recreated with a `p_kiosk boolean` arg) is written but
-**not yet pushed** — push it after the PR merges, rebasing its timestamp past
-anything else that merged first (there is a parallel #260 branch carrying
-`20260902160000_on_deck_turn_notifications.sql`).
+`supabase db push` is done through **`20260902170000`** (#259 — the Kiosk:
+`COURT_CONFIRMED` added to the event-type check, `on_deck_check_kiosk_access` +
+`on_deck_kiosk_append`, `on_deck_undo_last_event` recreated with a `p_kiosk
+boolean` arg — a Kiosk may only undo a `kiosk`-sourced event), pushed
+2026-09-02 right after PR #343 merged. `supabase migration list --linked` shows
+local and remote in sync. The parallel #260 branch still carries an unmerged
+`20260902160000_on_deck_turn_notifications.sql` — it sorts *before* `170000`, so
+whoever pushes it next needs `--include-all` (or to rebase its timestamp past
+`170000`), the same out-of-order footgun #250 hit.
+**`20260902150000`** (#255 — Last Call / close / Session Summary:
+`on_deck_session_summaries` + `on_deck_last_call` + `on_deck_close_session`) was
+pushed right after PR #340 merged.
 `20260902140000` (#254 — `scheduled` Session state + pre-creation RPCs) and
 `20260902120000` (#252 — publication membership + `replica identity full` on
 `on_deck_session_events`) went up the same day. `supabase migration list
