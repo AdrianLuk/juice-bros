@@ -70,7 +70,7 @@ export default async function BookingsPage() {
   // A Calendar Feed isn't allowlist-gated (ADR-0019) — the "From facility
   // feeds" section shows whenever the User has at least one feed-configured
   // Facility.
-  const feedOrgIds = orgs.filter((org) => org.hasCalendarFeed).map((org) => org.id);
+  const hasConfiguredFeed = orgs.some((org) => org.hasCalendarFeed);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -146,7 +146,7 @@ export default async function BookingsPage() {
                 </section>
               )}
 
-              <SyncFacilitiesSection orgs={orgs} feedOrgIds={feedOrgIds} />
+              <SyncFacilitiesSection orgs={orgs} hasConfiguredFeed={hasConfiguredFeed} />
 
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">

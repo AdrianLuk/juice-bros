@@ -156,23 +156,42 @@ test("a dismissed feed candidate does not reappear on the next sync", async ({ p
   expect(await bookingsForOrg(user, orgId)).toHaveLength(0);
 });
 
-test("clearing the feed URL empties the field and stops the sync fetching it", async ({ page, accounts }) => {
+test("clearing a feed URL empties the field and a later sync no longer fetches it", async ({ page, accounts }) => {
   const user = { email: accounts.amy.email, password: accounts.password };
-  const facility = `${PREFIX} Clear`;
-  const orgId = await seedFacility(user, facility);
-  mock.registerFeed("/feed/clear", { kind: "ics", body: icsBody([FUTURE_EVENT]) });
+  const cleared = `${PREFIX} Clear`;
+  const kept = `${PREFIX} Kept`;
+  const clearedOrgId = await seedFacility(user, cleared);
+  await seedFacility(user, kept);
+
+  // The cleared feed serves a candidate; the kept feed serves a 500, so a sync
+  // that still fetched the cleared feed would surface its candidate again.
+  mock.registerFeed("/feed/cleared", { kind: "ics", body: icsBody([FUTURE_EVENT]) });
+  mock.registerFeed("/feed/kept", { kind: "status", status: 500 });
 
   await signIn(page, accounts.amy.email);
-  await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/clear"));
+  await setFeedUrlViaForm(page, cleared, mock.urlFor("/feed/cleared"));
+  await setFeedUrlViaForm(page, kept, mock.urlFor("/feed/kept"));
+
   await syncFacilities(page);
   await expect(feedSection(page).getByRole("listitem").filter({ hasText: CLUB })).toBeVisible();
 
-  await clearFeedUrlViaForm(page, facility);
-  expect(await feedEventsForOrg(user, orgId)).toHaveLength(0);
+  // Clear the first feed — its field comes back empty, its seen-set is purged.
+  await clearFeedUrlViaForm(page, cleared);
+  await expect(
+    page
+      .getByRole("listitem")
+      .filter({ hasText: cleared })
+      .getByRole("button", { name: "Remove feed" }),
+  ).toHaveCount(0);
+  expect(await feedEventsForOrg(user, clearedOrgId)).toHaveLength(0);
 
-  // With no feed configured, the section is gone from the Bookings page.
-  await page.goto("/booking-buddy/bookings");
-  await expect(page.getByRole("heading", { name: "From facility feeds" })).toHaveCount(0);
+  // A later sync still runs (the kept feed is configured) but never fetches the
+  // cleared one — no candidate, only the kept feed's error.
+  await syncFacilities(page);
+  const section = feedSection(page);
+  await expect(section.getByRole("alert").filter({ hasText: kept })).toBeVisible();
+  await expect(section.getByRole("listitem")).toHaveCount(0);
+  expect(await feedEventsForOrg(user, clearedOrgId)).toHaveLength(0);
 });
 
 test("a per-Facility fetch error names the Facility and doesn't stop the others", async ({ page, accounts }) => {

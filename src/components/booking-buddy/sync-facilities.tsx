@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
+import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import {
   formatCandidateDate,
@@ -28,18 +29,6 @@ const EMPTY: ActionResult = {};
 
 const SYNC_QUERY_KEY = ["booking-buddy", "facility-feed-candidates"] as const;
 
-/** `onResolved` is idempotent — a confirm and a dismiss each get their own effect. */
-function useResolveOnSuccess(state: ActionResult, resolve: () => void) {
-  useEffect(() => {
-    if (state.ok) {
-      resolve();
-    }
-    // Only the action state should re-trigger this — `resolve` closes over
-    // values stable within one card's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
-}
-
 function ActionError({ state }: { state: ActionResult }) {
   if (!state.error) {
     return null;
@@ -53,9 +42,11 @@ function ActionError({ state }: { state: ActionResult }) {
 }
 
 /**
- * One feed Import Candidate — the same card shell and read-only detail lines
- * the "Sync from Email" review uses for its own `import` items, keyed on the
- * VEVENT UID rather than a Gmail message id. A Calendar Feed is per-Org, so
+ * One feed Import Candidate — the `bb-card` shell, detail-line formatters and
+ * `OrgSelect` match the "Sync from Email" review's own `import` card, but this
+ * is its own component: the email `ReviewItemCard` switches over three kinds
+ * and is keyed on a Gmail message id, this one is import-only and keyed on the
+ * VEVENT UID. A Calendar Feed is per-Org, so
  * the Facility select is prefilled to the owning Org and stays editable only
  * as a safety valve; every other field rides through as a hidden input so
  * `confirmFeedCandidate` re-runs `parseNewBooking` over the same field names
@@ -153,11 +144,11 @@ function FeedCandidateCard({
  */
 export function SyncFacilitiesSection({
   orgs,
-  feedOrgIds,
+  hasConfiguredFeed,
 }: {
   orgs: Org[];
-  /** Ids of the caller's Orgs that have a feed configured — the section only renders when this is non-empty. */
-  feedOrgIds: string[];
+  /** Whether the caller has at least one feed-configured Facility — the section renders only then. */
+  hasConfiguredFeed: boolean;
 }) {
   const [hasSynced, setHasSynced] = useState(false);
   const queryClient = useQueryClient();
@@ -207,7 +198,7 @@ export function SyncFacilitiesSection({
       : [];
   const candidates: CalendarFeedReviewItem[] = okFeeds.flatMap((feed) => feed.items);
 
-  if (feedOrgIds.length === 0) {
+  if (!hasConfiguredFeed) {
     return null;
   }
 
@@ -244,15 +235,20 @@ export function SyncFacilitiesSection({
         )}
 
         {erroredFeeds.map((feed) => (
-          <p
+          <div
             key={feed.orgId}
             className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
             role="alert"
           >
-            Couldn&apos;t fetch {orgNameById.get(feed.orgId) ?? "that facility"}
-            &apos;s feed — {feed.message} You may need to re-copy the URL from
-            CourtReserve.
-          </p>
+            <p className="font-medium">
+              Couldn&apos;t fetch{" "}
+              {orgNameById.get(feed.orgId) ?? "that facility"}&apos;s feed.
+            </p>
+            <p className="mt-0.5">
+              {feed.message} If this keeps happening, re-copy the feed URL from
+              CourtReserve and save it again.
+            </p>
+          </div>
         ))}
 
         {data?.status === "ok" &&
