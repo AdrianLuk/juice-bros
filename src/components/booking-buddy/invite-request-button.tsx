@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   sendConnectionRequest,
   type ActionResult,
@@ -42,11 +43,7 @@ export function InviteRequestButton({
       <Button type="submit" disabled={pending}>
         {pending ? "Sending…" : `Send ${ownerName} a friend request`}
       </Button>
-      {state.error && (
-        <p className="text-xs text-destructive" role="alert">
-          {state.error}
-        </p>
-      )}
+      <ActionError state={state} />
     </form>
   );
 }

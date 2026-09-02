@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import { HOUR_TIMES, formatTimeLabel } from "@/lib/booking-buddy/datetime";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -30,18 +31,6 @@ const TYPE_OPTIONS: { value: AvailabilityType; label: string }[] = [
   { value: "busy", label: "Busy" },
   { value: "looking", label: "Looking to play" },
 ];
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 /** On-the-hour slots only, same reasoning and picker as `CreateBookingForm`'s own — courts and calendars alike are read off in hour-long chunks, not whatever a free-typed time lands on. */
 function HourTimeSelect({

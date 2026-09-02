@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ActionResult } from "@/lib/booking-buddy/actions/result";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   generateSlotLink,
   type GenerateSlotLinkResult,
@@ -12,18 +12,6 @@ import {
 } from "@/lib/booking-buddy/actions/slot-links";
 
 const EMPTY: GenerateSlotLinkResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 function CopyLinkButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);

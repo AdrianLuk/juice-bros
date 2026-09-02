@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import {
   formatCandidateDate,
@@ -28,18 +29,6 @@ import {
 const EMPTY: ActionResult = {};
 
 const SYNC_QUERY_KEY = ["booking-buddy", "facility-feed-candidates"] as const;
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 /**
  * One feed Import Candidate — the `bb-card` shell, detail-line formatters and
