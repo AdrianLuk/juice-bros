@@ -11,6 +11,7 @@
     "test:rls": "supabase test db",
     "snapshot:videos": "node scripts/snapshot-videos.mts",
     "seed:users": "node scripts/seed-booking-buddy-users.mts",
+    "seed:on-deck": "node scripts/seed-on-deck.mts",
     "db:reset": "supabase db reset && npm run seed:users",
     "pretest:e2e": "npm run seed:users",
     "test:e2e": "playwright test"
