@@ -1377,3 +1377,190 @@ test("a paused member leaves the Group; a Group under two members dissolves", ()
   ]);
   assert.deepEqual(dissolved.groups, []);
 });
+
+// --- Queue Together, player-formed (#251) ---------------------------
+
+function groupMemberRemoved(groupId: string, token: string): SessionEvent {
+  return {
+    type: "GROUP_MEMBER_REMOVED",
+    at: tick(),
+    operator: player,
+    groupId,
+    token,
+  };
+}
+
+function groupDissolved(
+  groupId: string,
+  operator: Operator = volunteer,
+): SessionEvent {
+  return { type: "GROUP_DISSOLVED", at: tick(), operator, groupId };
+}
+
+test("a player-formed Group folds identically to a volunteer-formed one", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+  ]);
+  // Same members, same groupId, same tick sequence — only the operator differs.
+  const asVolunteer = reduceSession(config, [
+    ...base,
+    { type: "GROUP_FORMED", at: 99_000, operator: volunteer, groupId: GID, memberTokens: ["p2", "p4"] },
+  ]);
+  const asPlayer = reduceSession(config, [
+    ...base,
+    { type: "GROUP_FORMED", at: 99_000, operator: player, groupId: GID, memberTokens: ["p2", "p4"] },
+  ]);
+  assert.deepEqual(asPlayer, asVolunteer);
+});
+
+test("a member removes themselves: they stay in the Queue as a solo, the Group keeps going with the rest", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2", "p3"]),
+    groupMemberRemoved(GID, "p2"),
+  ]);
+  assert.equal(state.groups.length, 1);
+  assert.deepEqual(state.groups[0].memberIds, ["p1", "p3"]);
+  // p2 is still waiting, now a solo unit.
+  assert.ok(state.queue.some((e) => e.playerId === "p2"));
+  const units = queueUnits(state);
+  assert.ok(units.some((u) => u.kind === "solo" && u.playerId === "p2"));
+});
+
+test("the last two-member Group loses one to self-removal and dissolves; both stay queued", () => {
+  const base = queuedSession([{ token: "p1" }, { token: "p2" }, { token: "p3" }]);
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2"]),
+    groupMemberRemoved(GID, "p1"),
+  ]);
+  assert.deepEqual(state.groups, []);
+  assert.equal(queuePosition(state, "p1") !== null, true);
+  assert.equal(queuePosition(state, "p2") !== null, true);
+});
+
+test("GROUP_MEMBER_REMOVED is a no-op for a non-member or a Group already on a Court", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const notMember = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2"]),
+    groupMemberRemoved(GID, "p3"),
+  ]);
+  assert.deepEqual(notMember.groups[0].memberIds, ["p1", "p2"]);
+
+  const oneCourt: SessionConfig = { ...config, courtCount: 1 };
+  const seatBase = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const seated = reduceSession(oneCourt, [
+    ...seatBase,
+    groupFormed(GID, ["p1", "p2"]),
+    courtFinished(1), // fills the Group to four and seats it on Court 1
+    groupMemberRemoved(GID, "p1"), // too late — the Group is playing
+  ]);
+  assert.equal(seated.groups.length, 1);
+  assert.equal(seated.groups[0].courtNumber, 1);
+});
+
+test("a Volunteer dissolves a waiting Group: it is gone, members keep their spots and wait", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+    { token: "p5" },
+  ]);
+  const before = reduceSession(config, base);
+  const after = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p2", "p4"]),
+    groupDissolved(GID),
+  ]);
+  assert.deepEqual(after.groups, []);
+  // The five are all still waiting with their own wait anchors intact.
+  assert.deepEqual(
+    [...after.queue].sort((a, b) => a.playerId.localeCompare(b.playerId)),
+    [...before.queue].sort((a, b) => a.playerId.localeCompare(b.playerId)),
+  );
+  // Everyone who was committed On Deck before the Group formed is still
+  // committed — dissolving does not reshuffle an announced Foursome (ADR 0007).
+  const stillCommitted = new Set(after.onDeck.flatMap((f) => f.players));
+  for (const id of before.onDeck.flatMap((f) => f.players)) {
+    assert.ok(stillCommitted.has(id), `${id} stayed On Deck`);
+  }
+});
+
+test("dissolving a Group does not wipe an unrelated committed Foursome (ADR 0007)", () => {
+  // 8 solos queue → two full On Deck Foursomes committed. Then a Group forms
+  // (rebuild — deliberate) and is dissolved (no rebuild). The two non-group
+  // Foursomes' members must not have been re-selected out from under them.
+  const base = queuedSession(
+    Array.from({ length: 8 }, (_, i) => ({ token: `p${i + 1}` })),
+  );
+  const g = "group-00000000-0000-0000-0000-0000000000c1";
+  const state = reduceSession(config, [
+    ...base,
+    groupFormed(g, ["p7", "p8"]),
+    groupDissolved(g),
+  ]);
+  assert.deepEqual(state.groups, []);
+  // On Deck is full again and every committed player is one of the eight.
+  assert.equal(state.onDeck.length, 2);
+  for (const id of state.onDeck.flatMap((f) => f.players)) {
+    assert.ok(base.some((e) => "token" in e && e.token === id));
+  }
+});
+
+test("GROUP_DISSOLVED is a no-op for an unknown Group or one on a Court", () => {
+  const base = queuedSession([{ token: "p1" }, { token: "p2" }, { token: "p3" }]);
+  const unknown = reduceSession(config, [
+    ...base,
+    groupFormed(GID, ["p1", "p2"]),
+    groupDissolved("group-00000000-0000-0000-0000-0000000000ff"),
+  ]);
+  assert.equal(unknown.groups.length, 1);
+});
+
+test("undo drops the last GROUP_DISSOLVED: the Group comes back exactly (#247)", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const withGroup = [...base, groupFormed(GID, ["p1", "p3"])];
+  const events = [...withGroup, groupDissolved(GID)];
+  assert.deepEqual(reduceSession(config, events.slice(0, -1)), reduceSession(config, withGroup));
+});
+
+test("undo drops the last GROUP_MEMBER_REMOVED: re-folding restores the member in the Group", () => {
+  const base = queuedSession([
+    { token: "p1" },
+    { token: "p2" },
+    { token: "p3" },
+    { token: "p4" },
+  ]);
+  const withGroup = [...base, groupFormed(GID, ["p1", "p2", "p3"])];
+  const before = reduceSession(config, withGroup);
+  const removed = [...withGroup, groupMemberRemoved(GID, "p2")];
+  assert.notDeepEqual(reduceSession(config, removed).groups, before.groups);
+  assert.deepEqual(reduceSession(config, removed.slice(0, -1)), before);
+});

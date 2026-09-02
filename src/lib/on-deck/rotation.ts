@@ -49,7 +49,7 @@ export type RotationCourt = {
  */
 export type QueueEntryView =
   | { kind: "solo"; name: string }
-  | { kind: "group"; names: string[] };
+  | { kind: "group"; groupId: string; names: string[] };
 
 export type RotationView = {
   status: "open" | "closed";
@@ -112,6 +112,15 @@ export type RotationView = {
     paused: boolean;
     /** The caller is queued as part of a Queue Together Group (issue #250). */
     group: boolean;
+    /**
+     * The caller may form a Queue Together Group from their phone (issue #251):
+     * they are waiting (in the Queue or On Deck), not already in a Group, and
+     * there is at least one other ungrouped waiter to pick. The `others` are
+     * those pickable names.
+     */
+    canFormGroup: boolean;
+    /** Ungrouped waiters the caller could pick into a Group — display names. */
+    groupmateOptions: string[];
   } | null;
 };
 
@@ -161,7 +170,7 @@ export function rotationViewFrom(
   const queue: QueueEntryView[] = waitingUnits.map((unit) =>
     unit.kind === "solo"
       ? { kind: "solo", name: nameOf(unit.playerId) }
-      : { kind: "group", names: unit.memberIds.map(nameOf) },
+      : { kind: "group", groupId: unit.groupId, names: unit.memberIds.map(nameOf) },
   );
 
   const trimmed = token?.trim() ?? "";
@@ -177,12 +186,20 @@ export function rotationViewFrom(
     const onDeckIndex = state.onDeck.findIndex((f) =>
       f.players.includes(trimmed),
     );
+    const inGroup = state.groups.some((g) => g.memberIds.includes(trimmed));
+    const waiting = unitIndex >= 0 || onDeckIndex >= 0;
+    // Ungrouped waiters other than the caller — who they can pick into a Group.
+    const groupmateOptions = state.queue
+      .filter((e) => e.playerId !== trimmed && !groupedIds.has(e.playerId))
+      .map((e) => nameOf(e.playerId));
     me = {
       position: unitIndex < 0 ? null : unitIndex + 1,
       court: playerCourt(state, trimmed),
       onDeck: onDeckIndex < 0 ? null : onDeckIndex,
       paused: playerPaused(state, trimmed),
-      group: state.groups.some((g) => g.memberIds.includes(trimmed)),
+      group: inGroup,
+      canFormGroup: waiting && !inGroup && groupmateOptions.length > 0,
+      groupmateOptions,
     };
   }
 

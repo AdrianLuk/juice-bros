@@ -30,6 +30,7 @@ export const FLOOR_EVENT_TYPES = [
   "PLAYER_REQUEUED",
   "FOURSOME_MEMBER_SWAPPED",
   "GROUP_FORMED",
+  "GROUP_DISSOLVED",
 ] as const;
 
 export type FloorEventType = (typeof FLOOR_EVENT_TYPES)[number];
@@ -47,7 +48,11 @@ export type FloorOutcomeType =
   | FloorEventType
   | "PLAYER_JOINED"
   | "PLAYER_SKILL_SET"
-  | "GROUP_CAP_CHANGED";
+  | "GROUP_CAP_CHANGED"
+  // Player-sourced (issue #251) — decided by the same pure `floor-ops`
+  // helpers but committed through an `anon` Player RPC, not the operator write
+  // paths, and never operator-undoable (kept out of `FLOOR_EVENT_TYPES`).
+  | "GROUP_MEMBER_REMOVED";
 
 function isFloorEventType(type: string): type is FloorEventType {
   return (FLOOR_EVENT_TYPES as readonly string[]).includes(type);
@@ -67,6 +72,7 @@ const UNDO_LABEL: Record<FloorEventType, string> = {
   PLAYER_REQUEUED: "the last re-queue",
   FOURSOME_MEMBER_SWAPPED: "the last no-show swap",
   GROUP_FORMED: "the last group",
+  GROUP_DISSOLVED: "the last group break-up",
 };
 
 /** The most recent raw event of a Session — the seq/type/at/operator the fold
@@ -349,6 +355,71 @@ export function formGroupOutcome(
   }
 
   return { kind: "event", type: "GROUP_FORMED", payload: { groupId, memberTokens } };
+}
+
+/**
+ * "Break up this group" (issue #251): a Volunteer dissolves a waiting Group.
+ * Its members stay in the Queue as solos. A no-op for an unknown Group or one
+ * already on a Court (that ends on its `COURT_FINISHED`).
+ */
+export function dissolveGroupOutcome(
+  state: SessionState,
+  groupId: string,
+): FloorOpOutcome {
+  const group = state.groups.find((g) => g.id === groupId);
+  if (!group || group.courtNumber !== null) {
+    return { kind: "noop" };
+  }
+  return { kind: "event", type: "GROUP_DISSOLVED", payload: { groupId } };
+}
+
+/**
+ * "Queue together" formed by a Player from their own phone (issue #251): the
+ * acting Player (`actorToken`, from their device) plus the names they picked
+ * from the current-Session Player list. The actor is always a member — they are
+ * added even if they did not tap their own chip. Same Group semantics as the
+ * Volunteer path (`formGroupOutcome`): every name resolves, every member is
+ * waiting and ungrouped, 2..live cap. `groupId` is minted by the caller.
+ */
+export function formGroupByPlayerOutcome(
+  state: SessionState,
+  actorToken: string,
+  pickedNames: readonly string[],
+  groupId: string,
+): FloorOpOutcome {
+  const actor = state.roster.find((p) => p.id === actorToken);
+  if (!actor) {
+    return { kind: "error", error: "Join the session first." };
+  }
+  if (!state.queue.some((e) => e.playerId === actorToken)) {
+    // Caught here so the message is about the caller, not a confusing
+    // "<your own name> isn't in the queue" out of the shared check below.
+    return { kind: "error", error: "Join the queue before grouping up." };
+  }
+  // Fold the actor in by name, then hand off to the shared decision so the
+  // "waiting / ungrouped / cap" rules are enforced in exactly one place.
+  const names = [actor.displayName, ...pickedNames];
+  return formGroupOutcome(state, names, groupId);
+}
+
+/**
+ * "Leave this group" from a member's own phone (issue #251): the acting Player
+ * (`actorToken`) steps out of whichever waiting Group they are in. They stay in
+ * the Queue. A no-op when they are in no waiting Group.
+ */
+export function leaveGroupByPlayerOutcome(
+  state: SessionState,
+  actorToken: string,
+): FloorOpOutcome {
+  const group = state.groups.find(
+    (g) => g.courtNumber === null && g.memberIds.includes(actorToken),
+  );
+  if (!group) return { kind: "noop" };
+  return {
+    kind: "event",
+    type: "GROUP_MEMBER_REMOVED",
+    payload: { groupId: group.id, token: actorToken },
+  };
 }
 
 /**

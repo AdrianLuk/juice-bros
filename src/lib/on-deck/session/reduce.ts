@@ -589,7 +589,7 @@ export function reduceSession(
         // 2 to the current live cap; every member rostered, currently waiting
         // in the Queue, and in no other Group. Any miss makes this a no-op —
         // `floor-ops` is what turns the same checks into a message for the
-        // Operator.
+        // Operator or Player.
         if (ids.length < 2 || ids.length > state.groupCap) break;
         if (!ids.every((id) => state.roster.some((p) => p.id === id))) break;
         if (!ids.every((id) => state.queue.some((e) => e.playerId === id))) break;
@@ -602,13 +602,52 @@ export function reduceSession(
           formedAt: event.at,
           courtNumber: null,
         });
-        // Forming a Group is a deliberate Operator act, not a passive Queue
-        // change — so unlike a join it *does* rebuild On Deck, from scratch, so
-        // the Group's Foursome can take its rightful "Up next" slot. ADR 0007's
-        // "never reshuffle" still holds for the events Players trigger; this is
-        // the Volunteer overriding the board on purpose, and the rebuild is
-        // deterministic (pure fold) so undo re-forms it exactly.
+        // Forming a Group — Volunteer- or Player-formed (issue #251), the fold
+        // reads them identically — is a deliberate act, not a passive Queue
+        // change, so unlike a join it *does* rebuild On Deck from scratch, so
+        // the Group's Foursome can take its rightful "Up next" slot (issue
+        // #250). ADR 0007's "never reshuffle" still holds for the passive events
+        // (a plain queue tap, a member leaving a Group); this is a deliberate
+        // override, and the rebuild is deterministic (pure fold) so undo
+        // re-forms it exactly.
         state.onDeck = [];
+        sortQueue(state);
+        refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "GROUP_MEMBER_REMOVED": {
+        if (state.status !== "open") break;
+        const group = state.groups.find((g) => g.id === event.groupId);
+        // Only a still-waiting Group (a Group already on a Court rides its Game
+        // out); the token must be a current member.
+        if (!group || group.courtNumber !== null) break;
+        if (!group.memberIds.includes(event.token)) break;
+
+        group.memberIds = group.memberIds.filter((id) => id !== event.token);
+        // Under two members it is no longer a Group — its lone member re-sorts
+        // as a solo. The leaver stays in the Queue either way.
+        state.groups = state.groups.filter(
+          (g) => g.courtNumber !== null || g.memberIds.length >= 2,
+        );
+        // A member leaving is a passive Player-triggered change, exactly like a
+        // paused member dropping out of their Group — so it re-sorts and tops
+        // up (`refreshOnDeck` clears a stale `groupId` off a committed
+        // Foursome) but does NOT rebuild On Deck from scratch. ADR 0007: an
+        // already-announced Foursome stays put. This matches the `PLAYER_PAUSED`
+        // path below, not the deliberate `GROUP_FORMED` rebuild above.
+        sortQueue(state);
+        refreshOnDeck(state, event.at);
+        break;
+      }
+
+      case "GROUP_DISSOLVED": {
+        if (state.status !== "open") break;
+        const group = state.groups.find((g) => g.id === event.groupId);
+        // A Group already on a Court dissolves on its `COURT_FINISHED`, not here.
+        if (!group || group.courtNumber !== null) break;
+        state.groups = state.groups.filter((g) => g.id !== event.groupId);
+        // Same as a member leaving: re-sort + top up, no full rebuild (ADR 0007).
         sortQueue(state);
         refreshOnDeck(state, event.at);
         break;

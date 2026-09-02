@@ -183,6 +183,24 @@ function toEvent(row: EventRow): SessionEvent | null {
       return { type: "GROUP_CAP_CHANGED", at, operator, cap };
     }
 
+    case "GROUP_MEMBER_REMOVED": {
+      const payload = row.payload ?? {};
+      const groupId = payload.groupId;
+      const token = payload.token;
+      if (typeof groupId !== "string" || typeof token !== "string") {
+        return null;
+      }
+      return { type: "GROUP_MEMBER_REMOVED", at, operator, groupId, token };
+    }
+
+    case "GROUP_DISSOLVED": {
+      const groupId = (row.payload ?? {}).groupId;
+      if (typeof groupId !== "string") {
+        return null;
+      }
+      return { type: "GROUP_DISSOLVED", at, operator, groupId };
+    }
+
     default:
       return null;
   }

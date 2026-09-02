@@ -131,11 +131,16 @@ export interface SessionConfig {
  *
  * `SESSION_STARTED`, `PLAYER_JOINED`, `PLAYER_QUEUED`, `PLAYER_SKILL_SET`,
  * `COURT_FINISHED`, `PLAYER_PAUSED`, `PLAYER_REQUEUED`,
- * `FOURSOME_MEMBER_SWAPPED`, `GROUP_FORMED` and `GROUP_CAP_CHANGED` exist so
- * far; the rest of the log's vocabulary (player-formed groups, last call,
- * close) lands in later tickets. The DB `on_deck_session_events.type` check
- * lists the full set (the #246 migration adds `PLAYER_REQUEUED`, which the
- * foundation missed).
+ * `FOURSOME_MEMBER_SWAPPED`, `GROUP_FORMED`, `GROUP_CAP_CHANGED`,
+ * `GROUP_MEMBER_REMOVED` and `GROUP_DISSOLVED` exist so far; the rest of the
+ * log's vocabulary (last call, close) lands in later tickets. The DB
+ * `on_deck_session_events.type` check lists the full set (the #246 migration
+ * adds `PLAYER_REQUEUED`, which the foundation missed).
+ *
+ * `GROUP_FORMED` is fired both ways — a Volunteer picking members (issue #250)
+ * and a Player forming a Group from their own phone (issue #251). The fold
+ * reads the two identically (ADR 0005); only the write path differs (a
+ * Volunteer's RPC vs. an `anon` Player RPC).
  */
 export type SessionEvent =
   | {
@@ -266,8 +271,35 @@ export type SessionEvent =
       operator: Operator;
       /** Server-minted `group-<uuid>` — the Group's id within this Session. */
       groupId: string;
-      /** Device tokens of the chosen members, in the order the Operator picked. */
+      /** Device tokens of the chosen members, in the order they were picked. */
       memberTokens: string[];
+    }
+  | {
+      /**
+       * A member removes themselves from a Group from their own phone (issue
+       * #251). They stay in the Queue as a solo — this is *not* leaving the
+       * Queue (`PLAYER_PAUSED`). A Group left under two members dissolves; its
+       * remaining member re-sorts as a solo too. A no-op unless the token is a
+       * current member of a still-waiting Group.
+       */
+      type: "GROUP_MEMBER_REMOVED";
+      at: number;
+      operator: Operator;
+      groupId: string;
+      /** Device token of the member leaving the Group. */
+      token: string;
+    }
+  | {
+      /**
+       * A Volunteer (or the Organizer) dissolves a whole Group before it walks
+       * onto a Court (issue #251) — its members stay in the Queue as solos. A
+       * no-op for an unknown groupId or a Group already on a Court (that one
+       * dissolves on its `COURT_FINISHED`).
+       */
+      type: "GROUP_DISSOLVED";
+      at: number;
+      operator: Operator;
+      groupId: string;
     }
   | {
       /**
@@ -282,6 +314,15 @@ export type SessionEvent =
       /** The new cap, 2..`config.groupCap`. */
       cap: number;
     };
+
+/**
+ * The one-line explainer of how a Queue Together Group's place in line works —
+ * so a Group sitting mid-Queue doesn't read as line-jumping (issue #238 user
+ * story 57, issue #251). Shown on the Display and the floor's Queue; kept here
+ * so every surface uses the same words.
+ */
+export const QUEUE_TOGETHER_EXPLAINER =
+  "Groups line up at the middle of their members' wait times — nobody skips the queue by grouping up.";
 
 /** One Player in a Session's roster, as the fold projects them. */
 export interface RosterPlayer {

@@ -10,6 +10,7 @@ import { QueryProvider } from "@/components/on-deck/query-provider";
 import {
   addWalkup,
   bringPlayerBack,
+  dissolveGroup,
   finishCourt,
   formGroup,
   lowerGroupCap,
@@ -21,6 +22,7 @@ import {
 import {
   volunteerAddWalkup,
   volunteerBringPlayerBack,
+  volunteerDissolveGroup,
   volunteerFinishCourt,
   volunteerFormGroup,
   volunteerLowerGroupCap,
@@ -36,6 +38,7 @@ import {
   type RotationView,
 } from "@/lib/on-deck/actions/rotation";
 import {
+  QUEUE_TOGETHER_EXPLAINER,
   SKILL_LEVELS,
   SKILL_LEVEL_LABEL,
   type PauseReason,
@@ -150,6 +153,10 @@ function boundFloorActions(sessionId: string, auth: FloorAuth) {
       auth.kind === "volunteer"
         ? volunteerLowerGroupCap(sessionId, auth.token, cap)
         : lowerGroupCap(sessionId, cap),
+    dissolveGroup: (groupId: string) =>
+      auth.kind === "volunteer"
+        ? volunteerDissolveGroup(sessionId, auth.token, groupId)
+        : dissolveGroup(sessionId, groupId),
   };
 }
 
@@ -681,6 +688,12 @@ function RotationBoardInner({
     onError: () => setError("Couldn't change the cap. Try again."),
   });
 
+  const breakUp = useMutation({
+    mutationFn: (groupId: string) => ops.dissolveGroup(groupId),
+    onSuccess: handle,
+    onError: () => setError("Couldn't break up that group. Try again."),
+  });
+
   const view = query.data ?? initialView;
   const undoTarget = view.undo;
   const roster = rosterQuery.data ?? initialRoster;
@@ -693,7 +706,8 @@ function RotationBoardInner({
     walkup.isPending ||
     skillOverride.isPending ||
     group.isPending ||
-    capChange.isPending;
+    capChange.isPending ||
+    breakUp.isPending;
 
   return (
     <div className="space-y-8">
@@ -791,6 +805,11 @@ function RotationBoardInner({
           Queue{" "}
           <span className="text-muted-foreground">({view.queuedCount})</span>
         </h2>
+        {view.queue.some((e) => e.kind === "group") && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {QUEUE_TOGETHER_EXPLAINER}
+          </p>
+        )}
         {view.queue.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
             Nobody waiting right now.
@@ -819,9 +838,20 @@ function RotationBoardInner({
                   className="rounded-lg border border-brand-orange/40 bg-brand-orange/5 px-2 py-1.5"
                   data-testid="queue-group"
                 >
-                  <span className="text-xs font-semibold tracking-wide text-brand-orange uppercase">
-                    <span className="text-muted-foreground">{i + 1}.</span> Group
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold tracking-wide text-brand-orange uppercase">
+                      <span className="text-muted-foreground">{i + 1}.</span>{" "}
+                      Group
+                    </span>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      disabled={busy}
+                      onClick={() => breakUp.mutate(entry.groupId)}
+                    >
+                      Break up
+                    </button>
+                  </div>
                   <ul className="mt-1 space-y-0.5">
                     {entry.names.map((name) => (
                       <li

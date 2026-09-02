@@ -11,8 +11,11 @@ import {
   addWalkupOutcome,
   bringBackOutcome,
   describeUndo,
+  dissolveGroupOutcome,
   finishCourtOutcome,
+  formGroupByPlayerOutcome,
   formGroupOutcome,
+  leaveGroupByPlayerOutcome,
   lowerGroupCapOutcome,
   overrideSkillOutcome,
   setAsideOutcome,
@@ -346,4 +349,67 @@ test("describeUndo offers GROUP_FORMED", () => {
     label: "the last group",
     by: "organizer",
   });
+});
+
+// --- Queue Together, player-formed (#251) ---------------------------
+
+/** `n` joined-and-queued Players, with a Group of `groupTokens` already formed. */
+function queuedSessionWithGroup(n: number, groupId: string, groupTokens: string[]) {
+  const events: SessionEvent[] = [started()];
+  for (let i = 1; i <= n; i++) events.push(joined(`p${i}`, `P${i}`));
+  for (let i = 1; i <= n; i++) events.push(queued(`p${i}`));
+  events.push({
+    type: "GROUP_FORMED",
+    at: tick(),
+    operator: player,
+    groupId,
+    memberTokens: groupTokens,
+  });
+  return reduceSession(config, events);
+}
+
+test("formGroupByPlayerOutcome folds the actor in and defers to the shared rules", () => {
+  const { state } = queuedSession(6);
+  // p1 acts, picks p2 and p3 — the event carries all three, actor first.
+  assert.deepEqual(
+    formGroupByPlayerOutcome(state, "p1", ["P2 X.", "P3 X."], "group-abc"),
+    {
+      kind: "event",
+      type: "GROUP_FORMED",
+      payload: { groupId: "group-abc", memberTokens: ["p1", "p2", "p3"] },
+    },
+  );
+  // Picking nobody else is a one-person Group — rejected by the shared check.
+  assert.equal(formGroupByPlayerOutcome(state, "p1", [], "g").kind, "error");
+  // An actor who never joined.
+  assert.equal(formGroupByPlayerOutcome(state, "ghost", ["P2 X."], "g").kind, "error");
+});
+
+test("leaveGroupByPlayerOutcome emits GROUP_MEMBER_REMOVED for a member, no-ops otherwise", () => {
+  const state = queuedSessionWithGroup(6, "group-1", ["p1", "p2", "p3"]);
+  assert.deepEqual(leaveGroupByPlayerOutcome(state, "p2"), {
+    kind: "event",
+    type: "GROUP_MEMBER_REMOVED",
+    payload: { groupId: "group-1", token: "p2" },
+  });
+  // p4 is in no Group.
+  assert.deepEqual(leaveGroupByPlayerOutcome(state, "p4"), { kind: "noop" });
+});
+
+test("dissolveGroupOutcome emits GROUP_DISSOLVED for a waiting Group, no-ops for unknown", () => {
+  const state = queuedSessionWithGroup(6, "group-1", ["p1", "p2"]);
+  assert.deepEqual(dissolveGroupOutcome(state, "group-1"), {
+    kind: "event",
+    type: "GROUP_DISSOLVED",
+    payload: { groupId: "group-1" },
+  });
+  assert.deepEqual(dissolveGroupOutcome(state, "group-nope"), { kind: "noop" });
+});
+
+test("describeUndo offers GROUP_DISSOLVED but not GROUP_MEMBER_REMOVED", () => {
+  assert.equal(
+    describeUndo(last("GROUP_DISSOLVED", NOW - 1000), NOW)?.label,
+    "the last group break-up",
+  );
+  assert.equal(describeUndo(last("GROUP_MEMBER_REMOVED", NOW - 1000), NOW), null);
 });
