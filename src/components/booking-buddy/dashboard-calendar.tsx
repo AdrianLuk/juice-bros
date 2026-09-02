@@ -90,10 +90,12 @@ export function DashboardCalendar<T extends CalendarEvent>({
   availabilityWindows: AvailabilityWindow[];
   quickActions?: ReactNode;
   /**
-   * When set, an empty non-past calendar cell reveals a `+` that calls this
-   * with the cell's day and, from the Week view, the clicked row's hour (the
-   * Month view, #307, will pass `null` and keep the form's default start).
-   * Absent on the friend calendar, which renders no creation affordances.
+   * When set, an empty non-past calendar cell is a quick-create target (a
+   * hover-revealed `+` on a pointer, a bare tap target on touch — #327) that
+   * calls this with the cell's day and, from the Week view, the clicked row's
+   * hour (the Month view, #307, passes `null` and keeps the form's default
+   * start). Absent on the friend calendar, which renders no creation
+   * affordances.
    */
   onQuickCreate?: (date: Date, startHour: number | null) => void;
   restrictToFuture?: boolean;

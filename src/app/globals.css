@@ -748,27 +748,21 @@
 }
 
 /*
- * Week-view quick-create (`dashboard-week-view.tsx`, issue #303): every empty
- * hour row of a non-past day carries a full-width button whose `+` mark
- * (`.bb-week-quick-add-mark`) is invisible until the row is hovered — a quiet
- * affordance that keeps the grid uncluttered until you reach for it.
+ * Week-view quick-create (`dashboard-week-view.tsx`, issues #303 / #327):
+ * every empty hour row of a non-past day carries a full-width button whose
+ * `+` mark (`.bb-week-quick-add-mark`) is invisible until the row is hovered
+ * or focused — a quiet affordance that keeps the grid uncluttered until you
+ * reach for it.
  *
- * The whole thing is pointer-driven: on a touch device (`hover: none`) the
- * button is `pointer-events: none`, so tapping an empty cell scrolls or does
- * nothing rather than opening the dialog behind an invisible mark — Month
- * view (issue #307) is where a touch affordance lands. `pointer-events: none`
- * still allows keyboard focus, so a keyboard user on any device reaches the
- * button by Tab and sees the mark on `:focus-visible`. Reduced motion keeps
+ * The button stays clickable on every device. On a pointer with hover the
+ * mark fades in on hover; with a keyboard it shows on `:focus-visible`. On
+ * touch there's no hover to reveal it and 24 marks a column would be as
+ * cluttered as the Month view's used to be (#327), so the mark stays hidden
+ * and the empty row itself is the tap target — the same pattern as Month
+ * view and as Google/Apple Calendar. A real tap fires the click; a scroll
+ * drag cancels it, so the grid still scrolls freely. Reduced motion keeps
  * the reveal and drops the fade.
  */
-.bb-week-quick-add {
-  pointer-events: none;
-}
-@media (hover: hover) {
-  .bb-week-quick-add {
-    pointer-events: auto;
-  }
-}
 .bb-week-quick-add-mark {
   opacity: 0;
 }
@@ -787,16 +781,24 @@
 }
 
 /*
- * Month-view quick-create (`dashboard-month-view.tsx`, issue #303): the `+`
- * at a non-past day cell's top-right. On a pointer with hover it stays
- * invisible until the cell is hovered — the same quiet reveal as the Week
- * view. Where there's no hover (touch), it can't hide behind nothing to tap,
- * so it sits faintly always-present instead, matching the day number it
- * mirrors. `:focus-visible` reveals it fully on any device; reduced motion
- * keeps the reveal and drops the fade.
+ * Month-view quick-create (`dashboard-month-view.tsx`, issues #303 / #327).
+ *
+ * Pointer with hover (desktop): a `+` at each non-past day cell's top-right
+ * (`.bb-month-quick-add`), invisible until the cell is hovered — the same
+ * quiet reveal as the Week view — plus `:focus-visible` for keyboards. The
+ * full-cell tap surface (`.bb-month-quick-add-surface`) is inert here, so it
+ * never swallows a click meant for the day number or an event chip.
+ *
+ * Touch (`hover: none`): a faint `+` in every non-past cell just read as
+ * clutter on a phone (#327), so the corner mark stays fully transparent
+ * (it's kept in the a11y tree for screen readers, not shown) and the empty
+ * area of the cell becomes the tap target instead — same pattern as the
+ * Week view's empty rows and as Google/Apple Calendar. The cell's own
+ * content (day number, availability bar, event chips) sits above the surface
+ * and keeps its taps.
  */
 .bb-month-quick-add {
-  opacity: 0.4;
+  opacity: 0;
 }
 @media (prefers-reduced-motion: no-preference) {
   .bb-month-quick-add {
@@ -807,12 +809,17 @@
   opacity: 1;
 }
 @media (hover: hover) {
-  .bb-month-quick-add {
-    opacity: 0;
-  }
   .bb-month-quick-add:hover,
   .bb-cal-month-cell:hover .bb-month-quick-add {
     opacity: 1;
+  }
+}
+.bb-month-quick-add-surface {
+  pointer-events: none;
+}
+@media (hover: none) {
+  .bb-month-quick-add-surface {
+    pointer-events: auto;
   }
 }
 

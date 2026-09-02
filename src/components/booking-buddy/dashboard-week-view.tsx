@@ -103,11 +103,14 @@ export function eventChipLineBudget(heightPx: number): 1 | 2 | 3 {
  * navigation clamp, which reads as broken rather than as "that's as far
  * back as this goes."
  *
- * `onQuickCreate`, when set (the owner's dashboard, issue #303), puts a
- * hover-revealed `+` on every empty hour row of a non-past day — clicking
- * it opens the shared booking dialog prefilled with that cell's day and
- * floored start hour. Rows a Booking already covers, and every row of a
- * past day, get no `+`. Absent on the friend calendar.
+ * `onQuickCreate`, when set (the owner's dashboard, issue #303), makes every
+ * empty hour row of a non-past day a button that opens the shared booking
+ * dialog prefilled with that cell's day and floored start hour. On a pointer
+ * with hover / a keyboard it shows a `+` mark on hover / focus; on touch
+ * (#327) the mark stays hidden — 24 marks a column would clutter the grid —
+ * and the row itself is the tap target, the same phone-native pattern as the
+ * Month view. Rows a Booking already covers, and every row of a past day,
+ * are skipped. Absent on the friend calendar.
  */
 export function DashboardWeekView<T extends CalendarEvent>({
   weekStart,
@@ -379,12 +382,14 @@ function DayColumn<T extends CalendarEvent>({
         />
       ))}
 
-      {/* One `+` per empty hour row of a non-past day (issue #303), rendered
-          under the Availability blocks and event chips below so those keep
-          their own hover/tooltip and click behaviour untouched — the `+` is
-          only ever reached on a row with neither. Each button spans exactly
-          one hour row, so its `hour` is already the floored start hour
-          `hourFromOffset` would compute for a free click. */}
+      {/* One quick-create button per empty hour row of a non-past day (issue
+          #303), rendered before — and so painted/tapped under — the
+          Availability blocks and event chips below, which keep their own
+          hover/tooltip and click behaviour untouched. The button is only ever
+          the top layer on a row with neither: a hover-revealed `+` on a
+          pointer, a bare full-row tap target on touch (#327). Each button
+          spans exactly one hour row, so its `hour` is already the floored
+          start hour `hourFromOffset` would compute for a free click. */}
       {onQuickCreate &&
         hours.map((hour) =>
           bookedHours?.has(hour) ? null : (
