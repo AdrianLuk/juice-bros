@@ -170,6 +170,35 @@ export function readGmailApiBaseUrl(
 }
 
 /**
+ * Test-only override widening the CourtReserve calendar-feed host allowlist so
+ * Playwright can point the feed fetch at a local mock server
+ * (`e2e/support/calendar-feed-mock.ts`) instead of `courtreserve.com` — the
+ * same test-only host-override shape and accepted risk as `GMAIL_API_BASE_URL`
+ * (issue #294 / ADR-0019). Comma-separated hosts (no scheme, no port matching —
+ * a bare hostname), matched in addition to the built-in CourtReserve rule.
+ * Blank/missing means "CourtReserve hosts only".
+ *
+ * A real deploy never sets this; its only purpose is the mock. Kept as a
+ * parsed list rather than a single base URL because the SSRF guard validates
+ * the pasted URL's *host*, not a prefix — the feed URL is the User's, not one
+ * this app builds.
+ */
+export function readCalendarFeedAllowedHosts(
+  source: EnvSource = {
+    CALENDAR_FEED_ALLOWED_HOSTS: process.env.CALENDAR_FEED_ALLOWED_HOSTS,
+  },
+): string[] {
+  const value = source.CALENDAR_FEED_ALLOWED_HOSTS;
+  if (!value || value.trim() === "") {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((host) => host.trim().toLowerCase())
+    .filter((host) => host !== "");
+}
+
+/**
  * This app's own Microsoft OAuth client for spec #280's Outlook / Hotmail
  * Mailbox Link — the Microsoft counterpart of `GOOGLE_OAUTH_CLIENT_ID`, a
  * confidential client registered against the `consumers` authority (personal

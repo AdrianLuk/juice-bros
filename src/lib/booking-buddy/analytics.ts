@@ -41,6 +41,29 @@ export type FunnelEvent =
 export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
 
 /**
+ * "Sync facilities" (Calendar Feed) events (issue #294, ADR-0019). The feed
+ * counterpart of `EmailSyncEvent` — a separate, independent import source, so
+ * its own events rather than a `source` dimension on the email ones.
+ * `bb_facility_sync_run` fires once per "Sync facilities" click that reached
+ * at least one feed (carrying the feed count, candidate count, and how many
+ * feeds errored); `bb_facility_sync_import` fires when a feed candidate is
+ * confirmed into a Booking.
+ */
+export type FacilitySyncEvent = "bb_facility_sync_run" | "bb_facility_sync_import";
+
+/** Emit one "Sync facilities" event. Same fail-quiet posture as `trackFunnelEvent`. */
+export async function trackFacilitySyncEvent(
+  event: FacilitySyncEvent,
+  properties?: Record<string, string | number | boolean | null>,
+): Promise<void> {
+  try {
+    await track(event, properties);
+  } catch (error) {
+    console.error(`booking-buddy: emitting ${event} failed`, error);
+  }
+}
+
+/**
  * Calendar quick-create (spec #303). Not a funnel step — `bb_first_booking`
  * still owns the 0→1 transition from every entry point. This one fires on
  * *every* Booking logged straight from a dashboard calendar cell's `+`, so
