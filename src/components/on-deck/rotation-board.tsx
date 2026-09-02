@@ -974,19 +974,28 @@ function RotationBoardInner({
         })}
       </div>
 
-      <OnDeck foursomes={view.onDeck} isGroup={view.onDeckIsGroup} />
+      {!view.lastCall && (
+        <>
+          <OnDeck foursomes={view.onDeck} isGroup={view.onDeckIsGroup} />
 
-      <AddWalkup
-        onAdd={(args) => walkup.mutateAsync(args)}
-        pending={walkup.isPending}
-      />
+          <AddWalkup
+            onAdd={(args) => walkup.mutateAsync(args)}
+            pending={walkup.isPending}
+          />
+        </>
+      )}
 
       <div>
         <h2 className="font-heading text-xl font-semibold">
-          Queue{" "}
+          {view.lastCall ? "Not playing tonight" : "Queue"}{" "}
           <span className="text-muted-foreground">({view.queuedCount})</span>
         </h2>
-        {view.queue.some((e) => e.kind === "group") && (
+        {view.lastCall && view.queuedCount > 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Last call was made before a court opened for these players.
+          </p>
+        )}
+        {!view.lastCall && view.queue.some((e) => e.kind === "group") && (
           <p className="mt-1 text-xs text-muted-foreground">
             {QUEUE_TOGETHER_EXPLAINER}
           </p>
@@ -1004,14 +1013,16 @@ function RotationBoardInner({
                     <span className="text-muted-foreground">{i + 1}.</span>{" "}
                     {entry.name}
                   </span>
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                    disabled={busy}
-                    onClick={() => aside.mutate(entry.name)}
-                  >
-                    Set aside
-                  </button>
+                  {!view.lastCall && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      disabled={busy}
+                      onClick={() => aside.mutate(entry.name)}
+                    >
+                      Set aside
+                    </button>
+                  )}
                 </li>
               ) : (
                 <li
@@ -1058,20 +1069,24 @@ function RotationBoardInner({
         )}
       </div>
 
-      <QueueTogether
-        waiting={view.groupablePlayers}
-        groupCap={view.groupCap}
-        groupCapMax={view.groupCapMax}
-        onForm={(names) => group.mutateAsync(names)}
-        onSetCap={capChange.mutate}
-        pending={group.isPending || capChange.isPending}
-      />
+      {!view.lastCall && (
+        <>
+          <QueueTogether
+            waiting={view.groupablePlayers}
+            groupCap={view.groupCap}
+            groupCapMax={view.groupCapMax}
+            onForm={(names) => group.mutateAsync(names)}
+            onSetCap={capChange.mutate}
+            pending={group.isPending || capChange.isPending}
+          />
 
-      <SkillLevels
-        roster={roster}
-        onOverride={skillOverride.mutate}
-        pending={skillOverride.isPending}
-      />
+          <SkillLevels
+            roster={roster}
+            onOverride={skillOverride.mutate}
+            pending={skillOverride.isPending}
+          />
+        </>
+      )}
 
       {view.status === "open" && (
         <WrapUp
