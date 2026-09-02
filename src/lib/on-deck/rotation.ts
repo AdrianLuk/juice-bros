@@ -10,6 +10,7 @@ import {
   type SkillLevel,
 } from "./session/types.ts";
 import { bestReplacement } from "./session/match-me.ts";
+import { idleCourts } from "./session/idle-court.ts";
 import { describeUndo, type UndoTarget } from "./floor-ops.ts";
 import { createClient } from "./supabase/server.ts";
 
@@ -71,6 +72,15 @@ export type RotationView = {
   permitEndsAt: number | null;
   venueName: string;
   courts: RotationCourt[];
+  /**
+   * 1-based numbers of the Courts that have been in play, unconfirmed, well
+   * past a normal Game length (issue #259) — the Kiosk and Display surface an
+   * "Is Court N still going?" nudge for each so a forgotten "Court N done" tap
+   * doesn't stall the Queue. Projected from `now` (the poll clock), so it can
+   * change between reads with no new event. Cleared for a Court by a
+   * `COURT_CONFIRMED` or a turnover.
+   */
+  idleCourts: number[];
   /**
    * Wait order — longest-waiting first — of the Players *not* already committed
    * to an On Deck Foursome, with a Queue Together Group as a single `group`
@@ -247,6 +257,7 @@ export function rotationViewFrom(
       since: c.since,
       suggestedReplacement: suggestFor(c.foursome),
     })),
+    idleCourts: status === "open" ? idleCourts(state, now) : [],
     queue,
     waitingNames: waiting
       .filter((e) => !groupedIds.has(e.playerId))

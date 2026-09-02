@@ -21,6 +21,12 @@ event array plus assertions about the resulting state.
 `supabase db push` is done through **`20260902150000`** (#255 — Last Call /
 close / Session Summary: `on_deck_session_summaries` + `on_deck_last_call` +
 `on_deck_close_session`), pushed 2026-09-02 right after PR #340 merged.
+**`20260902170000`** (#259 — the Kiosk: `COURT_CONFIRMED` added to the
+event-type check, `on_deck_check_kiosk_access` + `on_deck_kiosk_append`,
+`on_deck_undo_last_event` recreated with a `p_kiosk boolean` arg) is written but
+**not yet pushed** — push it after the PR merges, rebasing its timestamp past
+anything else that merged first (there is a parallel #260 branch carrying
+`20260902160000_on_deck_turn_notifications.sql`).
 `20260902140000` (#254 — `scheduled` Session state + pre-creation RPCs) and
 `20260902120000` (#252 — publication membership + `replica identity full` on
 `on_deck_session_events`) went up the same day. `supabase migration list
@@ -430,6 +436,41 @@ migration's timestamp past whatever else merged (the drift lesson
   `e2e/on-deck-last-call.spec.ts` (last-call → finish → close → QR shows
   nothing running).
 
+- [x] **#259 — the courtside Kiosk (self-serve floor).** The interactive
+  counterpart to the Display (#253): `/on-deck/session/[sessionId]/kiosk` —
+  open, no account and no token (the Session id is its credential, ADR 0005),
+  gated on Floor Mode by `loadKioskSession` → `on_deck_check_kiosk_access` (open
+  + `self-serve` / `hybrid`; inert = 404 under `volunteer-run`). `KioskBoard`
+  renders the same `RotationView` every surface folds — Courts, the two On Deck
+  Foursomes, the Queue with Wait Times — plus three courtside turnover taps,
+  each an `on_deck_kiosk_append` write stamping `operator_kind = 'kiosk'`:
+  **Court done** (`COURT_FINISHED`, `finishCourtOutcome` — the fold is identical
+  to a Volunteer's, ADR 0005), **a player short** (`FOURSOME_MEMBER_SWAPPED`,
+  reusing the #246 no-show swap and its Match Me suggestion), **add me**
+  (`PLAYER_JOINED` + `queueOnJoin`, reusing the #249 walk-up flow — server-minted
+  `walkup-<uuid>`, validated shape). New event **`COURT_CONFIRMED`** drives the
+  **idle-court nudge**: `session/idle-court.ts` `idleCourts(state, now)` (pure,
+  `now`-injected — the fold still never reads the clock) flags a Court in play,
+  unconfirmed, past `IDLE_COURT_NUDGE_MS` (2.5 × a 15-min expected Game); the
+  Kiosk shows "Is Court N still going?" and a "Still going" tap appends
+  `COURT_CONFIRMED { court, since }`, which the fold records as
+  `state.courtConfirmedAt[court]` (guarded on a matching `since`; cleared on the
+  Court's next turnover). `RotationView` grows `idleCourts: number[]`. Undo
+  (#247) covers Kiosk mistaps: `on_deck_undo_last_event` recreated with a
+  `p_kiosk boolean` opt-in that authorizes on Floor Mode alone (`COURT_CONFIRMED`
+  is corrected forward, never in the undoable set). The Organizer floor screen
+  links to the Kiosk when Floor Mode isn't `volunteer-run`. Tests:
+  `idle-court.test.ts` (threshold, confirm pushes it out, stale `since` no-op,
+  fresh Game clears it, undo parity), `reduce.test.ts` (`kiosk` `COURT_FINISHED`
+  folds identically to `volunteer`; `COURT_CONFIRMED` fold + turnover-clears +
+  undo parity), `floor-ops.test.ts` (`confirmCourtOutcome`), `routes.test.ts`
+  (Kiosk not Organizer-gated), `on_deck_kiosk.test.sql` (vocabulary, access by
+  mode/status, `kiosk` Operator recorded, event whitelist, walk-up guard, no
+  direct INSERT, Kiosk undo by mode), `e2e/on-deck-kiosk.spec.ts` (self-serve
+  court-done + add-me + a-player-short on the Kiosk alone, no Volunteer Link
+  issued; inert under `volunteer-run`).
+
 ## Next
 
-The rest of #238 — the interactive Kiosk.
+#238 — nothing outstanding on the Kiosk. Remaining spec items:
+Playing Style / Queue Mode (v2), opt-in turn push (#260, parallel branch).

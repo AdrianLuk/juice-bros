@@ -57,6 +57,17 @@ export function displayPath(sessionId: string): string {
 }
 
 /**
+ * The courtside Kiosk (issue #259): the Display's board plus the turnover
+ * buttons a Game needs, for a tablet stood by the courts. Open, no account and
+ * no token — the Session id is its own credential, the same as the Display, and
+ * ADR 0005 accepts that anyone courtside can tap. Inert unless the Session's
+ * Floor Mode is `self-serve` or `hybrid` (checked in the page).
+ */
+export function kioskPath(sessionId: string): string {
+  return `${ON_DECK_ROOT}/session/${sessionId}/kiosk`;
+}
+
+/**
  * The per-Session Volunteer Link (issue #248): the operational floor surface,
  * no account, admitted by the link's token rather than a session. Not
  * Organizer-gated (ADR 0005) — the token in the path is the credential, and it
