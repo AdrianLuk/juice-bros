@@ -18,12 +18,11 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
-`supabase db push` is done through **`20260901230000`** (#251) — `supabase
-migration list --linked` shows local and remote in sync. #252's
-`20260902120000` (publication membership + `replica identity full` on
-`on_deck_session_events`; no schema or RLS change) is **merged but not yet
-pushed**, and #254's `20260902140000` (`scheduled` Session state + defaults /
-pre-creation RPCs) is **merged but not yet pushed** behind it. #248 / #249 / #247 went
+`supabase db push` is done through **`20260902140000`** (#254 — `scheduled`
+Session state + defaults / pre-creation RPCs), pushed 2026-09-02 right after
+the PR merged, alongside #252's `20260902120000` (publication membership +
+`replica identity full` on `on_deck_session_events`; no schema or RLS change).
+`supabase migration list --linked` shows local and remote in sync. #248 / #249 / #247 went
 up together on 2026-09-01 after sitting merged-but-unpushed; #250 and #251
 followed the same day (#251 pushed right after its PR merged). Note the timestamp collision it caused: `create_calendar_feed` (#293)
 and `on_deck_queue_together` (#250) both landed as `20260901210000`, so #250 was
