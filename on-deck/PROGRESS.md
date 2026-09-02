@@ -21,6 +21,8 @@ event array plus assertions about the resulting state.
 `supabase db push` is done through **`20260902150000`** (#255 — Last Call /
 close / Session Summary: `on_deck_session_summaries` + `on_deck_last_call` +
 `on_deck_close_session`), pushed 2026-09-02 right after PR #340 merged.
+**`20260902160000`** (#260 — turn-notification tables + subscribe/unsubscribe
+RPCs) is written but **not yet pushed** — push it after its PR merges.
 `20260902140000` (#254 — `scheduled` Session state + pre-creation RPCs) and
 `20260902120000` (#252 — publication membership + `replica identity full` on
 `on_deck_session_events`) went up the same day. `supabase migration list
@@ -429,6 +431,63 @@ migration's timestamp past whatever else merged (the drift lesson
   the freed index, a Player can't append the vocabulary),
   `e2e/on-deck-last-call.spec.ts` (last-call → finish → close → QR shows
   nothing running).
+
+- [x] **#260 — the opt-in turn notification.** A Player may turn on a single
+  push — "you're up, Court 5" — fired when their Foursome enters On Deck or is
+  assigned a Court, because a `self-serve` Session has no Volunteer calling
+  names (ADR 0005). Off by default; a one-tap enable on the Player's own status
+  screen, shown only under `self-serve` / `hybrid`. Per-Player, never a
+  broadcast; at most one buzz per step. Reuses Booking Buddy's `web-push` setup
+  (issue #12) — the same VAPID pair. Degrades silently where the browser can't
+  subscribe or the deploy has no VAPID keys.
+
+  The fold-exposed transition is `session/turn-notify.ts` `turnTransitions(before,
+  after)` — a pure diff of two folded `SessionState`s returning who is *newly*
+  On Deck or *newly* on a Court (a Court transition supersedes an On Deck one —
+  "one buzz"; a Player who skips On Deck from a thin Queue or a no-show swap
+  still gets one `court` transition; queue-position movement short of On Deck
+  fires nothing). Each transition carries a `turnKey` — `court:<n>:<since>` /
+  `on-deck:<committedAt>` — so the idempotency log dedupes per *turn*, not per
+  Player: a Player rotating through many Games gets buzzed every turn, not just
+  the first. `turn-notify-run.ts` `planTurnNotificationRun` is the plan
+  half (no Next/Supabase imports, like `booking-buddy/reminder-run.ts`):
+  transition × opted-in subscription × not-already-sent → a flat send list.
+  On Deck has no cron, so `turn-notify-dispatch.ts` `dispatchTurnNotifications`
+  runs the sends *inline* right after an operational event is appended —
+  threaded through `commitFloorOutcome` (Organizer + Volunteer floor ops) and
+  the four Player actions that can move a Foursome (`queueForSession`,
+  `rejoinQueue`, `formGroupAsPlayer`, `leaveGroup`). It re-folds via the admin
+  client, reads every `on_deck_push_subscriptions` row for the Session, sends
+  through `web-push` (pruning 404/410), and writes the
+  `on_deck_turn_notification_sends` idempotency log. **It never throws** — a
+  push hiccup must not fail the "Court N done" tap.
+
+  Migration `20260902160000`: `on_deck_push_subscriptions` (per device, scoped
+  to one Session, keyed by the device token — not `auth.users`, On Deck has no
+  accounts; `on delete cascade` on `session_id` — note close only purges the
+  event rows, not the Session row, so these linger harmlessly until the Session
+  row is removed) and `on_deck_turn_notification_sends` (unique `(session,
+  player, transition)` where `transition` is the per-turn key — the "one buzz
+  per turn" guarantee). Neither table is readable by `anon` /
+  `authenticated` — a device token is a Player's whole identity. A Player writes
+  a subscription through `on_deck_subscribe_turn_notification` (`anon`-callable,
+  SECURITY DEFINER, roster- and open-Session-gated, idempotent on the endpoint)
+  and clears it through `on_deck_unsubscribe_turn_notification` (keyed by the
+  endpoint — the browser's own secret). New service worker `public/on-deck-sw.js`
+  (scope `/on-deck`), new `src/components/on-deck/turn-notifications.tsx` (the
+  one-tap control, in `QueueStatus` under self-serve/hybrid; every failure
+  fails silent). `PlayerJoin` / `QueueStatus` gained a `floorMode` prop.
+
+  Tests: `turn-notify.test.ts` (each transition, the supersede rule, thin-Queue
+  and no-show paths, no-op cases, determinism), `turn-notify-run.test.ts`
+  (opt-in gating, idempotency, `pushConfigured` off, payload),
+  `on_deck_turn_notifications.test.sql` (subscribe roster/open-Session gating,
+  upsert, unsubscribe no-op, tables not `anon`-readable, send-log uniqueness),
+  `e2e/on-deck-turn-notification.spec.ts` (control shows under self-serve, is
+  absent under volunteer-run and on an unsupported browser, subscribe stores a
+  row). Real push *delivery* is out of e2e scope — same posture as
+  `push-notifications.spec.ts` (Chrome ↔ FCM is outbound network the suite
+  can't assume; the e2e web server carries no VAPID keys).
 
 ## Next
 

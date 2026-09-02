@@ -14,7 +14,11 @@ import {
   rejoinQueue,
 } from "@/lib/on-deck/actions/players";
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
-import { QUEUE_TOGETHER_EXPLAINER } from "@/lib/on-deck/session/types";
+import {
+  QUEUE_TOGETHER_EXPLAINER,
+  type FloorMode,
+} from "@/lib/on-deck/session/types";
+import { TurnNotifications } from "@/components/on-deck/turn-notifications";
 
 function rotationQueryKey(sessionId: string) {
   return ["on-deck", "rotation", sessionId, "me"] as const;
@@ -26,7 +30,11 @@ function rotationQueryKey(sessionId: string) {
  * few seconds (issue #243) — no token ever leaves the server, only the
  * caller's own standing comes back.
  */
-export function QueueStatus(props: { sessionId: string; token: string }) {
+export function QueueStatus(props: {
+  sessionId: string;
+  token: string;
+  floorMode: FloorMode;
+}) {
   return (
     <QueryProvider>
       <QueueStatusInner {...props} />
@@ -37,9 +45,11 @@ export function QueueStatus(props: { sessionId: string; token: string }) {
 function QueueStatusInner({
   sessionId,
   token,
+  floorMode,
 }: {
   sessionId: string;
   token: string;
+  floorMode: FloorMode;
 }) {
   const queryClient = useQueryClient();
   const queryKey = rotationQueryKey(sessionId);
@@ -100,6 +110,13 @@ function QueueStatusInner({
 
   const me = query.data?.me ?? null;
 
+  // The opt-in turn notification (issue #260) — offered only under self-serve /
+  // hybrid, where no Volunteer is calling names.
+  const turnNotify =
+    floorMode === "self-serve" || floorMode === "hybrid" ? (
+      <TurnNotifications sessionId={sessionId} token={token} />
+    ) : null;
+
   if (query.data && query.data.status !== "open") {
     return null;
   }
@@ -145,6 +162,7 @@ function QueueStatusInner({
             {error}
           </p>
         )}
+        {turnNotify}
       </div>
     );
   }
@@ -259,6 +277,7 @@ function QueueStatusInner({
           {error}
         </p>
       )}
+      {turnNotify}
     </>
   );
 
@@ -310,6 +329,7 @@ function QueueStatusInner({
           {error}
         </p>
       )}
+      {turnNotify}
     </div>
   );
 }
