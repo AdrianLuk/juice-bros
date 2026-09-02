@@ -19,7 +19,8 @@ event array plus assertions about the resulting state.
 ## Hosted DB
 
 `supabase db push` is done through **`20260901220000`** (#250) — `supabase
-migration list --linked` shows local and remote in sync. #248 / #249 / #247 went
+migration list --linked` shows local and remote in sync. **`20260901230000`**
+(#251) is written but **not yet pushed** — push it with the PR. #248 / #249 / #247 went
 up together on 2026-09-01 after sitting merged-but-unpushed; #250 followed the
 same day. Note the timestamp collision it caused: `create_calendar_feed` (#293)
 and `on_deck_queue_together` (#250) both landed as `20260901210000`, so #250 was
@@ -247,7 +248,43 @@ migration's timestamp past whatever else merged (the drift lesson
   `e2e/on-deck-queue-together.spec.ts` (form a Group of 3 → filled to 4 with a
   Group label → walks on → dissolves).
 
+- [x] **#251 — Queue Together, player-formed.** The second half of Queue
+  Together. A Player forms a **Group** from their own phone by picking other
+  Players who did setup this Session (display names — a device token never
+  reaches the client, ADR 0001; the Server Action resolves names to tokens and
+  always folds the acting Player in). Picked members are added with **no
+  confirm-prompt** (they're in their bags); instead any member can remove
+  *themselves* (`GROUP_MEMBER_REMOVED { groupId, token }` — they stay in the
+  Queue as a solo; a Group left under two dissolves), and a Volunteer or the
+  Organizer can dissolve a whole waiting Group (`GROUP_DISSOLVED { groupId }`).
+  All ticket 11 / #250 Group semantics (median position, fill to four, Variety
+  suppression, dissolve on `COURT_FINISHED`, the cap) are unchanged and read
+  identically whoever fired `GROUP_FORMED` (ADR 0005) — the fold only grew the
+  two new cases plus a shared `rebuildOnDeck` helper (a deliberate Group-shape
+  change rebuilds On Deck from scratch, the same override `GROUP_FORMED` already
+  made). `floor-ops.ts` gains `formGroupByPlayerOutcome` / `leaveGroupByPlayerOutcome`
+  (player-sourced, decided by the same pure helpers but committed through `anon`
+  Player RPCs) and `dissolveGroupOutcome`; `GROUP_DISSOLVED` joins the undoable
+  `FLOOR_EVENT_TYPES`, `GROUP_MEMBER_REMOVED` stays out (Player-sourced, like
+  `PLAYER_QUEUED`). `sessions.ts` `toEvent` learns to parse both new rows —
+  **missing this is what silently drops the event before the fold**, the bug
+  the e2e caught. `RotationView` grows `queue` group entries carrying `groupId`
+  (for the floor's "Break up"), `me.canFormGroup` + `me.groupmateOptions`. The
+  Player view (`queue-status.tsx`) gets a "Playing with friends? Queue together"
+  picker and a "Leave the group" link; the floor's group Queue row gets a "Break
+  up" tap and a one-line line-jump explainer (`QUEUE_TOGETHER_EXPLAINER`, shared
+  so the Display #253 can reuse it — #238 user story 57). Migration
+  `20260901230000` adds `on_deck_form_group` / `on_deck_leave_group` (anon,
+  pinned to `player`, actor-must-have-joined / actor-must-be-a-member guards)
+  and teaches `on_deck_volunteer_append` + `on_deck_undo_last_event` about
+  `GROUP_DISSOLVED`. Tests: `reduce.test.ts` (player/volunteer fold parity,
+  self-removal keeps the Queue spot, dissolve restores the pre-Group board,
+  no-op guards, undo-parity for both), `floor-ops.test.ts`,
+  `on_deck_queue_together_player_formed.test.sql`,
+  `e2e/on-deck-queue-together-player.spec.ts` (form on phone → one Queue unit →
+  leave it → volunteer breaks it up).
+
 ## Next
 
-The rest of #238 — Queue Together **player-formed** (#251), the interactive
-Display and Kiosk, Last Call, and the Session Summary purge.
+The rest of #238 — the interactive Display and Kiosk, Last Call, and the
+Session Summary purge.

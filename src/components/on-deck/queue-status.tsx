@@ -6,11 +6,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import {
+  formGroupAsPlayer,
+  leaveGroup,
   leaveQueue,
   queueForSession,
   rejoinQueue,
 } from "@/lib/on-deck/actions/players";
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
+import { QUEUE_TOGETHER_EXPLAINER } from "@/lib/on-deck/session/types";
 
 const POLL_MS = 4_000;
 
@@ -75,6 +78,23 @@ function QueueStatusInner({
     onError: () => setError("Couldn't add you back. Try again."),
   });
 
+  const [picked, setPicked] = useState<string[]>([]);
+  const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
+  const formGroup = useMutation({
+    mutationFn: (names: string[]) => formGroupAsPlayer(sessionId, token, names),
+    onSuccess: (result) => {
+      settle(result);
+      if (result.ok) setPicked([]);
+    },
+    onError: () => setError("Couldn't group you up. Try again."),
+  });
+
+  const leaveGrp = useMutation({
+    mutationFn: () => leaveGroup(sessionId, token),
+    onSuccess: settle,
+    onError: () => setError("Couldn't update that. Try again."),
+  });
+
   const me = query.data?.me ?? null;
 
   if (query.data && query.data.status !== "open") {
@@ -113,8 +133,103 @@ function QueueStatusInner({
     );
   }
 
+  const toggle = (name: string) =>
+    setPicked((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+
+  const groupControls = (
+    <>
+      {me?.group && (
+        <div className="mt-3" data-testid="queue-group-note">
+          <p className="text-sm text-muted-foreground">
+            You&apos;re queued with your group — you&apos;ll go on together.
+          </p>
+          {confirmLeaveGroup ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Leave the group? You&apos;d keep your spot but queue on your own,
+              and rejoining means re-forming it.{" "}
+              <button
+                type="button"
+                className="font-semibold text-destructive underline-offset-4 hover:underline"
+                disabled={leaveGrp.isPending}
+                onClick={() => leaveGrp.mutate()}
+              >
+                {leaveGrp.isPending ? "Leaving…" : "Leave"}
+              </button>{" "}
+              <button
+                type="button"
+                className="underline-offset-4 hover:underline"
+                onClick={() => setConfirmLeaveGroup(false)}
+              >
+                Stay
+              </button>
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="mt-1 block text-sm text-muted-foreground underline-offset-4 hover:underline"
+              onClick={() => setConfirmLeaveGroup(true)}
+            >
+              Leave the group
+            </button>
+          )}
+        </div>
+      )}
+      {me?.canFormGroup && me.groupmateOptions.length > 0 && (
+        <details className="mt-3" data-testid="queue-together-player">
+          <summary className="cursor-pointer text-sm text-muted-foreground underline-offset-4 hover:underline">
+            Playing with friends? Queue together
+          </summary>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {QUEUE_TOGETHER_EXPLAINER}
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {me.groupmateOptions.map((name) => {
+              const on = picked.includes(name);
+              return (
+                <li key={name}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    disabled={formGroup.isPending}
+                    className={`rounded-full border px-3 py-1 text-sm ${
+                      on
+                        ? "border-brand-orange bg-brand-orange text-white"
+                        : "border-input"
+                    }`}
+                    onClick={() => toggle(name)}
+                  >
+                    {name}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3"
+            disabled={
+              formGroup.isPending ||
+              picked.filter((n) => me.groupmateOptions.includes(n)).length < 1
+            }
+            onClick={() =>
+              formGroup.mutate(
+                picked.filter((n) => me.groupmateOptions.includes(n)),
+              )
+            }
+          >
+            {formGroup.isPending ? "Grouping up…" : "Queue together"}
+          </Button>
+        </details>
+      )}
+    </>
+  );
+
   const stepOut = (
     <>
+      {groupControls}
       <button
         type="button"
         className="mt-3 block text-sm text-muted-foreground underline-offset-4 hover:underline"
@@ -156,11 +271,6 @@ function QueueStatusInner({
           {query.data ? ` of ${query.data.queuedCount}` : ""}. Hang around, you
           don&apos;t need to touch anything.
         </p>
-        {me.group && (
-          <p className="mt-1 text-sm text-muted-foreground" data-testid="queue-group-note">
-            You&apos;re queued with your group — you&apos;ll go on together.
-          </p>
-        )}
         {stepOut}
       </div>
     );
