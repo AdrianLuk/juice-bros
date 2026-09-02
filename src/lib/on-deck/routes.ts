@@ -17,6 +17,17 @@ export const ON_DECK_HOME_PATH = `${ON_DECK_ROOT}/home`;
 
 export const ON_DECK_SIGN_IN_PATH = `${ON_DECK_ROOT}/sign-in`;
 
+/** The Organizer's Club settings screen — edit the saved Session defaults. */
+export const ON_DECK_SETTINGS_PATH = `${ON_DECK_ROOT}/home/settings`;
+
+/** Create a Session ahead of time (issue #254). */
+export const ON_DECK_NEW_SESSION_PATH = `${ON_DECK_ROOT}/home/sessions/new`;
+
+/** Edit a not-yet-open Session (issue #254). */
+export function editSessionPath(sessionId: string): string {
+  return `${ON_DECK_ROOT}/home/sessions/${sessionId}`;
+}
+
 /**
  * The stable per-Club path a printed QR sign points at. Resolves to the
  * currently-open Session, or a "nothing running right now" screen. One per

@@ -3,9 +3,12 @@ import test from "node:test";
 
 import {
   ON_DECK_HOME_PATH,
+  ON_DECK_NEW_SESSION_PATH,
+  ON_DECK_SETTINGS_PATH,
   ON_DECK_SIGN_IN_PATH,
   clubQrPath,
   displayPath,
+  editSessionPath,
   floorPath,
   requiresOrganizerSession,
   safeRedirectTarget,
@@ -16,6 +19,12 @@ import {
 test("only the Organizer subtree requires a session", () => {
   assert.equal(requiresOrganizerSession("/on-deck/home"), true);
   assert.equal(requiresOrganizerSession("/on-deck/home/settings"), true);
+  assert.equal(requiresOrganizerSession(ON_DECK_SETTINGS_PATH), true);
+  assert.equal(requiresOrganizerSession(ON_DECK_NEW_SESSION_PATH), true);
+  assert.equal(
+    requiresOrganizerSession(editSessionPath("session-1")),
+    true,
+  );
 
   assert.equal(requiresOrganizerSession("/on-deck"), false);
   assert.equal(requiresOrganizerSession("/on-deck/sign-in"), false);
@@ -62,6 +71,12 @@ test("path builders produce the stable shapes the proxy and pages share", () => 
     volunteerPath("session-1", "tok-abc"),
     "/on-deck/session/session-1/volunteer/tok-abc",
   );
+  assert.equal(
+    editSessionPath("session-1"),
+    "/on-deck/home/sessions/session-1",
+  );
+  assert.equal(ON_DECK_NEW_SESSION_PATH, "/on-deck/home/sessions/new");
+  assert.equal(ON_DECK_SETTINGS_PATH, "/on-deck/home/settings");
 });
 
 test("safeRedirectTarget only ever returns an On Deck path", () => {
