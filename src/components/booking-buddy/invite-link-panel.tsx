@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   rotateInviteToken,
   type RotateInviteResult,
@@ -104,11 +105,7 @@ export function InviteLinkPanel({ url: initialUrl }: { url: string }) {
           </Button>
         )}
 
-        {state.error && (
-          <p className="text-xs text-destructive" role="alert">
-            {state.error}
-          </p>
-        )}
+        <ActionError state={state} />
       </div>
     </div>
   );

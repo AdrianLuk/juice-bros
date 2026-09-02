@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   connectMailbox,
@@ -159,11 +160,7 @@ export function MailboxSyncSection({
           </form>
         </div>
 
-        {state.error && (
-          <p className="text-xs text-destructive" role="alert">
-            {state.error}
-          </p>
-        )}
+        <ActionError state={state} />
       </div>
     );
   } else if (connectableProviders.length === 0) {

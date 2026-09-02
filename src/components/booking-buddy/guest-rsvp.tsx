@@ -6,6 +6,7 @@ import { CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -14,18 +15,6 @@ import {
 } from "@/lib/booking-buddy/actions/guest-rsvp";
 
 const EMPTY: ActionResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 const ANSWER_LABEL: Record<ResponseAnswer, string> = {
   yes: "Yes",

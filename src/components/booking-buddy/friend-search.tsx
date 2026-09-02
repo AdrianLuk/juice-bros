@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PersonName } from "@/components/booking-buddy/connection-list";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   searchUsers,
   sendConnectionRequest,
@@ -154,11 +155,7 @@ function SearchResultAction({ result }: { result: UserSearchResult }) {
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Sending…" : "Add friend"}
       </Button>
-      {state.error && (
-        <p className="text-xs text-destructive" role="alert">
-          {state.error}
-        </p>
-      )}
+      <ActionError state={state} />
     </form>
   );
 }

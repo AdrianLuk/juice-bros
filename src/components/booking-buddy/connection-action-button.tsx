@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -66,11 +67,7 @@ export function ConnectionActionButton({
       >
         {pending ? pendingLabel : label}
       </Button>
-      {state.error && (
-        <p className="text-xs text-destructive" role="alert">
-          {state.error}
-        </p>
-      )}
+      <ActionError state={state} />
     </form>
   );
 

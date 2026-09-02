@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import { bookingWindowLabel } from "@/lib/booking-buddy/booking-window";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -13,18 +14,6 @@ import { setIntendedOrg } from "@/lib/booking-buddy/actions/slots";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 
 const EMPTY: ActionResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 /**
  * The organizer's hint at which facility they plan to book at for this Slot

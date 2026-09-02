@@ -40,6 +40,7 @@ import {
   todayInZone,
 } from "@/lib/booking-buddy/datetime";
 import { ImminenceBadge } from "@/components/booking-buddy/imminence-badge";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   BOOKING_FORMATS,
   BOOKING_FORMAT_LABEL,
@@ -56,18 +57,6 @@ import {
 
 const EMPTY: ActionResult = {};
 const DEFAULT_START_TIME = "18:00";
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 /**
  * On-the-hour slots only — courts are booked in chunks, not whatever a

@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   REMINDER_OFFSET_PRESETS,
   reminderOffsetLabel,
@@ -17,18 +18,6 @@ import {
 } from "@/lib/booking-buddy/actions/reminders";
 
 const EMPTY: ActionResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 /**
  * The Slot owner's control over when "yes" Responders get a Reminder

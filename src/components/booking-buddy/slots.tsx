@@ -42,6 +42,7 @@ import {
   isOverCapacity,
 } from "@/lib/booking-buddy/capacity";
 import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
+import { ActionError } from "@/components/booking-buddy/action-error";
 import { DEFAULT_DIVISION, DIVISIONS, DIVISION_LABEL } from "@/lib/booking-buddy/division";
 import { NOTES_MAX_LENGTH } from "@/lib/booking-buddy/slots";
 import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
@@ -64,18 +65,6 @@ import {
 import { respondToSlot } from "@/lib/booking-buddy/actions/responses";
 
 const EMPTY: ActionResult = {};
-
-function ActionError({ state }: { state: ActionResult }) {
-  if (!state.error) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs text-destructive" role="alert">
-      {state.error}
-    </p>
-  );
-}
 
 function HourTimeSelect({
   id,
