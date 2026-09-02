@@ -19,7 +19,10 @@ event array plus assertions about the resulting state.
 ## Hosted DB
 
 `supabase db push` is done through **`20260901230000`** (#251) — `supabase
-migration list --linked` shows local and remote in sync. #248 / #249 / #247 went
+migration list --linked` shows local and remote in sync. #252's
+`20260902120000` (publication membership + `replica identity full` on
+`on_deck_session_events`; no schema or RLS change) is **merged but not yet
+pushed**. #248 / #249 / #247 went
 up together on 2026-09-01 after sitting merged-but-unpushed; #250 and #251
 followed the same day (#251 pushed right after its PR merged). Note the timestamp collision it caused: `create_calendar_feed` (#293)
 and `on_deck_queue_together` (#250) both landed as `20260901210000`, so #250 was
@@ -282,6 +285,40 @@ migration's timestamp past whatever else merged (the drift lesson
   `on_deck_queue_together_player_formed.test.sql`,
   `e2e/on-deck-queue-together-player.spec.ts` (form on phone → one Queue unit →
   leave it → volunteer breaks it up).
+
+- [x] **#252 — Realtime sync upgrade.** An isolated swap of the trigger
+  mechanism, not a rearchitecture: every live surface still re-folds the same
+  event log, now nudged by a Supabase Realtime subscription
+  (`postgres_changes`, INSERT on `on_deck_session_events`, filtered by
+  `session_id`) instead of only a ~4s poll — a "Court done" tap lands on the
+  other phones in ~1s. `useRotationSync` (`src/components/on-deck/`) owns the
+  channel and returns the `refetchInterval` for the surface's TanStack Query:
+  a 12s backstop poll while the socket is confirmed live, the ~4s fallback
+  cadence while connecting or after a drop — so a socket drop falls back to
+  polling and a reconnect resumes Realtime with no caller branching. The
+  channel listens for `*` (not just INSERT) so operator Undo's DELETE re-folds
+  the other surfaces too, and `on_deck_session_events` is `REPLICA IDENTITY
+  FULL` so that DELETE's old-row image still carries `session_id` to match the
+  channel filter. The 12s backstop specifically covers `SESSION_CLOSED`, which
+  Realtime can't deliver to an `anon` subscriber (it re-checks the "open
+  Session" SELECT policy at notify time, and the Session is closed by then).
+  A missing `NEXT_PUBLIC_SUPABASE_ANON_KEY` is caught — the surface just stays
+  on the fallback poll rather than crashing. The poll-interval / channel-status
+  policy is pure in `session/realtime.ts`
+  (`node --test`, relative imports only); a new browser Supabase client
+  (`supabase/client.ts`, anon key, mirrors Booking Buddy's) opens the channel.
+  Migration `20260902120000` adds the table to the `supabase_realtime`
+  publication (guarded `do` block) and sets `replica identity full` — **no
+  change to `reduceSession`, the event schema, or any RLS policy.** Realtime
+  enforces the foundation's existing SELECT policies per subscriber, so a
+  client only receives its own open Session's events (ADR 0006), never a
+  closed Session's. Tests: `realtime.test.ts` (status mapping, interval
+  policy), `on_deck_realtime.test.sql` (publication membership, no other
+  On Deck table joined, SELECT policies unchanged, anon reads open not closed),
+  `on_deck_realtime.test.sql` also pins `replica identity full`;
+  `e2e/on-deck-realtime.spec.ts` (two browser contexts, walk-up added on the
+  floor / player leaves the queue — each appears in the other within ~1s with
+  no reload).
 
 ## Next
 
