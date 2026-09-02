@@ -10,7 +10,12 @@ import { getSession } from "@/lib/on-deck/sessions";
 import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
 import { getVolunteerToken } from "@/lib/on-deck/volunteer";
 import { onDeckAbsoluteUrl } from "@/lib/on-deck/request-origin";
-import { clubQrPath, floorPath, volunteerPath } from "@/lib/on-deck/routes";
+import {
+  clubQrPath,
+  displayPath,
+  floorPath,
+  volunteerPath,
+} from "@/lib/on-deck/routes";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
 import { VolunteerLinkCard } from "@/components/on-deck/volunteer-link-card";
 
@@ -85,6 +90,19 @@ export default async function FloorPage({
             </Link>{" "}
             to join.
           </p>
+          {view.status === "open" && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Got a spare screen?{" "}
+              <Link
+                href={displayPath(sessionId)}
+                className="underline underline-offset-4"
+              >
+                Open the display
+              </Link>{" "}
+              on it — a read-only board of courts, the queue, and who&apos;s on
+              deck.
+            </p>
+          )}
 
           {volunteerUrl && (
             <div className="mt-6">

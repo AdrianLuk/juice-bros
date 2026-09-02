@@ -221,6 +221,56 @@ export async function formGroupViaRpc(
   }
 }
 
+/**
+ * Fires "Court N done" through the Volunteer append RPC (issue #248) — the way
+ * the volunteer floor screen does — so a spec can drive a turnover without
+ * signing in an Organizer or opening the floor UI. Sends only `{ court }`;
+ * unlike the real `finishCourt` action there is no stale-board guard, which a
+ * scripted spec doesn't need.
+ */
+export async function finishCourtViaRpc(
+  sessionId: string,
+  volunteerToken: string,
+  court: number,
+): Promise<void> {
+  const res = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/rpc/on_deck_volunteer_append`,
+    {
+      method: "POST",
+      headers: anonHeaders(),
+      body: JSON.stringify({
+        p_session_id: sessionId,
+        p_token: volunteerToken,
+        p_type: "COURT_FINISHED",
+        p_payload: { court },
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `court-finish RPC failed: ${res.status} ${await res.text()}`,
+    );
+  }
+}
+
+/** Pauses a queued Player (reason `set-aside`) via the anon RPC. */
+export async function pausePlayerViaRpc(
+  sessionId: string,
+  token: string,
+): Promise<void> {
+  const res = await fetch(
+    `${LOCAL_SUPABASE_API_URL}/rest/v1/rpc/on_deck_pause_player`,
+    {
+      method: "POST",
+      headers: anonHeaders(),
+      body: JSON.stringify({ p_session_id: sessionId, p_token: token }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`pause RPC failed: ${res.status} ${await res.text()}`);
+  }
+}
+
 /** Tears down the Club and everything cascading off it (Sessions, events). */
 export async function deleteClubForOrganizer(email: string): Promise<void> {
   const ownerId = await userIdForEmail(email);

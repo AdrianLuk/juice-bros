@@ -2,6 +2,7 @@ import "server-only";
 
 import { getSession, type LoadedSession } from "./sessions.ts";
 import {
+  median,
   playerCourt,
   playerPaused,
   queueUnits,
@@ -49,8 +50,8 @@ export type RotationCourt = {
  * names.
  */
 export type QueueEntryView =
-  | { kind: "solo"; name: string }
-  | { kind: "group"; groupId: string; names: string[] };
+  | { kind: "solo"; name: string; waitSince: number }
+  | { kind: "group"; groupId: string; names: string[]; waitSince: number };
 
 export type RotationView = {
   status: "open" | "closed";
@@ -168,10 +169,25 @@ export function rotationViewFrom(
       ? !onDeckIds.has(unit.playerId)
       : !unit.memberIds.some((id) => onDeckIds.has(id)),
   );
+  // A Player's Wait Time anchor, off the fold's Queue (issue #253). A Group
+  // reports the median of its members' anchors — the same value it queues at,
+  // so its shown wait and its position agree (the explainer covers why that
+  // isn't the longest-waiting member's own time).
+  const waitSinceOf = (playerId: string) =>
+    state.queue.find((e) => e.playerId === playerId)?.waitSince ?? now;
   const queue: QueueEntryView[] = waitingUnits.map((unit) =>
     unit.kind === "solo"
-      ? { kind: "solo", name: nameOf(unit.playerId) }
-      : { kind: "group", groupId: unit.groupId, names: unit.memberIds.map(nameOf) },
+      ? {
+          kind: "solo",
+          name: nameOf(unit.playerId),
+          waitSince: waitSinceOf(unit.playerId),
+        }
+      : {
+          kind: "group",
+          groupId: unit.groupId,
+          names: unit.memberIds.map(nameOf),
+          waitSince: median(unit.memberIds.map(waitSinceOf)),
+        },
   );
 
   const trimmed = token?.trim() ?? "";
