@@ -22,7 +22,8 @@ event array plus assertions about the resulting state.
 migration list --linked` shows local and remote in sync. #252's
 `20260902120000` (publication membership + `replica identity full` on
 `on_deck_session_events`; no schema or RLS change) is **merged but not yet
-pushed**. #248 / #249 / #247 went
+pushed**, and #254's `20260902140000` (`scheduled` Session state + defaults /
+pre-creation RPCs) is **merged but not yet pushed** behind it. #248 / #249 / #247 went
 up together on 2026-09-01 after sitting merged-but-unpushed; #250 and #251
 followed the same day (#251 pushed right after its PR merged). Note the timestamp collision it caused: `create_calendar_feed` (#293)
 and `on_deck_queue_together` (#250) both landed as `20260901210000`, so #250 was
@@ -351,6 +352,47 @@ migration's timestamp past whatever else merged (the drift lesson
   landing at **exactly `/on-deck`** keeps the full site chrome (both shell
   components no-op there). It's a walk-up tool — a phone at the courts, a tablet
   on a table — so there's nowhere to navigate to.
+
+- [x] **#254 — Session pre-creation and Club defaults.** Two Organizer
+  abilities on top of one-tap Start. **Edit the Club defaults** (venue, court
+  count, group cap): the foundation left `on_deck_clubs` read-only even to the
+  owner, so this adds one narrow write path, `on_deck_update_club_defaults`
+  (SECURITY DEFINER, owner-checked, touches only those three columns —
+  `owner_id` / `name` are untouchable), fronted by a new
+  `/on-deck/home/settings` screen. **Schedule a Session ahead of time**: a new
+  `scheduled` status on `on_deck_sessions` (`started_at` now nullable,
+  `scheduled_for date` added, a `case status` shape constraint, a
+  one-scheduled-per-Club-per-day partial unique index). `on_deck_create_/
+  update_/delete_scheduled_session` RPCs (owner-checked; group cap + Floor Mode
+  always come from the Club, only date / venue / court count are per-night);
+  `/on-deck/home/sessions/new` + `/on-deck/home/sessions/[sessionId]` screens
+  (shared `SessionForm`). `on_deck_start_session(p_club_id, p_today date
+  default null)` rewritten: if the Club has a `scheduled` Session dated
+  **exactly** `p_today` it is *promoted* (`status → open`, `started_at →
+  now()`, `scheduled_for → null`, `group_cap` / `floor_mode` refreshed from
+  the Club) carrying its own venue / court count in the `SESSION_STARTED`
+  payload; otherwise a fresh Session is built entirely from the Club defaults
+  as before. `p_today` is the Organizer's *local* calendar date, attached by
+  the Start form (`StartSessionButton`, a hidden input) so "due today" is
+  judged in their time zone, not the server's UTC — absent (JS off) the RPC
+  falls back to `current_date`. Exact-date match, not `<=`: a stale plan the
+  Organizer never started never silently hijacks a later unrelated night; it
+  stays in the list to edit or delete. The fold is
+  untouched — court count already flows from the Session row through
+  `config.courtCount` into `state.courts`, so the promoted Session's count
+  drives the floor screen and Display for free. A `scheduled` Session is the
+  owner's alone to read (RLS: it is not `status = 'open'`, so the
+  public-to-the-venue policy never matches); `getSession` filters it out of the
+  fold path. The Organizer home screen lists upcoming scheduled Sessions with
+  an edit link and flags the one Start will open. Tests: `routes.test.ts` (the three
+  new paths are Organizer-gated), `on_deck_session_precreation.test.sql`
+  (defaults round-trip + owner-only, scheduled CRUD + owner-only + one-per-day,
+  shape constraint, promote-on-Start carries its own court count while group
+  cap follows a defaults edit, fresh Start when nothing is dated today,
+  `scheduled` invisible to `anon`),
+  `e2e/on-deck-session-precreation.spec.ts` (edit defaults → persist; schedule
+  with its own court count → Start opens it → floor shows that many Courts;
+  edit-ahead → Start uses the edited values).
 
 ## Next
 

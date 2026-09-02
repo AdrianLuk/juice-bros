@@ -58,3 +58,24 @@ export async function getOwnedClub(
 
   return data ? toClub(data as ClubRow) : null;
 }
+
+/**
+ * Saves the Organizer's Club defaults — venue, court count, group cap (issue
+ * #254). Goes through the `on_deck_update_club_defaults` RPC because
+ * `on_deck_clubs` carries no UPDATE grant (the foundation's "seeded by hand"
+ * posture); the RPC touches only those three columns and checks ownership.
+ */
+export async function updateClubDefaults(
+  supabase: SupabaseClient,
+  input: { venueName: string; courtCount: number; groupCap: number },
+): Promise<void> {
+  const { error } = await supabase.rpc("on_deck_update_club_defaults", {
+    p_venue_name: input.venueName,
+    p_court_count: input.courtCount,
+    p_group_cap: input.groupCap,
+  });
+
+  if (error) {
+    throw new Error(`saving the Club defaults failed: ${error.message}`);
+  }
+}

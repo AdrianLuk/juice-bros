@@ -3,15 +3,23 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
-import { getOpenSessionForClub } from "@/lib/on-deck/sessions";
-import { startSession } from "@/lib/on-deck/actions/sessions";
+import {
+  getOpenSessionForClub,
+  getScheduledSessionsForClub,
+} from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
-import { clubQrPath, floorPath, sessionPath } from "@/lib/on-deck/routes";
+import { TonightControls } from "@/components/on-deck/tonight-controls";
+import {
+  ON_DECK_SETTINGS_PATH,
+  clubQrPath,
+  floorPath,
+  sessionPath,
+} from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 
 export const metadata: Metadata = pageMetadata({
@@ -27,6 +35,10 @@ export default async function OnDeckHomePage() {
   const openSession = club
     ? await getOpenSessionForClub(supabase, club.id)
     : null;
+  const scheduledSessions =
+    club && !openSession
+      ? await getScheduledSessionsForClub(supabase, club.id)
+      : [];
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -74,6 +86,12 @@ export default async function OnDeckHomePage() {
                     {clubQrPath(club.id)}
                   </Link>
                 </p>
+                <Link
+                  href={ON_DECK_SETTINGS_PATH}
+                  className="mt-4 inline-block text-sm underline underline-offset-4"
+                >
+                  Edit defaults
+                </Link>
               </div>
 
               {openSession ? (
@@ -95,22 +113,7 @@ export default async function OnDeckHomePage() {
                   </div>
                 </div>
               ) : (
-                <form
-                  action={startSession}
-                  className="rounded-2xl border bg-card p-6"
-                >
-                  <p className="text-sm text-muted-foreground">
-                    Opens a session from the defaults above. You can rename
-                    courts and adjust things once it&apos;s running.
-                  </p>
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="mt-4 h-11 px-6 text-base"
-                  >
-                    Start
-                  </Button>
-                </form>
+                <TonightControls scheduledSessions={scheduledSessions} />
               )}
             </div>
           )}
