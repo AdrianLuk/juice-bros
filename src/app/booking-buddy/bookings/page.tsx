@@ -15,6 +15,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { SyncFromEmailSection } from "@/components/booking-buddy/sync-from-email";
+import { SyncFacilitiesSection } from "@/components/booking-buddy/sync-facilities";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
@@ -65,6 +66,11 @@ export default async function BookingsPage() {
   );
   const mailboxLink = await getMailboxLink();
   const canSyncFromEmail = gmailConnectAllowed || mailboxLink !== null;
+
+  // A Calendar Feed isn't allowlist-gated (ADR-0019) — the "From facility
+  // feeds" section shows whenever the User has at least one feed-configured
+  // Facility.
+  const feedOrgIds = orgs.filter((org) => org.hasCalendarFeed).map((org) => org.id);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -139,6 +145,8 @@ export default async function BookingsPage() {
                   <SyncFromEmailSection orgs={orgs} mailboxProvider={mailboxLink?.provider ?? null} />
                 </section>
               )}
+
+              <SyncFacilitiesSection orgs={orgs} feedOrgIds={feedOrgIds} />
 
               <section>
                 <h2 className="font-heading text-lg font-semibold tracking-tight">
