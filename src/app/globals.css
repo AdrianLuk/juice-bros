@@ -298,7 +298,9 @@
   --bb-pin-need: oklch(0.57 0.2 28); /* red    — needs you */
   --bb-pin-maybe: oklch(0.76 0.15 78); /* amber  — maybe / tentative */
   --bb-pin-info: oklch(0.52 0.15 256); /* cobalt — informational */
-  --bb-pin-commit: var(--brand-orange); /* orange — your move / the one action */
+  --bb-pin-commit: var(
+    --brand-orange
+  ); /* orange — your move / the one action */
   --bb-ink-pen: oklch(0.4 0.13 262); /* ballpoint blue — "you" / confirmed */
   --bb-ink-pencil: oklch(0.46 0.012 60); /* graphite — pencilled / maybe */
   --bb-marker: oklch(0.5 0.19 28); /* red marker — FULL / booked */
@@ -306,12 +308,17 @@
   --bb-tape-ink: oklch(0.4 0.03 62);
   --bb-laminate: oklch(0.955 0.028 88); /* sign-up sheet ground */
   --bb-rule: oklch(0.8 0.03 78); /* sheet ruling */
-  --bb-contact-shadow: 0 2px 4px oklch(0.32 0.04 45 / 0.32),
+  --bb-contact-shadow:
+    0 2px 4px oklch(0.32 0.04 45 / 0.32),
     0 16px 30px -12px oklch(0.36 0.06 40 / 0.5);
 
   /* The whole app speaks Libre Franklin — a Franklin Gothic-lineage humanist
      grotesque with municipal-notice character. Never Geist here. */
-  font-family: var(--font-bb-body), system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-bb-body),
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .dark .bb-theme {
@@ -342,8 +349,8 @@
   --bb-tape-ink: oklch(0.9 0.02 88);
   --bb-laminate: oklch(0.3 0.022 58);
   --bb-rule: oklch(1 0 0 / 14%);
-  --bb-contact-shadow: 0 2px 3px oklch(0 0 0 / 0.4),
-    0 16px 26px -12px oklch(0 0 0 / 0.55);
+  --bb-contact-shadow:
+    0 2px 3px oklch(0 0 0 / 0.4), 0 16px 26px -12px oklch(0 0 0 / 0.55);
 }
 
 /* ── The cork board ─────────────────────────────────────────────────────── */
@@ -355,16 +362,49 @@
   background-color: var(--bb-cork);
   background-image:
     /* a soft frame vignette so it reads as a board on a wall, not infinite cork */
-    radial-gradient(130% 80% at 50% 0%, transparent 62%, oklch(0.42 0.04 45 / 0.16) 100%),
-    radial-gradient(1.5px 1.5px at 12% 22%, oklch(0.42 0.04 40 / 0.15) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 68% 14%, oklch(0.42 0.04 40 / 0.12) 50%, transparent 51%),
-    radial-gradient(2px 2px at 44% 61%, oklch(0.42 0.04 40 / 0.09) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 83% 74%, oklch(0.42 0.04 40 / 0.13) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 26% 84%, oklch(0.42 0.04 40 / 0.11) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 55% 33%, oklch(0.98 0.03 88 / 0.13) 50%, transparent 51%);
+    radial-gradient(
+      130% 80% at 50% 0%,
+      transparent 62%,
+      oklch(0.42 0.04 45 / 0.16) 100%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 12% 22%,
+      oklch(0.42 0.04 40 / 0.15) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 68% 14%,
+      oklch(0.42 0.04 40 / 0.12) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      2px 2px at 44% 61%,
+      oklch(0.42 0.04 40 / 0.09) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 83% 74%,
+      oklch(0.42 0.04 40 / 0.13) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 26% 84%,
+      oklch(0.42 0.04 40 / 0.11) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 55% 33%,
+      oklch(0.98 0.03 88 / 0.13) 50%,
+      transparent 51%
+    );
   background-size:
     100% 100%,
-    190px 190px, 230px 230px, 270px 270px, 210px 210px, 250px 250px, 170px 170px;
+    190px 190px,
+    230px 230px,
+    270px 270px,
+    210px 210px,
+    250px 250px,
+    170px 170px;
   background-attachment: fixed, scroll, scroll, scroll, scroll, scroll, scroll;
 }
 
@@ -437,11 +477,21 @@
     0 2px 3px oklch(0.2 0.03 40 / 0.5),
     inset 0 -1px 2px oklch(0 0 0 / 0.25);
 }
-.bb-pin--in { --bb-pin: var(--bb-pin-in); }
-.bb-pin--need { --bb-pin: var(--bb-pin-need); }
-.bb-pin--maybe { --bb-pin: var(--bb-pin-maybe); }
-.bb-pin--info { --bb-pin: var(--bb-pin-info); }
-.bb-pin--commit { --bb-pin: var(--bb-pin-commit); }
+.bb-pin--in {
+  --bb-pin: var(--bb-pin-in);
+}
+.bb-pin--need {
+  --bb-pin: var(--bb-pin-need);
+}
+.bb-pin--maybe {
+  --bb-pin: var(--bb-pin-maybe);
+}
+.bb-pin--info {
+  --bb-pin: var(--bb-pin-info);
+}
+.bb-pin--commit {
+  --bb-pin: var(--bb-pin-commit);
+}
 
 /* ── Masking tape ──────────────────────────────────────────────────────── */
 
@@ -523,8 +573,12 @@
   font-family: var(--font-bb-hand), ui-rounded, "Comic Sans MS", cursive;
   font-weight: 700;
 }
-.bb-hand--pencil { color: var(--bb-ink-pencil); }
-.bb-hand--pen { color: var(--bb-ink-pen); }
+.bb-hand--pencil {
+  color: var(--bb-ink-pencil);
+}
+.bb-hand--pen {
+  color: var(--bb-ink-pen);
+}
 
 /* A rubber-stamped state — FULL, BOOKED, CONFIRMED. */
 .bb-stamp {
@@ -539,7 +593,9 @@
   mix-blend-mode: multiply;
   opacity: 0.88;
 }
-.dark .bb-stamp { mix-blend-mode: screen; }
+.dark .bb-stamp {
+  mix-blend-mode: screen;
+}
 
 /* Section / card headings in the notice voice. */
 .bb-h {
@@ -1319,19 +1375,31 @@
  */
 @media (prefers-reduced-motion: no-preference) {
   .js .bb-board-load > * {
-    animation: bb-pin-drop 440ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation: bb-pin-drop 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .js .bb-board-load > *:nth-child(1) { animation-delay: 40ms; }
-  .js .bb-board-load > *:nth-child(2) { animation-delay: 100ms; }
-  .js .bb-board-load > *:nth-child(3) { animation-delay: 155ms; }
-  .js .bb-board-load > *:nth-child(4) { animation-delay: 205ms; }
-  .js .bb-board-load > *:nth-child(5) { animation-delay: 250ms; }
-  .js .bb-board-load > *:nth-child(n + 6) { animation-delay: 290ms; }
+  .js .bb-board-load > *:nth-child(1) {
+    animation-delay: 40ms;
+  }
+  .js .bb-board-load > *:nth-child(2) {
+    animation-delay: 100ms;
+  }
+  .js .bb-board-load > *:nth-child(3) {
+    animation-delay: 155ms;
+  }
+  .js .bb-board-load > *:nth-child(4) {
+    animation-delay: 205ms;
+  }
+  .js .bb-board-load > *:nth-child(5) {
+    animation-delay: 250ms;
+  }
+  .js .bb-board-load > *:nth-child(n + 6) {
+    animation-delay: 290ms;
+  }
 
   /* A single card pinned onto the board after load (a new game posted, a
      synced booking fluttering in). */
   .js .bb-pin-in {
-    animation: bb-pin-drop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation: bb-pin-drop 440ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   /* FLAP ON UPDATE — a changed value (time, court, spot count) turns over from
@@ -1354,7 +1422,13 @@
 @keyframes bb-pin-drop {
   0% {
     opacity: 0;
-    transform: translateY(-10px) rotate(0deg) scale(1.02);
+    transform: translateY(-9px) rotate(0deg) scale(1.015);
+  }
+  70% {
+    opacity: 1;
+    /* the card meets the board a hair low, then settles — the weight is in
+       the keyframe, the easing stays a smooth decelerate (no spring). */
+    transform: translateY(1px) rotate(var(--bb-tilt, 0deg)) scale(1);
   }
   100% {
     opacity: 1;
@@ -1363,10 +1437,18 @@
 }
 
 @keyframes bb-flap {
-  0% { transform: rotateX(0deg); }
-  45% { transform: rotateX(-88deg); }
-  55% { transform: rotateX(88deg); }
-  100% { transform: rotateX(0deg); }
+  0% {
+    transform: rotateX(0deg);
+  }
+  45% {
+    transform: rotateX(-88deg);
+  }
+  55% {
+    transform: rotateX(88deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
 }
 
 /*

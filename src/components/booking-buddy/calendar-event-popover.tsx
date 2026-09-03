@@ -81,7 +81,7 @@ const EVENT_TEXT_SHADOW = "[text-shadow:0_1px_1.5px_rgb(0_0_0_/_0.4)]";
 // orange fill never was.
 export const WEEK_EVENT_CLASS = `absolute block overflow-hidden rounded-[3px] bg-[var(--bb-ink-pen)] px-1.5 py-1 text-[13px] font-medium leading-tight text-white shadow-sm ${EVENT_TEXT_SHADOW}`;
 
-export const MONTH_EVENT_CLASS = `block w-full overflow-hidden rounded-[2px] border-l-2 border-[var(--bb-ink-pen)] bg-[color-mix(in_oklch,var(--bb-ink-pen),transparent_86%)] px-1.5 py-0.5 text-[12px] font-medium text-[color-mix(in_oklch,var(--bb-ink-pen),black_12%)]`;
+export const MONTH_EVENT_CLASS = `block w-full overflow-hidden rounded-[2px] bg-[color-mix(in_oklch,var(--bb-ink-pen),transparent_84%)] px-1.5 py-0.5 text-[12px] font-medium text-[color-mix(in_oklch,var(--bb-ink-pen),black_12%)]`;
 
 export const AGENDA_EVENT_CLASS =
-  "flex w-full items-center gap-3 rounded-[3px] border-l-2 border-[var(--bb-ink-pen)] bg-muted/50 px-3 py-2 text-sm hover:bg-muted";
+  "flex w-full items-center gap-3 rounded-[3px] bg-[color-mix(in_oklch,var(--bb-ink-pen),transparent_90%)] px-3 py-2 text-sm hover:bg-[color-mix(in_oklch,var(--bb-ink-pen),transparent_84%)]";
