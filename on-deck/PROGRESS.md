@@ -554,7 +554,7 @@ migration's timestamp past whatever else merged (the drift lesson
   with `owner_id` = the Juice Bros account (Supabase SQL editor — RLS gives even
   the owner no INSERT on `on_deck_clubs`), then the console handles the rest.
   Tests: `dev-players.test.ts` (the name/skill generator), `routes.test.ts`
-  (gating + path shapes). Setup and how to drive a test night:
+  (gating + path shapes). Walkthrough for a manual test night:
   [docs/dev-console.md](docs/dev-console.md).
 
 ## Next
