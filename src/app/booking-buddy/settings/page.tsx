@@ -109,12 +109,16 @@ export default async function SettingsPage({
               />
             </div>
           </div>
-          <div className="mt-12 border-t border-border/60 pt-8">
+          <div className="mt-12">
             <h2 className="bb-h text-[1.05rem]">Sign out</h2>
-            <p className="mt-1 mb-4 text-sm text-muted-foreground">
-              You&apos;ll need to sign in again next time.
-            </p>
-            <SignOutButton />
+            {/* On its own kraft card like every other section — the quiet
+                destructive button washes out sitting straight on the cork. */}
+            <div className="bb-card mt-4 flex flex-col items-start gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <p className="text-sm text-muted-foreground">
+                You&apos;ll need to sign in again next time.
+              </p>
+              <SignOutButton />
+            </div>
           </div>
           <BbFooter />
         </div>

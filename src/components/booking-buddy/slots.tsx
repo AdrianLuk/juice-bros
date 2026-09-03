@@ -798,7 +798,7 @@ function DetachBookingButton({
   // The form lives inside the dialog so the confirm button is the only thing
   // that can submit it — same shape as removing a booking or deleting a slot.
   const form = (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form action={formAction} className="flex flex-col gap-1 sm:items-end">
       <input type="hidden" name="slot_id" value={slotId} />
       <input type="hidden" name="booking_id" value={booking.id} />
       <Button type="submit" variant="destructive" disabled={pending}>

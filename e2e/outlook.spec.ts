@@ -75,7 +75,13 @@ test("connecting Outlook replaces an existing link and disconnecting clears it",
   await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
   await expect(page.getByText("Connected as ben@outlook.com via Outlook")).toBeVisible();
 
+  // Disconnect is behind a confirm dialog; the trigger and the confirm button
+  // share the accessible name, so the confirm click is scoped to the dialog.
   await page.getByRole("button", { name: "Disconnect" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Disconnect" })
+    .click();
   await expect(page.getByRole("button", { name: "Connect Outlook" })).toBeVisible();
 
   await page.reload();

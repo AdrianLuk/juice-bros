@@ -5,6 +5,16 @@ import { useActionState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -159,14 +169,43 @@ export function MailboxSyncSection({
               </Button>
             </form>
           )}
-          <form action={disconnectAction}>
-            <Button type="submit" variant="destructive" disabled={pending}>
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={<Button variant="destructive" disabled={pending} />}
+            >
               {pending ? "Disconnecting…" : "Disconnect"}
-            </Button>
-          </form>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bb-theme">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Disconnect this mailbox?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Booking Buddy stops reading{" "}
+                  <span className="font-medium">{mailboxLink.accountEmail}</span>{" "}
+                  for CourtReserve emails. Bookings already pulled in stay put.
+                  You can reconnect anytime.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep connected</AlertDialogCancel>
+                {/* The form lives inside the dialog so the confirm button is
+                    the only thing that can submit it. */}
+                <form
+                  action={disconnectAction}
+                  className="flex flex-col gap-1 sm:items-end"
+                >
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={pending}
+                  >
+                    {pending ? "Disconnecting…" : "Disconnect"}
+                  </Button>
+                  <ActionError state={state} />
+                </form>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
-
-        <ActionError state={state} />
       </div>
     );
   } else if (connectableProviders.length === 0) {

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { QueryProvider } from "@/components/booking-buddy/query-provider";
 import { ServiceWorkerRegistration } from "@/components/booking-buddy/service-worker-registration";
 import { BbAppShell } from "@/components/booking-buddy/bb-app-shell";
+import { BbPullToRefresh } from "@/components/booking-buddy/bb-pull-to-refresh";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
@@ -79,10 +80,12 @@ export default async function BookingBuddyLayout({
       <div className="bb-theme bb-board flex w-full flex-1 flex-col text-foreground">
         <BbAppShell />
         {/* Clears the fixed mobile bottom tab bar (safe-area included); no bar
-            on desktop. */}
-        <div className="flex w-full flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">
+            on desktop. `BbPullToRefresh` owns this wrapper so a pull-down from
+            the top refetches the page — the app turns the browser's native
+            pull-to-refresh off, and there's none at all once installed. */}
+        <BbPullToRefresh className="flex w-full flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">
           {children}
-        </div>
+        </BbPullToRefresh>
       </div>
     </QueryProvider>
   );

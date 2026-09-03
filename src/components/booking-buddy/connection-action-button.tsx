@@ -57,7 +57,7 @@ export function ConnectionActionButton({
   // A real form, so the lists re-render from the server in the same roundtrip
   // — the actions call revalidatePath on this page.
   const form = (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form action={formAction} className="flex flex-col gap-1 sm:items-end">
       <input type="hidden" name="connection_id" value={connectionId} />
       <Button
         type="submit"
@@ -83,7 +83,7 @@ export function ConnectionActionButton({
       <AlertDialogTrigger render={<Button size="sm" variant={variant} />}>
         {label}
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="bb-theme">
         <AlertDialogHeader>
           <AlertDialogTitle>{confirm.title}</AlertDialogTitle>
           <AlertDialogDescription>{confirm.description}</AlertDialogDescription>

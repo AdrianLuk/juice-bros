@@ -111,6 +111,8 @@ The palette is entirely warm and physical: red-brown cork ground, kraft paper, f
 
 Motion is one idea: pinning. A card arriving drops a few pixels, rotates to its resting angle and lands its shadow — a decelerate, deliberately no spring. The dashboard plays this once as an orchestrated board-load, then stills; every other surface cuts to rest. Reduced motion and no-JS get the board already pinned up.
 
+The signed-in app also carries a **pull-to-refresh** (`BbPullToRefresh`, wrapping the routed content in the section layout): the app turns the browser's own overscroll off, so a drag down from the top past ~72px refetches the page — RSC tree and TanStack Query cache both — with a small kraft chip spinner held in the revealed gap, then the strip snaps back on the signature ease. Touch only; it engages only at the very top and only once the drag reads vertical-and-down.
+
 **Key Characteristics:**
 - Cork ground, kraft cards, one real pushpin, warm offset contact shadow — never a flat halo
 - Near-square corners (0.28rem); rotation is opt-in, and the status key never tilts
@@ -244,7 +246,9 @@ Torn translucent masking-tape strip (mask-image feathered ends), Anton uppercase
 Dark near-black translucent strip, Anton uppercase, exactly four law entries with a small enamel dot each. `bar` variant = full-width dashboard footer; `inline` = quiet chip run on a page. `transform: none !important` — never tilts.
 
 ### Dialogs
-A note taped up: `4px` corners, contact shadow, Anton uppercase title at `1rem` / 0.07em. Not a soft rounded sheet.
+A note taped up: `4px` corners, contact shadow, Anton uppercase title at `1rem` / 0.07em. Not a soft rounded sheet. Both plain dialogs and destructive-action confirm dialogs (Base UI `Dialog` and `AlertDialog`) get this treatment — the confirms all pass `className="bb-theme"`, which also scopes globals' `alert-dialog-content` rules.
+
+**Confirm dialogs.** Every disconnect or destructive action (sign out, disconnect a mailbox, remove a friend / group / facility, delete a game, detach a court, remove a booking) sits behind a confirm dialog — the trigger button only opens it, the confirm form lives inside so the confirm button is the only thing that can submit. The footer pairs a kraft-outline "keep" cancel with the destructive confirm; the confirm form is `flex flex-col gap-1 sm:items-end` so the two buttons match — full-width stacked on mobile, auto-width on a desktop row.
 
 ### Navigation
 - **Desktop:** a routed forest-green park sign (`oklch(0.33 0.045 152)`), sticky, `max-w-6xl`, beveled shadow. Anton uppercase section labels at `0.82rem` / 0.14em; inactive labels are pale green, active is near-white with a `3px` brand-orange underline that slides between sections as a shared view-transition element (`bb-nav-pill`). Dropdowns are small pinned kraft cards.
