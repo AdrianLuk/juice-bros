@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PersonName } from "@/components/booking-buddy/connection-list";
+import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   VisibilitySelect,
@@ -34,7 +35,14 @@ export function FriendVisibilityRow({
   const selectId = `friend-${friend.person.connectionId}-level`;
 
   return (
-    <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <BoardCard
+      as="li"
+      pin="in"
+      pinLabel="Connected"
+      pinAlign="left"
+      pinned={false}
+      className="bb-slip flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+    >
       <div className="min-w-0">
         <PersonName person={friend.person} />
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -87,6 +95,6 @@ export function FriendVisibilityRow({
           <ActionError state={state} />
         </form>
       </div>
-    </li>
+    </BoardCard>
   );
 }

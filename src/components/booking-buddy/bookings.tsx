@@ -40,6 +40,7 @@ import {
   todayInZone,
 } from "@/lib/booking-buddy/datetime";
 import { ImminenceBadge } from "@/components/booking-buddy/imminence-badge";
+import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   BOOKING_FORMATS,
@@ -603,7 +604,14 @@ export function BookingRow({
   const [whenDate, whenTime] = booking.when.split(" · ");
 
   return (
-    <li className="flex items-center justify-between gap-4 px-5 py-4">
+    <BoardCard
+      as="li"
+      pin={nowIso ? "info" : null}
+      pinLabel="Reserved"
+      pinAlign="left"
+      pinned={false}
+      className="bb-slip flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+    >
       <div className="min-w-0">
         {nowIso && (
           <ImminenceBadge nowIso={nowIso} startsAt={booking.startsAt} />
@@ -645,11 +653,10 @@ export function BookingRow({
           )}
         </div>
       </div>
-      {/* `gap-2.5` (not the tighter `gap-1.5` these buttons default to)
-          keeps "Remove" from sitting right under "Edit" — confirmed behind
-          a confirmation dialog either way, but a stray tap shouldn't land
-          this close to a destructive action's trigger. */}
-      <div className="flex flex-col items-end gap-2.5">
+      {/* A horizontal action row so the card stays as short as its content —
+          `gap-2.5` (wider than these buttons' default `gap-1.5`) keeps a stray
+          tap off "Remove" when it sits beside "Edit". */}
+      <div className="flex shrink-0 flex-wrap gap-2.5 sm:justify-end">
         <BookingDetailsModal
           booking={booking}
           orgs={orgs}
@@ -660,7 +667,7 @@ export function BookingRow({
         <EditBookingButton booking={booking} orgs={orgs} />
         <DeleteBookingButton booking={booking} />
       </div>
-    </li>
+    </BoardCard>
   );
 }
 

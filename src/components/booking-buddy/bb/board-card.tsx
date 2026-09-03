@@ -18,6 +18,7 @@ export function BoardCard({
   pinned = true,
   pin = "info",
   pinLabel,
+  pinAlign = "center",
   interactive = false,
   pinInOnMount = false,
   ...rest
@@ -28,6 +29,8 @@ export function BoardCard({
   pinned?: boolean;
   pin?: PinColor | null;
   pinLabel?: string;
+  /** "left" tucks the pin near the top-left corner — for a stacked list of cards. */
+  pinAlign?: "center" | "left";
   interactive?: boolean;
   /** Animate this card in as if just pinned up (a newly posted game, a synced booking). */
   pinInOnMount?: boolean;
@@ -44,7 +47,13 @@ export function BoardCard({
       )}
       {...rest}
     >
-      {pin ? <Pushpin color={pin} label={pinLabel} /> : null}
+      {pin ? (
+        <Pushpin
+          color={pin}
+          label={pinLabel}
+          className={pinAlign === "left" ? "bb-pin--at-left" : undefined}
+        />
+      ) : null}
       {children}
     </Tag>
   );
