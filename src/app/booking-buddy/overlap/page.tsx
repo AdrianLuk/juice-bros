@@ -20,7 +20,7 @@ export default async function OverlapPage() {
     await getOverlapPageData();
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
+      <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <BbPageHeading
             title="Find a time"

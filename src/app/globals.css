@@ -308,7 +308,7 @@
   --bb-tape: oklch(0.94 0.042 92 / 0.86);
   --bb-tape-ink: oklch(0.4 0.03 62);
   --bb-laminate: oklch(0.955 0.028 88); /* sign-up sheet ground */
-  --bb-rule: oklch(0.8 0.03 78); /* sheet ruling */
+  --bb-rule: oklch(0.72 0.032 74); /* sheet ruling — a graphite pencil line */
   --bb-contact-shadow:
     0 2px 4px oklch(0.32 0.04 45 / 0.32),
     0 16px 30px -12px oklch(0.36 0.06 40 / 0.5);

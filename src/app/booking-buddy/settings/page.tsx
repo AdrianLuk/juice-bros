@@ -54,17 +54,17 @@ export default async function SettingsPage({
   const mailboxLink = await getMailboxLink();
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
+      <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <BbPageHeading
             title="Settings"
             description="Your username was picked for you when you signed up. Change it to whatever you'd rather give out."
           />
           <BbSectionNav />
-          <div className="bb-card mt-10 p-6">
+          <div className="bb-card mt-9 p-4 sm:p-6">
             <UsernameForm username={profile.username} />
           </div>
-          <div className="bb-card mt-8 p-6">
+          <div className="bb-card mt-8 p-4 sm:p-6">
             <GenderForm gender={profile.gender} />
           </div>
           <div className="mt-8">
@@ -99,7 +99,7 @@ export default async function SettingsPage({
                 .
               </p>
             )}
-            <div className="bb-card mt-4 p-6">
+            <div className="bb-card mt-4 p-4 sm:p-6">
               <MailboxSyncSection
                 mailboxLink={mailboxLink}
                 gmailConnectAllowed={gmailConnectAllowed}

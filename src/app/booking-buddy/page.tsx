@@ -90,16 +90,22 @@ export default async function BookingBuddyPage() {
         hasSlot={hasSlot}
       />
 
-      <section className="w-full px-4 pt-8 pb-10 sm:px-6 sm:pt-10 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <DashboardGreeting
-            thisWeekCount={thisWeekCount}
-            nextBookingDate={nextBookingDate}
-            hasAnyBooking={hasBooking}
-          />
+      <section className="w-full px-2.5 pt-8 pb-10 sm:px-6 sm:pt-10 lg:px-8">
+        {/* On mobile the sign-up sheet leads (the board tiles are tall, and the
+            week is what people open the dashboard for); on desktop the board
+            leads and the sheet sits below the fold. Handled with flex order so
+            the markup order stays readable. */}
+        <div className="mx-auto flex max-w-6xl flex-col">
+          <div className="order-1">
+            <DashboardGreeting
+              thisWeekCount={thisWeekCount}
+              nextBookingDate={nextBookingDate}
+              hasAnyBooking={hasBooking}
+            />
+          </div>
 
           {/* ── The board: this week, pinned up ──────────────────────────── */}
-          <Board className="mt-8 flex flex-col gap-x-8 gap-y-9 rounded-lg p-4 sm:p-6 lg:flex-row lg:items-start">
+          <Board className="order-3 mt-8 flex flex-col gap-x-8 gap-y-9 rounded-lg p-3 sm:p-6 lg:order-2 lg:flex-row lg:items-start">
             <BoardRegion
               label="This week"
               className="lg:w-[37.5rem] lg:shrink-0"
@@ -168,12 +174,12 @@ export default async function BookingBuddyPage() {
             </div>
           </Board>
 
-          <StatusKey className="mt-7" />
+          <StatusKey className="order-4 mt-7 lg:order-3" />
 
           {/* ── The sign-up sheet: the week, ruled out ───────────────────── */}
-          <div className="mt-12">
+          <div className="order-2 mt-8 lg:order-4 lg:mt-12">
             <span className="bb-tape text-xs">The week, ruled out</span>
-            <div className="bb-sheet mt-3 bb-pinned px-3 pt-4 pb-3 sm:px-6 sm:pt-6">
+            <div className="bb-sheet mt-3 bb-pinned px-2 pt-4 pb-3 sm:px-6 sm:pt-6">
               <span
                 aria-hidden
                 className="bb-pin bb-pin--info"
@@ -193,7 +199,7 @@ export default async function BookingBuddyPage() {
             </div>
           </div>
 
-          <BbFooter />
+          <BbFooter className="order-5" />
         </div>
       </section>
     </div>
