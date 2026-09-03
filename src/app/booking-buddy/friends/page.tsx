@@ -41,7 +41,7 @@ export default async function FriendsPage() {
             description="Connections are mutual. Once you're both in, you can see each other's availability."
           />
           <BbSectionNav />
-          <div className="mt-10 flex flex-col gap-12">
+          <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
             <ConnectionList
               title="Requests for you"
               people={received}
@@ -96,7 +96,7 @@ export default async function FriendsPage() {
                   No friends yet. Search above to find someone you play with.
                 </p>
               ) : (
-                <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
+                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                   {friendVisibility.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}

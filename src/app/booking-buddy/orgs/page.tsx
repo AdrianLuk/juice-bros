@@ -33,7 +33,7 @@ export default async function OrgsPage() {
             description="The facilities you book at. Only you can see this list."
           />
           <BbSectionNav />
-          <div className="mt-10 flex flex-col gap-12">
+          <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Add a facility</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -74,7 +74,7 @@ export default async function OrgsPage() {
                   logging court bookings.
                 </p>
               ) : (
-                <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
+                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                   {orgs.map((org) => (
                     <OrgRow key={org.id} org={org} />
                   ))}

@@ -51,7 +51,7 @@ export default async function AvailabilityPage() {
             description="Mark when you're looking to play or busy. It only shows on your calendar, and never blocks a game invite."
           />
           <BbSectionNav />
-          <div className="mt-10 flex flex-col gap-12">
+          <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">
                 Your availability blocks
@@ -67,7 +67,7 @@ export default async function AvailabilityPage() {
                   {past.length > 0 ? ", or check History for past ones." : "."}
                 </p>
               ) : (
-                <ul className="mt-5 bb-sheet bb-sheet-pin flex flex-col gap-2 p-3">
+                <ul className="mt-5 flex flex-col gap-2">
                   {upcoming.map((window) => (
                     <AvailabilityWindowRow
                       key={window.id}

@@ -30,7 +30,7 @@ export function BbPageHeading({
         {title}
       </h1>
       {description && (
-        <p className="max-w-xl text-[0.95rem] text-muted-foreground">
+        <p className="max-w-xl text-[0.95rem] text-[var(--bb-on-cork-dim)]">
           {description}
         </p>
       )}

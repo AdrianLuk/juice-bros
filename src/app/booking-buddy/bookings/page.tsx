@@ -81,7 +81,7 @@ export default async function BookingsPage() {
               , then come back.
             </p>
           ) : (
-            <div className="mt-10 flex flex-col gap-12">
+            <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
               <section>
                 <h2 className="flex items-center gap-2 bb-h text-[1.05rem]">
                   Booked
@@ -97,7 +97,7 @@ export default async function BookingsPage() {
                     past ones.
                   </p>
                 ) : (
-                  <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
+                  <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                     {upcomingBookings.map((booking) => (
                       <BookingRow
                         key={booking.id}
@@ -115,7 +115,7 @@ export default async function BookingsPage() {
                       History
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
+                      <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                         {pastBookings.map((booking) => (
                           <BookingRow
                             key={booking.id}

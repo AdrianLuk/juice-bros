@@ -32,7 +32,7 @@ export function FriendsLookingToPlay({
   }
 
   return (
-    <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+    <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
       {windows.map((window) => (
         <li
           key={window.id}

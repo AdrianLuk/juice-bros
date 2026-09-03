@@ -43,7 +43,7 @@ export function ConnectionList({
           {emptyMessage}
         </p>
       ) : (
-        <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+        <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
           {people.map((person) => (
             <li
               key={person.connectionId}

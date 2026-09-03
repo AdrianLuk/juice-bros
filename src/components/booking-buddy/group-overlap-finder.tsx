@@ -360,7 +360,7 @@ export function GroupOverlapFinder({
           availability with you show up here.
         </p>
 
-        <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+        <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
           {friends.map((friend) => {
             const checked = selected.has(friend.userId);
             return (
@@ -458,7 +458,7 @@ export function GroupOverlapFinder({
                   who&apos;s marked themselves busy.
                 </p>
               ) : (
-                <ul className="bb-sheet divide-y bb-sheet-rule overflow-hidden">
+                <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                   {freeDays.map((day) => (
                     <li key={day.dateKey} className="px-5 py-4">
                       <p className="font-medium">

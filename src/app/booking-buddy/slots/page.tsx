@@ -61,7 +61,7 @@ export default async function SlotsPage({
             description="Propose a time before you've reserved a court. Friends respond yes, no, or maybe."
           />
           <BbSectionNav />
-          <div className="mt-10 flex flex-col gap-12">
+          <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your games</h2>
               {own.length === 0 ? (
@@ -70,7 +70,7 @@ export default async function SlotsPage({
                   yes, no, or maybe, before anyone books a court.
                 </p>
               ) : (
-                <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
+                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                   {own.map((slot) => (
                     <SlotRow
                       key={slot.id}
@@ -95,7 +95,7 @@ export default async function SlotsPage({
                   posts one, or once you have that into them.
                 </p>
               ) : (
-                <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
+                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                   {friends.map((slot) => (
                     <SlotRow
                       key={slot.id}

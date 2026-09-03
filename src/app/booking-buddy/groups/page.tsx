@@ -43,7 +43,7 @@ export default async function GroupsPage() {
               , then come back.
             </p>
           ) : (
-            <div className="mt-10 flex flex-col gap-12">
+            <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
               <section>
                 <h2 className="bb-h text-[1.05rem]">New group</h2>
                 <div className="mt-4">

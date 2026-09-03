@@ -50,7 +50,7 @@ export function DashboardAgendaView<T extends CalendarEvent>({
   }
 
   return (
-    <div className="flex flex-col bb-sheet divide-y bb-sheet-rule overflow-hidden">
+    <div className="flex flex-col divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
       {[...groups.entries()].map(([key, dayEvents]) => {
         const day = new Date(dayEvents[0].startsAt);
 
