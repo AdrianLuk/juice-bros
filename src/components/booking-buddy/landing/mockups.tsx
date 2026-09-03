@@ -25,10 +25,12 @@ export function SlotProposalPreview() {
     <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-heading text-base font-semibold tracking-tight">
+          <p className="font-bb-body text-base font-semibold tracking-tight">
             Thursday, 8:00 PM
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Who&apos;s around?</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Who&apos;s around?
+          </p>
         </div>
         <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
           Proposal
@@ -36,8 +38,8 @@ export function SlotProposalPreview() {
       </div>
 
       <p className="mt-4 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">3 in so far.</span> No court
-        yet. Grab one and attach it to lock the game in.
+        <span className="font-medium text-foreground">3 in so far.</span> No
+        court yet. Grab one and attach it to lock the game in.
       </p>
 
       <ul className="mt-3 divide-y divide-border/60 overflow-hidden rounded-lg bg-muted/30 text-sm">
@@ -53,8 +55,12 @@ export function SlotProposalPreview() {
       </ul>
 
       <div className="mt-4 flex gap-2" aria-hidden>
-        <span className={`${pill} bg-primary text-primary-foreground`}>Yes</span>
-        <span className={`${pill} border border-border bg-background`}>Maybe</span>
+        <span className={`${pill} bg-primary text-primary-foreground`}>
+          Yes
+        </span>
+        <span className={`${pill} border border-border bg-background`}>
+          Maybe
+        </span>
         <span className={`${pill} border border-border bg-background`}>No</span>
       </div>
     </div>
@@ -74,7 +80,7 @@ export function SlotResponsesPreview() {
     <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-heading text-base font-semibold tracking-tight">
+          <p className="font-bb-body text-base font-semibold tracking-tight">
             Saturday, 9:00 AM
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -104,8 +110,12 @@ export function SlotResponsesPreview() {
       </ul>
 
       <div className="mt-4 flex gap-2" aria-hidden>
-        <span className={`${pill} bg-primary text-primary-foreground`}>Yes</span>
-        <span className={`${pill} border border-border bg-background`}>Maybe</span>
+        <span className={`${pill} bg-primary text-primary-foreground`}>
+          Yes
+        </span>
+        <span className={`${pill} border border-border bg-background`}>
+          Maybe
+        </span>
         <span className={`${pill} border border-border bg-background`}>No</span>
       </div>
     </div>
@@ -123,7 +133,7 @@ export function AvailabilityPreview() {
 
   return (
     <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
-      <p className="font-heading text-base font-semibold tracking-tight">
+      <p className="font-bb-body text-base font-semibold tracking-tight">
         This weekend
       </p>
       <div className="mt-4 grid grid-cols-[4.5rem_repeat(5,1fr)] gap-1.5 text-[11px]">
@@ -153,9 +163,7 @@ export function AvailabilityPreview() {
                       ? "border-border bg-muted"
                       : "border-transparent")
                 }
-                style={
-                  cell === "busy" ? { backgroundImage: HATCH } : undefined
-                }
+                style={cell === "busy" ? { backgroundImage: HATCH } : undefined}
               >
                 {cell === "looking" ? "Looking" : cell === "busy" ? "Busy" : ""}
               </div>
@@ -183,7 +191,7 @@ export function OverlapPreview() {
 
   return (
     <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
-      <p className="font-heading text-base font-semibold tracking-tight">
+      <p className="font-bb-body text-base font-semibold tracking-tight">
         When you&apos;re all free
       </p>
 
@@ -208,7 +216,9 @@ export function OverlapPreview() {
                   key={window}
                   className="flex items-center justify-between gap-3"
                 >
-                  <span className="text-xs text-muted-foreground">{window}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {window}
+                  </span>
                   <span className="shrink-0 text-xs font-semibold text-primary">
                     Propose a game
                   </span>
@@ -260,7 +270,7 @@ export function WeekPreview() {
 
   return (
     <div className="bb-card w-full max-w-sm p-5 text-left text-card-foreground ring-1 ring-black/5">
-      <p className="font-heading text-base font-semibold tracking-tight">
+      <p className="font-bb-body text-base font-semibold tracking-tight">
         Your week
       </p>
       <ul className="mt-4 flex flex-col gap-2.5">
@@ -294,7 +304,9 @@ export function WeekPreview() {
                     ? "border border-dashed border-primary/40"
                     : "bg-muted/50")
               }
-              style={row.kind === "busy" ? { backgroundImage: HATCH } : undefined}
+              style={
+                row.kind === "busy" ? { backgroundImage: HATCH } : undefined
+              }
             >
               <p className="text-sm font-medium">{row.title}</p>
               <p className="text-xs text-muted-foreground">{row.meta}</p>

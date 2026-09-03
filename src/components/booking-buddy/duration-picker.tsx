@@ -3,11 +3,15 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { DURATION_PRESET_HOURS, addHoursToTime } from "@/lib/booking-buddy/bookings";
+import {
+  DURATION_PRESET_HOURS,
+  addHoursToTime,
+} from "@/lib/booking-buddy/bookings";
 import { crossesMidnight } from "@/lib/booking-buddy/datetime";
 
 /** A duration preset's hour count, or "custom" for a hand-typed one. */
-export type DurationChoice = `${(typeof DURATION_PRESET_HOURS)[number]}` | "custom";
+export type DurationChoice =
+  `${(typeof DURATION_PRESET_HOURS)[number]}` | "custom";
 
 /**
  * 1/2/3-hour presets plus a hand-typed custom count — same idea as
@@ -24,7 +28,11 @@ export function DurationPicker({
   onChange: (choice: DurationChoice) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Duration">
+    <div
+      className="flex flex-wrap gap-1.5"
+      role="radiogroup"
+      aria-label="Duration"
+    >
       {DURATION_PRESET_HOURS.map((hours) => {
         const choice = String(hours) as DurationChoice;
         return (
@@ -85,11 +93,15 @@ export interface DurationInput {
  * and hour count, then hand its fields straight to `DurationPicker` and a
  * disabled End `<Input>`.
  */
-export function useDurationInput(initialStartTime: string, initialHours: number): DurationInput {
+export function useDurationInput(
+  initialStartTime: string,
+  initialHours: number,
+): DurationInput {
   const initialChoice = durationChoiceForHours(initialHours);
 
   const [startTime, setStartTime] = useState(initialStartTime);
-  const [durationChoice, setDurationChoice] = useState<DurationChoice>(initialChoice);
+  const [durationChoice, setDurationChoice] =
+    useState<DurationChoice>(initialChoice);
   const [customHours, setCustomHours] = useState(
     initialChoice === "custom" ? String(initialHours) : "",
   );
@@ -97,12 +109,16 @@ export function useDurationInput(initialStartTime: string, initialHours: number)
   // Blank while the User has "Custom" selected but hasn't typed a count yet —
   // distinct from an actually-invalid count, which gets its own message from
   // `durationOverflows`.
-  const hasDurationInput = durationChoice !== "custom" || customHours.trim() !== "";
+  const hasDurationInput =
+    durationChoice !== "custom" || customHours.trim() !== "";
   const durationHours =
     durationChoice === "custom" ? Number(customHours) : Number(durationChoice);
-  const endTime = hasDurationInput ? addHoursToTime(startTime, durationHours) : null;
+  const endTime = hasDurationInput
+    ? addHoursToTime(startTime, durationHours)
+    : null;
   const durationOverflows = hasDurationInput && endTime === null;
-  const endCrossesMidnight = endTime !== null && crossesMidnight(startTime, endTime);
+  const endCrossesMidnight =
+    endTime !== null && crossesMidnight(startTime, endTime);
 
   function reset(nextStartTime: string, nextHours: number) {
     setStartTime(nextStartTime);

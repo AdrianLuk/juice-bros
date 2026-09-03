@@ -97,8 +97,8 @@ export function OrgRow({ org }: { org: Org }) {
             )}
             {org.googlePlaceId && !org.address && (
               <p className="mt-0.5 text-xs text-muted-foreground">
-                We couldn&apos;t reach Google for this one. Your bookings here are
-                fine.
+                We couldn&apos;t reach Google for this one. Your bookings here
+                are fine.
               </p>
             )}
           </div>
@@ -131,7 +131,10 @@ export function OrgRow({ org }: { org: Org }) {
  * "Remove" control rather than the URL itself.
  */
 function CalendarFeedForm({ org }: { org: Org }) {
-  const [setState, setAction, setPending] = useActionState(setCalendarFeedUrl, EMPTY);
+  const [setState, setAction, setPending] = useActionState(
+    setCalendarFeedUrl,
+    EMPTY,
+  );
   const [clearState, clearAction, clearPending] = useActionState(
     clearCalendarFeedUrl,
     EMPTY,
@@ -146,8 +149,8 @@ function CalendarFeedForm({ org }: { org: Org }) {
         </Label>
         <p className="text-xs text-muted-foreground">
           In CourtReserve, open your name in the top corner and choose
-          &ldquo;Calendar feed&rdquo;. Paste that link here and Booking Buddy can
-          pull your reservations at this facility into your bookings.
+          &ldquo;Calendar feed&rdquo;. Paste that link here and Booking Buddy
+          can pull your reservations at this facility into your bookings.
         </p>
       </div>
 
@@ -156,7 +159,10 @@ function CalendarFeedForm({ org }: { org: Org }) {
           <p className="text-xs text-muted-foreground">
             A feed is configured for this facility.
           </p>
-          <form action={clearAction} className="flex flex-col items-start gap-1">
+          <form
+            action={clearAction}
+            className="flex flex-col items-start gap-1"
+          >
             <input type="hidden" name="org_id" value={org.id} />
             <Button
               type="submit"
@@ -209,7 +215,10 @@ function CalendarFeedForm({ org }: { org: Org }) {
  * per game. Leaving both fields blank clears it.
  */
 function BookingWindowForm({ org }: { org: Org }) {
-  const [state, formAction, pending] = useActionState(updateBookingWindow, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    updateBookingWindow,
+    EMPTY,
+  );
 
   return (
     <form
@@ -218,7 +227,10 @@ function BookingWindowForm({ org }: { org: Org }) {
     >
       <input type="hidden" name="org_id" value={org.id} />
 
-      <Label htmlFor={`booking-window-days-${org.id}`} className="text-xs font-medium">
+      <Label
+        htmlFor={`booking-window-days-${org.id}`}
+        className="text-xs font-medium"
+      >
         Booking window
       </Label>
 
@@ -276,7 +288,10 @@ function BookingWindowForm({ org }: { org: Org }) {
  * change your mind, which is what actually keeps at most one true.
  */
 function DefaultFacilityControl({ org }: { org: Org }) {
-  const [state, formAction, pending] = useActionState(setDefaultFacility, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    setDefaultFacility,
+    EMPTY,
+  );
 
   if (org.isDefault) {
     return (
@@ -328,8 +343,8 @@ function DeleteOrgButton({ org }: { org: Org }) {
           </AlertDialogTitle>
           <AlertDialogDescription>
             Every booking you&apos;ve logged here goes with it. That only
-            changes what Booking Buddy knows. Your actual court reservations
-            are unaffected.
+            changes what Booking Buddy knows. Your actual court reservations are
+            unaffected.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

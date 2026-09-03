@@ -34,7 +34,10 @@ export function PoweredByGoogle() {
  * behind anything JavaScript-dependent.
  */
 export function SearchPlaceForm() {
-  const [state, formAction, pending] = useActionState(searchPlaces, EMPTY_SEARCH);
+  const [state, formAction, pending] = useActionState(
+    searchPlaces,
+    EMPTY_SEARCH,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,7 +73,10 @@ export function SearchPlaceForm() {
         <div className="flex flex-col gap-2">
           <ul className="divide-y divide-border/60 overflow-hidden bb-card">
             {state.candidates.map((candidate) => (
-              <PlaceCandidateRow key={candidate.placeId} candidate={candidate} />
+              <PlaceCandidateRow
+                key={candidate.placeId}
+                candidate={candidate}
+              />
             ))}
           </ul>
           <PoweredByGoogle />

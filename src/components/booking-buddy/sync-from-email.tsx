@@ -60,8 +60,10 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
     return (
       <>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {item.name} · {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
-          {formatCourtLabel(item.courtLabel)} · {BOOKING_FORMAT_LABEL[item.format]}
+          {item.name} · {formatCandidateDate(item.date)} ·{" "}
+          {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
+          {formatCourtLabel(item.courtLabel)} ·{" "}
+          {BOOKING_FORMAT_LABEL[item.format]}
         </p>
         {item.matchedPlayers.length > 0 && (
           <p className="mt-1 truncate text-xs text-muted-foreground">
@@ -70,7 +72,8 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
         )}
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}&rdquo;
+            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}
+            &rdquo;
           </p>
         )}
       </>
@@ -81,10 +84,13 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
     return (
       <>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)} · {formatCourtLabel(item.courtLabel)}
+          {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)} ·{" "}
+          {formatCourtLabel(item.courtLabel)}
         </p>
         {item.matched ? (
-          <p className="mt-1 text-xs text-muted-foreground">Cancelled. Matches a Booking you logged.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cancelled. Matches a Booking you logged.
+          </p>
         ) : (
           <p className="mt-1 text-xs text-destructive">
             No matching booking found. Your records may be out of sync.
@@ -97,8 +103,9 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
   return (
     <>
       <p className="mt-0.5 text-sm text-muted-foreground">
-        {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
-        {formatCourtLabel(item.courtLabel)} · {BOOKING_FORMAT_LABEL[item.format]}
+        {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–
+        {formatTimeLabel(item.endTime)} · {formatCourtLabel(item.courtLabel)} ·{" "}
+        {BOOKING_FORMAT_LABEL[item.format]}
       </p>
       {item.matchedPlayers.length > 0 && (
         <p className="mt-1 truncate text-xs text-muted-foreground">
@@ -107,11 +114,14 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
       )}
       {item.notes && (
         <p className="mt-1 text-xs text-muted-foreground">
-          Court list was too long to fit. Will be saved to Notes: &ldquo;{item.notes}&rdquo;
+          Court list was too long to fit. Will be saved to Notes: &ldquo;
+          {item.notes}&rdquo;
         </p>
       )}
       {item.matched ? (
-        <p className="mt-1 text-xs text-muted-foreground">Updates a booking you logged.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Updates a booking you logged.
+        </p>
       ) : (
         <p className="mt-1 text-xs text-destructive">
           No matching booking found. Your records may be out of sync.
@@ -168,7 +178,14 @@ function FacilityFieldHint() {
  * `parseNewBooking` over the same field names `CreateBookingForm` posts,
  * rather than trusting the already-parsed item a second time.
  */
-function ImportBody({ item, orgs, confirmAction, confirmState, confirmPending, busy }: BodyProps<"import"> & { orgs: Org[] }) {
+function ImportBody({
+  item,
+  orgs,
+  confirmAction,
+  confirmState,
+  confirmPending,
+  busy,
+}: BodyProps<"import"> & { orgs: Org[] }) {
   const facilityFieldId = `sync-facility-${item.gmailMessageId}`;
 
   return (
@@ -182,10 +199,18 @@ function ImportBody({ item, orgs, confirmAction, confirmState, confirmPending, b
             <Label htmlFor={facilityFieldId}>Facility</Label>
             <FacilityFieldHint />
           </div>
-          <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={item.matchedOrgId ?? ""} />
+          <OrgSelect
+            id={facilityFieldId}
+            orgs={orgs}
+            defaultValue={item.matchedOrgId ?? ""}
+          />
         </div>
 
-        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input
+          type="hidden"
+          name="gmail_message_id"
+          value={item.gmailMessageId}
+        />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="date" value={item.date} />
@@ -225,7 +250,13 @@ function ImportBody({ item, orgs, confirmAction, confirmState, confirmPending, b
  * unmatched notice in `ReviewItemDetails` and the shared Dismiss button are
  * all that's left.
  */
-function CancellationBody({ item, confirmAction, confirmState, confirmPending, busy }: BodyProps<"cancellation">) {
+function CancellationBody({
+  item,
+  confirmAction,
+  confirmState,
+  confirmPending,
+  busy,
+}: BodyProps<"cancellation">) {
   if (!item.matched) {
     return null;
   }
@@ -233,7 +264,11 @@ function CancellationBody({ item, confirmAction, confirmState, confirmPending, b
   return (
     <>
       <form action={confirmAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input
+          type="hidden"
+          name="gmail_message_id"
+          value={item.gmailMessageId}
+        />
         <input type="hidden" name="booking_id" value={item.bookingId} />
         <Button type="submit" variant="destructive" disabled={busy}>
           {confirmPending ? "Removing…" : "Remove booking"}
@@ -251,7 +286,13 @@ function CancellationBody({ item, confirmAction, confirmState, confirmPending, b
  * this refers to (or didn't), so the only choice left is apply it or dismiss
  * it, and the Apply form renders only when it matched.
  */
-function UpdateBody({ item, confirmAction, confirmState, confirmPending, busy }: BodyProps<"update">) {
+function UpdateBody({
+  item,
+  confirmAction,
+  confirmState,
+  confirmPending,
+  busy,
+}: BodyProps<"update">) {
   if (!item.matched) {
     return null;
   }
@@ -259,7 +300,11 @@ function UpdateBody({ item, confirmAction, confirmState, confirmPending, busy }:
   return (
     <>
       <form action={confirmAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input
+          type="hidden"
+          name="gmail_message_id"
+          value={item.gmailMessageId}
+        />
         <input type="hidden" name="booking_id" value={item.bookingId} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
@@ -290,8 +335,14 @@ export function ReviewItemCard({
   orgs: Org[];
   onResolved: (gmailMessageId: string) => void;
 }) {
-  const [confirmState, confirmAction, confirmPending] = useActionState(CONFIRM_ACTION[item.kind], EMPTY);
-  const [dismissState, dismissAction, dismissPending] = useActionState(dismissReviewItem, EMPTY);
+  const [confirmState, confirmAction, confirmPending] = useActionState(
+    CONFIRM_ACTION[item.kind],
+    EMPTY,
+  );
+  const [dismissState, dismissAction, dismissPending] = useActionState(
+    dismissReviewItem,
+    EMPTY,
+  );
   const busy = confirmPending || dismissPending;
 
   useResolveOnSuccess(confirmState, () => onResolved(item.gmailMessageId));
@@ -332,7 +383,11 @@ export function ReviewItemCard({
       )}
 
       <form action={dismissAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input
+          type="hidden"
+          name="gmail_message_id"
+          value={item.gmailMessageId}
+        />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>
@@ -364,8 +419,14 @@ export function MergedCandidateCard({
   orgs: Org[];
   onResolved: (item: MergedImportCandidate) => void;
 }) {
-  const [confirmState, confirmAction, confirmPending] = useActionState(confirmMergedCandidate, EMPTY);
-  const [dismissState, dismissAction, dismissPending] = useActionState(dismissMergedCandidate, EMPTY);
+  const [confirmState, confirmAction, confirmPending] = useActionState(
+    confirmMergedCandidate,
+    EMPTY,
+  );
+  const [dismissState, dismissAction, dismissPending] = useActionState(
+    dismissMergedCandidate,
+    EMPTY,
+  );
   const busy = confirmPending || dismissPending;
   const facilityFieldId = `merged-facility-${item.mergeKey}`;
 
@@ -381,8 +442,9 @@ export function MergedCandidateCard({
       <div>
         <p className="font-medium">{item.facilityName}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          {item.name} · {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–
-          {formatTimeLabel(item.endTime)} · {formatCourtLabel(item.courtLabel)} ·{" "}
+          {item.name} · {formatCandidateDate(item.date)} ·{" "}
+          {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
+          {formatCourtLabel(item.courtLabel)} ·{" "}
           {BOOKING_FORMAT_LABEL[item.format]}
         </p>
         {item.matchedPlayers.length > 0 && (
@@ -390,10 +452,13 @@ export function MergedCandidateCard({
             With: {item.matchedPlayers.map((player) => player.name).join(", ")}
           </p>
         )}
-        <p className="mt-1 text-xs text-muted-foreground">From your mailbox and a facility calendar feed.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          From your mailbox and a facility calendar feed.
+        </p>
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}&rdquo;
+            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}
+            &rdquo;
           </p>
         )}
       </div>
@@ -407,10 +472,18 @@ export function MergedCandidateCard({
             <Label htmlFor={facilityFieldId}>Facility</Label>
             <FacilityFieldHint />
           </div>
-          <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={item.orgId} />
+          <OrgSelect
+            id={facilityFieldId}
+            orgs={orgs}
+            defaultValue={item.orgId}
+          />
         </div>
 
-        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input
+          type="hidden"
+          name="gmail_message_id"
+          value={item.gmailMessageId}
+        />
         <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
         <input type="hidden" name="sequence" value={item.sequence} />
         <input type="hidden" name="starts_at" value={item.startsAt} />
@@ -430,7 +503,11 @@ export function MergedCandidateCard({
       <ActionError state={confirmState} />
 
       <form action={dismissAction} className="self-start">
-        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input
+          type="hidden"
+          name="gmail_message_id"
+          value={item.gmailMessageId}
+        />
         <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
         <input type="hidden" name="org_id" value={item.orgId} />
         <input type="hidden" name="sequence" value={item.sequence} />
@@ -478,7 +555,12 @@ export function ReviewItemGroups({
         return (
           <ul key={kind} className="flex flex-col gap-4">
             {group.map((item) => (
-              <ReviewItemCard key={item.gmailMessageId} item={item} orgs={orgs} onResolved={onResolved} />
+              <ReviewItemCard
+                key={item.gmailMessageId}
+                item={item}
+                orgs={orgs}
+                onResolved={onResolved}
+              />
             ))}
           </ul>
         );

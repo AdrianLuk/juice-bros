@@ -28,7 +28,11 @@ export function GenderForm({ gender }: { gender: Gender | null }) {
     <form action={formAction} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
         <Label>Gender</Label>
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Gender">
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="radiogroup"
+          aria-label="Gender"
+        >
           <Button
             type="button"
             variant={choice === "unset" ? "default" : "outline"}
@@ -51,12 +55,17 @@ export function GenderForm({ gender }: { gender: Gender | null }) {
             </Button>
           ))}
         </div>
-        <input type="hidden" name="gender" value={choice === "unset" ? "" : choice} />
+        <input
+          type="hidden"
+          name="gender"
+          value={choice === "unset" ? "" : choice}
+        />
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Used to show a gender-aware sign-up count on mixed/men&apos;s/women&apos;s
-        games. Optional, and leaving this unset is fine.
+        Used to show a gender-aware sign-up count on
+        mixed/men&apos;s/women&apos;s games. Optional, and leaving this unset is
+        fine.
       </p>
 
       {state.error && (

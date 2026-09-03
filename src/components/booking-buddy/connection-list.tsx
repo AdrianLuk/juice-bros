@@ -26,7 +26,7 @@ export function ConnectionList({
 
   return (
     <section>
-      <h2 className="font-heading text-lg font-semibold tracking-tight">
+      <h2 className="bb-h text-[1.05rem]">
         {title}
         {people.length > 0 && (
           <span className="ml-2 text-sm font-normal text-muted-foreground">

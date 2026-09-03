@@ -13,7 +13,11 @@ import type { FriendLookingWindow } from "@/lib/booking-buddy/actions/looking";
  * Not an overlap view (that's "Find a time"): no group to pick, no
  * intersection. Just who has put their hand up, and when.
  */
-export function FriendsLookingToPlay({ windows }: { windows: FriendLookingWindow[] }) {
+export function FriendsLookingToPlay({
+  windows,
+}: {
+  windows: FriendLookingWindow[];
+}) {
   if (windows.length === 0) {
     return (
       <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
@@ -36,11 +40,16 @@ export function FriendsLookingToPlay({ windows }: { windows: FriendLookingWindow
         >
           <div className="min-w-0">
             <p className="font-medium">{window.friendName}</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{window.rangeLabel}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {window.rangeLabel}
+            </p>
           </div>
           <Link
             href={window.proposeHref}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0")}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "shrink-0",
+            )}
           >
             Propose a game
           </Link>

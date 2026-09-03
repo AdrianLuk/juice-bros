@@ -55,10 +55,13 @@ export default async function BookingBuddyPage() {
   // sign-up sheet below.
   const { own: ownSlots } = await listSlots();
   const upcomingGames = ownSlots
-    .filter((s) => new Date(s.proposedStart).getTime() >= now.getTime() - 3_600_000)
+    .filter(
+      (s) => new Date(s.proposedStart).getTime() >= now.getTime() - 3_600_000,
+    )
     .sort(
       (a, b) =>
-        new Date(a.proposedStart).getTime() - new Date(b.proposedStart).getTime(),
+        new Date(a.proposedStart).getTime() -
+        new Date(b.proposedStart).getTime(),
     )
     .slice(0, 4);
   const gameTallies = await Promise.all(
@@ -140,14 +143,22 @@ export default async function BookingBuddyPage() {
                 Your court + time
               </span>
               <div className="flex flex-col gap-7">
-                <BoardCard pin="info" pinLabel="Your booked courts" className="w-full">
+                <BoardCard
+                  pin="info"
+                  pinLabel="Your booked courts"
+                  className="w-full"
+                >
                   <UpcomingBookingsSidebar
                     bookings={bookings}
                     now={now}
                     orgs={orgs}
                   />
                 </BoardCard>
-                <BoardCard pin="maybe" pinLabel="Your availability" className="w-full">
+                <BoardCard
+                  pin="maybe"
+                  pinLabel="Your availability"
+                  className="w-full"
+                >
                   <DashboardAvailabilitySidebar
                     windows={availabilityWindows}
                     now={now}

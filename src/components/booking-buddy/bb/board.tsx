@@ -44,7 +44,9 @@ export function BoardRegion({
   action?: ReactNode;
 }) {
   return (
-    <section className={cn("bb-region px-3 pt-6 pb-4 sm:px-4 sm:pt-7", className)}>
+    <section
+      className={cn("bb-region px-3 pt-6 pb-4 sm:px-4 sm:pt-7", className)}
+    >
       <div className="pointer-events-none absolute -top-3.5 right-3 left-4 flex items-start justify-between">
         <span className="bb-tape pointer-events-auto text-xs leading-none">
           {label}
@@ -53,7 +55,12 @@ export function BoardRegion({
           <span className="pointer-events-auto -mt-1">{action}</span>
         ) : null}
       </div>
-      <div className={cn("flex flex-wrap items-start gap-5 sm:gap-6", contentClassName)}>
+      <div
+        className={cn(
+          "flex flex-wrap items-start gap-5 sm:gap-6",
+          contentClassName,
+        )}
+      >
         {children}
       </div>
     </section>

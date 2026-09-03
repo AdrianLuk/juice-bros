@@ -6,7 +6,10 @@ import { Eyebrow } from "@/components/typography/eyebrow";
 import { SectionHeading } from "@/components/typography/section-heading";
 import { Reveal, RevealGroup } from "@/components/motion/reveal";
 import { SIGN_IN_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
-import { toJsonLdScript, buildBookingBuddyLandingJsonLd } from "@/lib/structured-data";
+import {
+  toJsonLdScript,
+  buildBookingBuddyLandingJsonLd,
+} from "@/lib/structured-data";
 import { landingFaqs } from "@/lib/booking-buddy/landing-faqs";
 import {
   AvailabilityPreview,
@@ -57,7 +60,9 @@ function FeatureRow({
       <div className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-8">
         <Reveal className={flip ? "lg:order-2" : undefined}>
           <SectionHeading eyebrow={eyebrow} title={title} />
-          <p className="mt-4 max-w-md text-lg text-muted-foreground">{children}</p>
+          <p className="mt-4 max-w-md text-lg text-muted-foreground">
+            {children}
+          </p>
         </Reveal>
         <Reveal
           variant="scale"
@@ -88,15 +93,17 @@ export function BookingBuddyLanding() {
       <section className="w-full bg-brand-orange px-4 py-16 text-white sm:-mt-24 sm:px-6 sm:pt-40 sm:pb-24 lg:px-8">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-5">
-            <Eyebrow color="yellow" className="jb-in">Booking Buddy</Eyebrow>
-            <h1 className="jb-in jb-in-2 font-heading text-4xl font-black tracking-[-0.03em] text-balance sm:text-6xl">
+            <Eyebrow color="yellow" className="jb-in">
+              Booking Buddy
+            </Eyebrow>
+            <h1 className="jb-in jb-in-2 font-bb-body text-4xl font-black tracking-[-0.03em] text-balance sm:text-6xl">
               Sort out the next game without the group-chat spiral
             </h1>
             <p className="jb-in jb-in-3 max-w-md text-lg text-white/80 text-balance">
-              Post an open time, see who&apos;s actually in, and keep everyone&apos;s
-              court bookings in one place. Free, and built by two rec players who
-              got tired of running the Tuesday-night &ldquo;who can play?&rdquo;
-              thread.
+              Post an open time, see who&apos;s actually in, and keep
+              everyone&apos;s court bookings in one place. Free, and built by
+              two rec players who got tired of running the Tuesday-night
+              &ldquo;who can play?&rdquo; thread.
             </p>
             <div className="jb-in jb-in-4 mt-3 flex flex-col gap-3 sm:flex-row">
               <Button
@@ -176,7 +183,7 @@ export function BookingBuddyLanding() {
         <Reveal className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 lg:px-8">
           <div>
             <Eyebrow>Not a Startup</Eyebrow>
-            <h2 className="mt-3 font-heading text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
+            <h2 className="mt-3 font-bb-body text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
               We built this for our own group first
             </h2>
           </div>
@@ -233,15 +240,24 @@ export function BookingBuddyLanding() {
       <section className="w-full">
         <div className="mx-auto w-full max-w-2xl px-4 py-20 sm:px-6 lg:px-8">
           <Reveal>
-            <SectionHeading eyebrow="Questions" title="Good to know" align="center" />
+            <SectionHeading
+              eyebrow="Questions"
+              title="Good to know"
+              align="center"
+            />
           </Reveal>
-          <RevealGroup as="dl" className="mt-10 flex flex-col divide-y divide-border">
+          <RevealGroup
+            as="dl"
+            className="mt-10 flex flex-col divide-y divide-border"
+          >
             {landingFaqs.map((faq) => (
               <div key={faq.question} className="py-5 first:pt-0 last:pb-0">
-                <dt className="font-heading text-base font-semibold tracking-tight">
+                <dt className="font-bb-body text-base font-semibold tracking-tight">
                   {faq.question}
                 </dt>
-                <dd className="mt-2 text-sm text-muted-foreground">{faq.answer}</dd>
+                <dd className="mt-2 text-sm text-muted-foreground">
+                  {faq.answer}
+                </dd>
               </div>
             ))}
           </RevealGroup>

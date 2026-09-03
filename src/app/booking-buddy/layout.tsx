@@ -16,7 +16,11 @@ import { getOptionalSession } from "@/lib/booking-buddy/dal";
  */
 export const metadata: Metadata = {
   manifest: "/booking-buddy.webmanifest",
-  appleWebApp: { capable: true, title: "Booking Buddy", statusBarStyle: "default" },
+  appleWebApp: {
+    capable: true,
+    title: "Booking Buddy",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {

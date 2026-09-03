@@ -38,7 +38,10 @@ export function DashboardQuickActions({
 
   return (
     <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
-      <Dialog open={availabilityDialogOpen} onOpenChange={setAvailabilityDialogOpen}>
+      <Dialog
+        open={availabilityDialogOpen}
+        onOpenChange={setAvailabilityDialogOpen}
+      >
         <DialogTrigger
           render={
             <Button

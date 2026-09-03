@@ -51,7 +51,10 @@ export function FriendVisibilityRow({
           </div>
         )}
 
-        <form action={formAction} className="flex flex-col items-stretch gap-1 sm:items-end">
+        <form
+          action={formAction}
+          className="flex flex-col items-stretch gap-1 sm:items-end"
+        >
           <input
             type="hidden"
             name="connection_id"
@@ -67,10 +70,17 @@ export function FriendVisibilityRow({
               key={friend.override ?? "clear"}
               id={selectId}
               defaultValue={friend.override ?? "clear"}
-              extraOptions={[{ value: "clear", label: "Use my group defaults" }]}
+              extraOptions={[
+                { value: "clear", label: "Use my group defaults" },
+              ]}
               className="sm:w-56"
             />
-            <Button type="submit" size="sm" variant="outline" disabled={pending}>
+            <Button
+              type="submit"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+            >
               {pending ? "Saving…" : "Save"}
             </Button>
           </div>

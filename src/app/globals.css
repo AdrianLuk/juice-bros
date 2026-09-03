@@ -308,6 +308,10 @@
   --bb-rule: oklch(0.8 0.03 78); /* sheet ruling */
   --bb-contact-shadow: 0 2px 4px oklch(0.32 0.04 45 / 0.32),
     0 16px 30px -12px oklch(0.36 0.06 40 / 0.5);
+
+  /* The whole app speaks Libre Franklin — a Franklin Gothic-lineage humanist
+     grotesque with municipal-notice character. Never Geist here. */
+  font-family: var(--font-bb-body), system-ui, -apple-system, sans-serif;
 }
 
 .dark .bb-theme {
@@ -536,6 +540,22 @@
   opacity: 0.88;
 }
 .dark .bb-stamp { mix-blend-mode: screen; }
+
+/* Section / card headings in the notice voice. */
+.bb-h {
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+/* A dashed "pencil outline" where the first thing goes — empty states. */
+.bb-outline {
+  border: 2px dashed color-mix(in oklch, var(--foreground), transparent 74%);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--card), transparent 55%);
+}
 
 /* Highlight text in the brand's warm orange. */
 .bb-theme ::selection {

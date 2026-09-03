@@ -25,7 +25,9 @@ export function DashboardAvailabilitySidebar({
 }) {
   const upcoming = windows
     .filter((window) => new Date(window.endsAt).getTime() > now.getTime())
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    .sort(
+      (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+    );
 
   return (
     <div className="flex flex-col gap-3">
@@ -52,7 +54,10 @@ export function DashboardAvailabilitySidebar({
             <AvailabilityWindowRow
               key={window.id}
               window={window}
-              rangeLabel={formatAvailabilityWindowRange(window, DEFAULT_HAND_NAMED_TIME_ZONE)}
+              rangeLabel={formatAvailabilityWindowRange(
+                window,
+                DEFAULT_HAND_NAMED_TIME_ZONE,
+              )}
             />
           ))}
         </ul>

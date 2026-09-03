@@ -288,7 +288,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
             left instead, buttons first, on `sm:` and up, matching how this
             row read before the date/button split. */}
         <div className="flex items-center justify-between gap-1.5 sm:justify-start">
-          <h2 className="font-heading order-1 text-base font-semibold tracking-tight sm:order-2 sm:ml-1">
+          <h2 className="font-bb-body order-1 text-base font-semibold tracking-tight sm:order-2 sm:ml-1">
             {rangeLabel}
           </h2>
           {view !== "agenda" && (

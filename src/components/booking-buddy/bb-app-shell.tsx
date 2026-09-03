@@ -119,7 +119,10 @@ function DesktopSectionItem({
         )}
       >
         {/* A kraft card of child links, as if a smaller note pinned below the sign. */}
-        <div className="bb-card min-w-48 bb-pinned p-1.5" style={{ "--bb-tilt": "0deg" } as React.CSSProperties}>
+        <div
+          className="bb-card min-w-48 bb-pinned p-1.5"
+          style={{ "--bb-tilt": "0deg" } as React.CSSProperties}
+        >
           {section.children.map((child) => {
             const ChildIcon = CHILD_ICON[child.label];
             const childActive = isChildActive(pathname, child.href);
@@ -173,7 +176,11 @@ export function BbAppShell() {
             className="mr-4 flex items-center gap-2 rounded-sm py-1 pr-1.5 transition-colors hover:bg-white/8"
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG */}
-            <img src="/brand/JB_Logo_White.svg" alt="" className="size-6 shrink-0" />
+            <img
+              src="/brand/JB_Logo_White.svg"
+              alt=""
+              className="size-6 shrink-0"
+            />
             <span className="font-bb-sign text-[0.9rem] tracking-[0.18em] text-[oklch(0.97_0.02_88)] uppercase">
               Booking Buddy
             </span>
@@ -229,9 +236,7 @@ export function BbAppShell() {
                   className="absolute top-1.5 size-2 rounded-full bg-brand-orange shadow-[0_1px_2px_oklch(0_0_0/0.4)]"
                 />
               )}
-              <Icon
-                className={cn("size-5", active && "text-brand-orange")}
-              />
+              <Icon className={cn("size-5", active && "text-brand-orange")} />
               {section.label}
             </Link>
           );

@@ -92,7 +92,9 @@ function ProviderConnectButton({ provider }: { provider: MailboxProvider }) {
           Connect {MAILBOX_PROVIDER_LABEL[provider]}
         </Button>
       </form>
-      <p className="text-xs text-muted-foreground">{UNVERIFIED_APP_NOTE[provider]}</p>
+      <p className="text-xs text-muted-foreground">
+        {UNVERIFIED_APP_NOTE[provider]}
+      </p>
     </div>
   );
 }
@@ -119,7 +121,10 @@ export function MailboxSyncSection({
   error?: string;
   justConnected?: boolean;
 }) {
-  const [state, disconnectAction, pending] = useActionState(disconnectMailbox, EMPTY);
+  const [state, disconnectAction, pending] = useActionState(
+    disconnectMailbox,
+    EMPTY,
+  );
   const message = errorMessage(error);
 
   const connectableProviders: MailboxProvider[] = [
@@ -136,7 +141,8 @@ export function MailboxSyncSection({
     body = (
       <div className="flex flex-col gap-3">
         <p className="text-sm">
-          Connected as <span className="font-medium">{mailboxLink.accountEmail}</span> via{" "}
+          Connected as{" "}
+          <span className="font-medium">{mailboxLink.accountEmail}</span> via{" "}
           {providerLabel}
           {mailboxLink.status === "expired" && (
             <span className="ml-2 text-destructive">
@@ -168,7 +174,10 @@ export function MailboxSyncSection({
       <p className="text-sm text-muted-foreground">
         Email sync reads your CourtReserve confirmation emails and pulls those
         bookings in for you. The Gmail option is invite-only right now.{" "}
-        <Link href="/contact" className="text-foreground underline underline-offset-2">
+        <Link
+          href="/contact"
+          className="text-foreground underline underline-offset-2"
+        >
           Request access
         </Link>
         .
@@ -179,8 +188,8 @@ export function MailboxSyncSection({
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
           Connect the inbox your CourtReserve confirmation emails go to, and
-          Booking Buddy can pull those reservations in without you typing them by
-          hand.
+          Booking Buddy can pull those reservations in without you typing them
+          by hand.
         </p>
         <div className="flex flex-col gap-4">
           {connectableProviders.map((provider) => (

@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { track } from "@vercel/analytics";
-import { CalendarClockIcon, ChevronDownIcon, ClipboardListIcon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  ChevronDownIcon,
+  ClipboardListIcon,
+} from "lucide-react";
 
 import {
   Dialog,
@@ -69,7 +73,7 @@ function nextMondayDate(): string {
   d.setHours(0, 0, 0, 0);
   // getDay(): 0 = Sunday … 1 = Monday. `|| 7` turns "today is Monday" into
   // the Monday a week out rather than today.
-  const daysAhead = ((1 - d.getDay() + 7) % 7) || 7;
+  const daysAhead = (1 - d.getDay() + 7) % 7 || 7;
   d.setDate(d.getDate() + daysAhead);
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -148,7 +152,10 @@ export function OnboardingModal({
   ].join(":");
 
   return (
-    <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : dismiss())}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (next ? setOpen(true) : dismiss())}
+    >
       <DialogContent className="sm:max-w-lg">
         <div key={stepKey} className="bb-anim-in flex flex-col gap-4">
           {intent === null && <IntentChoice onChoose={chooseIntent} />}
@@ -184,8 +191,8 @@ function IntentChoice({ onChoose }: { onChoose: (intent: Intent) => void }) {
       <DialogHeader>
         <DialogTitle>What do you want to start with?</DialogTitle>
         <DialogDescription>
-          You can do both. This just sets up the first thing. Skippable, and
-          you can always come back to it from your dashboard.
+          You can do both. This just sets up the first thing. Skippable, and you
+          can always come back to it from your dashboard.
         </DialogDescription>
       </DialogHeader>
 
@@ -196,7 +203,9 @@ function IntentChoice({ onChoose }: { onChoose: (intent: Intent) => void }) {
           className="flex flex-col items-start gap-2 rounded-xl border border-border p-4 text-left transition-colors hover:border-brand-orange/40 hover:bg-muted"
         >
           <ClipboardListIcon className="size-5 text-brand-orange" />
-          <span className="font-heading font-semibold">Track my court bookings</span>
+          <span className="font-bb-body font-semibold">
+            Track my court bookings
+          </span>
           <span className="text-xs text-muted-foreground">
             Keep your reservations in one place, on a calendar.
           </span>
@@ -208,7 +217,9 @@ function IntentChoice({ onChoose }: { onChoose: (intent: Intent) => void }) {
           className="flex flex-col items-start gap-2 rounded-xl border border-border p-4 text-left transition-colors hover:border-brand-orange/40 hover:bg-muted"
         >
           <CalendarClockIcon className="size-5 text-brand-orange" />
-          <span className="font-heading font-semibold">Get my group on a time</span>
+          <span className="font-bb-body font-semibold">
+            Get my group on a time
+          </span>
           <span className="text-xs text-muted-foreground">
             Post a time and let friends reply yes, no, or maybe.
           </span>
@@ -263,7 +274,9 @@ function TrackBranch({
         <div className="flex flex-col gap-6">
           <SearchPlaceForm />
           <div className="border-t border-border pt-6">
-            <p className="mb-3 text-sm font-medium">Not on Google? Add it by hand</p>
+            <p className="mb-3 text-sm font-medium">
+              Not on Google? Add it by hand
+            </p>
             <CreateOrgForm />
           </div>
         </div>
@@ -324,12 +337,16 @@ function CoordinateBranch({
       <DialogHeader>
         <DialogTitle>Post a time</DialogTitle>
         <DialogDescription>
-          Like a group-chat poll: friends reply yes, no, or maybe before
-          anyone books a court. No facility needed yet.
+          Like a group-chat poll: friends reply yes, no, or maybe before anyone
+          books a court. No facility needed yet.
         </DialogDescription>
       </DialogHeader>
 
-      <CreateSlotForm orgs={orgs} defaultDate={nextMondayDate()} onPosted={onPosted} />
+      <CreateSlotForm
+        orgs={orgs}
+        defaultDate={nextMondayDate()}
+        onPosted={onPosted}
+      />
 
       <details className="group overflow-hidden rounded-lg border border-border">
         <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-muted">

@@ -79,17 +79,19 @@ export function GameCard({
 
       {holes != null && (
         <div className="mt-3 flex gap-1.5" aria-hidden>
-          {Array.from({ length: Math.max(holes, tally?.yes ?? 0) }).map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "size-3 rounded-full",
-                i < (tally?.yes ?? 0)
-                  ? "bg-[var(--bb-pin-in)] shadow-[0_1px_2px_rgba(0,0,0,.35)]"
-                  : "bg-black/15 shadow-[inset_0_1px_2px_rgba(0,0,0,.35)]",
-              )}
-            />
-          ))}
+          {Array.from({ length: Math.max(holes, tally?.yes ?? 0) }).map(
+            (_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "size-3 rounded-full",
+                  i < (tally?.yes ?? 0)
+                    ? "bg-[var(--bb-pin-in)] shadow-[0_1px_2px_rgba(0,0,0,.35)]"
+                    : "bg-black/15 shadow-[inset_0_1px_2px_rgba(0,0,0,.35)]",
+                )}
+              />
+            ),
+          )}
         </div>
       )}
     </BoardCard>
@@ -107,9 +109,10 @@ function splitWhen(when: string): { day: string; time: string } {
   // "9:00 AM – 11:00 AM" → "9:00–11:00 AM"; keep both meridiems if they differ.
   const m = time.match(/^(.+?)\s*(AM|PM)\s*[–-]\s*(.+?)\s*(AM|PM)$/i);
   if (m) {
-    time = m[2].toUpperCase() === m[4].toUpperCase()
-      ? `${m[1]}–${m[3]} ${m[4].toUpperCase()}`
-      : `${m[1]} ${m[2].toUpperCase()} – ${m[3]} ${m[4].toUpperCase()}`;
+    time =
+      m[2].toUpperCase() === m[4].toUpperCase()
+        ? `${m[1]}–${m[3]} ${m[4].toUpperCase()}`
+        : `${m[1]} ${m[2].toUpperCase()} – ${m[3]} ${m[4].toUpperCase()}`;
   }
   return { day, time: time || when };
 }

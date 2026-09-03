@@ -234,7 +234,9 @@ export function DashboardWeekView<T extends CalendarEvent>({
                   <span
                     style={
                       sharedDayNames
-                        ? { viewTransitionName: `bb-cal-day-${localDayKey(day)}` }
+                        ? {
+                            viewTransitionName: `bb-cal-day-${localDayKey(day)}`,
+                          }
                         : undefined
                     }
                     className={cn(

@@ -68,7 +68,10 @@ export function CreateAvailabilityWindowForm({
   /** Called once the window actually saves — e.g. to close whatever dialog this form sits in. */
   onSaved?: () => void;
 } = {}) {
-  const [state, formAction, pending] = useActionState(createAvailabilityWindow, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    createAvailabilityWindow,
+    EMPTY,
+  );
   const [allDay, setAllDay] = useState(true);
 
   useEffect(() => {
@@ -81,7 +84,12 @@ export function CreateAvailabilityWindowForm({
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="availability-type">Mark this as</Label>
-        <FormSelect id="availability-type" name="type" defaultValue="busy" className="sm:w-40">
+        <FormSelect
+          id="availability-type"
+          name="type"
+          defaultValue="busy"
+          className="sm:w-40"
+        >
           {TYPE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -165,8 +173,15 @@ export function AvailabilityWindowRow({
   );
 }
 
-export function DeleteAvailabilityWindowButton({ windowId }: { windowId: string }) {
-  const [state, formAction, pending] = useActionState(deleteAvailabilityWindow, EMPTY);
+export function DeleteAvailabilityWindowButton({
+  windowId,
+}: {
+  windowId: string;
+}) {
+  const [state, formAction, pending] = useActionState(
+    deleteAvailabilityWindow,
+    EMPTY,
+  );
 
   // The form lives inside the dialog so the confirm button is the only thing
   // that can submit it — the same shape as removing a booking (`DeleteBookingButton`):
@@ -190,8 +205,8 @@ export function DeleteAvailabilityWindowButton({ windowId }: { windowId: string 
         <DialogHeader>
           <DialogTitle>Remove this availability?</DialogTitle>
           <DialogDescription>
-            This only affects what shows on your calendar, not any actual
-            court reservation.
+            This only affects what shows on your calendar, not any actual court
+            reservation.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
