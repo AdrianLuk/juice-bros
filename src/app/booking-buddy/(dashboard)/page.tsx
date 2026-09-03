@@ -190,11 +190,8 @@ export default async function BookingBuddyPage() {
                 className="bb-pin bb-pin--info"
                 style={{ top: "-0.55rem" }}
               />
-              <div className="mb-4 flex items-baseline justify-between border-b-[3px] border-double border-[var(--bb-rule)] pb-2.5">
+              <div className="mb-4 border-b-[3px] border-double border-[var(--bb-rule)] pb-2.5">
                 <span className="bb-h text-[0.95rem]">Court sign-up</span>
-                <span className="text-[0.72rem] text-muted-foreground">
-                  penciled = maybe &nbsp;·&nbsp; pen = booked
-                </span>
               </div>
               <OwnerDashboardCalendar
                 bookings={bookings}
