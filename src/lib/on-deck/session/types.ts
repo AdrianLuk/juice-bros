@@ -374,7 +374,7 @@ export type SessionEvent =
  * so every surface uses the same words.
  */
 export const QUEUE_TOGETHER_EXPLAINER =
-  "Groups line up at the middle of their members' wait times — nobody skips the queue by grouping up.";
+  "Groups line up at the middle of their members' wait times. Nobody skips the queue by grouping up.";
 
 /** One Player in a Session's roster, as the fold projects them. */
 export interface RosterPlayer {

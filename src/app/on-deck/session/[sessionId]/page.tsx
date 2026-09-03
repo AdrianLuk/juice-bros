@@ -6,6 +6,7 @@ import { createClient } from "@/lib/on-deck/supabase/server";
 import { getSession } from "@/lib/on-deck/sessions";
 import { sessionPath } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { PlayerJoin } from "@/components/on-deck/player-join";
 
 export async function generateMetadata({
@@ -25,10 +26,10 @@ export async function generateMetadata({
 }
 
 /**
- * The live view of one Session. This ticket lands the shell — a folded
- * `SessionState` rendered read-only; the Queue, Courts, and On Deck foursomes
- * fill it in over later tickets. Reachable with no account (a Player scans the
- * Club QR, which redirects here).
+ * The live view of one Session — the Player's surface. The substitution board
+ * (direction seed 92ec9d54): a Player scanning in gets a two-tap setup, then
+ * one verdict at board scale — where they stand and which court, if any.
+ * Reachable with no account (a Player scans the Club QR, which redirects here).
  */
 export default async function SessionPage({
   params,
@@ -47,32 +48,46 @@ export default async function SessionPage({
   const startedAt = state.startedAt ? new Date(state.startedAt) : null;
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-lg">
-          <p className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-            {status === "open" ? "Session running" : "Session closed"}
-          </p>
-          <h1 className="mt-3 font-heading text-3xl font-semibold">
-            {config.venueName}
-          </h1>
-          <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Courts</dt>
-            <dd>{config.courtCount}</dd>
-            <dt className="text-muted-foreground">Floor Mode</dt>
-            <dd>{FLOOR_MODE_LABEL[config.floorMode]}</dd>
-            {startedAt && (
-              <>
-                <dt className="text-muted-foreground">Started</dt>
-                <dd>
-                  {startedAt.toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+    <ArenaShell>
+      <section className="w-full px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-md">
+          <header className="border-b border-arena-line-soft pb-5">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h1 className="od-display-tight text-4xl text-arena-fg sm:text-5xl">
+                {config.venueName}
+              </h1>
+              <span
+                className={`od-readout ${
+                  status === "open" ? "text-arena-live" : "text-arena-faint"
+                }`}
+              >
+                {status === "open" ? "Session running" : "Session closed"}
+              </span>
+            </div>
+            <dl className="od-readout mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-arena-dim">
+              <div className="flex gap-1.5">
+                <dt>Courts</dt>
+                <dd className="text-arena-dim">{config.courtCount}</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt>Floor</dt>
+                <dd className="text-arena-dim">
+                  {FLOOR_MODE_LABEL[config.floorMode]}
                 </dd>
-              </>
-            )}
-          </dl>
+              </div>
+              {startedAt && (
+                <div className="flex gap-1.5">
+                  <dt>Started</dt>
+                  <dd className="text-arena-dim">
+                    {startedAt.toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </header>
 
           {status === "open" ? (
             <PlayerJoin
@@ -80,12 +95,12 @@ export default async function SessionPage({
               floorMode={config.floorMode}
             />
           ) : (
-            <p className="mt-8 text-sm text-muted-foreground">
+            <p className="od-display mt-8 text-xl text-arena-faint">
               This session has wrapped up. Thanks for playing.
             </p>
           )}
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

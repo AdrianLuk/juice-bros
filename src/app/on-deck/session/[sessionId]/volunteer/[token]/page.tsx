@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { loadVolunteerSession } from "@/lib/on-deck/volunteer";
 import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
 import { volunteerPath } from "@/lib/on-deck/routes";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
 
 export async function generateMetadata({
@@ -47,21 +48,23 @@ export default async function VolunteerFloorPage({
   const roster = floorRosterFrom(loaded);
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-12 sm:px-6 lg:px-8">
+    <ArenaShell>
+      <section className="w-full px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-3xl">
-          <p className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-            Volunteer floor
-          </p>
-          <h1 className="mt-3 font-heading text-3xl font-semibold">
-            {view.venueName}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-arena-line-soft pb-4">
+            <h1 className="od-display text-2xl text-arena-dim sm:text-3xl">
+              {view.venueName}
+            </h1>
+            <p className="od-readout text-arena-dim">
+              Volunteer floor
+            </p>
+          </header>
+          <p className="mt-3 text-sm text-arena-faint">
             You&apos;re running the floor from a volunteer link. Starting,
             closing, and club settings stay with the organizer.
           </p>
 
-          <div className="mt-10">
+          <div className="mt-9">
             <RotationBoard
               sessionId={sessionId}
               initialView={view}
@@ -71,6 +74,6 @@ export default async function VolunteerFloorPage({
           </div>
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }
