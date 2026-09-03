@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
-import { ON_DECK_ROOT, safeRedirectTarget } from "../routes.ts";
+import {
+  ON_DECK_ROOT,
+  ON_DECK_SIGN_IN_PATH,
+  safeRedirectTarget,
+} from "../routes.ts";
 // Request infrastructure shared with Booking Buddy (turns a path into an
 // absolute URL on the current request's host), not domain logic — so it is
 // imported rather than reimplemented.
@@ -96,6 +100,36 @@ export async function signUpWithPassword(
   // off (local) `signUp` returns a live one and the sign-in page's own
   // "already signed in?" guard forwards to `next` on the route refresh.
   return { sent: true };
+}
+
+/**
+ * Called directly from `GoogleSignInButton` (not a `<form action>`) — the ID
+ * token comes back from Google Identity Services' own callback. Mirrors
+ * Booking Buddy's action of the same name (ADR-0013), without its signup
+ * analytics or invite-cookie handling, which are Booking Buddy's alone.
+ *
+ * `nonce` is the *raw* value the button generated client-side — Supabase
+ * hashes it itself to compare against the ID token's `nonce` claim, so it must
+ * not be pre-hashed here.
+ */
+export async function signInWithGoogleIdToken(
+  idToken: string,
+  nonce: string,
+  next: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider: "google",
+    token: idToken,
+    nonce,
+  });
+
+  if (error) {
+    redirect(`${ON_DECK_SIGN_IN_PATH}?error=google_unavailable`);
+  }
+
+  revalidatePath(ON_DECK_ROOT, "layout");
+  redirect(safeRedirectTarget(next));
 }
 
 export async function signOut(): Promise<void> {
