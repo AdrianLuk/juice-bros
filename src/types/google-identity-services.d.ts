@@ -1,7 +1,7 @@
 /**
  * Narrow ambient types for Google Identity Services (the
- * `accounts.google.com/gsi/client` script `google-sign-in-button.tsx` loads)
- * — only the surface that component actually calls. See
+ * `accounts.google.com/gsi/client` script `auth/google-sign-in-button.tsx`
+ * loads) — only the surface that component actually calls. See
  * https://developers.google.com/identity/gsi/web/reference/js-reference for
  * the full API.
  */
@@ -31,7 +31,10 @@ declare global {
       accounts: {
         id: {
           initialize(config: GoogleIdConfiguration): void;
-          renderButton(parent: HTMLElement, options: GoogleButtonConfiguration): void;
+          renderButton(
+            parent: HTMLElement,
+            options: GoogleButtonConfiguration,
+          ): void;
         };
       };
     };

@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { OnDeckSignInForm } from "@/components/on-deck/sign-in-form";
 import { getOptionalOrganizer } from "@/lib/on-deck/dal";
+import { readGoogleSignInClientId } from "@/lib/on-deck/env";
 import { safeRedirectTarget } from "@/lib/on-deck/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -38,7 +39,11 @@ export default async function OnDeckSignInPage({
           />
 
           <div className="mt-8 rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
-            <OnDeckSignInForm next={target} error={error} />
+            <OnDeckSignInForm
+              next={target}
+              error={error}
+              googleClientId={readGoogleSignInClientId()}
+            />
           </div>
         </div>
       </section>

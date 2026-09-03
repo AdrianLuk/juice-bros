@@ -10,9 +10,11 @@ import {
   signInWithMagicLink,
   signInWithPassword,
   signUpWithPassword,
+  signInWithGoogleIdToken,
   type AuthFormState,
 } from "@/lib/booking-buddy/actions/auth";
-import { GoogleSignInButton } from "@/components/booking-buddy/google-sign-in-button";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { SIGN_IN_PATH } from "@/lib/booking-buddy/routes";
 
 const EMPTY: AuthFormState = {};
 
@@ -63,8 +65,8 @@ export function SignInForm({
           <MailCheckIcon className="size-6" />
         </div>
         <p className="text-sm">
-          Almost there. Confirm your email address using the link we just
-          sent, then sign in.
+          Almost there. Confirm your email address using the link we just sent,
+          then sign in.
         </p>
       </div>
     );
@@ -197,7 +199,12 @@ export function SignInForm({
             <span className="h-px flex-1 bg-border" />
           </div>
 
-          <GoogleSignInButton clientId={googleClientId} next={next} />
+          <GoogleSignInButton
+            clientId={googleClientId}
+            next={next}
+            action={signInWithGoogleIdToken}
+            signInPath={SIGN_IN_PATH}
+          />
         </>
       )}
 

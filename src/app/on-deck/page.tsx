@@ -8,6 +8,7 @@ import {
 import { Hero } from "./sections/hero";
 import { TheProblem } from "./sections/the-problem";
 import { HowItRuns } from "./sections/how-it-runs";
+import { AtTheVenue } from "./sections/at-the-venue";
 import { CourtsideBoard } from "./sections/courtside-board";
 import { Matching } from "./sections/matching";
 import { StaysSocial } from "./sections/stays-social";
@@ -31,6 +32,7 @@ export default function OnDeckPage() {
       <Hero />
       <TheProblem />
       <HowItRuns />
+      <AtTheVenue />
       <CourtsideBoard />
       <Matching />
       <StaysSocial />
