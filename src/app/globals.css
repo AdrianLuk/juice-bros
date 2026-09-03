@@ -32,6 +32,21 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-bricolage);
   --font-arena: var(--font-saira-condensed);
+  /* Booking Buddy's rec-hall-board world (seed 861cf732). `bb-sign` is the
+     screen-printed notice voice; `bb-body` the humanist-grotesque workhorse;
+     `bb-hand` pen marks only. Utilities resolve everywhere but are only ever
+     used inside `.bb-theme`. */
+  --font-bb-sign: var(--font-bb-sign);
+  --font-bb-body: var(--font-bb-body);
+  --font-bb-hand: var(--font-bb-hand);
+  --color-bb-cork: var(--bb-cork);
+  --color-bb-pin-in: var(--bb-pin-in);
+  --color-bb-pin-need: var(--bb-pin-need);
+  --color-bb-pin-maybe: var(--bb-pin-maybe);
+  --color-bb-pin-info: var(--bb-pin-info);
+  --color-bb-ink-pen: var(--bb-ink-pen);
+  --color-bb-ink-pencil: var(--bb-ink-pencil);
+  --color-bb-marker: var(--bb-marker);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -245,79 +260,291 @@
 }
 
 /*
- * Booking Buddy's own surface system, scoped to `.bb-theme` (applied once in
- * its section layout) so the marketing site keeps its current palette
- * untouched. The base tokens above are neutral-gray (chroma 0) and put the
- * page background, card, and border all at nearly the same lightness, so
- * nothing reads as elevated — everything blends into one white field. This
- * warms every neutral toward the brand-orange/yellow hue (~60-75) at low
- * chroma, and separates card lightness from page-background lightness so
- * content actually sits "on" something instead of floating on blank white.
- * Also raises muted-foreground's contrast (0.556 -> 0.43 lightness) past
- * WCAG AA at small text sizes — this app is meant to onboard non-technical
- * and older friends, not just power users who'll squint through it once.
+ * ─── Booking Buddy: the rec-hall bulletin board ─────────────────────────────
+ *
+ * Direction seed 861cf732 — "the well-kept rec-hall bulletin board for your
+ * crew". Scoped to `.bb-theme` (applied once in the section layout) so the
+ * marketing site is untouched. The ground is warm cork; content lives on
+ * kraft / index-card stock pinned to it. Four pin colours are a status law
+ * (in / needs-you / maybe / info); brand orange `#f26522` (locked, undarkened
+ * — see PRODUCT.md) is the single commit pin per screen. A handwriting face
+ * carries pen marks only. The one grid the world keeps — the calendar and any
+ * dense list — is a sign-up sheet (`.bb-sheet`) pinned to the same board.
+ *
+ * muted-foreground sits at 0.44 lightness — past WCAG AA on the kraft card for
+ * the non-technical and older friends this app onboards.
  */
 .bb-theme {
-  --background: oklch(0.972 0.008 75);
-  --foreground: oklch(0.2 0.014 55);
-  --card: oklch(0.997 0.003 75);
-  --card-foreground: oklch(0.2 0.014 55);
-  --popover: oklch(0.997 0.003 75);
-  --popover-foreground: oklch(0.2 0.014 55);
-  --secondary: oklch(0.936 0.012 75);
-  --secondary-foreground: oklch(0.2 0.014 55);
-  --muted: oklch(0.946 0.01 75);
-  --muted-foreground: oklch(0.43 0.016 55);
-  --border: oklch(0.888 0.012 75);
-  --input: oklch(0.888 0.012 75);
-  --radius: 0.75rem;
+  --background: oklch(0.735 0.056 68); /* cork */
+  --foreground: oklch(0.26 0.02 55); /* ink */
+  --card: oklch(0.946 0.026 82); /* kraft / index card */
+  --card-foreground: oklch(0.26 0.02 55);
+  --popover: oklch(0.958 0.022 82);
+  --popover-foreground: oklch(0.26 0.02 55);
+  --secondary: oklch(0.88 0.03 80);
+  --secondary-foreground: oklch(0.28 0.02 55);
+  --muted: oklch(0.9 0.028 80);
+  --muted-foreground: oklch(0.44 0.028 58);
+  --border: oklch(0.8 0.032 74);
+  --input: oklch(0.82 0.032 74);
+  --ring: var(--brand-orange);
+  --radius: 0.28rem; /* near-square index-card corners */
+
+  --bb-cork: oklch(0.735 0.056 68);
+  --bb-cork-edge: oklch(0.5 0.045 58);
+  --bb-kraft-deep: oklch(0.9 0.03 80);
+  /* Status law — one fixed meaning each, printed on the key that never tilts. */
+  --bb-pin-in: oklch(0.6 0.14 152); /* green  — you're in */
+  --bb-pin-need: oklch(0.57 0.2 28); /* red    — needs you */
+  --bb-pin-maybe: oklch(0.76 0.15 78); /* amber  — maybe / tentative */
+  --bb-pin-info: oklch(0.52 0.15 256); /* cobalt — informational */
+  --bb-pin-commit: var(--brand-orange); /* orange — your move / the one action */
+  --bb-ink-pen: oklch(0.4 0.13 262); /* ballpoint blue — "you" / confirmed */
+  --bb-ink-pencil: oklch(0.46 0.012 60); /* graphite — pencilled / maybe */
+  --bb-marker: oklch(0.5 0.19 28); /* red marker — FULL / booked */
+  --bb-tape: oklch(0.94 0.042 92 / 0.86);
+  --bb-tape-ink: oklch(0.4 0.03 62);
+  --bb-laminate: oklch(0.955 0.028 88); /* sign-up sheet ground */
+  --bb-rule: oklch(0.8 0.03 78); /* sheet ruling */
+  --bb-contact-shadow: 0 2px 3px oklch(0.32 0.04 45 / 0.28),
+    0 14px 24px -12px oklch(0.4 0.06 40 / 0.42);
 }
 
 .dark .bb-theme {
-  --background: oklch(0.17 0.011 55);
-  --foreground: oklch(0.96 0.006 75);
-  --card: oklch(0.225 0.013 55);
-  --card-foreground: oklch(0.96 0.006 75);
-  --popover: oklch(0.225 0.013 55);
-  --popover-foreground: oklch(0.96 0.006 75);
-  --secondary: oklch(0.28 0.013 55);
-  --secondary-foreground: oklch(0.96 0.006 75);
-  --muted: oklch(0.26 0.013 55);
-  --muted-foreground: oklch(0.73 0.013 75);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
+  --background: oklch(0.24 0.022 55); /* espresso cork */
+  --foreground: oklch(0.94 0.014 82);
+  --card: oklch(0.32 0.024 58); /* dark walnut card */
+  --card-foreground: oklch(0.94 0.014 82);
+  --popover: oklch(0.33 0.024 58);
+  --popover-foreground: oklch(0.94 0.014 82);
+  --secondary: oklch(0.36 0.022 58);
+  --secondary-foreground: oklch(0.94 0.014 82);
+  --muted: oklch(0.34 0.022 58);
+  --muted-foreground: oklch(0.76 0.02 80);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+
+  --bb-cork: oklch(0.24 0.022 55);
+  --bb-cork-edge: oklch(0.14 0.02 50);
+  --bb-kraft-deep: oklch(0.36 0.024 58);
+  --bb-pin-in: oklch(0.68 0.15 152);
+  --bb-pin-need: oklch(0.66 0.2 28);
+  --bb-pin-maybe: oklch(0.8 0.15 82);
+  --bb-pin-info: oklch(0.66 0.15 256);
+  --bb-ink-pen: oklch(0.74 0.13 258);
+  --bb-ink-pencil: oklch(0.72 0.014 78);
+  --bb-marker: oklch(0.65 0.19 28);
+  --bb-tape: oklch(0.5 0.04 88 / 0.55);
+  --bb-tape-ink: oklch(0.9 0.02 88);
+  --bb-laminate: oklch(0.3 0.022 58);
+  --bb-rule: oklch(1 0 0 / 14%);
+  --bb-contact-shadow: 0 2px 3px oklch(0 0 0 / 0.4),
+    0 16px 26px -12px oklch(0 0 0 / 0.55);
 }
 
-/* Card surfaces: a soft, warm-tinted shadow (matched to the brand-orange
-   hue) instead of a flat gray border, so panels read as elevated rather
-   than just outlined. */
+/* ── The cork board ─────────────────────────────────────────────────────── */
+
+/* The ground every signed-in surface stands on. A quiet speckle, no photo —
+   the material reads from colour and the cards' cast shadows, not a texture
+   novelty. `--bb-cork-edge` frames it like a real board on a wall. */
+.bb-board {
+  background-color: var(--bb-cork);
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, oklch(0.42 0.04 40 / 0.16) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 68% 14%, oklch(0.42 0.04 40 / 0.13) 50%, transparent 51%),
+    radial-gradient(2px 2px at 44% 61%, oklch(0.42 0.04 40 / 0.1) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 83% 74%, oklch(0.42 0.04 40 / 0.14) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 26% 84%, oklch(0.42 0.04 40 / 0.12) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 55% 33%, oklch(0.98 0.03 88 / 0.14) 50%, transparent 51%);
+  background-size: 190px 190px, 230px 230px, 270px 270px, 210px 210px, 250px 250px, 170px 170px;
+}
+
+/* ── Kraft cards ────────────────────────────────────────────────────────── */
+
+/* A card is a piece of stock pinned to the board: warm paper, a near-square
+   corner, and a real contact shadow (offset + soft blur, warm-tinted — not a
+   zero-offset halo). Rotation is opt-in via `.bb-pinned` so the board stays
+   *kept*; only cards that are genuinely "posted" tilt. */
 .bb-card {
+  position: relative;
   background-color: var(--card);
-  border-radius: var(--radius-xl);
-  box-shadow:
-    0 1px 2px oklch(0.25 0.03 45 / 0.06),
-    0 10px 26px -16px oklch(0.55 0.16 40 / 0.28);
+  border-radius: var(--radius);
+  box-shadow: var(--bb-contact-shadow);
+  background-image: linear-gradient(
+    180deg,
+    oklch(1 0 0 / 0.05),
+    transparent 40%,
+    oklch(0.4 0.04 60 / 0.03)
+  );
+}
+
+.bb-pinned {
+  --bb-tilt: -1.1deg;
+  transform: rotate(var(--bb-tilt));
+}
+.bb-pinned:nth-child(3n) {
+  --bb-tilt: 1.3deg;
+}
+.bb-pinned:nth-child(3n + 2) {
+  --bb-tilt: 0.5deg;
 }
 
 .bb-card-interactive {
   transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    background-color 160ms ease;
+    transform 150ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 150ms ease;
 }
-
-.bb-card-interactive:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 2px 6px oklch(0.25 0.03 45 / 0.08),
-    0 18px 34px -18px oklch(0.55 0.16 40 / 0.34);
+@media (hover: hover) {
+  .bb-card-interactive:hover {
+    transform: rotate(var(--bb-tilt, 0deg)) translateY(-2px) scale(1.008);
+    box-shadow:
+      0 4px 8px oklch(0.32 0.04 45 / 0.3),
+      0 22px 34px -14px oklch(0.4 0.06 40 / 0.5);
+  }
 }
-
 .bb-card-interactive:active {
-  transform: translateY(0);
+  transform: rotate(var(--bb-tilt, 0deg)) translateY(0) scale(0.997);
+  transition-duration: 90ms;
+}
+
+/* ── The pushpin ───────────────────────────────────────────────────────── */
+
+/* A matte enamel disc, one soft top-left highlight, a real cast shadow. Not a
+   glossy gumball. Colour comes in through `--bb-pin`. */
+.bb-pin {
+  --bb-pin: var(--bb-pin-info);
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-left: -0.525rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, oklch(1 0 0 / 0.55), transparent 44%),
+    radial-gradient(circle at 62% 74%, oklch(0 0 0 / 0.22), transparent 55%),
+    var(--bb-pin);
   box-shadow:
-    0 1px 2px oklch(0.25 0.03 45 / 0.06),
-    0 10px 26px -16px oklch(0.55 0.16 40 / 0.28);
+    0 2px 3px oklch(0.2 0.03 40 / 0.5),
+    inset 0 -1px 2px oklch(0 0 0 / 0.25);
+}
+.bb-pin--in { --bb-pin: var(--bb-pin-in); }
+.bb-pin--need { --bb-pin: var(--bb-pin-need); }
+.bb-pin--maybe { --bb-pin: var(--bb-pin-maybe); }
+.bb-pin--info { --bb-pin: var(--bb-pin-info); }
+.bb-pin--commit { --bb-pin: var(--bb-pin-commit); }
+
+/* ── Masking tape ──────────────────────────────────────────────────────── */
+
+/* A torn strip of tape holding a label or a section header. Slight tilt, soft
+   shadow, semi-translucent so the board texture ghosts through. */
+.bb-tape {
+  display: inline-block;
+  background-color: var(--bb-tape);
+  color: var(--bb-tape-ink);
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  padding: 0.32rem 0.9rem 0.28rem;
+  transform: rotate(-1.3deg);
+  box-shadow: 0 2px 7px oklch(0.3 0.03 45 / 0.22);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 5px,
+    #000 calc(100% - 5px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 5px,
+    #000 calc(100% - 5px),
+    transparent 100%
+  );
+}
+
+/* A ruled-off region of the board — what keeps it kept. A dashed tape outline,
+   the label riding its top-left corner. */
+.bb-region {
+  position: relative;
+  border: 2px dashed oklch(0.96 0.03 88 / 0.4);
+  border-radius: 4px;
+}
+
+/* ── The status key (never tilts) ─────────────────────────────────────── */
+.bb-key {
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: oklch(0.96 0.02 88);
+  background-color: oklch(0.24 0.02 52 / 0.92);
+  transform: none !important;
+}
+
+/* ── The sign-up sheet (the one grid the world keeps) ──────────────────── */
+.bb-sheet {
+  position: relative;
+  background-color: var(--bb-laminate);
+  border-radius: 3px;
+  box-shadow: var(--bb-contact-shadow);
+}
+/* Laminate sheen. */
+.bb-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    oklch(1 0 0 / 0.22) 0%,
+    transparent 20%,
+    transparent 72%,
+    oklch(1 0 0 / 0.12) 100%
+  );
+}
+.bb-sheet-rule {
+  border-color: var(--bb-rule);
+}
+
+/* Pen marks — used ONLY for handwritten content: RSVP tallies, "FULL",
+   pencilled maybes, quick notes. Never a label or body copy. */
+.bb-hand {
+  font-family: var(--font-bb-hand), ui-rounded, "Comic Sans MS", cursive;
+  font-weight: 700;
+}
+.bb-hand--pencil { color: var(--bb-ink-pencil); }
+.bb-hand--pen { color: var(--bb-ink-pen); }
+
+/* A rubber-stamped state — FULL, BOOKED, CONFIRMED. */
+.bb-stamp {
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--bb-marker);
+  border: 2.5px solid var(--bb-marker);
+  padding: 0.1rem 0.5rem;
+  transform: rotate(-8deg);
+  display: inline-block;
+  mix-blend-mode: multiply;
+  opacity: 0.88;
+}
+.dark .bb-stamp { mix-blend-mode: screen; }
+
+/* Highlight text in the brand's warm orange. */
+.bb-theme ::selection {
+  background-color: oklch(0.68 0.17 45 / 0.28);
+}
+
+/* Themed browser surfaces for the board world. */
+.bb-theme {
+  caret-color: var(--bb-ink-pen);
+  accent-color: var(--brand-orange);
+}
+.bb-theme :focus-visible {
+  outline: 2px solid var(--brand-orange);
+  outline-offset: 2px;
 }
 
 /* Highlight text in the brand's own warm orange instead of the browser's
@@ -1037,6 +1264,69 @@
   ::view-transition-new(bb-section-pill) {
     animation-duration: 1ms;
   }
+}
+
+/*
+ * ─── Booking Buddy: pinning ─────────────────────────────────────────────────
+ *
+ * The signature interaction. A card arriving on the board is a pushpin press:
+ * it drops in, rotates to its resting angle, the contact shadow lands. The
+ * dashboard plays this ONCE, orchestrated, as `.bb-board-load > *` staggers —
+ * the memorable moment, and the one authored page-load sequence in the app
+ * (Operate mode bans the rest). Every other surface just cuts to rest.
+ * Everything here is gated on `html.js` + no-preference; reduced motion and
+ * no-JS get the board already pinned up and still.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .js .bb-board-load > * {
+    animation: bb-pin-drop 440ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .js .bb-board-load > *:nth-child(1) { animation-delay: 40ms; }
+  .js .bb-board-load > *:nth-child(2) { animation-delay: 100ms; }
+  .js .bb-board-load > *:nth-child(3) { animation-delay: 155ms; }
+  .js .bb-board-load > *:nth-child(4) { animation-delay: 205ms; }
+  .js .bb-board-load > *:nth-child(5) { animation-delay: 250ms; }
+  .js .bb-board-load > *:nth-child(n + 6) { animation-delay: 290ms; }
+
+  /* A single card pinned onto the board after load (a new game posted, a
+     synced booking fluttering in). */
+  .js .bb-pin-in {
+    animation: bb-pin-drop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* FLAP ON UPDATE — a changed value (time, court, spot count) turns over from
+     old to new in place. The one motion that means "this is different now".
+     Applied for one tick by the component, removed on animationend. */
+  .bb-flap {
+    animation: bb-flap 300ms cubic-bezier(0.5, 0, 0.2, 1);
+    transform-origin: center top;
+  }
+
+  /* The RSVP pin press — the pin sinks as it's pushed in. */
+  .bb-rsvp-pin {
+    transition: transform 90ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bb-rsvp-pin:active {
+    transform: translateY(2px) scale(0.9);
+  }
+}
+
+@keyframes bb-pin-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) rotate(0deg) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--bb-tilt, 0deg)) scale(1);
+  }
+}
+
+@keyframes bb-flap {
+  0% { transform: rotateX(0deg); }
+  45% { transform: rotateX(-88deg); }
+  55% { transform: rotateX(88deg); }
+  100% { transform: rotateX(0deg); }
 }
 
 /*

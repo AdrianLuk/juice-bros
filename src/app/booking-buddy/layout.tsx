@@ -27,7 +27,7 @@ export const viewport: Viewport = {
   // bar dark while the page itself stays rendered in this light palette —
   // swapping one mismatch (always-white) for a worse one (dark chrome over a
   // light page) whenever the OS happens to be in dark mode.
-  themeColor: "oklch(0.972 0.008 75)",
+  themeColor: "oklch(0.735 0.056 68)",
 };
 
 /**
@@ -70,7 +70,9 @@ export default async function BookingBuddyLayout({
   return (
     <QueryProvider>
       <ServiceWorkerRegistration />
-      <div className="bb-theme flex w-full flex-1 flex-col bg-background text-foreground">
+      {/* `.bb-board` is the cork ground the whole signed-in app stands on
+          (direction seed 861cf732); the routed sign hangs over it. */}
+      <div className="bb-theme bb-board flex w-full flex-1 flex-col text-foreground">
         <BbAppShell />
         {/* Clears the fixed mobile bottom tab bar (safe-area included); no bar
             on desktop. */}
