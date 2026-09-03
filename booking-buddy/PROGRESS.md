@@ -69,6 +69,8 @@ Not TDD (no behavior yet) — infra setup only. Tracked as issue #3.
 
   Applied through the dashboard rather than `supabase config push`: `config.toml` carries no `[auth.external.google]` section, so pushing it risks disabling the Google provider. If auth config ever moves into `config.toml` wholesale, add that section first.
 
+- [ ] **Custom SMTP for magic-link sign-in.** Without it, GoTrue uses Supabase's built-in sender: ~2 emails/hour project-wide, members-only delivery, and the per-hour cap can't be raised. Symptom is a rate-limit error under the email field on `/booking-buddy/sign-in`. Fix and the rate-limit knob are in [docs/magic-link-email-setup.md](docs/magic-link-email-setup.md) — Resend SMTP reusing the already-verified domain, then Authentication → Rate Limits.
+
 ### Local vs hosted
 
 `.env` points at the **local** Docker stack (`127.0.0.1:54321`) and should stay that way — `npm run test:rls` and day-to-day development run against local Postgres. The hosted project is only used by deployed environments.
