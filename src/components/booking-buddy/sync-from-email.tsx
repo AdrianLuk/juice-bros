@@ -27,8 +27,11 @@ import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
   confirmCancellationCandidate,
   confirmImportCandidate,
+  confirmMergedCandidate,
   confirmUpdateCandidate,
+  dismissMergedCandidate,
   dismissReviewItem,
+  type MergedImportCandidate,
   type ReviewItem,
 } from "@/lib/booking-buddy/actions/email-sync";
 
@@ -330,6 +333,108 @@ export function ReviewItemCard({
 
       <form action={dismissAction} className="self-start">
         <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
+          {dismissPending ? "Dismissing…" : "Dismiss"}
+        </Button>
+      </form>
+      <ActionError state={dismissState} />
+    </li>
+  );
+}
+
+/**
+ * One consolidated review card (issue #348) — a single reservation that came
+ * in from both the mailbox and a calendar feed, shown once instead of twice.
+ * Looks like the email `import` card (it carries the Player(s), which the feed
+ * never has), but confirming it runs `confirmMergedCandidate`, which creates
+ * one Booking and settles both sources. Keyed on `mergeKey` (both source ids)
+ * and resolved out of both query caches by the parent's `onResolved`.
+ *
+ * The Facility select is prefilled to the matched Org and stays editable as a
+ * safety valve, same as the two single-source import cards; every other field
+ * rides through as a hidden input so `confirmMergedCandidate` re-runs
+ * `parseNewBooking` over the same field names `CreateBookingForm` posts.
+ */
+export function MergedCandidateCard({
+  item,
+  orgs,
+  onResolved,
+}: {
+  item: MergedImportCandidate;
+  orgs: Org[];
+  onResolved: (item: MergedImportCandidate) => void;
+}) {
+  const [confirmState, confirmAction, confirmPending] = useActionState(confirmMergedCandidate, EMPTY);
+  const [dismissState, dismissAction, dismissPending] = useActionState(dismissMergedCandidate, EMPTY);
+  const busy = confirmPending || dismissPending;
+  const facilityFieldId = `merged-facility-${item.mergeKey}`;
+
+  useResolveOnSuccess(confirmState, () => onResolved(item));
+  useResolveOnSuccess(dismissState, () => onResolved(item));
+
+  const players = item.matchedPlayers
+    .map((player) => player.name.slice(0, PLAYER_NAME_MAX_LENGTH))
+    .join(", ");
+
+  return (
+    <li className="bb-card flex flex-col gap-3 p-4">
+      <div>
+        <p className="font-medium">{item.facilityName}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {item.name} · {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}–
+          {formatTimeLabel(item.endTime)} · {formatCourtLabel(item.courtLabel)} ·{" "}
+          {BOOKING_FORMAT_LABEL[item.format]}
+        </p>
+        {item.matchedPlayers.length > 0 && (
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            With: {item.matchedPlayers.map((player) => player.name).join(", ")}
+          </p>
+        )}
+        <p className="mt-1 text-xs text-muted-foreground">From your mailbox and a facility calendar feed.</p>
+        {item.notes && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}&rdquo;
+          </p>
+        )}
+      </div>
+
+      <form
+        action={confirmAction}
+        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={facilityFieldId}>Facility</Label>
+            <FacilityFieldHint />
+          </div>
+          <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={item.orgId} />
+        </div>
+
+        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
+        <input type="hidden" name="sequence" value={item.sequence} />
+        <input type="hidden" name="starts_at" value={item.startsAt} />
+        <input type="hidden" name="name" value={item.name} />
+        <input type="hidden" name="format" value={item.format} />
+        <input type="hidden" name="date" value={item.date} />
+        <input type="hidden" name="start_time" value={item.startTime} />
+        <input type="hidden" name="end_time" value={item.endTime} />
+        <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
+        <input type="hidden" name="notes" value={item.notes ?? ""} />
+        <input type="hidden" name="players" value={players} />
+
+        <Button type="submit" disabled={busy}>
+          {confirmPending ? "Confirming…" : "Confirm"}
+        </Button>
+      </form>
+      <ActionError state={confirmState} />
+
+      <form action={dismissAction} className="self-start">
+        <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
+        <input type="hidden" name="org_id" value={item.orgId} />
+        <input type="hidden" name="sequence" value={item.sequence} />
+        <input type="hidden" name="starts_at" value={item.startsAt} />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>

@@ -50,6 +50,11 @@ export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
  * Booking; `bb_facility_sync_cancellation` fires when a feed-diff cancellation
  * candidate is confirmed and its Booking removed (issue #296).
  *
+ * `bb_sync_merged_import` (issue #348) fires when a *consolidated* card — one
+ * reservation that came in from both the mailbox and a calendar feed — is
+ * confirmed: a single Booking, but both sources settled. Neither a pure email
+ * nor a pure feed import, so its own event rather than a dimension on either.
+ *
  * Issue #336 unified the two sync buttons into one "Sync bookings" action but
  * deliberately kept these two event families separate: a `bb_*_sync_run`
  * still fires per source that actually ran (both, when both are configured),
@@ -59,7 +64,8 @@ export type EmailSyncEvent = "bb_email_sync_run" | "bb_email_sync_import";
 export type FacilitySyncEvent =
   | "bb_facility_sync_run"
   | "bb_facility_sync_import"
-  | "bb_facility_sync_cancellation";
+  | "bb_facility_sync_cancellation"
+  | "bb_sync_merged_import";
 
 /** Emit one "Sync facilities" event. Same fail-quiet posture as `trackFunnelEvent`. */
 export async function trackFacilitySyncEvent(

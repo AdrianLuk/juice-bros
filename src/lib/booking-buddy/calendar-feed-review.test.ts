@@ -127,6 +127,46 @@ test("the auto-link fires however the Booking was created — a hand-entered Boo
   assert.equal(items.length, 1);
 });
 
+test("a UID already recorded as an imported+linked seen row stays auto-linked even when the Booking's court label differs from the feed's", () => {
+  // The merged email+feed import saved the Booking with the email's richer
+  // "#5 - Hard"; the feed event only carries "#5" (issue #348). Without the
+  // by-UID re-affirm the court mismatch would re-offer it as a fresh import.
+  const existing: ExistingBookingForFeedReview[] = [
+    { id: "booking-m", orgId: "org-1", courtLabel: "#5 - Hard", date: "2026-10-01", startTime: "18:00" },
+  ];
+
+  const { items, autoLinked } = reviewCalendarFeed({
+    events: [feedEvent({ courtLabel: "Court #5", sequence: 2 })],
+    org: ORG,
+    existingBookings: existing,
+    seenEvents: [seen({ uid: "vevent-1", status: "imported", bookingId: "booking-m" })],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 0);
+  assert.deepEqual(autoLinked, [
+    {
+      feedEventUid: "vevent-1",
+      sequence: 2,
+      bookingId: "booking-m",
+      startsAt: "2026-10-01T22:00:00.000Z",
+    },
+  ]);
+});
+
+test("an imported+linked seen row whose Booking has since been deleted falls through to normal matching (re-offered)", () => {
+  const { items, autoLinked } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: [],
+    seenEvents: [seen({ uid: "vevent-1", status: "imported", bookingId: "gone-booking" })],
+    now: NOW,
+  });
+
+  assert.equal(autoLinked.length, 0);
+  assert.equal(items.length, 1);
+});
+
 test("a dismissed feed event is skipped on later syncs", () => {
   const { items } = reviewCalendarFeed({
     events: [feedEvent()],

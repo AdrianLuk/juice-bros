@@ -115,6 +115,19 @@ export async function seedFacility(
   return rows[0].id;
 }
 
+/** The caller's Org id for an exact display name — for specs that create the Org through the UI. */
+export async function orgIdByName(user: FixtureUser, name: string): Promise<string> {
+  const rows = await restAsUser<{ id: string }[]>(
+    user,
+    `orgs?name=eq.${encodeURIComponent(name)}&select=id`,
+    {},
+  );
+  if (!rows.length) {
+    throw new Error(`calendar-feed seed: no Org named "${name}"`);
+  }
+  return rows[0].id;
+}
+
 /** Every Booking the caller holds for one Org, court label + start instant. */
 export async function bookingsForOrg(
   user: FixtureUser,
