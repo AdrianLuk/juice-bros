@@ -240,7 +240,7 @@ A board card for one game. Green `in` pin when a court is booked, amber `maybe` 
 Torn translucent masking-tape strip (mask-image feathered ends), Anton uppercase 0.13em, `-1.3deg`. Carries venue names, section headers, facility tags.
 
 ### Sign-up Sheet (the one grid)
-`.bb-sheet` — laminate ground, `3px` corners, diagonal sheen, contact shadow. Remaps `--card` / `--border` / `--muted` for its whole subtree so nested calendar grids and list rows draw as pencil ruling on laminate, not kraft cards. `.bb-sheet-pin` adds a single cobalt pushpin at the top edge and does not rotate. Masthead in Anton with a double rule; legend reads "penciled = maybe · pen = booked". Booked courts are "penned in" — ballpoint-blue fill (week view) or blue tint with no side-border (month/agenda).
+`.bb-sheet` — laminate ground, `3px` corners, diagonal sheen, contact shadow. Remaps `--card` / `--border` / `--muted` for its whole subtree so nested calendar grids and list rows draw as pencil ruling on laminate, not kraft cards. `.bb-sheet-pin` adds a single cobalt pushpin at the top edge and does not rotate. Masthead in Anton with a double rule. Booked courts are "penned in" — ballpoint-blue fill (week view) or blue tint with no side-border (month/agenda); bare proposals are not drawn on the sheet at all, only on their `GameCard`.
 
 ### Status Key
 Dark near-black translucent strip, Anton uppercase, exactly four law entries with a small enamel dot each. `bar` variant = full-width dashboard footer; `inline` = quiet chip run on a page. `transform: none !important` — never tilts.
