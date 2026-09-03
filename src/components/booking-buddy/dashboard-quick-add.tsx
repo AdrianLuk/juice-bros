@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarOffIcon, PlusIcon } from "lucide-react";
 
 import {
@@ -22,6 +23,12 @@ import { CreateAvailabilityWindowForm } from "@/components/booking-buddy/availab
  * desktop. Kept kraft, not orange: the one orange commit pin on the dashboard
  * is "Pin a new game" up on the board. "Log a court" carries a small orange
  * pushpin as the primary of the two.
+ *
+ * Portaled to `<body>` so `position: fixed` pins it to the viewport, not to
+ * the calendar sheet — that sheet carries `.bb-pinned`'s `transform`, which
+ * would otherwise be the containing block. The portal wrapper re-declares
+ * `.bb-theme` so the world's tokens (`--bb-cork-edge`, the pin colours, the
+ * contact shadow) still resolve outside the app subtree.
  */
 export function DashboardQuickActions({
   onAddBooking,
@@ -29,9 +36,19 @@ export function DashboardQuickActions({
   onAddBooking: () => void;
 }) {
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div className="fixed right-3 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot: portals need a client-only DOM target
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div className="bb-theme fixed right-3 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
       <Dialog
         open={availabilityDialogOpen}
         onOpenChange={setAvailabilityDialogOpen}
@@ -82,6 +99,7 @@ export function DashboardQuickActions({
         <PlusIcon />
         Log a court
       </Button>
-    </div>
+    </div>,
+    document.body,
   );
 }
