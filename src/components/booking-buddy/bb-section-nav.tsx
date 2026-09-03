@@ -47,7 +47,7 @@ export function BbSectionNav() {
               // "pinned", the rest tucked lower and duller.
               active
                 ? "text-foreground"
-                : "translate-y-1 border border-border/70 bg-[color-mix(in_oklch,var(--card),transparent_45%)] text-muted-foreground hover:text-foreground",
+                : "translate-y-1 border border-border/70 bg-[color-mix(in_oklch,var(--card),transparent_25%)] text-[color-mix(in_oklch,var(--foreground),transparent_28%)] hover:text-foreground",
             )}
           >
             {active && (

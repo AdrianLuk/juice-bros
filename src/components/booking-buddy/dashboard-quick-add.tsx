@@ -17,10 +17,11 @@ import { CreateAvailabilityWindowForm } from "@/components/booking-buddy/availab
 /**
  * The dashboard's quick-add actions — "Log a court" (the shared Log-a-booking
  * dialog lifted into `OwnerDashboardCalendar`, issue #303) and "Block off
- * time". Rendered in flow at the head of the sign-up sheet — a bulletin board
- * has no floating FAB, and the old fixed stack covered content on mobile.
- * "Log a court" carries the commit pin; "Block off time" is the quieter
- * secondary.
+ * time" — pinned to the bottom-right corner as a small stack of kraft notes.
+ * `bottom-24` on mobile clears the fixed bottom tab bar; `sm:bottom-6` on
+ * desktop. Kept kraft, not orange: the one orange commit pin on the dashboard
+ * is "Pin a new game" up on the board. "Log a court" carries a small orange
+ * pushpin as the primary of the two.
  */
 export function DashboardQuickActions({
   onAddBooking,
@@ -30,7 +31,7 @@ export function DashboardQuickActions({
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
-    <>
+    <div className="fixed right-3 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
       <Dialog
         open={availabilityDialogOpen}
         onOpenChange={setAvailabilityDialogOpen}
@@ -40,7 +41,7 @@ export function DashboardQuickActions({
             <Button
               size="sm"
               variant="secondary"
-              className="h-9 gap-2 rounded-sm px-3.5 font-bb-sign text-[0.68rem] tracking-widest uppercase"
+              className="h-10 gap-2 rounded-sm border border-[var(--bb-cork-edge)]/25 px-3.5 font-bb-sign text-[0.68rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
             />
           }
         >
@@ -62,17 +63,25 @@ export function DashboardQuickActions({
         </DialogContent>
       </Dialog>
 
-      {/* Secondary — the one orange commit pin on the dashboard is "Pin a new
-          game" up on the board, and nothing else borrows it. */}
       <Button
         size="sm"
         variant="secondary"
         onClick={onAddBooking}
-        className="h-9 gap-2 rounded-sm px-4 font-bb-sign text-[0.68rem] tracking-widest uppercase"
+        className="relative h-10 gap-2 rounded-sm border border-[var(--bb-cork-edge)]/25 px-4 font-bb-sign text-[0.7rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
       >
+        <span
+          aria-hidden
+          className="bb-pin bb-pin--commit"
+          style={{
+            top: "-0.5rem",
+            width: "0.8rem",
+            height: "0.8rem",
+            marginLeft: "-0.4rem",
+          }}
+        />
         <PlusIcon />
         Log a court
       </Button>
-    </>
+    </div>
   );
 }

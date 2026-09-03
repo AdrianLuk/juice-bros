@@ -224,11 +224,21 @@ export function BbAppShell() {
               href={section.primary}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
-                active ? "text-foreground" : "text-muted-foreground",
+                "relative isolate flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
+                active ? "text-white" : "text-muted-foreground",
               )}
             >
-              <Icon className={cn("size-5", active && "text-brand-orange")} />
+              {/* Its own inset element so the fill slides between tabs on
+                  navigation (`bb-tab-pill`, globals.css). White-on-orange is
+                  the standing brand call (PRODUCT.md). */}
+              {active && (
+                <span
+                  aria-hidden
+                  style={{ viewTransitionName: "bb-tab-pill" }}
+                  className="absolute inset-x-1.5 inset-y-2 -z-10 rounded-sm bg-brand-orange shadow-[0_1px_3px_oklch(0.3_0.05_45/0.4)]"
+                />
+              )}
+              <Icon className={cn("size-5", active && "text-white")} />
               {section.label}
             </Link>
           );

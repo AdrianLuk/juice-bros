@@ -388,7 +388,7 @@ export function GroupOverlapFinder({
           <div
             role="group"
             aria-label="Range"
-            className="flex w-fit gap-0.5 rounded-lg border border-border p-0.5"
+            className="flex w-fit gap-0.5 rounded-sm border border-border p-0.5"
           >
             {RANGE_OPTIONS.map((option) => (
               <button
@@ -397,9 +397,9 @@ export function GroupOverlapFinder({
                 aria-pressed={rangeChoice === option.id}
                 onClick={() => setRangeChoice(option.id)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  "rounded-[3px] px-2.5 py-1 font-bb-sign text-[0.68rem] tracking-[0.08em] uppercase transition-colors",
                   rangeChoice === option.id
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-foreground text-[color:var(--card)]"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -481,7 +481,7 @@ export function GroupOverlapFinder({
                                   {blockLabel(block)}
                                 </span>
                                 {lookers.length > 0 && (
-                                  <span className="mt-0.5 block text-xs font-medium text-primary">
+                                  <span className="mt-0.5 block text-xs font-medium text-[color-mix(in_oklch,var(--bb-pin-maybe),black_38%)]">
                                     {lookersLine(lookers)}
                                   </span>
                                 )}
