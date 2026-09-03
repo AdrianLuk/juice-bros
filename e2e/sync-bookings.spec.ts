@@ -6,7 +6,10 @@ import { GmailMock } from "./support/gmail-mock.ts";
 import { CalendarFeedMock, icsBody } from "./support/calendar-feed-mock.ts";
 import { confirmationEmail, messageId } from "./support/sync-from-email-scenarios.ts";
 import {
+  bookingsForOrg,
+  feedEventsForOrg,
   feedSection,
+  orgIdByName,
   seedFacility,
   setFeedUrlViaForm,
 } from "./support/calendar-feed.ts";
@@ -132,19 +135,23 @@ test("one source failing still shows the other's candidates, failure named", asy
   ).toContainText(emailFacility);
 });
 
-test("email + feed candidates for the same slot resolve to one Booking on confirm", async ({ page, accounts }) => {
+test("email + feed candidates for the same reservation consolidate into one card, confirmed once (#348)", async ({
+  page,
+  accounts,
+}) => {
   // One Facility, reached by both sources: the email names it by its logo alt,
   // the feed is configured on the same Org.
+  const user = { email: accounts.ben.email, password: accounts.password };
   const facility = placeName();
+  const orgId = await seedFacility(user, facility);
   await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
-  await addPlace(page, facility);
 
   await connectGmail(page);
-  // Email confirmation: Doubles, 2027-03-15 18:00-19:00, Court 3.
+  // Email confirmation: Doubles, 2027-03-15 18:00-19:00, Court 3, with players.
   gmail.registerMessages([confirmationEmail({ id: messageId(), facility })]);
   await page.goto("/booking-buddy/orgs");
   await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/same"));
-  // A feed event for the *same* slot: 2027-03-15 18:00-19:00 EDT, Court 3.
+  // A feed event for the *same* slot: 2027-03-15 18:00-19:00 EDT, Court #3.
   feed.registerFeed("/feed/same", {
     kind: "ics",
     body: icsBody([
@@ -166,17 +173,75 @@ test("email + feed candidates for the same slot resolve to one Booking on confir
   const cards = section
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Confirm" }) });
-  await expect(cards).toHaveCount(2, { timeout: 15_000 });
 
-  // Confirm the first; the second (same slot, other source) is now a duplicate.
-  await cards.first().getByRole("button", { name: "Confirm" }).click();
-  await expect(cards).toHaveCount(1);
+  // One consolidated card, not two — carrying the email's players and the
+  // "both sources" note.
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+  await expect(cards).toContainText("Amy Ace, Ben Backhand");
+  await expect(cards).toContainText("From your mailbox and a facility calendar feed.");
+
   await cards.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
 
-  // The confirm-time guard held: exactly one "Court 3" Booking for this slot,
-  // not one per source.
-  await expect(
-    page.getByRole("listitem").filter({ hasText: facility }).filter({ hasText: "Court 3" }),
-  ).toHaveCount(1);
+  // Exactly one Booking for the slot.
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+
+  // Both sources settled: the feed event is recorded imported + linked, and a
+  // second sync re-offers nothing from either side.
+  const feedEvents = await feedEventsForOrg(user, orgId);
+  expect(feedEvents).toEqual([
+    expect.objectContaining({ uid: "sync-same-slot", status: "imported" }),
+  ]);
+  expect(feedEvents[0].booking_id).not.toBeNull();
+
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(cards).toHaveCount(0);
+
+  expect(await orgIdByName(user, facility)).toBe(orgId);
+});
+
+test("dismissing a consolidated card settles both sources — neither re-offers it (#348)", async ({
+  page,
+  accounts,
+}) => {
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+
+  await connectGmail(page);
+  gmail.registerMessages([confirmationEmail({ id: messageId(), facility })]);
+  await page.goto("/booking-buddy/orgs");
+  await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/dismiss-merged"));
+  feed.registerFeed("/feed/dismiss-merged", {
+    kind: "ics",
+    body: icsBody([
+      {
+        uid: "sync-dismiss-slot",
+        summary: "Doubles",
+        description: "Court #3",
+        location: facility,
+        start: "2027-03-15T22:00:00Z",
+        end: "2027-03-15T23:00:00Z",
+      },
+    ]),
+  });
+
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+
+  const section = feedSection(page);
+  const card = section.getByRole("listitem").filter({ hasText: "From your mailbox and a facility calendar feed." });
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await card.getByRole("button", { name: "Dismiss" }).click();
+  await expect(card).toHaveCount(0);
+
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(0);
+  expect(await feedEventsForOrg(user, orgId)).toEqual([
+    expect.objectContaining({ uid: "sync-dismiss-slot", status: "dismissed" }),
+  ]);
+
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
 });
