@@ -336,7 +336,7 @@ function DeleteOrgButton({ org }: { org: Org }) {
       <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="bb-theme">
         <AlertDialogHeader>
           <AlertDialogTitle>
             Remove &ldquo;{org.displayName}&rdquo;?

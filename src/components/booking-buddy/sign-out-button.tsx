@@ -32,7 +32,7 @@ export function SignOutButton() {
         <LogOutIcon className="size-5" />
         Sign out
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="bb-theme">
         <AlertDialogHeader>
           <AlertDialogTitle>Sign out of Booking Buddy?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -42,7 +42,10 @@ export function SignOutButton() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Stay signed in</AlertDialogCancel>
-          <form action={signOut}>
+          {/* `contents` so the submit button is the footer's own flex child,
+              sized exactly like the Cancel button beside it — full-width
+              stacked on mobile, auto on desktop. */}
+          <form action={signOut} className="contents">
             <Button type="submit" variant="destructive">
               Sign out
             </Button>
