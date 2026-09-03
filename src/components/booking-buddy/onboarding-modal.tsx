@@ -156,7 +156,7 @@ export function OnboardingModal({
       open={open}
       onOpenChange={(next) => (next ? setOpen(true) : dismiss())}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="bb-theme sm:max-w-lg">
         <div key={stepKey} className="bb-anim-in flex flex-col gap-4">
           {intent === null && <IntentChoice onChoose={chooseIntent} />}
 

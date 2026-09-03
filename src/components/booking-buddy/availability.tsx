@@ -201,7 +201,7 @@ export function DeleteAvailabilityWindowButton({
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Remove this availability?</DialogTitle>
           <DialogDescription>

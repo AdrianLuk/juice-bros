@@ -550,6 +550,21 @@
   color: var(--foreground);
 }
 
+/* Dialogs in the board world: a note taped up, not a rounded sheet. Titles in
+   the notice voice, near-square corners, a warm contact shadow. */
+.bb-theme [data-slot="dialog-content"],
+[data-slot="dialog-content"].bb-theme {
+  border-radius: 4px;
+  box-shadow: var(--bb-contact-shadow);
+}
+.bb-theme [data-slot="dialog-title"],
+[data-slot="dialog-content"] [data-slot="dialog-title"] {
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 1rem;
+}
+
 /* A dashed "pencil outline" where the first thing goes — empty states. */
 .bb-outline {
   border: 2px dashed color-mix(in oklch, var(--foreground), transparent 74%);

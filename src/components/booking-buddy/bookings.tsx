@@ -497,7 +497,7 @@ export function EditBookingButton({
       <DialogTrigger render={<Button size="sm" variant="outline" />}>
         Edit
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="bb-theme sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit booking</DialogTitle>
           <DialogDescription>
@@ -543,7 +543,7 @@ export function BookingDetailsModal({
       <DialogTrigger render={render} nativeButton={nativeButton}>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="bb-theme sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{booking.name ?? booking.orgName}</DialogTitle>
           {booking.name && (
@@ -682,7 +682,7 @@ export function DeleteBookingButton({ booking }: { booking: Booking }) {
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Remove this booking?</DialogTitle>
           <DialogDescription>

@@ -54,7 +54,7 @@ export function DashboardQuickActions({
           <CalendarOffIcon />
           Block off time
         </DialogTrigger>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="bb-theme sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Set your availability</DialogTitle>
             <DialogDescription>

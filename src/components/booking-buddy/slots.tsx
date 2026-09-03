@@ -813,7 +813,7 @@ function DetachBookingButton({
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Detach
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Detach this court?</DialogTitle>
           <DialogDescription>
@@ -951,7 +951,7 @@ export function DeleteSlotButton({
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Delete game
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Delete this game?</DialogTitle>
           <DialogDescription>

@@ -134,7 +134,7 @@ export function OwnerDashboardCalendar({
         <>
           <DashboardQuickActions onAddBooking={openBlankBookingDialog} />
           <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="bb-theme sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Log a booking</DialogTitle>
                 <DialogDescription>
