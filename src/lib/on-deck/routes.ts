@@ -20,6 +20,18 @@ export const ON_DECK_SIGN_IN_PATH = `${ON_DECK_ROOT}/sign-in`;
 /** The Organizer's Club settings screen — edit the saved Session defaults. */
 export const ON_DECK_SETTINGS_PATH = `${ON_DECK_ROOT}/home/settings`;
 
+/**
+ * The gated dev console (issue #351) — drive a real prod Session from a phone:
+ * add synthetic Players, finish Courts, form Groups, Last Call, Close, Reset.
+ * Self-gated by `ON_DECK_DEV_KEY` (404s without it) *and* an Organizer session,
+ * so it is never `requiresOrganizerSession` — a keyless visitor must get a 404,
+ * not a sign-in redirect that admits the route exists.
+ */
+export const ON_DECK_DEV_PATH = `${ON_DECK_ROOT}/dev`;
+
+/** Where `?key=` is exchanged for the dev-access cookie (issue #351). */
+export const ON_DECK_DEV_ENTER_PATH = `${ON_DECK_ROOT}/dev/enter`;
+
 /** Create a Session ahead of time (issue #254). */
 export const ON_DECK_NEW_SESSION_PATH = `${ON_DECK_ROOT}/home/sessions/new`;
 
