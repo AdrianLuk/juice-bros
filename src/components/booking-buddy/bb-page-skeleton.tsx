@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Eyebrow } from "@/components/typography/eyebrow";
-import { PageHeading } from "@/components/typography/page-heading";
+import { BbPageHeading } from "@/components/booking-buddy/bb/page-heading";
 import { BbSectionNav } from "@/components/booking-buddy/bb-section-nav";
 
 function Bar({ className }: { className?: string }) {
@@ -49,16 +48,9 @@ export function BbPageSkeleton({
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           {title ? (
-            <PageHeading
-              eyebrow="Booking Buddy"
-              title={title}
-              description={description}
-            />
+            <BbPageHeading title={title} description={description} />
           ) : (
-            <>
-              <Eyebrow>Booking Buddy</Eyebrow>
-              <Bar className="mt-3 h-9 w-64 sm:h-11" />
-            </>
+            <Bar className="h-9 w-64 rounded-sm sm:h-11" />
           )}
           {sectionNav && <BbSectionNav />}
 
@@ -66,8 +58,8 @@ export function BbPageSkeleton({
             className="bb-skeleton-body mt-10 flex flex-col gap-6"
             aria-hidden
           >
-            <Bar className="h-28 w-full rounded-2xl" />
-            <Bar className="h-48 w-full rounded-2xl" />
+            <Bar className="h-28 w-full rounded-sm" />
+            <Bar className="h-48 w-full rounded-sm" />
           </div>
         </div>
       </section>

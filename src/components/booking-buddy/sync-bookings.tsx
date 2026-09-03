@@ -101,40 +101,45 @@ export function SyncBookingsSection({
     (hasConfiguredFeed && feedQuery.isFetching);
 
   function handleEmailResolved(gmailMessageId: string) {
-    queryClient.setQueryData<SyncFromEmailResult>(EMAIL_QUERY_KEY, (previous) =>
-      previous?.status === "ok"
-        ? {
-            ...previous,
-            items: previous.items.filter(
-              (item) => item.gmailMessageId !== gmailMessageId,
-            ),
-          }
-        : previous,
+    queryClient.setQueryData<SyncFromEmailResult>(
+      EMAIL_QUERY_KEY,
+      (previous) =>
+        previous?.status === "ok"
+          ? {
+              ...previous,
+              items: previous.items.filter(
+                (item) => item.gmailMessageId !== gmailMessageId,
+              ),
+            }
+          : previous,
     );
   }
 
   function handleFeedResolved(feedEventUid: string) {
-    queryClient.setQueryData<SyncFacilityFeedsResult>(FEED_QUERY_KEY, (previous) => {
-      if (previous?.status !== "ok") {
-        return previous;
-      }
-      return {
-        ...previous,
-        feeds: previous.feeds.map((feed) =>
-          feed.status === "ok"
-            ? {
-                ...feed,
-                items: feed.items.filter(
-                  (item) => item.feedEventUid !== feedEventUid,
-                ),
-                cancellations: feed.cancellations.filter(
-                  (item) => item.feedEventUid !== feedEventUid,
-                ),
-              }
-            : feed,
-        ),
-      };
-    });
+    queryClient.setQueryData<SyncFacilityFeedsResult>(
+      FEED_QUERY_KEY,
+      (previous) => {
+        if (previous?.status !== "ok") {
+          return previous;
+        }
+        return {
+          ...previous,
+          feeds: previous.feeds.map((feed) =>
+            feed.status === "ok"
+              ? {
+                  ...feed,
+                  items: feed.items.filter(
+                    (item) => item.feedEventUid !== feedEventUid,
+                  ),
+                  cancellations: feed.cancellations.filter(
+                    (item) => item.feedEventUid !== feedEventUid,
+                  ),
+                }
+              : feed,
+          ),
+        };
+      },
+    );
   }
 
   function handleMergedResolved(item: MergedImportCandidate) {
@@ -229,9 +234,7 @@ export function SyncBookingsSection({
 
   return (
     <section>
-      <h2 className="font-heading text-lg font-semibold tracking-tight">
-        Sync bookings
-      </h2>
+      <h2 className="bb-h text-[1.05rem]">Sync bookings</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Pull in the court reservations you&apos;ve made at CourtReserve-powered
         facilities{" "}
@@ -282,8 +285,8 @@ export function SyncBookingsSection({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Connect a mailbox in Settings to pull in bookings you&apos;ve made at
-            CourtReserve-powered facilities.
+            Connect a mailbox in Settings to pull in bookings you&apos;ve made
+            at CourtReserve-powered facilities.
           </p>
         )}
 
@@ -329,7 +332,8 @@ export function SyncBookingsSection({
             role="alert"
           >
             <p className="font-medium">
-              Couldn&apos;t fetch {orgNameById.get(feed.orgId) ?? "that facility"}
+              Couldn&apos;t fetch{" "}
+              {orgNameById.get(feed.orgId) ?? "that facility"}
               &apos;s feed.
             </p>
             <p className="mt-0.5">
@@ -405,7 +409,9 @@ export function SyncBookingsSection({
         )}
 
         {nothingToReview && (
-          <p className="text-sm text-muted-foreground">No new bookings found.</p>
+          <p className="text-sm text-muted-foreground">
+            No new bookings found.
+          </p>
         )}
       </div>
     </section>

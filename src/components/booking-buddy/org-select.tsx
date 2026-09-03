@@ -22,7 +22,12 @@ export function OrgSelect({
   required?: boolean;
 }) {
   return (
-    <FormSelect id={id} name={name} defaultValue={defaultValue} required={required}>
+    <FormSelect
+      id={id}
+      name={name}
+      defaultValue={defaultValue}
+      required={required}
+    >
       <option value="" disabled>
         Pick a facility
       </option>
@@ -56,7 +61,12 @@ export function OptionalOrgSelect({
   className?: string;
 }) {
   return (
-    <FormSelect id={id} name={name} defaultValue={defaultValue} className={className}>
+    <FormSelect
+      id={id}
+      name={name}
+      defaultValue={defaultValue}
+      className={className}
+    >
       <option value="">Not set</option>
       {orgs.map((org) => (
         <option key={org.id} value={org.id}>

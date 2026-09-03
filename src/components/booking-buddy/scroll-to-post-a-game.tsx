@@ -31,7 +31,9 @@ export function ScrollToPostAGame({ prefillKey }: { prefillKey: string }) {
       return;
     }
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     // One frame's grace so the directional route transition has committed and
     // layout is settled before we measure.
     const frame = requestAnimationFrame(() => {

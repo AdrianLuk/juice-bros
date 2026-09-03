@@ -127,12 +127,20 @@ function BookingFieldSet({
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor={`${idPrefix}-facility`}>Facility</Label>
-        <OrgSelect id={`${idPrefix}-facility`} orgs={orgs} defaultValue={defaultOrgId} />
+        <OrgSelect
+          id={`${idPrefix}-facility`}
+          orgs={orgs}
+          defaultValue={defaultOrgId}
+        />
       </div>
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor={`${idPrefix}-format`}>Format</Label>
-        <FormSelect id={`${idPrefix}-format`} name="format" defaultValue={defaultFormat}>
+        <FormSelect
+          id={`${idPrefix}-format`}
+          name="format"
+          defaultValue={defaultFormat}
+        >
           {BOOKING_FORMATS.map((format) => (
             <option key={format} value={format}>
               {BOOKING_FORMAT_LABEL[format]}
@@ -393,8 +401,14 @@ export function EditBookingForm({
   // written in — not the browser's, which is exactly the bug `formatBookingWhen`
   // exists to avoid on the display side.
   const initialDate = todayInZone(booking.timeZone, new Date(booking.startsAt));
-  const initialStartTime = clockInZone(booking.timeZone, new Date(booking.startsAt));
-  const initialEndTime = clockInZone(booking.timeZone, new Date(booking.endsAt));
+  const initialStartTime = clockInZone(
+    booking.timeZone,
+    new Date(booking.startsAt),
+  );
+  const initialEndTime = clockInZone(
+    booking.timeZone,
+    new Date(booking.endsAt),
+  );
   // A Booking that ran past midnight (start 21:00, end 01:00) has an End clock
   // that reads earlier than its Start — its real length is the wrapped gap, so
   // "Custom" pre-fills with e.g. 4 hours rather than -20.
@@ -433,7 +447,9 @@ export function EditBookingForm({
       />
 
       <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor={`booking-edit-${booking.id}-players`}>Players (optional)</Label>
+        <Label htmlFor={`booking-edit-${booking.id}-players`}>
+          Players (optional)
+        </Label>
         <Input
           id={`booking-edit-${booking.id}-players`}
           name="players"
@@ -444,7 +460,9 @@ export function EditBookingForm({
       </div>
 
       <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor={`booking-edit-${booking.id}-notes`}>Notes (optional)</Label>
+        <Label htmlFor={`booking-edit-${booking.id}-notes`}>
+          Notes (optional)
+        </Label>
         <Textarea
           id={`booking-edit-${booking.id}-notes`}
           name="notes"
@@ -465,7 +483,13 @@ export function EditBookingForm({
 }
 
 /** The "Edit" dialog next to "Remove" — Bookings list row and calendar popover alike (issue #97). */
-export function EditBookingButton({ booking, orgs }: { booking: Booking; orgs: Org[] }) {
+export function EditBookingButton({
+  booking,
+  orgs,
+}: {
+  booking: Booking;
+  orgs: Org[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -473,7 +497,7 @@ export function EditBookingButton({ booking, orgs }: { booking: Booking; orgs: O
       <DialogTrigger render={<Button size="sm" variant="outline" />}>
         Edit
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="bb-theme sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit booking</DialogTitle>
           <DialogDescription>
@@ -481,7 +505,11 @@ export function EditBookingButton({ booking, orgs }: { booking: Booking; orgs: O
             booking screen.
           </DialogDescription>
         </DialogHeader>
-        <EditBookingForm booking={booking} orgs={orgs} onSaved={() => setOpen(false)} />
+        <EditBookingForm
+          booking={booking}
+          orgs={orgs}
+          onSaved={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -515,10 +543,12 @@ export function BookingDetailsModal({
       <DialogTrigger render={render} nativeButton={nativeButton}>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="bb-theme sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{booking.name ?? booking.orgName}</DialogTitle>
-          {booking.name && <DialogDescription>{booking.orgName}</DialogDescription>}
+          {booking.name && (
+            <DialogDescription>{booking.orgName}</DialogDescription>
+          )}
         </DialogHeader>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
           <dt className="text-muted-foreground">Date</dt>
@@ -582,7 +612,8 @@ export function BookingRow({
           <p className="font-medium">{whenDate}</p>
           <p className="font-medium">{whenTime}</p>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {formatCourtLabel(booking.courtLabel)} · {BOOKING_FORMAT_LABEL[booking.format]}
+            {formatCourtLabel(booking.courtLabel)} ·{" "}
+            {BOOKING_FORMAT_LABEL[booking.format]}
           </p>
           {booking.name && (
             <p className="truncate text-xs font-medium">{booking.name}</p>
@@ -599,7 +630,9 @@ export function BookingRow({
         <div className="hidden sm:block">
           <p className="truncate font-medium">{booking.when}</p>
           {booking.name && (
-            <p className="mt-0.5 truncate text-xs font-medium">{booking.name}</p>
+            <p className="mt-0.5 truncate text-xs font-medium">
+              {booking.name}
+            </p>
           )}
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
@@ -617,7 +650,11 @@ export function BookingRow({
           a confirmation dialog either way, but a stray tap shouldn't land
           this close to a destructive action's trigger. */}
       <div className="flex flex-col items-end gap-2.5">
-        <BookingDetailsModal booking={booking} orgs={orgs} render={<Button size="sm" variant="outline" />}>
+        <BookingDetailsModal
+          booking={booking}
+          orgs={orgs}
+          render={<Button size="sm" variant="outline" />}
+        >
           View
         </BookingDetailsModal>
         <EditBookingButton booking={booking} orgs={orgs} />
@@ -645,17 +682,19 @@ export function DeleteBookingButton({ booking }: { booking: Booking }) {
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Remove this booking?</DialogTitle>
           <DialogDescription>
-            {booking.when} at {booking.orgName}. This only forgets it here.
-            Your actual court reservation is untouched, so cancel that on the
+            {booking.when} at {booking.orgName}. This only forgets it here. Your
+            actual court reservation is untouched, so cancel that on the
             facility&apos;s own site if you meant to.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Keep booking</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>
+            Keep booking
+          </DialogClose>
           {form}
         </DialogFooter>
       </DialogContent>

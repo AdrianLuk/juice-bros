@@ -288,7 +288,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
             left instead, buttons first, on `sm:` and up, matching how this
             row read before the date/button split. */}
         <div className="flex items-center justify-between gap-1.5 sm:justify-start">
-          <h2 className="font-heading order-1 text-base font-semibold tracking-tight sm:order-2 sm:ml-1">
+          <h2 className="font-bb-body order-1 text-base font-semibold tracking-tight sm:order-2 sm:ml-1">
             {rangeLabel}
           </h2>
           {view !== "agenda" && (
@@ -332,7 +332,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
         <div
           role="group"
           aria-label="Calendar view"
-          className="flex w-fit gap-0.5 self-center rounded-lg border border-border p-0.5 sm:self-start"
+          className="flex w-fit gap-0.5 self-center rounded-sm border border-border p-0.5 sm:self-start"
         >
           {VIEWS.map((option) => (
             <button
@@ -341,9 +341,10 @@ export function DashboardCalendar<T extends CalendarEvent>({
               aria-pressed={view === option.id}
               onClick={() => animateGrid(() => setView(option.id))}
               className={cn(
-                "relative rounded-md px-2.5 py-1 text-xs font-medium transition-colors after:absolute after:-inset-1 after:content-['']",
+                "relative rounded-[3px] px-2.5 py-1 font-bb-sign text-[0.68rem] tracking-[0.08em] uppercase transition-colors after:absolute after:-inset-1 after:content-['']",
+                // Ink, not orange — orange is reserved for the one commit action.
                 view === option.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-foreground text-[var(--card)]"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
@@ -352,6 +353,12 @@ export function DashboardCalendar<T extends CalendarEvent>({
           ))}
         </div>
       </div>
+
+      {quickActions ? (
+        <div className="flex flex-wrap items-center gap-2.5">
+          {quickActions}
+        </div>
+      ) : null}
 
       <div
         style={
@@ -402,8 +409,6 @@ export function DashboardCalendar<T extends CalendarEvent>({
           />
         )}
       </div>
-
-      {quickActions}
     </div>
   );
 }

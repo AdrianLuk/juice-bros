@@ -46,7 +46,7 @@ export function FriendCalendarDialog({
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         View calendar
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="bb-theme max-h-[85vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{name}&apos;s calendar</DialogTitle>
           <DialogDescription>

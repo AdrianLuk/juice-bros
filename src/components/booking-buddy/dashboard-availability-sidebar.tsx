@@ -25,24 +25,26 @@ export function DashboardAvailabilitySidebar({
 }) {
   const upcoming = windows
     .filter((window) => new Date(window.endsAt).getTime() > now.getTime())
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    .sort(
+      (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+    );
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-heading text-sm font-semibold tracking-tight">
-          Your availability blocks
+        <h2 className="font-bb-sign text-[0.82rem] tracking-[0.1em] text-foreground uppercase">
+          Your availability
         </h2>
         <Link
           href={AVAILABILITY_PATH}
-          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary"
+          className="text-xs text-muted-foreground underline decoration-dotted underline-offset-4 hover:text-brand-orange"
         >
           See all
         </Link>
       </div>
 
       {upcoming.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+        <p className="bb-outline p-4 text-sm text-muted-foreground">
           Nothing blocked off. Use &ldquo;Block off time&rdquo; to let friends
           know when you&apos;re available.
         </p>
@@ -52,7 +54,10 @@ export function DashboardAvailabilitySidebar({
             <AvailabilityWindowRow
               key={window.id}
               window={window}
-              rangeLabel={formatAvailabilityWindowRange(window, DEFAULT_HAND_NAMED_TIME_ZONE)}
+              rangeLabel={formatAvailabilityWindowRange(
+                window,
+                DEFAULT_HAND_NAMED_TIME_ZONE,
+              )}
             />
           ))}
         </ul>

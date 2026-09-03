@@ -45,12 +45,11 @@ export function FriendSearch() {
 
   return (
     <section>
-      <h2 className="font-heading text-lg font-semibold tracking-tight">
-        Find a friend
-      </h2>
+      <h2 className="bb-h text-[1.05rem]">Find a friend</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Search by name, or by their exact username or email. Booking Buddy
-        isn&apos;t a browsable directory, so you need one of those to find someone.
+        isn&apos;t a browsable directory, so you need one of those to find
+        someone.
       </p>
 
       {/* No form: results stream in as you type, and there is nothing to
@@ -107,7 +106,7 @@ export function FriendSearch() {
         )}
 
         {results.length > 0 && (
-          <ul className="divide-y divide-border/60 overflow-hidden bb-card">
+          <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
             {results.map((result) => (
               <li
                 key={result.id}
@@ -140,17 +139,24 @@ function SearchResultAction({ result }: { result: UserSearchResult }) {
   }
 
   if (state.ok) {
-    return <p className="shrink-0 text-sm text-muted-foreground">Request sent</p>;
+    return (
+      <p className="shrink-0 text-sm text-muted-foreground">Request sent</p>
+    );
   }
 
   // Deliberately direction-neutral: search doesn't say who asked whom, and if
   // it was them, the answer buttons are in "Requests for you" below.
   if (result.connection_status === "pending") {
-    return <p className="shrink-0 text-sm text-muted-foreground">Request pending</p>;
+    return (
+      <p className="shrink-0 text-sm text-muted-foreground">Request pending</p>
+    );
   }
 
   return (
-    <form action={formAction} className="flex shrink-0 flex-col items-end gap-1">
+    <form
+      action={formAction}
+      className="flex shrink-0 flex-col items-end gap-1"
+    >
       <input type="hidden" name="addressee_id" value={result.id} />
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Sending…" : "Add friend"}

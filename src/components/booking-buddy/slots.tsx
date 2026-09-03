@@ -43,7 +43,11 @@ import {
 } from "@/lib/booking-buddy/capacity";
 import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
 import { ActionError } from "@/components/booking-buddy/action-error";
-import { DEFAULT_DIVISION, DIVISIONS, DIVISION_LABEL } from "@/lib/booking-buddy/division";
+import {
+  DEFAULT_DIVISION,
+  DIVISIONS,
+  DIVISION_LABEL,
+} from "@/lib/booking-buddy/division";
 import { NOTES_MAX_LENGTH } from "@/lib/booking-buddy/slots";
 import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
 import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
@@ -97,11 +101,16 @@ function initialDurationHours(
   startTime: string,
   endTime: string | undefined,
 ): number {
-  if (!endTime || !HOUR_TIMES.includes(startTime) || !HOUR_TIMES.includes(endTime)) {
+  if (
+    !endTime ||
+    !HOUR_TIMES.includes(startTime) ||
+    !HOUR_TIMES.includes(endTime)
+  ) {
     return DEFAULT_DURATION_HOURS;
   }
   const hours =
-    ((Number(endTime.slice(0, 2)) - Number(startTime.slice(0, 2)) + 24) % 24) || 24;
+    (Number(endTime.slice(0, 2)) - Number(startTime.slice(0, 2)) + 24) % 24 ||
+    24;
   return hours >= 1 && hours <= 3 ? hours : DEFAULT_DURATION_HOURS;
 }
 
@@ -122,10 +131,10 @@ export function CreateSlotForm({
   /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
   onPosted?: (slotId: string) => void;
 }) {
-  const [state, formAction, pending] = useActionState<CreateSlotResult, FormData>(
-    createSlot,
-    EMPTY,
-  );
+  const [state, formAction, pending] = useActionState<
+    CreateSlotResult,
+    FormData
+  >(createSlot, EMPTY);
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
   // Start and Duration are controlled — the End field is computed from them
@@ -171,7 +180,10 @@ export function CreateSlotForm({
 
         <div className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
           <Label>Duration</Label>
-          <DurationPicker value={duration.durationChoice} onChange={duration.setDurationChoice} />
+          <DurationPicker
+            value={duration.durationChoice}
+            onChange={duration.setDurationChoice}
+          />
           {duration.durationChoice === "custom" && (
             <div className="flex items-center gap-2 pt-0.5">
               <Input
@@ -184,7 +196,9 @@ export function CreateSlotForm({
                 step={1}
                 placeholder="Hours"
                 value={duration.customHours}
-                onChange={(event) => duration.setCustomHours(event.target.value)}
+                onChange={(event) =>
+                  duration.setCustomHours(event.target.value)
+                }
                 className="w-20"
               />
               <span className="text-xs text-muted-foreground">hours</span>
@@ -215,7 +229,11 @@ export function CreateSlotForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-division">Division</Label>
-          <FormSelect id="slot-division" name="division" defaultValue={DEFAULT_DIVISION}>
+          <FormSelect
+            id="slot-division"
+            name="division"
+            defaultValue={DEFAULT_DIVISION}
+          >
             {DIVISIONS.map((division) => (
               <option key={division} value={division}>
                 {DIVISION_LABEL[division]}
@@ -227,7 +245,11 @@ export function CreateSlotForm({
         {orgs.length > 0 && (
           <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="slot-org">Facility</Label>
-            <OptionalOrgSelect id="slot-org" orgs={orgs} defaultValue={defaultOrgId} />
+            <OptionalOrgSelect
+              id="slot-org"
+              orgs={orgs}
+              defaultValue={defaultOrgId}
+            />
           </div>
         )}
       </div>
@@ -267,24 +289,23 @@ export function CreateSlotForm({
  * distinction the Capacity panel spells out in prose, as a glanceable chip.
  */
 export function SlotStatusBadge({ courtCount }: { courtCount: number }) {
-  return courtCount > 0 ? (
-    <span className="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-      Court booked
-    </span>
-  ) : (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-      Proposal
+  const booked = courtCount > 0;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 font-bb-sign text-[0.66rem] tracking-[0.1em] text-muted-foreground uppercase">
+      <span
+        aria-hidden
+        className="size-2 rounded-full"
+        style={{
+          backgroundColor: booked ? "var(--bb-pin-in)" : "var(--bb-pin-maybe)",
+          boxShadow: "inset 0 -1px 1px rgba(0,0,0,.3)",
+        }}
+      />
+      {booked ? "Court booked" : "Gathering"}
     </span>
   );
 }
 
-export function SlotRow({
-  slot,
-  href,
-}: {
-  slot: Slot;
-  href: string;
-}) {
+export function SlotRow({ slot, href }: { slot: Slot; href: string }) {
   return (
     <li>
       <Link
@@ -590,7 +611,8 @@ export function SlotCapacityPanel({
         </ul>
         <p className="text-xs text-muted-foreground">
           {courtsLabel(capacity.courtCount)}
-          {capacity.rotationBuffer > 0 && ` plus ${capacity.rotationBuffer} rotating`}
+          {capacity.rotationBuffer > 0 &&
+            ` plus ${capacity.rotationBuffer} rotating`}
           {gendered.unspecified > 0 &&
             ` (${gendered.unspecified} more responded yes without a gender set)`}
         </p>
@@ -601,9 +623,11 @@ export function SlotCapacityPanel({
             role="status"
           >
             More yeses than spots for{" "}
-            {overBuckets.map((bucket) => GENDER_LABEL[bucket.gender]).join(" and ")}. Nobody
-            has been turned away. Book another court and attach it, raise the
-            rotation buffer, or leave it as is.
+            {overBuckets
+              .map((bucket) => GENDER_LABEL[bucket.gender])
+              .join(" and ")}
+            . Nobody has been turned away. Book another court and attach it,
+            raise the rotation buffer, or leave it as is.
           </p>
         )}
       </div>
@@ -633,8 +657,8 @@ export function SlotCapacityPanel({
           className="rounded-lg border border-accent-foreground/25 bg-accent/25 px-4 py-3 text-sm"
           role="status"
         >
-          More yeses than spots. Nobody has been turned away. Book another
-          court and attach it, raise the rotation buffer, or leave it as is.
+          More yeses than spots. Nobody has been turned away. Book another court
+          and attach it, raise the rotation buffer, or leave it as is.
         </p>
       )}
     </div>
@@ -675,7 +699,9 @@ export function SlotCourts({
               <BookingDetailsModal
                 booking={booking}
                 orgs={orgs}
-                render={<button type="button" className="min-w-0 flex-1 text-left" />}
+                render={
+                  <button type="button" className="min-w-0 flex-1 text-left" />
+                }
               >
                 <p className="truncate font-medium">
                   {booking.when} · {booking.orgName}
@@ -692,7 +718,10 @@ export function SlotCourts({
       )}
 
       <AttachBookingForm slotId={slotId} capacity={capacity} />
-      <RotationBufferForm slotId={slotId} rotationBuffer={capacity.rotationBuffer} />
+      <RotationBufferForm
+        slotId={slotId}
+        rotationBuffer={capacity.rotationBuffer}
+      />
     </div>
   );
 }
@@ -704,7 +733,10 @@ function AttachBookingForm({
   slotId: string;
   capacity: SlotCapacity;
 }) {
-  const [state, formAction, pending] = useActionState(attachBookingToSlot, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    attachBookingToSlot,
+    EMPTY,
+  );
 
   if (capacity.attachable.length === 0) {
     return (
@@ -722,13 +754,19 @@ function AttachBookingForm({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="attach-booking">Add a court</Label>
-        <FormSelect id="attach-booking" name="booking_id" defaultValue="" required>
+        <FormSelect
+          id="attach-booking"
+          name="booking_id"
+          defaultValue=""
+          required
+        >
           <option value="" disabled>
             Pick a booking
           </option>
           {capacity.attachable.map((booking) => (
             <option key={booking.id} value={booking.id}>
-              {booking.when} · {booking.orgName} · {formatCourtLabel(booking.courtLabel)} ·{" "}
+              {booking.when} · {booking.orgName} ·{" "}
+              {formatCourtLabel(booking.courtLabel)} ·{" "}
               {BOOKING_FORMAT_LABEL[booking.format]}
             </option>
           ))}
@@ -752,7 +790,10 @@ function DetachBookingButton({
   slotId: string;
   booking: SlotCapacity["attached"][number];
 }) {
-  const [state, formAction, pending] = useActionState(detachBookingFromSlot, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    detachBookingFromSlot,
+    EMPTY,
+  );
 
   // The form lives inside the dialog so the confirm button is the only thing
   // that can submit it — same shape as removing a booking or deleting a slot.
@@ -772,17 +813,19 @@ function DetachBookingButton({
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Detach
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Detach this court?</DialogTitle>
           <DialogDescription>
-            {booking.when} at {booking.orgName}. This game&apos;s capacity
-            drops by one court. Your actual booking stays untouched on your
-            Bookings page.
+            {booking.when} at {booking.orgName}. This game&apos;s capacity drops
+            by one court. Your actual booking stays untouched on your Bookings
+            page.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Keep attached</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>
+            Keep attached
+          </DialogClose>
           {form}
         </DialogFooter>
       </DialogContent>
@@ -842,7 +885,13 @@ function RotationBufferForm({
  * `SlotCourts` section (visible to the owner regardless of whether any court
  * is attached yet).
  */
-export function NotesForm({ slotId, notes }: { slotId: string; notes: string | null }) {
+export function NotesForm({
+  slotId,
+  notes,
+}: {
+  slotId: string;
+  notes: string | null;
+}) {
   const [state, formAction, pending] = useActionState(setSlotNotes, EMPTY);
 
   return (
@@ -873,7 +922,13 @@ export function NotesForm({ slotId, notes }: { slotId: string; notes: string | n
   );
 }
 
-export function DeleteSlotButton({ slotId, when }: { slotId: string; when: string }) {
+export function DeleteSlotButton({
+  slotId,
+  when,
+}: {
+  slotId: string;
+  when: string;
+}) {
   const [state, formAction, pending] = useActionState(deleteSlot, EMPTY);
 
   // The form lives inside the dialog so the confirm button is the only thing
@@ -896,7 +951,7 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
       <DialogTrigger render={<Button size="sm" variant="destructive" />}>
         Delete game
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="bb-theme">
         <DialogHeader>
           <DialogTitle>Delete this game?</DialogTitle>
           <DialogDescription>
@@ -906,7 +961,9 @@ export function DeleteSlotButton({ slotId, when }: { slotId: string; when: strin
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Keep game</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>
+            Keep game
+          </DialogClose>
           {form}
         </DialogFooter>
       </DialogContent>

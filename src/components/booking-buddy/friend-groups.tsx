@@ -22,7 +22,10 @@ import {
   VisibilitySelect,
   visibilityLabel,
 } from "@/components/booking-buddy/visibility-select";
-import { personLabel, personOptionLabel } from "@/lib/booking-buddy/connections";
+import {
+  personLabel,
+  personOptionLabel,
+} from "@/lib/booking-buddy/connections";
 import type { ConnectionPerson } from "@/lib/booking-buddy/actions/connections";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
@@ -39,7 +42,10 @@ export function CreateGroupForm() {
   const [state, formAction, pending] = useActionState(createFriendGroup, EMPTY);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 sm:flex-row sm:items-end"
+    >
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <Label htmlFor="group-name">Group name</Label>
         <Input
@@ -80,7 +86,7 @@ export function GroupCard({
     <section className="bb-card overflow-hidden">
       <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div className="min-w-0">
-          <h3 className="truncate font-heading text-base font-semibold tracking-tight">
+          <h3 className="truncate font-bb-body text-base font-semibold tracking-tight">
             {group.name}
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -118,7 +124,10 @@ export function GroupCard({
 }
 
 function GroupVisibilityForm({ group }: { group: FriendGroup }) {
-  const [state, formAction, pending] = useActionState(setGroupVisibility, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    setGroupVisibility,
+    EMPTY,
+  );
   const selectId = `group-${group.id}-level`;
 
   return (
@@ -153,12 +162,18 @@ function RemoveMemberForm({
   groupId: string;
   member: ConnectionPerson;
 }) {
-  const [state, formAction, pending] = useActionState(setGroupMembership, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    setGroupMembership,
+    EMPTY,
+  );
 
   // The form lives inside the dialog so the confirm button is the only thing
   // that can submit it — the same shape as removing a friend or a group.
   const form = (
-    <form action={formAction} className="flex shrink-0 flex-col items-end gap-1">
+    <form
+      action={formAction}
+      className="flex shrink-0 flex-col items-end gap-1"
+    >
       <input type="hidden" name="group_id" value={groupId} />
       <input type="hidden" name="connection_id" value={member.connectionId} />
       <input type="hidden" name="member" value="no" />
@@ -178,8 +193,8 @@ function RemoveMemberForm({
         <AlertDialogHeader>
           <AlertDialogTitle>Remove {personLabel(member)}?</AlertDialogTitle>
           <AlertDialogDescription>
-            They stay your friend, but drop out of this group and lose
-            whatever visibility it gave them. You can add them back anytime.
+            They stay your friend, but drop out of this group and lose whatever
+            visibility it gave them. You can add them back anytime.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -198,7 +213,10 @@ function AddMemberForm({
   groupId: string;
   addable: ConnectionPerson[];
 }) {
-  const [state, formAction, pending] = useActionState(setGroupMembership, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    setGroupMembership,
+    EMPTY,
+  );
   const selectId = `group-${groupId}-add`;
 
   if (addable.length === 0) {
@@ -262,7 +280,9 @@ function DeleteGroupButton({ group }: { group: FriendGroup }) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete &ldquo;{group.name}&rdquo;?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Delete &ldquo;{group.name}&rdquo;?
+          </AlertDialogTitle>
           <AlertDialogDescription>
             Everyone in it stays your friend, but they&apos;ll drop back to
             whatever your other groups give them, which may be nothing.

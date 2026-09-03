@@ -28,15 +28,21 @@ export function SiteHeader() {
   // often wide enough to already be past that breakpoint.
   const isPicklePointPal = pathname?.startsWith("/tools/pickle-point-pal") ?? false;
 
-  // Home, About, and the On Deck landing all open on a full-bleed colored hero
-  // that should run right to the top of the page, so the bar needs to float
-  // over it instead of reserving its own row - every other page keeps it
-  // sticky so page headings aren't tucked underneath it. Only applies to the
-  // desktop bar: on mobile the hero is a short banner rather than a
-  // full-viewport background, so overlapping it hides content - mobile gets a
-  // plain in-flow identity strip instead, plus a corner FAB for the menu.
+  // Home, About, the On Deck landing, and the Booking Buddy landing all open on
+  // a full-bleed hero background that should run right to the top of the page,
+  // so the bar needs to float over it instead of reserving its own row - every
+  // other page keeps it sticky so page headings aren't tucked underneath it.
+  // (`/booking-buddy` only renders this header when signed out - the signed-in
+  // app suppresses it for its own routed sign - so the landing is the only
+  // thing this branch affects there.) Only applies to the desktop bar: on
+  // mobile the hero is a short banner rather than a full-viewport background,
+  // so overlapping it hides content - mobile gets a plain in-flow identity
+  // strip instead, plus a corner FAB for the menu.
   const hasOverlayHero =
-    pathname === "/" || pathname === "/about" || pathname === "/on-deck";
+    pathname === "/" ||
+    pathname === "/about" ||
+    pathname === "/on-deck" ||
+    pathname === "/booking-buddy";
 
   return (
     <>

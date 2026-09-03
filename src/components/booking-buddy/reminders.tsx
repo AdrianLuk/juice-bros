@@ -30,7 +30,10 @@ export function ReminderOffsetForm({
   slotId: string;
   reminderOffsetMinutes: number;
 }) {
-  const [state, formAction, pending] = useActionState(updateReminderOffset, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    updateReminderOffset,
+    EMPTY,
+  );
 
   // The current value is always an option, even if it isn't one of the
   // presets — a value set before this list existed (or some other way)
@@ -61,8 +64,8 @@ export function ReminderOffsetForm({
           ))}
         </FormSelect>
         <p className="text-xs text-muted-foreground">
-          Only Users with a &ldquo;yes&rdquo; response get one, and only once
-          a court is attached.
+          Only Users with a &ldquo;yes&rdquo; response get one, and only once a
+          court is attached.
         </p>
       </div>
 

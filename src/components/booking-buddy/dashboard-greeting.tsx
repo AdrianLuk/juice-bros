@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { Eyebrow } from "@/components/typography/eyebrow";
-
 /**
  * The dashboard's heading (issue #23 territory) — a time-of-day greeting in
  * place of a flat "Dashboard" label, over a one-line read of what's actually
@@ -65,9 +63,8 @@ export function DashboardGreeting({
   }
 
   return (
-    <>
-      <Eyebrow>Booking Buddy</Eyebrow>
-      <h1 className="mt-3 font-heading text-4xl font-semibold tracking-[-0.02em] sm:text-5xl">
+    <div className="flex flex-col gap-2">
+      <h1 className="font-bb-sign text-[2.6rem] leading-[0.95] tracking-[0.01em] text-foreground uppercase sm:text-[3.4rem]">
         Good{" "}
         {/* Keyed so the swap from the "day" placeholder to the real
             time-of-day word fades in (bb-anim-in) rather than snapping. */}
@@ -75,7 +72,9 @@ export function DashboardGreeting({
           {timeWord}
         </span>
       </h1>
-      <p className="mt-3 max-w-xl text-lg text-muted-foreground">{status}</p>
-    </>
+      <p className="max-w-xl text-[0.98rem] text-[var(--bb-on-cork-dim)]">
+        {status}
+      </p>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 
 /**
@@ -15,21 +14,21 @@ import { PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 export function BbFooter({ className }: { className?: string }) {
   return (
     <nav
-      className={cn("mt-14 flex flex-wrap items-center gap-2", className)}
+      className={cn(
+        "mt-16 flex flex-wrap items-center gap-4 border-t border-[var(--bb-cork-edge)]/30 pt-4 font-bb-sign text-[0.68rem] tracking-widest uppercase",
+        className,
+      )}
       aria-label="Booking Buddy footer"
     >
       <Link
         href={PRIVACY_PATH}
-        className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+        className="text-foreground/85 transition-colors hover:text-foreground"
       >
         Privacy
       </Link>
       <Link
         href="/"
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "sm" }),
-          "text-muted-foreground",
-        )}
+        className="text-foreground/85 transition-colors hover:text-foreground"
       >
         Juice Bros Pickleball
       </Link>
