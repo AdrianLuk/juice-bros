@@ -17,6 +17,7 @@ import {
   kioskPath,
   volunteerPath,
 } from "@/lib/on-deck/routes";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
 import { VolunteerLinkCard } from "@/components/on-deck/volunteer-link-card";
 
@@ -72,47 +73,53 @@ export default async function FloorPage({
     : null;
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-12 sm:px-6 lg:px-8">
+    <ArenaShell>
+      <section className="w-full px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-3xl">
-          <p className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-            {view.status === "open" ? "Floor screen" : "Session closed"}
-          </p>
-          <h1 className="mt-3 font-heading text-3xl font-semibold">
-            {view.venueName}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-arena-line-soft pb-4">
+            <h1 className="od-display text-2xl text-arena-dim sm:text-3xl">
+              {view.venueName}
+            </h1>
+            <p
+              className={`od-readout ${
+                view.status === "open" ? "text-arena-live" : "text-arena-faint"
+              }`}
+            >
+              {view.status === "open" ? "● Floor screen" : "Session closed"}
+            </p>
+          </header>
+          <p className="mt-3 text-sm text-arena-faint">
             Signed in as {organizer.email}. Players scan{" "}
             <Link
               href={clubQrPath(club.id)}
-              className="underline underline-offset-4"
+              className="text-arena-dim underline underline-offset-4 hover:text-arena-fg"
             >
               the club QR
             </Link>{" "}
             to join.
           </p>
           {view.status === "open" && (
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-arena-faint">
               Got a spare screen?{" "}
               <Link
                 href={displayPath(sessionId)}
-                className="underline underline-offset-4"
+                className="text-arena-dim underline underline-offset-4 hover:text-arena-fg"
               >
                 Open the display
               </Link>{" "}
-              on it — a read-only board of courts, the queue, and who&apos;s on
+              on it. A read-only board of courts, the queue, and who&apos;s on
               deck.
               {loaded.config.floorMode !== "volunteer-run" && (
                 <>
                   {" "}
-                  For a screen by the courts,{" "}
+                  Or, for a screen by the courts,{" "}
                   <Link
                     href={kioskPath(sessionId)}
-                    className="underline underline-offset-4"
+                    className="text-arena-dim underline underline-offset-4 hover:text-arena-fg"
                   >
                     open the kiosk
                   </Link>{" "}
-                  instead — the same board plus the turnover buttons, tappable by
+                  instead: the same board plus the turnover buttons, tappable by
                   anyone playing.
                 </>
               )}
@@ -125,7 +132,7 @@ export default async function FloorPage({
             </div>
           )}
 
-          <div className="mt-10">
+          <div className="mt-9">
             <RotationBoard
               sessionId={sessionId}
               initialView={view}
@@ -134,6 +141,6 @@ export default async function FloorPage({
           </div>
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

@@ -31,6 +31,7 @@
   --font-sans: var(--font-geist);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-bricolage);
+  --font-arena: var(--font-saira-condensed);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -70,6 +71,23 @@
   --color-brand-black: var(--brand-black);
   --color-brand-orange: var(--brand-orange);
   --color-brand-yellow: var(--brand-yellow);
+
+  /* On Deck arena board (direction seed 92ec9d54) — the `--arena-*` values
+     these point at are scoped to `.od-arena` further down, so these utilities
+     only resolve inside that subtree. */
+  --color-arena-bg: var(--arena-bg);
+  --color-arena-panel: var(--arena-panel);
+  --color-arena-panel-raised: var(--arena-panel-raised);
+  --color-arena-line: var(--arena-line);
+  --color-arena-line-soft: var(--arena-line-soft);
+  --color-arena-fg: var(--arena-fg);
+  --color-arena-dim: var(--arena-dim);
+  --color-arena-faint: var(--arena-faint);
+  --color-arena-live: var(--arena-live);
+  --color-arena-live-ink: var(--arena-live-ink);
+  --color-arena-next: var(--arena-next);
+  --color-arena-next-line: var(--arena-next-line);
+  --color-arena-warn: var(--arena-warn);
 }
 
 :root {
@@ -1018,5 +1036,447 @@
   ::view-transition-old(bb-section-pill),
   ::view-transition-new(bb-section-pill) {
     animation-duration: 1ms;
+  }
+}
+
+/*
+ * ═══ On Deck: the arena board ═══════════════════════════════════════════════
+ *
+ * DIRECTION — "The Substitution Board". On Deck's live-event surfaces (the
+ * player's phone, the organizer floor screen, the read-only Display, the
+ * courtside Kiosk) become the bright LED panel a fourth official holds up at
+ * the touchline: names coming ON, names going OFF, held where a whole noisy
+ * gym reads them in one glance. "You're up, Court 5" is a substitution call.
+ *
+ * Scoped to `.od-arena` (set once in `src/app/on-deck/session-shell.tsx` and
+ * on the club-QR page) so the marketing landing at exactly `/on-deck` and the
+ * rest of the site keep their light palette untouched. This is a committed
+ * dark surface by scene, not by theme toggle: these screens live on a snack
+ * table and a courtside stand under fluorescent light, not in a browser tab.
+ *
+ * COLOR — Committed. The near-black arena ground carries the surface. One
+ * signal, brand orange `#f26522` kept exactly as-is (PRODUCT.md; the user
+ * loosened its dominance here, not its value), rationed to what is LIVE right
+ * now: the foursome being called, the court that just opened, "you're up". A
+ * cool electric wash marks what is imminent-but-not-yet (on deck). Everything
+ * still waiting stays graphite and cool-white — no accent, so the accent means
+ * something. Text on the orange fill stays white (the club's standing call).
+ */
+.od-arena {
+  --arena-bg: oklch(0.16 0.014 255);
+  --arena-panel: oklch(0.213 0.017 258);
+  --arena-panel-raised: oklch(0.253 0.019 258);
+  --arena-line: oklch(0.36 0.02 258);
+  --arena-line-soft: oklch(0.3 0.018 258 / 0.6);
+  --arena-fg: oklch(0.97 0.006 250);
+  /* Secondary text: tinted from the ground's hue, never flat gray. ~5.6:1 on
+     --arena-panel. */
+  /* Graphite — a near-neutral cool grey, chroma kept low enough that it never
+     reads as the cyan IMMINENT signal. */
+  --arena-dim: oklch(0.74 0.012 250);
+  /* ~4.6:1 on --arena-panel — clears AA for the "waiting" placeholders and the
+     secondary action labels that used to sit under it. */
+  --arena-faint: oklch(0.64 0.012 250);
+
+  /* LIVE — brand orange, unaltered. */
+  --arena-live: #f26522;
+  --arena-live-ink: #ffffff;
+  --arena-live-glow: oklch(0.68 0.19 40 / 0.55);
+  --arena-live-wash: oklch(0.66 0.2 40 / 0.14);
+
+  /* IMMINENT — the cool "on deck" signal. */
+  --arena-next: oklch(0.86 0.09 218);
+  --arena-next-wash: oklch(0.82 0.12 218 / 0.2);
+  --arena-next-line: oklch(0.72 0.1 218 / 0.7);
+
+  --arena-warn: oklch(0.83 0.13 85);
+
+  --arena-radius: 14px;
+
+  background-color: var(--arena-bg);
+  color: var(--arena-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Themed browser surfaces — the parts not drawn still carry the board. */
+.od-arena ::selection {
+  background-color: oklch(0.66 0.2 40 / 0.32);
+  color: #fff;
+}
+.od-arena {
+  scrollbar-color: var(--arena-line) transparent;
+}
+.od-arena *:focus-visible {
+  outline: 2px solid var(--arena-next);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.od-arena .od-live *:focus-visible {
+  outline-color: #fff;
+}
+
+/* ── Type ────────────────────────────────────────────────────────────────── */
+
+/* The board voice: an engineered condensed face at signage scale. Used for
+   every name, court number, position and status word — the things read across
+   a room. */
+.od-display {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+.od-display-tight {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+/* The readout voice: tabular mono for labels, counts, wait times and positions
+   — the starter's clipboard, not decoration. Floored at 0.75rem so it survives
+   a gym viewing distance; never set it smaller than this. */
+.od-readout {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+
+/* A bolted panel zone. Real offset + blur depth, plus a hairline lit top edge
+   so it reads as an illuminated panel rather than an outlined box. */
+.od-panel {
+  background-color: var(--arena-panel);
+  border: 1px solid var(--arena-line-soft);
+  border-radius: var(--arena-radius);
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.05),
+    0 1px 2px oklch(0 0 0 / 0.4),
+    0 18px 40px -22px oklch(0 0 0 / 0.7);
+}
+
+/* The LIVE state — the one call happening now. Orange fill, white ink, a soft
+   outward glow (offset-zero here is intentional: a lit sign, not a shadow). */
+.od-live {
+  background-color: var(--arena-live);
+  color: var(--arena-live-ink);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.18),
+    0 0 0 1px oklch(0.66 0.2 40 / 0.6),
+    0 12px 40px -8px var(--arena-live-glow);
+}
+.od-live .od-readout {
+  color: oklch(1 0 0 / 0.82);
+}
+
+/* The IMMINENT state — on deck, next onto a court. A cool wash and edge, lit
+   along the top so "up next" reads a clear step hotter than "after that". */
+.od-next {
+  background-color: var(--arena-next-wash);
+  border-color: var(--arena-next-line);
+  box-shadow:
+    inset 0 1px 0 0 oklch(0.86 0.11 218 / 0.35),
+    inset 0 22px 40px -30px oklch(0.82 0.14 218 / 0.9),
+    0 1px 2px oklch(0 0 0 / 0.4),
+    0 18px 40px -22px oklch(0 0 0 / 0.7);
+}
+
+/* Native disclosure triangle off — the board's own summaries carry their own
+   affordance (mono label + underline on hover). */
+.od-arena summary {
+  list-style: none;
+}
+.od-arena summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ── Controls — milled, individually labelled ───────────────────────────── */
+
+/* Every operator control is a physical key with an engraved label. The primary
+   turnover key (a Court done) is unmistakable; secondary keys are outlined
+   metal. Min 44px touch target — a distracted volunteer, a tablet by the net. */
+.od-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.15rem;
+  border-radius: 11px;
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--arena-fg);
+  background-color: var(--arena-panel-raised);
+  border: 1px solid var(--arena-line);
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.06),
+    0 2px 0 0 oklch(0 0 0 / 0.4),
+    0 6px 14px -8px oklch(0 0 0 / 0.6);
+  transition:
+    transform 90ms cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+@media (hover: hover) {
+  .od-key:hover:not(:disabled) {
+    background-color: color-mix(in oklch, var(--arena-panel-raised), white 6%);
+  }
+}
+.od-key:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.06),
+    0 0 0 0 oklch(0 0 0 / 0.4),
+    0 3px 8px -6px oklch(0 0 0 / 0.6);
+}
+/* Disabled — a dark, unlit key. A disabled key never keeps a fill colour
+   (a washed-out orange reads as broken, not unavailable): it drops back to the
+   plain chassis and dims. */
+.od-key:disabled {
+  color: var(--arena-faint);
+  background-color: oklch(0.19 0.014 258);
+  border-color: var(--arena-line-soft);
+  box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.03);
+  cursor: not-allowed;
+}
+.od-key--go {
+  color: var(--arena-live-ink);
+  background-color: var(--arena-live);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.22),
+    0 2px 0 0 oklch(0.42 0.13 40 / 0.8),
+    0 10px 26px -10px var(--arena-live-glow);
+}
+@media (hover: hover) {
+  .od-key--go:hover:not(:disabled) {
+    background-color: color-mix(in oklch, var(--arena-live), white 7%);
+  }
+}
+.od-key--ghost {
+  min-height: 40px;
+  background: transparent;
+  border-color: var(--arena-line);
+  box-shadow: none;
+  font-size: 0.9375rem;
+  color: var(--arena-dim);
+}
+.od-key--ghost:disabled {
+  color: var(--arena-faint);
+  background: transparent;
+  border-color: var(--arena-line-soft);
+  box-shadow: none;
+}
+
+/* A compact key for inside a list row — set aside / break up. Still a real
+   36px+ tap target, still labelled, just narrower than a turnover key. */
+.od-key--chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border-radius: 8px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--arena-dim);
+  background-color: var(--arena-panel-raised);
+  border: 1px solid var(--arena-line);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+@media (hover: hover) {
+  .od-key--chip:hover:not(:disabled) {
+    color: var(--arena-fg);
+    background-color: color-mix(in oklch, var(--arena-panel-raised), white 6%);
+  }
+}
+.od-key--chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The turnover key — a Court done — is the one action a courtside operator
+   must find in a glance. It fills its column, sits taller than a secondary
+   key, and only ever carries the orange live fill. */
+.od-key--turnover {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.1875rem;
+  letter-spacing: 0.04em;
+}
+
+/* Board-native inputs — the club's own hardware, not a web form. Recessed into
+   the panel, board type for the value the player types (a name goes on the
+   board, so it may as well look like it). */
+.od-field,
+.od-select {
+  min-height: 48px;
+  width: 100%;
+  padding: 0 0.9rem;
+  border-radius: 10px;
+  background-color: oklch(0.13 0.013 255);
+  border: 1px solid var(--arena-line);
+  color: var(--arena-fg);
+  box-shadow: inset 0 2px 5px oklch(0 0 0 / 0.35);
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.od-field::placeholder {
+  color: var(--arena-faint);
+}
+.od-field:focus-visible,
+.od-select:focus-visible {
+  outline: none;
+  border-color: var(--arena-next);
+  box-shadow:
+    inset 0 2px 5px oklch(0 0 0 / 0.35),
+    0 0 0 3px var(--arena-next-wash);
+}
+.od-select {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237e8a9e' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+}
+.od-select option {
+  background-color: var(--arena-panel);
+  color: var(--arena-fg);
+}
+
+/* Name chips — the "queue together" picker. A pressed chip is the cool
+   imminent signal, not the orange live one (nobody is called yet). */
+.od-chip {
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border-radius: 9px;
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--arena-dim);
+  background-color: transparent;
+  border: 1px solid var(--arena-line);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.od-chip--on {
+  color: var(--arena-bg);
+  background-color: var(--arena-next);
+  border-color: transparent;
+}
+
+/* The numbered rail — a fixed tabular index down the left of every queue
+   listing, always present, never scrolling away from its row. */
+.od-rail {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  color: var(--arena-faint);
+  width: 2.25ch;
+  flex: none;
+  text-align: right;
+}
+
+/* ── Motion — one authored moment: the call ─────────────────────────────── */
+
+/* The on-deck progress-to-court ladder eases as its foursome nears the front —
+   the one transition that runs on every board, motion-preference or not, since
+   it carries information (how close the next four are). Driven by scaleX from a
+   left origin so it costs a composite, not a layout pass. */
+.od-ladder-track {
+  height: 0.375rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: var(--arena-line-soft);
+}
+.od-ladder-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  background-color: var(--arena-live);
+  transform-origin: left center;
+  transition: transform 520ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* THE ONE AUTHORED MOMENT — the call. A court turns over: the keyed names
+     node re-mounts and the incoming foursome flips down onto the tile like a
+     split-flap board, trailing one orange glow that fades as they settle.
+     Nothing else on the board moves. */
+  .od-court-fill {
+    animation: od-court-fill 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transform-origin: top center;
+    backface-visibility: hidden;
+  }
+  /* A fresh foursome sliding into the "after that" slot, and the player
+     phone's "you're up" readout landing hard, once. */
+  .od-slide-in {
+    animation: od-slide-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .od-call-land {
+    animation: od-call-land 460ms cubic-bezier(0.32, 0.72, 0, 1) 1;
+  }
+}
+
+@keyframes od-court-fill {
+  0% {
+    transform: rotateX(-82deg);
+    opacity: 0.15;
+    text-shadow: 0 0 18px var(--arena-live-glow);
+  }
+  70% {
+    text-shadow: 0 0 10px oklch(0.66 0.2 40 / 0.35);
+  }
+  100% {
+    transform: rotateX(0);
+    opacity: 1;
+    text-shadow: 0 0 0 transparent;
+  }
+}
+@keyframes od-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes od-call-land {
+  0% {
+    transform: scale(0.96);
+  }
+  55% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
   }
 }

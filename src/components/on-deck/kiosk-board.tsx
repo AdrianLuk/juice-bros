@@ -3,9 +3,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import {
@@ -19,27 +16,30 @@ import {
   getRotationView,
   type RotationView,
 } from "@/lib/on-deck/actions/rotation";
+import { SKILL_LEVELS, SKILL_LEVEL_LABEL } from "@/lib/on-deck/session/types";
 import {
-  SKILL_LEVELS,
-  SKILL_LEVEL_LABEL,
-} from "@/lib/on-deck/session/types";
-import { formatWaitLabel } from "@/lib/on-deck/session/wait";
+  BoardBanner,
+  BoardHeading,
+  CourtPanel,
+  FoursomePanel,
+  QueueList,
+  Readout,
+} from "@/components/on-deck/board-parts";
 
 /**
- * The courtside Kiosk (issue #259): the Display's live board — Courts, On Deck,
- * the Queue — plus the buttons a Game turnover needs, for a tablet stood by the
- * courts. Any Player standing there can tap:
+ * The courtside Kiosk (issue #259) on the substitution board (direction seed
+ * 92ec9d54): the Display's board — courts, on deck, the queue — plus the milled
+ * keys a Game turnover needs, for a tablet stood by the courts.
  *
- *   - **Court N done** — ends the Game; the next Foursome walks on
+ *   - **Court N done** — the orange turnover key; the next Foursome walks on
  *   - **A player short** — flag a missing fourth; Match Me pulls a replacement
  *   - **Add me** — a walk-up with no phone enters name + last initial + skill
  *
- * plus an **idle-court nudge**: "Is Court N still going?" when a Court has sat
- * unconfirmed well past a normal Game length.
+ * plus an **idle-court nudge** — "Is Court N still going?" — when a Court has
+ * sat unconfirmed well past a normal Game length.
  *
  * No token — the Session id in the URL is the whole credential (ADR 0005). All
- * taps are `kiosk` Operator actions. Available only under `self-serve` /
- * `hybrid` Floor Mode; the page returns 404 otherwise.
+ * taps are `kiosk` Operator actions.
  */
 export function KioskBoard(props: {
   sessionId: string;
@@ -51,6 +51,7 @@ export function KioskBoard(props: {
     </QueryProvider>
   );
 }
+
 
 /** "A player short" for one in-play Court: pick who didn't show, confirm the
  * Match Me replacement (overridable). Collapsed until tapped. */
@@ -94,7 +95,7 @@ function PlayerShort({
     return (
       <button
         type="button"
-        className="mt-3 text-sm text-muted-foreground underline-offset-4 hover:underline"
+        className="od-readout mt-3 text-[0.72rem] text-arena-dim underline-offset-4 hover:text-arena-fg hover:underline"
         data-testid={`player-short-${court}`}
         onClick={() => setOpen(true)}
       >
@@ -104,11 +105,11 @@ function PlayerShort({
   }
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-dashed p-3">
-      <label className="block text-sm font-medium">
-        Who&apos;s missing
+    <div className="mt-3 space-y-3 rounded-lg border border-dashed border-arena-line p-3">
+      <label className="block">
+        <Readout className="text-arena-dim">Who&apos;s missing</Readout>
         <select
-          className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-base"
+          className="od-select mt-1.5"
           value={outName}
           onChange={(e) => setOutPick(e.target.value)}
         >
@@ -119,10 +120,12 @@ function PlayerShort({
           ))}
         </select>
       </label>
-      <label className="block text-sm font-medium">
-        Bring in{suggested ? " (suggested)" : ""}
+      <label className="block">
+        <Readout className="text-arena-dim">
+          Bring in{suggested ? " (suggested)" : ""}
+        </Readout>
         <select
-          className="mt-1 block w-full rounded-md border bg-background px-3 py-2 text-base"
+          className="od-select mt-1.5"
           value={inName}
           onChange={(e) => setInPick(e.target.value)}
         >
@@ -134,16 +137,21 @@ function PlayerShort({
         </select>
       </label>
       <div className="flex gap-2">
-        <Button
+        <button
           type="button"
+          className="od-key"
           disabled={pending || !outName || !inName}
           onClick={() => onSwap({ court, since, outName, inName })}
         >
           Bring them in
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+        </button>
+        <button
+          type="button"
+          className="od-key od-key--ghost"
+          onClick={() => setOpen(false)}
+        >
           Cancel
-        </Button>
+        </button>
       </div>
     </div>
   );
@@ -169,22 +177,20 @@ function AddMe({
 
   if (!open) {
     return (
-      <Button
+      <button
         type="button"
-        size="lg"
-        variant="outline"
-        className="w-full"
+        className="od-key od-key--ghost w-full"
         data-testid="add-me"
         onClick={() => setOpen(true)}
       >
         Add me to the queue
-      </Button>
+      </button>
     );
   }
 
   return (
     <form
-      className="rounded-2xl border bg-card p-4"
+      className="od-panel p-4"
       data-testid="add-me-form"
       onSubmit={(e) => {
         e.preventDefault();
@@ -200,39 +206,36 @@ function AddMe({
           .catch(() => {});
       }}
     >
-      <h2 className="font-heading text-xl font-semibold">Add me</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <BoardHeading>Add me</BoardHeading>
+      <p className="mt-1 text-sm text-arena-faint">
         No phone? Enter your name and you&apos;ll queue like everyone else.
       </p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="kiosk-first">First name</Label>
-          <Input
-            id="kiosk-first"
+        <label className="flex flex-col gap-1.5">
+          <Readout className="text-arena-dim">First name</Readout>
+          <input
             autoComplete="off"
             autoCapitalize="words"
-            className="w-44"
+            className="od-field w-44"
             value={first}
             onChange={(e) => setFirst(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="kiosk-initial">Last initial</Label>
-          <Input
-            id="kiosk-initial"
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <Readout className="text-arena-dim">Last initial</Readout>
+          <input
             autoComplete="off"
             autoCapitalize="characters"
             maxLength={4}
-            className="w-16"
+            className="od-field w-20"
             value={initial}
             onChange={(e) => setInitial(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="kiosk-skill">Skill level</Label>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <Readout className="text-arena-dim">Skill level</Readout>
           <select
-            id="kiosk-skill"
-            className="h-10 rounded-md border bg-background px-2 text-base"
+            className="od-select w-44"
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
           >
@@ -242,19 +245,25 @@ function AddMe({
               </option>
             ))}
           </select>
-        </div>
-        <Button type="submit" size="lg" disabled={!ready || pending}>
+        </label>
+        <button
+          type="submit"
+          className="od-key od-key--go"
+          disabled={!ready || pending}
+        >
           Add me
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+        </button>
+        <button
+          type="button"
+          className="od-key od-key--ghost"
+          onClick={() => setOpen(false)}
+        >
           Cancel
-        </Button>
+        </button>
       </div>
     </form>
   );
 }
-
-const ON_DECK_LABEL = ["Up next", "After that"] as const;
 
 function KioskBoardInner({
   sessionId,
@@ -273,8 +282,6 @@ function KioskBoardInner({
     initialData: initialView,
   });
 
-  // Wait Times and the idle-court threshold both count up between polls — tick a
-  // local clock so a quiet board still advances.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -330,105 +337,92 @@ function KioskBoardInner({
     walkup.isPending ||
     confirm.isPending ||
     undo.isPending;
-  // A Kiosk can only take back a Kiosk tap — an Organizer's or Volunteer's
-  // action on a hybrid Session is theirs to undo from their own surface (the
-  // RPC enforces this too; not offering the button avoids a guaranteed error).
   const kioskUndo = view.undo && view.undo.by === "kiosk" ? view.undo : null;
 
   if (view.status !== "open") {
     return (
-      <p className="text-lg text-muted-foreground" data-testid="kiosk-closed">
-        Tonight&apos;s session has wrapped up.
-      </p>
+      <BoardBanner tone="closed" data-testid="kiosk-closed">
+        Tonight&apos;s session has wrapped up
+      </BoardBanner>
     );
   }
 
+  const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
+
   return (
-    <div className="space-y-8" data-testid="kiosk-board">
+    <div className="space-y-7" data-testid="kiosk-board">
       {error && (
-        <p className="text-sm text-destructive" role="alert" data-testid="kiosk-error">
+        <p
+          className="od-readout text-[0.72rem] text-arena-warn"
+          role="alert"
+          data-testid="kiosk-error"
+        >
           {error}
         </p>
       )}
 
       {kioskUndo && (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-arena-line px-4 py-2.5">
+          <span className="text-sm text-arena-faint">
             Tapped something by mistake?
           </span>
-          <Button
+          <button
             type="button"
-            variant="ghost"
+            className="od-key od-key--ghost"
             disabled={busy}
             data-testid="kiosk-undo"
             onClick={() => undo.mutate(kioskUndo.seq)}
           >
             Undo {kioskUndo.label}
-          </Button>
+          </button>
         </div>
       )}
 
       {view.lastCall && (
-        <p
-          className="rounded-2xl bg-brand-orange px-6 py-4 font-heading text-xl font-semibold text-white"
-          data-testid="kiosk-last-call"
-        >
-          Last call — final games. No new foursomes tonight.
-        </p>
+        <BoardBanner tone="last-call" data-testid="kiosk-last-call">
+          Last call. Final games only, no new foursomes tonight.
+        </BoardBanner>
       )}
 
-      {/* Courts — the primary surface, big turnover buttons. */}
+      {/* ── Courts — the primary surface, big turnover keys ────────────── */}
       <section>
-        <h2 className="font-heading text-xl font-semibold">
+        <BoardHeading count={view.courts.length}>
           {view.lastCall ? "Final games" : "On the courts"}
-        </h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        </BoardHeading>
+        <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
           {view.courts.map((court) => {
             const occupied = court.players.length > 0;
             const nextReady = !view.lastCall && view.onDeck[0]?.length === 4;
             const idle = view.idleCourts.includes(court.number);
             return (
-              <div
-                key={court.number}
-                className="rounded-2xl border bg-card p-4"
-                data-testid={`kiosk-court-${court.number}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-heading text-lg font-semibold">
-                    Court {court.number}
-                  </h3>
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant={occupied ? "default" : "outline"}
-                    disabled={busy || (!occupied && !nextReady)}
-                    onClick={() =>
-                      finish.mutate({ court: court.number, since: court.since })
-                    }
-                  >
-                    {occupied ? `Court ${court.number} done` : "Send next four"}
-                  </Button>
-                </div>
-                <ul className="mt-3 space-y-1 text-sm">
-                  {occupied ? (
-                    court.players.map((name, i) => <li key={i}>{name}</li>)
-                  ) : (
-                    <li className="text-muted-foreground">Waiting for a foursome</li>
-                  )}
-                </ul>
+              <CourtPanel key={court.number} court={court} testIdPrefix="kiosk-court-">
+                <button
+                  type="button"
+                  className={
+                    occupied
+                      ? "od-key od-key--go od-key--turnover mt-4"
+                      : "od-key od-key--ghost mt-4 w-full"
+                  }
+                  disabled={busy || (!occupied && !nextReady)}
+                  data-testid={`kiosk-court-${court.number}`}
+                  onClick={() =>
+                    finish.mutate({ court: court.number, since: court.since })
+                  }
+                >
+                  {occupied ? `Court ${court.number} done` : "Send next four"}
+                </button>
 
                 {idle && (
                   <div
-                    className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-brand-orange/10 px-3 py-2"
+                    className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-arena-warn/40 bg-arena-warn/10 px-3 py-2"
                     data-testid={`kiosk-idle-nudge-${court.number}`}
                   >
-                    <span className="text-sm font-medium text-brand-orange">
+                    <Readout className="text-arena-warn">
                       Is Court {court.number} still going?
-                    </span>
-                    <Button
+                    </Readout>
+                    <button
                       type="button"
-                      size="sm"
-                      variant="outline"
+                      className="od-key od-key--ghost"
                       disabled={busy}
                       data-testid={`kiosk-still-going-${court.number}`}
                       onClick={() =>
@@ -436,7 +430,7 @@ function KioskBoardInner({
                       }
                     >
                       Still going
-                    </Button>
+                    </button>
                   </div>
                 )}
 
@@ -451,56 +445,31 @@ function KioskBoardInner({
                     pending={swap.isPending}
                   />
                 )}
-              </div>
+              </CourtPanel>
             );
           })}
         </div>
       </section>
 
-      {/* On Deck — same prominent cards as the Display. */}
+      {/* ── On Deck ───────────────────────────────────────────────────── */}
       {!view.lastCall && (
         <section>
-          <h2 className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-            On deck
-          </h2>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            {[0, 1].map((slot) => {
-              const foursome = view.onDeck[slot] ?? [];
-              return (
-                <div
-                  key={slot}
-                  className="rounded-3xl border-2 border-brand-orange bg-brand-orange/10 p-6"
-                  data-testid={`kiosk-on-deck-${slot}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-heading text-xl font-semibold">
-                      {ON_DECK_LABEL[slot]}
-                    </p>
-                    {view.onDeckIsGroup[slot] && (
-                      <span className="rounded-full bg-brand-orange px-2 py-0.5 text-xs font-semibold text-white">
-                        Group
-                      </span>
-                    )}
-                  </div>
-                  {foursome.length === 0 ? (
-                    <p className="mt-3 text-muted-foreground">
-                      Selected when the queue fills.
-                    </p>
-                  ) : (
-                    <ul className="mt-3 space-y-1 font-heading text-2xl font-semibold">
-                      {foursome.map((name, i) => (
-                        <li key={i}>{name}</li>
-                      ))}
-                      {Array.from({ length: 4 - foursome.length }).map((_, i) => (
-                        <li key={`open-${i}`} className="text-muted-foreground">
-                          Open spot
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
+          <BoardHeading tone="next">On deck</BoardHeading>
+          <div className="mt-3 grid items-start gap-4 sm:grid-cols-2">
+            {([0, 1] as const).map((slot) => (
+              <FoursomePanel
+                key={slot}
+                slot={slot}
+                testIdPrefix="kiosk-on-deck-"
+                names={view.onDeck[slot] ?? []}
+                isGroup={view.onDeckIsGroup[slot]}
+                progress={
+                  slot === 0 && hasOnDeck
+                    ? (view.onDeck[0]?.length ?? 0) / 4
+                    : undefined
+                }
+              />
+            ))}
           </div>
         </section>
       )}
@@ -509,41 +478,17 @@ function KioskBoardInner({
         <AddMe onAdd={(args) => walkup.mutateAsync(args)} pending={walkup.isPending} />
       )}
 
-      {/* Queue with Wait Times — read-only, same as the Display. */}
+      {/* ── Queue ─────────────────────────────────────────────────────── */}
       <section>
-        <h2 className="font-heading text-xl font-semibold">
-          {view.lastCall ? "Not playing tonight" : "In the queue"}{" "}
-          <span className="text-muted-foreground">({view.queuedCount})</span>
-        </h2>
-        {view.queue.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {view.lastCall ? "Everyone got a game in." : "Nobody waiting right now."}
-          </p>
-        ) : (
-          <ol className="mt-3 space-y-1 text-sm" data-testid="kiosk-queue">
-            {view.queue.map((entry, i) => (
-              <li
-                key={entry.kind === "group" ? entry.groupId : `${entry.name}-${i}`}
-                className="flex items-baseline justify-between gap-3 border-b border-border/50 pb-1"
-              >
-                <span>
-                  <span className="text-muted-foreground tabular-nums">{i + 1}.</span>{" "}
-                  {entry.kind === "solo" ? (
-                    entry.name
-                  ) : (
-                    <>
-                      <span className="font-semibold">Group:</span>{" "}
-                      {entry.names.join(", ")}
-                    </>
-                  )}
-                </span>
-                <span className="shrink-0 text-muted-foreground tabular-nums">
-                  {formatWaitLabel(entry.waitSince, now)}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
+        <BoardHeading count={view.queuedCount}>
+          {view.lastCall ? "Not playing tonight" : "In the queue"}
+        </BoardHeading>
+        <QueueList
+          queue={view.queue}
+          now={now}
+          lastCall={view.lastCall}
+          data-testid="kiosk-queue"
+        />
       </section>
     </div>
   );

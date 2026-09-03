@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-02T00:00:00Z",
+  "title": "Design System: On Deck Arena Board",
+  "extensions": {
+    "scope": {
+      "governs": ["/on-deck/session/*", "/on-deck/c/*"],
+      "selector": ".od-arena",
+      "outOfScope": ["/on-deck (marketing landing, exact path)", "Organizer home/settings pages"],
+      "note": "Out-of-scope surfaces use the Juice Bros site default shadcn light theme; the rest of the site keeps a separate light marketing identity."
+    },
+    "colorMeta": {
+      "arena-live": {
+        "role": "primary",
+        "displayName": "Committed Orange",
+        "canonical": "#f26522",
+        "note": "PRODUCT.md brand hex, shipped unaltered. Never converted to OKLCH or adjusted for the dark ground. Wash oklch(0.66 0.2 40 / 0.14), glow oklch(0.68 0.19 40 / 0.55) are separate alpha layers.",
+        "tonalRamp": ["oklch(0.30 0.14 40)", "oklch(0.38 0.17 40)", "oklch(0.46 0.19 40)", "oklch(0.55 0.20 40)", "oklch(0.63 0.20 40)", "oklch(0.72 0.17 40)", "oklch(0.82 0.11 40)", "oklch(0.92 0.05 40)"]
+      },
+      "arena-next": {
+        "role": "secondary",
+        "displayName": "Imminent Blue",
+        "canonical": "oklch(0.86 0.09 218)",
+        "note": "IMMINENT / on-deck signal and every focus-visible outline. A clear step hotter than graphite, never competing with orange.",
+        "tonalRamp": ["oklch(0.30 0.09 218)", "oklch(0.40 0.10 218)", "oklch(0.50 0.11 218)", "oklch(0.60 0.11 218)", "oklch(0.70 0.10 218)", "oklch(0.79 0.10 218)", "oklch(0.86 0.09 218)", "oklch(0.93 0.05 218)"]
+      },
+      "arena-warn": {
+        "role": "tertiary",
+        "displayName": "Caution Amber",
+        "canonical": "oklch(0.83 0.13 85)",
+        "note": "Inline warnings only: Kiosk idle-court nudge and form error lines.",
+        "tonalRamp": ["oklch(0.30 0.13 85)", "oklch(0.40 0.13 85)", "oklch(0.50 0.13 85)", "oklch(0.60 0.13 85)", "oklch(0.70 0.13 85)", "oklch(0.78 0.13 85)", "oklch(0.83 0.13 85)", "oklch(0.92 0.07 85)"]
+      },
+      "arena-bg": {
+        "role": "neutral",
+        "displayName": "Arena Ground",
+        "canonical": "oklch(0.16 0.014 255)",
+        "tonalRamp": ["oklch(0.13 0.013 255)", "oklch(0.16 0.014 255)", "oklch(0.213 0.017 258)", "oklch(0.253 0.019 258)", "oklch(0.36 0.02 258)", "oklch(0.55 0.015 255)", "oklch(0.74 0.012 250)", "oklch(0.97 0.006 250)"]
+      },
+      "arena-panel": { "role": "neutral", "displayName": "Panel", "canonical": "oklch(0.213 0.017 258)", "tonalRamp": ["oklch(0.13 0.013 255)", "oklch(0.16 0.014 255)", "oklch(0.213 0.017 258)", "oklch(0.253 0.019 258)", "oklch(0.36 0.02 258)", "oklch(0.55 0.015 255)", "oklch(0.74 0.012 250)", "oklch(0.97 0.006 250)"] },
+      "arena-panel-raised": { "role": "neutral", "displayName": "Panel Raised", "canonical": "oklch(0.253 0.019 258)", "tonalRamp": ["oklch(0.13 0.013 255)", "oklch(0.16 0.014 255)", "oklch(0.213 0.017 258)", "oklch(0.253 0.019 258)", "oklch(0.36 0.02 258)", "oklch(0.55 0.015 255)", "oklch(0.74 0.012 250)", "oklch(0.97 0.006 250)"] },
+      "arena-panel-recessed": { "role": "neutral", "displayName": "Panel Recessed", "canonical": "oklch(0.13 0.013 255)", "note": "Board-native inputs, sunk below panel with an inset shadow." },
+      "arena-fg": { "role": "neutral", "displayName": "Board White", "canonical": "oklch(0.97 0.006 250)" },
+      "arena-dim": { "role": "neutral", "displayName": "Dim Graphite", "canonical": "oklch(0.74 0.012 250)", "note": "~4.6:1 on Panel; section labels, readouts, secondary guidance." },
+      "arena-faint": { "role": "neutral", "displayName": "Faint Graphite", "canonical": "oklch(0.64 0.012 250)", "note": "Numbered rail, placeholders, zero-padded counts, fine print, footer." },
+      "arena-line": { "role": "neutral", "displayName": "Line", "canonical": "oklch(0.36 0.02 258)" },
+      "arena-line-soft": { "role": "neutral", "displayName": "Line Soft", "canonical": "oklch(0.3 0.018 258 / 0.6)" }
+    },
+    "typographyMeta": {
+      "display-tight": { "displayName": "Display Tight", "purpose": "The single loudest thing on a screen: player verdict, court numbers, 'You're in'. Weight 800, line-height 0.92, letter-spacing -0.01em, uppercase." },
+      "display": { "displayName": "Display", "purpose": "Workhorse board voice: foursome/queue/court names, banners, key labels. Weight 700, line-height 0.98, uppercase." },
+      "readout": { "displayName": "Readout", "purpose": "Starter's-clipboard voice: section headings, wait times, counts, 'OPEN'/'LIVE', chip-key and field labels. Geist Mono, 0.75rem floor, letter-spacing 0.12em, tabular-nums, uppercase." },
+      "guidance": { "displayName": "Guidance", "purpose": "The one quiet sentence under a verdict or form. Geist sans, text-sm/xs, sentence case, arena-dim/faint. The only non-uppercase, non-condensed text in the world." }
+    },
+    "shadows": [
+      { "name": "bolted-panel", "value": "inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 1px 2px oklch(0 0 0 / 0.4), 0 18px 40px -22px oklch(0 0 0 / 0.7)", "purpose": "Every .od-panel. Inset white top line = the lit edge; two dark layers = contact + deep soft drop." },
+      { "name": "lit-sign-live", "value": "inset 0 1px 0 0 oklch(1 0 0 / 0.18), 0 0 0 1px oklch(0.66 0.2 40 / 0.6), 0 12px 40px -8px oklch(0.68 0.19 40 / 0.55)", "purpose": ".od-live. Offset-zero glow is deliberate: a lit sign radiating, not an object casting." },
+      { "name": "imminent-top-wash", "value": "inset 0 1px 0 0 oklch(0.86 0.11 218 / 0.35), inset 0 22px 40px -30px oklch(0.82 0.14 218 / 0.9), 0 1px 2px oklch(0 0 0 / 0.4), 0 18px 40px -22px oklch(0 0 0 / 0.7)", "purpose": ".od-next. A cool glow raked down from the top edge." },
+      { "name": "milled-key", "value": "inset 0 1px 0 0 oklch(1 0 0 / 0.06), 0 2px 0 0 oklch(0 0 0 / 0.4), 0 6px 14px -8px oklch(0 0 0 / 0.6)", "purpose": ".od-key at rest. The 0 2px 0 layer is the key's physical side wall; collapses on :active with a 2px translateY." },
+      { "name": "recessed-field", "value": "inset 0 2px 5px oklch(0 0 0 / 0.35)", "purpose": ".od-field / .od-select sunk into the panel." }
+    ],
+    "motion": [
+      { "name": "court-fill", "value": "od-court-fill 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both", "purpose": "THE authored moment. Court turns over: keyed names node re-mounts, incoming four flip down from rotateX(-82deg), trailing one orange text-shadow glow that fades. prefers-reduced-motion: no-preference only; reduced motion = instant swap." },
+      { "name": "slide-in", "value": "od-slide-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both", "purpose": "A fresh foursome entering the 'after that' slot; translateY(14px)->0 + fade." },
+      { "name": "call-land", "value": "od-call-land 460ms cubic-bezier(0.32, 0.72, 0, 1) 1", "purpose": "The player's 'you're up' verdict landing once: scale 0.96 -> 1.03 -> 1." },
+      { "name": "ladder-fill", "value": "transform 520ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "scaleX progress-to-court fill. Runs regardless of motion preference because it carries information." },
+      { "name": "key-press", "value": "transform 90ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Key travel on :active — translateY(2px), shadow flattens." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px", "purpose": "Foursome and court grids go 1-col -> 2-col; type ramps up one step." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Turnover Key",
+      "kind": "button",
+      "refersTo": "key-turnover",
+      "description": "The one action a courtside operator must find in a glance — end a game, next four walks on.",
+      "html": "<button class=\"ds-key-turnover\">COURT 3 DONE</button>",
+      "css": ".ds-key-turnover { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; min-height: 56px; padding: 0 1.15rem; border: none; border-radius: 11px; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.1875rem; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; background-color: #f26522; box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.22), 0 2px 0 0 oklch(0.42 0.13 40 / 0.8), 0 10px 26px -10px oklch(0.68 0.19 40 / 0.55); transition: transform 90ms cubic-bezier(0.32,0.72,0,1), background-color 120ms ease, box-shadow 120ms ease; } .ds-key-turnover:hover { background-color: color-mix(in oklch, #f26522, white 7%); } .ds-key-turnover:active { transform: translateY(2px); box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.22), 0 0 0 0 oklch(0.42 0.13 40 / 0.8), 0 3px 8px -6px oklch(0 0 0 / 0.6); } .ds-key-turnover:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Key (default)",
+      "kind": "button",
+      "refersTo": "key",
+      "description": "Milled physical key with an engraved uppercase label — the club's own hardware.",
+      "html": "<button class=\"ds-key\">SET ASIDE</button>",
+      "css": ".ds-key { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 48px; padding: 0 1.15rem; border-radius: 11px; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.0625rem; letter-spacing: 0.03em; text-transform: uppercase; color: oklch(0.97 0.006 250); background-color: oklch(0.253 0.019 258); border: 1px solid oklch(0.36 0.02 258); box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.06), 0 2px 0 0 oklch(0 0 0 / 0.4), 0 6px 14px -8px oklch(0 0 0 / 0.6); transition: transform 90ms cubic-bezier(0.32,0.72,0,1), background-color 120ms ease, box-shadow 120ms ease; } .ds-key:hover { background-color: color-mix(in oklch, oklch(0.253 0.019 258), white 6%); } .ds-key:active { transform: translateY(2px); box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.06), 0 0 0 0 oklch(0 0 0 / 0.4), 0 3px 8px -6px oklch(0 0 0 / 0.6); } .ds-key:disabled { color: oklch(0.64 0.012 250); background-color: oklch(0.19 0.014 258); border-color: oklch(0.3 0.018 258 / 0.6); box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.03); cursor: not-allowed; } .ds-key:focus-visible { outline: 2px solid oklch(0.86 0.09 218); outline-offset: 2px; }"
+    },
+    {
+      "name": "Go Key",
+      "kind": "button",
+      "refersTo": "key-go",
+      "description": "The one committing action on a surface — join the queue, next, add me. Orange, LIVE-register.",
+      "html": "<button class=\"ds-key-go\">JOIN THE QUEUE</button>",
+      "css": ".ds-key-go { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 48px; padding: 0 1.15rem; border: none; border-radius: 11px; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.0625rem; letter-spacing: 0.03em; text-transform: uppercase; color: #fff; background-color: #f26522; box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.22), 0 2px 0 0 oklch(0.42 0.13 40 / 0.8), 0 10px 26px -10px oklch(0.68 0.19 40 / 0.55); transition: transform 90ms cubic-bezier(0.32,0.72,0,1), background-color 120ms ease; } .ds-key-go:hover { background-color: color-mix(in oklch, #f26522, white 7%); } .ds-key-go:active { transform: translateY(2px); } .ds-key-go:disabled { color: oklch(0.64 0.012 250); background-color: oklch(0.19 0.014 258); box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.03); cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Key",
+      "kind": "button",
+      "refersTo": "key-ghost",
+      "description": "Secondary / cancel — outlined metal, no fill.",
+      "html": "<button class=\"ds-key-ghost\">STILL GOING</button>",
+      "css": ".ds-key-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 40px; padding: 0 1.15rem; border-radius: 11px; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.9375rem; letter-spacing: 0.03em; text-transform: uppercase; color: oklch(0.74 0.012 250); background: transparent; border: 1px solid oklch(0.36 0.02 258); transition: color 120ms ease, border-color 120ms ease; } .ds-key-ghost:hover { color: oklch(0.97 0.006 250); } .ds-key-ghost:focus-visible { outline: 2px solid oklch(0.86 0.09 218); outline-offset: 2px; }"
+    },
+    {
+      "name": "Board Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Board-native input — recessed into the panel, value typed in the board voice because a name goes on the board.",
+      "html": "<label class=\"ds-field-label\">FIRST NAME</label><input class=\"ds-field\" value=\"ALEX\" />",
+      "css": ".ds-field-label { display: block; margin-bottom: 0.375rem; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.74 0.012 250); } .ds-field { min-height: 48px; width: 100%; padding: 0 0.9rem; border-radius: 10px; background-color: oklch(0.13 0.013 255); border: 1px solid oklch(0.36 0.02 258); color: oklch(0.97 0.006 250); box-shadow: inset 0 2px 5px oklch(0 0 0 / 0.35); font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.25rem; letter-spacing: 0.01em; text-transform: uppercase; transition: border-color 120ms ease, box-shadow 120ms ease; } .ds-field::placeholder { color: oklch(0.64 0.012 250); } .ds-field:focus-visible { outline: none; border-color: oklch(0.86 0.09 218); box-shadow: inset 0 2px 5px oklch(0 0 0 / 0.35), 0 0 0 3px oklch(0.82 0.12 218 / 0.2); }"
+    },
+    {
+      "name": "Name-Picker Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Queue-together picker. Pressed = the cool imminent signal, never orange (nobody is called yet).",
+      "html": "<button class=\"ds-chip\">SAM S.</button><button class=\"ds-chip ds-chip--on\">JO K.</button>",
+      "css": ".ds-chip { min-height: 40px; padding: 0 0.85rem; border-radius: 9px; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.9375rem; letter-spacing: 0.02em; text-transform: uppercase; color: oklch(0.74 0.012 250); background-color: transparent; border: 1px solid oklch(0.36 0.02 258); transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; } .ds-chip--on { color: oklch(0.16 0.014 255); background-color: oklch(0.86 0.09 218); border-color: transparent; } .ds-chip:focus-visible { outline: 2px solid oklch(0.86 0.09 218); outline-offset: 2px; }"
+    },
+    {
+      "name": "Foursome Panel — Up Next",
+      "kind": "card",
+      "refersTo": "panel-next",
+      "description": "Slot 0 of the substitution board: blue-lit, carrying the orange progress-to-court ladder in its footer.",
+      "html": "<div class=\"ds-panel-next\"><h2 class=\"ds-heading\">UP NEXT</h2><ul class=\"ds-names\"><li>EVE E.</li><li>FIN F.</li><li>GUS G.</li><li>HAL H.</li></ul><div class=\"ds-ladder-foot\"><span class=\"ds-heading\">TO THE COURTS</span><span class=\"ds-heading ds-heading--next\">4 / 4 READY</span></div><div class=\"ds-ladder-track\"><div class=\"ds-ladder-fill\"></div></div></div>",
+      "css": ".ds-panel-next { background-color: oklch(0.82 0.12 218 / 0.2); border: 1px solid oklch(0.72 0.1 218 / 0.7); border-radius: 14px; padding: 1.5rem; box-shadow: inset 0 1px 0 0 oklch(0.86 0.11 218 / 0.35), inset 0 22px 40px -30px oklch(0.82 0.14 218 / 0.9), 0 1px 2px oklch(0 0 0 / 0.4), 0 18px 40px -22px oklch(0 0 0 / 0.7); } .ds-heading { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.74 0.012 250); } .ds-heading--next { color: oklch(0.86 0.09 218); } .ds-names { list-style: none; margin: 0.75rem 0 0; padding: 0; } .ds-names li { font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 3rem; line-height: 0.98; text-transform: uppercase; color: oklch(0.97 0.006 250); } .ds-ladder-foot { display: flex; justify-content: space-between; margin-top: 1rem; } .ds-ladder-track { height: 0.375rem; width: 100%; margin-top: 0.5rem; overflow: hidden; border-radius: 9999px; background-color: oklch(0.3 0.018 258 / 0.6); } .ds-ladder-fill { height: 100%; width: 100%; border-radius: 9999px; background-color: #f26522; transform-origin: left center; transition: transform 520ms cubic-bezier(0.32,0.72,0,1); }"
+    },
+    {
+      "name": "Court Tile",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Occupied lists four names in board type; open reads OPEN in orange. The court-fill flip replays on the names node when the foursome key changes.",
+      "html": "<div class=\"ds-court\"><div class=\"ds-court-head\"><h3 class=\"ds-court-num\"><span class=\"ds-faint\">COURT</span> 1</h3></div><ul class=\"ds-court-names\"><li>ANA A.</li><li>BEA B.</li><li>CAL C.</li><li>DAN D.</li></ul></div>",
+      "css": ".ds-court { background-color: oklch(0.213 0.017 258); border: 1px solid oklch(0.3 0.018 258 / 0.6); border-radius: 14px; padding: 1.25rem; box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 1px 2px oklch(0 0 0 / 0.4), 0 18px 40px -22px oklch(0 0 0 / 0.7); } .ds-court-head { display: flex; align-items: baseline; justify-content: space-between; } .ds-court-num { font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 800; font-size: 2.25rem; line-height: 0.92; letter-spacing: -0.01em; text-transform: uppercase; color: oklch(0.97 0.006 250); margin: 0; } .ds-faint { color: oklch(0.64 0.012 250); } .ds-court-names { list-style: none; margin: 0.625rem 0 0; padding: 0; } .ds-court-names li { font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.75rem; line-height: 0.98; text-transform: uppercase; color: oklch(0.97 0.006 250); }"
+    },
+    {
+      "name": "Player Verdict",
+      "kind": "custom",
+      "refersTo": "panel-live",
+      "description": "The player's whole phone screen collapsed to one line: YOU'RE UP, COURT 5 (orange) / #4 OF 6 IN THE QUEUE (graphite) / YOU'RE ON DECK (blue).",
+      "html": "<div class=\"ds-verdict\"><p class=\"ds-verdict-line\">YOU'RE UP, COURT 5</p><p class=\"ds-verdict-sub\">Head over now.</p></div>",
+      "css": ".ds-verdict { background-color: #f26522; color: #fff; border-radius: 14px; padding: 1.75rem 1.25rem; box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.18), 0 0 0 1px oklch(0.66 0.2 40 / 0.6), 0 12px 40px -8px oklch(0.68 0.19 40 / 0.55); animation: ds-call-land 460ms cubic-bezier(0.32,0.72,0,1) 1; } .ds-verdict-line { margin: 0; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 800; font-size: 3.25rem; line-height: 0.92; letter-spacing: -0.01em; text-transform: uppercase; } .ds-verdict-sub { margin: 0.75rem 0 0; font-family: 'Geist', system-ui, sans-serif; font-size: 0.875rem; color: oklch(1 1 1 / 0.85); } @keyframes ds-call-land { 0% { transform: scale(0.96); } 55% { transform: scale(1.03); } 100% { transform: scale(1); } } @media (prefers-reduced-motion: reduce) { .ds-verdict { animation: none; } }"
+    },
+    {
+      "name": "Queue Row",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "One numbered queue row: fixed mono rail, name in board type, wait-time readout, optional inline chip-key.",
+      "html": "<ol class=\"ds-queue\"><li class=\"ds-queue-row\"><span class=\"ds-rail\">02</span><span class=\"ds-queue-name\">PAX P.</span><span class=\"ds-readout\">JUST NOW</span><button class=\"ds-chip-key\">SET ASIDE</button></li></ol>",
+      "css": ".ds-queue { list-style: none; margin: 0; padding: 0; } .ds-queue-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid oklch(0.3 0.018 258 / 0.6); } .ds-rail { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.8125rem; letter-spacing: 0.08em; color: oklch(0.64 0.012 250); width: 2.25ch; flex: none; text-align: right; } .ds-queue-name { flex: 1; font-family: 'Saira Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.875rem; line-height: 0.98; text-transform: uppercase; color: oklch(0.97 0.006 250); } .ds-readout { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.74 0.012 250); } .ds-chip-key { min-height: 36px; padding: 0 0.7rem; border-radius: 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: oklch(0.74 0.012 250); background-color: oklch(0.253 0.019 258); border: 1px solid oklch(0.36 0.02 258); transition: color 120ms ease, background-color 120ms ease; } .ds-chip-key:hover { color: oklch(0.97 0.006 250); background-color: color-mix(in oklch, oklch(0.253 0.019 258), white 6%); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Fourth Official's Substitution Board",
+    "overview": "On Deck's live-event screens are one lit panel a loud gym reads in a single glance: names ON, names OFF, held where eight people can gather before a court frees instead of being hunted down. It refuses the incumbent light shadcn card-stack and the dashboard-of-equal-cards default — this is a substitution board, not a page of widgets. The ground is near-black and cool; panels sit one step up off it, bolted down, with a hairline lit top edge and real offset+blur depth so each reads as an illuminated panel rather than an outlined box.\n\nThe board runs on two voices and a rationed accent. The board voice is Saira Condensed at signage scale, uppercase, carrying every name, court number and status word. The readout voice is Geist Mono, tabular and tracked, carrying positions, counts and wait times — the starter's clipboard, never decoration. Colour is Committed: brand orange (#f26522, unaltered per the PRODUCT.md commitment) appears only on LIVE — the foursome being called, the court just opened, \"you're up\". A cool electric blue wash marks IMMINENT (on deck). Everything still waiting is graphite and cool-white with no accent at all. A fixed tabular numbered rail runs down the left of every queue.\n\nMotion is near-absent by design. One authored moment: when a court turns over, the incoming foursome flips down onto the court tile like a split-flap board, trailing a single orange glow that fades. Everything else holds still.",
+    "keyCharacteristics": [
+      "Near-black cool arena ground; bolted panels one step up with a lit top edge and offset+blur depth",
+      "Two type voices only: condensed signage (names, courts, status) and tabular mono (counts, waits)",
+      "Orange is LIVE-only; cool blue is on-deck; waiting is graphite with zero accent",
+      "A fixed tabular numbered rail down the left of every queue",
+      "Physical milled keys with engraved labels; the turnover key is orange, full-width, 56px",
+      "One authored motion moment (the split-flap court fill); reduced motion gets an instant swap"
+    ],
+    "rules": [
+      { "name": "The LIVE-Only Rule", "body": "Orange means one call happening right now. If a thing on screen is not the foursome being called, the court that just opened, or the \"you're up\" moment, it does not get orange — it gets graphite. Rarity is the signal.", "section": "colors" },
+      { "name": "The Three-Temperature Rule", "body": "Every element on the board is at exactly one of three temperatures: LIVE (orange, happening now), IMMINENT (cool blue, on deck), or WAITING (graphite, no accent). There is no fourth state and no blend.", "section": "colors" },
+      { "name": "The Unaltered-Hex Rule", "body": "#f26522 ships as the literal PRODUCT.md hex. Do not convert it to OKLCH, adjust its lightness for the dark ground, or derive a \"dark-mode orange\". Washes and glows are separate alpha layers, not modifications of the base.", "section": "colors" },
+      { "name": "The 0.75rem Floor Rule", "body": "The readout voice is never set smaller than 0.75rem — it has to survive a gym viewing distance. Smaller \"captions\" do not exist here.", "section": "typography" },
+      { "name": "The Two-Voices Rule", "body": "Names and status words are always condensed uppercase; counts, positions and wait times are always tabular mono. A number that indexes a series takes the mono voice even when it sits inside a condensed line.", "section": "typography" },
+      { "name": "The No-Eyebrow Rule", "body": "Section headings are the readout label itself, standing alone. There is no decorative kicker or eyebrow over a heading anywhere in the world; BoardHeading is a mono label plus an optional zero-padded count, nothing more.", "section": "typography" },
+      { "name": "The Lit-Edge Rule", "body": "Every raised surface carries a hairline light on its top edge (white for panels and keys, cool blue for on-deck, warm white for LIVE). A panel with no top light reads as a flat outlined box and is wrong for this world.", "section": "elevation" },
+      { "name": "The Physical-Key Rule", "body": "Keys have a hard 0 2px 0 bottom edge at rest and lose it on press, translating down 2px. They are pressed, not clicked.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep orange (#f26522) exclusively on LIVE — the called foursome, the just-opened court, \"you're up\", the turnover key, the go-key, the ladder fill.",
+      "Do use the blue wash (--arena-next) for on-deck / imminent and for every focus outline.",
+      "Do set names, court numbers and status words in Saira Condensed uppercase; set counts, positions and wait times in Geist Mono tabular, never below 0.75rem.",
+      "Do give every raised surface a hairline lit top edge and real offset+blur depth.",
+      "Do make operator keys physical: 48px+ (56px turnover), engraved uppercase label, hard bottom edge that collapses on press.",
+      "Do run the numbered mono rail (2.25ch, right-aligned) down the left of every queue list.",
+      "Do collapse a disabled key to the unlit dark neutral, never a faded fill colour.",
+      "Do keep the one authored motion moment (the court-fill flip) and let everything else hold still."
+    ],
+    "donts": [
+      "Don't introduce a third accent hue or tint the neutrals warm — waiting is graphite with no accent.",
+      "Don't convert #f26522 to OKLCH or adjust it for the dark ground.",
+      "Don't put orange on anything that is merely important but not happening-now.",
+      "Don't use the light shadcn card-stack, a max-width centered card, a hero shell, or a dashboard of equal-weight widgets here — this is one lit board.",
+      "Don't add a decorative kicker or eyebrow over a heading; the mono label stands alone.",
+      "Don't set the readout voice below 0.75rem or render body text uppercase-condensed (the quiet guidance sentence is the one sans, sentence-case exception).",
+      "Don't animate anything on the board besides the court-fill flip, its companion slide/land, and the ladder fill."
+    ]
+  }
+}

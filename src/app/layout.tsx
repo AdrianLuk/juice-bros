@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  Geist,
+  Geist_Mono,
+  Saira_Condensed,
+} from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -22,6 +27,16 @@ const bricolage = Bricolage_Grotesque({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// On Deck's arena surfaces (the live-event board, floor screen, display,
+// kiosk) run an engineered, condensed sport-signage face — the lettering of a
+// substitution board and a scoreboard, sized to be read across a loud gym.
+// Scoped to `.od-arena` in globals.css; the rest of the site never sees it.
+const sairaCondensed = Saira_Condensed({
+  variable: "--font-saira-condensed",
+  weight: ["500", "600", "700", "800", "900"],
   subsets: ["latin"],
 });
 
@@ -67,7 +82,7 @@ export default function RootLayout({
       // Next to suspend it for the scroll-restoration jump on a route change
       // so it doesn't animate against the page/View Transition.
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>

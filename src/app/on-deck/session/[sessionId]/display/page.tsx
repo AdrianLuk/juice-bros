@@ -6,6 +6,7 @@ import { createClient } from "@/lib/on-deck/supabase/server";
 import { getSession } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { displayPath } from "@/lib/on-deck/routes";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { DisplayBoard } from "@/components/on-deck/display-board";
 
 export async function generateMetadata({
@@ -51,21 +52,27 @@ export default async function DisplayPage({
   const view = rotationViewFrom(loaded);
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <p className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-            {view.status === "open" ? "Live" : "Session closed"}
-          </p>
-          <h1 className="mt-2 font-heading text-3xl font-semibold sm:text-4xl">
-            {view.venueName}
-          </h1>
+    <ArenaShell>
+      <section className="w-full px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-6xl">
+          <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-arena-line-soft pb-4">
+            <h1 className="od-display text-2xl text-arena-dim sm:text-3xl">
+              {view.venueName}
+            </h1>
+            <p
+              className={`od-readout ${
+                view.status === "open" ? "text-arena-live" : "text-arena-faint"
+              }`}
+            >
+              {view.status === "open" ? "● Live" : "Session closed"}
+            </p>
+          </header>
 
-          <div className="mt-8">
+          <div className="mt-7">
             <DisplayBoard sessionId={sessionId} initialView={view} />
           </div>
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

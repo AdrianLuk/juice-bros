@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Button } from "@/components/ui/button";
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import {
@@ -25,10 +24,11 @@ function rotationQueryKey(sessionId: string) {
 }
 
 /**
- * A Player's own line on the running Session: a "join the queue" tap, then
- * their live position or the Court they're on. Polls `getRotationView` every
- * few seconds (issue #243) — no token ever leaves the server, only the
- * caller's own standing comes back.
+ * A Player's own line on the running Session, on the substitution board
+ * (direction seed 92ec9d54): one verdict at board scale — YOU'RE UP · COURT 5,
+ * ON DECK, or #7 IN THE QUEUE — with the quieter step-out / group controls
+ * below it. Polls `getRotationView` every few seconds (issue #243); no token
+ * ever leaves the server, only the caller's own standing comes back.
  */
 export function QueueStatus(props: {
   sessionId: string;
@@ -39,6 +39,50 @@ export function QueueStatus(props: {
     <QueryProvider>
       <QueueStatusInner {...props} />
     </QueryProvider>
+  );
+}
+
+/**
+ * The player's whole screen is one verdict at board scale — the single line
+ * that answers "where do I stand": YOU'RE UP · COURT 5, #4 OF 6 IN THE QUEUE,
+ * ON DECK. No kicker over it (the contract calls for one line, and an eyebrow
+ * above a heading is a craft-floor ban); `sub` is the small guidance line
+ * under it, not a label over it.
+ */
+function Verdict({
+  tone,
+  headline,
+  sub,
+}: {
+  tone: "live" | "next" | "wait" | "quiet";
+  headline: React.ReactNode;
+  sub?: React.ReactNode;
+}) {
+  const shell =
+    tone === "live"
+      ? "od-panel od-live od-call-land"
+      : tone === "next"
+        ? "od-panel od-next"
+        : "od-panel";
+  return (
+    <div className={`${shell} px-5 py-7`}>
+      <p
+        className={`od-display-tight ${
+          tone === "quiet" ? "text-4xl" : "text-5xl sm:text-6xl"
+        }`}
+      >
+        {headline}
+      </p>
+      {sub && (
+        <p
+          className={`mt-3 text-sm ${
+            tone === "live" ? "text-arena-live-ink/85" : "text-arena-dim"
+          }`}
+        >
+          {sub}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -53,9 +97,6 @@ function QueueStatusInner({
 }) {
   const queryClient = useQueryClient();
   const queryKey = rotationQueryKey(sessionId);
-  // Realtime nudges this to re-fetch within ~1s of any event (issue #252);
-  // the interval it hands back is a slow backstop while the socket is live and
-  // the ~4s fallback while it's connecting or dropped.
   const pollInterval = useRotationSync(sessionId, [queryKey]);
   const query = useQuery({
     queryKey,
@@ -110,8 +151,6 @@ function QueueStatusInner({
 
   const me = query.data?.me ?? null;
 
-  // The opt-in turn notification (issue #260) — offered only under self-serve /
-  // hybrid, where no Volunteer is calling names.
   const turnNotify =
     floorMode === "self-serve" || floorMode === "hybrid" ? (
       <TurnNotifications sessionId={sessionId} token={token} />
@@ -121,47 +160,59 @@ function QueueStatusInner({
     return null;
   }
 
+  const errLine = error && (
+    <p className="od-readout mt-2 text-[0.72rem] text-arena-warn" role="alert">
+      {error}
+    </p>
+  );
+
   // After Last Call, a Player still on a Court finishes their Game; everyone
   // else is done for the night (issue #255).
   if (query.data?.lastCall && !me?.court) {
     return (
-      <p
-        className="mt-6 rounded-xl border px-4 py-3 text-sm text-muted-foreground"
-        data-testid="queue-last-call"
-      >
-        Last call — no more games tonight. Thanks for playing.
-      </p>
+      <div className="mt-6" data-testid="queue-last-call">
+        <Verdict
+          tone="quiet"
+          headline="That's the last call"
+          sub="No more games tonight. Thanks for playing."
+        />
+      </div>
     );
   }
 
   if (me?.court) {
     return (
-      <p className="mt-6 rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
-        You&apos;re up, Court {me.court}
-      </p>
+      <div className="mt-6">
+        <Verdict
+          tone="live"
+          headline={
+            <>
+              You&apos;re up, Court {me.court}
+            </>
+          }
+          sub="Head over now."
+        />
+      </div>
     );
   }
 
   if (me?.paused) {
     return (
       <div className="mt-6" data-testid="queue-paused">
-        <p className="text-sm text-muted-foreground">
-          You&apos;ve stepped out — you won&apos;t be called until you&apos;re
-          back. Your wait so far is saved.
-        </p>
-        <Button
+        <Verdict
+          tone="quiet"
+          headline="You've stepped out"
+          sub="You won't be called until you're back. Your wait so far is saved."
+        />
+        <button
           type="button"
-          className="mt-3 h-12 w-full text-base"
+          className="od-key od-key--go mt-3 w-full"
           disabled={rejoin.isPending}
           onClick={() => rejoin.mutate()}
         >
           {rejoin.isPending ? "Adding you back…" : "Rejoin the queue"}
-        </Button>
-        {error && (
-          <p className="mt-2 text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        )}
+        </button>
+        {errLine}
         {turnNotify}
       </div>
     );
@@ -175,17 +226,17 @@ function QueueStatusInner({
   const groupControls = (
     <>
       {me?.group && (
-        <div className="mt-3" data-testid="queue-group-note">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-4" data-testid="queue-group-note">
+          <p className="text-sm text-arena-faint">
             You&apos;re queued with your group — you&apos;ll go on together.
           </p>
           {confirmLeaveGroup ? (
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-arena-faint">
               Leave the group? You&apos;d keep your spot but queue on your own,
               and rejoining means re-forming it.{" "}
               <button
                 type="button"
-                className="font-semibold text-destructive underline-offset-4 hover:underline"
+                className="od-readout text-[0.7rem] text-arena-warn underline-offset-4 hover:underline"
                 disabled={leaveGrp.isPending}
                 onClick={() => leaveGrp.mutate()}
               >
@@ -193,7 +244,7 @@ function QueueStatusInner({
               </button>{" "}
               <button
                 type="button"
-                className="underline-offset-4 hover:underline"
+                className="od-readout text-[0.7rem] text-arena-dim underline-offset-4 hover:underline"
                 onClick={() => setConfirmLeaveGroup(false)}
               >
                 Stay
@@ -202,7 +253,7 @@ function QueueStatusInner({
           ) : (
             <button
               type="button"
-              className="mt-1 block text-sm text-muted-foreground underline-offset-4 hover:underline"
+              className="od-readout mt-1 block text-[0.7rem] text-arena-faint underline-offset-4 hover:text-arena-dim hover:underline"
               onClick={() => setConfirmLeaveGroup(true)}
             >
               Leave the group
@@ -211,11 +262,11 @@ function QueueStatusInner({
         </div>
       )}
       {me?.canFormGroup && me.groupmateOptions.length > 0 && (
-        <details className="mt-3" data-testid="queue-together-player">
-          <summary className="cursor-pointer text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <details className="mt-4" data-testid="queue-together-player">
+          <summary className="od-readout cursor-pointer text-[0.7rem] text-arena-dim underline-offset-4 hover:underline">
             Playing with friends? Queue together
           </summary>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-arena-faint">
             {QUEUE_TOGETHER_EXPLAINER}
           </p>
           <ul className="mt-2 flex flex-wrap gap-2">
@@ -227,11 +278,7 @@ function QueueStatusInner({
                     type="button"
                     aria-pressed={on}
                     disabled={formGroup.isPending}
-                    className={`rounded-full border px-3 py-1 text-sm ${
-                      on
-                        ? "border-brand-orange bg-brand-orange text-white"
-                        : "border-input"
-                    }`}
+                    className={`od-chip ${on ? "od-chip--on" : ""}`}
                     onClick={() => toggle(name)}
                   >
                     {name}
@@ -240,10 +287,9 @@ function QueueStatusInner({
               );
             })}
           </ul>
-          <Button
+          <button
             type="button"
-            size="sm"
-            className="mt-3"
+            className="od-key od-key--ghost mt-3"
             disabled={
               formGroup.isPending ||
               picked.filter((n) => me.groupmateOptions.includes(n)).length < 1
@@ -255,7 +301,7 @@ function QueueStatusInner({
             }
           >
             {formGroup.isPending ? "Grouping up…" : "Queue together"}
-          </Button>
+          </button>
         </details>
       )}
     </>
@@ -266,17 +312,13 @@ function QueueStatusInner({
       {groupControls}
       <button
         type="button"
-        className="mt-3 block text-sm text-muted-foreground underline-offset-4 hover:underline"
+        className="od-readout mt-4 block text-[0.7rem] text-arena-faint underline-offset-4 hover:text-arena-dim hover:underline"
         disabled={leave.isPending}
         onClick={() => leave.mutate()}
       >
         {leave.isPending ? "Stepping you out…" : "Leave the queue"}
       </button>
-      {error && (
-        <p className="mt-2 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
+      {errLine}
       {turnNotify}
     </>
   );
@@ -284,11 +326,17 @@ function QueueStatusInner({
   if (me?.onDeck != null) {
     return (
       <div className="mt-6">
-        <p className="rounded-xl bg-brand-orange px-4 py-3 font-heading text-lg font-semibold text-white">
-          {me.onDeck === 0
-            ? "You're up next — head to the courts"
-            : "You're on deck — the foursome after next"}
-        </p>
+        <Verdict
+          tone="next"
+          headline={
+            me.onDeck === 0 ? "You're up next" : "You're on deck"
+          }
+          sub={
+            me.onDeck === 0
+              ? "Head to the courts. You're in the next four."
+              : "You go on right after the next foursome."
+          }
+        />
         {stepOut}
       </div>
     );
@@ -297,15 +345,23 @@ function QueueStatusInner({
   if (me?.position) {
     return (
       <div className="mt-6" data-testid="queue-position">
-        <p className="text-sm text-muted-foreground">
-          You&apos;re{" "}
-          <span className="font-heading text-2xl font-semibold text-foreground">
-            #{me.position}
-          </span>{" "}
-          in the queue
-          {query.data ? ` of ${query.data.queuedCount}` : ""}. Hang around, you
-          don&apos;t need to touch anything.
-        </p>
+        <Verdict
+          tone="wait"
+          headline={
+            <>
+              #{me.position}
+              {query.data ? (
+                <span className="ml-2.5 align-baseline text-2xl text-arena-dim">
+                  of {query.data.queuedCount}
+                </span>
+              ) : null}
+              <span className="mt-1 block text-3xl text-arena-dim sm:text-4xl">
+                in the queue
+              </span>
+            </>
+          }
+          sub="Hang around. You don't need to touch anything."
+        />
         {stepOut}
       </div>
     );
@@ -313,22 +369,20 @@ function QueueStatusInner({
 
   return (
     <div className="mt-6">
-      <p className="text-sm text-muted-foreground">
-        Ready to play? Join the queue and we&apos;ll call you when a court opens.
-      </p>
-      <Button
+      <Verdict
+        tone="wait"
+        headline="Not in line yet"
+        sub="Join the queue and we'll call you when a court opens."
+      />
+      <button
         type="button"
-        className="mt-3 h-12 w-full text-base"
+        className="od-key od-key--go mt-3 w-full"
         disabled={join.isPending}
         onClick={() => join.mutate()}
       >
         {join.isPending ? "Joining…" : "Join the queue"}
-      </Button>
-      {error && (
-        <p className="mt-2 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
+      </button>
+      {errLine}
       {turnNotify}
     </div>
   );
