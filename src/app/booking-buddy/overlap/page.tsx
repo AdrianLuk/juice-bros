@@ -27,7 +27,7 @@ export default async function OverlapPage() {
             description="Pick the friends you want to play with and see when you're all free. It only counts time nobody's booked and nobody's marked busy."
           />
           <BbSectionNav />
-          <div className="mt-10">
+          <div className="bb-sheet mt-8 p-3.5 sm:p-8">
             <GroupOverlapFinder
               friends={selectableFriends}
               viewerBusy={viewerBusy}
