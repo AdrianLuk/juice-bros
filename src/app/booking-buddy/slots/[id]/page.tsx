@@ -55,18 +55,17 @@ export default async function SlotDetailPage({
       <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <BbPageHeading
-            title={
-              slot.facilityLabel
-                ? `${slot.when} · ${slot.facilityLabel}`
-                : slot.when
-            }
+            title={slot.when.replace(/,\s*\d{4}/, "")}
             description={
               isOwner ? "Proposed by you" : `Proposed by ${slot.ownerName}`
             }
             // Morphs out of the game row's own title on the way in (slots.tsx).
             titleViewTransitionName={`bb-slot-title-${id}`}
           />
-          <div className="mt-4">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {slot.facilityLabel && (
+              <span className="bb-tape text-xs">{slot.facilityLabel}</span>
+            )}
             <SlotStatusBadge courtCount={slot.courtCount} />
           </div>
           <div className="mt-10 flex flex-col gap-8">

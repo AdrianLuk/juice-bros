@@ -102,8 +102,8 @@ export default async function BookingBuddyPage() {
           <Board className="mt-8 flex flex-col gap-x-8 gap-y-9 rounded-lg p-4 sm:p-6 lg:flex-row lg:items-start">
             <BoardRegion
               label="This week"
-              className="lg:max-w-2xl lg:flex-1"
-              contentClassName="bb-board-load lg:max-w-[40rem]"
+              className="lg:w-[37.5rem] lg:shrink-0"
+              contentClassName="bb-board-load"
             >
               <BoardCard
                 as={Link}
