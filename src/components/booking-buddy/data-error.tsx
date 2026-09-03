@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { CircleAlertIcon } from "lucide-react";
 
-import { PageHeading } from "@/components/typography/page-heading";
+import { BbPageHeading } from "@/components/booking-buddy/bb/page-heading";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -37,11 +37,7 @@ export function DataError({
             <CircleAlertIcon className="size-5" />
           </div>
 
-          <PageHeading
-            eyebrow="Booking Buddy"
-            title={title}
-            description={description}
-          />
+          <BbPageHeading title={title} description={description} />
 
           <div className="mt-8 flex items-center gap-3">
             <Button type="button" onClick={retry}>

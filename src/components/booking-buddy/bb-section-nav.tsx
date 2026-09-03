@@ -31,7 +31,7 @@ export function BbSectionNav() {
 
   return (
     <nav
-      className="mt-5 flex w-fit max-w-full items-end gap-1 overflow-x-auto"
+      className="mt-6 flex w-fit max-w-full items-end gap-1.5 pt-1"
       aria-label="Section"
     >
       {siblings.map(({ label, href }) => {
@@ -42,19 +42,19 @@ export function BbSectionNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative isolate inline-flex h-9 shrink-0 items-center rounded-t-sm border-x border-t px-4 font-bb-sign text-[0.72rem] tracking-[0.12em] uppercase transition-colors",
+              "relative isolate inline-flex h-9 shrink-0 items-center rounded-sm px-4 font-bb-sign text-[0.72rem] tracking-[0.12em] uppercase transition-colors",
               // Card-stock tabs on the board — the active one raised and
-              // "pinned", the rest tucked behind it.
+              // "pinned", the rest tucked lower and duller.
               active
-                ? "border-transparent text-foreground"
-                : "translate-y-0.5 border-border/60 bg-[color-mix(in_oklch,var(--card),transparent_35%)] text-muted-foreground hover:text-foreground",
+                ? "text-foreground"
+                : "translate-y-1 border border-border/70 bg-[color-mix(in_oklch,var(--card),transparent_45%)] text-muted-foreground hover:text-foreground",
             )}
           >
             {active && (
               <span
                 aria-hidden
                 style={{ viewTransitionName: "bb-section-pill" }}
-                className="bb-card absolute inset-0 -z-10 rounded-b-none"
+                className="bb-card absolute inset-0 -z-10"
               />
             )}
             {active && (

@@ -36,7 +36,12 @@ export default async function SignInPage({
             title="Sign in"
             description="Plan pickleball with your friends: open a time, see who's in."
           />
-          <div className="bb-card mt-8 p-6 sm:p-8">
+          <div className="bb-card bb-pinned relative mt-10 p-6 sm:p-8">
+            <span
+              aria-hidden
+              className="bb-pin bb-pin--commit"
+              style={{ top: "-0.55rem" }}
+            />
             <SignInForm
               next={target}
               error={error}

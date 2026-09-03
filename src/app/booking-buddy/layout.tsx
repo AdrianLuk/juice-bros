@@ -63,7 +63,7 @@ export default async function BookingBuddyLayout({
       <QueryProvider>
         <ServiceWorkerRegistration />
         <SiteHeader />
-        <div className="bb-theme flex w-full flex-1 flex-col bg-background text-foreground">
+        <div className="bb-theme bb-board flex w-full flex-1 flex-col text-foreground">
           {children}
         </div>
         <SiteFooter />
