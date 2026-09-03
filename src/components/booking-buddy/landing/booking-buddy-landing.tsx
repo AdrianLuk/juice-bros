@@ -80,8 +80,10 @@ export function BookingBuddyLanding() {
         }}
       />
 
-      {/* Hero — the board, a step back. */}
-      <section className="w-full px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-24 lg:px-8">
+      {/* Hero — the board, a step back. The cork runs to the top edge behind
+          the floating nav (SiteHeader treats `/booking-buddy` as an overlay
+          hero); the extra top padding clears the fixed pill on desktop. */}
+      <section className="w-full px-4 pt-14 pb-16 sm:px-6 sm:pt-28 sm:pb-24 lg:px-8">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-5">
             <h1 className="jb-in bb-h text-[2.6rem] leading-[0.92] sm:text-[3.9rem]">
@@ -139,7 +141,7 @@ export function BookingBuddyLanding() {
         </div>
       </section>
 
-      <div id="how" className="scroll-mt-20" />
+      <div id="how" className="scroll-mt-24" />
 
       <Beat
         title="Float a time before anyone books a court"
