@@ -52,7 +52,7 @@ export default async function SlotDetailPage({
   const slotLink = isOwner ? await getSlotLink(slot.id) : null;
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
+      <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <BbPageHeading
             title={slot.when.replace(/,\s*\d{4}/, "")}
@@ -71,7 +71,7 @@ export default async function SlotDetailPage({
           <div className="mt-10 flex flex-col gap-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your response</h2>
-              <div className="bb-card mt-4 p-6">
+              <div className="bb-card mt-4 p-4 sm:p-6">
                 <ResponseButtons
                   slotId={slot.id}
                   viewerId={session.userId}
@@ -82,7 +82,7 @@ export default async function SlotDetailPage({
             </section>
             <section>
               <h2 className="bb-h text-[1.05rem]">Capacity</h2>
-              <div className="bb-card mt-4 p-6">
+              <div className="bb-card mt-4 p-4 sm:p-6">
                 <SlotCapacityPanel
                   slotId={slot.id}
                   isOwner={isOwner}
@@ -93,7 +93,7 @@ export default async function SlotDetailPage({
             </section>
             <section>
               <h2 className="bb-h text-[1.05rem]">Notes</h2>
-              <div className="bb-card mt-4 p-6">
+              <div className="bb-card mt-4 p-4 sm:p-6">
                 {isOwner ? (
                   <NotesForm slotId={slot.id} notes={notes} />
                 ) : (
@@ -110,7 +110,7 @@ export default async function SlotDetailPage({
             {isOwner && (
               <section>
                 <h2 className="bb-h text-[1.05rem]">Courts</h2>
-                <div className="bb-card mt-4 p-6">
+                <div className="bb-card mt-4 p-4 sm:p-6">
                   <SlotCourts
                     slotId={slot.id}
                     capacity={capacity}
@@ -122,7 +122,7 @@ export default async function SlotDetailPage({
             {isOwner && (
               <section>
                 <h2 className="bb-h text-[1.05rem]">Invite link</h2>
-                <div className="bb-card mt-4 p-6">
+                <div className="bb-card mt-4 p-4 sm:p-6">
                   <SlotLinkPanel slotId={slot.id} slotLink={slotLink} />
                 </div>
               </section>
@@ -130,7 +130,7 @@ export default async function SlotDetailPage({
             {isOwner && (
               <section>
                 <h2 className="bb-h text-[1.05rem]">Reminder</h2>
-                <div className="bb-card mt-4 p-6">
+                <div className="bb-card mt-4 p-4 sm:p-6">
                   <ReminderOffsetForm
                     slotId={slot.id}
                     reminderOffsetMinutes={reminderOffsetMinutes}
@@ -141,7 +141,7 @@ export default async function SlotDetailPage({
             {isOwner && (
               <section>
                 <h2 className="bb-h text-[1.05rem]">Booking reminder</h2>
-                <div className="bb-card mt-4 p-6">
+                <div className="bb-card mt-4 p-4 sm:p-6">
                   <IntendedOrgForm
                     slotId={slot.id}
                     orgs={ownedOrgs}

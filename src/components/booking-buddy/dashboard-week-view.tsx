@@ -283,7 +283,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
             the row (and its `flex-1` grid) claim the scroller's actual width
             rather than collapsing to the gutter's own zero-width content. */}
         <div className="flex w-fit lg:w-full">
-          <div className="sticky left-0 z-10 w-12 shrink-0 bg-background sm:w-14">
+          <div className="sticky left-0 z-10 w-12 shrink-0 bg-card sm:w-14">
             {hours.map((hour) => (
               <div
                 key={hour}
@@ -379,7 +379,7 @@ function DayColumn<T extends CalendarEvent>({
       {hours.map((hour) => (
         <div
           key={hour}
-          className="absolute inset-x-0 border-b border-border/50"
+          className="absolute inset-x-0 border-b border-border"
           style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
         />
       ))}

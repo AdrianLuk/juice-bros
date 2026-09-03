@@ -228,14 +228,6 @@ export function BbAppShell() {
                 active ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              {/* An orange pushpin marking the active tab — slides between tabs. */}
-              {active && (
-                <span
-                  aria-hidden
-                  style={{ viewTransitionName: "bb-tab-pill" }}
-                  className="absolute top-1.5 size-2 rounded-full bg-brand-orange shadow-[0_1px_2px_oklch(0_0_0/0.4)]"
-                />
-              )}
               <Icon className={cn("size-5", active && "text-brand-orange")} />
               {section.label}
             </Link>

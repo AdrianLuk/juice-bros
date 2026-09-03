@@ -54,14 +54,14 @@ export default async function SlotsPage({
     : "";
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
+      <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <BbPageHeading
             title="Games"
             description="Propose a time before you've reserved a court. Friends respond yes, no, or maybe."
           />
           <BbSectionNav />
-          <div className="bb-sheet mt-8 flex flex-col gap-11 p-5 sm:p-8">
+          <div className="bb-sheet mt-8 flex flex-col gap-11 p-3.5 sm:p-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your games</h2>
               {own.length === 0 ? (
