@@ -22,13 +22,13 @@ export function BbFooter({ className }: { className?: string }) {
     >
       <Link
         href={PRIVACY_PATH}
-        className="text-[var(--bb-on-cork-dim)] transition-colors hover:text-foreground"
+        className="text-foreground/85 transition-colors hover:text-foreground"
       >
         Privacy
       </Link>
       <Link
         href="/"
-        className="text-[var(--bb-on-cork-dim)] transition-colors hover:text-foreground"
+        className="text-foreground/85 transition-colors hover:text-foreground"
       >
         Juice Bros Pickleball
       </Link>

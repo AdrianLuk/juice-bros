@@ -39,10 +39,15 @@ export function DurationPicker({
           <Button
             key={hours}
             type="button"
-            variant={value === choice ? "default" : "outline"}
+            variant="outline"
             role="radio"
             aria-checked={value === choice}
             onClick={() => onChange(choice)}
+            className={
+              value === choice
+                ? "border-transparent bg-foreground text-[color:var(--card)] hover:bg-foreground/90 hover:text-[color:var(--card)]"
+                : undefined
+            }
           >
             {hours} hour{hours === 1 ? "" : "s"}
           </Button>
@@ -50,10 +55,15 @@ export function DurationPicker({
       })}
       <Button
         type="button"
-        variant={value === "custom" ? "default" : "outline"}
+        variant="outline"
         role="radio"
         aria-checked={value === "custom"}
         onClick={() => onChange("custom")}
+        className={
+          value === "custom"
+            ? "border-transparent bg-foreground text-[color:var(--card)] hover:bg-foreground/90 hover:text-[color:var(--card)]"
+            : undefined
+        }
       >
         Custom
       </Button>
