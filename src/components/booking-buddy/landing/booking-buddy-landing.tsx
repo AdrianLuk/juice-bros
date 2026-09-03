@@ -241,10 +241,9 @@ export function BookingBuddyLanding() {
       {/* FAQ — a pinned notes card. */}
       <section className="w-full px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
-          <Reveal></Reveal>
           <RevealGroup
             as="dl"
-            className="bb-card mt-4 flex flex-col divide-y divide-[var(--bb-rule)] p-6"
+            className="bb-card flex flex-col divide-y divide-[var(--bb-rule)] p-6"
           >
             {landingFaqs.map((faq) => (
               <div key={faq.question} className="py-5 first:pt-0 last:pb-0">
