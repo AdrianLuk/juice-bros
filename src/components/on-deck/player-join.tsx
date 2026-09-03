@@ -3,9 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   joinSession,
   recognizePlayer,
@@ -25,9 +22,10 @@ import {
 import { QueueStatus } from "@/components/on-deck/queue-status";
 
 /**
- * The Player's side of a running Session: a two-tap setup (name, then Skill
- * Level) that appends `PLAYER_JOINED`, or — if this device's token is already
- * in the roster — a straight "you're in" screen (issue #242).
+ * The Player's side of a running Session on the substitution board (direction
+ * seed 92ec9d54): a two-tap setup (name, then Skill Level) that appends
+ * `PLAYER_JOINED`, or — if this device's token is already in the roster — a
+ * straight "you're in" board readout (issue #242).
  *
  * The roster is never sent here: a device token is a Player's whole identity
  * (ADR 0001), so the page must not broadcast every token to everyone viewing
@@ -108,17 +106,19 @@ export function PlayerJoin({
 
   if (me) {
     return (
-      <div className="mt-8">
-        <p className="font-heading text-sm font-semibold tracking-[0.2em] text-brand-orange uppercase">
-          You&apos;re in
-        </p>
-        <p className="mt-2 font-heading text-2xl font-semibold">
-          {me.displayName}
-        </p>
-        <p className="mt-1 text-muted-foreground">
-          Playing as {SKILL_LEVEL_LABEL[me.skillLevel]}
-        </p>
-        <p className="mt-6 text-sm text-muted-foreground">
+      <div className="mt-7">
+        <div className="od-panel od-next p-5">
+          <p className="od-display-tight text-4xl text-arena-fg sm:text-5xl">
+            You&apos;re in
+          </p>
+          <p className="od-display mt-1 text-2xl text-arena-dim">
+            {me.displayName}
+          </p>
+          <p className="od-readout mt-2 text-arena-dim">
+            Playing as {SKILL_LEVEL_LABEL[me.skillLevel]}
+          </p>
+        </div>
+        <p className="mt-3 text-sm text-arena-dim">
           Reopen the sign any time on this device and it&apos;ll know it&apos;s
           you.
         </p>
@@ -136,40 +136,39 @@ export function PlayerJoin({
   // A returning device whose lookup hasn't resolved yet: hold the space rather
   // than flash the setup form.
   if (token && recognized === undefined) {
-    return <div className="mt-8 h-40" aria-hidden />;
+    return <div className="mt-7 h-44" aria-hidden />;
   }
 
   if (step === "skill") {
     return (
-      <div className="mt-8">
-        <p className="font-heading text-lg font-semibold">
+      <div className="mt-7">
+        <p className="od-display text-2xl text-arena-fg">
           What&apos;s your skill level?
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Your call — it helps us mix the games well.
+        <p className="mt-1 text-sm text-arena-dim">
+          Your call. It helps us mix the games well.
         </p>
         <div className="mt-4 flex flex-col gap-2">
           {SKILL_LEVELS.map((level) => (
-            <Button
+            <button
               key={level}
               type="button"
-              variant="outline"
-              className="h-12 justify-start text-base"
+              className="od-key w-full justify-start"
               disabled={submitting}
               onClick={() => submit(level)}
             >
               {SKILL_LEVEL_LABEL[level]}
-            </Button>
+            </button>
           ))}
         </div>
         {error && (
-          <p className="mt-3 text-sm text-destructive" role="alert">
+          <p className="od-readout mt-3 text-[0.72rem] text-arena-warn" role="alert">
             {error}
           </p>
         )}
         <button
           type="button"
-          className="mt-4 text-sm text-muted-foreground underline-offset-4 hover:underline"
+          className="od-readout mt-4 text-[0.7rem] text-arena-faint underline-offset-4 hover:text-arena-dim hover:underline"
           disabled={submitting}
           onClick={() => {
             setError(null);
@@ -186,45 +185,56 @@ export function PlayerJoin({
 
   return (
     <form
-      className="mt-8 flex flex-col gap-4"
+      className="mt-7 flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (nameReady) setStep("skill");
       }}
     >
-      <p className="font-heading text-lg font-semibold">Join the social</p>
+      <p className="od-display text-2xl text-arena-fg">Join the social</p>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="on-deck-first-name">First name</Label>
-        <Input
+        <label
+          htmlFor="on-deck-first-name"
+          className="od-readout text-arena-dim"
+        >
+          First name
+        </label>
+        <input
           id="on-deck-first-name"
           name="firstName"
           autoComplete="given-name"
           autoCapitalize="words"
+          className="od-field"
           value={firstName}
           onChange={(event) => setFirstName(event.target.value)}
           required
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="on-deck-last-initial">Last initial</Label>
-        <Input
+        <label
+          htmlFor="on-deck-last-initial"
+          className="od-readout text-arena-dim"
+        >
+          Last initial
+        </label>
+        <input
           id="on-deck-last-initial"
           name="lastInitial"
           autoComplete="off"
           autoCapitalize="characters"
           maxLength={4}
-          className="w-20"
+          className="od-field w-24"
           value={lastInitial}
           onChange={(event) => setLastInitial(event.target.value)}
           required
         />
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-arena-faint">
         First name and last initial only. No phone number, no account.
       </p>
-      <Button type="submit" className="h-12 text-base" disabled={!nameReady}>
+      <button type="submit" className="od-key od-key--go" disabled={!nameReady}>
         Next
-      </Button>
+      </button>
     </form>
   );
 }

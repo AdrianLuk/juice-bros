@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
+import {
+  BoardHeading,
+  CourtPanel,
+  FoursomePanel,
+  QueueList,
+  Readout,
+} from "@/components/on-deck/board-parts";
 import {
   addWalkup,
   bringPlayerBack,
@@ -76,13 +80,12 @@ const OTHER_OPERATOR_LABEL: Record<string, string> = {
 };
 
 /**
- * The Organizer's floor screen (issue #243): every Court and who is on it, the
- * Queue in order, and a "Court N done" tap per occupied Court. Polls
- * `getRotationView` every few seconds so it stays current as Players join and
- * queue from their own phones.
- *
- * Paused (issue #246) lands here too: a no-show swap per in-play Court, a "set
- * aside" tap per waiting Player, and a "back in the queue" tap per paused one.
+ * The Organizer / Volunteer floor screen (issue #243) on the substitution
+ * board (direction seed 92ec9d54): every Court with its four names in board
+ * type and one orange turnover key, the two ON DECK foursomes, the numbered
+ * Queue, and the operator controls (walk-up, skill fix, queue together, wrap
+ * up). Polls `getRotationView` so it stays current as Players join from their
+ * phones.
  */
 export function RotationBoard({
   sessionId,
@@ -108,9 +111,9 @@ export function RotationBoard({
 }
 
 /**
- * The four floor actions, bound to whoever is driving the board: the
- * Organizer's account-backed Server Actions, or the Volunteer's token-carrying
- * ones. `auth.kind` is checked inline so TypeScript narrows `auth.token`.
+ * The floor actions, bound to whoever is driving the board: the Organizer's
+ * account-backed Server Actions, or the Volunteer's token-carrying ones.
+ * `auth.kind` is checked inline so TypeScript narrows `auth.token`.
  */
 function boundFloorActions(sessionId: string, auth: FloorAuth) {
   return {
@@ -168,59 +171,10 @@ function boundFloorActions(sessionId: string, auth: FloorAuth) {
   };
 }
 
-const ON_DECK_LABELS = ["Up next", "After that"];
-
-function OnDeck({
-  foursomes,
-  isGroup,
-}: {
-  foursomes: string[][];
-  isGroup: boolean[];
-}) {
-  return (
-    <div>
-      <h2 className="font-heading text-xl font-semibold">On deck</h2>
-      {foursomes.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">
-          Not enough players waiting to line up a foursome yet.
-        </p>
-      ) : (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {foursomes.map((players, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border bg-card p-4"
-              data-testid={`on-deck-${i}`}
-            >
-              <p className="font-heading text-sm font-semibold tracking-[0.15em] text-brand-orange uppercase">
-                {ON_DECK_LABELS[i]}
-                {isGroup[i] ? (
-                  <span className="ml-2 rounded-full bg-brand-orange px-2 py-0.5 text-[0.65rem] tracking-normal text-white">
-                    Group
-                  </span>
-                ) : null}
-              </p>
-              <ul className="mt-2 space-y-1 text-sm">
-                {players.map((name, j) => (
-                  <li key={j}>{name}</li>
-                ))}
-                {Array.from({ length: 4 - players.length }, (_, k) => (
-                  <li key={`open-${k}`} className="text-muted-foreground">
-                    Open spot
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 /**
  * "Someone didn't show?" for one in-play Court. Collapsed to a link until the
- * Organizer needs it; open, it pre-fills the Match Me suggestion but lets them
+ * operator needs it; open, it pre-fills the Match Me suggestion but lets them
  * pick any waiting Player instead.
  */
 function NoShowSwap({
@@ -246,9 +200,6 @@ function NoShowSwap({
   pending: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  // Track only the Organizer's explicit picks; everything else follows the
-  // live polled props, so a 4s refresh never strands the selects on a stale
-  // name or an empty value.
   const [outPick, setOutPick] = useState<string | null>(null);
   const [inPick, setInPick] = useState<string | null>(null);
   const outName =
@@ -260,8 +211,8 @@ function NoShowSwap({
 
   if (waiting.length === 0) {
     return (
-      <p className="mt-3 text-xs text-muted-foreground">
-        No one waiting to swap in.
+      <p className="od-readout mt-3 text-arena-dim">
+        No one waiting to swap in
       </p>
     );
   }
@@ -270,7 +221,7 @@ function NoShowSwap({
     return (
       <button
         type="button"
-        className="mt-3 text-xs text-muted-foreground underline-offset-4 hover:underline"
+        className="od-readout mt-3 text-[0.72rem] text-arena-dim underline-offset-4 hover:text-arena-fg hover:underline"
         onClick={() => setOpen(true)}
       >
         Someone didn&apos;t show?
@@ -279,11 +230,11 @@ function NoShowSwap({
   }
 
   return (
-    <div className="mt-3 space-y-2 rounded-xl border border-dashed p-3">
-      <label className="block text-xs font-medium">
-        Who&apos;s missing
+    <div className="mt-3 space-y-2.5 rounded-lg border border-dashed border-arena-line p-3">
+      <label className="block">
+        <Readout className="text-arena-dim">Who&apos;s missing</Readout>
         <select
-          className="mt-1 block w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+          className="od-select mt-1.5"
           value={outName}
           onChange={(e) => setOutPick(e.target.value)}
         >
@@ -294,10 +245,12 @@ function NoShowSwap({
           ))}
         </select>
       </label>
-      <label className="block text-xs font-medium">
-        Swap in{suggested ? " (suggested)" : ""}
+      <label className="block">
+        <Readout className="text-arena-dim">
+          Swap in{suggested ? " (suggested)" : ""}
+        </Readout>
         <select
-          className="mt-1 block w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+          className="od-select mt-1.5"
           value={inName}
           onChange={(e) => setInPick(e.target.value)}
         >
@@ -309,22 +262,21 @@ function NoShowSwap({
         </select>
       </label>
       <div className="flex gap-2">
-        <Button
+        <button
           type="button"
-          size="sm"
+          className="od-key"
           disabled={pending || !outName || !inName}
           onClick={() => onSwap({ court, since, outName, inName })}
         >
           Swap in
-        </Button>
-        <Button
+        </button>
+        <button
           type="button"
-          size="sm"
-          variant="ghost"
+          className="od-key od-key--ghost"
           onClick={() => setOpen(false)}
         >
           Cancel
-        </Button>
+        </button>
       </div>
     </div>
   );
@@ -353,12 +305,11 @@ function AddWalkup({
 
   return (
     <form
-      className="rounded-2xl border bg-card p-4"
+      className="od-panel p-4"
       data-testid="add-walkup"
       onSubmit={(e) => {
         e.preventDefault();
         if (!ready || pending) return;
-        // Clear only once the add lands — a failed write keeps what was typed.
         onAdd({ first, initial, skill })
           .then((result) => {
             if (result && result.ok === false) return;
@@ -369,39 +320,36 @@ function AddWalkup({
           .catch(() => {});
       }}
     >
-      <h2 className="font-heading text-xl font-semibold">Add a walk-up</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <BoardHeading>Add a walk-up</BoardHeading>
+      <p className="mt-1 text-sm text-arena-faint">
         Someone without their phone — they queue like everyone else.
       </p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="walkup-first">First name</Label>
-          <Input
-            id="walkup-first"
+        <label className="flex flex-col gap-1.5">
+          <Readout className="text-arena-dim">First name</Readout>
+          <input
             autoComplete="off"
             autoCapitalize="words"
-            className="w-40"
+            className="od-field w-40"
             value={first}
             onChange={(e) => setFirst(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="walkup-initial">Last initial</Label>
-          <Input
-            id="walkup-initial"
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <Readout className="text-arena-dim">Last initial</Readout>
+          <input
             autoComplete="off"
             autoCapitalize="characters"
             maxLength={4}
-            className="w-16"
+            className="od-field w-20"
             value={initial}
             onChange={(e) => setInitial(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="walkup-skill">Skill level</Label>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <Readout className="text-arena-dim">Skill level</Readout>
           <select
-            id="walkup-skill"
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            className="od-select w-40"
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
           >
@@ -411,10 +359,14 @@ function AddWalkup({
               </option>
             ))}
           </select>
-        </div>
-        <Button type="submit" size="sm" disabled={!ready || pending}>
+        </label>
+        <button
+          type="submit"
+          className="od-key od-key--go"
+          disabled={!ready || pending}
+        >
           Add to the queue
-        </Button>
+        </button>
       </div>
     </form>
   );
@@ -438,20 +390,20 @@ function SkillLevels({
   if (roster.length === 0) return null;
 
   return (
-    <details className="rounded-2xl border bg-card p-4" data-testid="skill-levels">
-      <summary className="cursor-pointer font-heading text-xl font-semibold">
+    <details className="od-panel p-4" data-testid="skill-levels">
+      <summary className="od-readout cursor-pointer text-[0.72rem] text-arena-dim">
         Fix a skill level
       </summary>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1 text-sm text-arena-faint">
         Only if a self-rating is clearly off — this feeds the next match.
       </p>
-      <ul className="mt-3 space-y-2 text-sm">
+      <ul className="mt-3 space-y-2">
         {roster.map((p) => (
           <li key={p.name} className="flex items-center justify-between gap-3">
-            <span>{p.name}</span>
+            <span className="od-display text-lg">{p.name}</span>
             <select
               aria-label={`Skill level for ${p.name}`}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
+              className="od-select w-40"
               value={p.skillLevel}
               disabled={pending}
               onChange={(e) => onOverride({ name: p.name, skill: e.target.value })}
@@ -471,10 +423,7 @@ function SkillLevels({
 
 /**
  * "Queue together" (issue #250): an Operator picks 2 to the live cap waiting
- * Players who asked to play together and queues them as one Group. A short
- * Group is filled to four by Match Me; the Group dissolves when its Game ends.
- * The cap has a live "lower it" control so one Foursome can't monopolise a
- * Court.
+ * Players who asked to play together and queues them as one Group.
  */
 function QueueTogether({
   waiting,
@@ -505,14 +454,14 @@ function QueueTogether({
     );
 
   return (
-    <div className="rounded-2xl border bg-card p-4" data-testid="queue-together">
+    <div className="od-panel p-4" data-testid="queue-together">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-heading text-xl font-semibold">Queue together</h2>
-        <label className="text-xs text-muted-foreground">
-          Group cap{" "}
+        <BoardHeading>Queue together</BoardHeading>
+        <label className="od-readout flex items-center gap-1.5 text-arena-dim">
+          Group cap
           <select
             aria-label="Group cap"
-            className="ml-1 h-8 rounded-md border bg-background px-1.5 text-sm"
+            className="od-select h-9 w-16"
             value={groupCap}
             disabled={pending}
             onChange={(e) => onSetCap(Number(e.target.value))}
@@ -525,13 +474,13 @@ function QueueTogether({
           </select>
         </label>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1 text-sm text-arena-faint">
         Pick the players who asked to play together — we&apos;ll fill any open
         spots and keep them in line by their median wait.
       </p>
       {waiting.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Nobody waiting to group up right now.
+        <p className="od-display mt-3 text-lg text-arena-faint">
+          Nobody waiting to group up right now
         </p>
       ) : (
         <>
@@ -544,11 +493,7 @@ function QueueTogether({
                     type="button"
                     aria-pressed={on}
                     disabled={pending}
-                    className={`rounded-full border px-3 py-1 text-sm ${
-                      on
-                        ? "border-brand-orange bg-brand-orange text-white"
-                        : "border-input"
-                    }`}
+                    className={`od-chip ${on ? "od-chip--on" : ""}`}
                     onClick={() => toggle(name)}
                   >
                     {name}
@@ -557,10 +502,9 @@ function QueueTogether({
               );
             })}
           </ul>
-          <Button
+          <button
             type="button"
-            size="sm"
-            className="mt-3"
+            className="od-key od-key--ghost mt-3"
             disabled={!ready || pending}
             onClick={() => {
               onForm(chosen)
@@ -574,23 +518,21 @@ function QueueTogether({
             {chosen.length >= 2 && chosen.length > groupCap
               ? `Cap is ${groupCap}`
               : `Form group${chosen.length ? ` (${chosen.length})` : ""}`}
-          </Button>
+          </button>
         </>
       )}
     </div>
   );
 }
 
-/**
- * "Wrap up the night" (issue #255): Last Call, then Close. Last Call takes a
- * confirm — it is a judgment about the night, not a Court turnover, and there
- * is no undo for it. After it, the board shows "final games" and Close appears
- * (Organizer only — a Volunteer can call it but not close it).
- */
 /** How long before the venue permit ends the floor screen starts nudging
  * "call it?" (ADR 0002). A prompt only — the tap stays a human decision. */
 export const LAST_CALL_NUDGE_LEAD_MS = 15 * 60 * 1000;
 
+/**
+ * "Wrap up the night" (issue #255): Last Call, then Close. Last Call takes a
+ * confirm — a judgment about the night, not a Court turnover, with no undo.
+ */
 function WrapUp({
   lastCall,
   canClose,
@@ -609,8 +551,6 @@ function WrapUp({
   const [confirming, setConfirming] = useState<"last-call" | "close" | null>(
     null,
   );
-  // Re-render on a slow tick so the nudge appears as the permit end approaches
-  // without a poll.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -622,20 +562,17 @@ function WrapUp({
     permitEndsAt - now <= LAST_CALL_NUDGE_LEAD_MS;
 
   return (
-    <div
-      className="rounded-2xl border bg-card p-4"
-      data-testid="wrap-up"
-    >
-      <h2 className="font-heading text-xl font-semibold">Wrapping up</h2>
+    <div className="od-panel p-4" data-testid="wrap-up">
+      <BoardHeading>Wrapping up</BoardHeading>
       {!lastCall ? (
         <>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-arena-faint">
             Last Call stops new games starting. Games already on court finish
             normally.
           </p>
           {nudging && (
             <p
-              className="mt-2 text-sm font-medium text-brand-orange"
+              className="od-readout mt-2 text-[0.72rem] text-arena-warn"
               data-testid="last-call-nudge"
             >
               The permit ends soon — call it?
@@ -643,10 +580,12 @@ function WrapUp({
           )}
           {confirming === "last-call" ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-sm">Call it? This can&apos;t be undone.</span>
-              <Button
+              <span className="text-sm text-arena-fg">
+                Call it? This can&apos;t be undone.
+              </span>
+              <button
                 type="button"
-                size="sm"
+                className="od-key"
                 disabled={pending}
                 data-testid="last-call-confirm"
                 onClick={() => {
@@ -655,48 +594,45 @@ function WrapUp({
                 }}
               >
                 Yes, last call
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                size="sm"
-                variant="ghost"
+                className="od-key od-key--ghost"
                 onClick={() => setConfirming(null)}
               >
                 Not yet
-              </Button>
+              </button>
             </div>
           ) : (
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
-              className="mt-3"
+              className="od-key od-key--ghost mt-3"
               disabled={pending}
               data-testid="last-call-button"
               onClick={() => setConfirming("last-call")}
             >
               Last call
-            </Button>
+            </button>
           )}
         </>
       ) : (
         <>
           <p
-            className="mt-1 text-sm font-medium text-brand-orange"
+            className="od-display mt-1 text-lg text-arena-live"
             data-testid="last-call-banner"
           >
-            Last call — final games. No new foursomes.
+            Last call. Final games only, no new foursomes.
           </p>
           {canClose &&
             (confirming === "close" ? (
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-sm">
+                <span className="text-sm text-arena-fg">
                   Close the session? The player list is wiped — only the summary
                   is kept.
                 </span>
-                <Button
+                <button
                   type="button"
-                  size="sm"
+                  className="od-key"
                   disabled={pending}
                   data-testid="close-session-confirm"
                   onClick={() => {
@@ -705,28 +641,25 @@ function WrapUp({
                   }}
                 >
                   Close it
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
-                  size="sm"
-                  variant="ghost"
+                  className="od-key od-key--ghost"
                   onClick={() => setConfirming(null)}
                 >
                   Not yet
-                </Button>
+                </button>
               </div>
             ) : (
-              <Button
+              <button
                 type="button"
-                size="sm"
-                variant="outline"
-                className="mt-3"
+                className="od-key od-key--ghost mt-3"
                 disabled={pending}
                 data-testid="close-session-button"
                 onClick={() => setConfirming("close")}
               >
                 Close the session
-              </Button>
+              </button>
             ))}
         </>
       )}
@@ -749,9 +682,6 @@ function RotationBoardInner({
   const authToken = auth.kind === "volunteer" ? auth.token : undefined;
   const queryKey = ["on-deck", "rotation", sessionId, "floor"] as const;
   const rosterKey = ["on-deck", "roster", sessionId, "floor"] as const;
-  // Realtime carries the updates when the socket is healthy (issue #252) and
-  // this drops to a slow backstop poll; a socket drop returns it to the ~4s
-  // fallback automatically, a reconnect resumes Realtime.
   const pollInterval = useRotationSync(sessionId, [queryKey, rosterKey]);
   const query = useQuery({
     queryKey,
@@ -766,6 +696,13 @@ function RotationBoardInner({
     initialData: initialRoster,
   });
   const [error, setError] = useState<string | null>(null);
+  // Wait Times count up between polls — tick a local clock so a quiet board
+  // still advances the queue's minutes.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const ops = boundFloorActions(sessionId, auth);
 
   const refresh = () => {
@@ -774,8 +711,6 @@ function RotationBoardInner({
   };
   const handle = (result: { ok?: boolean; error?: string }) => {
     setError(result.ok ? null : (result.error ?? "Something went wrong. Try again."));
-    // Re-sync either way: on success to show the new board, on error (e.g. a
-    // concurrent Operator) to pull in whatever they changed.
     refresh();
   };
 
@@ -888,11 +823,14 @@ function RotationBoardInner({
     lastCallMut.isPending ||
     closeMut.isPending;
 
+  const nextReady = !view.lastCall && view.onDeck[0]?.length === 4;
+  const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-7">
       {error && (
         <p
-          className="text-sm text-destructive"
+          className="od-readout text-[0.72rem] text-arena-warn"
           role="alert"
           data-testid="floor-error"
         >
@@ -901,173 +839,121 @@ function RotationBoardInner({
       )}
 
       {undoTarget && (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-arena-line px-4 py-2.5">
+          <span className="text-sm text-arena-faint">
             {undoTarget.by !== auth.kind
               ? `${OTHER_OPERATOR_LABEL[undoTarget.by]} made the last change.`
               : "Tapped something by mistake?"}
           </span>
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="ghost"
+            className="od-key od-key--ghost"
             disabled={busy}
             data-testid="undo-button"
             onClick={() => undo.mutate(undoTarget.seq)}
           >
             Undo {undoTarget.label}
-          </Button>
+          </button>
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {view.courts.map((court) => {
-          const occupied = court.players.length > 0;
-          // A clean Foursome is ready only when On Deck has actually committed
-          // one — with Groups in the mix `queuedCount >= 4` no longer implies a
-          // seatable four (a Group at the front may be short a fill Player).
-          // After Last Call no new foursome is assigned — only a Game already
-          // on court can still be tapped done.
-          const nextReady = !view.lastCall && view.onDeck[0]?.length === 4;
-          return (
-            <div
-              key={court.number}
-              className="rounded-2xl border bg-card p-4"
-              data-testid={`court-${court.number}`}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-heading text-lg font-semibold">
-                  Court {court.number}
-                </h3>
-                <Button
+      {/* ── Courts ────────────────────────────────────────────────────── */}
+      <section>
+        <BoardHeading count={view.courts.length}>
+          {view.lastCall ? "Final games" : "On the courts"}
+        </BoardHeading>
+        <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
+          {view.courts.map((court) => {
+            const occupied = court.players.length > 0;
+            return (
+              <CourtPanel key={court.number} court={court}>
+                <button
                   type="button"
-                  size="sm"
-                  variant="outline"
+                  className={
+                    occupied
+                      ? "od-key od-key--go od-key--turnover mt-4"
+                      : "od-key od-key--ghost mt-4 w-full"
+                  }
                   disabled={busy || (!occupied && !nextReady)}
                   onClick={() =>
                     finish.mutate({ number: court.number, since: court.since })
                   }
                 >
                   {occupied ? `Court ${court.number} done` : "Send next four"}
-                </Button>
-              </div>
-              <ul className="mt-3 space-y-1 text-sm">
-                {occupied ? (
-                  court.players.map((name, i) => <li key={i}>{name}</li>)
-                ) : (
-                  <li className="text-muted-foreground">Waiting for a foursome</li>
+                </button>
+                {occupied && (
+                  <NoShowSwap
+                    court={court.number}
+                    players={court.players}
+                    since={court.since}
+                    suggested={court.suggestedReplacement}
+                    waiting={view.waitingNames}
+                    onSwap={swap.mutate}
+                    pending={swap.isPending}
+                  />
                 )}
-              </ul>
-              {occupied && (
-                <NoShowSwap
-                  court={court.number}
-                  players={court.players}
-                  since={court.since}
-                  suggested={court.suggestedReplacement}
-                  waiting={view.waitingNames}
-                  onSwap={swap.mutate}
-                  pending={swap.isPending}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
+              </CourtPanel>
+            );
+          })}
+        </div>
+      </section>
 
+      {/* ── On Deck ───────────────────────────────────────────────────── */}
       {!view.lastCall && (
-        <>
-          <OnDeck foursomes={view.onDeck} isGroup={view.onDeckIsGroup} />
-
-          <AddWalkup
-            onAdd={(args) => walkup.mutateAsync(args)}
-            pending={walkup.isPending}
-          />
-        </>
+        <section>
+          <BoardHeading tone="next">On deck</BoardHeading>
+          <div className="mt-3 grid items-start gap-4 sm:grid-cols-2">
+            {([0, 1] as const).map((slot) => (
+              <FoursomePanel
+                key={slot}
+                slot={slot}
+                testIdPrefix="on-deck-"
+                names={view.onDeck[slot] ?? []}
+                isGroup={view.onDeckIsGroup[slot]}
+                emptyLabel="Not enough players waiting yet"
+                progress={
+                  slot === 0 && hasOnDeck
+                    ? (view.onDeck[0]?.length ?? 0) / 4
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      <div>
-        <h2 className="font-heading text-xl font-semibold">
-          {view.lastCall ? "Not playing tonight" : "Queue"}{" "}
-          <span className="text-muted-foreground">({view.queuedCount})</span>
-        </h2>
+      {!view.lastCall && (
+        <AddWalkup
+          onAdd={(args) => walkup.mutateAsync(args)}
+          pending={walkup.isPending}
+        />
+      )}
+
+      {/* ── Queue ─────────────────────────────────────────────────────── */}
+      <section>
+        <BoardHeading count={view.queuedCount}>
+          {view.lastCall ? "Not playing tonight" : "In the queue"}
+        </BoardHeading>
         {view.lastCall && view.queuedCount > 0 && (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-arena-faint">
             Last call was made before a court opened for these players.
           </p>
         )}
         {!view.lastCall && view.queue.some((e) => e.kind === "group") && (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-arena-faint">
             {QUEUE_TOGETHER_EXPLAINER}
           </p>
         )}
-        {view.queue.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Nobody waiting right now.
-          </p>
-        ) : (
-          <ol className="mt-3 space-y-1 text-sm" data-testid="queue-list">
-            {view.queue.map((entry, i) =>
-              entry.kind === "solo" ? (
-                <li key={i} className="flex items-center justify-between gap-2">
-                  <span>
-                    <span className="text-muted-foreground">{i + 1}.</span>{" "}
-                    {entry.name}
-                  </span>
-                  {!view.lastCall && (
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                      disabled={busy}
-                      onClick={() => aside.mutate(entry.name)}
-                    >
-                      Set aside
-                    </button>
-                  )}
-                </li>
-              ) : (
-                <li
-                  key={i}
-                  className="rounded-lg border border-brand-orange/40 bg-brand-orange/5 px-2 py-1.5"
-                  data-testid="queue-group"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold tracking-wide text-brand-orange uppercase">
-                      <span className="text-muted-foreground">{i + 1}.</span>{" "}
-                      Group
-                    </span>
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                      disabled={busy}
-                      onClick={() => breakUp.mutate(entry.groupId)}
-                    >
-                      Break up
-                    </button>
-                  </div>
-                  <ul className="mt-1 space-y-0.5">
-                    {entry.names.map((name) => (
-                      <li
-                        key={name}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span>{name}</span>
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                          disabled={busy}
-                          onClick={() => aside.mutate(name)}
-                        >
-                          Set aside
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ),
-            )}
-          </ol>
-        )}
-      </div>
+        <QueueList
+          queue={view.queue}
+          now={now}
+          lastCall={view.lastCall}
+          busy={busy}
+          onSetAside={(name) => aside.mutate(name)}
+          onBreakUp={(groupId) => breakUp.mutate(groupId)}
+          data-testid="queue-list"
+        />
+      </section>
 
       {!view.lastCall && (
         <>
@@ -1100,26 +986,23 @@ function RotationBoardInner({
       )}
 
       {view.paused.length > 0 && (
-        <div>
-          <h2 className="font-heading text-xl font-semibold">Set aside</h2>
-          <ul
-            className="mt-3 space-y-1 text-sm"
-            data-testid="paused-list"
-          >
+        <section>
+          <BoardHeading>Set aside</BoardHeading>
+          <ul className="mt-3 space-y-px" data-testid="paused-list">
             {view.paused.map((p, i) => (
               <li
                 key={i}
-                className="flex items-center justify-between gap-2"
+                className="flex items-center justify-between gap-3 border-b border-arena-line-soft py-2"
               >
-                <span>
+                <span className="od-display text-lg">
                   {p.name}{" "}
-                  <span className="text-muted-foreground">
-                    ({PAUSE_REASON_LABEL[p.reason]})
+                  <span className="od-readout ml-1 text-arena-dim">
+                    {PAUSE_REASON_LABEL[p.reason]}
                   </span>
                 </span>
                 <button
                   type="button"
-                  className="text-xs text-brand-orange underline-offset-4 hover:underline"
+                  className="od-readout text-arena-dim underline-offset-4 hover:underline"
                   disabled={busy}
                   onClick={() => back.mutate(p.name)}
                 >
@@ -1128,7 +1011,7 @@ function RotationBoardInner({
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
     </div>
   );

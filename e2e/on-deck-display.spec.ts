@@ -130,9 +130,15 @@ test("the Display renders courts, the ordered queue with wait times, and the On 
 
   // A Court finish: the "Up next" Foursome walks onto Court 1, and a fresh
   // Foursome refills On Deck — an On Deck change the board reflects.
+  // The board's display face is CSS-uppercased; read the underlying text
+  // nodes (`textContent`, not the rendered `allInnerTexts`) so the name we
+  // match against Court 1 is the same case as its own `<li>`.
   const upNextNames = (
-    await page.getByTestId("display-on-deck-0").locator("li").allInnerTexts()
-  ).filter((t) => t !== "Open spot");
+    await page
+      .getByTestId("display-on-deck-0")
+      .locator("li")
+      .evaluateAll((els) => els.map((el) => el.textContent?.trim() ?? ""))
+  ).filter((t) => t.toLowerCase() !== "open spot");
   await finishCourtViaRpc(sessionId, volunteerToken, 1);
   const court1 = page.getByTestId("display-court-1");
   await expect(court1).toContainText(upNextNames[0], { timeout: 15_000 });

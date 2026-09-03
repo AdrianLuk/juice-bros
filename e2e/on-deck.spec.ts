@@ -210,7 +210,7 @@ test("the rotation loop: a Player joins the Queue, is called onto a Court, and r
   // The four who were waiting walk straight onto the freed Court; the four
   // coming off (our Player among them) become the next On Deck Foursome, and
   // their own screen says so.
-  await expect(page.getByText("You're up next — head to the courts")).toBeVisible({
+  await expect(page.getByText("You're up next")).toBeVisible({
     timeout: 10_000,
   });
 });

@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOpenSessionForClub } from "@/lib/on-deck/sessions";
 import { clubQrPath, sessionPath } from "@/lib/on-deck/routes";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
 
 export async function generateMetadata({
   params,
@@ -46,16 +47,17 @@ export default async function ClubQrPage({
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col items-center justify-center px-4 py-24 text-center">
-      <div className="mx-auto max-w-sm">
-        <h1 className="font-heading text-2xl font-semibold">
+    <ArenaShell className="items-center justify-center px-6 py-24 text-center">
+      <div className="od-panel mx-auto max-w-sm px-6 py-8">
+        <p className="od-readout text-[0.72rem] text-arena-faint">On Deck</p>
+        <h1 className="od-display-tight mt-2 text-3xl text-arena-fg">
           Nothing running right now
         </h1>
-        <p className="mt-3 text-muted-foreground">
+        <p className="mt-3 text-sm text-arena-faint">
           There&apos;s no session open at the moment. Scan the sign again once
           play has started.
         </p>
       </div>
-    </div>
+    </ArenaShell>
   );
 }
