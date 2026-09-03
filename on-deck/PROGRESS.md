@@ -534,6 +534,28 @@ migration's timestamp past whatever else merged (the drift lesson
   `push-notifications.spec.ts` (Chrome ↔ FCM is outbound network the suite
   can't assume; the e2e web server carries no VAPID keys).
 
+## Tooling
+
+- **#351 — the gated dev console (`/on-deck/dev`).** Fill a real Session with
+  synthetic Players and drive it from a phone: `+1/+4/+8` adds (via the `anon`
+  `on_deck_join_session` / `on_deck_queue_player` RPCs, `dev-<uuid>` tokens —
+  no migration, no new write path), finish a random / all Courts, form a random
+  Group, a-player-short swap, skill override, set-aside / bring-back, Last Call,
+  Close, and Reset (close + restart). Everything but the adds reuses
+  `actions/floor.ts` verbatim (ADR 0005 — a synthetic Player is
+  indistinguishable to the fold). Two gates: `ON_DECK_DEV_KEY` env
+  (`/on-deck/dev/enter?key=` sets an httpOnly cookie, then the console rides it;
+  unset ⇒ the route 404s for everyone, like `api/e2e-preflight`) **and** an
+  Organizer session — the console drives real Organizer actions through the
+  caller's own session, no service-role escalation. Not in
+  `requiresOrganizerSession` (404, never a sign-in redirect that admits the
+  route exists); proxy matcher covers `/on-deck/dev/:path*` for token refresh;
+  `robots.ts` disallows it. **One-time prod setup, not code:** insert the Club
+  with `owner_id` = the Juice Bros account (Supabase SQL editor — RLS gives even
+  the owner no INSERT on `on_deck_clubs`), then the console handles the rest.
+  Tests: `dev-players.test.ts` (the name/skill generator), `routes.test.ts`
+  (gating + path shapes).
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its

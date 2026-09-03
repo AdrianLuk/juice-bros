@@ -37,11 +37,13 @@ export default function robots(): MetadataRoute.Robots {
         `${JOIN_PATH}/`,
         `${SLOT_LINK_ROOT}/`,
         // On Deck: the /on-deck landing page stays crawlable; the Organizer
-        // home, the QR resolver, and the live Session view do not — they
-        // redirect, gate, or are a live-event surface, not a page.
+        // home, the QR resolver, the live Session view, and the gated dev
+        // console do not — they redirect, gate, 404, or are a live-event
+        // surface, not a page.
         ON_DECK_HOME_PATH,
         `${ON_DECK_ROOT}/c/`,
         `${ON_DECK_ROOT}/session/`,
+        `${ON_DECK_ROOT}/dev`,
       ],
     },
     sitemap: `${siteConfig.url}/sitemap.xml`,

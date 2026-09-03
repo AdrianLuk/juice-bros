@@ -75,11 +75,17 @@ export async function proxy(request: NextRequest) {
  * and podcast pages have no backend and must not be pulled onto Supabase.
  *
  * Booking Buddy matches its whole subtree (its root path branches on the
- * session and every nested route is gated). On Deck matches only the
- * Organizer surface — its `/on-deck` landing page is pure marketing, and the
- * Player/Volunteer surfaces beneath `/on-deck/c` and `/on-deck/session` are
- * deliberately open (ADR 0005), so none of them need a session refreshed.
+ * session and every nested route is gated). On Deck matches the Organizer
+ * surface and the dev console (issue #351) — both need a fresh Organizer
+ * session — but not its `/on-deck` landing page (pure marketing) or the
+ * Player/Volunteer surfaces beneath `/on-deck/c` and `/on-deck/session`, which
+ * are deliberately open (ADR 0005). The dev console is not in
+ * `requiresOrganizerSession`: it 404s without its key rather than redirecting.
  */
 export const config = {
-  matcher: ["/booking-buddy/:path*", "/on-deck/home/:path*"],
+  matcher: [
+    "/booking-buddy/:path*",
+    "/on-deck/home/:path*",
+    "/on-deck/dev/:path*",
+  ],
 };

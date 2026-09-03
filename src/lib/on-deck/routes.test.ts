@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ON_DECK_DEV_ENTER_PATH,
+  ON_DECK_DEV_PATH,
   ON_DECK_HOME_PATH,
   ON_DECK_NEW_SESSION_PATH,
   ON_DECK_SETTINGS_PATH,
@@ -32,6 +34,12 @@ test("only the Organizer subtree requires a session", () => {
   assert.equal(requiresOrganizerSession("/on-deck/c/abc"), false);
   assert.equal(requiresOrganizerSession("/on-deck/session/abc"), false);
   assert.equal(requiresOrganizerSession("/booking-buddy/friends"), false);
+});
+
+test("the dev console is not Organizer-gated — it 404s without its key, never redirects", () => {
+  assert.equal(requiresOrganizerSession(ON_DECK_DEV_PATH), false);
+  assert.equal(requiresOrganizerSession("/on-deck/dev/"), false);
+  assert.equal(requiresOrganizerSession(ON_DECK_DEV_ENTER_PATH), false);
 });
 
 test("the floor screen under a Session is Organizer-only", () => {
@@ -87,6 +95,8 @@ test("path builders produce the stable shapes the proxy and pages share", () => 
   );
   assert.equal(ON_DECK_NEW_SESSION_PATH, "/on-deck/home/sessions/new");
   assert.equal(ON_DECK_SETTINGS_PATH, "/on-deck/home/settings");
+  assert.equal(ON_DECK_DEV_PATH, "/on-deck/dev");
+  assert.equal(ON_DECK_DEV_ENTER_PATH, "/on-deck/dev/enter");
 });
 
 test("safeRedirectTarget only ever returns an On Deck path", () => {
