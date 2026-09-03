@@ -42,6 +42,7 @@ import {
   isOverCapacity,
 } from "@/lib/booking-buddy/capacity";
 import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
+import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   DEFAULT_DIVISION,
@@ -306,26 +307,35 @@ export function SlotStatusBadge({ courtCount }: { courtCount: number }) {
 }
 
 export function SlotRow({ slot, href }: { slot: Slot; href: string }) {
+  const booked = slot.courtCount > 0;
   return (
     <li>
-      <Link
+      <BoardCard
+        as={Link}
         href={href}
-        className="group/row block px-5 py-4 transition-colors hover:bg-muted/60 active:bg-muted"
+        pin={booked ? "in" : "maybe"}
+        pinLabel={booked ? "Booked" : "Gathering"}
+        pinAlign="left"
+        pinned={false}
+        interactive
+        className="bb-slip block no-underline"
       >
-        <div className="flex items-start justify-between gap-3 transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/row:translate-x-0.5 motion-reduce:transform-none">
-          <p
-            className="font-medium"
-            style={{ viewTransitionName: `bb-slot-title-${slot.id}` }}
-          >
-            {slot.when}
-            {slot.facilityLabel && ` · ${slot.facilityLabel}`}
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p
+              className="font-medium text-foreground"
+              style={{ viewTransitionName: `bb-slot-title-${slot.id}` }}
+            >
+              {slot.when}
+              {slot.facilityLabel && ` · ${slot.facilityLabel}`}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Proposed by {slot.ownerName}
+            </p>
+          </div>
           <SlotStatusBadge courtCount={slot.courtCount} />
         </div>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Proposed by {slot.ownerName}
-        </p>
-      </Link>
+      </BoardCard>
     </li>
   );
 }

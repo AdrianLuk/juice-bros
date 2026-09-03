@@ -70,7 +70,7 @@ export default async function SlotsPage({
                   yes, no, or maybe, before anyone books a court.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+                <ul className="mt-4 flex flex-col gap-5">
                   {own.map((slot) => (
                     <SlotRow
                       key={slot.id}
@@ -95,7 +95,7 @@ export default async function SlotsPage({
                   posts one, or once you have that into them.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+                <ul className="mt-4 flex flex-col gap-5">
                   {friends.map((slot) => (
                     <SlotRow
                       key={slot.id}

@@ -44,6 +44,8 @@ export default async function FriendsPage() {
           <div className="bb-sheet mt-8 flex flex-col gap-11 p-3.5 sm:p-8">
             <ConnectionList
               title="Requests for you"
+              pin="need"
+              pinLabel="Needs your answer"
               people={received}
               renderActions={(person) => (
                 <>
@@ -67,6 +69,8 @@ export default async function FriendsPage() {
             <ConnectionList
               title="Requests you've sent"
               description="Waiting on them to accept."
+              pin="info"
+              pinLabel="Waiting on them"
               people={sent}
               renderActions={(person) => (
                 <ConnectionActionButton
@@ -96,7 +100,7 @@ export default async function FriendsPage() {
                   No friends yet. Search above to find someone you play with.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+                <ul className="mt-4 flex flex-col gap-5">
                   {friendVisibility.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}

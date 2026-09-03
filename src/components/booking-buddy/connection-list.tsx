@@ -1,5 +1,7 @@
 import { personLabel } from "@/lib/booking-buddy/connections";
 import type { ConnectionPerson } from "@/lib/booking-buddy/actions/connections";
+import { BoardCard } from "@/components/booking-buddy/bb/board-card";
+import type { PinColor } from "@/components/booking-buddy/bb/pushpin";
 
 /**
  * A titled list of people, used for all three friends-page sections. The
@@ -11,12 +13,17 @@ export function ConnectionList({
   people,
   emptyMessage,
   renderActions,
+  pin = "info",
+  pinLabel,
 }: {
   title: string;
   description?: string;
   people: ConnectionPerson[];
   emptyMessage?: string;
   renderActions: (person: ConnectionPerson) => React.ReactNode;
+  /** The status-law pin on each person's card — red "need" for requests waiting on you, cobalt "info" otherwise. */
+  pin?: PinColor;
+  pinLabel?: string;
 }) {
   // Sections that are only noise when empty (pending requests) pass no empty
   // message and disappear entirely.
@@ -43,17 +50,22 @@ export function ConnectionList({
           {emptyMessage}
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+        <ul className="mt-4 flex flex-col gap-5">
           {people.map((person) => (
-            <li
+            <BoardCard
+              as="li"
               key={person.connectionId}
-              className="flex items-center justify-between gap-4 px-5 py-4"
+              pin={pin}
+              pinLabel={pinLabel}
+              pinAlign="left"
+              pinned={false}
+              className="bb-slip flex items-center justify-between gap-4"
             >
               <PersonName person={person} />
               <div className="flex shrink-0 items-start gap-2">
                 {renderActions(person)}
               </div>
-            </li>
+            </BoardCard>
           ))}
         </ul>
       )}
