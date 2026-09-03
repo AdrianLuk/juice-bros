@@ -241,7 +241,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                   </div>
                 )}
 
-                <div className="relative z-10 flex flex-col gap-0.5">
+                <div className="relative z-10 mt-0.5 flex flex-col gap-1">
                   {dayEvents
                     .slice(0, VISIBLE_PER_DAY)
                     .map((event) => renderEvent(event))}
