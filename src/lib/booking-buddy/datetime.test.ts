@@ -5,6 +5,7 @@ import {
   HOUR_TIMES,
   addHoursToTime,
   crossesMidnight,
+  formatDateLabel,
   formatInstantDateAndTime,
   formatInstantRange,
   formatTimeLabel,
@@ -25,6 +26,12 @@ test("a date that isn't a date is rejected", () => {
   for (const date of ["", "20/08/2026", "2026-8-20", "not a date", "2026-13-01", "2026-02-30"]) {
     assert.equal(isRealDate(date), false, date);
   }
+});
+
+test("a calendar date reads back as a month-name label", () => {
+  assert.equal(formatDateLabel("2026-09-09"), "Sep 09, 2026");
+  assert.equal(formatDateLabel("2026-01-01"), "Jan 01, 2026");
+  assert.equal(formatDateLabel("2026-12-31"), "Dec 31, 2026");
 });
 
 test("only on-the-hour boundaries are accepted", () => {

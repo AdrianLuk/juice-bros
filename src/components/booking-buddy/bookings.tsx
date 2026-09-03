@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { DateField, useDateField } from "@/components/booking-buddy/date-field";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import {
   DurationPicker,
@@ -95,7 +96,8 @@ function BookingFieldSet({
   defaultFormat,
   defaultName,
   defaultCourtLabel,
-  defaultDate,
+  date,
+  onDateChange,
   startTime,
   onStartTimeChange,
   durationChoice,
@@ -112,7 +114,8 @@ function BookingFieldSet({
   defaultFormat: BookingFormat;
   defaultName: string;
   defaultCourtLabel: string;
-  defaultDate: string;
+  date: string;
+  onDateChange: (value: string) => void;
   startTime: string;
   onStartTimeChange: (time: string) => void;
   durationChoice: DurationChoice;
@@ -163,12 +166,11 @@ function BookingFieldSet({
 
       <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor={`${idPrefix}-date`}>Date</Label>
-        <Input
+        <DateField
           id={`${idPrefix}-date`}
           name="date"
-          type="date"
-          defaultValue={defaultDate}
-          required
+          value={date}
+          onChange={onDateChange}
         />
       </div>
 
@@ -272,10 +274,12 @@ export function CreateBookingForm({
   const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
 
   const initialStartTime = prefill?.startTime ?? DEFAULT_START_TIME;
+  const initialDate = prefill?.date ?? "";
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, so both need a live value to derive it from.
   const duration = useDurationInput(initialStartTime, DEFAULT_DURATION_HOURS);
+  const dateInput = useDateField(initialDate);
 
   // Resets the controlled Start/Duration fields in lockstep with the form's
   // own uncontrolled ones below — done here, during render, rather than in
@@ -287,6 +291,7 @@ export function CreateBookingForm({
     setResetForState(state);
     if (state.ok) {
       duration.reset(initialStartTime, DEFAULT_DURATION_HOURS);
+      dateInput.reset(initialDate);
       // Same mid-render pattern — a state change in response to the action
       // settling, not a side effect of it.
       setSaved(true);
@@ -325,7 +330,8 @@ export function CreateBookingForm({
         defaultFormat={DEFAULT_BOOKING_FORMAT}
         defaultName=""
         defaultCourtLabel=""
-        defaultDate={prefill?.date ?? ""}
+        date={dateInput.date}
+        onDateChange={dateInput.setDate}
         startTime={duration.startTime}
         onStartTimeChange={duration.setStartTime}
         durationChoice={duration.durationChoice}
@@ -358,7 +364,10 @@ export function CreateBookingForm({
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <Button type="submit" disabled={pending || duration.endTime === null}>
+        <Button
+          type="submit"
+          disabled={pending || duration.endTime === null || !dateInput.date}
+        >
           {pending ? "Saving…" : "Log booking"}
         </Button>
         <ActionError state={state} />
@@ -417,6 +426,7 @@ export function EditBookingForm({
   const initialHours = rawHours > 0 ? rawHours : rawHours + 24;
 
   const duration = useDurationInput(initialStartTime, initialHours);
+  const dateInput = useDateField(initialDate);
 
   useEffect(() => {
     if (state.ok) {
@@ -434,7 +444,8 @@ export function EditBookingForm({
         defaultFormat={booking.format}
         defaultName={booking.name ?? ""}
         defaultCourtLabel={booking.courtLabel ?? ""}
-        defaultDate={initialDate}
+        date={dateInput.date}
+        onDateChange={dateInput.setDate}
         startTime={duration.startTime}
         onStartTimeChange={duration.setStartTime}
         durationChoice={duration.durationChoice}
@@ -473,7 +484,10 @@ export function EditBookingForm({
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <Button type="submit" disabled={pending || duration.endTime === null}>
+        <Button
+          type="submit"
+          disabled={pending || duration.endTime === null || !dateInput.date}
+        >
           {pending ? "Saving…" : "Save changes"}
         </Button>
         <ActionError state={state} />
