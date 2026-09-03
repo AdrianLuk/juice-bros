@@ -160,7 +160,7 @@ export function BbAppShell() {
       {/* Desktop: the routed sign, hung across the top of the board. */}
       <header
         style={{ viewTransitionName: "bb-chrome-header" }}
-        className="sticky top-0 z-40 hidden w-full px-3 pt-2.5 sm:block"
+        className="bb-app-chrome sticky top-0 z-40 hidden w-full px-3 pt-2.5 sm:block"
       >
         <div
           className={cn(
@@ -212,7 +212,7 @@ export function BbAppShell() {
       {/* Mobile: a kraft tab strip pinned along the bottom edge of the board. */}
       <nav
         style={{ viewTransitionName: "bb-chrome-tabs" }}
-        className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-[var(--bb-cork-edge)] bg-[var(--card)] pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_18px_-10px_oklch(0.3_0.05_45/0.4)] sm:hidden"
+        className="bb-app-chrome fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-[var(--bb-cork-edge)] bg-[var(--card)] pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_18px_-10px_oklch(0.3_0.05_45/0.4)] sm:hidden"
         aria-label="Booking Buddy"
       >
         {BB_SECTIONS.map((section) => {

@@ -8,25 +8,20 @@ import { cn } from "@/lib/utils";
  * keep it *kept* — tight alignment under the cards' rotations.
  *
  * `Board` is the ground; `BoardRegion` is a ruled-off area with a masking-tape
- * label riding its top-left corner. `boardLoad` turns on the one orchestrated
- * pin-in sequence (dashboard only — every other surface cuts to rest).
+ * label riding its top-left corner. The one orchestrated pin-in sequence is the
+ * dashboard's alone and is armed by `BoardLoadOnce` (`board-load-once.tsx`) for
+ * the first render of the session only — every other surface, and every return
+ * to the dashboard, cuts to rest.
  */
 
 export function Board({
   children,
   className,
-  boardLoad,
 }: {
   children: ReactNode;
   className?: string;
-  /** The dashboard's one authored page-load moment: cards pin themselves on in reading order. */
-  boardLoad?: boolean;
 }) {
-  return (
-    <div className={cn("bb-board", boardLoad && "bb-board-load", className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn("bb-board", className)}>{children}</div>;
 }
 
 export function BoardRegion({

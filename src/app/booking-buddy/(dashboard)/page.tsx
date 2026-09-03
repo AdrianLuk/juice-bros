@@ -10,6 +10,7 @@ import { OnboardingModal } from "@/components/booking-buddy/onboarding-modal";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { BookingBuddyLanding } from "@/components/booking-buddy/landing/booking-buddy-landing";
 import { Board, BoardRegion } from "@/components/booking-buddy/bb/board";
+import { BoardLoadOnce } from "@/components/booking-buddy/bb/board-load-once";
 import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { GameCard } from "@/components/booking-buddy/bb/game-card";
 import { StatusKey } from "@/components/booking-buddy/bb/status-key";
@@ -109,39 +110,43 @@ export default async function BookingBuddyPage() {
             <BoardRegion
               label="This week"
               className="lg:w-[37.5rem] lg:shrink-0"
-              contentClassName="bb-board-load"
             >
-              <BoardCard
-                as={Link}
-                href={proposeGameHref({ date: nextMondayKey() })}
-                pin="commit"
-                pinLabel="Post a game — your move"
-                interactive
-                className="flex w-full flex-col items-center gap-1 border-2 border-dashed border-[color-mix(in_oklch,var(--brand-orange),transparent_45%)] bg-[repeating-linear-gradient(-45deg,var(--card),var(--card)_9px,var(--bb-kraft-deep)_9px,var(--bb-kraft-deep)_18px)] py-6 text-center no-underline shadow-none sm:w-[15.5rem]"
-              >
-                <span className="font-bb-sign text-[2rem] leading-none text-brand-orange">
-                  +
-                </span>
-                <span className="font-bb-sign text-[0.8rem] tracking-widest text-foreground uppercase">
-                  Pin a new game
-                </span>
-              </BoardCard>
+              {/* The orchestrated pin-drop cascade is armed for the first
+                  dashboard render of the session only — a return visit gets the
+                  route transition and nothing else. */}
+              <BoardLoadOnce>
+                <BoardCard
+                  as={Link}
+                  href={proposeGameHref({ date: nextMondayKey() })}
+                  pin="commit"
+                  pinLabel="Post a game — your move"
+                  interactive
+                  className="flex w-full flex-col items-center gap-1 border-2 border-dashed border-[color-mix(in_oklch,var(--brand-orange),transparent_45%)] bg-[repeating-linear-gradient(-45deg,var(--card),var(--card)_9px,var(--bb-kraft-deep)_9px,var(--bb-kraft-deep)_18px)] py-6 text-center no-underline shadow-none sm:w-[15.5rem]"
+                >
+                  <span className="font-bb-sign text-[2rem] leading-none text-brand-orange">
+                    +
+                  </span>
+                  <span className="font-bb-sign text-[0.8rem] tracking-widest text-foreground uppercase">
+                    Pin a new game
+                  </span>
+                </BoardCard>
 
-              {upcomingGames.map((slot, i) => (
-                <GameCard
-                  key={slot.id}
-                  slot={slot}
-                  size={i === 0 ? "lead" : "regular"}
-                  tally={gameTallies.find((t) => t.id === slot.id)}
-                />
-              ))}
+                {upcomingGames.map((slot, i) => (
+                  <GameCard
+                    key={slot.id}
+                    slot={slot}
+                    size={i === 0 ? "lead" : "regular"}
+                    tally={gameTallies.find((t) => t.id === slot.id)}
+                  />
+                ))}
 
-              {upcomingGames.length === 0 && (
-                <p className="max-w-xs self-center py-6 text-center text-sm text-[var(--bb-on-cork-dim)]">
-                  No games on the board yet. Pin one and your friends can say
-                  they&apos;re in.
-                </p>
-              )}
+                {upcomingGames.length === 0 && (
+                  <p className="max-w-xs self-center py-6 text-center text-sm text-[var(--bb-on-cork-dim)]">
+                    No games on the board yet. Pin one and your friends can say
+                    they&apos;re in.
+                  </p>
+                )}
+              </BoardLoadOnce>
             </BoardRegion>
 
             <div className="relative w-full shrink-0 pt-6 lg:w-[20rem]">
