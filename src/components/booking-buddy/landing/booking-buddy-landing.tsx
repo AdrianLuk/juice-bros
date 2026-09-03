@@ -2,8 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Eyebrow } from "@/components/typography/eyebrow";
-import { SectionHeading } from "@/components/typography/section-heading";
 import { Reveal, RevealGroup } from "@/components/motion/reveal";
 import { SIGN_IN_PATH, PRIVACY_PATH } from "@/lib/booking-buddy/routes";
 import {
@@ -20,47 +18,43 @@ import {
 } from "./mockups";
 
 /*
- * Direction contract — extension of the Juice Bros marketing world, not a new
- * one (impeccable/new-work.md §3 "extend an existing surface": inherit world +
- * composition, no concept tournament, no DESIGN.md change).
- *
- * THESIS: show the coordination actually happening — a Slot filling, real
- *   availability, a real week — instead of a feature-bullet grid. Refuses the
- *   SaaS-scheduler landing (calendar hero, integration logos, "trusted by").
- * OWN-WORLD: the JB marketing section stack inside `.bb-theme` — warm off-white
- *   ground, brand orange as the committed accent, brand black for the close,
- *   Bricolage black/bold headings, Eyebrow pills, and the app's own `bb-card` /
- *   `divide-y bg-muted/30` list / sm button vocabulary in the mockups.
- * STORY: a rec player arrives from /tools or a friend's link, sees this
- *   replaces the "who's free Tuesday?" thread, watches it work, signs in.
- * FIRST VIEWPORT: orange hero, copy left / a live-looking Slot card right
- *   (stacked on mobile), primary "Get started" → sign-in.
- * FORM: hero → 4 alternating feature rows each with one honest mockup →
- *   "made by rec players" beat → dark CTA close → FAQ. The established site
- *   composition; no alternative ranked.
+ * Direction contract — Booking Buddy's rec-hall-board world (seed 861cf732),
+ * Persuade register. The pre-auth surface is the board seen from a step back:
+ * a taped headline, a few real game cards pinned up, one orange commit-pin
+ * action. It refuses the SaaS-scheduler landing (calendar hero, "trusted by",
+ * integration logos) and refuses its own category's cute mascot.
+ * FIRST VIEWPORT: cork ground; a masking-tape headline strip top-left with the
+ *   hook in one line; the orange-pinned "Get started" card leads; a small board
+ *   of two pinned Slot cards to the right (stacked on mobile).
+ * FORM: hero → four beats each showing the board doing one job → "built for
+ *   our own group" index card → last-call CTA → FAQ.
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the
+ *   finish review, the verdict, DESIGN.md, and every shipping raster carrying
+ *   its provenance.
  */
 
-function FeatureRow({
-  eyebrow,
+function Beat({
+  tape,
   title,
   children,
   visual,
   flip,
-  muted,
 }: {
-  eyebrow: string;
+  tape: string;
   title: string;
   children: ReactNode;
   visual: ReactNode;
   flip?: boolean;
-  muted?: boolean;
 }) {
   return (
-    <section className={muted ? "w-full bg-muted/50" : "w-full"}>
-      <div className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-8">
+    <section className="w-full px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <div className="mx-auto grid w-full max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <Reveal className={flip ? "lg:order-2" : undefined}>
-          <SectionHeading eyebrow={eyebrow} title={title} />
-          <p className="mt-4 max-w-md text-lg text-muted-foreground">
+          <span className="bb-tape text-xs">{tape}</span>
+          <h2 className="bb-h mt-3 text-[1.9rem] leading-[0.95] sm:text-[2.3rem]">
+            {title}
+          </h2>
+          <p className="mt-4 max-w-md text-[1.02rem] text-muted-foreground">
             {children}
           </p>
         </Reveal>
@@ -69,7 +63,10 @@ function FeatureRow({
           delay={80}
           className={`flex justify-center ${flip ? "lg:order-1 lg:justify-start" : "lg:justify-end"}`}
         >
-          {visual}
+          <div className="bb-pinned relative">
+            <span aria-hidden className="bb-pin bb-pin--info" />
+            {visual}
+          </div>
         </Reveal>
       </div>
     </section>
@@ -78,7 +75,7 @@ function FeatureRow({
 
 export function BookingBuddyLanding() {
   return (
-    <div className="flex w-full flex-1 flex-col">
+    <div className="bb-board flex w-full flex-1 flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -86,149 +83,160 @@ export function BookingBuddyLanding() {
         }}
       />
 
-      {/* Hero. Bleeds up past the desktop sticky nav (the pull-up exceeds the
-          ~70px nav height so the orange runs unbroken to the top edge behind
-          the pill, with no strip of page background above it). Mobile keeps its
-          in-flow orange identity strip, so no pull-up there. */}
-      <section className="w-full bg-brand-orange px-4 py-16 text-white sm:-mt-24 sm:px-6 sm:pt-40 sm:pb-24 lg:px-8">
+      {/* Hero — the board, a step back. */}
+      <section className="w-full px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-24 lg:px-8">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-5">
-            <Eyebrow color="yellow" className="jb-in">
-              Booking Buddy
-            </Eyebrow>
-            <h1 className="jb-in jb-in-2 font-bb-body text-4xl font-black tracking-[-0.03em] text-balance sm:text-6xl">
+            <h1 className="jb-in bb-h text-[2.6rem] leading-[0.92] sm:text-[3.9rem]">
               Sort out the next game without the group-chat spiral
             </h1>
-            <p className="jb-in jb-in-3 max-w-md text-lg text-white/80 text-balance">
-              Post an open time, see who&apos;s actually in, and keep
-              everyone&apos;s court bookings in one place. Free, and built by
-              two rec players who got tired of running the Tuesday-night
-              &ldquo;who can play?&rdquo; thread.
+            <p className="jb-in jb-in-2 max-w-md text-[1.05rem] text-muted-foreground text-balance">
+              Pin a time, see who&apos;s actually in, and keep everyone&apos;s
+              court bookings in one place. Free, and built by two rec players
+              who got tired of running the Tuesday-night &ldquo;who can
+              play?&rdquo; thread.
             </p>
-            <div className="jb-in jb-in-4 mt-3 flex flex-col gap-3 sm:flex-row">
+            <div className="jb-in jb-in-3 mt-3 flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
                 nativeButton={false}
-                className="h-12 rounded-full bg-white px-7 text-base font-semibold text-brand-orange shadow-brand hover:bg-white/90"
+                className="relative h-12 rounded-sm px-7 font-bb-sign text-[0.85rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
                 render={<Link href={SIGN_IN_PATH} />}
               >
+                <span
+                  aria-hidden
+                  className="bb-pin bb-pin--commit"
+                  style={{ top: "-0.5rem" }}
+                />
                 Get started
               </Button>
               <Button
                 size="lg"
-                variant="outline"
+                variant="secondary"
                 nativeButton={false}
-                className="h-12 rounded-full border-white/25 bg-white/10 px-6 text-base text-white hover:bg-white/20 hover:text-white"
+                className="h-12 rounded-sm border border-[var(--bb-cork-edge)]/25 px-6 font-bb-sign text-[0.8rem] tracking-widest uppercase"
                 render={<a href="#how" />}
               >
                 See how it works
               </Button>
             </div>
           </div>
-          <div className="jb-in jb-in-3 flex justify-center lg:justify-end">
-            <SlotResponsesPreview />
+
+          {/* A small board of two pinned cards. */}
+          <div className="jb-in jb-in-3 relative mx-auto flex max-w-sm flex-col gap-6 lg:mx-0 lg:ml-auto">
+            <div
+              className="bb-pinned relative"
+              style={{ "--bb-tilt": "-1.6deg" } as React.CSSProperties}
+            >
+              <span aria-hidden className="bb-pin bb-pin--in" />
+              <SlotResponsesPreview />
+            </div>
+            <div
+              className="bb-pinned relative ml-6"
+              style={{ "--bb-tilt": "1.4deg" } as React.CSSProperties}
+            >
+              <span aria-hidden className="bb-pin bb-pin--maybe" />
+              <SlotProposalPreview />
+            </div>
           </div>
         </div>
       </section>
 
       <div id="how" className="scroll-mt-20" />
 
-      <FeatureRow
-        eyebrow="Open Time"
+      <Beat
+        tape="Post a time"
         title="Float a time before anyone books a court"
         visual={<SlotProposalPreview />}
       >
-        Drop a day and time and let people say yes, no, or maybe. It starts as a
+        Pin a day and time and let people say yes, no, or maybe. It starts as a
         plain proposal. Once someone grabs a court, attach it and Booking Buddy
         tracks the spots so you know when you&apos;ve got a full game.
-      </FeatureRow>
+      </Beat>
 
-      <FeatureRow
-        eyebrow="Availability"
+      <Beat
+        tape="Availability"
         title="Stop guessing who's around"
         visual={<AvailabilityPreview />}
         flip
-        muted
       >
         Everyone shares their availability with the friends they choose. Looking
         for a fourth? See who&apos;s actually free instead of texting six people
         one at a time.
-      </FeatureRow>
+      </Beat>
 
-      <FeatureRow
-        eyebrow="Find a Time"
+      <Beat
+        tape="Find a time"
         title="See when the whole group is free"
         visual={<OverlapPreview />}
       >
         Pick the friends you want in, and Booking Buddy checks everyone&apos;s
-        availability against yours. It shows the days you can all actually make,
-        with a button to float a game for one without leaving the page.
-      </FeatureRow>
+        availability against yours. It shows the days you can all make, with a
+        button to float a game for one without leaving the page.
+      </Beat>
 
-      <FeatureRow
-        eyebrow="Your Week"
+      <Beat
+        tape="Your week"
         title="Games and bookings in one place"
         visual={<WeekPreview />}
         flip
-        muted
       >
         Confirmed games, proposals still waiting on a court, and your own busy
-        time all land on one calendar: your own, plus a shared view of the
+        time all land on one sign-up sheet: your own, plus a shared view of the
         friends who&apos;ve shared back.
-      </FeatureRow>
+      </Beat>
 
-      {/* Made by rec players. Left un-muted so it reads as its own light beat
-          between the muted "Your Week" row and the dark CTA close. */}
-      <section className="w-full">
-        <Reveal className="mx-auto flex max-w-2xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 lg:px-8">
-          <div>
-            <Eyebrow>Not a Startup</Eyebrow>
-            <h2 className="mt-3 font-bb-body text-2xl font-bold tracking-[-0.02em] sm:text-3xl">
+      {/* Built for our own group — an index card pinned on the cork. */}
+      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
+        <Reveal className="mx-auto max-w-xl">
+          <div className="bb-card bb-pinned relative p-7 text-center">
+            <span aria-hidden className="bb-pin bb-pin--info" />
+            <h2 className="bb-h text-[1.5rem]">
               We built this for our own group first
             </h2>
+            <p className="mt-4 text-[0.98rem] text-muted-foreground">
+              Keeping a regular game going meant a group-chat poll, a pile of
+              &ldquo;maybe&rdquo; replies, and bookings scattered across a few
+              facility sites. It was more admin than pickleball, so we built the
+              thing we actually wanted. It&apos;s free, has no ads, and your
+              schedule is only ever visible to the friends you connect with, at
+              the level you choose. Nothing here is public.
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Keeping a regular game going meant a group-chat poll, a pile of
-            &ldquo;maybe&rdquo; replies, and bookings scattered across a few
-            different facility sites. It was more admin than pickleball, so we
-            built the thing we actually wanted. It&apos;s free and has no ads,
-            and your schedule is only ever visible to the friends you connect
-            with, at the level you choose. Nothing here is public.
-          </p>
         </Reveal>
       </section>
 
-      {/* CTA close */}
-      <section className="relative overflow-hidden bg-brand-black text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--brand-orange),transparent_86%)_0%,transparent_60%)]"
-        />
+      {/* Last call. */}
+      <section className="w-full px-4 py-20 sm:px-6 lg:px-8">
         <Reveal
           variant="scale"
-          className="relative flex w-full flex-col items-center gap-4 px-4 py-24 text-center sm:px-6 lg:px-8"
+          className="mx-auto flex max-w-lg flex-col items-center gap-4 text-center"
         >
-          <SectionHeading
-            eyebrow="Get Started"
-            title="Get your group on the same page"
-            align="center"
-          />
-          <p className="max-w-md text-white/60">
+          <span className="bb-tape text-xs">Last call</span>
+          <h2 className="bb-h text-[2rem] leading-[0.95] sm:text-[2.6rem]">
+            Get your group on the same page
+          </h2>
+          <p className="max-w-sm text-[0.98rem] text-muted-foreground">
             Free to use. Your friends will want accounts too, since that&apos;s
             kind of the whole point.
           </p>
-          <div className="mt-5 flex flex-col items-center gap-3">
+          <div className="mt-4 flex flex-col items-center gap-3">
             <Button
               size="lg"
               nativeButton={false}
-              className="h-12 rounded-full bg-brand-orange px-8 text-base font-semibold text-white shadow-brand hover:bg-brand-orange/90"
+              className="relative h-12 rounded-sm px-8 font-bb-sign text-[0.85rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
               render={<Link href={SIGN_IN_PATH} />}
             >
+              <span
+                aria-hidden
+                className="bb-pin bb-pin--commit"
+                style={{ top: "-0.5rem" }}
+              />
               Get started
             </Button>
             <Link
               href={PRIVACY_PATH}
-              className="text-sm text-white/50 underline underline-offset-4 transition-colors hover:text-white/80"
+              className="text-sm text-muted-foreground underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
             >
               Read the privacy policy
             </Link>
@@ -236,25 +244,19 @@ export function BookingBuddyLanding() {
         </Reveal>
       </section>
 
-      {/* FAQ */}
-      <section className="w-full">
-        <div className="mx-auto w-full max-w-2xl px-4 py-20 sm:px-6 lg:px-8">
+      {/* FAQ — a pinned notes card. */}
+      <section className="w-full px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-2xl">
           <Reveal>
-            <SectionHeading
-              eyebrow="Questions"
-              title="Good to know"
-              align="center"
-            />
+            <span className="bb-tape text-xs">Good to know</span>
           </Reveal>
           <RevealGroup
             as="dl"
-            className="mt-10 flex flex-col divide-y divide-border"
+            className="bb-card mt-4 flex flex-col divide-y divide-[var(--bb-rule)] p-6"
           >
             {landingFaqs.map((faq) => (
               <div key={faq.question} className="py-5 first:pt-0 last:pb-0">
-                <dt className="font-bb-body text-base font-semibold tracking-tight">
-                  {faq.question}
-                </dt>
+                <dt className="font-semibold tracking-tight">{faq.question}</dt>
                 <dd className="mt-2 text-sm text-muted-foreground">
                   {faq.answer}
                 </dd>

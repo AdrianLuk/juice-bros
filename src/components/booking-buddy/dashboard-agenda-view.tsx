@@ -43,14 +43,14 @@ export function DashboardAgendaView<T extends CalendarEvent>({
 
   if (upcoming.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+      <div className="bb-outline p-8 text-center text-sm text-muted-foreground">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col divide-y divide-border/60 overflow-hidden bb-card">
+    <div className="flex flex-col bb-sheet divide-y bb-sheet-rule overflow-hidden">
       {[...groups.entries()].map(([key, dayEvents]) => {
         const day = new Date(dayEvents[0].startsAt);
 

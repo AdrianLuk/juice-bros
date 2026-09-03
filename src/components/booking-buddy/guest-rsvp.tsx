@@ -107,7 +107,7 @@ export function GuestResponseList({
   }
 
   return (
-    <ul className="divide-y divide-border/60 overflow-hidden bb-card">
+    <ul className="bb-sheet divide-y bb-sheet-rule overflow-hidden">
       {responses.map((response) => (
         <li
           key={response.key}

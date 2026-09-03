@@ -32,7 +32,7 @@ export function SlotProposalPreview() {
             Who&apos;s around?
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+        <span className="shrink-0 font-bb-sign text-[0.62rem] uppercase tracking-widest text-muted-foreground">
           Proposal
         </span>
       </div>
@@ -55,9 +55,7 @@ export function SlotProposalPreview() {
       </ul>
 
       <div className="mt-4 flex gap-2" aria-hidden>
-        <span className={`${pill} bg-primary text-primary-foreground`}>
-          Yes
-        </span>
+        <span className={`${pill} bg-[var(--bb-pin-in)] text-white`}>Yes</span>
         <span className={`${pill} border border-border bg-background`}>
           Maybe
         </span>
@@ -87,7 +85,7 @@ export function SlotResponsesPreview() {
             Pickleplex Downsview &middot; doubles
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+        <span className="shrink-0 font-bb-sign text-[0.62rem] uppercase tracking-widest text-[color-mix(in_oklch,var(--bb-pin-in),black_10%)]">
           Court booked
         </span>
       </div>
@@ -110,9 +108,7 @@ export function SlotResponsesPreview() {
       </ul>
 
       <div className="mt-4 flex gap-2" aria-hidden>
-        <span className={`${pill} bg-primary text-primary-foreground`}>
-          Yes
-        </span>
+        <span className={`${pill} bg-[var(--bb-pin-in)] text-white`}>Yes</span>
         <span className={`${pill} border border-border bg-background`}>
           Maybe
         </span>
@@ -219,7 +215,7 @@ export function OverlapPreview() {
                   <span className="text-xs text-muted-foreground">
                     {window}
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-primary">
+                  <span className="shrink-0 text-xs font-semibold text-[var(--bb-ink-pen)]">
                     Propose a game
                   </span>
                 </li>
@@ -288,9 +284,9 @@ export function WeekPreview() {
               className={
                 "mt-1 h-full w-1 shrink-0 self-stretch rounded-full " +
                 (row.kind === "game"
-                  ? "bg-primary"
+                  ? "bg-[var(--bb-ink-pen)]"
                   : row.kind === "proposed"
-                    ? "bg-primary/40"
+                    ? "bg-[var(--bb-ink-pen)]/40"
                     : "bg-muted-foreground/40")
               }
               aria-hidden
@@ -299,9 +295,9 @@ export function WeekPreview() {
               className={
                 "min-w-0 flex-1 rounded-md px-3 py-2 " +
                 (row.kind === "game"
-                  ? "bg-primary/10"
+                  ? "bg-[color-mix(in_oklch,var(--bb-ink-pen),transparent_88%)]"
                   : row.kind === "proposed"
-                    ? "border border-dashed border-primary/40"
+                    ? "border border-dashed border-[var(--bb-ink-pen)]/40"
                     : "bg-muted/50")
               }
               style={

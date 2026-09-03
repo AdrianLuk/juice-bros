@@ -92,11 +92,11 @@ export default async function FriendsPage() {
                 beats every group they&apos;re in, either way.
               </p>
               {friendVisibility.length === 0 ? (
-                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                   No friends yet. Search above to find someone you play with.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
                   {friendVisibility.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}

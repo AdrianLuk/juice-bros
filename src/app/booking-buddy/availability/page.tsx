@@ -62,7 +62,7 @@ export default async function AvailabilityPage() {
                 )}
               </h2>
               {upcoming.length === 0 ? (
-                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                   Nothing upcoming. Block off a stretch below
                   {past.length > 0 ? ", or check History for past ones." : "."}
                 </p>

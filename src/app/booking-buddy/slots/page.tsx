@@ -65,12 +65,12 @@ export default async function SlotsPage({
             <section>
               <h2 className="bb-h text-[1.05rem]">Your games</h2>
               {own.length === 0 ? (
-                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                   Proposed times live here. Post one below and friends reply
                   yes, no, or maybe, before anyone books a court.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
                   {own.map((slot) => (
                     <SlotRow
                       key={slot.id}
@@ -84,7 +84,7 @@ export default async function SlotsPage({
             <section>
               <h2 className="bb-h text-[1.05rem]">From your friends</h2>
               {friends.length === 0 ? (
-                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                   Nothing here yet. This fills up once a friend with{" "}
                   <Link
                     href="/booking-buddy/groups"
@@ -95,7 +95,7 @@ export default async function SlotsPage({
                   posts one, or once you have that into them.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
                   {friends.map((slot) => (
                     <SlotRow
                       key={slot.id}

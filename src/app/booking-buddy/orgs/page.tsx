@@ -69,12 +69,12 @@ export default async function OrgsPage() {
                 )}
               </h2>
               {orgs.length === 0 ? (
-                <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                   Nothing here yet. Add a facility you play at and you can start
                   logging court bookings.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
                   {orgs.map((org) => (
                     <OrgRow key={org.id} org={org} />
                   ))}

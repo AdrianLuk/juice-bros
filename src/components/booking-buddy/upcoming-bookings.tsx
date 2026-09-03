@@ -42,7 +42,7 @@ export function UpcomingBookingsSidebar({
       </div>
 
       {upcoming.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+        <p className="bb-outline p-4 text-sm text-muted-foreground">
           Nothing booked yet.{" "}
           <Link
             href={BOOKINGS_PATH}

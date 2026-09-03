@@ -289,13 +289,18 @@ export function CreateSlotForm({
  * distinction the Capacity panel spells out in prose, as a glanceable chip.
  */
 export function SlotStatusBadge({ courtCount }: { courtCount: number }) {
-  return courtCount > 0 ? (
-    <span className="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-      Court booked
-    </span>
-  ) : (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-      Proposal
+  const booked = courtCount > 0;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 font-bb-sign text-[0.66rem] tracking-[0.1em] text-muted-foreground uppercase">
+      <span
+        aria-hidden
+        className="size-2 rounded-full"
+        style={{
+          backgroundColor: booked ? "var(--bb-pin-in)" : "var(--bb-pin-maybe)",
+          boxShadow: "inset 0 -1px 1px rgba(0,0,0,.3)",
+        }}
+      />
+      {booked ? "Court booked" : "Gathering"}
     </span>
   );
 }

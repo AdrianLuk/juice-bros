@@ -60,7 +60,7 @@ export default async function GroupsPage() {
                   )}
                 </h2>
                 {groups.length === 0 ? (
-                  <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                  <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                     No groups yet. Groups grant visibility to several friends at
                     once. Set it per friend instead on the{" "}
                     <Link

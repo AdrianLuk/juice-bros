@@ -20,7 +20,7 @@ export function FriendsLookingToPlay({
 }) {
   if (windows.length === 0) {
     return (
-      <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+      <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
         Nobody&apos;s marked themselves looking to play right now. Mark yourself
         on{" "}
         <Link href={AVAILABILITY_PATH} className="underline underline-offset-4">
@@ -32,7 +32,7 @@ export function FriendsLookingToPlay({
   }
 
   return (
-    <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+    <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
       {windows.map((window) => (
         <li
           key={window.id}

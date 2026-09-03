@@ -92,12 +92,12 @@ export default async function BookingsPage() {
                   )}
                 </h2>
                 {upcomingBookings.length === 0 ? (
-                  <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                  <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
                     Nothing upcoming. Log a booking below, or check History for
                     past ones.
                   </p>
                 ) : (
-                  <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                  <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
                     {upcomingBookings.map((booking) => (
                       <BookingRow
                         key={booking.id}
@@ -115,7 +115,7 @@ export default async function BookingsPage() {
                       History
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+                      <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
                         {pastBookings.map((booking) => (
                           <BookingRow
                             key={booking.id}

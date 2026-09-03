@@ -341,7 +341,7 @@ export function GroupOverlapFinder({
 
   if (friends.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+      <p className="bb-outline p-4 text-sm text-muted-foreground">
         Nobody to compare with yet. This fills up once a friend gives you{" "}
         <Link href={FRIENDS_PATH} className="underline underline-offset-4">
           availability visibility
@@ -360,7 +360,7 @@ export function GroupOverlapFinder({
           availability with you show up here.
         </p>
 
-        <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+        <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
           {friends.map((friend) => {
             const checked = selected.has(friend.userId);
             return (
@@ -424,7 +424,7 @@ export function GroupOverlapFinder({
           {!now ? (
             <div className="h-24 animate-pulse rounded-xl bg-muted motion-reduce:animate-none" />
           ) : selectedIds.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+            <p className="bb-outline p-4 text-sm text-muted-foreground">
               Pick one or more friends above to see when you&apos;re all free.
             </p>
           ) : friendQuery.isPending ? (
@@ -437,7 +437,7 @@ export function GroupOverlapFinder({
               moment.
             </p>
           ) : noneVisible ? (
-            <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+            <p className="bb-outline p-4 text-sm text-muted-foreground">
               {selectedIds.length === 1
                 ? "That friend no longer shares their availability with you."
                 : "None of the friends you picked share their availability with you any more."}
@@ -453,12 +453,12 @@ export function GroupOverlapFinder({
               )}
 
               {freeDays.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="bb-outline p-4 text-sm text-muted-foreground">
                   No shared free time in this range. Try Month, or check
                   who&apos;s marked themselves busy.
                 </p>
               ) : (
-                <ul className="divide-y divide-border/60 overflow-hidden bb-card">
+                <ul className="bb-sheet divide-y bb-sheet-rule overflow-hidden">
                   {freeDays.map((day) => (
                     <li key={day.dateKey} className="px-5 py-4">
                       <p className="font-medium">
