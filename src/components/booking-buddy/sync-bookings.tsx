@@ -5,11 +5,18 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-import { ReviewItemGroups } from "@/components/booking-buddy/sync-from-email";
+import {
+  MergedCandidateCard,
+  ReviewItemGroups,
+} from "@/components/booking-buddy/sync-from-email";
 import {
   FeedCandidateCard,
   FeedCancellationCard,
 } from "@/components/booking-buddy/sync-facilities";
+import {
+  mergeImportCandidates,
+  type MergedImportCandidate,
+} from "@/lib/booking-buddy/merge-import-candidates";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -130,6 +137,13 @@ export function SyncBookingsSection({
     });
   }
 
+  function handleMergedResolved(item: MergedImportCandidate) {
+    // A merged card is one reservation from both sources — clear it from both
+    // query caches so it can't come back from either side.
+    handleEmailResolved(item.gmailMessageId);
+    handleFeedResolved(item.feedEventUid);
+  }
+
   const orgNameById = new Map(orgs.map((org) => [org.id, org.displayName]));
 
   const emailData = emailConnected ? emailQuery.data : undefined;
@@ -158,6 +172,18 @@ export function SyncBookingsSection({
     (feed) => feed.cancellations,
   );
   const feedsLookingWrong = okFeeds.filter((feed) => feed.feedLooksWrong);
+
+  // One reservation the User made can arrive from both sources at once (a
+  // Mailbox Link and a calendar feed for the same facility) — consolidate the
+  // pair into a single card so they don't review, and confirm, the same
+  // booking twice (issue #348). `nothingToReview` below stays on the raw
+  // `emailItems` / `feedCandidates` counts — a merged card always has a
+  // source in each, so it can't hide the empty state.
+  const {
+    merged: mergedCandidates,
+    emailItems: emailItemsToRender,
+    feedCandidates: feedCandidatesToRender,
+  } = mergeImportCandidates(emailItems, feedCandidates);
 
   const emailReconnectRequired = emailData?.status === "reconnect_required";
   // A structured `{ status: "error" }` result, *or* a query that rejected
@@ -346,15 +372,28 @@ export function SyncBookingsSection({
           </ul>
         )}
 
+        {mergedCandidates.length > 0 && (
+          <ul className="flex flex-col gap-4">
+            {mergedCandidates.map((item) => (
+              <MergedCandidateCard
+                key={item.mergeKey}
+                item={item}
+                orgs={orgs}
+                onResolved={handleMergedResolved}
+              />
+            ))}
+          </ul>
+        )}
+
         <ReviewItemGroups
-          items={emailItems}
+          items={emailItemsToRender}
           orgs={orgs}
           onResolved={handleEmailResolved}
         />
 
-        {feedCandidates.length > 0 && (
+        {feedCandidatesToRender.length > 0 && (
           <ul className="flex flex-col gap-4">
-            {feedCandidates.map((item) => (
+            {feedCandidatesToRender.map((item) => (
               <FeedCandidateCard
                 key={item.feedEventUid}
                 item={item}

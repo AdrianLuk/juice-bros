@@ -203,6 +203,20 @@ export function reviewCalendarFeed({
     seenEvents.filter((seen) => seen.status === "dismissed").map((seen) => seen.uid),
   );
 
+  // A UID this feed already recorded as `imported` and linked to a Booking.
+  // Re-affirmed as an auto-link every sync *by UID*, before the court/date/time
+  // match runs — so an event stays linked even when the Booking's court label
+  // no longer equals the feed's own (a merged email+feed import keeps the
+  // email's richer `"#5 - Hard"` where the feed only carries `"#5"` — issue
+  // #348 — and a feed whose court wording drifts over time would otherwise
+  // re-offer every reservation).
+  const importedBookingIdByUid = new Map<string, string>();
+  for (const seen of seenEvents) {
+    if (seen.status === "imported" && seen.bookingId !== null) {
+      importedBookingIdByUid.set(seen.uid, seen.bookingId);
+    }
+  }
+
   const items: CalendarFeedReviewItem[] = [];
   const autoLinked: AutoLinkedFeedEvent[] = [];
 
@@ -232,6 +246,21 @@ export function reviewCalendarFeed({
     // as a candidate, and it must not be auto-linked either (which would
     // overwrite its `dismissed` seen-event row with `imported`).
     if (dismissedUids.has(event.uid)) {
+      continue;
+    }
+
+    // Already an `imported`, Booking-linked seen row for this UID, and that
+    // Booking still exists — re-affirm the link (bumping `sequence` /
+    // `starts_at`) rather than re-matching on court/date/time. If the Booking
+    // was deleted, fall through: normal matching re-offers it, which is right.
+    const linkedBookingId = importedBookingIdByUid.get(event.uid);
+    if (linkedBookingId && existingBookings.some((booking) => booking.id === linkedBookingId)) {
+      autoLinked.push({
+        feedEventUid: event.uid,
+        sequence: event.sequence,
+        bookingId: linkedBookingId,
+        startsAt: startInstant.toISOString(),
+      });
       continue;
     }
 

@@ -23,6 +23,7 @@ import {
   type SeenFeedEvent,
 } from "../calendar-feed-review.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
+import { upsertFeedEventRow, type FeedEventUpsert } from "../feed-events.ts";
 import { parseNewBooking } from "../bookings.ts";
 import { insertValidatedBooking, deleteOwnedBooking } from "./bookings.ts";
 import { trackFacilitySyncEvent } from "../analytics.ts";
@@ -689,32 +690,18 @@ export async function confirmFeedCancellation(
   return { ok: true };
 }
 
-/** Upsert one `org_feed_events` row, keyed on (owner, org, uid). Returns an error string or null. */
+/**
+ * Upsert one `org_feed_events` row and revalidate the Bookings surface.
+ * Returns an error string or null. The row shape and conflict key live in the
+ * shared `upsertFeedEventRow` (`feed-events.ts`), reused by the merged
+ * email+feed confirm (issue #348).
+ */
 async function recordFeedEvent(
   supabase: Awaited<ReturnType<typeof createClient>>,
   ownerId: string,
-  event: {
-    orgId: string;
-    uid: string;
-    sequence: number;
-    startsAt: string;
-    status: "pending" | "imported" | "dismissed";
-    bookingId: string | null;
-  },
+  event: FeedEventUpsert,
 ): Promise<string | null> {
-  const { error } = await supabase.from("org_feed_events").upsert(
-    {
-      owner_id: ownerId,
-      org_id: event.orgId,
-      uid: event.uid,
-      sequence: event.sequence,
-      starts_at: event.startsAt,
-      status: event.status,
-      booking_id: event.bookingId,
-      last_seen_at: new Date().toISOString(),
-    },
-    { onConflict: "owner_id,org_id,uid" },
-  );
+  const { error } = await upsertFeedEventRow(supabase, ownerId, event);
 
   if (error) {
     console.error("booking-buddy: recording an org_feed_events row failed", error);
