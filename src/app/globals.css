@@ -359,15 +359,16 @@
     0 2px 3px oklch(0 0 0 / 0.4), 0 16px 26px -12px oklch(0 0 0 / 0.55);
 }
 
-/* ── Standalone / installed-app feel ─────────────────────────────────────────
+/* ── App-like feel ──────────────────────────────────────────────────────────
  *
- * Booking Buddy is installable (`booking-buddy.webmanifest`, `display:
- * standalone`) and is meant to pass for a native app once it's on the home
- * screen. These rules take away the last browser tells on the app's own routes
- * without touching the marketing site.
+ * Booking Buddy is a task app (installable, but this matters in a browser tab
+ * just as much) — these rules take away the browser tells on its own routes
+ * without touching the marketing site. They aren't gated on `display: standalone`:
+ * the in-app experience should feel the same whether it's a tab or a home-screen
+ * icon.
  *
- * `:has(.bb-board)` scopes them to the whole `/booking-buddy` section — both
- * the signed-in shell and the pre-auth landing set `.bb-board` on their
+ * `:has(.bb-board)` scopes most of them to the whole `/booking-buddy` section —
+ * both the signed-in shell and the pre-auth landing set `.bb-board` on their
  * wrapper. Browsers without `:has()` just keep the ordinary page behavior.
  */
 html:has(.bb-board) {
@@ -385,13 +386,13 @@ html:has(.bb-board) {
   background-color: oklch(0.6 0.05 58);
 }
 
-/* In the installed app the board is the entire surface: no browser pull-to-
-   refresh, no rubber-band into a chrome-coloured gap past the top or bottom.
-   Left as normal in a browser tab, where people still expect pull-to-refresh. */
-@media (display-mode: standalone) {
-  html:has(.bb-board) {
-    overscroll-behavior-y: none;
-  }
+/* In the signed-in app the board is the whole surface: no scroll-chaining
+   bounce, and no accidental pull-to-refresh reload when you swipe down at the
+   top of a scrolled view. Scoped to `.bb-app-chrome` (the shell's nav sign /
+   tab bar) so it's the *app*, not the marketing landing, that opts out —
+   in a browser tab and installed alike. */
+html:has(.bb-app-chrome) {
+  overscroll-behavior-y: none;
 }
 
 .bb-theme {
