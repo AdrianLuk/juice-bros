@@ -354,11 +354,9 @@ export function DashboardCalendar<T extends CalendarEvent>({
         </div>
       </div>
 
-      {quickActions ? (
-        <div className="flex flex-wrap items-center gap-2.5">
-          {quickActions}
-        </div>
-      ) : null}
+      {/* `DashboardQuickActions` positions itself fixed in the bottom-right
+          corner; rendered here only so its dialogs live in this subtree. */}
+      {quickActions}
 
       <div
         style={

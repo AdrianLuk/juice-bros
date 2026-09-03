@@ -210,7 +210,7 @@ export function BookingBuddyLanding() {
           <h2 className="bb-h text-[2rem] leading-[0.95] sm:text-[2.6rem]">
             Get your group on the same page
           </h2>
-          <p className="max-w-sm text-[0.98rem] text-muted-foreground">
+          <p className="max-w-sm text-[0.98rem] text-[var(--bb-on-cork-dim)]">
             Free to use. Your friends will want accounts too, since that&apos;s
             kind of the whole point.
           </p>
@@ -230,7 +230,7 @@ export function BookingBuddyLanding() {
             </Button>
             <Link
               href={PRIVACY_PATH}
-              className="text-sm text-muted-foreground underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
+              className="text-sm text-[var(--bb-on-cork-dim)] underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
             >
               Read the privacy policy
             </Link>
