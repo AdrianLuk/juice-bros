@@ -48,6 +48,34 @@ export function readPublicSupabaseEnv(
 }
 
 /**
+ * The Google OAuth Client ID Google Identity Services uses to render On Deck's
+ * "Continue with Google" button (see `components/auth/google-sign-in-button.tsx`)
+ * — safe to expose to the browser, and spelled out as a literal
+ * `process.env.NEXT_PUBLIC_*` for the same inlining reason as
+ * `readPublicSupabaseEnv` above.
+ *
+ * The *same* `NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID` Booking Buddy reads: On
+ * Deck and Booking Buddy sign in Google users against the same Supabase
+ * project and run on the same domain, so they share one Cloud Console OAuth
+ * client (Booking Buddy's ADR-0013). Kept as its own reader here rather than
+ * importing Booking Buddy's, matching the deliberate env duplication this file
+ * opens with.
+ *
+ * Optional: a missing value means "don't render the Google option", not a
+ * failed page — magic-link sign-in must keep working in any environment where
+ * the human-only Cloud Console / Supabase Dashboard setup hasn't happened yet.
+ */
+export function readGoogleSignInClientId(
+  source: EnvSource = {
+    NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID:
+      process.env.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID,
+  },
+): string | undefined {
+  const value = source.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID;
+  return value && value.trim() !== "" ? value : undefined;
+}
+
+/**
  * The `service_role` key — server-only, bypasses RLS. On Deck uses it for the
  * turn-notification send job (issue #260): it reads every opted-in Player's
  * push subscription for a Session and writes the idempotency log, neither of
@@ -55,7 +83,9 @@ export function readPublicSupabaseEnv(
  * `process.env.X`, never `NEXT_PUBLIC_*`.
  */
 export function requireSupabaseServiceRoleKey(
-  source: EnvSource = { SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY },
+  source: EnvSource = {
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  },
 ): string {
   return requireEnv(source, "SUPABASE_SERVICE_ROLE_KEY");
 }

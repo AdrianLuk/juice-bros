@@ -9,8 +9,11 @@ import {
   signInWithMagicLink,
   signInWithPassword,
   signUpWithPassword,
+  signInWithGoogleIdToken,
   type AuthFormState,
 } from "@/lib/on-deck/actions/auth";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { ON_DECK_SIGN_IN_PATH } from "@/lib/on-deck/routes";
 
 const EMPTY: AuthFormState = {};
 
@@ -19,9 +22,11 @@ type Mode = "magic-link" | "password" | "sign-up";
 export function OnDeckSignInForm({
   next,
   error,
+  googleClientId,
 }: {
   next: string;
   error?: string;
+  googleClientId?: string;
 }) {
   const [mode, setMode] = useState<Mode>("magic-link");
 
@@ -53,7 +58,9 @@ export function OnDeckSignInForm({
         <p className="mb-4 text-sm text-destructive" role="alert">
           {error === "link_invalid"
             ? "That sign-in link has expired or was already used. Request a new one."
-            : "Something went wrong signing you in. Try again."}
+            : error === "google_unavailable"
+              ? "Google sign-in isn't available right now. Try another method."
+              : "Something went wrong signing you in. Try again."}
         </p>
       )}
 
@@ -151,6 +158,25 @@ export function OnDeckSignInForm({
             {signUpPending ? "Creating account…" : "Create account"}
           </Button>
         </form>
+      )}
+
+      {googleClientId && (
+        <>
+          <div className="my-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              or
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <GoogleSignInButton
+            clientId={googleClientId}
+            next={next}
+            action={signInWithGoogleIdToken}
+            signInPath={ON_DECK_SIGN_IN_PATH}
+          />
+        </>
       )}
 
       <div className="mt-6 flex flex-col gap-0.5 text-sm">
