@@ -275,8 +275,8 @@
  * the non-technical and older friends this app onboards.
  */
 .bb-theme {
-  --background: oklch(0.775 0.045 71); /* cork */
-  --foreground: oklch(0.24 0.02 55); /* ink */
+  --background: oklch(0.695 0.062 64); /* cork — warm red-brown */
+  --foreground: oklch(0.23 0.022 52); /* ink */
   --card: oklch(0.955 0.024 83); /* kraft / index card */
   --card-foreground: oklch(0.26 0.02 55);
   --popover: oklch(0.958 0.022 82);
@@ -290,9 +290,10 @@
   --ring: var(--brand-orange);
   --radius: 0.28rem; /* near-square index-card corners */
 
-  --bb-cork: oklch(0.775 0.045 71);
-  --bb-cork-edge: oklch(0.5 0.045 58);
+  --bb-cork: oklch(0.695 0.062 64);
+  --bb-cork-edge: oklch(0.44 0.05 52);
   --bb-kraft-deep: oklch(0.9 0.03 80);
+  --bb-on-cork-dim: oklch(0.34 0.03 54); /* secondary text sitting on cork */
   /* Status law — one fixed meaning each, printed on the key that never tilts. */
   --bb-pin-in: oklch(0.6 0.14 152); /* green  — you're in */
   --bb-pin-need: oklch(0.57 0.2 28); /* red    — needs you */
@@ -355,57 +356,31 @@
 
 /* ── The cork board ─────────────────────────────────────────────────────── */
 
-/* The ground every signed-in surface stands on. A quiet speckle, no photo —
-   the material reads from colour and the cards' cast shadows, not a texture
-   novelty. `--bb-cork-edge` frames it like a real board on a wall. */
+/* The ground every signed-in surface stands on. Real cork grain: a coarse
+   fractal-noise layer for the pressed-granule texture and a finer one for the
+   flecks, multiplied into the warm red-brown, with a wall-frame vignette. The
+   whole identity rests on this reading as cork, not flat kraft. */
 .bb-board {
   background-color: var(--bb-cork);
   background-image:
-    /* a soft frame vignette so it reads as a board on a wall, not infinite cork */
+    /* wall-frame vignette */
     radial-gradient(
-      130% 80% at 50% 0%,
-      transparent 62%,
-      oklch(0.42 0.04 45 / 0.16) 100%
+      135% 85% at 50% -5%,
+      transparent 55%,
+      oklch(0.3 0.04 45 / 0.28) 100%
     ),
-    radial-gradient(
-      1.5px 1.5px at 12% 22%,
-      oklch(0.42 0.04 40 / 0.15) 50%,
-      transparent 51%
-    ),
-    radial-gradient(
-      1.5px 1.5px at 68% 14%,
-      oklch(0.42 0.04 40 / 0.12) 50%,
-      transparent 51%
-    ),
-    radial-gradient(
-      2px 2px at 44% 61%,
-      oklch(0.42 0.04 40 / 0.09) 50%,
-      transparent 51%
-    ),
-    radial-gradient(
-      1.5px 1.5px at 83% 74%,
-      oklch(0.42 0.04 40 / 0.13) 50%,
-      transparent 51%
-    ),
-    radial-gradient(
-      1.5px 1.5px at 26% 84%,
-      oklch(0.42 0.04 40 / 0.11) 50%,
-      transparent 51%
-    ),
-    radial-gradient(
-      1.5px 1.5px at 55% 33%,
-      oklch(0.98 0.03 88 / 0.13) 50%,
-      transparent 51%
-    );
+    /* fine flecks / pits */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.24 0 0 0 0 0.16 0 0 0 0 0.08 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E"),
+    /* coarse pressed-granule grain */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.16 0.2' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.32 0 0 0 0 0.22 0 0 0 0 0.12 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23c)'/%3E%3C/svg%3E");
   background-size:
     100% 100%,
-    190px 190px,
-    230px 230px,
-    270px 270px,
-    210px 210px,
-    250px 250px,
-    170px 170px;
-  background-attachment: fixed, scroll, scroll, scroll, scroll, scroll, scroll;
+    140px 140px,
+    300px 300px;
+  background-blend-mode: normal, multiply, soft-light;
+}
+.dark .bb-board {
+  background-blend-mode: normal, screen, overlay;
 }
 
 /* ── Kraft cards ────────────────────────────────────────────────────────── */
@@ -547,6 +522,33 @@
   background-color: var(--bb-laminate);
   border-radius: 3px;
   box-shadow: var(--bb-contact-shadow);
+  /* Remap the surface + rule tokens for everything inside: the calendar grid
+     and any list rows now draw on laminate with pencil-ruled lines instead of
+     kraft cards and grey borders — the sheet, not a Calendly panel. */
+  --card: var(--bb-laminate);
+  --border: var(--bb-rule);
+  --muted: color-mix(in oklch, var(--bb-laminate), var(--foreground) 6%);
+}
+/* A sheet pinned to the board — a real pushpin at the top edge, no rotation
+   (a ruled list stays square). Used for the main list on the interior pages. */
+.bb-sheet-pin {
+  position: relative;
+}
+.bb-sheet-pin::before {
+  content: "";
+  position: absolute;
+  top: -0.5rem;
+  left: 1.75rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, oklch(1 0 0 / 0.55), transparent 44%),
+    radial-gradient(circle at 62% 74%, oklch(0 0 0 / 0.22), transparent 55%),
+    var(--bb-pin-info);
+  box-shadow:
+    0 2px 3px oklch(0.2 0.03 40 / 0.5),
+    inset 0 -1px 2px oklch(0 0 0 / 0.25);
 }
 /* Laminate sheen. */
 .bb-sheet::before {

@@ -7,12 +7,13 @@ import { cn } from "@/lib/utils";
  * surface leans on the pin law (Games, Friends).
  */
 
+// The pin-colour law is exactly four. The orange commit pin is an action cue,
+// not a fifth law entry — it never appears here.
 const ENTRIES: { color: string; label: string }[] = [
   { color: "var(--bb-pin-in)", label: "You're in" },
   { color: "var(--bb-pin-need)", label: "Needs you" },
   { color: "var(--bb-pin-maybe)", label: "Maybe" },
   { color: "var(--bb-pin-info)", label: "Info" },
-  { color: "var(--bb-pin-commit)", label: "Your move" },
 ];
 
 export function StatusKey({

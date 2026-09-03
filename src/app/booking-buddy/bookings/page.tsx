@@ -97,7 +97,7 @@ export default async function BookingsPage() {
                     past ones.
                   </p>
                 ) : (
-                  <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+                  <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
                     {upcomingBookings.map((booking) => (
                       <BookingRow
                         key={booking.id}
@@ -115,7 +115,7 @@ export default async function BookingsPage() {
                       History
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+                      <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
                         {pastBookings.map((booking) => (
                           <BookingRow
                             key={booking.id}

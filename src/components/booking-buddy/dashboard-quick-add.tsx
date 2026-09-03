@@ -15,19 +15,12 @@ import { Button } from "@/components/ui/button";
 import { CreateAvailabilityWindowForm } from "@/components/booking-buddy/availability";
 
 /**
- * The dashboard's floating quick-add actions (issue #23's "Add booking",
- * plus "Block off time" so blocking out a busy stretch doesn't need a trip
- * to a separate page). One fixed wrapper around both triggers rather than
- * two independently `fixed` buttons, so their spacing stays correct together
- * instead of two hand-tuned `bottom-*` offsets drifting apart. "Add booking"
- * stays the visually primary, bottom-most action — same position it already
- * held — with "Block off time" stacked above it as the secondary one.
- *
- * "Add booking" no longer owns its own dialog: the Log-a-booking dialog is a
- * single shared instance lifted up into `OwnerDashboardCalendar` (issue #303),
- * so a calendar-cell "+" and this FAB open the same form. This button just
- * asks the owner to open it, with no prefill. "Block off time" keeps its own
- * dialog here — it's unrelated to the booking form.
+ * The dashboard's quick-add actions — "Log a court" (the shared Log-a-booking
+ * dialog lifted into `OwnerDashboardCalendar`, issue #303) and "Block off
+ * time". Rendered in flow at the head of the sign-up sheet — a bulletin board
+ * has no floating FAB, and the old fixed stack covered content on mobile.
+ * "Log a court" carries the commit pin; "Block off time" is the quieter
+ * secondary.
  */
 export function DashboardQuickActions({
   onAddBooking,
@@ -37,7 +30,7 @@ export function DashboardQuickActions({
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
-    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
+    <>
       <Dialog
         open={availabilityDialogOpen}
         onOpenChange={setAvailabilityDialogOpen}
@@ -47,7 +40,7 @@ export function DashboardQuickActions({
             <Button
               size="sm"
               variant="secondary"
-              className="h-11 gap-2 rounded-sm border border-[var(--bb-cork-edge)]/25 px-4 font-bb-sign text-[0.72rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="h-9 gap-2 rounded-sm px-3.5 font-bb-sign text-[0.68rem] tracking-widest uppercase"
             />
           }
         >
@@ -69,19 +62,17 @@ export function DashboardQuickActions({
         </DialogContent>
       </Dialog>
 
+      {/* Secondary — the one orange commit pin on the dashboard is "Pin a new
+          game" up on the board, and nothing else borrows it. */}
       <Button
-        size="lg"
+        size="sm"
+        variant="secondary"
         onClick={onAddBooking}
-        className="relative h-11 gap-2 rounded-sm px-5 font-bb-sign text-[0.74rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+        className="h-9 gap-2 rounded-sm px-4 font-bb-sign text-[0.68rem] tracking-widest uppercase"
       >
-        <span
-          aria-hidden
-          className="bb-pin bb-pin--commit"
-          style={{ top: "-0.55rem" }}
-        />
         <PlusIcon />
         Log a court
       </Button>
-    </div>
+    </>
   );
 }

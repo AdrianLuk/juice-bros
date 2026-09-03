@@ -23,9 +23,9 @@ import {
  * a taped headline, a few real game cards pinned up, one orange commit-pin
  * action. It refuses the SaaS-scheduler landing (calendar hero, "trusted by",
  * integration logos) and refuses its own category's cute mascot.
- * FIRST VIEWPORT: cork ground; a masking-tape headline strip top-left with the
- *   hook in one line; the orange-pinned "Get started" card leads; a small board
- *   of two pinned Slot cards to the right (stacked on mobile).
+ * FIRST VIEWPORT: cork ground; a big screen-printed headline top-left with the
+ *   hook in one line; the orange-pinned "Get started" action leads; a small
+ *   board of two pinned Slot cards to the right (stacked on mobile).
  * FORM: hero → four beats each showing the board doing one job → "built for
  *   our own group" index card → last-call CTA → FAQ.
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the
@@ -34,13 +34,11 @@ import {
  */
 
 function Beat({
-  tape,
   title,
   children,
   visual,
   flip,
 }: {
-  tape: string;
   title: string;
   children: ReactNode;
   visual: ReactNode;
@@ -50,11 +48,10 @@ function Beat({
     <section className="w-full px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
       <div className="mx-auto grid w-full max-w-5xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <Reveal className={flip ? "lg:order-2" : undefined}>
-          <span className="bb-tape text-xs">{tape}</span>
-          <h2 className="bb-h mt-3 text-[1.9rem] leading-[0.95] sm:text-[2.3rem]">
+          <h2 className="bb-h text-[1.9rem] leading-[0.95] sm:text-[2.3rem]">
             {title}
           </h2>
-          <p className="mt-4 max-w-md text-[1.02rem] text-muted-foreground">
+          <p className="mt-4 max-w-md text-[1.02rem] text-[var(--bb-on-cork-dim)]">
             {children}
           </p>
         </Reveal>
@@ -90,7 +87,7 @@ export function BookingBuddyLanding() {
             <h1 className="jb-in bb-h text-[2.6rem] leading-[0.92] sm:text-[3.9rem]">
               Sort out the next game without the group-chat spiral
             </h1>
-            <p className="jb-in jb-in-2 max-w-md text-[1.05rem] text-muted-foreground text-balance">
+            <p className="jb-in jb-in-2 max-w-md text-[1.05rem] text-[var(--bb-on-cork-dim)] text-balance">
               Pin a time, see who&apos;s actually in, and keep everyone&apos;s
               court bookings in one place. Free, and built by two rec players
               who got tired of running the Tuesday-night &ldquo;who can
@@ -145,7 +142,6 @@ export function BookingBuddyLanding() {
       <div id="how" className="scroll-mt-20" />
 
       <Beat
-        tape="Post a time"
         title="Float a time before anyone books a court"
         visual={<SlotProposalPreview />}
       >
@@ -155,7 +151,6 @@ export function BookingBuddyLanding() {
       </Beat>
 
       <Beat
-        tape="Availability"
         title="Stop guessing who's around"
         visual={<AvailabilityPreview />}
         flip
@@ -166,7 +161,6 @@ export function BookingBuddyLanding() {
       </Beat>
 
       <Beat
-        tape="Find a time"
         title="See when the whole group is free"
         visual={<OverlapPreview />}
       >
@@ -176,7 +170,6 @@ export function BookingBuddyLanding() {
       </Beat>
 
       <Beat
-        tape="Your week"
         title="Games and bookings in one place"
         visual={<WeekPreview />}
         flip
@@ -212,7 +205,6 @@ export function BookingBuddyLanding() {
           variant="scale"
           className="mx-auto flex max-w-lg flex-col items-center gap-4 text-center"
         >
-          <span className="bb-tape text-xs">Last call</span>
           <h2 className="bb-h text-[2rem] leading-[0.95] sm:text-[2.6rem]">
             Get your group on the same page
           </h2>
@@ -247,9 +239,7 @@ export function BookingBuddyLanding() {
       {/* FAQ — a pinned notes card. */}
       <section className="w-full px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-2xl">
-          <Reveal>
-            <span className="bb-tape text-xs">Good to know</span>
-          </Reveal>
+          <Reveal></Reveal>
           <RevealGroup
             as="dl"
             className="bb-card mt-4 flex flex-col divide-y divide-[var(--bb-rule)] p-6"

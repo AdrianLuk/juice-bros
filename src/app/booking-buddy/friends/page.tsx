@@ -96,7 +96,7 @@ export default async function FriendsPage() {
                   No friends yet. Search above to find someone you play with.
                 </p>
               ) : (
-                <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+                <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
                   {friendVisibility.map((friend) => (
                     <FriendVisibilityRow
                       key={friend.person.connectionId}

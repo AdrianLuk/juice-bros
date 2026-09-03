@@ -198,7 +198,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     "relative z-10 flex size-6 items-center justify-center rounded-full text-xs font-medium hover:bg-muted after:absolute after:-inset-1.5 after:content-['']",
                     day.getMonth() !== currentMonth && "text-muted-foreground",
                     isSameDay(day, today) &&
-                      "bg-primary text-primary-foreground hover:bg-primary/90",
+                      "bg-foreground text-[color:var(--card)] hover:bg-foreground/90",
                     disabled && "pointer-events-none opacity-40",
                   )}
                 >
@@ -220,7 +220,7 @@ export function DashboardMonthView<T extends CalendarEvent>({
                     type="button"
                     onClick={() => onQuickCreate(day)}
                     aria-label={`Log a booking on ${dayLabel(day)}`}
-                    className="bb-month-quick-add absolute right-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
+                    className="bb-month-quick-add absolute right-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-foreground/85 text-[color:var(--card)] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:right-1.5 sm:top-1.5"
                   >
                     <PlusIcon className="size-3.5" aria-hidden />
                   </button>
@@ -294,7 +294,7 @@ function AvailabilitySpanBar({
         isEnd ? "rounded-r-sm" : "-mr-1 sm:-mr-1.5",
         segment.type === "busy"
           ? "bg-muted-foreground/25 text-foreground"
-          : "bg-primary/20 text-primary",
+          : "bg-[color-mix(in_oklch,var(--bb-pin-maybe),transparent_72%)] text-[color-mix(in_oklch,var(--bb-pin-maybe),black_30%)]",
       )}
     >
       {isStart ? label : null}

@@ -74,7 +74,7 @@ export default async function OrgsPage() {
                   logging court bookings.
                 </p>
               ) : (
-                <ul className="mt-4 bb-sheet divide-y bb-sheet-rule overflow-hidden">
+                <ul className="mt-4 bb-sheet bb-sheet-pin divide-y bb-sheet-rule overflow-hidden">
                   {orgs.map((org) => (
                     <OrgRow key={org.id} org={org} />
                   ))}

@@ -60,22 +60,22 @@ export function GameCard({
       {slot.facilityLabel ? (
         <TapeLabel className="mt-2.5">{slot.facilityLabel}</TapeLabel>
       ) : (
-        <p className="mt-2 text-[0.8rem] text-muted-foreground italic">
+        <p className="bb-hand bb-hand--pencil mt-2 text-[0.95rem] leading-none">
           no court yet
         </p>
       )}
 
-      <div className="mt-3 flex items-baseline gap-1.5">
-        <span
-          aria-hidden
-          className="bb-hand bb-hand--pen text-[1.5rem] leading-none"
-        >
+      {/* The tally is penned on in ballpoint — the count big, the read beside
+          it, and the "nobody yet" state written the same way, so the hand
+          voice is always on the card. */}
+      <p className="bb-hand bb-hand--pen mt-3 flex items-baseline gap-1.5">
+        <span className="text-[1.55rem] leading-none">
           {(tally?.yes ?? 0) > 0 ? tally!.yes : "–"}
         </span>
-        <span className="text-[0.78rem] text-muted-foreground">
+        <span className="text-[1rem] leading-tight">
           {tallyLabel(tally, booked)}
         </span>
-      </div>
+      </p>
 
       {holes != null && (
         <div className="mt-3 flex gap-1.5" aria-hidden>

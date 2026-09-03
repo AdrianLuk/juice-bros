@@ -67,7 +67,7 @@ export default async function AvailabilityPage() {
                   {past.length > 0 ? ", or check History for past ones." : "."}
                 </p>
               ) : (
-                <ul className="mt-4 flex flex-col gap-2">
+                <ul className="mt-5 bb-sheet bb-sheet-pin flex flex-col gap-2 p-3">
                   {upcoming.map((window) => (
                     <AvailabilityWindowRow
                       key={window.id}

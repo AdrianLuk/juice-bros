@@ -171,9 +171,20 @@ export default async function BookingBuddyPage() {
           <StatusKey className="mt-7" />
 
           {/* ── The sign-up sheet: the week, ruled out ───────────────────── */}
-          <div className="mt-10">
+          <div className="mt-12">
             <span className="bb-tape text-xs">The week, ruled out</span>
-            <div className="bb-sheet mt-3 p-3 sm:p-5">
+            <div className="bb-sheet mt-3 bb-pinned px-3 pt-4 pb-3 sm:px-6 sm:pt-6">
+              <span
+                aria-hidden
+                className="bb-pin bb-pin--info"
+                style={{ top: "-0.55rem" }}
+              />
+              <div className="mb-4 flex items-baseline justify-between border-b-[3px] border-double border-[var(--bb-rule)] pb-2.5">
+                <span className="bb-h text-[0.95rem]">Court sign-up</span>
+                <span className="text-[0.72rem] text-muted-foreground">
+                  penciled = maybe &nbsp;·&nbsp; pen = booked
+                </span>
+              </div>
               <OwnerDashboardCalendar
                 bookings={bookings}
                 availabilityWindows={availabilityWindows}
