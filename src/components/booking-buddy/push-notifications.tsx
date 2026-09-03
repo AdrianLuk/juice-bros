@@ -140,7 +140,8 @@ export function PushNotificationsForm() {
     setSaved(false);
     startTransition(async () => {
       try {
-        const registration = await navigator.serviceWorker.getRegistration(SW_SCOPE);
+        const registration =
+          await navigator.serviceWorker.getRegistration(SW_SCOPE);
         const subscription = await registration?.pushManager.getSubscription();
 
         if (subscription) {
@@ -187,9 +188,9 @@ export function PushNotificationsForm() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        On iPhone/iPad, add Booking Buddy to your home screen first (Share →
-        Add to Home Screen). Safari only allows push notifications for
-        installed apps.
+        On iPhone/iPad, add Booking Buddy to your home screen first (Share → Add
+        to Home Screen). Safari only allows push notifications for installed
+        apps.
       </p>
 
       {error && (

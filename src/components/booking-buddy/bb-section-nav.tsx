@@ -31,7 +31,7 @@ export function BbSectionNav() {
 
   return (
     <nav
-      className="mt-5 flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-border/70 bg-muted/40 p-1"
+      className="mt-6 flex w-fit max-w-full items-end gap-1.5 pt-1"
       aria-label="Section"
     >
       {siblings.map(({ label, href }) => {
@@ -42,20 +42,31 @@ export function BbSectionNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative isolate inline-flex h-8 shrink-0 items-center rounded-lg px-3.5 text-[0.8rem] font-medium transition-colors",
+              "relative isolate inline-flex h-9 shrink-0 items-center rounded-sm px-4 font-bb-sign text-[0.72rem] tracking-[0.12em] uppercase transition-colors",
+              // Card-stock tabs on the board — the active one raised and
+              // "pinned", the rest tucked lower and duller.
               active
-                ? "text-white"
-                : "text-foreground/70 hover:text-brand-orange",
+                ? "text-foreground"
+                : "translate-y-1 border border-border/70 bg-[color-mix(in_oklch,var(--card),transparent_45%)] text-muted-foreground hover:text-foreground",
             )}
           >
-            {/* Separate fill carrying `bb-section-pill` so it slides between
-                siblings on navigation (globals.css). One active sibling at a
-                time, so the name stays unique per snapshot. */}
             {active && (
               <span
                 aria-hidden
                 style={{ viewTransitionName: "bb-section-pill" }}
-                className="absolute inset-0 -z-10 rounded-lg bg-brand-orange shadow-[0_1px_2px_oklch(0.55_0.16_40/0.35)]"
+                className="bb-card absolute inset-0 -z-10"
+              />
+            )}
+            {active && (
+              <span
+                aria-hidden
+                className="bb-pin bb-pin--commit"
+                style={{
+                  top: "-0.4rem",
+                  width: "0.75rem",
+                  height: "0.75rem",
+                  marginLeft: "-0.375rem",
+                }}
               />
             )}
             {label}

@@ -39,7 +39,10 @@ const CONFIRMATION: Record<ResponseAnswer, string> = {
 };
 
 export function GuestRsvpForm({ token }: { token: string }) {
-  const [state, formAction, pending] = useActionState(guestRespondViaLink, EMPTY);
+  const [state, formAction, pending] = useActionState(
+    guestRespondViaLink,
+    EMPTY,
+  );
   const [chosen, setChosen] = useState<ResponseAnswer | null>(null);
 
   if (state.ok) {
@@ -49,7 +52,10 @@ export function GuestRsvpForm({ token }: { token: string }) {
         role="status"
       >
         {chosen === "yes" && (
-          <CheckIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+          <CheckIcon
+            className="size-4 shrink-0 text-primary"
+            aria-hidden="true"
+          />
         )}
         {chosen ? CONFIRMATION[chosen] : "Your RSVP is in."}
       </p>
@@ -89,20 +95,28 @@ export function GuestRsvpForm({ token }: { token: string }) {
   );
 }
 
-export function GuestResponseList({ responses }: { responses: GuestResponse[] }) {
+export function GuestResponseList({
+  responses,
+}: {
+  responses: GuestResponse[];
+}) {
   if (responses.length === 0) {
-    return <p className="text-sm text-muted-foreground">Nobody has responded yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">Nobody has responded yet.</p>
+    );
   }
 
   return (
-    <ul className="divide-y divide-border/60 overflow-hidden bb-card">
+    <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
       {responses.map((response) => (
         <li
           key={response.key}
           className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
         >
           <span>{response.label}</span>
-          <span className="text-muted-foreground">{ANSWER_LABEL[response.answer]}</span>
+          <span className="text-muted-foreground">
+            {ANSWER_LABEL[response.answer]}
+          </span>
         </li>
       ))}
     </ul>

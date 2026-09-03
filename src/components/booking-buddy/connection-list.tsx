@@ -26,7 +26,7 @@ export function ConnectionList({
 
   return (
     <section>
-      <h2 className="font-heading text-lg font-semibold tracking-tight">
+      <h2 className="bb-h text-[1.05rem]">
         {title}
         {people.length > 0 && (
           <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -39,11 +39,11 @@ export function ConnectionList({
       )}
 
       {people.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+        <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">
           {emptyMessage}
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+        <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
           {people.map((person) => (
             <li
               key={person.connectionId}

@@ -234,13 +234,15 @@ export function DashboardWeekView<T extends CalendarEvent>({
                   <span
                     style={
                       sharedDayNames
-                        ? { viewTransitionName: `bb-cal-day-${localDayKey(day)}` }
+                        ? {
+                            viewTransitionName: `bb-cal-day-${localDayKey(day)}`,
+                          }
                         : undefined
                     }
                     className={cn(
                       "flex size-6 items-center justify-center rounded-full text-sm font-medium",
                       isSameDay(day, today) &&
-                        "bg-primary text-primary-foreground",
+                        "bg-foreground text-[color:var(--card)]",
                     )}
                   >
                     {day.getDate()}
@@ -403,7 +405,7 @@ function DayColumn<T extends CalendarEvent>({
             >
               <span
                 aria-hidden
-                className="bb-week-quick-add-mark flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-border"
+                className="bb-week-quick-add-mark flex size-5 items-center justify-center rounded-full bg-foreground/85 text-[color:var(--card)] shadow-sm"
               >
                 <PlusIcon className="size-3.5" />
               </span>

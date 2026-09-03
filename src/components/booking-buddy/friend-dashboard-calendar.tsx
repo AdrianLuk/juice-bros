@@ -40,7 +40,7 @@ function FriendBookingDetails({ booking }: { booking: FriendVisibleBooking }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-heading text-sm font-semibold">
+      <p className="font-bb-body text-sm font-semibold">
         Booked at {booking.facilityName}
       </p>
       <p className="text-xs text-muted-foreground">
@@ -94,7 +94,8 @@ export function FriendDashboardCalendar({
             <p className="truncate font-medium">{booking.facilityName}</p>
             {lines >= 2 && (
               <p className="truncate opacity-90">
-                {formatTimeLabelFromMs(startMs)} – {formatTimeLabelFromMs(endMs)}
+                {formatTimeLabelFromMs(startMs)} –{" "}
+                {formatTimeLabelFromMs(endMs)}
               </p>
             )}
           </CalendarEventPopover>

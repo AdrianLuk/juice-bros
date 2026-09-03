@@ -31,7 +31,11 @@ export function TimeZoneSelect({ id, zones }: { id: string; zones: string[] }) {
   // The browser's own zone is a client-only fact, so it is read as one: the
   // server snapshot is empty, the client's is the real zone, and React swaps
   // them after hydration without either a mismatch or a cascading render.
-  const detected = useSyncExternalStore(subscribeToNothing, readBrowserZone, () => "");
+  const detected = useSyncExternalStore(
+    subscribeToNothing,
+    readBrowserZone,
+    () => "",
+  );
 
   // The detected zone is added to the list when the list doesn't already have
   // it, rather than being discarded as unrecognised. The two sides disagree

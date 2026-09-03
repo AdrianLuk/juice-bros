@@ -6,7 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { personLabel, personOptionLabel } from "@/lib/booking-buddy/connections";
+import {
+  personLabel,
+  personOptionLabel,
+} from "@/lib/booking-buddy/connections";
 import {
   AVAILABILITY_PATH,
   FRIENDS_PATH,
@@ -25,7 +28,10 @@ import {
   getFriendAvailability,
   type OverlapFriend,
 } from "@/lib/booking-buddy/actions/overlap";
-import type { AvailabilityWindow, BusyInterval } from "@/lib/booking-buddy/availability";
+import type {
+  AvailabilityWindow,
+  BusyInterval,
+} from "@/lib/booking-buddy/availability";
 
 /**
  * "Find a time" (issue #195): pick a set of friends, pick a range, and see the
@@ -120,12 +126,16 @@ function groupFreeByDay(
 
       if (blockEndMs > blockStartMs) {
         const key = localDayKey(dayStart);
-        const day = byDay.get(key) ?? { dayStartMs: dayStart.getTime(), blocks: [] };
+        const day = byDay.get(key) ?? {
+          dayStartMs: dayStart.getTime(),
+          blocks: [],
+        };
         day.blocks.push({
           startMs: blockStartMs,
           endMs: blockEndMs,
           anyTime:
-            blockStartMs <= dayOpen.getTime() && blockEndMs >= dayClose.getTime(),
+            blockStartMs <= dayOpen.getTime() &&
+            blockEndMs >= dayClose.getTime(),
         });
         byDay.set(key, day);
       }
@@ -135,14 +145,19 @@ function groupFreeByDay(
   }
 
   return [...byDay.entries()]
-    .map(([dateKey, { dayStartMs, blocks }]) => ({ dateKey, dayStartMs, blocks }))
+    .map(([dateKey, { dayStartMs, blocks }]) => ({
+      dateKey,
+      dayStartMs,
+      blocks,
+    }))
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 }
 
 /** The hour a Game would start, as an on-the-hour `"HH:00"` — the block's start, rounded up if it isn't already on the hour. `null` if that lands past the last bookable hour. */
 function proposedStartTime(block: DayBlock): string | null {
   const start = new Date(block.startMs);
-  const hour = start.getMinutes() === 0 ? start.getHours() : start.getHours() + 1;
+  const hour =
+    start.getMinutes() === 0 ? start.getHours() : start.getHours() + 1;
   if (hour > 23) {
     return null;
   }
@@ -156,7 +171,10 @@ function proposedStartTime(block: DayBlock): string | null {
  * which case the form keeps its own default duration. Blocks are already
  * clipped to a single local day, so this never wraps past midnight.
  */
-function proposedEndTime(block: DayBlock, startTime: string | null): string | null {
+function proposedEndTime(
+  block: DayBlock,
+  startTime: string | null,
+): string | null {
   if (!startTime) {
     return null;
   }
@@ -266,14 +284,20 @@ export function GroupOverlapFinder({
   // picked friends are visible any more, and an "overlap" computed from the
   // viewer alone would be a lie.
   const visibleFriendCount = friendQuery.data?.length ?? 0;
-  const noneVisible = selectedIds.length > 0 && friendQuery.isSuccess && visibleFriendCount === 0;
+  const noneVisible =
+    selectedIds.length > 0 && friendQuery.isSuccess && visibleFriendCount === 0;
   const missingCount =
     friendQuery.data && visibleFriendCount < selectedIds.length
       ? selectedIds.length - visibleFriendCount
       : 0;
 
   const freeDays = useMemo(() => {
-    if (!range || selectedIds.length === 0 || !friendQuery.data || visibleFriendCount === 0) {
+    if (
+      !range ||
+      selectedIds.length === 0 ||
+      !friendQuery.data ||
+      visibleFriendCount === 0
+    ) {
       return [];
     }
     return groupFreeByDay(
@@ -289,7 +313,9 @@ export function GroupOverlapFinder({
   // block (#230) — surfaced as a nudge under the block, without changing which
   // blocks are shown (that stays the pure not-busy intersection).
   const lookingSpans = useMemo<LookingSpan[]>(() => {
-    const nameById = new Map(friends.map((friend) => [friend.userId, personLabel(friend)]));
+    const nameById = new Map(
+      friends.map((friend) => [friend.userId, personLabel(friend)]),
+    );
     return (friendQuery.data ?? []).flatMap((entry) =>
       entry.windows
         .filter((window) => window.type === "looking")
@@ -315,7 +341,7 @@ export function GroupOverlapFinder({
 
   if (friends.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+      <p className="bb-outline p-4 text-sm text-muted-foreground">
         Nobody to compare with yet. This fills up once a friend gives you{" "}
         <Link href={FRIENDS_PATH} className="underline underline-offset-4">
           availability visibility
@@ -328,15 +354,13 @@ export function GroupOverlapFinder({
   return (
     <div className="flex flex-col gap-12">
       <section>
-        <h2 className="font-heading text-lg font-semibold tracking-tight">
-          Who are you playing with?
-        </h2>
+        <h2 className="bb-h text-[1.05rem]">Who are you playing with?</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Pick everyone who needs to be there. Only friends who share their
           availability with you show up here.
         </p>
 
-        <ul className="mt-4 divide-y divide-border/60 overflow-hidden bb-card">
+        <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
           {friends.map((friend) => {
             const checked = selected.has(friend.userId);
             return (
@@ -360,9 +384,7 @@ export function GroupOverlapFinder({
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-heading text-lg font-semibold tracking-tight">
-            When you&apos;re all free
-          </h2>
+          <h2 className="bb-h text-[1.05rem]">When you&apos;re all free</h2>
           <div
             role="group"
             aria-label="Range"
@@ -389,7 +411,10 @@ export function GroupOverlapFinder({
         <p className="mt-1 text-sm text-muted-foreground">
           Time nobody&apos;s booked and nobody&apos;s marked busy, from today.
           Blocking off busy stretches on{" "}
-          <Link href={AVAILABILITY_PATH} className="underline underline-offset-4">
+          <Link
+            href={AVAILABILITY_PATH}
+            className="underline underline-offset-4"
+          >
             Availability
           </Link>{" "}
           makes this sharper.
@@ -399,18 +424,20 @@ export function GroupOverlapFinder({
           {!now ? (
             <div className="h-24 animate-pulse rounded-xl bg-muted motion-reduce:animate-none" />
           ) : selectedIds.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+            <p className="bb-outline p-4 text-sm text-muted-foreground">
               Pick one or more friends above to see when you&apos;re all free.
             </p>
           ) : friendQuery.isPending ? (
-            <p className="text-sm text-muted-foreground">Working out the overlap…</p>
+            <p className="text-sm text-muted-foreground">
+              Working out the overlap…
+            </p>
           ) : friendQuery.isError ? (
             <p className="text-sm text-destructive">
               Couldn&apos;t read your friends&apos; availability. Try again in a
               moment.
             </p>
           ) : noneVisible ? (
-            <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
+            <p className="bb-outline p-4 text-sm text-muted-foreground">
               {selectedIds.length === 1
                 ? "That friend no longer shares their availability with you."
                 : "None of the friends you picked share their availability with you any more."}
@@ -426,12 +453,12 @@ export function GroupOverlapFinder({
               )}
 
               {freeDays.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-sm text-muted-foreground">
-                  No shared free time in this range. Try Month, or check who&apos;s
-                  marked themselves busy.
+                <p className="bb-outline p-4 text-sm text-muted-foreground">
+                  No shared free time in this range. Try Month, or check
+                  who&apos;s marked themselves busy.
                 </p>
               ) : (
-                <ul className="divide-y divide-border/60 overflow-hidden bb-card">
+                <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
                   {freeDays.map((day) => (
                     <li key={day.dateKey} className="px-5 py-4">
                       <p className="font-medium">
@@ -462,7 +489,10 @@ export function GroupOverlapFinder({
                               <Link
                                 href={proposeHref(day.dateKey, block)}
                                 className={cn(
-                                  buttonVariants({ variant: "outline", size: "sm" }),
+                                  buttonVariants({
+                                    variant: "outline",
+                                    size: "sm",
+                                  }),
                                   "shrink-0",
                                 )}
                               >

@@ -73,7 +73,8 @@ export function FeedCandidateCard({
         <p className="mt-0.5 text-sm text-muted-foreground">
           {item.name} · {formatCandidateDate(item.date)} ·{" "}
           {formatTimeLabel(item.startTime)}–{formatTimeLabel(item.endTime)} ·{" "}
-          {formatCourtLabel(item.courtLabel)} · {BOOKING_FORMAT_LABEL[item.format]}
+          {formatCourtLabel(item.courtLabel)} ·{" "}
+          {BOOKING_FORMAT_LABEL[item.format]}
         </p>
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
@@ -89,7 +90,11 @@ export function FeedCandidateCard({
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Label htmlFor={facilityFieldId}>Facility</Label>
-          <OrgSelect id={facilityFieldId} orgs={orgs} defaultValue={item.orgId} />
+          <OrgSelect
+            id={facilityFieldId}
+            orgs={orgs}
+            defaultValue={item.orgId}
+          />
         </div>
 
         <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />

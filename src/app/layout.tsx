@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import {
+  Anton,
   Bricolage_Grotesque,
+  Caveat,
   Geist,
   Geist_Mono,
+  Libre_Franklin,
   Saira_Condensed,
 } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
@@ -37,6 +40,31 @@ const geistMono = Geist_Mono({
 const sairaCondensed = Saira_Condensed({
   variable: "--font-saira-condensed",
   weight: ["500", "600", "700", "800", "900"],
+  subsets: ["latin"],
+});
+
+// Booking Buddy's new visual world (direction seed 861cf732) — "the well-kept
+// rec-hall bulletin board". Anton is the screen-printed notice voice: the
+// routed "COURTS" nav sign, masking-tape section labels, card date stamps, the
+// sign-up-sheet masthead, big spot-count numerals. Libre Franklin (a Franklin
+// Gothic-lineage humanist grotesque, municipal-notice character) is the single
+// workhorse for headings, body, UI and table data. Caveat is pen marks only —
+// RSVP tallies, "FULL", quick notes. All scoped to `.bb-theme` in globals.css;
+// the marketing site never sees them.
+const anton = Anton({
+  variable: "--font-bb-sign",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const libreFranklin = Libre_Franklin({
+  variable: "--font-bb-body",
+  subsets: ["latin"],
+});
+
+const caveat = Caveat({
+  variable: "--font-bb-hand",
+  weight: ["600", "700"],
   subsets: ["latin"],
 });
 
@@ -82,7 +110,7 @@ export default function RootLayout({
       // Next to suspend it for the scroll-restoration jump on a route change
       // so it doesn't animate against the page/View Transition.
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} h-full antialiased`}
+      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>

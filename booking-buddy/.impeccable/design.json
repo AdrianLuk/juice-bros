@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-03T00:00:00Z",
+  "title": "Design System: Booking Buddy",
+  "provenance": [],
+  "notes": "No shipping raster assets. The cork ground is inline SVG fractal-noise data-URIs in globals.css; all pins, tape, cards, stamps and holes are CSS. Two throwaway HTML concept mockups (board + sign-up sheet) were the only visual references and are not shipping assets. Scope is the `.bb-theme` world only.",
+  "extensions": {
+    "colorMeta": {
+      "cork": { "role": "neutral", "displayName": "Rec-Hall Cork", "canonical": "oklch(0.695 0.062 64)", "tonalRamp": ["oklch(0.30 0.05 60)", "oklch(0.39 0.055 62)", "oklch(0.48 0.06 63)", "oklch(0.565 0.062 63)", "oklch(0.65 0.062 64)", "oklch(0.735 0.056 68)", "oklch(0.83 0.045 72)", "oklch(0.93 0.03 78)"] },
+      "kraft": { "role": "neutral", "displayName": "Kraft Card Stock", "canonical": "oklch(0.955 0.024 83)", "tonalRamp": ["oklch(0.34 0.02 70)", "oklch(0.44 0.022 74)", "oklch(0.55 0.024 78)", "oklch(0.66 0.026 80)", "oklch(0.76 0.026 82)", "oklch(0.85 0.026 82)", "oklch(0.915 0.025 83)", "oklch(0.965 0.02 84)"] },
+      "laminate": { "role": "neutral", "displayName": "Laminated Sheet", "canonical": "oklch(0.955 0.028 88)", "tonalRamp": ["oklch(0.34 0.024 78)", "oklch(0.45 0.026 80)", "oklch(0.56 0.028 82)", "oklch(0.67 0.028 84)", "oklch(0.77 0.028 86)", "oklch(0.86 0.028 87)", "oklch(0.92 0.028 88)", "oklch(0.97 0.022 88)"] },
+      "ink": { "role": "neutral", "displayName": "Board Ink", "canonical": "oklch(0.23 0.022 52)", "tonalRamp": ["oklch(0.18 0.02 50)", "oklch(0.23 0.022 52)", "oklch(0.30 0.028 55)", "oklch(0.40 0.03 58)", "oklch(0.50 0.03 60)", "oklch(0.62 0.028 64)", "oklch(0.76 0.024 72)", "oklch(0.90 0.018 80)"] },
+      "sign-green": { "role": "secondary", "displayName": "Routed Signage Green", "canonical": "oklch(0.33 0.045 152)", "tonalRamp": ["oklch(0.20 0.035 152)", "oklch(0.27 0.042 152)", "oklch(0.33 0.045 152)", "oklch(0.42 0.055 152)", "oklch(0.52 0.07 152)", "oklch(0.63 0.09 152)", "oklch(0.76 0.10 152)", "oklch(0.88 0.07 152)"] },
+      "pin-commit": { "role": "primary", "displayName": "Commit Orange", "canonical": "#f26522", "note": "Locked brand orange; never darkened (PRODUCT.md). Rationed to one pushpin per screen.", "tonalRamp": ["oklch(0.35 0.14 45)", "oklch(0.44 0.17 44)", "oklch(0.53 0.19 43)", "oklch(0.62 0.20 43)", "oklch(0.685 0.196 42)", "oklch(0.76 0.165 47)", "oklch(0.85 0.12 55)", "oklch(0.93 0.06 70)"] },
+      "pin-in": { "role": "tertiary", "displayName": "In Green", "canonical": "oklch(0.6 0.14 152)", "tonalRamp": ["oklch(0.30 0.09 152)", "oklch(0.38 0.11 152)", "oklch(0.46 0.13 152)", "oklch(0.53 0.14 152)", "oklch(0.60 0.14 152)", "oklch(0.70 0.14 152)", "oklch(0.81 0.11 152)", "oklch(0.91 0.06 152)"] },
+      "pin-need": { "role": "tertiary", "displayName": "Needs-You Red", "canonical": "oklch(0.57 0.2 28)", "tonalRamp": ["oklch(0.30 0.13 28)", "oklch(0.38 0.16 28)", "oklch(0.46 0.19 28)", "oklch(0.52 0.20 28)", "oklch(0.57 0.20 28)", "oklch(0.67 0.19 28)", "oklch(0.79 0.14 28)", "oklch(0.90 0.07 28)"] },
+      "pin-maybe": { "role": "tertiary", "displayName": "Maybe Amber", "canonical": "oklch(0.76 0.15 78)", "tonalRamp": ["oklch(0.40 0.09 78)", "oklch(0.50 0.11 78)", "oklch(0.59 0.13 78)", "oklch(0.68 0.14 78)", "oklch(0.76 0.15 78)", "oklch(0.83 0.14 80)", "oklch(0.90 0.10 82)", "oklch(0.95 0.05 84)"] },
+      "pin-info": { "role": "tertiary", "displayName": "Info Cobalt", "canonical": "oklch(0.52 0.15 256)", "tonalRamp": ["oklch(0.28 0.09 256)", "oklch(0.35 0.11 256)", "oklch(0.43 0.13 256)", "oklch(0.48 0.14 256)", "oklch(0.52 0.15 256)", "oklch(0.63 0.15 256)", "oklch(0.77 0.11 256)", "oklch(0.89 0.06 256)"] },
+      "ink-pen": { "role": "tertiary", "displayName": "Ballpoint Blue", "canonical": "oklch(0.4 0.13 262)", "tonalRamp": ["oklch(0.24 0.09 262)", "oklch(0.32 0.11 262)", "oklch(0.40 0.13 262)", "oklch(0.48 0.14 262)", "oklch(0.57 0.14 262)", "oklch(0.68 0.13 262)", "oklch(0.80 0.09 262)", "oklch(0.91 0.05 262)"] },
+      "ink-pencil": { "role": "neutral", "displayName": "Pencil Graphite", "canonical": "oklch(0.46 0.012 60)", "tonalRamp": ["oklch(0.22 0.008 60)", "oklch(0.30 0.01 60)", "oklch(0.38 0.012 60)", "oklch(0.46 0.012 60)", "oklch(0.56 0.012 60)", "oklch(0.67 0.01 60)", "oklch(0.79 0.008 60)", "oklch(0.90 0.005 60)"] },
+      "marker-red": { "role": "tertiary", "displayName": "Rubber-Stamp Marker Red", "canonical": "oklch(0.5 0.19 28)", "tonalRamp": ["oklch(0.28 0.12 28)", "oklch(0.36 0.15 28)", "oklch(0.43 0.17 28)", "oklch(0.50 0.19 28)", "oklch(0.58 0.19 28)", "oklch(0.68 0.17 28)", "oklch(0.80 0.12 28)", "oklch(0.91 0.06 28)"] },
+      "tape": { "role": "neutral", "displayName": "Masking Tape", "canonical": "oklch(0.94 0.042 92 / 0.86)", "tonalRamp": ["oklch(0.42 0.03 92)", "oklch(0.53 0.035 92)", "oklch(0.64 0.04 92)", "oklch(0.74 0.042 92)", "oklch(0.83 0.042 92)", "oklch(0.90 0.042 92)", "oklch(0.94 0.04 92)", "oklch(0.97 0.03 92)"] }
+    },
+    "typographyMeta": {
+      "notice": { "displayName": "Notice / Display", "purpose": "Anton screen-print voice: page titles, landing headlines, section headings. Uppercase, tracked, line-height <1." },
+      "label": { "displayName": "Tape / Kicker Label", "purpose": "Anton small-caps for masking-tape labels, venue tags, nav labels, card date stamps, the status key, stamps." },
+      "title": { "displayName": "Card Title", "purpose": "Libre Franklin 600 for a running title like a GameCard game time. NOT Anton." },
+      "body": { "displayName": "Body", "purpose": "Libre Franklin 400 for all read information, forms, help text. Max ~65ch." },
+      "hand": { "displayName": "Handwriting", "purpose": "Caveat 700 for handwritten marks only: RSVP tallies, 'no court yet', short notes. Never a label or body or button." }
+    },
+    "shadows": [
+      { "name": "contact-shadow", "value": "0 2px 4px oklch(0.32 0.04 45 / 0.32), 0 16px 30px -12px oklch(0.36 0.06 40 / 0.5)", "purpose": "The house shadow. Every .bb-card, .bb-sheet and dialog — stock resting a few mm off the wall." },
+      { "name": "card-hover-lift", "value": "0 4px 8px oklch(0.32 0.04 45 / 0.3), 0 22px 34px -14px oklch(0.4 0.06 40 / 0.5)", "purpose": "Interactive whole-card links on hover, paired with translateY(-2px) scale(1.008), 150ms." },
+      { "name": "pushpin", "value": "0 2px 3px oklch(0.2 0.03 40 / 0.5), inset 0 -1px 2px oklch(0 0 0 / 0.25)", "purpose": "The enamel pin disc — one cast shadow, one inset. Matte, not glossy." },
+      { "name": "routed-sign", "value": "inset 0 1px 0 oklch(1 0 0/0.14), inset 0 -2px 3px oklch(0 0 0/0.32), 0 10px 22px -12px oklch(0.3 0.06 150/0.65)", "purpose": "Desktop nav only — bevel that makes it a hung physical sign." },
+      { "name": "tape", "value": "0 2px 7px oklch(0.3 0.03 45 / 0.22)", "purpose": "Low soft strip shadow under masking tape." }
+    ],
+    "motion": [
+      { "name": "pin-drop", "value": "460ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "The signature entrance. Card drops translateY(-9px)->1px->0, rotates to resting tilt, shadow lands. Decelerate, deliberately NO spring. bb-pin-drop keyframe." },
+      { "name": "board-load-stagger", "value": "children delayed 40/100/155/205/250/290ms", "purpose": "The dashboard's one orchestrated page-load: cards pin themselves on in reading order, then the board stills. html.js + prefers-reduced-motion:no-preference gated." },
+      { "name": "flap-on-update", "value": "300ms cubic-bezier(0.5, 0, 0.2, 1)", "purpose": "A changed value turns over old->new in place (rotateX). Scaffolding for CHANGED-SINCE-SEEN; not yet wired to behavior." },
+      { "name": "card-interactive", "value": "150ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Whole-card link hover lift / 90ms active press." },
+      { "name": "rsvp-pin-press", "value": "90ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "The RSVP pin sinks (translateY(2px) scale(0.9)) as it is pushed in." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ],
+    "radii": [
+      { "name": "card", "value": "0.28rem", "purpose": "--radius; near-square index-card corner for all kraft cards." },
+      { "name": "sheet", "value": "3px", "purpose": "The sign-up sheet." },
+      { "name": "taped", "value": "4px", "purpose": "Regions, dialogs, status key, empty-state outline." },
+      { "name": "pill", "value": "9999px", "purpose": "Enamel pins, capacity holes, nav underline only." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Commit Button",
+      "kind": "button",
+      "refersTo": "button-commit",
+      "description": "The one decisive action per screen — carries a literal orange commit pushpin at its top edge.",
+      "html": "<button class=\"ds-btn-commit\">POST A GAME<span class=\"ds-btn-commit__pin\" aria-hidden=\"true\"></span></button>",
+      "css": ".ds-btn-commit { position: relative; height: 3rem; padding: 0 1.75rem; border: none; border-radius: 0.28rem; background: #f26522; color: oklch(0.955 0.024 83); font-family: Anton, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.13em; font-size: 0.85rem; box-shadow: 0 2px 4px oklch(0.32 0.04 45 / 0.32), 0 16px 30px -12px oklch(0.36 0.06 40 / 0.5); transition: transform 150ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-commit:hover { transform: translateY(-2px); } .ds-btn-commit:active { transform: translateY(0); } .ds-btn-commit:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-commit__pin { position: absolute; top: -0.5rem; left: 50%; width: 1.05rem; height: 1.05rem; margin-left: -0.525rem; border-radius: 50%; background: radial-gradient(circle at 34% 30%, oklch(1 0 0 / 0.55), transparent 44%), radial-gradient(circle at 62% 74%, oklch(0 0 0 / 0.22), transparent 55%), #f26522; box-shadow: 0 2px 3px oklch(0.2 0.03 40 / 0.5), inset 0 -1px 2px oklch(0 0 0 / 0.25); } @media (prefers-reduced-motion: reduce) { .ds-btn-commit { transition: none; } .ds-btn-commit:hover { transform: none; } }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action — thin board-edge outline, no fill, no pin.",
+      "html": "<button class=\"ds-btn-ghost\">SEE HOW IT WORKS</button>",
+      "css": ".ds-btn-ghost { height: 3rem; padding: 0 1.5rem; border: 1px solid oklch(0.44 0.05 52 / 0.25); border-radius: 0.28rem; background: transparent; color: oklch(0.23 0.022 52); font-family: Anton, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.13em; font-size: 0.8rem; transition: background 150ms ease; } .ds-btn-ghost:hover { background: oklch(0.23 0.022 52 / 0.05); } .ds-btn-ghost:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; }"
+    },
+    {
+      "name": "Pushpin",
+      "kind": "custom",
+      "description": "The status law made physical — a matte enamel disc pinned at the top edge of a card. Colour = status (in/need/maybe/info/commit).",
+      "html": "<span class=\"ds-pushpin ds-pushpin--in\" role=\"img\" aria-label=\"You're in\"></span>",
+      "css": ".ds-pushpin { display: inline-block; width: 1.05rem; height: 1.05rem; border-radius: 50%; --pin: oklch(0.52 0.15 256); background: radial-gradient(circle at 34% 30%, oklch(1 0 0 / 0.55), transparent 44%), radial-gradient(circle at 62% 74%, oklch(0 0 0 / 0.22), transparent 55%), var(--pin); box-shadow: 0 2px 3px oklch(0.2 0.03 40 / 0.5), inset 0 -1px 2px oklch(0 0 0 / 0.25); } .ds-pushpin--in { --pin: oklch(0.6 0.14 152); } .ds-pushpin--need { --pin: oklch(0.57 0.2 28); } .ds-pushpin--maybe { --pin: oklch(0.76 0.15 78); } .ds-pushpin--info { --pin: oklch(0.52 0.15 256); } .ds-pushpin--commit { --pin: #f26522; }"
+    },
+    {
+      "name": "Game Card",
+      "kind": "card",
+      "refersTo": "board-card",
+      "description": "A game pinned to the board — kraft stock, resting tilt, one status pin, Anton date stamp, Libre Franklin time, Caveat tally.",
+      "html": "<a class=\"ds-game-card\" href=\"#\"><span class=\"ds-game-card__pin\" aria-hidden=\"true\"></span><p class=\"ds-game-card__day\">SAT · SEP 5</p><h3 class=\"ds-game-card__time\">9:00–11:00 AM</h3><span class=\"ds-tape\">PICKLEPLEX DOWNSVIEW</span><p class=\"ds-game-card__tally\"><b>3</b> 3 in · 1 maybe</p></a>",
+      "css": ".ds-game-card { position: relative; display: block; width: 15.5rem; padding: 1rem; text-decoration: none; color: oklch(0.23 0.022 52); background-color: oklch(0.955 0.024 83); background-image: linear-gradient(180deg, oklch(1 0 0 / 0.05), transparent 40%, oklch(0.4 0.04 60 / 0.03)); border-radius: 0.28rem; box-shadow: 0 2px 4px oklch(0.32 0.04 45 / 0.32), 0 16px 30px -12px oklch(0.36 0.06 40 / 0.5); transform: rotate(-1.1deg); transition: transform 150ms cubic-bezier(0.32,0.72,0,1), box-shadow 150ms ease; } .ds-game-card:hover { transform: rotate(-1.1deg) translateY(-2px) scale(1.008); box-shadow: 0 4px 8px oklch(0.32 0.04 45 / 0.3), 0 22px 34px -14px oklch(0.4 0.06 40 / 0.5); } .ds-game-card:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-game-card__pin { position: absolute; top: -0.5rem; left: 50%; margin-left: -0.525rem; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: radial-gradient(circle at 34% 30%, oklch(1 0 0 / 0.55), transparent 44%), radial-gradient(circle at 62% 74%, oklch(0 0 0 / 0.22), transparent 55%), oklch(0.6 0.14 152); box-shadow: 0 2px 3px oklch(0.2 0.03 40 / 0.5), inset 0 -1px 2px oklch(0 0 0 / 0.25); } .ds-game-card__day { margin: 0; font-family: Anton, 'Arial Narrow', sans-serif; font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: oklch(0.44 0.028 58); } .ds-game-card__time { margin: 0.125rem 0 0; font-family: 'Libre Franklin', system-ui, sans-serif; font-weight: 600; font-size: 1.3rem; line-height: 1.05; } .ds-game-card__tally { margin: 0.75rem 0 0; font-family: Caveat, ui-rounded, cursive; font-weight: 700; color: oklch(0.4 0.13 262); font-size: 1rem; } .ds-game-card__tally b { font-size: 1.55rem; margin-right: 0.35rem; }"
+    },
+    {
+      "name": "Tape Label",
+      "kind": "custom",
+      "refersTo": "tape-label",
+      "description": "A torn strip of translucent masking tape carrying an Anton uppercase label, slightly askew.",
+      "html": "<span class=\"ds-tape\">THIS WEEK</span>",
+      "css": ".ds-tape { display: inline-block; background-color: oklch(0.94 0.042 92 / 0.86); color: oklch(0.4 0.03 62); font-family: Anton, 'Arial Narrow', sans-serif; font-size: 0.7rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.13em; padding: 0.32rem 0.9rem 0.28rem; transform: rotate(-1.3deg); box-shadow: 0 2px 7px oklch(0.3 0.03 45 / 0.22); -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 5px, #000 calc(100% - 5px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 5px, #000 calc(100% - 5px), transparent 100%); }"
+    },
+    {
+      "name": "Status Key",
+      "kind": "custom",
+      "refersTo": "status-key",
+      "description": "The one board element that never tilts — maps the four pin colours to their fixed meanings.",
+      "html": "<div class=\"ds-status-key\"><span><i style=\"background:oklch(0.6 0.14 152)\"></i>You're in</span><span><i style=\"background:oklch(0.57 0.2 28)\"></i>Needs you</span><span><i style=\"background:oklch(0.76 0.15 78)\"></i>Maybe</span><span><i style=\"background:oklch(0.52 0.15 256)\"></i>Info</span></div>",
+      "css": ".ds-status-key { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 1.25rem; justify-content: center; padding: 0.625rem 1rem; border-radius: 4px; background-color: oklch(0.24 0.02 52 / 0.92); color: oklch(0.96 0.02 88); font-family: Anton, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; transform: none; } .ds-status-key span { display: flex; align-items: center; gap: 0.375rem; } .ds-status-key i { width: 0.625rem; height: 0.625rem; border-radius: 50%; box-shadow: inset 0 -1px 1px rgba(0,0,0,.3); }"
+    },
+    {
+      "name": "Sign-up Sheet",
+      "kind": "card",
+      "refersTo": "sign-up-sheet",
+      "description": "The one grid the world keeps — a laminated pencil-ruled sheet, pinned with a single cobalt pin, never rotated. Holds the calendar and dense lists.",
+      "html": "<div class=\"ds-sheet\"><span class=\"ds-sheet__pin\" aria-hidden=\"true\"></span><h2 class=\"ds-sheet__masthead\">Court sign-up</h2><div class=\"ds-sheet__row\">Sat 9:00 AM<span class=\"ds-sheet__pen\">booked</span></div><div class=\"ds-sheet__row\">Sat 11:00 AM<span class=\"ds-sheet__pencil\">maybe</span></div></div>",
+      "css": ".ds-sheet { position: relative; background-color: oklch(0.955 0.028 88); border-radius: 3px; padding: 1.25rem; box-shadow: 0 2px 4px oklch(0.32 0.04 45 / 0.32), 0 16px 30px -12px oklch(0.36 0.06 40 / 0.5); } .ds-sheet::before { content: ''; position: absolute; inset: 0; border-radius: 3px; pointer-events: none; background: linear-gradient(115deg, oklch(1 0 0 / 0.22) 0%, transparent 20%, transparent 72%, oklch(1 0 0 / 0.12) 100%); } .ds-sheet__pin { position: absolute; top: -0.5rem; left: 1.75rem; width: 1rem; height: 1rem; border-radius: 50%; background: radial-gradient(circle at 34% 30%, oklch(1 0 0 / 0.55), transparent 44%), radial-gradient(circle at 62% 74%, oklch(0 0 0 / 0.22), transparent 55%), oklch(0.52 0.15 256); box-shadow: 0 2px 3px oklch(0.2 0.03 40 / 0.5), inset 0 -1px 2px oklch(0 0 0 / 0.25); } .ds-sheet__masthead { margin: 0 0 0.75rem; font-family: Anton, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.09em; font-size: 1rem; border-bottom: 3px double oklch(0.8 0.03 78); padding-bottom: 0.5rem; } .ds-sheet__row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid oklch(0.8 0.03 78); font-family: 'Libre Franklin', system-ui, sans-serif; font-size: 0.9rem; } .ds-sheet__pen { font-family: Caveat, ui-rounded, cursive; font-weight: 700; color: oklch(0.4 0.13 262); } .ds-sheet__pencil { font-family: Caveat, ui-rounded, cursive; font-weight: 700; color: oklch(0.46 0.012 60); }"
+    },
+    {
+      "name": "Desktop Nav (routed sign)",
+      "kind": "nav",
+      "description": "A routed forest-green park sign hung across the top of the board; Anton uppercase section labels, an orange underline on the active section.",
+      "html": "<header class=\"ds-nav\"><span class=\"ds-nav__brand\">Booking Buddy</span><a class=\"ds-nav__item ds-nav__item--active\">Dashboard<span class=\"ds-nav__underline\" aria-hidden=\"true\"></span></a><a class=\"ds-nav__item\">Games</a><a class=\"ds-nav__item\">Friends</a></header>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 0.25rem; height: 3.5rem; padding: 0 1.25rem; border-radius: 0.5rem; background: oklch(0.33 0.045 152); color: #fff; box-shadow: inset 0 1px 0 oklch(1 0 0/0.14), inset 0 -2px 3px oklch(0 0 0/0.32), 0 10px 22px -12px oklch(0.3 0.06 150/0.65); } .ds-nav__brand { margin-right: 1rem; font-family: Anton, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.9rem; color: oklch(0.97 0.02 88); } .ds-nav__item { position: relative; padding: 0.75rem 0.5rem; font-family: Anton, 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.82rem; color: oklch(0.86 0.03 120); text-decoration: none; transition: color 150ms ease; } .ds-nav__item:hover { color: #fff; } .ds-nav__item--active { color: oklch(0.98 0.02 88); } .ds-nav__underline { position: absolute; left: 0.25rem; right: 0.25rem; bottom: -1px; height: 3px; border-radius: 9999px; background: #f26522; box-shadow: 0 0 10px oklch(0.68 0.19 40/0.6); }"
+    },
+    {
+      "name": "Empty-state Outline",
+      "kind": "custom",
+      "description": "A dashed pencil outline where the first thing goes.",
+      "html": "<div class=\"ds-outline\">Pin your first game here</div>",
+      "css": ".ds-outline { border: 2px dashed color-mix(in oklch, oklch(0.23 0.022 52), transparent 74%); border-radius: 4px; background: color-mix(in oklch, oklch(0.955 0.024 83), transparent 55%); padding: 1.5rem; text-align: center; font-family: 'Libre Franklin', system-ui, sans-serif; color: oklch(0.44 0.028 58); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Well-Kept Rec-Hall Bulletin Board",
+    "overview": "Booking Buddy is the cork board on the wall of a community pickleball hall, kept tidy by someone who cares. Every game is a real piece of kraft or index-card stock pinned up with one enamel pushpin, sitting at a slight opt-in angle over a warm contact shadow. You read the board across the room: the soonest game is the biggest card, a masking-tape strip names each area, and four pin colours carry a fixed status law so a first-timer can decode the wall without instruction. The build refuses the Calendly dashboard - no grid-plus-sidebar, no equal-weight panel matrix. The one grid the world keeps (the week/month calendar, any dense list) is redrawn as a laminated sign-up sheet pinned to that same board, ruled in pencil.\n\nThe palette is entirely warm and physical: red-brown cork ground, kraft paper, forest-green routed signage, ballpoint blue and graphite for handwriting. Brand orange (#f26522, locked and never darkened) is rationed to exactly one commit pin per screen. Type is three faces with hard-walled jobs: Anton screen-prints every notice, tape label and stamp; Libre Franklin does all headings, body, UI and table data; Caveat is pen marks only.\n\nMotion is one idea: pinning. A card arriving drops a few pixels, rotates to its resting angle and lands its shadow - a decelerate, deliberately no spring. The dashboard plays this once as an orchestrated board-load, then stills; every other surface cuts to rest. Reduced motion and no-JS get the board already pinned up.",
+    "keyCharacteristics": [
+      "Cork ground, kraft cards, one real pushpin, warm offset contact shadow - never a flat halo",
+      "Near-square corners (0.28rem); rotation is opt-in, and the status key never tilts",
+      "Four-colour pin law (green in / red needs-you / amber maybe / cobalt info) + one orange commit pin",
+      "Three faces, walled: Anton = notice, Libre Franklin = workhorse, Caveat = handwriting only",
+      "The only grid is a pinned laminated sign-up sheet, pencil-ruled",
+      "One motion: the pin-drop; one orchestrated sequence, on the dashboard only"
+    ],
+    "rules": [
+      { "name": "The One Commit Pin Rule", "body": "Brand orange appears exactly once per screen, as the pushpin on the single most important action. If a second orange element wants in, one of them is not the commit - demote it to ink (bg-foreground) or a pin-law colour. Duration pickers and view toggles use ink, never orange.", "section": "colors" },
+      { "name": "The Pin Law Rule", "body": "The four pin colours mean exactly in / needs-you / maybe / info and nothing else, everywhere. The legend that teaches them (StatusKey) has exactly four entries and never tilts. Orange is an action cue, not a fifth law entry - it never appears in the key.", "section": "colors" },
+      { "name": "The Dark Mode Is Dormant Rule", "body": "A .dark .bb-theme token set exists but nothing ever activates it (no toggle, no prefers-color-scheme sync). Treat the light cork world as the only shipped surface; don't build against the dark tokens.", "section": "colors" },
+      { "name": "The Three Faces, Walled Rule", "body": "Anton = notices, tape labels, stamps, big numerals. Libre Franklin = everything read as information (headings, body, UI, table data). Caveat = handwritten content only - a tally, a FULL, a scribbled note - never a label, never body copy, never a button. Geist never appears in this world.", "section": "typography" },
+      { "name": "The No Eyebrow Rule", "body": "Page headings carry no kicker/eyebrow - the routed nav sign already names the section. A short uppercase Anton line above a card title is allowed only as a literal date stamp (the day of a game), not as a category label.", "section": "typography" },
+      { "name": "The Contact-Not-Halo Rule", "body": "Every shadow has vertical offset and a warm brown tint. A zero-offset even glow is forbidden - it breaks the pinned-to-a-wall read. Depth = one object resting near another, never a floating card.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do stand every signed-in surface on .bb-board cork and put content on kraft .bb-cards or one .bb-sheet.",
+      "Do give each card exactly one pushpin whose colour states its status per the four-colour law.",
+      "Do spend the single orange commit pin on the one action that matters on that screen; make everything else ink or a law colour.",
+      "Do lead a region with its most urgent/soonest item, largest - reading order is the layout.",
+      "Do keep Anton for notices/labels/stamps, Libre Franklin for all read information, Caveat for handwritten marks only.",
+      "Do cast the warm two-part contact shadow (--bb-contact-shadow) on anything pinned up.",
+      "Do render the calendar and dense lists as a pencil-ruled laminated sign-up sheet, pinned, unrotated.",
+      "Do use near-square corners (0.28rem cards, 3-4px sheets/taped things) and the opt-in -1.1deg-family tilt on posted cards only.",
+      "Do keep the pin-drop as the only entrance motion - a decelerate with no spring - and only orchestrate it once, on the dashboard; reduced motion gets everything at rest."
+    ],
+    "donts": [
+      "Don't build a Calendly grid-plus-sidebar or an equal-weight panel matrix - this world is a board, not a dashboard.",
+      "Don't darken or recolour brand orange #f26522, and don't let a second orange element onto a screen.",
+      "Don't add a fifth pin colour or reassign one of the four meanings; don't tilt the status key or the sign-up sheet.",
+      "Don't use a zero-offset even glow or a Material elevation ramp - every shadow is offset and warm-tinted.",
+      "Don't set body copy, labels or buttons in Caveat, and don't bring Geist into .bb-theme.",
+      "Don't put a kicker/eyebrow above a page or section heading (a literal date stamp on a card is the only exception).",
+      "Don't add spring physics, parallax, or a second authored page-load sequence - Operate-mode restraint holds outside the one board-load."
+    ]
+  }
+}
