@@ -528,6 +528,13 @@ html:has(.bb-app-chrome) {
 .bb-pin--commit {
   --bb-pin: var(--bb-pin-commit);
 }
+/* Pushpin sitting near the top-left corner instead of dead centre — for a
+   stacked list of cards, where a column of centred pins reads as a machine
+   pattern and a corner pin reads as pinned-up stock. */
+.bb-pin.bb-pin--at-left {
+  left: 1.4rem;
+  margin-left: 0;
+}
 
 /* ── Masking tape ──────────────────────────────────────────────────────── */
 
@@ -590,6 +597,32 @@ html:has(.bb-app-chrome) {
   --border: var(--bb-rule);
   --muted: color-mix(in oklch, var(--bb-laminate), var(--foreground) 6%);
   --muted-foreground: oklch(0.44 0.028 58);
+}
+/* A pinned slip in an interior list — your games, your bookings, your friends.
+   These lists sit on the sign-up sheet, which remaps --card to its own
+   laminate; `.bb-slip` puts the kraft stock back (a shade deeper and warmer
+   than the laminate) so each item reads as its own card lifted off the sheet
+   by its contact shadow, not a panel cut into it. */
+.bb-slip {
+  /* A shade deeper and warmer than the sheet's laminate — a manila slip laid
+     on a cream sheet — so the card reads as its own piece of stock even at
+     this close tone. */
+  --card: oklch(0.912 0.038 77);
+  --border: oklch(0.8 0.032 74);
+  /* A hairline edge + a slightly firmer drop so the slip still lifts off the
+     near-same-tone laminate — the world's default contact shadow alone is too
+     quiet against it. */
+  border: 1px solid oklch(0.8 0.033 73);
+  box-shadow:
+    0 1px 2px oklch(0.32 0.04 45 / 0.28),
+    0 10px 22px -10px oklch(0.36 0.06 40 / 0.4);
+}
+.dark .bb-slip {
+  --card: oklch(0.355 0.026 58);
+  --border: oklch(1 0 0 / 12%);
+  border-color: oklch(1 0 0 / 10%);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.4), 0 10px 22px -10px oklch(0 0 0 / 0.5);
 }
 /* A sheet pinned to the board — a real pushpin at the top edge, no rotation
    (a ruled list stays square). Used for the main list on the interior pages. */

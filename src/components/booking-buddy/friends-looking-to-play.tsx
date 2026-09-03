@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { AVAILABILITY_PATH } from "@/lib/booking-buddy/routes";
 import type { FriendLookingWindow } from "@/lib/booking-buddy/actions/looking";
 
@@ -32,11 +33,16 @@ export function FriendsLookingToPlay({
   }
 
   return (
-    <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+    <ul className="mt-4 flex flex-col gap-5">
       {windows.map((window) => (
-        <li
+        <BoardCard
+          as="li"
           key={window.id}
-          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4"
+          pin="info"
+          pinLabel="Looking to play"
+          pinAlign="left"
+          pinned={false}
+          className="bb-slip flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
         >
           <div className="min-w-0">
             <p className="font-medium">{window.friendName}</p>
@@ -53,7 +59,7 @@ export function FriendsLookingToPlay({
           >
             Propose a game
           </Link>
-        </li>
+        </BoardCard>
       ))}
     </ul>
   );
