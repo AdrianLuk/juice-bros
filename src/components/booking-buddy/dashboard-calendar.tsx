@@ -354,8 +354,9 @@ export function DashboardCalendar<T extends CalendarEvent>({
         </div>
       </div>
 
-      {/* `DashboardQuickActions` positions itself fixed in the bottom-right
-          corner; rendered here only so its dialogs live in this subtree. */}
+      {/* `DashboardQuickActions` portals its fixed bottom-right stack to
+          `<body>`; rendered here only so its dialogs and the shared
+          Log-a-booking callback live in this subtree. */}
       {quickActions}
 
       <div
