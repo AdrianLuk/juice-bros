@@ -275,9 +275,9 @@
  * the non-technical and older friends this app onboards.
  */
 .bb-theme {
-  --background: oklch(0.735 0.056 68); /* cork */
-  --foreground: oklch(0.26 0.02 55); /* ink */
-  --card: oklch(0.946 0.026 82); /* kraft / index card */
+  --background: oklch(0.775 0.045 71); /* cork */
+  --foreground: oklch(0.24 0.02 55); /* ink */
+  --card: oklch(0.955 0.024 83); /* kraft / index card */
   --card-foreground: oklch(0.26 0.02 55);
   --popover: oklch(0.958 0.022 82);
   --popover-foreground: oklch(0.26 0.02 55);
@@ -290,7 +290,7 @@
   --ring: var(--brand-orange);
   --radius: 0.28rem; /* near-square index-card corners */
 
-  --bb-cork: oklch(0.735 0.056 68);
+  --bb-cork: oklch(0.775 0.045 71);
   --bb-cork-edge: oklch(0.5 0.045 58);
   --bb-kraft-deep: oklch(0.9 0.03 80);
   /* Status law — one fixed meaning each, printed on the key that never tilts. */
@@ -306,8 +306,8 @@
   --bb-tape-ink: oklch(0.4 0.03 62);
   --bb-laminate: oklch(0.955 0.028 88); /* sign-up sheet ground */
   --bb-rule: oklch(0.8 0.03 78); /* sheet ruling */
-  --bb-contact-shadow: 0 2px 3px oklch(0.32 0.04 45 / 0.28),
-    0 14px 24px -12px oklch(0.4 0.06 40 / 0.42);
+  --bb-contact-shadow: 0 2px 4px oklch(0.32 0.04 45 / 0.32),
+    0 16px 30px -12px oklch(0.36 0.06 40 / 0.5);
 }
 
 .dark .bb-theme {
@@ -350,13 +350,18 @@
 .bb-board {
   background-color: var(--bb-cork);
   background-image:
-    radial-gradient(1.5px 1.5px at 12% 22%, oklch(0.42 0.04 40 / 0.16) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 68% 14%, oklch(0.42 0.04 40 / 0.13) 50%, transparent 51%),
-    radial-gradient(2px 2px at 44% 61%, oklch(0.42 0.04 40 / 0.1) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 83% 74%, oklch(0.42 0.04 40 / 0.14) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 26% 84%, oklch(0.42 0.04 40 / 0.12) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 55% 33%, oklch(0.98 0.03 88 / 0.14) 50%, transparent 51%);
-  background-size: 190px 190px, 230px 230px, 270px 270px, 210px 210px, 250px 250px, 170px 170px;
+    /* a soft frame vignette so it reads as a board on a wall, not infinite cork */
+    radial-gradient(130% 80% at 50% 0%, transparent 62%, oklch(0.42 0.04 45 / 0.16) 100%),
+    radial-gradient(1.5px 1.5px at 12% 22%, oklch(0.42 0.04 40 / 0.15) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 68% 14%, oklch(0.42 0.04 40 / 0.12) 50%, transparent 51%),
+    radial-gradient(2px 2px at 44% 61%, oklch(0.42 0.04 40 / 0.09) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 83% 74%, oklch(0.42 0.04 40 / 0.13) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 26% 84%, oklch(0.42 0.04 40 / 0.11) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 55% 33%, oklch(0.98 0.03 88 / 0.13) 50%, transparent 51%);
+  background-size:
+    100% 100%,
+    190px 190px, 230px 230px, 270px 270px, 210px 210px, 250px 250px, 170px 170px;
+  background-attachment: fixed, scroll, scroll, scroll, scroll, scroll, scroll;
 }
 
 /* ── Kraft cards ────────────────────────────────────────────────────────── */
@@ -468,7 +473,7 @@
    the label riding its top-left corner. */
 .bb-region {
   position: relative;
-  border: 2px dashed oklch(0.96 0.03 88 / 0.4);
+  border: 2px dashed oklch(0.96 0.03 88 / 0.38);
   border-radius: 4px;
 }
 

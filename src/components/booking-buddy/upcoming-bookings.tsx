@@ -30,12 +30,12 @@ export function UpcomingBookingsSidebar({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-heading text-sm font-semibold tracking-tight">
-          Coming up
+        <h2 className="font-bb-sign text-[0.82rem] tracking-[0.1em] text-foreground uppercase">
+          Upcoming courts
         </h2>
         <Link
           href={BOOKINGS_PATH}
-          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary"
+          className="text-xs text-muted-foreground underline decoration-dotted underline-offset-4 hover:text-brand-orange"
         >
           See all
         </Link>

@@ -83,7 +83,7 @@ function DesktopSectionItem({
       href={section.primary}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative isolate flex items-center gap-1 px-2 py-3 font-[family-name:var(--font-bb-sign)] text-[0.82rem] tracking-[0.14em] uppercase transition-colors",
+        "relative isolate flex items-center gap-1 px-2 py-3 font-bb-sign text-[0.82rem] tracking-[0.14em] uppercase transition-colors",
         active
           ? "text-[oklch(0.98_0.02_88)]"
           : "text-[oklch(0.86_0.03_120)] hover:text-white",
@@ -174,7 +174,7 @@ export function BbAppShell() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG */}
             <img src="/brand/JB_Logo_White.svg" alt="" className="size-6 shrink-0" />
-            <span className="font-[family-name:var(--font-bb-sign)] text-[0.9rem] tracking-[0.18em] text-[oklch(0.97_0.02_88)] uppercase">
+            <span className="font-bb-sign text-[0.9rem] tracking-[0.18em] text-[oklch(0.97_0.02_88)] uppercase">
               Booking Buddy
             </span>
           </Link>
@@ -217,7 +217,7 @@ export function BbAppShell() {
               href={section.primary}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-1 font-[family-name:var(--font-bb-sign)] text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
+                "relative flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
                 active ? "text-foreground" : "text-muted-foreground",
               )}
             >

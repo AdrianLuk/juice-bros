@@ -37,14 +37,14 @@ export function DashboardQuickActions({
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
 
   return (
-    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
+    <div className="fixed right-4 bottom-24 z-40 flex flex-col items-end gap-2.5 sm:right-6 sm:bottom-6">
       <Dialog open={availabilityDialogOpen} onOpenChange={setAvailabilityDialogOpen}>
         <DialogTrigger
           render={
             <Button
               size="sm"
               variant="secondary"
-              className="h-11 gap-2 rounded-full px-4 shadow-lg hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="h-11 gap-2 rounded-sm border border-[var(--bb-cork-edge)]/25 px-4 font-bb-sign text-[0.72rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
             />
           }
         >
@@ -69,10 +69,15 @@ export function DashboardQuickActions({
       <Button
         size="lg"
         onClick={onAddBooking}
-        className="h-11 gap-2 rounded-full px-5 shadow-lg hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+        className="relative h-11 gap-2 rounded-sm px-5 font-bb-sign text-[0.74rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
       >
+        <span
+          aria-hidden
+          className="bb-pin bb-pin--commit"
+          style={{ top: "-0.55rem" }}
+        />
         <PlusIcon />
-        Add booking
+        Log a court
       </Button>
     </div>
   );
