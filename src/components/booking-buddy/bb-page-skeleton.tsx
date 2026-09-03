@@ -28,8 +28,14 @@ function Bar({ className }: { className?: string }) {
  * holds it hidden for a beat — a quick navigation swaps straight to real
  * content and never flashes a stack of grey blocks; a slow read fades them in.
  *
- * The dashboard (`/booking-buddy`) deliberately has no skeleton — its
- * full-viewport calendar makes for too heavy a placeholder. See that page.
+ * The section wrapper's padding, container width and content top-margin match
+ * the real pages exactly (`px-2.5 … sm:px-6 lg:px-8`, `max-w-4xl`, `mt-8`), so
+ * the heading and section nav hold their exact position when the placeholder
+ * swaps for content — no sideways or vertical jump on the reveal.
+ *
+ * The dashboard (`/booking-buddy`) has its own board-shaped skeleton
+ * (`bb-dashboard-skeleton.tsx`) rather than this one — its layout is the board,
+ * not a heading over a sheet.
  *
  * `title` omitted (the slot detail page, whose heading is data-derived) falls
  * back to a placeholder bar for the `<h1>`.
@@ -45,7 +51,7 @@ export function BbPageSkeleton({
 }) {
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
+      <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
         <div className="mx-auto max-w-4xl">
           {title ? (
             <BbPageHeading title={title} description={description} />
@@ -55,7 +61,7 @@ export function BbPageSkeleton({
           {sectionNav && <BbSectionNav />}
 
           <div
-            className="bb-skeleton-body mt-10 flex flex-col gap-6"
+            className="bb-skeleton-body mt-8 flex flex-col gap-6"
             aria-hidden
           >
             <Bar className="h-28 w-full rounded-sm" />

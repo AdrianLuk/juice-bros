@@ -354,6 +354,56 @@
     0 2px 3px oklch(0 0 0 / 0.4), 0 16px 26px -12px oklch(0 0 0 / 0.55);
 }
 
+/* ── Standalone / installed-app feel ─────────────────────────────────────────
+ *
+ * Booking Buddy is installable (`booking-buddy.webmanifest`, `display:
+ * standalone`) and is meant to pass for a native app once it's on the home
+ * screen. These rules take away the last browser tells on the app's own routes
+ * without touching the marketing site.
+ *
+ * `:has(.bb-board)` scopes them to the whole `/booking-buddy` section — both
+ * the signed-in shell and the pre-auth landing set `.bb-board` on their
+ * wrapper. Browsers without `:has()` just keep the ordinary page behavior.
+ */
+html:has(.bb-board) {
+  /* Reserve the scrollbar track on every route so navigating from a short page
+     to a tall one doesn't shove the whole column sideways by the scrollbar
+     width as the new page lands. A no-op where scrollbars overlay the content
+     (iOS, Android, macOS) — it earns its keep on desktop Windows/Linux. */
+  scrollbar-gutter: stable;
+  /* `.bb-board` (the cork ground) sits on an inner div, so the reserved gutter
+     — and any elastic-scroll overscroll gap — would otherwise expose the
+     near-white root background at the edge. Paint cork up here too, toned to
+     the board's *vignetted* rim (its edges are darkened by the wall-frame
+     gradient) so the gutter reads as part of the same board, not a seam. The
+     noise/vignette layers still only live on that inner div. */
+  background-color: oklch(0.6 0.05 58);
+}
+
+/* In the installed app the board is the entire surface: no browser pull-to-
+   refresh, no rubber-band into a chrome-coloured gap past the top or bottom.
+   Left as normal in a browser tab, where people still expect pull-to-refresh. */
+@media (display-mode: standalone) {
+  html:has(.bb-board) {
+    overscroll-behavior-y: none;
+  }
+}
+
+.bb-theme {
+  /* Kill the grey tap-flash on every link and button — the loudest "this is a
+     web page, not an app" tell on Android. The `:focus-visible` ring and the
+     `:active` press states elsewhere in this file still carry the feedback. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The app-shell chrome is furniture, not content: a long-press on the nav
+   shouldn't select "BOOKING BUDDY" or raise the iOS text callout. */
+.bb-app-chrome {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ── The cork board ─────────────────────────────────────────────────────── */
 
 /* The ground every signed-in surface stands on. Real cork grain: a coarse
@@ -1369,9 +1419,12 @@
  *
  * The signature interaction. A card arriving on the board is a pushpin press:
  * it drops in, rotates to its resting angle, the contact shadow lands. The
- * dashboard plays this ONCE, orchestrated, as `.bb-board-load > *` staggers —
- * the memorable moment, and the one authored page-load sequence in the app
- * (Operate mode bans the rest). Every other surface just cuts to rest.
+ * dashboard plays this ONCE per app load, orchestrated, as `.bb-board-load > *`
+ * staggers — the memorable moment, and the one authored page-load sequence in
+ * the app (Operate mode bans the rest). `BoardLoadOnce` only writes the
+ * `.bb-board-load` class on the first dashboard render of the session, so a
+ * client navigation back to the dashboard gets the route transition alone, no
+ * second cascade layered on top. Every other surface just cuts to rest.
  * Everything here is gated on `html.js` + no-preference; reduced motion and
  * no-JS get the board already pinned up and still.
  */
