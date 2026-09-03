@@ -248,7 +248,7 @@ A note taped up: `4px` corners, contact shadow, Anton uppercase title at `1rem` 
 
 ### Navigation
 - **Desktop:** a routed forest-green park sign (`oklch(0.33 0.045 152)`), sticky, `max-w-6xl`, beveled shadow. Anton uppercase section labels at `0.82rem` / 0.14em; inactive labels are pale green, active is near-white with a `3px` brand-orange underline that slides between sections as a shared view-transition element (`bb-nav-pill`). Dropdowns are small pinned kraft cards.
-- **Mobile:** fixed kraft bottom tab strip, `h-16`, `2px` cork-edge top border. Anton `0.6rem` labels, Lucide line icon per tab; the active tab is marked by a small orange pushpin dot that slides between tabs (`bb-tab-pill`) and an orange icon.
+- **Mobile:** fixed kraft bottom tab strip, `h-16`, `2px` cork-edge top border. Anton `0.6rem` labels, Lucide line icon per tab. The active tab carries a solid brand-orange fill (inset `4px` corners) with white label and icon; that fill is one persistent element that CSS-transforms between tab slots on navigation — a `300ms` signature-eased slide, live under the frozen strip — not a per-tab element that blinks in and out.
 - **Section nav** (`BbSectionNav`): raised card-stock tabs; the active tab carries a small pin.
 
 ### Empty States

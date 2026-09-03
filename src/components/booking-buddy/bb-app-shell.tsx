@@ -32,9 +32,10 @@ import {
  * IA is untouched — five sections, `sectionForPath` off `usePathname`. Only the
  * material changed.
  *
- * The active indicator (`bb-nav-pill` desktop, `bb-tab-pill` mobile) is a
- * shared element that slides between destinations under the moving page
- * (globals.css). The sign itself (`bb-chrome-header` / `bb-chrome-tabs`) is
+ * The active indicator slides between destinations on navigation: the desktop
+ * underline is a View Transitions magic-move (`bb-nav-pill`, globals.css); the
+ * mobile tab fill is one persistent element that CSS-transforms to the active
+ * slot (below). The sign itself (`bb-chrome-header` / `bb-chrome-tabs`) is
  * frozen during a route transition.
  */
 
@@ -154,6 +155,7 @@ function DesktopSectionItem({
 export function BbAppShell() {
   const pathname = usePathname() ?? "";
   const activeSection = sectionForPath(pathname);
+  const activeTabIndex = BB_SECTIONS.findIndex((s) => s.id === activeSection);
 
   return (
     <>
@@ -215,6 +217,23 @@ export function BbAppShell() {
         className="bb-app-chrome fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-[var(--bb-cork-edge)] bg-[var(--card)] pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_18px_-10px_oklch(0.3_0.05_45/0.4)] sm:hidden"
         aria-label="Booking Buddy"
       >
+        {/* The active-tab fill is one persistent element that slides across the
+            strip on navigation — a CSS transform to the active tab's slot, not
+            a per-tab element that blinks in and out of place. Hidden on the
+            pre-auth pages, where no section is active. White-on-orange is the
+            standing brand call (PRODUCT.md). */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+          style={{
+            width: `${100 / BB_SECTIONS.length}%`,
+            transform: `translateX(${Math.max(activeTabIndex, 0) * 100}%)`,
+            opacity: activeTabIndex < 0 ? 0 : 1,
+          }}
+        >
+          <span className="absolute inset-x-1.5 inset-y-2 rounded-sm bg-brand-orange shadow-[0_1px_3px_oklch(0.3_0.05_45/0.4)]" />
+        </span>
+
         {BB_SECTIONS.map((section) => {
           const Icon = SECTION_ICON[section.id];
           const active = activeSection === section.id;
@@ -224,20 +243,10 @@ export function BbAppShell() {
               href={section.primary}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative isolate flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
+                "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
                 active ? "text-white" : "text-muted-foreground",
               )}
             >
-              {/* Its own inset element so the fill slides between tabs on
-                  navigation (`bb-tab-pill`, globals.css). White-on-orange is
-                  the standing brand call (PRODUCT.md). */}
-              {active && (
-                <span
-                  aria-hidden
-                  style={{ viewTransitionName: "bb-tab-pill" }}
-                  className="absolute inset-x-1.5 inset-y-2 -z-10 rounded-sm bg-brand-orange shadow-[0_1px_3px_oklch(0.3_0.05_45/0.4)]"
-                />
-              )}
               <Icon className={cn("size-5", active && "text-white")} />
               {section.label}
             </Link>
