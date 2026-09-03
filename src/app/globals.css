@@ -1022,8 +1022,10 @@ html:has(.bb-app-chrome) {
  * <ViewTransition>; `nav-order.ts` picks `forward` / `back` / `lateral` from
  * the app's own reading order. The shell chrome is the spatial anchor: the
  * desktop top bar (`bb-chrome-header`) and mobile tab bar (`bb-chrome-tabs`)
- * are frozen, and the active nav indicator (`bb-nav-pill`, `bb-tab-pill`,
- * `bb-section-pill`) slides between destinations underneath the moving page.
+ * are frozen, and the active nav indicator (`bb-nav-pill` desktop underline,
+ * `bb-section-pill` sibling row) slides between destinations underneath the
+ * moving page. The mobile tab fill slides on its own CSS transform, live under
+ * the frozen strip — see `bb-app-shell.tsx`.
  *
  * Same signature easing as the rest of the site —
  * cubic-bezier(0.32,0.72,0,1) for arrivals, a quicker ease-in for exits — but
@@ -1058,17 +1060,15 @@ html:has(.bb-app-chrome) {
 }
 
 /* The active nav indicators: a magic-move between destinations, no cross-fade
-   of the fill itself — same treatment as the marketing nav pill. */
+   of the fill itself — same treatment as the marketing nav pill. (The mobile
+   tab fill isn't here: it rides its own CSS transform under the frozen strip.) */
 ::view-transition-group(bb-nav-pill),
-::view-transition-group(bb-tab-pill),
 ::view-transition-group(bb-section-pill) {
   animation-duration: 300ms;
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 ::view-transition-old(bb-nav-pill),
-::view-transition-new(bb-nav-pill),
-::view-transition-old(bb-tab-pill),
-::view-transition-new(bb-tab-pill) {
+::view-transition-new(bb-nav-pill) {
   animation: none;
 }
 /* The section pill (only) can route to or from a page that has no section nav
@@ -1416,7 +1416,6 @@ html:has(.bb-app-chrome) {
     animation: 160ms linear both jb-fade-in;
   }
   ::view-transition-group(bb-nav-pill),
-  ::view-transition-group(bb-tab-pill),
   ::view-transition-group(bb-section-pill) {
     animation-duration: 1ms;
   }
