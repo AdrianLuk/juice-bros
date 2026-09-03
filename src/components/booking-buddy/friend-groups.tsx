@@ -172,7 +172,7 @@ function RemoveMemberForm({
   const form = (
     <form
       action={formAction}
-      className="flex shrink-0 flex-col items-end gap-1"
+      className="flex shrink-0 flex-col gap-1 sm:items-end"
     >
       <input type="hidden" name="group_id" value={groupId} />
       <input type="hidden" name="connection_id" value={member.connectionId} />
@@ -189,7 +189,7 @@ function RemoveMemberForm({
       <AlertDialogTrigger render={<Button size="sm" variant="destructive" />}>
         Remove
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="bb-theme">
         <AlertDialogHeader>
           <AlertDialogTitle>Remove {personLabel(member)}?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -264,7 +264,7 @@ function DeleteGroupButton({ group }: { group: FriendGroup }) {
   // The form lives inside the dialog so the confirm button is the only thing
   // that can submit it — the same shape as removing a friend.
   const form = (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form action={formAction} className="flex flex-col gap-1 sm:items-end">
       <input type="hidden" name="group_id" value={group.id} />
       <Button type="submit" variant="destructive" disabled={pending}>
         {pending ? "Deleting…" : "Delete group"}
@@ -278,7 +278,7 @@ function DeleteGroupButton({ group }: { group: FriendGroup }) {
       <AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
         Delete
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="bb-theme">
         <AlertDialogHeader>
           <AlertDialogTitle>
             Delete &ldquo;{group.name}&rdquo;?

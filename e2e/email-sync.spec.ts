@@ -85,7 +85,13 @@ test("disconnecting removes the Mailbox Link", async ({ page, accounts }) => {
   await page.getByRole("button", { name: "Connect Gmail" }).click();
   await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 
+  // Disconnect is behind a confirm dialog; the trigger and the confirm button
+  // share the accessible name, so the confirm click is scoped to the dialog.
   await page.getByRole("button", { name: "Disconnect" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Disconnect" })
+    .click();
   await expect(page.getByRole("button", { name: "Connect Gmail" })).toBeVisible();
 
   await page.reload();

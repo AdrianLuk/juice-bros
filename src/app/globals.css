@@ -685,6 +685,20 @@ html:has(.bb-app-chrome) {
   font-size: 1rem;
 }
 
+/* Confirm dialogs (Base UI AlertDialog) get the same taped-note treatment when
+   they opt into the board world — the destructive-action confirms all pass
+   `className="bb-theme"` so they match the plain dialogs beside them. */
+.bb-theme[data-slot="alert-dialog-content"] {
+  border-radius: 4px;
+  box-shadow: var(--bb-contact-shadow);
+}
+.bb-theme[data-slot="alert-dialog-content"] [data-slot="alert-dialog-title"] {
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 1rem;
+}
+
 /* A dashed "pencil outline" where the first thing goes — empty states. */
 .bb-outline {
   border: 2px dashed color-mix(in oklch, var(--foreground), transparent 74%);
