@@ -83,7 +83,9 @@ export function DateField({
               type="button"
               variant="outline"
               className={cn(
-                "h-8 w-full justify-start px-2.5 font-normal",
+                // Match the plain inputs/selects it sits beside, not the
+                // button's own cork `bg-background`.
+                "h-8 w-full justify-start border-input bg-transparent px-2.5 font-normal dark:bg-input/30",
                 !selected && "text-muted-foreground",
               )}
             />

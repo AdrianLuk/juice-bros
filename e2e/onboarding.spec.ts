@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { signUp } from "./support/sign-in.ts";
+import { pickDate } from "./support/date-field.ts";
 
 /**
  * The intent-branched Onboarding modal (issue #176, reshaping #103) — shown on
@@ -98,7 +99,7 @@ test("track branch: logging a booking confirms, and the modal stays gone after",
   ).toBeVisible();
 
   // Facility is preselected (first Org is auto-default). Just a future date.
-  await page.getByLabel("Date").fill("2030-06-03");
+  await pickDate(page, "2030-06-03");
   await page.getByRole("button", { name: "Log booking" }).click();
 
   await expect(
@@ -117,8 +118,9 @@ test("coordinate branch: the slot form is prefilled to next Monday 8pm", async (
 
   await expect(page.getByRole("heading", { name: "Post a time" })).toBeVisible();
 
-  const date = page.getByLabel("Date");
-  const value = await date.inputValue();
+  // The Date field posts through a hidden `input[name="date"]` — the visible
+  // control is a calendar-popover trigger now (issue #364), not a text input.
+  const value = await page.locator('input[name="date"]').inputValue();
   expect(value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   // Whatever "next Monday" resolves to, it's a Monday and it's in the future.
   const parsed = new Date(`${value}T00:00:00`);

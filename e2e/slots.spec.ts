@@ -11,6 +11,7 @@ import {
   removePlace,
   selectDuration,
 } from "./support/places.ts";
+import { pickDate } from "./support/date-field.ts";
 
 /**
  * The Slot poll journey: post a bare proposal, a friend with slots Visibility
@@ -38,7 +39,7 @@ async function createSlot(
   slot: { date: string; start: string; end: string; label: string; division?: string },
 ): Promise<string> {
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill(slot.date);
+  await pickDate(page, slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
   await selectDuration(page, slot.start, slot.end);
   if (slot.division) {
@@ -159,7 +160,7 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
   const updatedNotes = "Playwright bring your own paddle";
 
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill("2031-11-11");
+  await pickDate(page, "2031-11-11");
   await page.getByLabel("Start").selectOption("13:00");
   await selectDuration(page, "13:00", "14:00");
   await page.getByLabel("Notes").fill(originalNotes);
@@ -190,7 +191,7 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
 
 test("a slot cannot be posted for a date that's already passed", async ({ page }) => {
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill("2020-01-01");
+  await pickDate(page, "2020-01-01");
   await page.getByLabel("Start").selectOption("13:00");
   await selectDuration(page, "13:00", "14:00");
   await page.getByRole("button", { name: "Post game" }).click();
@@ -454,7 +455,7 @@ test("a facility picked at creation is already the slot's intended org", async (
   await addPlace(page, place);
 
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill("2031-10-10");
+  await pickDate(page, "2031-10-10");
   await page.getByLabel("Start").selectOption("09:00");
   await selectDuration(page, "09:00", "10:00");
   await page.getByLabel("Facility").selectOption({ label: place });
