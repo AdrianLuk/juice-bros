@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/metadata";
-import { buildOnDeckLandingJsonLd, toJsonLdScript } from "@/lib/structured-data";
+import {
+  buildOnDeckLandingJsonLd,
+  toJsonLdScript,
+} from "@/lib/structured-data";
 import { Hero } from "./sections/hero";
 import { TheProblem } from "./sections/the-problem";
 import { HowItRuns } from "./sections/how-it-runs";
+import { CourtsideBoard } from "./sections/courtside-board";
 import { Matching } from "./sections/matching";
 import { StaysSocial } from "./sections/stays-social";
 
@@ -27,6 +31,7 @@ export default function OnDeckPage() {
       <Hero />
       <TheProblem />
       <HowItRuns />
+      <CourtsideBoard />
       <Matching />
       <StaysSocial />
     </div>
