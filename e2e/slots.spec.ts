@@ -116,9 +116,9 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   });
 
   try {
-    await expect(page.getByRole("heading", { name: /Mar 3, 2031/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Mar 3 ·/ })).toBeVisible();
     await expect(page.getByText("Proposed by you")).toBeVisible();
-    await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
+    await expect(page.getByText("Gathering", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("group", { name: "Your response" }).getByRole("button"),
     ).toHaveCount(3);
@@ -126,7 +126,7 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
     await page.goto("/booking-buddy/slots");
     await expect(row(page, "Mar 3, 2031")).toBeVisible();
     await expect(
-      row(page, "Mar 3, 2031").getByText("Proposal", { exact: true }),
+      row(page, "Mar 3, 2031").getByText("Gathering", { exact: true }),
     ).toBeVisible();
   } finally {
     await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
@@ -144,7 +144,7 @@ test("a game that runs past midnight can be proposed", async ({ page, accounts }
   });
 
   try {
-    await expect(page.getByRole("heading", { name: /Mar 4, 2031/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Mar 4 ·/ })).toBeVisible();
 
     await page.goto("/booking-buddy/slots");
     const posted = row(page, "Mar 4, 2031");
@@ -331,7 +331,7 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
   try {
     // A bare proposal: nothing to fill yet (ADR 0001).
     await expect(page.getByText("still a proposal")).toBeVisible();
-    await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
+    await expect(page.getByText("Gathering", { exact: true })).toBeVisible();
 
     // Picked by the option's own value: its label is the whole Booking
     // ("when — where · court"), which no exact-label match would survive.
@@ -347,7 +347,7 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     await expect(page.getByText("1 court")).toBeVisible();
     // The status chip flips once a court is behind the Slot.
     await expect(page.getByText("Court booked")).toBeVisible();
-    await expect(page.getByText("Proposal", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Gathering", { exact: true })).toHaveCount(0);
 
     await page.getByLabel("Rotation buffer").fill("2");
     await page.getByRole("button", { name: "Save buffer" }).click();
@@ -374,7 +374,7 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     await detachButtons.click();
     await page.getByRole("button", { name: "Detach booking" }).click();
     await expect(page.getByText("still a proposal")).toBeVisible();
-    await expect(page.getByText("Proposal", { exact: true })).toBeVisible();
+    await expect(page.getByText("Gathering", { exact: true })).toBeVisible();
     await expect(page.getByText("Court booked")).toHaveCount(0);
   } finally {
     await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
@@ -438,9 +438,9 @@ test("the organizer can set an intended org for a still-bare-proposal slot", asy
     await page.reload();
     await expect(page.getByLabel("Planning to book at")).toHaveValue(orgId);
 
-    // And the facility now shows in the game's title, even though it's still
-    // a bare proposal with no court attached.
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(place);
+    // And the facility now shows on the game as its tape label, even though
+    // it's still a bare proposal with no court attached.
+    await expect(page.locator("span.bb-tape")).toContainText(place);
   } finally {
     await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
     await removePlace(page, place);
@@ -465,15 +465,15 @@ test("a facility picked at creation is already the slot's intended org", async (
   // — it's still a bare proposal, but a proposal has a destination.
   const proposalRow = row(page, "Oct 10, 2031");
   await expect(proposalRow).toContainText(place);
-  await expect(proposalRow).toContainText("Proposal");
+  await expect(proposalRow).toContainText("Gathering");
 
   await proposalRow.getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
   const slotId = page.url().split("/").pop()!;
 
   try {
-    // Same on the detail page's own title.
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(place);
+    // The detail page shows the facility too, as its tape label.
+    await expect(page.locator("span.bb-tape")).toContainText(place);
 
     // No separate "Planning to book at" save needed — creation already set it.
     await expect(
