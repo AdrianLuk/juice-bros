@@ -76,3 +76,7 @@ next-env.d.ts
 .impeccable/review/*.png
 .impeccable/build/state.json
 # impeccable-ignore-end
+
+# impeccable: ephemeral serve-question runtime logs + state (pid/port).
+# Kept outside the managed block above so it survives regeneration.
+.impeccable/questions/

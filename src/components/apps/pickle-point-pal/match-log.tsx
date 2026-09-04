@@ -53,7 +53,7 @@ export function MatchLog({
   return (
     <ul
       className={cn(
-        "pp-well divide-y divide-pp-hairline overflow-hidden",
+        "pp-well divide-y divide-[var(--pp-hairline)] overflow-hidden",
         capHeight && "max-h-[60vh] overflow-y-auto overscroll-contain"
       )}
     >

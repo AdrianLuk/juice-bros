@@ -324,7 +324,7 @@ because it's entered first at setup.
 
 Visual direction: the redesign shipped "The Officiating Instrument" (direction seed
 7107de82) — an anodized-graphite chassis (`.pp-frame`) cradling a bright reflective
-readout panel (`.pp-panel`), the score as a true SVG seven-segment display, one hi-vis
+readout panel (`.pp-panel`), the score as a big plain heavy tabular numeral, one hi-vis
 orange signal (`#f26522`) meaning serving/live/clock-running only, and Saira Condensed
 silkscreen legends on every control. The full recorded design system — tokens, named
 rules, component specs — lives in `DESIGN.md` next to this file (sidecar
