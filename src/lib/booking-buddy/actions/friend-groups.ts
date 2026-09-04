@@ -7,7 +7,11 @@ import { verifySession } from "../dal.ts";
 import { FRIENDS_PATH, GROUPS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listConnections, type ConnectionPerson } from "./connections.ts";
-import { resolveVisibilityByConnection, type VisibilityLevel } from "../visibility.ts";
+import {
+  isVisibilityLevel,
+  resolveVisibilityByConnection,
+  type VisibilityLevel,
+} from "../visibility.ts";
 import {
   groupWriteMessage,
   parseNewGroup,
@@ -95,9 +99,12 @@ export async function getGroupsPageData(): Promise<GroupsPageData> {
  * than fetching Connections again itself — the friends page renders one list
  * merging both, so a second `connections` query here would be redundant.
  *
- * Read as three queries and joined here rather than in SQL, because the
+ * Read as four queries and joined here rather than in SQL, because the
  * precedence chain that turns them into a level lives in application code
- * (ADR 0003) and is unit tested there.
+ * (ADR 0003) and is unit tested there. The fourth is the owner's own
+ * `default_friend_visibility` — the floor the chain starts from (ADR 0021),
+ * without which every ungrouped friend would resolve to `none` here while the
+ * database happily showed them the calendar.
  */
 export async function getFriendVisibilityList(
   friends: ConnectionPerson[],
@@ -105,15 +112,24 @@ export async function getFriendVisibilityList(
   const session = await verifySession();
   const supabase = await createClient();
 
-  const [groupsResult, membersResult, overridesResult] = await Promise.all([
-    supabase.from("friend_groups").select("id, default_visibility"),
-    supabase.from("friend_group_members").select("group_id, connection_id"),
-    supabase
-      .from("visibility_overrides")
-      .select("connection_id, level")
-      .eq("owner_id", session.userId),
-  ]);
+  const [defaultResult, groupsResult, membersResult, overridesResult] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("default_friend_visibility")
+        .eq("id", session.userId)
+        .single(),
+      supabase.from("friend_groups").select("id, default_visibility"),
+      supabase.from("friend_group_members").select("group_id, connection_id"),
+      supabase
+        .from("visibility_overrides")
+        .select("connection_id, level")
+        .eq("owner_id", session.userId),
+    ]);
 
+  if (defaultResult.error) {
+    readFailed("what your friends see by default", defaultResult.error);
+  }
   if (groupsResult.error) {
     readFailed("your friend groups", groupsResult.error);
   }
@@ -124,6 +140,15 @@ export async function getFriendVisibilityList(
     readFailed("your per-friend visibility settings", overridesResult.error);
   }
 
+  const defaultLevel = defaultResult.data?.default_friend_visibility;
+  // `not null` with a `calendar` default in the schema, so this only trips if
+  // the row went missing between the two reads. Failing loudly beats picking a
+  // floor for the User: guessing high leaks, guessing low silently hides
+  // friends the database is still showing.
+  if (!isVisibilityLevel(defaultLevel)) {
+    readFailed("what your friends see by default", defaultLevel);
+  }
+
   const groupRows = groupsResult.data ?? [];
   const memberRows = membersResult.data ?? [];
   const overrideRows = (overridesResult.data ?? []).map((row) => ({
@@ -132,6 +157,7 @@ export async function getFriendVisibilityList(
   }));
 
   const resolved = resolveVisibilityByConnection({
+    defaultLevel,
     connectionIds: friends.map((person) => person.connectionId),
     groups: groupRows.map((group) => ({
       id: group.id,
@@ -150,7 +176,7 @@ export async function getFriendVisibilityList(
 
   return friends.map((person) => ({
     person,
-    resolved: resolved.get(person.connectionId) ?? "none",
+    resolved: resolved.get(person.connectionId) ?? defaultLevel,
     override: overrideByConnection.get(person.connectionId) ?? null,
   }));
 }

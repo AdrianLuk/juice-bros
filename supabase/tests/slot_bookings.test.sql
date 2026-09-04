@@ -50,6 +50,13 @@ insert into public.connections (id, requester_id, addressee_id, status) values
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000041", "role": "authenticated"}';
 
+-- Amy's own default is pinned to `none` so every assertion below stays a
+-- statement about Friend Groups, the thing this file was written to prove.
+-- The `calendar` default that ships out of the box (ADR 0021) is covered in
+-- slots.test.sql, on the same function.
+update public.profiles set default_friend_visibility = 'none'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000041';
+
 insert into public.friend_groups (id, owner_id, name, default_visibility)
 values ('66666666-0000-0000-0000-000000000041', 'aaaaaaaa-0000-0000-0000-000000000041', 'Attach crew', 'slots');
 

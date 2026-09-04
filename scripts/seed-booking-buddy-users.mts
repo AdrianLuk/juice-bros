@@ -189,15 +189,12 @@ type ConnectionRow = {
  * as themselves — the same "made as the Users themselves" reasoning `connect`
  * already follows, since this table is `authenticated`-only too.
  *
- * Accepting a Connection auto-grants `calendar` on both sides now (issue #76,
- * `connections_seed_visibility_on_accept`) — real behavior for an actual new
- * friendship, and covered where it belongs, in pgTAP (`connections.test.sql`).
- * But the two friendships this script seeds predate that trigger by design:
- * several browser specs (issue #83) were written expecting these specific
- * pairs to sit at the visibility lattice's bottom — no group, no override —
- * so a friend explicitly granted nothing stays exactly that. Clearing this
- * every run, not just the run that first accepts, keeps a re-run idempotent
- * regardless of which state a prior interrupted run left behind.
+ * Accepting no longer stamps one (ADR 0021 retired the #76 trigger in favour
+ * of `profiles.default_friend_visibility`), so this is no longer cleanup after
+ * the accept — it is the fixture's own invariant: the seeded pairs carry no
+ * per-friend override, whatever a previous e2e run set through the picker.
+ * Clearing this every run, not just the run that first accepts, keeps a re-run
+ * idempotent regardless of which state a prior interrupted run left behind.
  */
 async function clearVisibilityOverrides(
   requesterToken: string,
