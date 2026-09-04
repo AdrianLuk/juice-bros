@@ -31,9 +31,10 @@ comment on column public.profiles.default_friend_visibility is
  * The default sits inside the existing `coalesce`, after the group `exists`,
  * so an override of `none` still shuts the friend out: that subquery returns a
  * non-null `false` and the `coalesce` short-circuits before either the group
- * or the default branch is reached. `coalesce` again around the default itself
- * because a Connection can outlive a deleted profile row, and a null there
- * would poison the `or`.
+ * or the default branch is reached. Written as an `exists` in the same shape
+ * as the group branch beside it — the two are the same kind of question, and
+ * `exists` never returns the null a profile row deleted out from under a
+ * Connection would otherwise feed into the `or`.
  */
 create or replace function public.has_slot_visibility(owner_user uuid, viewer_user uuid)
 returns boolean
@@ -69,18 +70,16 @@ as $$
           or (c.requester_id = viewer_user and c.addressee_id = owner_user)
         )
     )
-    or coalesce(
-      (
-        select p.default_friend_visibility in ('slots', 'calendar')
-        from public.connections c
-        join public.profiles p on p.id = owner_user
-        where c.status = 'accepted'
-          and (
-            (c.requester_id = owner_user and c.addressee_id = viewer_user)
-            or (c.requester_id = viewer_user and c.addressee_id = owner_user)
-          )
-      ),
-      false
+    or exists (
+      select 1
+      from public.connections c, public.profiles p
+      where p.id = owner_user
+        and p.default_friend_visibility in ('slots', 'calendar')
+        and c.status = 'accepted'
+        and (
+          (c.requester_id = owner_user and c.addressee_id = viewer_user)
+          or (c.requester_id = viewer_user and c.addressee_id = owner_user)
+        )
     )
   );
 $$;
@@ -123,18 +122,16 @@ as $$
           or (c.requester_id = viewer_user and c.addressee_id = owner_user)
         )
     )
-    or coalesce(
-      (
-        select p.default_friend_visibility in ('open_time', 'calendar')
-        from public.connections c
-        join public.profiles p on p.id = owner_user
-        where c.status = 'accepted'
-          and (
-            (c.requester_id = owner_user and c.addressee_id = viewer_user)
-            or (c.requester_id = viewer_user and c.addressee_id = owner_user)
-          )
-      ),
-      false
+    or exists (
+      select 1
+      from public.connections c, public.profiles p
+      where p.id = owner_user
+        and p.default_friend_visibility in ('open_time', 'calendar')
+        and c.status = 'accepted'
+        and (
+          (c.requester_id = owner_user and c.addressee_id = viewer_user)
+          or (c.requester_id = viewer_user and c.addressee_id = owner_user)
+        )
     )
   );
 $$;

@@ -146,7 +146,10 @@ export async function getFriendVisibilityList(
   // floor for the User: guessing high leaks, guessing low silently hides
   // friends the database is still showing.
   if (!isVisibilityLevel(defaultLevel)) {
-    readFailed("what your friends see by default", defaultLevel);
+    readFailed(
+      "what your friends see by default",
+      new Error(`profiles.default_friend_visibility was ${String(defaultLevel)}`),
+    );
   }
 
   const groupRows = groupsResult.data ?? [];
