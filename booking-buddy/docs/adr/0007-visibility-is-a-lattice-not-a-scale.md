@@ -11,3 +11,10 @@
 - `resolveVisibility` (`src/lib/booking-buddy/visibility.ts`) no longer does `Math.max`-by-array-index; it reduces each Group's level to its two grants, ORs them, and maps the result back to a level. An explicit per-friend override still wins outright and skips this reduction entirely — that part of ADR 0003's precedence chain is unchanged.
 - The SQL mirror of "at least calendar" (`has_calendar_visibility`, gating `availability_windows`'s read policy) was checking `= 'calendar'` because `calendar` used to be the unique top rung. It's renamed to `has_open_time_visibility` and now checks "grants open_time" (`in ('open_time', 'calendar')`) — the lattice equivalent of the same question. `has_slot_visibility` was already written as "at least slots" (`in ('slots', 'calendar')`) rather than an equality check, since `slots` was never the top of the old order either, so it needed no change.
 - The visibility picker gains a fourth option; existing `none`/`slots`/`calendar` choices, their labels, and every row that was already set to one of them are unaffected — this only adds a value nothing could reach before, not a migration of existing data.
+
+## Amended by [ADR 0021](0021-visibility-default-is-calendar.md)
+
+The lattice is unchanged, but its floor is no longer fixed at `none`. A friend in no
+Friend Group and with no override now sees whatever the owner's per-User
+`default_friend_visibility` grants — `calendar` by default. "`none` is the bottom" still
+describes the lattice; it is no longer the default a Connection lands on.
