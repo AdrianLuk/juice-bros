@@ -151,30 +151,31 @@ test("a Booking renders on the calendar and in the sidebar, and its popover can 
 
   await page.goto("/booking-buddy");
 
-  // Week view (default) — the block exists in the grid. Scoped with `.first()`:
-  // the "Coming up" sidebar (upcoming-bookings.tsx) is server-rendered
-  // alongside every view, not just Month, and its own row's accessible name
-  // also contains "Court 94" — the calendar grid renders before that sidebar
-  // in the DOM, so `.first()` is always the grid's own block, never the
-  // sidebar's row.
-  const gridChip = page.getByRole("button", { name: /Court 94/ }).first();
+  // Week view (default) — the block exists in the grid. Scoped to the grid's
+  // own `role="group"` region: the "Coming up" sidebar (upcoming-bookings.tsx)
+  // is server-rendered alongside every view and post-#355 renders *before* the
+  // calendar in the DOM. The week chip names itself by facility + time (no room
+  // for the court line at that size), so it's found by the facility name.
+  const gridChip = page
+    .getByRole("group", { name: "Week calendar" })
+    .getByRole("button", { name: place, exact: false });
   await expect(gridChip).toBeVisible();
   // The sidebar lists it too, soonest-first alongside date/time/duration.
   await expect(page.getByText(bookingDate.label)).toBeVisible();
 
   // Month view — same Booking, as an inline row rather than a positioned block.
+  // The month chip has room for the court line, so it names "Court 94".
   await page.getByRole("button", { name: "Month", exact: true }).click();
-  const monthChip = page.getByRole("button", { name: /Court 94/ }).first();
+  const monthChip = page
+    .getByRole("group", { name: "Month calendar" })
+    .getByRole("button", { name: /Court 94/ });
   await expect(monthChip).toBeVisible();
 
   // Clicking it opens the detail popover — full details, not navigating away.
-  // Scoped to the popover's own <dl>: "Court 94" also labels the chip
-  // trigger itself, which stays on screen (and matches /Court 94/)
-  // once the popover opens, so an unscoped locator would be ambiguous.
   await monthChip.click();
   const popoverDetails = page.locator("dl");
-  await expect(popoverDetails.getByText("Court")).toBeVisible();
-  await expect(popoverDetails.getByText("94")).toBeVisible();
+  await expect(popoverDetails.getByText("Court", { exact: true })).toBeVisible();
+  await expect(popoverDetails.getByText("94", { exact: true })).toBeVisible();
   await expect(popoverDetails.getByText("Doubles")).toBeVisible();
   await expect(page).toHaveURL(/\/booking-buddy$/);
 
@@ -222,11 +223,11 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
 
   await page.goto("/booking-buddy");
 
-  await page.getByRole("button", { name: "Add booking" }).click();
+  await page.getByRole("button", { name: "Log a court" }).click();
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("95");
+  await page.getByRole("dialog").getByLabel("Court").fill("95");
   await pickDate(page, bookingDate.iso);
   await page.getByLabel("Start", { exact: true }).selectOption("16:00");
   // End is computed from Start + Duration (issue #57), not its own field.
@@ -252,11 +253,11 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
 
   await page.goto("/booking-buddy");
 
-  await page.getByRole("button", { name: "Add booking" }).click();
+  await page.getByRole("button", { name: "Log a court" }).click();
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("96");
+  await page.getByRole("dialog").getByLabel("Court").fill("96");
   await pickDate(page, bookingDate.iso);
   await page.getByLabel("Start", { exact: true }).selectOption("22:00");
   await selectDuration(page, "22:00", "01:00");
@@ -298,7 +299,7 @@ test("a Week-view empty-cell + opens the booking dialog prefilled with that day 
   await expect(page.getByLabel("Start", { exact: true })).toHaveValue("18:00");
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("98");
+  await page.getByRole("dialog").getByLabel("Court").fill("98");
   await page.getByRole("radio", { name: "1 hour" }).click();
   await page.getByRole("button", { name: "Log booking" }).click();
 
@@ -363,7 +364,7 @@ test("a Month-view day-cell + opens the booking dialog prefilled with that date,
   await expect(page.getByLabel("Start", { exact: true })).toHaveValue("18:00");
 
   await page.getByLabel("Facility").selectOption({ label: place });
-  await page.getByLabel("Court").fill("97");
+  await page.getByRole("dialog").getByLabel("Court").fill("97");
   await page.getByRole("radio", { name: "1 hour" }).click();
   await page.getByRole("button", { name: "Log booking" }).click();
 
