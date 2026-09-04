@@ -15,6 +15,8 @@
     "typographyMeta": {
       "display": { "displayName": "Plate", "purpose": "Engraved-plate voice: team name plates on rally keys, headline status words, screen titles, primary-key labels. Saira Condensed 700 uppercase." },
       "label": { "displayName": "Legend", "purpose": "Silkscreen control legend: sits beside every control like equipment silkscreen. Floored at 0.6875rem, uppercase, letter-spacing 0.16em. --onframe modifier for text on the dark chassis." },
+      "verb": { "displayName": "Verb", "purpose": "The action word on a rally key (POINT / SIDE OUT / 2ND SERVE). Saira Condensed 700, 0.9375rem, one step above Legend so the verb reads before the name it sits under." },
+      "annotation": { "displayName": "Annotation", "purpose": "Sub-legend caption sitting directly under a primary legend and never read first: wins rally, court even/odd tags, First server, the chassis format plate. Saira Condensed 600, 0.5625rem." },
       "body": { "displayName": "Body", "purpose": "Geist. FAQ answers, sheet explanatory copy, setup hints only." },
       "data": { "displayName": "Data", "purpose": "Geist Mono, tabular-nums. Games-won counts, format spec line, match-log timestamps." }
     },

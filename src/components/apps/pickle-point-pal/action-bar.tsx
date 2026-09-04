@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  ListOrdered,
-  MoreHorizontal,
-  Plus,
-  Redo2,
-  TriangleAlert,
-  Undo2,
-  Wrench,
-} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { canCallTimeout, teamName, timeoutsRemaining } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { TEAM_IDS, type MatchState, type TeamId, type TimeoutKind } from "@/components/apps/pickle-point-pal/lib/scoring/types";
+
+import {
+  EquipmentIcon,
+  LogIcon,
+  MedicalIcon,
+  MoreIcon,
+  RedoIcon,
+  TechnicalIcon,
+  TimerIcon,
+  UndoIcon,
+} from "./pp-icons";
 
 /**
  * The recessed control shelf: a timeout control per team with its allowance
@@ -70,14 +72,14 @@ export function ActionBar({
       </div>
 
       <div className="mt-3 grid grid-cols-4 gap-2">
-        <SmallButton icon={<Undo2 />} label="Undo" disabled={!canUndo} onClick={onUndo} />
-        <SmallButton icon={<Redo2 />} label="Redo" disabled={!canRedo} onClick={onRedo} />
+        <SmallButton icon={<UndoIcon />} label="Undo" disabled={!canUndo} onClick={onUndo} />
+        <SmallButton icon={<RedoIcon />} label="Redo" disabled={!canRedo} onClick={onRedo} />
         <SmallButton
-          icon={<TriangleAlert />}
+          icon={<TechnicalIcon />}
           label="Technical"
           onClick={() => setTechOpen(true)}
         />
-        <SmallButton icon={<ListOrdered />} label="Log" onClick={onOpenLog} />
+        <SmallButton icon={<LogIcon />} label="Log" onClick={onOpenLog} />
       </div>
 
       {kindMenuFor && (
@@ -87,6 +89,7 @@ export function ActionBar({
         >
           <SheetOption
             mark="timeout"
+            markIcon={<TimerIcon />}
             label="Standard timeout"
             hint={`${timeoutsRemaining(state, kindMenuFor)} of ${state.config.timeoutsPerGame} left · ${state.config.timeoutSeconds}s`}
             disabled={!canCallTimeout(state, kindMenuFor, "standard")}
@@ -97,7 +100,7 @@ export function ActionBar({
           />
           <SheetOption
             mark="alert"
-            markIcon={<Plus />}
+            markIcon={<MedicalIcon />}
             label="Medical timeout"
             hint={`Does not use the allowance · ${Math.round(state.config.medicalTimeoutSeconds / 60)} min`}
             onClick={() => {
@@ -107,7 +110,7 @@ export function ActionBar({
           />
           <SheetOption
             mark="structural"
-            markIcon={<Wrench />}
+            markIcon={<EquipmentIcon />}
             label="Equipment timeout"
             hint={`Does not use the allowance · ${Math.round(state.config.equipmentTimeoutSeconds / 60)} min`}
             onClick={() => {
@@ -124,7 +127,7 @@ export function ActionBar({
             <SheetOption
               key={`warn-${team}`}
               mark="caution"
-              markIcon={<TriangleAlert />}
+              markIcon={<TechnicalIcon />}
               label={`Warning — ${teamName(state.config, team)}`}
               hint="No point awarded"
               onClick={() => {
@@ -211,7 +214,7 @@ function TimeoutControl({
         className="flex size-14 shrink-0 items-center justify-center rounded-md border-l border-pp-hairline text-pp-ink-dim"
         style={{ touchAction: "manipulation" }}
       >
-        <MoreHorizontal className="size-5" />
+        <MoreIcon className="size-5" />
       </button>
     </div>
   );
@@ -233,10 +236,10 @@ function SmallButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="pp-key pp-key--quiet min-h-11! min-w-11 gap-1 px-2 py-2 text-[0.65rem] [&_svg]:size-4"
+      className="pp-key pp-key--quiet min-h-11! min-w-11 gap-1 px-1.5 py-2 [&_svg]:size-4"
     >
       {icon}
-      <span className="pp-legend text-[0.625rem]">{label}</span>
+      <span className="pp-legend">{label}</span>
     </button>
   );
 }

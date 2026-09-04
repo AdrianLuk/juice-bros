@@ -75,7 +75,7 @@ export function MatchLog({
           </span>
           <span className="text-right tabular-nums text-pp-ink">{entry.scoreCall}</span>
           {entry.detail && (
-            <span className="col-span-4 col-start-2 -mt-1 text-[0.65rem] text-pp-ink-dim">
+            <span className="col-span-4 col-start-2 -mt-1 text-[0.5625rem] text-pp-ink-dim">
               {entry.detail}
             </span>
           )}

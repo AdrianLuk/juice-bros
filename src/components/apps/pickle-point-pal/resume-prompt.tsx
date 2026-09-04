@@ -35,7 +35,7 @@ export function ResumePrompt({
             <span className="pp-plate truncate text-sm text-pp-ink">
               {teamName(saved.config, team)}
             </span>
-            <span className="text-[2rem] leading-none">
+            <span className="text-4xl leading-none">
               <SegNumber value={state.current.scores[team]} reserve={2} />
             </span>
           </div>

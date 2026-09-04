@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight } from "lucide-react";
 
 import { useMatch } from "@/components/apps/pickle-point-pal/hooks/use-match";
 import { useRefFlipped } from "@/components/apps/pickle-point-pal/hooks/use-ref-flipped";
@@ -12,6 +11,7 @@ import { TEAM_IDS, type MatchConfig, type MatchEvent } from "@/components/apps/p
 
 import { ActionBar, Sheet } from "./action-bar";
 import { CoinFlip } from "./coin-flip";
+import { SwapIcon } from "./pp-icons";
 import { CourtDiagram } from "./court-diagram";
 import { GameOverSheet } from "./game-over-sheet";
 import { MatchSummary } from "./match-summary";
@@ -122,7 +122,7 @@ export function MatchScreen({
                 className="pp-well px-4 py-3 text-left ref-landscape:px-3 ref-landscape:py-2"
               >
                 <span className="pp-mark pp-mark--structural mb-1.5">
-                  <ArrowLeftRight className="size-3.5" />
+                  <SwapIcon className="size-3.5" />
                   Switch ends
                 </span>
                 <span className="block text-sm font-semibold text-pp-ink">
@@ -137,15 +137,14 @@ export function MatchScreen({
             <CourtDiagram state={state} leftTeam={left} />
           </div>
 
-          {/* An engraved maker's plate filling the thumb gap on a phone, so the
-              chassis reads as an instrument face rather than an empty band. */}
-          <p
-            aria-hidden
-            className="hidden select-none items-center justify-center gap-2 pp-legend text-[0.5625rem] text-pp-legend opacity-45 max-sm:flex"
-          >
-            Pickle Point Pal
-            <span className="inline-block h-px w-6 bg-pp-legend/40" />
-            Referee scoring
+          {/* An engraved format plate on the chassis, filling the thumb gap on
+              a phone with the match rules a ref would otherwise ask for. */}
+          <p className="hidden select-none items-center justify-center gap-2 pp-legend text-pp-legend opacity-60 max-sm:flex">
+            {config.doubles ? "Doubles" : "Singles"}
+            <span aria-hidden>&middot;</span>
+            {config.scoring === "sideout" ? "Side-out" : "Rally"}
+            <span aria-hidden>&middot;</span>
+            {config.bestOf > 1 ? `Best of ${config.bestOf}` : "Single game"}
           </p>
 
           <RallyButtons
@@ -186,7 +185,7 @@ export function MatchScreen({
           aria-label={`Swap sides — ${teamName(config, left)} is currently on your left`}
           className="pp-key pp-key--quiet min-h-11! flex-row gap-1.5 px-3 text-xs"
         >
-          <ArrowLeftRight className="size-3.5" />
+          <SwapIcon className="size-3.5" />
           <span className="pp-legend">Swap sides</span>
         </button>
 

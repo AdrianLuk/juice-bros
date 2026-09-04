@@ -39,6 +39,22 @@ typography:
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "0.16em"
+  # The action word on a rally key (POINT / SIDE OUT / 2ND SERVE) - one step
+  # above `label`, so the verb reads before the name it sits under.
+  verb:
+    fontFamily: "Saira Condensed, Arial Narrow, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 700
+    lineHeight: 1
+    letterSpacing: "0.06em"
+  # Sub-legend captions that sit directly under a primary legend and are never
+  # the thing read first ("wins rally", court even/odd tags, "First server").
+  annotation:
+    fontFamily: "Saira Condensed, Arial Narrow, sans-serif"
+    fontSize: "0.5625rem"
+    fontWeight: 600
+    lineHeight: 1.1
+    letterSpacing: "0.14em"
   data:
     fontFamily: "Geist Mono, ui-monospace, monospace"
     fontSize: "0.875rem"

@@ -176,7 +176,7 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
 
               {options.doubles && (
                 <div className="mt-4">
-                  <p className="pp-legend text-[0.625rem]">First server</p>
+                  <p className="pp-legend">First server</p>
                   <RadioRow
                     ariaLabel={`Team ${team} first server`}
                     count={2}

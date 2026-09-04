@@ -66,7 +66,7 @@ export function RallyButtons({
               {teamNameLines(state.config, team).map((name) => (
                 <span
                   key={name}
-                  className="pp-plate wrap-break-word text-[1.15rem] text-pp-ink"
+                  className="pp-plate wrap-break-word text-lg text-pp-ink"
                 >
                   {name}
                 </span>

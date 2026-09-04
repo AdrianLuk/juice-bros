@@ -57,7 +57,7 @@ export function ScoreCall({
               ))}
             </span>
           )}
-          <span className="pp-legend pp-legend--onframe text-[0.625rem]">{formatSpec}</span>
+          <span className="pp-legend pp-legend--onframe">{formatSpec}</span>
         </span>
       </div>
 
