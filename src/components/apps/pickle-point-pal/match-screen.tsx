@@ -38,14 +38,11 @@ export function MatchScreen({
   // The reducer flags the switch once per game and never un-flags it, so the
   // prompt needs its own sense of "still relevant." It's pinned to the point
   // total at the moment the switch fired; once another rally is scored the
-  // players have had their dead-ball window to move, so it clears on its own
-  // instead of sitting onscreen — otherwise it'd still read "switch ends"
-  // well past the score it fired at (e.g. 8) all the way to a deep deuce.
+  // players have had their dead-ball window to move, so it clears on its own.
   // A tap still clears it immediately for a ref who wants it gone sooner —
   // which is why dismissal is a flag on the capture rather than clearing it
   // back to null. `switched` stays true for the rest of the game, so a null
-  // here would be re-armed by the guard below on the very next render and the
-  // tap would appear to do nothing.
+  // here would be re-armed by the guard below on the very next render.
   const [switchTrigger, setSwitchTrigger] = useState<{
     game: number;
     total: number;
@@ -55,9 +52,6 @@ export function MatchScreen({
   useWakeLock(!state.matchComplete);
 
   const hasPrematch = match.events.some((e) => e.type === "PREMATCH");
-  // Coin toss and the summary are their own early returns below, swapped in
-  // without remounting `MatchScreen` — the parent's phase-level scroll reset
-  // never sees that switch, so it's covered here instead.
   useScrollToTopOnChange(
     !hasPrematch ? "coinflip" : state.matchComplete ? "summary" : "active"
   );
@@ -84,10 +78,10 @@ export function MatchScreen({
   // Recomputed every render, so the landscape layout follows the teams round
   // the net the moment a game is confirmed or the mid-game switch fires.
   const left = leftTeam(state, refFlipped);
+  const servingOnLeft = state.current.serving === left;
 
   // Derived during render rather than an effect: adjust `switchTrigger` the
-  // instant it's out of sync with the current game/switch status, so the
-  // prompt is captured (or cleared) in the same render that changed it.
+  // instant it's out of sync with the current game/switch status.
   if (switched && switchTrigger?.game !== gameNumber) {
     setSwitchTrigger({ game: gameNumber, total: totalPoints, dismissed: false });
   } else if (!switched && switchTrigger !== null && switchTrigger.game === gameNumber) {
@@ -102,53 +96,22 @@ export function MatchScreen({
 
   return (
     // `max-w-xl` is dropped in the ref layout: a ref standing at the net wants
-    // the two point buttons pinned to the far left and right edges of the
-    // device, which only works if the screen is used edge to edge.
+    // the two point keys pinned to the far left and right edges of the device.
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 ref-landscape:max-w-none">
-      {/* The fold. Sized so its bottom edge lands on the bottom of the viewport
-          (100dvh less the 4rem header and the page's 0.75rem top padding),
-          which puts the action bar — everything a ref only reaches for between
-          rallies — one deliberate scroll below it. */}
-      <div className="flex flex-col gap-4 ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-4">
-        <header className="flex items-center justify-between gap-3 py-1 text-xs text-neutral-500">
-          <span className="font-mono tracking-widest uppercase">
-            {config.bestOf > 1 ? (
-              `Game ${gameNumber} of ${config.bestOf}`
-            ) : (
-              <span className="font-mono tabular-nums normal-case">
-                Game to {config.pointsToWin}
-                {config.winBy > 1 ? `, win by ${config.winBy}` : ""}
-              </span>
-            )}
-          </span>
-          {config.bestOf > 1 && (
-            <span className="flex items-center gap-3">
-              <span className="font-mono tabular-nums">
-                {TEAM_IDS.map((t, i) => (
-                  <span key={t}>
-                    {i > 0 && " - "}
-                    {i === 0 && `${teamName(config, t)} `}
-                    <span className="font-semibold text-neutral-950">
-                      {state.gamesWon[t]}
-                    </span>
-                    {i > 0 && ` ${teamName(config, t)}`}
-                  </span>
-                ))}
-              </span>
-              <span className="font-mono tabular-nums text-neutral-400">
-                Game to {config.pointsToWin}
-                {config.winBy > 1 ? `, win by ${config.winBy}` : ""}
-              </span>
-            </span>
-          )}
-        </header>
-
-        {/* Portrait stacks; the ref layout becomes left team · court · right
-            team. The centre column is the widest so the score call and court
-            stay the thing you read, with the buttons as thumb rails. */}
-        <div className="flex min-h-0 flex-1 flex-col gap-4 ref-landscape:grid ref-landscape:grid-cols-[minmax(6rem,1fr)_minmax(0,2.5fr)_minmax(6rem,1fr)] ref-landscape:gap-2">
-          <div className="flex min-h-0 flex-col gap-4 ref-landscape:col-start-2 ref-landscape:row-start-1 ref-landscape:justify-center ref-landscape:gap-2">
-            <ScoreCall state={state} />
+      {/* The fold — one machined panel: status strip, readout, court, and the
+          two rally keys cradled in a single anodized chassis. Sized so its
+          bottom edge lands near the bottom of the viewport in both layouts,
+          which puts the control shelf — everything a ref only reaches for
+          between rallies — one deliberate scroll below it. */}
+      <div className="pp-frame flex flex-col gap-3 p-2.5 max-sm:min-h-[calc(100svh-11rem)] ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-2">
+        {/* Portrait stacks; the ref layout becomes left team · panel · right
+            team. The centre column is the widest so the readout and court
+            stay the thing you read, with the keys as thumb rails. On a phone
+            the keys pin to the bottom of the chassis (thumb reach) and the
+            control shelf lands one deliberate scroll below the fold. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 max-sm:justify-between ref-landscape:grid ref-landscape:grid-cols-[minmax(6rem,1fr)_minmax(0,2.6fr)_minmax(6rem,1fr)] ref-landscape:gap-2">
+          <div className="flex min-h-0 flex-col gap-3 ref-landscape:col-start-2 ref-landscape:row-start-1 ref-landscape:justify-center ref-landscape:gap-2">
+            <ScoreCall state={state} servingOnLeft={servingOnLeft} />
 
             {showSwitchPrompt && (
               <button
@@ -156,22 +119,34 @@ export function MatchScreen({
                 onClick={() =>
                   setSwitchTrigger((t) => t && { ...t, dismissed: true })
                 }
-                className="rounded-xl border-2 border-brand-orange bg-brand-orange/10 px-4 py-3 text-left touch-manipulation ref-landscape:px-3 ref-landscape:py-2"
+                className="pp-well px-4 py-3 text-left ref-landscape:px-3 ref-landscape:py-2"
               >
-                <span className="block text-sm font-semibold text-neutral-950">
-                  Switch ends — {config.switchAtScore} reached
+                <span className="pp-mark pp-mark--structural mb-1.5">
+                  <ArrowLeftRight className="size-3.5" />
+                  Switch ends
                 </span>
-                <span className="mt-0.5 block text-xs text-neutral-600">
-                  Tap once the players have changed sides.
+                <span className="block text-sm font-semibold text-pp-ink">
+                  {config.switchAtScore} reached. Tap once players have changed sides.
                 </span>
-                <span className="mt-0.5 block text-xs text-neutral-600">
-                  The buttons and court have already swapped to match.
+                <span className="mt-0.5 block text-xs text-pp-ink-dim">
+                  The keys and court have already swapped to match.
                 </span>
               </button>
             )}
 
             <CourtDiagram state={state} leftTeam={left} />
           </div>
+
+          {/* An engraved maker's plate filling the thumb gap on a phone, so the
+              chassis reads as an instrument face rather than an empty band. */}
+          <p
+            aria-hidden
+            className="hidden select-none items-center justify-center gap-2 pp-legend text-[0.5625rem] text-pp-legend opacity-45 max-sm:flex"
+          >
+            Pickle Point Pal
+            <span className="inline-block h-px w-6 bg-pp-legend/40" />
+            Referee scoring
+          </p>
 
           <RallyButtons
             state={state}
@@ -196,38 +171,33 @@ export function MatchScreen({
       />
 
       {state.warnings.A + state.warnings.B > 0 && (
-        <p className="text-center text-xs text-neutral-500">
+        <p className="pp-legend text-center">
           Technical warnings ·{" "}
           {TEAM_IDS.map(
-            (t) => `${teamName(config, t)}: ${state.warnings[t]}`
+            (t) => `${teamName(config, t).split(" / ")[0]}: ${state.warnings[t]}`
           ).join(" · ")}
         </p>
       )}
 
       <div className="flex items-center gap-3 ref-landscape:justify-center">
-        {/* The court diagram and rally buttons are drawn left/right in every
-            layout now, so this is meaningful everywhere too. The match
-            itself tracks the teams changing ends; this covers the other
-            half — a ref who is standing on the other side of the net, or
-            has moved there, and sees the mirror image. */}
         <button
           type="button"
           onClick={toggleRefFlipped}
           aria-label={`Swap sides — ${teamName(config, left)} is currently on your left`}
-          className="flex min-h-11 items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 touch-manipulation"
+          className="pp-key pp-key--quiet min-h-11! flex-row gap-1.5 px-3 text-xs"
         >
           <ArrowLeftRight className="size-3.5" />
-          Swap Sides
+          <span className="pp-legend">Swap sides</span>
         </button>
 
-        {/* Last in the flow so it isn't next to the rally buttons, but red so
-            a ref can still spot it fast when a match needs to end early. */}
+        {/* Last in the flow so it isn't next to the rally keys — outlined red,
+            spottable without shouting; the red fill is on the sheet's confirm. */}
         <button
           type="button"
           onClick={() => setEndMatchOpen(true)}
-          className="min-h-11 flex-1 rounded-lg bg-destructive px-3 text-xs font-medium text-white touch-manipulation hover:bg-destructive/80 ref-landscape:flex-none ref-landscape:w-auto"
+          className="pp-key pp-key--danger min-h-11! flex-1 flex-row px-3 text-xs ref-landscape:flex-none ref-landscape:px-6"
         >
-          End Match
+          <span className="pp-legend">End match</span>
         </button>
       </div>
 
@@ -243,11 +213,10 @@ export function MatchScreen({
 
       {endMatchOpen && (
         <Sheet title="End match?" onClose={() => setEndMatchOpen(false)}>
-          <p className="text-sm text-neutral-600">
-            This ends the match now, before it&apos;s reached a normal
-            finish. The score so far stays in the log and shows on the
-            summary screen — this can still be undone afterward if it was a
-            mistake.
+          <p className="text-sm text-pp-ink-dim">
+            This ends the match now, before it&apos;s reached a normal finish.
+            The score so far stays in the log and shows on the summary screen —
+            this can still be undone afterward if it was a mistake.
           </p>
           <button
             type="button"
@@ -255,9 +224,9 @@ export function MatchScreen({
               match.endMatch();
               setEndMatchOpen(false);
             }}
-            className="min-h-14 rounded-xl bg-destructive text-sm font-semibold text-white touch-manipulation active:translate-y-px"
+            className="pp-key pp-key--alert min-h-14"
           >
-            End match now
+            <span className="pp-plate text-base">End match now</span>
           </button>
         </Sheet>
       )}

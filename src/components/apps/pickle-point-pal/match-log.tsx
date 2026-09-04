@@ -10,19 +10,19 @@ import {
 import { elapsedLabel } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import type { MatchConfig, MatchEvent } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
-const TONE_DOT: Record<LogEntryTone, string> = {
-  setup: "bg-neutral-300",
-  point: "bg-neutral-400",
-  timeout: "bg-brand-orange",
-  technical: "bg-destructive",
-  game: "bg-neutral-950",
+const TONE_MARK: Record<LogEntryTone, string> = {
+  setup: "bg-pp-hairline",
+  point: "bg-pp-ink-dim",
+  timeout: "bg-pp-signal",
+  technical: "bg-pp-alert",
+  game: "bg-pp-ink",
 };
 
 /**
- * The audit list. This is what makes the app defensible in a dispute — a team
- * claiming they still have a timeout can be shown exactly when they used it and
- * at what score, and the rallies around it corroborate the score. Tournament
- * directors ask, so it also rides along on the match summary.
+ * The audit list — the referee's scoresheet. This is what makes the app
+ * defensible in a dispute: a team claiming they still have a timeout can be
+ * shown exactly when they used it and at what score, and the rallies around it
+ * corroborate. Tournament directors ask, so it also rides on the match summary.
  */
 export function MatchLog({
   config,
@@ -35,10 +35,8 @@ export function MatchLog({
   matchStartedAt: number;
   /**
    * Cap the list's own height and let it scroll internally. Off by default
-   * because inside a Sheet the panel body is already the scroll container —
-   * a second one nested inside it would fight the first. Turn it on where the
-   * log sits directly on a page (the match summary) and would otherwise run
-   * the page on past a few hundred rows.
+   * because inside a Sheet the panel body is already the scroll container.
+   * Turn it on where the log sits directly on a page (the match summary).
    */
   capHeight?: boolean;
 }) {
@@ -46,7 +44,7 @@ export function MatchLog({
 
   if (entries.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-neutral-300 px-3 py-6 text-center text-sm text-neutral-500">
+      <p className="pp-well px-3 py-6 text-center text-sm text-pp-ink-dim">
         Nothing logged yet.
       </p>
     );
@@ -55,32 +53,29 @@ export function MatchLog({
   return (
     <ul
       className={cn(
-        "divide-y divide-neutral-200 rounded-lg border border-neutral-200",
+        "pp-well divide-y divide-pp-hairline overflow-hidden",
         capHeight && "max-h-[60vh] overflow-y-auto overscroll-contain"
       )}
     >
       {entries.map((entry) => (
         <li
           key={entry.key}
-          className="grid grid-cols-[0.5rem_2.2rem_3rem_1fr_auto] items-baseline gap-2 px-3 py-2 font-mono text-xs text-neutral-700"
+          className="grid grid-cols-[0.5rem_2.2rem_3rem_1fr_auto] items-baseline gap-2 px-3 py-2 pp-data text-xs text-pp-ink-dim"
         >
           <span
-            className={cn(
-              "size-2 translate-y-px rounded-full",
-              TONE_DOT[entry.tone]
-            )}
+            className={cn("size-2 translate-y-px rounded-full", TONE_MARK[entry.tone])}
             aria-hidden
           />
-          <span className="font-semibold text-neutral-500">G{entry.gameNumber}</span>
-          <span className="text-neutral-500 tabular-nums">
+          <span className="font-semibold text-pp-ink-dim">G{entry.gameNumber}</span>
+          <span className="tabular-nums text-pp-ink-dim">
             {elapsedLabel(entry.at, matchStartedAt)}
           </span>
-          <span className="truncate font-sans font-medium text-neutral-950">
+          <span className="truncate font-sans font-medium text-pp-ink">
             {entry.label}
           </span>
-          <span className="text-right tabular-nums">{entry.scoreCall}</span>
+          <span className="text-right tabular-nums text-pp-ink">{entry.scoreCall}</span>
           {entry.detail && (
-            <span className="col-span-4 col-start-2 -mt-1 text-[0.65rem] text-neutral-400">
+            <span className="col-span-4 col-start-2 -mt-1 text-[0.65rem] text-pp-ink-dim">
               {entry.detail}
             </span>
           )}
