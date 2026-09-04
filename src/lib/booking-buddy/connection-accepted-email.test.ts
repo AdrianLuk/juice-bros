@@ -14,6 +14,15 @@ test("formatConnectionAcceptedEmail names the accepter in the subject and body",
   assert.match(html, /href="https:\/\/x\.test\/booking-buddy\/friends"/);
 });
 
+test("formatConnectionAcceptedEmail states that visibility is now open", () => {
+  const { html } = formatConnectionAcceptedEmail({
+    accepterLabel: "Ben (@ben)",
+    friendsUrl: "https://x.test/booking-buddy/friends",
+  });
+
+  assert.match(html, /You'll now see each other's games and availability/);
+});
+
 test("formatConnectionAcceptedEmail escapes HTML in the accepter label", () => {
   const { html } = formatConnectionAcceptedEmail({
     accepterLabel: '<img src=x onerror=alert(1)> "Ben"',

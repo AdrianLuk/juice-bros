@@ -11,6 +11,7 @@
  */
 
 import { escapeHtml } from "./escape-html.ts";
+import { CONNECTION_ACCEPTED_VISIBILITY_NOTICE } from "./connection-copy.ts";
 
 /**
  * Subject and HTML body for one connection-accepted email — pure string
@@ -38,7 +39,7 @@ export function formatConnectionAcceptedEmail(params: {
       <tr>
         <td style="padding:24px 28px 8px;">
           <p style="margin:0;color:#18181b;font-size:20px;font-weight:600;">${name} accepted your friend request</p>
-          <p style="margin:12px 0 0;color:#3f3f46;font-size:15px;line-height:1.5;">You're connected on Booking Buddy now. You can see each other's open time and invite each other to games.</p>
+          <p style="margin:12px 0 0;color:#3f3f46;font-size:15px;line-height:1.5;">You're connected on Booking Buddy now. ${CONNECTION_ACCEPTED_VISIBILITY_NOTICE}</p>
         </td>
       </tr>
       <tr>

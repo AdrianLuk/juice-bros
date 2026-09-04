@@ -8,6 +8,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { BOOKING_BUDDY_ROOT, FRIENDS_PATH } from "@/lib/booking-buddy/routes";
 import { getConnectionRequestByToken } from "@/lib/booking-buddy/connection-request-notify";
 import { respondToConnectionRequestAction } from "@/lib/booking-buddy/actions/connection-invites";
+import {
+  CONNECTION_VISIBILITY_NOTICE,
+  CONNECTION_ACCEPTED_VISIBILITY_NOTICE,
+} from "@/lib/booking-buddy/connection-copy";
 
 export async function generateMetadata({
   params,
@@ -31,8 +35,7 @@ export async function generateMetadata({
 const DONE_COPY: Record<string, { title: string; description: string }> = {
   accepted: {
     title: "You're connected",
-    description:
-      "You can now see each other's open time and invite each other to games.",
+    description: CONNECTION_ACCEPTED_VISIBILITY_NOTICE,
   },
   declined: {
     title: "Request declined",
@@ -144,7 +147,7 @@ export default async function ConnectPage({
   return (
     <Shell
       title={`${request.requesterLabel} wants to connect`}
-      description="On Booking Buddy, connecting is mutual. Once you accept, you can see each other's open time and invite each other to games."
+      description={`On Booking Buddy, connecting is mutual. ${CONNECTION_VISIBILITY_NOTICE}`}
     >
       <form action={respondToConnectionRequestAction} className="mt-8 flex flex-wrap gap-3">
         <input type="hidden" name="token" value={token} />

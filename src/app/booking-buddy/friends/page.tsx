@@ -12,6 +12,7 @@ import { DefaultVisibilityForm } from "@/components/booking-buddy/default-visibi
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
+import { CONNECTION_VISIBILITY_NOTICE } from "@/lib/booking-buddy/connection-copy";
 import { getFriendsPageData } from "@/lib/booking-buddy/actions/connections";
 import { getFriendVisibilityList } from "@/lib/booking-buddy/actions/friend-groups";
 import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
@@ -58,6 +59,7 @@ export default async function FriendsPage() {
             </section>
             <ConnectionList
               title="Requests for you"
+              description={CONNECTION_VISIBILITY_NOTICE}
               pin="need"
               pinLabel="Needs your answer"
               people={received}

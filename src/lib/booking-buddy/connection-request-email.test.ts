@@ -30,6 +30,19 @@ test("formatConnectionRequestEmail names the requester in the subject and body",
   assert.match(html, /href="https:\/\/x\.test\/connect\/tok\?a=decline"/);
 });
 
+test("formatConnectionRequestEmail states the visibility consequence of accepting", () => {
+  const { html } = formatConnectionRequestEmail({
+    requesterLabel: "Daven (@daven)",
+    acceptUrl: "https://x.test/connect/tok?a=accept",
+    declineUrl: "https://x.test/connect/tok?a=decline",
+  });
+
+  assert.match(
+    html,
+    /You'll both see each other's games and availability — change that any time/,
+  );
+});
+
 test("formatConnectionRequestEmail escapes HTML in the requester label", () => {
   const { html } = formatConnectionRequestEmail({
     requesterLabel: '<img src=x onerror=alert(1)> "Ben"',
