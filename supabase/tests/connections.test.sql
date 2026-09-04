@@ -67,24 +67,26 @@ select is(
   'a request can be accepted'
 );
 
--- Accepting seeds both sides straight to the most permissive Visibility —
--- new friends should see each other immediately, not default to nothing.
+-- Accepting writes nothing. It used to stamp a `calendar` override on both
+-- sides (#76); ADR 0021 replaced that with `profiles.default_friend_visibility`,
+-- so an override again means only what the glossary says it means — a
+-- deliberate per-friend exception somebody set by hand.
 select is(
-  (select level::text from public.visibility_overrides
-   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000001'
-     and connection_id = (select id from public.connections
-       where requester_id = 'aaaaaaaa-0000-0000-0000-000000000001')),
-  'calendar',
-  'accepting a request grants the requester calendar visibility into the addressee'
+  (select count(*)::int from public.visibility_overrides
+   where connection_id = (select id from public.connections
+     where requester_id = 'aaaaaaaa-0000-0000-0000-000000000001')),
+  0,
+  'accepting a request stamps no visibility_overrides row on either side'
 );
 
-select is(
-  (select level::text from public.visibility_overrides
-   where owner_id = 'bbbbbbbb-0000-0000-0000-000000000002'
-     and connection_id = (select id from public.connections
-       where requester_id = 'aaaaaaaa-0000-0000-0000-000000000001')),
-  'calendar',
-  'and the addressee gets the same, in the other direction'
+-- New friends still see each other immediately, now through the default
+-- rather than through a stamp — symmetric, on both slices of the lattice.
+select ok(
+  public.has_slot_visibility('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002')
+  and public.has_open_time_visibility('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002')
+  and public.has_slot_visibility('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001')
+  and public.has_open_time_visibility('bbbbbbbb-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  'accepting a request opens calendar Visibility both ways off the calendar default'
 );
 
 -- Row Level Security, as a real request arrives.

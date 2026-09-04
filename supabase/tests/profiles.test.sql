@@ -6,12 +6,29 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(10);
+select plan(13);
 
 -- Shape first: the app reads these columns, so their absence is a failure.
 select has_table('public', 'profiles', 'profiles table exists');
 select has_column('public', 'profiles', 'id', 'profiles.id exists');
 select has_column('public', 'profiles', 'display_name', 'profiles.display_name exists');
+
+-- The floor of the Visibility lattice, per-User (ADR 0021). The `not null`
+-- and the `calendar` default together are the whole feature: a new account
+-- and every backfilled one start out sharing games and availability with
+-- anyone they accept, and there is no null state for the resolver to guess at.
+select has_column(
+  'public', 'profiles', 'default_friend_visibility',
+  'profiles.default_friend_visibility exists'
+);
+select col_not_null(
+  'public', 'profiles', 'default_friend_visibility',
+  'profiles.default_friend_visibility is not null — the lattice always has a floor'
+);
+select col_default_is(
+  'public', 'profiles', 'default_friend_visibility', 'calendar',
+  'profiles.default_friend_visibility defaults to calendar (ADR 0021)'
+);
 
 -- Signing up creates the profile.
 insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data)
