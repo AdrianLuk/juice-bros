@@ -8,6 +8,7 @@ import { Reveal } from "@/components/motion/reveal";
 import { Hero } from "./sections/hero";
 import { FeaturedEpisode } from "./sections/featured-episode";
 import { LatestVideos } from "./sections/latest-videos";
+import { Tools } from "./sections/tools";
 import { NextAppearance } from "./sections/next-appearance";
 import { InstagramFeed } from "@/components/instagram-feed";
 // Hidden for now: <ListenEverywhere /> just repeated the hero's YouTube +
@@ -38,6 +39,9 @@ export default async function Home() {
           <LatestVideos videos={restEpisodes} />
         </Reveal>
       )}
+      <Reveal>
+        <Tools />
+      </Reveal>
       <Reveal variant="scale">
         <NextAppearance />
       </Reveal>
