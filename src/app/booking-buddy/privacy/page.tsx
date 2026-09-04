@@ -92,7 +92,9 @@ export default async function BookingBuddyPrivacyPage() {
               connected with. This data is visible only to you and to the
               friends you&apos;ve explicitly connected with or shared a Slot
               Link with &mdash; it is never public and never shared outside
-              Booking Buddy.
+              Booking Buddy. A friend you connect with sees your games and
+              availability by default; you can limit that for one friend or
+              for everyone from the Friends page.
             </p>
             <p>
               Your personal invite link carries a random token tied to your
