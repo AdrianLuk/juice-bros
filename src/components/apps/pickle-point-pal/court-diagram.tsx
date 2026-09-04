@@ -31,8 +31,12 @@ export function CourtDiagram({
   const mirrored = leftTeam !== "A";
 
   return (
-    <div className="pp-well relative min-h-0 overflow-hidden ref-landscape:flex-1">
-      {/* Court lines — drawn, not filled. */}
+    <div className="pp-well relative flex min-h-0 flex-col overflow-hidden ref-landscape:flex-1">
+      {/* Court lines — drawn, not filled. They're positioned against this well,
+          so the player grid below has to fill the well's whole height
+          (`flex-1`); otherwise, once `ref-landscape:flex-1` stretches the well
+          past the grid's intrinsic height, the centreline floats free of the
+          row divide and cuts through the bottom names. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <span className="absolute inset-x-3 top-1/2 border-t border-pp-hairline" />
         <span className="absolute inset-y-3 left-[calc(50%-1.9rem)] border-l border-pp-hairline" />
@@ -46,7 +50,12 @@ export function CourtDiagram({
         />
       </div>
 
-      <div className={cn("relative flex", mirrored ? "flex-row" : "flex-row-reverse")}>
+      <div
+        className={cn(
+          "relative flex min-h-0 flex-1",
+          mirrored ? "flex-row" : "flex-row-reverse"
+        )}
+      >
         <TeamHalf
           state={state}
           team="B"
