@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-03T00:00:00Z",
+  "title": "Design System: Pickle Point Pal",
+  "extensions": {
+    "colorMeta": {
+      "signal": { "role": "primary", "displayName": "Hi-Vis Signal Orange", "canonical": "#f26522", "tonalRamp": ["oklch(0.22 0.14 40)", "oklch(0.31 0.17 40)", "oklch(0.4 0.19 40)", "oklch(0.5 0.2 40)", "oklch(0.62 0.2 40)", "oklch(0.72 0.17 45)", "oklch(0.83 0.11 50)", "oklch(0.93 0.05 55)"] },
+      "frame": { "role": "secondary", "displayName": "Anodized Graphite", "canonical": "oklch(0.31 0.008 255)", "tonalRamp": ["oklch(0.15 0.008 255)", "oklch(0.22 0.008 255)", "oklch(0.31 0.008 255)", "oklch(0.4 0.009 255)", "oklch(0.52 0.009 255)", "oklch(0.66 0.007 255)", "oklch(0.8 0.006 255)", "oklch(0.93 0.004 255)"] },
+      "alert": { "role": "tertiary", "displayName": "Alert Red", "canonical": "oklch(0.52 0.2 25)", "tonalRamp": ["oklch(0.2 0.12 25)", "oklch(0.29 0.16 25)", "oklch(0.38 0.19 25)", "oklch(0.46 0.2 25)", "oklch(0.52 0.2 25)", "oklch(0.66 0.18 25)", "oklch(0.8 0.11 25)", "oklch(0.92 0.05 25)"] },
+      "caution": { "role": "tertiary", "displayName": "Caution Amber", "canonical": "oklch(0.66 0.15 70)", "tonalRamp": ["oklch(0.25 0.08 70)", "oklch(0.35 0.11 70)", "oklch(0.45 0.13 70)", "oklch(0.55 0.14 70)", "oklch(0.66 0.15 70)", "oklch(0.77 0.13 75)", "oklch(0.87 0.08 80)", "oklch(0.95 0.04 85)"] },
+      "ground": { "role": "neutral", "displayName": "Chassis Ground", "canonical": "oklch(0.935 0.005 92)", "tonalRamp": ["oklch(0.2 0.005 260)", "oklch(0.32 0.006 260)", "oklch(0.45 0.008 255)", "oklch(0.6 0.007 255)", "oklch(0.75 0.006 200)", "oklch(0.87 0.004 95)", "oklch(0.935 0.005 92)", "oklch(0.99 0.002 95)"] },
+      "panel": { "role": "neutral", "displayName": "Readout Panel White", "canonical": "oklch(0.99 0.002 95)", "tonalRamp": ["oklch(0.19 0.006 260)", "oklch(0.42 0.01 255)", "oklch(0.6 0.006 200)", "oklch(0.78 0.004 95)", "oklch(0.87 0.004 95)", "oklch(0.905 0.004 95)", "oklch(0.965 0.004 95)", "oklch(0.99 0.002 95)"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "oklch(0.19 0.006 260)", "tonalRamp": ["oklch(0.19 0.006 260)", "oklch(0.42 0.01 255)", "oklch(0.55 0.009 255)", "oklch(0.66 0.007 255)", "oklch(0.8 0.006 255)", "oklch(0.87 0.004 95)", "oklch(0.93 0.004 95)", "oklch(0.99 0.002 95)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Plate", "purpose": "Engraved-plate voice: team name plates on rally keys, headline status words, screen titles, primary-key labels. Saira Condensed 700 uppercase." },
+      "label": { "displayName": "Legend", "purpose": "Silkscreen control legend: sits beside every control like equipment silkscreen. Floored at 0.6875rem, uppercase, letter-spacing 0.16em. --onframe modifier for text on the dark chassis." },
+      "verb": { "displayName": "Verb", "purpose": "The action word on a rally key (POINT / SIDE OUT / 2ND SERVE). Saira Condensed 700, 0.9375rem, one step above Legend so the verb reads before the name it sits under." },
+      "annotation": { "displayName": "Annotation", "purpose": "Sub-legend caption sitting directly under a primary legend and never read first: wins rally, court even/odd tags, First server, the chassis format plate. Saira Condensed 600, 0.5625rem." },
+      "body": { "displayName": "Body", "purpose": "Geist. FAQ answers, sheet explanatory copy, setup hints only." },
+      "data": { "displayName": "Data", "purpose": "Geist Mono, tabular-nums. Games-won counts, format spec line, match-log timestamps." }
+    },
+    "readout": {
+      "note": "The score and timeout clock are not type. They are true seven-segment SVG geometry (SegDigit: 100x180 cell, ~12px stroke, 45deg bevels). Lit = var(--pp-ink), unlit ghost = var(--pp-ghost) always drawn. Sized by container font-size at height:1em. Live Score Call clamp(2.75rem,15vw,6rem); ref-landscape clamp(2.25rem,13vh,4.5rem)."
+    },
+    "shadows": [
+      { "name": "frame-contact", "value": "0 1px 2px oklch(0.2 0.01 260 / 0.16), 0 14px 28px -18px oklch(0.2 0.02 260 / 0.34)", "purpose": "Seats the graphite chassis (.pp-frame) on the ground. The only real cast shadow in the system." },
+      { "name": "panel-inset", "value": "inset 0 1px 3px oklch(0.2 0.01 260 / 0.07), inset 0 -1px 0 oklch(1 0 0 / 0.9)", "purpose": "Recesses the bright readout panel (.pp-panel) into its frame — seated, never lifted." },
+      { "name": "key-rest", "value": "inset 0 1px 0 oklch(1 0 0 / 0.9), 0 2px 0 var(--pp-panel-edge), 0 5px 12px -8px oklch(0.2 0.02 260 / 0.4)", "purpose": "The milled-key profile: top highlight, hard bottom edge reading as key height, soft cast." },
+      { "name": "key-pressed", "value": "inset 0 1px 0 oklch(1 0 0 / 0.7), 0 0 0 var(--pp-panel-edge), 0 3px 8px -6px oklch(0.2 0.02 260 / 0.4)", "purpose": "Key on :active — bottom edge collapsed, paired with translateY(2px). Literal key travel." },
+      { "name": "key-armed", "value": "inset 0 4px 0 var(--pp-signal), inset 0 5px 0 oklch(1 0 0 / 0.4), 0 2px 0 var(--pp-panel-edge), 0 5px 12px -8px oklch(0.66 0.2 40 / 0.32)", "purpose": "The serving team's rally key: orange serve bar screen-printed across the top edge, continuous with the panel serve bar." },
+      { "name": "serve-bar-edge", "value": "0 0 0 1px oklch(0.5 0.16 40 / 0.25)", "purpose": "Edge ring on the hi-vis serve bar." }
+    ],
+    "motion": [
+      { "name": "key-press", "value": "transform 90ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Key travel on tap." },
+      { "name": "seg-swap", "value": "fill 70ms linear (per polygon), transitionDelay 12ms x segment index", "purpose": "The signature interaction: a score change ignites/extinguishes segment by segment with a hair of stagger — a scoreboard slamming 98 to 100. Never a slide or count-up." },
+      { "name": "panel-settle", "value": "pp-settle 320ms cubic-bezier(0.22, 1, 0.36, 1) both (opacity 0 + translateY(-6px) to rest)", "purpose": "The one authored entrance: a screen's readout panel settling into its frame. Everything else is state, not entrance." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: instant per-segment swap with no stagger; no panel-settle", "purpose": "Accessibility fallback." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "ref-landscape", "value": "custom Tailwind variant — landscape orientation, courtside 'standing at the net' layout: rally keys pinned to device edges, readout + court centered, explanatory prose hidden" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Rally Key (armed)",
+      "kind": "button",
+      "refersTo": "key",
+      "description": "The serving team's primary per-rally target: player name plate, 'wins rally' legend, outcome word, orange serve bar across the top edge.",
+      "html": "<button class=\"ds-key ds-key-armed\"><span class=\"ds-plate\">RIVERA<br>CHEN</span><span class=\"ds-key-sub\"><span class=\"ds-legend\">wins rally</span><span class=\"ds-plate ds-key-outcome\">POINT</span></span></button>",
+      "css": ".ds-key{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.375rem;min-height:96px;width:220px;padding:.75rem 1rem;border:1px solid var(--pp-panel-edge,#e6e4e1);border-radius:10px;background:linear-gradient(180deg,#fff,#f4f3f1);color:var(--pp-ink,#1c1d22);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 0 #e6e4e1,0 5px 12px -8px rgba(20,22,40,.4);transition:transform 90ms cubic-bezier(.32,.72,0,1),box-shadow 120ms ease;cursor:pointer}.ds-key-armed{border-color:#f0a882;box-shadow:inset 0 4px 0 #f26522,inset 0 5px 0 rgba(255,255,255,.4),0 2px 0 #e6e4e1,0 5px 12px -8px rgba(242,101,34,.32)}.ds-key:active{transform:translateY(2px);box-shadow:inset 0 4px 0 #f26522,0 0 0 #e6e4e1,0 3px 8px -6px rgba(242,101,34,.32)}.ds-plate{font-family:'Saira Condensed','Arial Narrow',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.01em;line-height:.95;font-size:1.15rem}.ds-key-sub{display:flex;flex-direction:column;align-items:center;gap:.125rem;margin-top:.25rem}.ds-legend{font-family:'Saira Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:.6875rem;letter-spacing:.16em;text-transform:uppercase;color:#6a6a72}.ds-key-outcome{font-size:.9375rem;letter-spacing:.06em;color:#f26522}"
+    },
+    {
+      "name": "Primary Key",
+      "kind": "button",
+      "refersTo": "key-primary",
+      "description": "The one forward action per screen (confirm game, start match, end timeout). Solid graphite — orange is never a control fill.",
+      "html": "<button class=\"ds-key-primary\"><span class=\"ds-plate\">Continue to coin toss</span></button>",
+      "css": ".ds-key-primary{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:.75rem 2.5rem;border:1px solid #1a1c1f;border-radius:10px;background:oklch(0.31 0.008 255);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 #1a1c1f,0 6px 16px -12px rgba(20,22,40,.4);cursor:pointer}.ds-key-primary .ds-plate{font-family:'Saira Condensed','Arial Narrow',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.01em;font-size:1rem}.ds-key-primary:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 #1a1c1f}"
+    },
+    {
+      "name": "Quiet Key",
+      "kind": "button",
+      "refersTo": "key-quiet",
+      "description": "Undo / back / discard / swap sides. Outlined, no fill, no raise.",
+      "html": "<button class=\"ds-key-quiet\"><span class=\"ds-legend\">Swap sides</span></button>",
+      "css": ".ds-key-quiet{display:inline-flex;align-items:center;gap:.375rem;min-height:44px;padding:.5rem .75rem;background:transparent;border:1px solid oklch(0.87 0.004 95);border-radius:10px;color:oklch(0.42 0.01 255);cursor:pointer}.ds-key-quiet .ds-legend{font-family:'Saira Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:.6875rem;letter-spacing:.16em;text-transform:uppercase}.ds-key-quiet:focus-visible{outline:2px solid #f26522;outline-offset:2px}"
+    },
+    {
+      "name": "Seven-Segment Readout",
+      "kind": "custom",
+      "refersTo": "readout",
+      "description": "The spoken score call — serving, receiving, server# — as true SVG seven-segment digits with always-visible ghost segments. Never a font, never a slide.",
+      "html": "<span class=\"ds-readout\"><svg class=\"ds-seg\" viewBox=\"0 0 100 180\"><polygon class=\"on\" points=\"14,4 86,4 74,16 26,16\"/><polygon class=\"on\" points=\"88,8 88,84 76,74 76,18\"/><polygon class=\"on\" points=\"88,96 88,172 76,162 76,106\"/><polygon class=\"on\" points=\"14,176 86,176 74,164 26,164\"/><polygon class=\"off\" points=\"12,96 24,106 24,162 12,172\"/><polygon class=\"on\" points=\"12,8 24,18 24,74 12,84\"/><polygon class=\"on\" points=\"16,90 28,80 72,80 84,90 72,100 28,100\"/></svg></span>",
+      "css": ".ds-readout{display:inline-flex;align-items:flex-start;line-height:1;font-size:5rem}.ds-seg{display:block;height:1em;width:auto;aspect-ratio:100/180}.ds-seg .on{fill:oklch(0.19 0.006 260)}.ds-seg .off{fill:oklch(0.905 0.004 95)}.ds-seg polygon{transition:fill 70ms linear}"
+    },
+    {
+      "name": "Readout Panel",
+      "kind": "card",
+      "refersTo": "panel-surface",
+      "description": "The hero surface: bright reflective panel seated into the graphite frame with an inset shadow. Carries the orange serve bar on the serving edge.",
+      "html": "<div class=\"ds-panel\"><span class=\"ds-servebar\"></span><div class=\"ds-panel-body\">readout</div></div>",
+      "css": ".ds-panel{position:relative;overflow:hidden;padding:1.25rem 1.5rem;background:linear-gradient(180deg,#fff,#fdfdfc 55%,oklch(0.965 0.004 95));border:1px solid oklch(0.9 0.004 95);border-radius:7px;box-shadow:inset 0 1px 3px rgba(28,29,40,.07),inset 0 -1px 0 rgba(255,255,255,.9)}.ds-servebar{position:absolute;inset-block:0;left:0;width:10px;background:linear-gradient(180deg,#ff7c3c,#f26522);box-shadow:0 0 0 1px rgba(150,70,20,.25)}.ds-panel-body{padding-left:10px;text-align:center}"
+    },
+    {
+      "name": "Official Mark",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "A status mark the ref recognises without reading: fixed colour + drawn glyph + printed label. One per non-score state.",
+      "html": "<span class=\"ds-mark ds-mark-alert\"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/></svg>Technical foul</span>",
+      "css": ".ds-mark{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .5rem;border-radius:4px;border:1px solid currentColor;font-family:'Saira Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:.6875rem;letter-spacing:.13em;text-transform:uppercase}.ds-mark-alert{color:oklch(0.52 0.2 25);background:oklch(0.52 0.2 25 / .1)}.ds-mark-timeout{color:#f26522;background:oklch(0.66 0.2 40 / .1)}.ds-mark-caution{color:oklch(0.5 0.13 70);background:oklch(0.66 0.15 70 / .14)}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Setup player-name field. White fill, hairline border, focus shifts the border to signal orange.",
+      "html": "<label class=\"ds-field\"><input class=\"ds-input\" type=\"text\" placeholder=\"Team A player 1\"></label>",
+      "css": ".ds-input{width:100%;padding:.75rem;background:#fff;border:1px solid oklch(0.87 0.004 95);border-radius:7px;font-family:Geist,system-ui,sans-serif;font-size:1rem;color:oklch(0.19 0.006 260);outline:none}.ds-input::placeholder{color:oklch(0.42 0.01 255)}.ds-input:focus{border-color:#f26522}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented-option-selected",
+      "description": "Every setup rule toggle and first-server picker: a strip of milled keys, the selected one graphite-filled with white text.",
+      "html": "<div class=\"ds-seg-ctrl\" role=\"radiogroup\"><button class=\"ds-seg-opt is-selected\">Doubles</button><button class=\"ds-seg-opt\">Singles</button></div>",
+      "css": ".ds-seg-ctrl{display:grid;grid-auto-flow:column;gap:.25rem;padding:.25rem;background:#fff;border:1px solid oklch(0.87 0.004 95);border-radius:10px}.ds-seg-opt{min-height:48px;padding:0 .5rem;border:0;border-radius:6px;background:transparent;font-family:Geist,system-ui,sans-serif;font-weight:600;font-size:.875rem;color:oklch(0.42 0.01 255);cursor:pointer}.ds-seg-opt:hover:not(.is-selected){background:oklch(0.965 0.004 95)}.ds-seg-opt.is-selected{background:oklch(0.31 0.008 255);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Officiating Instrument",
+    "overview": "Pickle Point Pal is not an app dressed as a tool — it is the tournament referee's issued equipment. An anodized-graphite instrument body (matte charcoal, machined edges, never rendered chrome) cradles a bright near-white reflective readout panel. The score is stated the way an umpire states it: fixed, plain, unmissable from ten feet in direct sun. Every screen is one rigid machined-panel: a thin etched status strip, the readout, a line-only court schematic, and physical keys with screen-printed legends. Setup and the FAQ are the same instrument in its 'spec sheet / manual' register.\n\nThe world is defined by two refusals. It rejects the unstyled-white-utility default the app used to be, and it rejects the dark-neon-broadcast-scoreboard that is its predictable opposite. Depth is physical and literal — a machined chassis ground, a recessed shelf, a panel seated with an inset shadow — never decorative float. Color is rationed hard: graphite and panel-white neutrals carry every structural surface, and exactly one hi-vis accent (brand orange #f26522) means 'serving / live / clock running' and nothing else. Three officiating status hues are held in reserve for the marks a ref must tell apart without reading them.\n\nGlance-speed and sunlight legibility outrank refinement everywhere they conflict. The surface is committed to light by scene, not by theme toggle: there is no dark variant, because a ref reads this outdoors and the readout must stay a bright panel with near-black ink whatever the host system or site theme is doing.",
+    "keyCharacteristics": [
+      "Anodized-graphite frame + bright recessed readout panel, on a machined chassis ground",
+      "One hi-vis orange signal, single-meaning; never a control fill",
+      "Score as a true SVG seven-segment display with always-visible ghost segments — not a font",
+      "Saira Condensed silkscreen legends, uppercase and tracked, on every control",
+      "Committed light, no dark mode; three-level physical depth",
+      "Keys are physical: a slight raise, a hard bottom edge, key travel on press"
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Orange (#f26522) has exactly one meaning: serving / live / clock running. It appears on <=10% of any screen and is never a fill on a control the ref taps. A resource meter, a count, a selected toggle — all graphite, never orange.", "section": "colors" },
+      { "name": "The Rationed-Status Rule", "body": "Alert red and caution amber only ever attach to an official mark (fixed colour + drawn glyph + printed label). They never tint a structural surface, a border-by-default, or body text.", "section": "colors" },
+      { "name": "The Legend Floor Rule", "body": "A silkscreen legend is never set below 0.6875rem (11px). It has to survive a sunlit glance from arm's length.", "section": "typography" },
+      { "name": "The Readout Is Not A Font Rule", "body": "The score is drawn segment by segment as SVG polygons. It never slides, counts up, or is set in a display typeface — a score change resolves as an instant per-segment ignite/extinguish with a hair of stagger (12ms x segment index).", "section": "typography" },
+      { "name": "The Spoken-Order Rule", "body": "The readout always reads in the order an umpire says it aloud: serving score, receiving score, server number. Never home/away, never sorted.", "section": "typography" },
+      { "name": "The Seated-Not-Lifted Rule", "body": "The readout panel is recessed into its frame with an inset shadow. Nothing in this system lifts toward the viewer on a drop shadow; state is shown by key travel (press) and by the orange signal, not by elevation change.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep orange to its one meaning (serving / live / clock running) and to <=10% of any screen.",
+      "Do put every forward action on a single graphite .pp-key--primary per screen.",
+      "Do draw absence deliberately — unlit ghost segments, empty allowance pips — as carefully as the lit state.",
+      "Do give every non-score state an official mark: fixed colour + glyph + printed .pp-legend/.pp-plate label.",
+      "Do keep the readout in spoken order (serving, receiving, server#) and let container font-size drive its size.",
+      "Do seat panels into frames with inset shadows; show interaction with key travel (translateY(2px)), not lift.",
+      "Do hold the whole surface to light — use .pp-surface and its tokens, never bg-white/dark: per file.",
+      "Do keep destructive and between-rally controls one deliberate scroll below the rally keys.",
+      "Do floor Saira legends at 0.6875rem and keep them uppercase and tracked (0.16em)."
+    ],
+    "donts": [
+      "Don't use orange as a button fill, a selected-toggle fill, a resource meter, or body text.",
+      "Don't animate a score change as a slide, tween, or count-up — it is a per-segment swap.",
+      "Don't render a leading phantom digit cell to pad the readout.",
+      "Don't introduce a dark variant or a theme toggle; there is no dark mode here.",
+      "Don't float surfaces on drop shadows or add a fourth depth level beyond ground / well / panel.",
+      "Don't spend alert red or caution amber on anything but an official mark.",
+      "Don't set the score in a segmented-display typeface instead of the SVG geometry.",
+      "Don't place undo, timeout, or end-match controls adjacent to the rally keys."
+    ]
+  }
+}

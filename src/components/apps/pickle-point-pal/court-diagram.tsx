@@ -7,27 +7,18 @@ import type { MatchState, TeamId } from "@/components/apps/pickle-point-pal/lib/
 type Court = "even" | "odd";
 
 /**
- * The four positions with the current server highlighted on their correct side.
- * A ref can see at a glance whether the players lined up wrong.
+ * A plan view of the court, drawn as court lines — sidelines, the net down the
+ * centre, a non-volley-zone line each side of it, a centreline splitting each
+ * half into its two service courts — with the four players placed in the
+ * quadrant each is standing in and the current server's quadrant ringed. A ref
+ * can see at a glance whether the players lined up wrong.
  *
- * Sides are drawn from each team's own perspective: "even/right" means the
- * player's right as they face the net, so team B's even court sits on the
- * screen's left and team A's on the screen's right.
- *
- * The net runs vertically and each team takes the side of the screen its
- * rally button is on — portrait and the ref landscape layout both read this
- * way now, so a ref never has to remap "left button" to "top row." That
- * quarter turn leaves both rows' slot order untouched (a row's left-to-right
- * becomes a column's top-to-bottom, and the top/bottom teams swap to
- * right/left), so it is purely a flex-direction change.
- *
- * `leftTeam` says which team the ref currently has on their left — it moves
- * when the teams change ends and when the ref changes which side of the net
- * they stand on. Both are the same thing to the diagram: the plan view turns
- * 180°, which is the row AND each team's two courts running the other way.
- * Note which slot sits where is a property of the half of the screen, not of
- * the team: whoever is on the left faces right, so their even/right court is
- * the lower of their two either way.
+ * Sides are drawn from each team's own perspective: "even/right" is the
+ * player's right as they face the net. `leftTeam` says which team the ref
+ * currently has on their left; it moves when the teams change ends and when the
+ * ref changes which side of the net they stand on. Both turn the plan view
+ * 180°, which is the team order AND each team's two courts running the other
+ * way — a pure flex-direction flip.
  */
 export function CourtDiagram({
   state,
@@ -37,37 +28,45 @@ export function CourtDiagram({
   leftTeam: TeamId;
 }) {
   const court = serverCourt(state);
-  // DOM order stays B-then-A; `mirrored` is what actually puts each team on
-  // the correct side of the screen.
   const mirrored = leftTeam !== "A";
 
   return (
-    <div
-      className={cn(
-        "flex min-h-0 overflow-hidden rounded-xl border-2 border-neutral-300 bg-neutral-50 ref-landscape:flex-1",
-        mirrored ? "flex-row" : "flex-row-reverse"
-      )}
-    >
-      <TeamRow
-        state={state}
-        team="B"
-        order={["even", "odd"]}
-        activeCourt={court}
-        mirrored={mirrored}
-      />
-      <div className="w-1 shrink-0 bg-brand-black" aria-hidden />
-      <TeamRow
-        state={state}
-        team="A"
-        order={["odd", "even"]}
-        activeCourt={court}
-        mirrored={mirrored}
-      />
+    <div className="pp-well relative min-h-0 overflow-hidden ref-landscape:flex-1">
+      {/* Court lines — drawn, not filled. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <span className="absolute inset-x-3 top-1/2 border-t border-pp-hairline" />
+        <span className="absolute inset-y-3 left-[calc(50%-1.9rem)] border-l border-pp-hairline" />
+        <span className="absolute inset-y-3 left-[calc(50%+1.9rem)] border-l border-pp-hairline" />
+        <span
+          className="absolute inset-y-2 left-1/2 w-0.5 -translate-x-1/2"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(var(--pp-ink) 0 6px, transparent 6px 12px)",
+          }}
+        />
+      </div>
+
+      <div className={cn("relative flex", mirrored ? "flex-row" : "flex-row-reverse")}>
+        <TeamHalf
+          state={state}
+          team="B"
+          order={["even", "odd"]}
+          activeCourt={court}
+          mirrored={mirrored}
+        />
+        <TeamHalf
+          state={state}
+          team="A"
+          order={["odd", "even"]}
+          activeCourt={court}
+          mirrored={mirrored}
+        />
+      </div>
     </div>
   );
 }
 
-function TeamRow({
+function TeamHalf({
   state,
   team,
   order,
@@ -95,22 +94,9 @@ function TeamRow({
         : undefined;
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-1",
-        mirrored ? "flex-col-reverse" : "flex-col"
-      )}
-    >
+    <div className={cn("flex min-w-0 flex-1", mirrored ? "flex-col-reverse" : "flex-col")}>
       {order.map((slot) => {
         const name = occupant(slot);
-        if (!name) {
-          return (
-            <div
-              key={slot}
-              className="min-h-16 flex-1 border border-neutral-200 bg-neutral-100/60 ref-landscape:min-h-11"
-            />
-          );
-        }
         const isServerCell =
           isServing && slot === activeCourt && name === servingPlayer(state);
 
@@ -118,22 +104,34 @@ function TeamRow({
           <div
             key={slot}
             className={cn(
-              "flex min-h-16 flex-1 flex-col items-center justify-center border border-neutral-200 px-2 py-3 text-center",
-              "ref-landscape:min-h-11 ref-landscape:py-1",
-              isServerCell && "bg-brand-orange/10 ring-2 ring-brand-orange ring-inset"
+              "flex min-h-16 flex-1 flex-col items-center justify-center px-2 py-3 text-center ref-landscape:min-h-11 ref-landscape:py-1",
+              isServerCell && "bg-pp-signal-wash ring-2 ring-inset ring-pp-signal"
             )}
           >
-            <span
-              className={cn(
-                "text-sm font-semibold text-neutral-800",
-                isServerCell && "text-neutral-950"
-              )}
-            >
-              {name}
-            </span>
-            <span className={cn("mt-0.5 font-mono font-semibold text-[0.7rem] tracking-widest text-neutral-400 uppercase", isServerCell && "text-brand-orange")}>
-              {isServerCell ? "serving" : slot === "even" ? "even / R" : "odd / L"}
-            </span>
+            {name ? (
+              <>
+                <span
+                  className={cn(
+                    "text-sm font-semibold",
+                    isServerCell ? "text-pp-ink" : "text-pp-ink-dim"
+                  )}
+                >
+                  {name}
+                </span>
+                <span
+                  className={cn(
+                    "mt-0.5 pp-legend text-[0.5625rem]",
+                    isServerCell ? "text-pp-signal" : "text-pp-ink-dim"
+                  )}
+                >
+                  {isServerCell ? "serving" : slot === "even" ? "even / R" : "odd / L"}
+                </span>
+              </>
+            ) : (
+              <span className="pp-legend text-[0.5625rem] text-pp-hairline">
+                {slot === "even" ? "even / R" : "odd / L"}
+              </span>
+            )}
           </div>
         );
       })}

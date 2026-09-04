@@ -87,6 +87,24 @@
   --color-brand-orange: var(--brand-orange);
   --color-brand-yellow: var(--brand-yellow);
 
+  /* Pickle Point Pal's officiating-instrument world (direction seed 7107de82).
+     The `--pp-*` values are scoped to `.pp-surface` further down, so these
+     utilities only resolve inside that subtree. */
+  --color-pp-ink: var(--pp-ink);
+  --color-pp-ink-dim: var(--pp-ink-dim);
+  --color-pp-ground: var(--pp-ground);
+  --color-pp-panel: var(--pp-panel);
+  --color-pp-panel-sink: var(--pp-panel-sink);
+  --color-pp-panel-edge: var(--pp-panel-edge);
+  --color-pp-hairline: var(--pp-hairline);
+  --color-pp-ghost: var(--pp-ghost);
+  --color-pp-frame: var(--pp-frame);
+  --color-pp-legend: var(--pp-legend);
+  --color-pp-signal: var(--pp-signal);
+  --color-pp-signal-wash: var(--pp-signal-wash);
+  --color-pp-alert: var(--pp-alert);
+  --color-pp-caution: var(--pp-caution);
+
   /* On Deck arena board (direction seed 92ec9d54) — the `--arena-*` values
      these point at are scoped to `.od-arena` further down, so these utilities
      only resolve inside that subtree. */
@@ -249,14 +267,338 @@
   }
 }
 
-/* Pickle Point Pal is intentionally locked to a light, high-contrast surface
-   regardless of system/site theme - a ref reading it in direct sun needs
-   guaranteed white-on-dark contrast, not whatever theme happens to be active.
-   See PRODUCT.md's "Brand Commitments" for the full rationale. Apply this at
-   each full-viewport screen (route root, timeout overlay, game-over sheet)
-   instead of repeating bg-white/text-neutral-950 literally in each one. */
+/*
+ * ═══ Pickle Point Pal: the officiating instrument ═══════════════════════════
+ *
+ * DIRECTION — "The Officiating Instrument" (direction seed 7107de82). Pickle
+ * Point Pal is not an app, it is the tournament referee's issued equipment: an
+ * anodized-graphite instrument body cradling a bright reflective readout panel.
+ * The score is stated the way an umpire states it - fixed, plain, unmissable
+ * from ten feet in the sun. Refuses the unstyled-white-utility default it used
+ * to be, and the dark-neon-broadcast-scoreboard that is its opposite.
+ *
+ * SURFACE — Committed light, by scene not by theme. A ref reads this in direct
+ * sun; the readout must stay a bright panel with near-black ink whatever the
+ * system/site theme is (PRODUCT.md "Brand Commitments"). Every full-viewport
+ * screen carries `.pp-surface`; there is no dark variant.
+ *
+ * COLOR — Restrained. Graphite + panel-white neutrals carry the surface. One
+ * signal, brand orange `#f26522` (locked, undarkened - PRODUCT.md), means
+ * "serving / live / clock running" and nothing else. Three officiating status
+ * hues are rationed to the marks that must be told apart without reading -
+ * `--pp-alert` red (medical timeout, technical foul), `--pp-caution` amber
+ * (technical warning); everything structural stays ink.
+ *
+ * TYPE — Saira Condensed (`--font-arena`) is the silkscreen-legend voice:
+ * status strips, control legends, team plates, every word screen-printed onto
+ * equipment. Geist for prose, Geist Mono for the scoresheet's tabular data.
+ * The score readout is its own seven-segment geometry, drawn in SVG, not a
+ * font (`SegReadout`).
+ */
 .pp-surface {
-  @apply bg-white text-neutral-950;
+  --pp-frame: oklch(0.31 0.008 255);
+  --pp-frame-hi: oklch(0.37 0.009 255);
+  --pp-frame-edge: oklch(0.22 0.008 255);
+  --pp-legend: oklch(0.8 0.006 255);
+  --pp-legend-dim: oklch(0.66 0.007 255);
+  --pp-frame-hairline: oklch(0.43 0.008 255);
+
+  /* Three light levels: the machined chassis ground the screens sit on, the
+     recessed shelf a control group sits in, the bright readout panel. */
+  --pp-ground: oklch(0.935 0.005 92);
+  --pp-panel: oklch(0.99 0.002 95);
+  --pp-panel-sink: oklch(0.965 0.004 95);
+  --pp-panel-edge: oklch(0.9 0.004 95);
+  --pp-hairline: oklch(0.87 0.004 95);
+  --pp-ink: oklch(0.19 0.006 260);
+  /* Secondary text on the panel - tinted from the panel's own warmth, never a
+     flat gray. ~7:1 on --pp-panel, so it clears AA well past a sunlit glance. */
+  --pp-ink-dim: oklch(0.42 0.01 255);
+  /* Unlit segments: a phantom of the full "8", present enough to read as a
+     segmented display, faint enough it never reads as a lit digit. */
+  --pp-ghost: oklch(0.905 0.004 95);
+
+  --pp-signal: #f26522;
+  --pp-signal-ink: #ffffff;
+  --pp-signal-wash: oklch(0.66 0.2 40 / 0.1);
+  --pp-alert: oklch(0.52 0.2 25);
+  --pp-alert-wash: oklch(0.52 0.2 25 / 0.1);
+  --pp-caution: oklch(0.66 0.15 70);
+  --pp-caution-wash: oklch(0.66 0.15 70 / 0.14);
+
+  --pp-radius: 7px;
+  --pp-radius-key: 10px;
+  --pp-radius-frame: 16px;
+  --pp-contact:
+    0 1px 2px oklch(0.2 0.01 260 / 0.16),
+    0 14px 28px -18px oklch(0.2 0.02 260 / 0.34);
+
+  background-color: var(--pp-ground);
+  color: var(--pp-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Themed browser surfaces - the parts not drawn still carry the instrument. */
+.pp-surface ::selection {
+  background-color: oklch(0.66 0.2 40 / 0.24);
+  color: var(--pp-ink);
+}
+.pp-surface {
+  scrollbar-color: var(--pp-frame-hairline) transparent;
+}
+.pp-surface *:focus-visible {
+  outline: 2px solid var(--pp-signal);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+/* On the dark frame the orange ring muddies against the graphite - go white. */
+.pp-frame *:focus-visible {
+  outline-color: #fff;
+}
+
+/* ── Type ────────────────────────────────────────────────────────────────── */
+
+/* The silkscreen-legend voice: a condensed signage face, uppercase, tracked,
+   the way a legend is screen-printed beside a control. Floored so it survives a
+   sunlit glance - never set a legend smaller than 0.6875rem. */
+.pp-legend {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pp-ink-dim);
+  line-height: 1.1;
+}
+.pp-legend--onframe {
+  color: var(--pp-legend);
+}
+/* The engraved-plate voice: bigger condensed signage for team name plates and
+   headline status words. */
+.pp-plate {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  line-height: 0.95;
+}
+/* Tabular data - the scoresheet, timestamps, counts. */
+.pp-data {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ── The instrument body ─────────────────────────────────────────────────── */
+
+/* The anodized frame: a dark machined chassis that groups a set of controls or
+   holds the readout. Thin - the content is the instrument, the frame is trim. */
+.pp-frame {
+  background:
+    linear-gradient(178deg, var(--pp-frame-hi), var(--pp-frame) 46%, var(--pp-frame-edge));
+  border: 1px solid var(--pp-frame-edge);
+  border-radius: var(--pp-radius-frame);
+  box-shadow: var(--pp-contact);
+}
+
+/* The readout panel: bright, reflective, recessed into the frame. Near-black
+   ink, guaranteed contrast in sun. The inset shadow is what seats it into the
+   chassis rather than floating it. */
+.pp-panel {
+  background: linear-gradient(180deg, #ffffff, #fdfdfc 55%, var(--pp-panel-sink));
+  border: 1px solid var(--pp-panel-edge);
+  border-radius: var(--pp-radius);
+  box-shadow:
+    inset 0 1px 3px oklch(0.2 0.01 260 / 0.07),
+    inset 0 -1px 0 oklch(1 0 0 / 0.9);
+}
+
+/* A recessed secondary zone on the panel-white surface - the control shelf, a
+   list container. Flat, seated, no elevation. */
+.pp-well {
+  background-color: var(--pp-panel-sink);
+  border: 1px solid var(--pp-hairline);
+  border-radius: var(--pp-radius);
+}
+
+/* ── Controls - milled keys with a screen-printed legend ─────────────────── */
+
+/* Every control is a physical key: a slight raise, a hard bottom edge that
+   reads as key travel, and its own printed legend. 44px+ touch floor - one
+   hand, outdoors, between rallies. */
+.pp-key {
+  --k-face: #ffffff;
+  --k-edge: var(--pp-panel-edge);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--k-edge);
+  border-radius: var(--pp-radius-key);
+  background: linear-gradient(180deg, var(--k-face), color-mix(in oklch, var(--k-face), var(--pp-panel-sink) 55%));
+  color: var(--pp-ink);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.9),
+    0 2px 0 var(--pp-panel-edge),
+    0 5px 12px -8px oklch(0.2 0.02 260 / 0.4);
+  transition:
+    transform 90ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 120ms ease;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.pp-key:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.7),
+    0 0 0 var(--pp-panel-edge),
+    0 3px 8px -6px oklch(0.2 0.02 260 / 0.4);
+}
+.pp-key:disabled {
+  color: var(--pp-ink-dim);
+  background: var(--pp-panel-sink);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.5);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+/* The primary confirm key - the one forward action on a screen (draw, confirm
+   game, start match, resume, end timeout). Solid matte graphite, white legend:
+   the anodized chassis, not a coloured button. Orange is never a control fill -
+   it is only ever the serve/live/clock signal. */
+.pp-key--primary {
+  background: var(--pp-frame);
+  color: #fff;
+  border-color: var(--pp-frame-edge);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
+    0 2px 0 var(--pp-frame-edge),
+    0 6px 16px -12px oklch(0.2 0.02 260 / 0.4);
+}
+.pp-key--primary:disabled {
+  background: var(--pp-panel-sink);
+  color: var(--pp-ink-dim);
+}
+/* A recessed / quiet key - undo, back, discard. Outlined, no fill, no raise. */
+.pp-key--quiet {
+  min-height: 44px;
+  background: transparent;
+  border-color: var(--pp-hairline);
+  color: var(--pp-ink-dim);
+  box-shadow: none;
+}
+/* A destructive trigger that must stay spottable but not shout - outlined red,
+   no fill. The red fill is saved for the deliberate confirm inside the sheet. */
+.pp-key--danger {
+  min-height: 44px;
+  background: transparent;
+  border-color: color-mix(in oklch, var(--pp-alert), var(--pp-panel-edge) 45%);
+  color: var(--pp-alert);
+  box-shadow: none;
+}
+/* An armed key - the rally key for the team that is currently serving. A
+   screen-printed orange bar across the top edge (the same serve signal that
+   runs down the readout panel), not a fill: the panel's servebar and this bar
+   read as one continuous "the serve is on this side". */
+.pp-key--armed {
+  border-color: color-mix(in oklch, var(--pp-signal), var(--pp-panel-edge) 55%);
+  box-shadow:
+    inset 0 4px 0 var(--pp-signal),
+    inset 0 5px 0 oklch(1 0 0 / 0.4),
+    0 2px 0 var(--pp-panel-edge),
+    0 5px 12px -8px oklch(0.66 0.2 40 / 0.32);
+}
+.pp-key--armed:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 4px 0 var(--pp-signal),
+    0 0 0 var(--pp-panel-edge),
+    0 3px 8px -6px oklch(0.66 0.2 40 / 0.32);
+}
+.pp-key--alert {
+  --k-face: var(--pp-alert);
+  color: #fff;
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.2),
+    0 2px 0 oklch(0.36 0.14 25 / 0.85),
+    0 8px 20px -10px oklch(0.52 0.2 25 / 0.45);
+}
+
+/* ── The hi-vis serve bar ────────────────────────────────────────────────── */
+
+/* The serving indicator is the loudest non-numeric element on the panel: a
+   locked orange bar on the serving team's edge. It does not fade - it is either
+   there or it is on the other side. */
+.pp-servebar {
+  background: linear-gradient(180deg, #ff7c3c, var(--pp-signal));
+  box-shadow: 0 0 0 1px oklch(0.5 0.16 40 / 0.25);
+}
+
+/* ── Official marks - one fixed meaning each ─────────────────────────────── */
+
+/* A status mark the ref must recognise without reading it: fixed colour + a
+   drawn glyph + a printed label. Every non-score state gets one. */
+.pp-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  font-family: var(--font-arena), "Saira Condensed", sans-serif;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.pp-mark--timeout { color: var(--pp-signal); background: var(--pp-signal-wash); }
+.pp-mark--alert { color: var(--pp-alert); background: var(--pp-alert-wash); }
+.pp-mark--caution { color: color-mix(in oklch, var(--pp-caution), black 22%); background: var(--pp-caution-wash); }
+.pp-mark--structural { color: var(--pp-ink-dim); background: var(--pp-panel-sink); }
+
+/* ── The seven-segment readout ──────────────────────────────────────────── */
+
+.pp-seg-svg {
+  display: block;
+  height: 1em;
+  width: auto;
+}
+.pp-seg-on { fill: var(--pp-ink); }
+/* Unlit segments stay visible as a phantom of the full 8 - just faint enough
+   that a lit digit never reads as the digit beside it. No leading phantom
+   *cell* is ever rendered (that misreads as a real digit); this is only the
+   dark segments within a digit that is genuinely lit. */
+.pp-seg-off { fill: var(--pp-ghost); }
+@media (prefers-reduced-motion: no-preference) {
+  /* The signature interaction: a score change is an instant per-segment swap
+     with a hair of stagger, the way a real scoreboard slams from 98 to 100 -
+     never a slide or a count-up. Delay is set inline per segment index. */
+  .pp-seg-svg polygon {
+    transition: fill 70ms linear;
+  }
+}
+
+/* The clock takes over the readout during a timeout - same segment grammar,
+   bigger, and it turns orange under the last fifteen seconds. */
+.pp-seg-clock.pp-seg-warn .pp-seg-on { fill: var(--pp-signal); }
+.pp-seg-clock.pp-seg-paused .pp-seg-on { fill: var(--pp-ink-dim); }
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+
+/* One authored entrance: a screen's readout panel settles into its frame.
+   Everything else is state, not entrance. */
+@media (prefers-reduced-motion: no-preference) {
+  .pp-panel-settle {
+    animation: pp-settle 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes pp-settle {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
 }
 
 /*

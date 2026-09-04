@@ -1,19 +1,28 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ListOrdered, MoreHorizontal, Redo2, TriangleAlert, Undo2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { canCallTimeout, teamName, timeoutsRemaining } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { TEAM_IDS, type MatchState, type TeamId, type TimeoutKind } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
+import {
+  EquipmentIcon,
+  LogIcon,
+  MedicalIcon,
+  MoreIcon,
+  RedoIcon,
+  TechnicalIcon,
+  TimerIcon,
+  UndoIcon,
+} from "./pp-icons";
+
 /**
- * Undo, a timeout control per team, and the technical-call menu.
- *
- * The timeout controls carry the allowance pips and disable at the limit — a
- * ref should not be able to grant a third by mistake, and should have to
- * consciously reach for medical/equipment instead. Undo lives here: reachable,
- * but deliberately not adjacent to the rally buttons.
+ * The recessed control shelf: a timeout control per team with its allowance
+ * pips, undo/redo, the match log, and the technical-call menu. Deliberately not
+ * adjacent to the rally keys — a ref reaches here between rallies, never during
+ * one. Every non-score state that can be logged from here carries its own
+ * official mark so it can be told apart without reading the label.
  */
 export function ActionBar({
   state,
@@ -43,20 +52,13 @@ export function ActionBar({
   const [techOpen, setTechOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-      {/* Stacked full-width, not side-by-side — a two-column split leaves too
-          little room for long names before the kind-select control gets
-          squeezed out. The ref layout is the exception: it runs edge to edge,
-          so there is room for the two teams to sit next to each other. */}
+    <div className="pp-well p-3">
       <div className="grid gap-2 ref-landscape:grid-cols-2">
         {TEAM_IDS.map((team) => (
           <TimeoutControl
             key={team}
             state={state}
             team={team}
-            // `row-start-1` is not redundant: without it, auto-placement never
-            // walks backwards, so the swapped order (B in column 1 arriving
-            // second in the DOM) opens a second row instead of sitting beside A.
             className={cn(
               "ref-landscape:row-start-1",
               team === leftTeam
@@ -70,14 +72,14 @@ export function ActionBar({
       </div>
 
       <div className="mt-3 grid grid-cols-4 gap-2">
-        <SmallButton icon={<Undo2 />} label="Undo" disabled={!canUndo} onClick={onUndo} />
-        <SmallButton icon={<Redo2 />} label="Redo" disabled={!canRedo} onClick={onRedo} />
+        <SmallButton icon={<UndoIcon />} label="Undo" disabled={!canUndo} onClick={onUndo} />
+        <SmallButton icon={<RedoIcon />} label="Redo" disabled={!canRedo} onClick={onRedo} />
         <SmallButton
-          icon={<TriangleAlert />}
+          icon={<TechnicalIcon />}
           label="Technical"
           onClick={() => setTechOpen(true)}
         />
-        <SmallButton icon={<ListOrdered />} label="Log" onClick={onOpenLog} />
+        <SmallButton icon={<LogIcon />} label="Log" onClick={onOpenLog} />
       </div>
 
       {kindMenuFor && (
@@ -86,6 +88,8 @@ export function ActionBar({
           onClose={() => setKindMenuFor(null)}
         >
           <SheetOption
+            mark="timeout"
+            markIcon={<TimerIcon />}
             label="Standard timeout"
             hint={`${timeoutsRemaining(state, kindMenuFor)} of ${state.config.timeoutsPerGame} left · ${state.config.timeoutSeconds}s`}
             disabled={!canCallTimeout(state, kindMenuFor, "standard")}
@@ -95,6 +99,8 @@ export function ActionBar({
             }}
           />
           <SheetOption
+            mark="alert"
+            markIcon={<MedicalIcon />}
             label="Medical timeout"
             hint={`Does not use the allowance · ${Math.round(state.config.medicalTimeoutSeconds / 60)} min`}
             onClick={() => {
@@ -103,6 +109,8 @@ export function ActionBar({
             }}
           />
           <SheetOption
+            mark="structural"
+            markIcon={<EquipmentIcon />}
             label="Equipment timeout"
             hint={`Does not use the allowance · ${Math.round(state.config.equipmentTimeoutSeconds / 60)} min`}
             onClick={() => {
@@ -118,6 +126,8 @@ export function ActionBar({
           {TEAM_IDS.map((team) => (
             <SheetOption
               key={`warn-${team}`}
+              mark="caution"
+              markIcon={<TechnicalIcon />}
               label={`Warning — ${teamName(state.config, team)}`}
               hint="No point awarded"
               onClick={() => {
@@ -129,6 +139,7 @@ export function ActionBar({
           {TEAM_IDS.map((team) => (
             <SheetOption
               key={`foul-${team}`}
+              mark="alert"
               label={`Technical foul — ${teamName(state.config, team)}`}
               hint="Point to their opponent, service unchanged"
               onClick={() => {
@@ -145,8 +156,7 @@ export function ActionBar({
 
 /**
  * Remaining allowance renders as filled/empty pips, always visible — a ref
- * needs to answer "do they have one left?" without tapping anything, because a
- * team will ask mid-game.
+ * needs to answer "do they have one left?" without tapping anything.
  */
 function TimeoutControl({
   state,
@@ -167,7 +177,7 @@ function TimeoutControl({
   return (
     <div
       className={cn(
-        "flex items-stretch gap-1 rounded-lg border border-neutral-300 bg-white p-1",
+        "flex items-stretch gap-1 rounded-(--pp-radius-key) border border-pp-hairline bg-white p-1",
         className
       )}
     >
@@ -175,13 +185,14 @@ function TimeoutControl({
         type="button"
         disabled={!allowed}
         onClick={onStandard}
-        className="flex min-h-14 min-w-0 flex-1 flex-col items-start justify-center gap-1.5 rounded-md px-3 py-2 text-left touch-manipulation disabled:opacity-40"
+        className="flex min-h-14 min-w-0 flex-1 flex-col items-start justify-center gap-1.5 rounded-md px-3 py-2 text-left disabled:opacity-40"
+        style={{ touchAction: "manipulation" }}
       >
-        {/* Wraps rather than truncates — a long team name pushes the row
-            taller instead of clipping or squeezing the kind-select button. */}
-        <span className="text-sm font-semibold wrap-break-word text-neutral-900">
-          T/O · {teamName(state.config, team)}
+        <span className="pp-legend text-pp-ink">
+          T/O · {teamName(state.config, team).split(" / ")[0]}
         </span>
+        {/* Allowance pips - a static resource meter, so graphite, not the
+            serve/live orange. Filled = still available, hollow = spent. */}
         <span className="flex gap-1" aria-label={`${remaining} timeouts remaining`}>
           {Array.from({ length: state.config.timeoutsPerGame }).map((_, i) => (
             <span
@@ -189,22 +200,21 @@ function TimeoutControl({
               className={cn(
                 "size-2.5 rounded-full border",
                 i < remaining
-                  ? "border-brand-orange bg-brand-orange"
-                  : "border-neutral-300 bg-transparent"
+                  ? "border-pp-ink bg-pp-ink"
+                  : "border-pp-hairline bg-transparent"
               )}
             />
           ))}
         </span>
       </button>
-      {/* shrink-0 + fixed size: this can never be squeezed out by a long name
-          in the sibling button, no matter how narrow the panel gets. */}
       <button
         type="button"
         onClick={onOpenKinds}
         aria-label={`Other timeout kinds for ${teamName(state.config, team)}`}
-        className="flex size-14 shrink-0 items-center justify-center rounded-md border-l border-neutral-200 text-neutral-500 touch-manipulation hover:bg-neutral-50"
+        className="flex size-14 shrink-0 items-center justify-center rounded-md border-l border-pp-hairline text-pp-ink-dim"
+        style={{ touchAction: "manipulation" }}
       >
-        <MoreHorizontal className="size-5" />
+        <MoreIcon className="size-5" />
       </button>
     </div>
   );
@@ -226,13 +236,10 @@ function SmallButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      // min-h/min-w pin this to the same 44px touch-target floor as every
-      // other control in the app — the row's own content (icon + tiny label)
-      // would otherwise size it a few px under that.
-      className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-lg border border-neutral-300 bg-white px-2 py-2 text-[0.65rem] font-medium text-neutral-700 touch-manipulation disabled:opacity-40 [&_svg]:size-4"
+      className="pp-key pp-key--quiet min-h-11! min-w-11 gap-1 px-1.5 py-2 [&_svg]:size-4"
     >
       {icon}
-      {label}
+      <span className="pp-legend">{label}</span>
     </button>
   );
 }
@@ -254,8 +261,7 @@ export function Sheet({
   const titleId = useId();
 
   // Dialog semantics for a modal that otherwise reads to assistive tech as
-  // plain page content: move focus in on open, trap Tab within the panel so
-  // it can never land on the (still-focusable) page behind the backdrop,
+  // plain page content: move focus in on open, trap Tab within the panel,
   // close on Escape, and give focus back to whatever opened the sheet.
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -290,37 +296,35 @@ export function Sheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[oklch(0.22_0.01_260/0.55)] p-4"
       onClick={onClose}
     >
-      {/* The panel is capped to the viewport and scrolls its own body. Without
-          the cap, long content (the match log) pushes the sheet past both edges
-          of a centred overlay, where nothing can scroll it and Cancel becomes
-          unreachable. `dvh` so mobile browser chrome is accounted for, and
-          `min-h-0` because a flex child otherwise refuses to shrink below its
-          content and the body's overflow never engages. */}
+      {/* The panel is capped to the viewport and scrolls its own body, so long
+          content (the match log) never pushes Cancel off the edge of a centred
+          overlay. `dvh` accounts for mobile browser chrome; `min-h-0` lets the
+          flex child shrink below its content so the body's overflow engages. */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col rounded-2xl bg-white p-4 shadow-xl"
+        className="pp-frame flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col p-2.5"
       >
-        <div className="flex shrink-0 items-center justify-between">
-          <h2 id={titleId} className="font-heading text-base font-semibold text-neutral-950">
+        <div className="flex shrink-0 items-center justify-between px-1.5 pt-0.5 pb-2">
+          <h2 id={titleId} className="pp-plate text-sm text-white">
             {title}
           </h2>
           <button
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="rounded-lg px-3 py-1 text-sm text-neutral-500"
+            className="pp-legend pp-legend--onframe rounded px-2 py-1"
           >
             Close
           </button>
         </div>
-        <div className="mt-3 grid min-h-0 gap-2 overflow-y-auto overscroll-contain">
+        <div className="pp-panel grid min-h-0 gap-2 overflow-y-auto overscroll-contain p-2.5">
           {children}
         </div>
       </div>
@@ -328,26 +332,46 @@ export function Sheet({
   );
 }
 
+const MARK_CLASS: Record<string, string> = {
+  timeout: "pp-mark--timeout",
+  alert: "pp-mark--alert",
+  caution: "pp-mark--caution",
+  structural: "pp-mark--structural",
+};
+
 export function SheetOption({
   label,
   hint,
   disabled,
   onClick,
+  mark,
+  markIcon,
 }: {
   label: string;
   hint?: string;
   disabled?: boolean;
   onClick: () => void;
+  /** The official mark this action carries — a fixed colour the ref recognises. */
+  mark?: "timeout" | "alert" | "caution" | "structural";
+  markIcon?: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="rounded-lg border border-neutral-300 px-3 py-3 text-left touch-manipulation disabled:opacity-40"
+      className="flex items-start gap-3 rounded-(--pp-radius) border border-pp-hairline bg-white px-3 py-3 text-left disabled:opacity-40"
+      style={{ touchAction: "manipulation" }}
     >
-      <span className="block text-sm font-semibold text-neutral-950">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs text-neutral-500">{hint}</span>}
+      {mark && (
+        <span className={cn("pp-mark mt-0.5 shrink-0 [&_svg]:size-3", MARK_CLASS[mark])}>
+          {markIcon}
+        </span>
+      )}
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-pp-ink">{label}</span>
+        {hint && <span className="mt-0.5 block text-xs text-pp-ink-dim">{hint}</span>}
+      </span>
     </button>
   );
 }
