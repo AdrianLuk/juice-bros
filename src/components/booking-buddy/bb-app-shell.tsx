@@ -12,7 +12,6 @@ import {
   MapPinIcon,
   SettingsIcon,
   UsersIcon,
-  UsersRoundIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,7 +52,6 @@ const CHILD_ICON: Record<string, LucideIcon> = {
   "Find a time": CalendarSearchIcon,
   Bookings: CalendarCheckIcon,
   Friends: UsersIcon,
-  Groups: UsersRoundIcon,
   Settings: SettingsIcon,
   Facilities: MapPinIcon,
 };

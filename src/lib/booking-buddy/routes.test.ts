@@ -180,7 +180,9 @@ test("Bookings stands alone as its own section", () => {
   assert.equal(sectionForPath("/booking-buddy/bookings"), "bookings");
 });
 
-test("Friends and Groups are siblings under the Friends section", () => {
+test("Groups still belongs to the Friends section, though it's no longer a nav sibling", () => {
+  // The Groups pill was demoted out of the nav (issue #378); the route still
+  // resolves under Friends so the layout highlights the right tab.
   assert.equal(sectionForPath("/booking-buddy/friends"), "friends");
   assert.equal(sectionForPath("/booking-buddy/groups"), "friends");
 });
@@ -199,8 +201,8 @@ test("pre-auth and off-app paths belong to no section", () => {
 });
 
 test("the pill row shows siblings only where there's a choice", () => {
-  // Plan (Games + Availability + Find a time), Settings + Facilities, Friends +
-  // Groups: two or more real peers → shown.
+  // Plan (Games + Availability + Find a time) and Settings + Facilities: two
+  // or more real peers → shown.
   assert.deepEqual(
     siblingsForPath("/booking-buddy/slots").map((c) => c.label),
     ["Games", "Availability", "Find a time"],
@@ -221,10 +223,10 @@ test("the pill row shows siblings only where there's a choice", () => {
     siblingsForPath("/booking-buddy/orgs").map((c) => c.label),
     ["Settings", "Facilities"],
   );
-  assert.deepEqual(
-    siblingsForPath("/booking-buddy/groups").map((c) => c.label),
-    ["Friends", "Groups"],
-  );
+  // Friends has no sibling children any more (issue #378: Groups demoted to a
+  // low-key link on the Friends page instead of a nav pill).
+  assert.deepEqual(siblingsForPath("/booking-buddy/friends"), []);
+  assert.deepEqual(siblingsForPath("/booking-buddy/groups"), []);
   // Dashboard, Bookings, pre-auth: nothing to choose between.
   assert.deepEqual(siblingsForPath("/booking-buddy"), []);
   assert.deepEqual(siblingsForPath("/booking-buddy/bookings"), []);

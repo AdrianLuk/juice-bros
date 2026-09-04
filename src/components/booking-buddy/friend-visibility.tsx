@@ -47,8 +47,8 @@ export function FriendVisibilityRow({
         <PersonName person={friend.person} />
         <p className="mt-0.5 text-xs text-muted-foreground">
           {friend.override
-            ? `Set just for them: ${visibilityLabel(friend.resolved)}`
-            : `From your groups: ${visibilityLabel(friend.resolved)}`}
+            ? `Limited to: ${visibilityLabel(friend.resolved)}`
+            : `Sees: ${visibilityLabel(friend.resolved)}`}
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export function FriendVisibilityRow({
           />
           <div className="flex items-center gap-2">
             <Label htmlFor={selectId} className="sr-only">
-              What {personLabel(friend.person)} can see
+              Limit what {personLabel(friend.person)} sees
             </Label>
             {/* Keyed on the saved value so a successful save remounts the
                 select — see the note on BookingWindowForm in orgs.tsx. */}
@@ -78,9 +78,7 @@ export function FriendVisibilityRow({
               key={friend.override ?? "clear"}
               id={selectId}
               defaultValue={friend.override ?? "clear"}
-              extraOptions={[
-                { value: "clear", label: "Use my group defaults" },
-              ]}
+              extraOptions={[{ value: "clear", label: "Use my default" }]}
               className="sm:w-56"
             />
             <Button

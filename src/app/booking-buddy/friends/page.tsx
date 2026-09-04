@@ -8,6 +8,7 @@ import { ConnectionList } from "@/components/booking-buddy/connection-list";
 import { ConnectionActionButton } from "@/components/booking-buddy/connection-action-button";
 import { FriendCalendarDialog } from "@/components/booking-buddy/friend-calendar-dialog";
 import { FriendVisibilityRow } from "@/components/booking-buddy/friend-visibility";
+import { DefaultVisibilityForm } from "@/components/booking-buddy/default-visibility-form";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { personLabel } from "@/lib/booking-buddy/connections";
@@ -30,7 +31,8 @@ export default async function FriendsPage() {
   // leads to an empty page.
   const { friends, received, sent, calendarVisibleFriendIds } =
     await getFriendsPageData();
-  const friendVisibility = await getFriendVisibilityList(friends);
+  const { defaultLevel, friends: friendVisibility } =
+    await getFriendVisibilityList(friends);
   const inviteUrl = await getOwnInviteUrl();
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -42,6 +44,18 @@ export default async function FriendsPage() {
           />
           <BbSectionNav />
           <div className="bb-sheet mt-8 flex flex-col gap-11 p-3.5 sm:p-8">
+            <section>
+              <h2 className="bb-h text-[1.05rem]">What friends see by default</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Every friend you connect with starts here, with no setup on
+                either side. Turn it down and anyone still on the default
+                loses that access right away; turn it back up and they get it
+                back.
+              </p>
+              <div className="mt-4">
+                <DefaultVisibilityForm level={defaultLevel} />
+              </div>
+            </section>
             <ConnectionList
               title="Requests for you"
               pin="need"
@@ -92,8 +106,9 @@ export default async function FriendsPage() {
                 )}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                What everyone actually sees. Setting someone here pins them: it
-                beats every group they&apos;re in, either way.
+                Limit what one person sees. Setting a level here pins them: it
+                beats your default and every group they&apos;re in, either
+                way.
               </p>
               {friendVisibility.length === 0 ? (
                 <p className="mt-4 bb-outline p-4 text-sm text-muted-foreground">

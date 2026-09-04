@@ -3,6 +3,7 @@ import { type Page } from "@playwright/test";
 import { expect, test, type Accounts } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import { clearConnectionBetween } from "./support/connection-request-link.ts";
+import { resetDefaultFriendVisibility } from "./support/db-reset.ts";
 
 /**
  * The two-sided half of Connections: a request only means anything once the
@@ -189,6 +190,63 @@ test.describe("two Users, one Connection", () => {
         hasText: `@${accounts.ben2.username}`,
       }),
     ).toHaveCount(0);
+
+    await amyContext.close();
+    await benContext.close();
+  });
+});
+
+test.describe("the default-visibility control", () => {
+  test.afterEach(async ({ accounts }) => {
+    const amy2 = { email: accounts.amy2.email, password: accounts.password };
+    await resetDefaultFriendVisibility(amy2);
+    await disconnect(accounts);
+  });
+
+  test("lowering the default drops a friend still on it; raising it restores them", async ({
+    browser,
+    accounts,
+  }) => {
+    const amyContext = await browser.newContext();
+    const benContext = await browser.newContext();
+    const amy = await amyContext.newPage();
+    const ben = await benContext.newPage();
+
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
+    await signIn(ben, accounts.ben2.email, "/booking-buddy/friends");
+    await disconnect(accounts);
+
+    await search(amy, accounts.ben2.username);
+    await searchRow(amy, accounts.ben2.username)
+      .getByRole("button", { name: "Add friend" })
+      .click();
+    await expect(searchRow(amy, accounts.ben2.username)).toContainText("Request sent");
+
+    await ben.reload();
+    await section(ben, "Requests for you").getByRole("button", { name: "Accept" }).click();
+    await expect(section(ben, "Requests for you")).toHaveCount(0);
+
+    await amy.goto("/booking-buddy/friends");
+    const defaults = section(amy, "What friends see by default");
+
+    // The `calendar` default (ADR 0021) already grants everything on connect —
+    // no group or override needed.
+    await expect(personRow(amy, accounts.ben2.username)).toContainText(
+      "Sees: Games and my availability",
+    );
+
+    // Turning the default down drops Ben immediately: he has no override and
+    // is in no group to raise him back up.
+    await defaults.getByLabel("Every friend starts at").selectOption("none");
+    await defaults.getByRole("button", { name: "Save" }).click();
+    await expect(personRow(amy, accounts.ben2.username)).toContainText("Sees: Nothing");
+
+    // Turning it back up restores him.
+    await defaults.getByLabel("Every friend starts at").selectOption("calendar");
+    await defaults.getByRole("button", { name: "Save" }).click();
+    await expect(personRow(amy, accounts.ben2.username)).toContainText(
+      "Sees: Games and my availability",
+    );
 
     await amyContext.close();
     await benContext.close();

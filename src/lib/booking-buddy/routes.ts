@@ -119,10 +119,12 @@ export const BB_SECTIONS: readonly BbSection[] = [
     id: "friends",
     label: "Friends",
     primary: FRIENDS_PATH,
-    children: [
-      { label: "Friends", href: FRIENDS_PATH },
-      { label: "Groups", href: GROUPS_PATH },
-    ],
+    // No sibling children (issue #378): Friend Groups was demoted out of the
+    // pill row / dropdown once the `calendar` default (ADR 0021) made it a
+    // rarely-needed "advanced" feature — see the low-key link on the Friends
+    // page instead. `/booking-buddy/groups` stays a real route; `sectionForPath`
+    // below still resolves it to "friends" directly.
+    children: [],
   },
   {
     id: "settings",

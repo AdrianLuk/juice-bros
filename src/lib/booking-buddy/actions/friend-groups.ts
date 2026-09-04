@@ -29,10 +29,16 @@ export type FriendGroup = {
 
 export type FriendVisibility = {
   person: ConnectionPerson;
-  /** What they actually see, after groups and any override are applied. */
+  /** What they actually see, after the default, groups, and any override are applied. */
   resolved: VisibilityLevel;
   /** Set only when the owner has pinned a level for this one friend. */
   override: VisibilityLevel | null;
+};
+
+export type FriendVisibilityList = {
+  /** `profiles.default_friend_visibility` — the floor every friend starts from (ADR 0021). */
+  defaultLevel: VisibilityLevel;
+  friends: FriendVisibility[];
 };
 
 export type GroupsPageData = {
@@ -105,10 +111,15 @@ export async function getGroupsPageData(): Promise<GroupsPageData> {
  * `default_friend_visibility` — the floor the chain starts from (ADR 0021),
  * without which every ungrouped friend would resolve to `none` here while the
  * database happily showed them the calendar.
+ *
+ * Returns that default level alongside the resolved friends, rather than just
+ * the list — the Friends page's default-visibility control needs it too, and
+ * it's already the first of the four queries above; a second read of the same
+ * row from the page itself would just be a redundant round trip.
  */
 export async function getFriendVisibilityList(
   friends: ConnectionPerson[],
-): Promise<FriendVisibility[]> {
+): Promise<FriendVisibilityList> {
   const session = await verifySession();
   const supabase = await createClient();
 
@@ -177,11 +188,48 @@ export async function getFriendVisibilityList(
     overrideRows.map((row) => [row.connectionId, row.level]),
   );
 
-  return friends.map((person) => ({
-    person,
-    resolved: resolved.get(person.connectionId) ?? defaultLevel,
-    override: overrideByConnection.get(person.connectionId) ?? null,
-  }));
+  return {
+    defaultLevel,
+    friends: friends.map((person) => ({
+      person,
+      resolved: resolved.get(person.connectionId) ?? defaultLevel,
+      override: overrideByConnection.get(person.connectionId) ?? null,
+    })),
+  };
+}
+
+/**
+ * Change the floor every friend starts from (ADR 0021). A friend with no
+ * override and no group above it moves the instant this saves — the resolver
+ * and the SQL policy functions both read this column live, there is nothing
+ * else to update.
+ */
+export async function setDefaultFriendVisibility(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const level = formData.get("level");
+
+  // Never defaulted. This decides what every friend without a more specific
+  // setting can see, so a value that didn't arrive must stop the write rather
+  // than pick for them.
+  if (!isVisibilityLevel(level)) {
+    return { error: "Pick what friends see by default." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ default_friend_visibility: level })
+    .eq("id", session.userId);
+
+  if (error) {
+    return { error: "Couldn't update your default. Try again." };
+  }
+
+  revalidatePath(FRIENDS_PATH);
+  return { ok: true };
 }
 
 export async function createFriendGroup(
@@ -350,7 +398,7 @@ export async function setFriendVisibilityOverride(
       .eq("connection_id", connectionId);
 
     if (error) {
-      return { error: "Couldn't go back to the group default." };
+      return { error: "Couldn't go back to your default." };
     }
 
     revalidatePath(FRIENDS_PATH);
