@@ -4,6 +4,7 @@ import { expect, test } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import { addPlace, placeName, removePlace, selectDuration } from "./support/places.ts";
+import { pickDate } from "./support/date-field.ts";
 
 /**
  * The Slot Link + Guest RSVP journey (issue #10): the owner generates a
@@ -25,7 +26,7 @@ async function createSlot(
   slot: { date: string; start: string; end: string; label: string },
 ): Promise<string> {
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill(slot.date);
+  await pickDate(page, slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
   await selectDuration(page, slot.start, slot.end);
   await page.getByRole("button", { name: "Post game" }).click();
@@ -99,7 +100,7 @@ test("a guest sees which facility the slot is for, even for a bare proposal", as
   await addPlace(page, place);
 
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill("2031-04-06");
+  await pickDate(page, "2031-04-06");
   await page.getByLabel("Start").selectOption("18:00");
   await selectDuration(page, "18:00", "19:00");
   await page.getByLabel("Facility").selectOption({ label: place });

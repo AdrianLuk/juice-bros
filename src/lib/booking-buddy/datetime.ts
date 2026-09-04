@@ -55,6 +55,26 @@ export function previousCalendarDate(date: string): string {
   return shiftCalendarDate(date, -1);
 }
 
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * `"2026-09-09"` → `"Sep 09, 2026"` — the readable form the Booking and Game
+ * date pickers show on their trigger button, so a picked date reads the way
+ * Booking Buddy writes one everywhere else rather than the browser's locale
+ * `dd/mm/yyyy`. Same zoneless-string convention as `formatCandidateDate`
+ * (bookings.ts) and `isRealDate`: the calendar date carries no zone, so the
+ * day and year are resliced straight from the string and only the month name
+ * is read off a `Date` (UTC midnight, `getUTCMonth`).
+ */
+export function formatDateLabel(date: string): string {
+  const [year, , day] = date.split("-");
+  const month = MONTHS_SHORT[new Date(`${date}T00:00:00Z`).getUTCMonth()];
+  return `${month} ${day}, ${year}`;
+}
+
 /** "Today" as a `YYYY-MM-DD` string in `zone`, at instant `now` — `en-CA` happens to format that way natively. */
 export function todayInZone(zone: string, now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);

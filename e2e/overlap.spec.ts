@@ -3,6 +3,7 @@ import { type Browser, type Page } from "@playwright/test";
 import { expect, test, type Accounts } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
+import { expectDate } from "./support/date-field.ts";
 import {
   deleteAvailabilityWindows,
   insertAvailabilityWindow,
@@ -119,7 +120,7 @@ test("free days appear, then a friend's busy window carves them away", async ({
 
   await propose.first().click();
   await page.waitForURL(/\/booking-buddy\/slots(\?|#|$)/);
-  await expect(page.getByLabel("Date")).toHaveValue(date!);
+  await expectDate(page, date!);
 
   // Ben2 blocks off the whole range, in any timezone. Now nothing overlaps.
   await insertAvailabilityWindow(
@@ -178,7 +179,7 @@ test("the Games page lists a friend who's looking to play, with a prefilled Prop
 
   await propose.click();
   await page.waitForURL(/\/booking-buddy\/slots(\?|#|$)/);
-  await expect(page.getByLabel("Date")).toHaveValue(targetDate);
+  await expectDate(page, targetDate);
   // 6-9pm window: Start and a matching 3-hour Duration both prefilled.
   await expect(page.getByLabel("Start")).toHaveValue("18:00");
   await expect(

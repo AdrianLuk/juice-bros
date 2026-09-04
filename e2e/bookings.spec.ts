@@ -1,6 +1,7 @@
 import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
+import { pickDate } from "./support/date-field.ts";
 import {
   PREFIX,
   addPlace,
@@ -197,7 +198,7 @@ test("a booking that runs past midnight can be logged", async ({ page }) => {
   await page.goto("/booking-buddy/bookings");
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("91");
-  await page.getByLabel("Date").fill("2026-09-15");
+  await pickDate(page, "2026-09-15");
   await page.getByLabel("Start").selectOption("22:00");
   await selectDuration(page, "22:00", "01:00");
 

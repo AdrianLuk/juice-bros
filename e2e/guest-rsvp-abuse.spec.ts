@@ -6,6 +6,7 @@ import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import { guestRsvpLogForSlotLink, slotLinkIdForToken } from "./support/guest-rsvp-log.ts";
 import { selectDuration } from "./support/places.ts";
+import { pickDate } from "./support/date-field.ts";
 
 /**
  * Issue #13's 10.2: confirm the Guest-abuse soft-threshold logging (7.6) is
@@ -33,7 +34,7 @@ async function createSlot(
   slot: { date: string; start: string; end: string; label: string },
 ): Promise<string> {
   await page.goto("/booking-buddy/slots");
-  await page.getByLabel("Date").fill(slot.date);
+  await pickDate(page, slot.date);
   await page.getByLabel("Start").selectOption(slot.start);
   await selectDuration(page, slot.start, slot.end);
   await page.getByRole("button", { name: "Post game" }).click();

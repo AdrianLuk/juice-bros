@@ -2,6 +2,7 @@ import { type Locator, type Page } from "@playwright/test";
 import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
+import { pickDate } from "./support/date-field.ts";
 import { GooglePlacesMock, deleteCachedPlaces } from "./support/google-places-mock.ts";
 import { deleteOrgs } from "./support/db-reset.ts";
 
@@ -201,7 +202,7 @@ test("a picked place's time zone is derived from its coordinates, no question as
   // formatCourtLabel prepends "Court " for display — the field itself is
   // numbers-only (type="number"), so the row still reads "Court 98".
   await page.getByLabel("Court").fill("98");
-  await page.getByLabel("Date").fill("2026-09-15");
+  await pickDate(page, "2026-09-15");
   await page.getByLabel("Start").selectOption("18:00");
   // End is computed from Start + Duration (issue #57), not its own field.
   await page.getByRole("radio", { name: "1 hour" }).click();

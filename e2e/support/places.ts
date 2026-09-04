@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
+import { pickDate } from "./date-field.ts";
+
 /**
  * Clicking a hand-named Org into existence, and a Booking under it.
  *
@@ -97,7 +99,7 @@ export async function logBooking(
     await page.getByLabel("Notes").fill(booking.notes);
   }
   await page.getByLabel("Court").fill(booking.court);
-  await page.getByLabel("Date").fill(booking.date);
+  await pickDate(page, booking.date);
   // On-the-hour slots only (issue #20 follow-up) — this is a `<select>` now,
   // not a free-typed time, so a value off the hour grid isn't reachable.
   await page.getByLabel("Start").selectOption(booking.start);
@@ -153,7 +155,7 @@ export async function editBooking(
     await dialog.getByLabel("Court").fill(edits.court);
   }
   if (edits.date !== undefined) {
-    await dialog.getByLabel("Date").fill(edits.date);
+    await pickDate(dialog, edits.date);
   }
   if (edits.format) {
     await dialog.getByLabel("Format").selectOption({ label: edits.format });
