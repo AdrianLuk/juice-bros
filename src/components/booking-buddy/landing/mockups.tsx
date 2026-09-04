@@ -12,7 +12,7 @@ const HATCH =
 const pill =
   "inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] font-medium";
 
-/** A bare proposal — a time floated before any court is booked. */
+/** A bare proposal: a time put to the group before any court is booked. */
 export function SlotProposalPreview() {
   const responses: [string, string][] = [
     ["You", "Yes"],

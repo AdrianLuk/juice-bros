@@ -90,10 +90,9 @@ export function BookingBuddyLanding() {
               Sort out the next game without the group-chat spiral
             </h1>
             <p className="jb-in jb-in-2 max-w-md text-[1.05rem] text-[var(--bb-on-cork-dim)] text-balance">
-              Pin a time, see who&apos;s actually in, and keep everyone&apos;s
-              court bookings in one place. Free, and built by two rec players
-              who got tired of running the Tuesday-night &ldquo;who can
-              play?&rdquo; thread.
+              Poll the group on a time and keep everyone&apos;s court bookings
+              in one place. Free, and built by two rec players who got tired of
+              running the Tuesday-night &ldquo;who can play?&rdquo; thread.
             </p>
             <div className="jb-in jb-in-3 mt-3 flex flex-col gap-3 sm:flex-row">
               <Button
@@ -144,12 +143,13 @@ export function BookingBuddyLanding() {
       <div id="how" className="scroll-mt-24" />
 
       <Beat
-        title="Float a time before anyone books a court"
+        title="Poll the group before anyone books a court"
         visual={<SlotProposalPreview />}
       >
-        Pin a day and time and let people say yes, no, or maybe. It starts as a
-        plain proposal. Once someone grabs a court, attach it and Booking Buddy
-        tracks the spots so you know when you&apos;ve got a full game.
+        Put up a day and time and let people vote yes, no, or maybe, the same as
+        a group-chat poll but somewhere it won&apos;t scroll away. Once someone
+        grabs a court, attach it and Booking Buddy tracks the spots so you know
+        when you&apos;ve got a full game.
       </Beat>
 
       <Beat
@@ -168,7 +168,7 @@ export function BookingBuddyLanding() {
       >
         Pick the friends you want in, and Booking Buddy checks everyone&apos;s
         availability against yours. It shows the days you can all make, with a
-        button to float a game for one without leaving the page.
+        button to poll the group for one without leaving the page.
       </Beat>
 
       <Beat

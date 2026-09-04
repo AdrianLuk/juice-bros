@@ -499,6 +499,9 @@ html:has(.bb-app-chrome) {
 .bb-pin {
   --bb-pin: var(--bb-pin-info);
   position: absolute;
+  /* Sits on top of whatever it pins — including a positioned `.bb-card`
+     sibling that would otherwise paint over it (landing `.bb-pinned` wraps). */
+  z-index: 2;
   top: -0.5rem;
   left: 50%;
   width: 1.05rem;
