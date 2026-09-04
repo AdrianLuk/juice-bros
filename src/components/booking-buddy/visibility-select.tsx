@@ -6,9 +6,9 @@ import {
 
 const VISIBILITY_LABELS: Record<VisibilityLevel, string> = {
   none: "Nothing",
-  slots: "Slots I share with them",
+  slots: "Games I share with them",
   open_time: "Just my availability",
-  calendar: "Slots and my availability",
+  calendar: "Games and my availability",
 };
 
 /** Display order comes from the levels themselves — see visibility.ts. */
@@ -46,12 +46,17 @@ export function VisibilitySelect({
   extraOptions = [],
   ...props
 }: React.ComponentProps<"select"> & {
-  /** Prepended choices that aren't levels — "use the group default". */
+  /**
+   * Appended after the four levels — an escape hatch like "use my default",
+   * not a level itself. Trailing rather than leading so a restriction picker
+   * reads restriction-first: what this choice limits someone to, then the
+   * option to stop limiting them at all.
+   */
   extraOptions?: { value: string; label: string }[];
 }) {
   return (
     <FormSelect name={name} {...props}>
-      {[...extraOptions, ...VISIBILITY_OPTIONS].map((option) => (
+      {[...VISIBILITY_OPTIONS, ...extraOptions].map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>

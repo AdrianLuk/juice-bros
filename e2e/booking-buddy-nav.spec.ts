@@ -14,7 +14,7 @@ import { signIn } from "./support/sign-in.ts";
 const MOBILE = { width: 390, height: 844 };
 const DESKTOP = { width: 1280, height: 800 };
 
-test("desktop: the active section is marked and its dropdown exposes the siblings", async ({
+test("desktop: the active section is marked, and Friends has no dropdown now Groups is demoted", async ({
   page,
   accounts,
 }) => {
@@ -33,11 +33,9 @@ test("desktop: the active section is marked and its dropdown exposes the sibling
     bar.getByRole("link", { name: "Friends" }).first(),
   ).toHaveAttribute("aria-current", "page");
 
-  // Its child "Groups" is hidden until the trigger is hovered.
-  const groups = bar.getByRole("link", { name: "Groups" });
-  await expect(groups).toBeHidden();
-  await bar.getByRole("link", { name: "Friends" }).first().hover();
-  await expect(groups).toBeVisible();
+  // Groups was demoted off the nav (issue #378) to a low-key link on the
+  // Friends page — there's no dropdown left to reveal it from.
+  await expect(bar.getByRole("link", { name: "Groups" })).toHaveCount(0);
 });
 
 test("desktop: Facilities has moved under the Settings dropdown", async ({

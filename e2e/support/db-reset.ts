@@ -82,6 +82,14 @@ export async function resetNotificationPreferences(user: FixtureUser): Promise<v
   });
 }
 
+/** Puts the caller's `default_friend_visibility` back to the seeded `calendar` (ADR 0021). */
+export async function resetDefaultFriendVisibility(user: FixtureUser): Promise<void> {
+  await asUser(user, "profiles?id=not.is.null", {
+    method: "PATCH",
+    body: JSON.stringify({ default_friend_visibility: "calendar" }),
+  });
+}
+
 /** Removes the caller's Mailbox Link, so the next test's connect step starts from nothing. */
 export async function disconnectMailbox(user: FixtureUser): Promise<void> {
   await asUser(user, "mailbox_links?owner_id=not.is.null", { method: "DELETE" });
