@@ -15,9 +15,9 @@ import { SegReadout } from "./seg-readout";
 /**
  * The hero of the screen: the readout panel, seated in the instrument's dark
  * bezel with a screen-printed status strip across its top lip. Serving score,
- * receiving score, server number — in the order it's spoken, as a fixed-cell
- * seven-segment display a ref reads in one glance in direct sun. The serving
- * side carries the one orange signal down the panel edge.
+ * receiving score, server number — in the order it's spoken, as one big plain
+ * tabular numeral a ref reads in one glance in direct sun. The serving side
+ * carries the one orange signal down the panel edge.
  */
 export function ScoreCall({
   state,
@@ -77,7 +77,7 @@ export function ScoreCall({
             receiving={receiving}
             serverNumber={serverNumber}
             label={`Score ${serving} ${receiving}${serverNumber === null ? "" : ` server ${serverNumber}`}`}
-            className="text-[clamp(2.75rem,15vw,6rem)] ref-landscape:text-[clamp(2.25rem,13vh,4.5rem)]"
+            className="text-[clamp(3rem,17vw,6.5rem)] ref-landscape:text-[clamp(2.5rem,15vh,5rem)]"
           />
         </div>
 

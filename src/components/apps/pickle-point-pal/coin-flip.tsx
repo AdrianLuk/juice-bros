@@ -78,7 +78,7 @@ export function CoinFlip({
               <p className="text-center text-sm text-pp-ink-dim">Nothing drawn yet.</p>
             ) : (
               <span
-                className="text-[clamp(3.5rem,20vw,6rem)] leading-none ref-landscape:text-5xl"
+                className="text-[clamp(3.5rem,20vw,6rem)] leading-none ref-landscape:text-[clamp(2rem,13vh,3rem)]"
                 aria-live="polite"
                 aria-label={`Drew ${drawn}`}
               >
@@ -233,7 +233,7 @@ function TeamToggle({
                 "min-h-12 truncate rounded-md px-2 text-sm font-semibold ref-landscape:min-h-9 ref-landscape:text-xs",
                 selected
                   ? "bg-pp-frame text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]"
-                  : "text-pp-ink-dim hover:bg-pp-panel-sink"
+                  : "text-pp-ink-dim hover:bg-[var(--pp-panel-sink)]"
               )}
               style={{ touchAction: "manipulation" }}
             >

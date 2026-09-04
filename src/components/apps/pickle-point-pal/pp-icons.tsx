@@ -24,6 +24,16 @@ function Svg({ className, children }: IconProps & { children: React.ReactNode })
   );
 }
 
+export function RotateDeviceIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 10h9v10H4Z" />
+      <path d="M13 10V4h7v10h-4" />
+      <path d="M17 7v3h-3" />
+    </Svg>
+  );
+}
+
 export function UndoIcon({ className }: IconProps) {
   return (
     <Svg className={className}>

@@ -21,7 +21,7 @@
       "data": { "displayName": "Data", "purpose": "Geist Mono, tabular-nums. Games-won counts, format spec line, match-log timestamps." }
     },
     "readout": {
-      "note": "The score and timeout clock are not type. They are true seven-segment SVG geometry (SegDigit: 100x180 cell, ~12px stroke, 45deg bevels). Lit = var(--pp-ink), unlit ghost = var(--pp-ghost) always drawn. Sized by container font-size at height:1em. Live Score Call clamp(2.75rem,15vw,6rem); ref-landscape clamp(2.25rem,13vh,4.5rem)."
+      "note": "The score and timeout clock are one big plain heavy tabular numeral (.pp-num: Saira Condensed 800, letter-spacing -0.01em, line-height 0.85), sized by container font-size. SegNumber reserves a fixed width so 9->10 never reflows. Live Score Call clamp(3rem,17vw,6.5rem); ref-landscape clamp(2.25rem,13vh,4.5rem). No count-up or slide on a change."
     },
     "shadows": [
       { "name": "frame-contact", "value": "0 1px 2px oklch(0.2 0.01 260 / 0.16), 0 14px 28px -18px oklch(0.2 0.02 260 / 0.34)", "purpose": "Seats the graphite chassis (.pp-frame) on the ground. The only real cast shadow in the system." },
@@ -71,9 +71,9 @@
       "name": "Seven-Segment Readout",
       "kind": "custom",
       "refersTo": "readout",
-      "description": "The spoken score call — serving, receiving, server# — as true SVG seven-segment digits with always-visible ghost segments. Never a font, never a slide.",
-      "html": "<span class=\"ds-readout\"><svg class=\"ds-seg\" viewBox=\"0 0 100 180\"><polygon class=\"on\" points=\"14,4 86,4 74,16 26,16\"/><polygon class=\"on\" points=\"88,8 88,84 76,74 76,18\"/><polygon class=\"on\" points=\"88,96 88,172 76,162 76,106\"/><polygon class=\"on\" points=\"14,176 86,176 74,164 26,164\"/><polygon class=\"off\" points=\"12,96 24,106 24,162 12,172\"/><polygon class=\"on\" points=\"12,8 24,18 24,74 12,84\"/><polygon class=\"on\" points=\"16,90 28,80 72,80 84,90 72,100 28,100\"/></svg></span>",
-      "css": ".ds-readout{display:inline-flex;align-items:flex-start;line-height:1;font-size:5rem}.ds-seg{display:block;height:1em;width:auto;aspect-ratio:100/180}.ds-seg .on{fill:oklch(0.19 0.006 260)}.ds-seg .off{fill:oklch(0.905 0.004 95)}.ds-seg polygon{transition:fill 70ms linear}"
+      "description": "The spoken score call — serving, receiving, server# — as one big plain heavy tabular numeral (.pp-num). Never a slide or count-up.",
+      "html": "<span class=\"ds-readout\">7<span class=\"ds-sep\"></span>5<span class=\"ds-sep\"></span>2</span>",
+      "css": ".ds-readout{display:inline-flex;align-items:center;line-height:.85;font-size:5rem;font-family:\"Saira Condensed\",sans-serif;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:oklch(0.19 0.006 260)}.ds-sep{width:.34em;height:.1em;margin:0 .13em;border-radius:1px;background:currentColor}"
     },
     {
       "name": "Readout Panel",
@@ -114,7 +114,7 @@
     "keyCharacteristics": [
       "Anodized-graphite frame + bright recessed readout panel, on a machined chassis ground",
       "One hi-vis orange signal, single-meaning; never a control fill",
-      "Score as a true SVG seven-segment display with always-visible ghost segments — not a font",
+      "Score as a big plain heavy tabular numeral in the signage face, readable across a court in the sun",
       "Saira Condensed silkscreen legends, uppercase and tracked, on every control",
       "Committed light, no dark mode; three-level physical depth",
       "Keys are physical: a slight raise, a hard bottom edge, key travel on press"
@@ -130,7 +130,7 @@
     "dos": [
       "Do keep orange to its one meaning (serving / live / clock running) and to <=10% of any screen.",
       "Do put every forward action on a single graphite .pp-key--primary per screen.",
-      "Do draw absence deliberately — unlit ghost segments, empty allowance pips — as carefully as the lit state.",
+      "Do draw absence deliberately — empty allowance pips, the unfilled quadrants of the court — as carefully as the filled state.",
       "Do give every non-score state an official mark: fixed colour + glyph + printed .pp-legend/.pp-plate label.",
       "Do keep the readout in spoken order (serving, receiving, server#) and let container font-size drive its size.",
       "Do seat panels into frames with inset shadows; show interaction with key travel (translateY(2px)), not lift.",

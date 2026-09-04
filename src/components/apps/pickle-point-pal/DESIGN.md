@@ -15,7 +15,6 @@ colors:
   hairline: "oklch(0.87 0.004 95)"
   ink: "oklch(0.19 0.006 260)"
   ink-dim: "oklch(0.42 0.01 255)"
-  ghost: "oklch(0.905 0.004 95)"
   signal: "#f26522"
   signal-ink: "#ffffff"
   alert: "oklch(0.52 0.2 25)"
@@ -160,7 +159,7 @@ panel with near-black ink whatever the host system or site theme is doing.
 **Key Characteristics:**
 - Anodized-graphite frame + bright recessed readout panel, on a machined chassis ground
 - One hi-vis orange signal, single-meaning; never a control fill
-- Score as a true SVG seven-segment display with always-visible ghost segments — not a font
+- Score as a big plain heavy tabular numeral in the signage face, readable across a court in the sun
 - Saira Condensed silkscreen legends, uppercase and tracked, on every control
 - Committed light, no dark mode; three-level physical depth
 - Keys are physical: a slight raise, a hard bottom edge, key travel on press
@@ -185,9 +184,8 @@ A near-monochrome instrument palette — graphite frame, warm panel-whites, near
 - **Readout Panel** (`oklch(0.99 0.002 95)`, sink `0.965`, edge `0.9`): the bright reflective panel; near-white with a faint warm tint.
 - **Panel Sink** (`oklch(0.965 0.004 95)`): recessed wells and control shelves on the panel-white surface.
 - **Hairline** (`oklch(0.87 0.004 95)`): dividers and quiet borders on light surfaces.
-- **Ink** (`oklch(0.19 0.006 260)`): primary text and lit segments.
+- **Ink** (`oklch(0.19 0.006 260)`): primary text and the score numeral.
 - **Ink Dim** (`oklch(0.42 0.01 255)`): secondary text on the panel — tinted from the panel's warmth, ~7:1 on panel-white, clears AA past a sunlit glance. Never a flat gray.
-- **Ghost** (`oklch(0.905 0.004 95)`): unlit seven-segment segments — a phantom of the full "8".
 
 ### Named Rules
 **The One Signal Rule.** Orange (`#f26522`) has exactly one meaning: serving / live / clock running. It appears on ≤10% of any screen and is never a fill on a control the ref taps. A resource meter, a count, a selected toggle — all graphite, never orange.
@@ -199,7 +197,7 @@ A near-monochrome instrument palette — graphite frame, warm panel-whites, near
 **Display / Legend Font:** Saira Condensed (`--font-arena`, fallback Arial Narrow) — a condensed industrial grotesque, the screen-printed signage voice.
 **Body Font:** Geist (`--font-sans`) — workhorse grotesque for prose and FAQ.
 **Data Font:** Geist Mono (`--font-mono`) — tabular data: the scoresheet, timestamps, counts, format spec chips.
-**Score readout:** not a font — true seven-segment SVG geometry (`SegReadout` / `SegDigit`), sized entirely by container `font-size` at `height: 1em`.
+**Score readout** (`.pp-num`): Saira Condensed 800, `tabular-nums`, `letter-spacing -0.01em`, `line-height 0.85` — a plain heavy numeral, sized entirely by container `font-size`. `SegNumber` reserves a fixed width so 9→10 never reflows.
 
 **Character:** Equipment silkscreen. Condensed uppercase legends sit beside every control the way a label is printed on a piece of kit; mono handles anything that must line up in a column; Geist stays quiet and neutral for the paragraphs nobody reads mid-match.
 
@@ -208,12 +206,12 @@ A near-monochrome instrument palette — graphite frame, warm panel-whites, near
 - **Legend** (`.pp-legend`, Saira Condensed 600, `0.6875rem`, `letter-spacing 0.16em`, uppercase, `line-height 1.1`): control legends, status strips, field labels. `.pp-legend--onframe` switches the colour to frame-legend-grey for text on the dark chassis.
 - **Body** (Geist 400, `~1rem`, `line-height ~1.6`): FAQ answers, sheet explanatory copy, setup hints.
 - **Data** (`.pp-data`, Geist Mono, `tabular-nums`, `letter-spacing 0.01em`): games-won counts, format spec line, match-log timestamps.
-- **Readout** (seven-segment SVG, `clamp(2.75rem, 15vw, 6rem)` on the live Score Call, `clamp(2.25rem, 13vh, 4.5rem)` in ref-landscape): the spoken score — serving · receiving · server# — and the M:SS timeout clock.
+- **Readout** (`.pp-num`, `clamp(3rem, 17vw, 6.5rem)` on the live Score Call, `clamp(2.25rem, 13vh, 4.5rem)` in ref-landscape): the spoken score — serving · receiving · server# — and the M:SS timeout clock.
 
 ### Named Rules
 **The Legend Floor Rule.** A silkscreen legend is never set below `0.6875rem` (11px). It has to survive a sunlit glance from arm's length.
 
-**The Readout Is Not A Font Rule.** The score is drawn segment by segment as SVG polygons. It never slides, counts up, or is set in a display typeface — a score change resolves as an instant per-segment ignite/extinguish with a hair of stagger (12ms × segment index).
+**The Readout Rule.** The score is one big plain heavy tabular numeral (`.pp-num`, Saira Condensed 800) — nothing decorative between the ref and the number. It never slides or counts up: a score change is an instant swap. `SegNumber` holds a fixed width so the readout never reflows.
 
 **The Spoken-Order Rule.** The readout always reads in the order an umpire says it aloud: serving score, receiving score, server number. Never home/away, never sorted.
 
@@ -266,8 +264,8 @@ Machined-panel geometry: small, consistent radii, everything rectilinear. Corner
 ### Rally Keys (Signature)
 The two primary targets — one per team, tall (`min-h-24`), full-width, side by side on the side each team's court is drawn on. Player names as `.pp-plate` lines, then a small `wins rally` legend and the outcome word (`POINT` / `SIDE OUT` / `2ND SERVE`) — orange when that team is serving. Disabled during an active timeout and after game point. Nothing destructive sits within a thumb's slip.
 
-### Seven-Segment Readout (Signature)
-`SegReadout` / `SegDigit` / `SegClock`. 100×180 cell, ~12px stroke, 45° bevels. Lit segments `var(--pp-ink)`, unlit `var(--pp-ghost)` — always drawn, never omitted, but no leading phantom *cell* (a padded ghost digit misreads as a real one). Score change: `fill 70ms linear` per polygon, staggered 12ms × index. The timeout clock reuses the exact grammar, larger, turning orange (`.pp-seg-warn`) under fifteen seconds and ink-dim when paused.
+### Score Readout (Signature)
+`.pp-num` — the readout is a plain, heavy, tabular numeral in the condensed signage face (`--font-arena` / Saira Condensed 800, `letter-spacing: -0.01em`, `line-height: 0.85`), sized off the container: live Score Call `clamp(3rem,17vw,6.5rem)`, `ref-landscape` `clamp(2.25rem,13vh,4.5rem)`. No segmented-display silhouette — what is not lit is not drawn. `SegReadout` renders serving · receiving · server# with a slim centred `SegSep` bar between groups; `SegNumber` reserves a fixed width so the readout does not reflow from 9 to 10. `SegClock` reuses the same numeral, larger, turning orange under fifteen seconds and ink-dim when paused. No count-up or slide on a score change.
 
 ### Serve Bar (Signature)
 `.pp-servebar` — a `w-2.5` orange vertical strip pinned to the serving team's inner panel edge, `linear-gradient(#ff7c3c → #f26522)` with a `0 0 0 1px` orange edge ring. The loudest non-numeric element. It snaps to the other edge on a side-out; it never fades.
@@ -295,7 +293,7 @@ Line-only engraved schematic of four positions, current server highlighted, mirr
 ### Do:
 - **Do** keep orange to its one meaning (serving / live / clock running) and to ≤10% of any screen.
 - **Do** put every forward action on a single graphite `.pp-key--primary` per screen.
-- **Do** draw absence deliberately — unlit ghost segments, empty allowance pips — as carefully as the lit state.
+- **Do** draw absence deliberately — empty allowance pips, the unfilled quadrants of the court — as carefully as the filled state.
 - **Do** give every non-score state an official mark: fixed colour + glyph + printed `.pp-legend`/`.pp-plate` label.
 - **Do** keep the readout in spoken order (serving, receiving, server#) and let container `font-size` drive its size.
 - **Do** seat panels into frames with inset shadows; show interaction with key travel (`translateY(2px)`), not lift.

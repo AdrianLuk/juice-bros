@@ -99,17 +99,13 @@ export function MatchScreen({
     // the two point keys pinned to the far left and right edges of the device.
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 ref-landscape:max-w-none">
       {/* The fold — one machined panel: status strip, readout, court, and the
-          two rally keys cradled in a single anodized chassis. Sized so its
-          bottom edge lands near the bottom of the viewport in both layouts,
-          which puts the control shelf — everything a ref only reaches for
-          between rallies — one deliberate scroll below it. */}
-      <div className="pp-frame flex flex-col gap-3 p-2.5 max-sm:min-h-[calc(100svh-11rem)] ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-2">
+          two rally keys cradled in a single anodized chassis. It sizes to its
+          content; the control shelf follows directly below. */}
+      <div className="pp-frame flex flex-col gap-3 p-2.5 ref-landscape:h-[calc(100dvh-4.75rem)] ref-landscape:min-h-80 ref-landscape:gap-2">
         {/* Portrait stacks; the ref layout becomes left team · panel · right
             team. The centre column is the widest so the readout and court
-            stay the thing you read, with the keys as thumb rails. On a phone
-            the keys pin to the bottom of the chassis (thumb reach) and the
-            control shelf lands one deliberate scroll below the fold. */}
-        <div className="flex min-h-0 flex-1 flex-col gap-3 max-sm:justify-between ref-landscape:grid ref-landscape:grid-cols-[minmax(6rem,1fr)_minmax(0,2.6fr)_minmax(6rem,1fr)] ref-landscape:gap-2">
+            stay the thing you read, with the keys as thumb rails. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 ref-landscape:grid ref-landscape:grid-cols-[minmax(6rem,1fr)_minmax(0,2.6fr)_minmax(6rem,1fr)] ref-landscape:gap-2">
           <div className="flex min-h-0 flex-col gap-3 ref-landscape:col-start-2 ref-landscape:row-start-1 ref-landscape:justify-center ref-landscape:gap-2">
             <ScoreCall state={state} servingOnLeft={servingOnLeft} />
 
@@ -136,16 +132,6 @@ export function MatchScreen({
 
             <CourtDiagram state={state} leftTeam={left} />
           </div>
-
-          {/* An engraved format plate on the chassis, filling the thumb gap on
-              a phone with the match rules a ref would otherwise ask for. */}
-          <p className="hidden select-none items-center justify-center gap-2 pp-legend text-pp-legend opacity-60 max-sm:flex">
-            {config.doubles ? "Doubles" : "Singles"}
-            <span aria-hidden>&middot;</span>
-            {config.scoring === "sideout" ? "Side-out" : "Rally"}
-            <span aria-hidden>&middot;</span>
-            {config.bestOf > 1 ? `Best of ${config.bestOf}` : "Single game"}
-          </p>
 
           <RallyButtons
             state={state}
