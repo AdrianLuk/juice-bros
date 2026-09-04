@@ -52,6 +52,10 @@ next-env.d.ts
 /blob-report
 /playwright/.cache
 
+# impeccable: ephemeral serve-question runtime logs + state (pid/port).
+# Outside the managed block below so it survives regeneration.
+.impeccable/questions/
+
 # impeccable-ignore-start
 # Ephemeral output, runtime state, and per-dev overrides.
 # Unanchored: .impeccable may sit at the repo root or under a nested
