@@ -13,6 +13,7 @@
  */
 
 import { escapeHtml } from "./escape-html.ts";
+import { CONNECTION_VISIBILITY_NOTICE } from "./connection-copy.ts";
 
 /** What a `/connect/<token>` link asks for. */
 export type ConnectionRequestAction = "accept" | "decline";
@@ -56,7 +57,7 @@ export function formatConnectionRequestEmail(params: {
       <tr>
         <td style="padding:24px 28px 8px;">
           <p style="margin:0;color:#18181b;font-size:20px;font-weight:600;">${name} wants to connect</p>
-          <p style="margin:12px 0 0;color:#3f3f46;font-size:15px;line-height:1.5;">On Booking Buddy, connecting is mutual. Once you accept, you can see each other's open time and invite each other to games.</p>
+          <p style="margin:12px 0 0;color:#3f3f46;font-size:15px;line-height:1.5;">On Booking Buddy, connecting is mutual. ${CONNECTION_VISIBILITY_NOTICE}</p>
         </td>
       </tr>
       <tr>
