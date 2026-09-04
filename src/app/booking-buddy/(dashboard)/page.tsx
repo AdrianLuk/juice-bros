@@ -127,7 +127,7 @@ export default async function BookingBuddyPage() {
                     +
                   </span>
                   <span className="font-bb-sign text-[0.8rem] tracking-widest text-foreground uppercase">
-                    Pin a new game
+                    Post a new game
                   </span>
                 </BoardCard>
 
@@ -142,7 +142,7 @@ export default async function BookingBuddyPage() {
 
                 {upcomingGames.length === 0 && (
                   <p className="max-w-xs self-center py-6 text-center text-sm text-[var(--bb-on-cork-dim)]">
-                    No games on the board yet. Pin one and your friends can say
+                    No games on the board yet. Post one and your friends can say
                     they&apos;re in.
                   </p>
                 )}
