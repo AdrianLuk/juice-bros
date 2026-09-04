@@ -61,116 +61,101 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
 
   return (
     <div className="mx-auto w-full max-w-md ref-landscape:max-w-4xl">
-      <h1 className="font-heading text-2xl font-bold text-neutral-950 ref-landscape:text-lg">
-        New match
-      </h1>
-      {/* Cut in the ref layout — it's the one line here that's explanation
-          rather than a control, and height is what's scarce sideways. */}
-      <p className="mt-1 text-sm text-neutral-500 ref-landscape:hidden">
-        Set the rules, then name the players. Names show on the rally buttons
-        and the court diagram.
-      </p>
-      <p className="mt-1 text-xs font-medium text-brand-orange ref-landscape:hidden">
-        Tip: turn your phone sideways — scoring is easier in landscape.
+      <h1 className="pp-plate text-2xl text-pp-ink ref-landscape:text-lg">New match</h1>
+      {/* Cut in the ref layout — the one line here that's explanation rather
+          than a control, and height is what's scarce sideways. */}
+      <p className="mt-1.5 text-sm text-pp-ink-dim ref-landscape:hidden">
+        Set the rules, then name the players. Names show on the rally keys and
+        the court diagram. Turn your phone sideways once play starts; scoring is
+        easier in landscape.
       </p>
 
-      {/* Rules and names run in their own scrolling column side by side
-          instead of one long stack — the two are unrelated enough that a ref
-          filling in names doesn't need the rule toggles to have scrolled out
-          of view first, and split like this both columns fit near the height
-          of a landscape phone without either one dominating. */}
-      <div className="ref-landscape:grid ref-landscape:grid-cols-2 ref-landscape:items-start ref-landscape:gap-x-6">
-        <div>
-          <div className="mt-6 grid gap-4 ref-landscape:mt-3 ref-landscape:gap-4">
-            <Toggle
-              label="Players"
-              value={options.doubles}
-              options={[
-                { id: true, label: "Doubles" },
-                { id: false, label: "Singles" },
-              ]}
-              onChange={(value) => set("doubles", value)}
-            />
-            <Toggle
-              label="Scoring"
-              value={options.scoring}
-              options={[
-                { id: "sideout" as const, label: "Side-out" },
-                { id: "rally" as const, label: "Rally" },
-              ]}
-              // Win by and Freeze only mean anything under rally scoring, and
-              // buildConfig pins both to the side-out values regardless — so the
-              // toggles can keep the ref's choices across a trip through side-out
-              // and back rather than silently resetting.
-              onChange={(value) => set("scoring", value)}
-            />
-            {options.scoring === "rally" && (
-              <>
-                <div>
-                  <Toggle
-                    label="Win by"
-                    value={options.winBy ?? 1}
-                    options={WIN_BY_OPTIONS.map((winBy) => ({
-                      id: winBy as WinBy,
-                      label: winBy === 1 ? "1 (flat)" : "2 (deuce)",
-                    }))}
-                    onChange={(value) => set("winBy", value)}
-                  />
-                  <p className="mt-1 text-xs text-neutral-500 ref-landscape:hidden">
-                    1: the game ends the moment someone hits the target. 2: play
-                    continues past it until a team leads by two — the USAP margin.
-                  </p>
-                </div>
-                <div>
-                  <Toggle
-                    label="Freeze"
-                    value={options.freezeRule ?? true}
-                    options={[
-                      { id: false, label: "Off" },
-                      { id: true, label: "On" },
-                    ]}
-                    onChange={(value) => set("freezeRule", value)}
-                  />
-                  <p className="mt-1 text-xs text-neutral-500 ref-landscape:hidden">
-                    On: a team can only win the game on its own serve — reaching
-                    game point while receiving holds the score until they do. USAP
-                    dropped this for 2026; set it Off for a sanctioned event.
-                  </p>
-                </div>
-              </>
-            )}
-            <Toggle
-              label="Points to win"
-              value={options.pointsToWin}
-              options={POINTS_OPTIONS.map((points) => ({
-                id: points as PointsToWin,
-                label: String(points),
-              }))}
-              onChange={(value) => set("pointsToWin", value)}
-            />
-            <Toggle
-              label="Games"
-              value={options.bestOf}
-              options={BEST_OF_OPTIONS.map((bestOf) => ({
-                id: bestOf as BestOf,
-                label: bestOf === 1 ? "1 Game" : `Best of ${bestOf}`,
-              }))}
-              onChange={(value) => set("bestOf", value)}
-            />
-          </div>
+      {/* Rules and names run in their own scrolling column side by side in the
+          ref layout instead of one long stack. */}
+      <div className="mt-6 ref-landscape:mt-3 ref-landscape:grid ref-landscape:grid-cols-2 ref-landscape:items-start ref-landscape:gap-x-6">
+        <div className="pp-well grid gap-4 p-4 ref-landscape:gap-4">
+          <Toggle
+            label="Players"
+            value={options.doubles}
+            options={[
+              { id: true, label: "Doubles" },
+              { id: false, label: "Singles" },
+            ]}
+            onChange={(value) => set("doubles", value)}
+          />
+          <Toggle
+            label="Scoring"
+            value={options.scoring}
+            options={[
+              { id: "sideout" as const, label: "Side-out" },
+              { id: "rally" as const, label: "Rally" },
+            ]}
+            onChange={(value) => set("scoring", value)}
+          />
+          {options.scoring === "rally" && (
+            <>
+              <div>
+                <Toggle
+                  label="Win by"
+                  value={options.winBy ?? 1}
+                  options={WIN_BY_OPTIONS.map((winBy) => ({
+                    id: winBy as WinBy,
+                    label: winBy === 1 ? "1 (flat)" : "2 (deuce)",
+                  }))}
+                  onChange={(value) => set("winBy", value)}
+                />
+                <p className="mt-1.5 text-xs text-pp-ink-dim ref-landscape:hidden">
+                  1: the game ends the moment someone hits the target. 2: play
+                  continues past it until a team leads by two — the USAP margin.
+                </p>
+              </div>
+              <div>
+                <Toggle
+                  label="Freeze"
+                  value={options.freezeRule ?? true}
+                  options={[
+                    { id: false, label: "Off" },
+                    { id: true, label: "On" },
+                  ]}
+                  onChange={(value) => set("freezeRule", value)}
+                />
+                <p className="mt-1.5 text-xs text-pp-ink-dim ref-landscape:hidden">
+                  On: a team can only win the game on its own serve — reaching
+                  game point while receiving holds the score until they do. USAP
+                  dropped this for 2026; set it Off for a sanctioned event.
+                </p>
+              </div>
+            </>
+          )}
+          <Toggle
+            label="Points to win"
+            value={options.pointsToWin}
+            options={POINTS_OPTIONS.map((points) => ({
+              id: points as PointsToWin,
+              label: String(points),
+            }))}
+            onChange={(value) => set("pointsToWin", value)}
+          />
+          <Toggle
+            label="Games"
+            value={options.bestOf}
+            options={BEST_OF_OPTIONS.map((bestOf) => ({
+              id: bestOf as BestOf,
+              label: bestOf === 1 ? "1 game" : `Best of ${bestOf}`,
+            }))}
+            onChange={(value) => set("bestOf", value)}
+          />
 
-          <p className="mt-4 rounded-lg bg-neutral-100 px-3 py-2 text-center text-xs font-medium text-neutral-700 ref-landscape:mt-2">
+          <p className="pp-data rounded-(--pp-radius) bg-white px-3 py-2 text-center text-xs font-medium text-pp-ink">
             {describeConfig(buildConfig(options, { A: [""], B: [""] }))}
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 ref-landscape:mt-3 ref-landscape:gap-4">
+        <div className="mt-6 grid gap-4 ref-landscape:mt-0 ref-landscape:gap-4">
           {(["A", "B"] as const).map((team) => (
-            <fieldset key={team}>
-              <legend className="font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
-                Team {team}
-              </legend>
-              <div className="mt-2 grid gap-2 ref-landscape:mt-2">
+            <fieldset key={team} className="pp-well p-4">
+              <legend className="pp-legend px-1">Team {team}</legend>
+              <div className="mt-2 grid gap-2">
                 <NameInput
                   label={
                     options.doubles
@@ -190,43 +175,18 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
               </div>
 
               {options.doubles && (
-                <div className="mt-4 ref-landscape:mt-4">
-                  <p className="font-mono text-[0.65rem] font-semibold tracking-[0.15em] text-neutral-500 uppercase">
-                    First server
-                  </p>
-                  <div
-                    role="radiogroup"
-                    aria-label={`Team ${team} first server`}
-                    className="mt-1 grid grid-cols-2 gap-1 rounded-lg border-2 border-neutral-200 bg-white p-1"
-                  >
-                    {([0, 1] as const).map((index) => {
-                      const label = names[team][index].trim() || `Player ${index + 1}`;
-                      const selected = firstServer[team] === index;
-                      return (
-                        <button
-                          key={index}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          tabIndex={selected ? 0 : -1}
-                          onKeyDown={(e) =>
-                            handleRadioKeyDown(e, 2, index, (i) =>
-                              setTeamFirstServer(team, i as PlayerIndex)
-                            )
-                          }
-                          onClick={() => setTeamFirstServer(team, index)}
-                          className={cn(
-                            "min-h-12 truncate rounded-md px-2 text-sm font-semibold touch-manipulation ref-landscape:min-h-9 ref-landscape:text-xs",
-                            selected
-                              ? "bg-brand-orange text-white"
-                              : "text-neutral-600 hover:bg-neutral-50"
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="mt-4">
+                  <p className="pp-legend">First server</p>
+                  <RadioRow
+                    ariaLabel={`Team ${team} first server`}
+                    count={2}
+                    selectedIndex={firstServer[team]}
+                    onSelect={(i) => setTeamFirstServer(team, i as PlayerIndex)}
+                    options={([0, 1] as const).map((index) => ({
+                      key: String(index),
+                      label: names[team][index].trim() || `Player ${index + 1}`,
+                    }))}
+                  />
                 </div>
               )}
             </fieldset>
@@ -237,19 +197,13 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
       <button
         type="button"
         onClick={submit}
-        className="mt-8 block min-h-14 w-full rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px ref-landscape:mt-4 ref-landscape:min-h-11 ref-landscape:w-auto ref-landscape:px-10 ref-landscape:mx-auto"
+        className="pp-key pp-key--primary mx-auto mt-8 block min-h-14 w-full ref-landscape:mt-4 ref-landscape:w-auto ref-landscape:px-10"
       >
-        Continue to coin toss
+        <span className="pp-plate text-base">Continue to coin toss</span>
       </button>
     </div>
   );
 }
-
-// Tailwind needs the full class name in the source, so map rather than build it.
-const COLUMNS: Record<number, string> = {
-  2: "grid-cols-2",
-  3: "grid-cols-3",
-};
 
 function Toggle<T extends string | number | boolean>({
   label,
@@ -264,42 +218,68 @@ function Toggle<T extends string | number | boolean>({
 }) {
   return (
     <div>
-      <p className="font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
-        {label}
-      </p>
-      <div
-        role="radiogroup"
-        aria-label={label}
-        className={cn(
-          "mt-2 grid gap-1 rounded-xl border-2 border-neutral-200 bg-white p-1 ref-landscape:mt-1",
-          COLUMNS[options.length] ?? "grid-cols-2"
-        )}
-      >
-        {options.map((option, index) => {
-          const selected = option.id === value;
-          return (
-            <button
-              key={String(option.id)}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              tabIndex={selected ? 0 : -1}
-              onKeyDown={(e) =>
-                handleRadioKeyDown(e, options.length, index, (i) => onChange(options[i].id))
-              }
-              onClick={() => onChange(option.id)}
-              className={cn(
-                "min-h-12 rounded-lg text-sm font-semibold touch-manipulation ref-landscape:min-h-9 ref-landscape:text-xs",
-                selected
-                  ? "bg-brand-orange text-white"
-                  : "text-neutral-600 hover:bg-neutral-50"
-              )}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+      <p className="pp-legend">{label}</p>
+      <RadioRow
+        ariaLabel={label}
+        count={options.length}
+        selectedIndex={options.findIndex((o) => o.id === value)}
+        onSelect={(i) => onChange(options[i].id)}
+        options={options.map((o) => ({ key: String(o.id), label: o.label }))}
+      />
+    </div>
+  );
+}
+
+/**
+ * A segmented control: a strip of milled keys, the selected one armed orange.
+ * Shared by every rule toggle and the first-server pickers.
+ */
+function RadioRow({
+  ariaLabel,
+  count,
+  selectedIndex,
+  onSelect,
+  options,
+}: {
+  ariaLabel: string;
+  count: number;
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+  options: { key: string; label: string }[];
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className={cn(
+        "mt-2 grid gap-1 rounded-(--pp-radius-key) border border-pp-hairline bg-white p-1",
+        count >= 3 ? "grid-cols-3" : "grid-cols-2"
+      )}
+    >
+      {options.map((option, index) => {
+        const selected = index === selectedIndex;
+        const isTabStop = selected || (selectedIndex < 0 && index === 0);
+        return (
+          <button
+            key={option.key}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            tabIndex={isTabStop ? 0 : -1}
+            onKeyDown={(e) => handleRadioKeyDown(e, count, index, onSelect)}
+            onClick={() => onSelect(index)}
+            className={cn(
+              "min-h-12 truncate rounded-md px-2 text-sm font-semibold ref-landscape:min-h-9 ref-landscape:text-xs",
+              selected
+                ? "bg-pp-frame text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]"
+                : "text-pp-ink-dim hover:bg-pp-panel-sink"
+            )}
+            style={{ touchAction: "manipulation" }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -322,7 +302,7 @@ function NameInput({
         placeholder={label}
         onChange={(e) => onChange(e.target.value)}
         autoComplete="off"
-        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-3 text-base text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-brand-orange ref-landscape:py-2"
+        className="w-full rounded-(--pp-radius) border border-pp-hairline bg-white px-3 py-3 text-base text-pp-ink outline-none placeholder:text-pp-ink-dim focus:border-pp-signal ref-landscape:py-2"
       />
     </label>
   );

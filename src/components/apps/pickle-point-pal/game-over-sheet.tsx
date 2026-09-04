@@ -4,6 +4,8 @@ import { gamesToWin } from "@/components/apps/pickle-point-pal/lib/scoring/reduc
 import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { otherTeam, type MatchState } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
+import { SegNumber, SegSep } from "./seg-readout";
+
 /**
  * Game point does not auto-advance. A ref needs a beat to confirm the call
  * before the next game starts, and an undo has to stay reachable until then.
@@ -27,18 +29,21 @@ export function GameOverSheet({
 
   return (
     <div className="pp-surface fixed inset-0 z-40 flex flex-col justify-center px-5 py-6">
-      <p className="text-center font-mono text-[0.7rem] font-semibold tracking-[0.2em] text-neutral-500 uppercase">
-        Game {state.games.length} complete
-      </p>
+      <p className="pp-legend text-center">Game {state.games.length} complete</p>
 
-      <p className="mt-4 text-center font-heading text-3xl leading-tight font-bold text-neutral-950">
+      <p className="pp-plate mt-4 text-center text-3xl leading-tight text-pp-ink">
         {teamName(state.config, winner)} wins
       </p>
-      <p className="mt-2 text-center font-mono text-5xl font-bold text-neutral-950 tabular-nums">
-        {game.scores[winner]}-{game.scores[otherTeam(winner)]}
-      </p>
 
-      <p className="mt-6 text-center text-sm text-neutral-500">
+      <div className="pp-panel pp-panel-settle mx-auto mt-4 flex px-6 py-4">
+        <span className="inline-flex items-start text-[clamp(2.75rem,16vw,5rem)] leading-none">
+          <SegNumber value={game.scores[winner]} reserve={2} />
+          <SegSep />
+          <SegNumber value={game.scores[otherTeam(winner)]} reserve={2} />
+        </span>
+      </div>
+
+      <p className="mt-6 text-center text-sm text-pp-ink-dim">
         {decidesMatch
           ? "This wins the match."
           : `Games: ${state.gamesWon.A + (winner === "A" ? 1 : 0)}-${
@@ -47,19 +52,13 @@ export function GameOverSheet({
       </p>
 
       <div className="mt-10 grid gap-3">
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="min-h-14 rounded-xl bg-brand-orange text-base font-semibold text-white touch-manipulation active:translate-y-px"
-        >
-          {decidesMatch ? "Confirm match result" : "Confirm and start next game"}
+        <button type="button" onClick={onConfirm} className="pp-key pp-key--primary min-h-14">
+          <span className="pp-plate text-base">
+            {decidesMatch ? "Confirm match result" : "Confirm and start next game"}
+          </span>
         </button>
-        <button
-          type="button"
-          onClick={onUndo}
-          className="min-h-12 rounded-xl border border-neutral-300 text-sm font-medium text-neutral-600 touch-manipulation"
-        >
-          Undo last rally
+        <button type="button" onClick={onUndo} className="pp-key pp-key--quiet">
+          <span className="pp-legend">Undo last rally</span>
         </button>
       </div>
     </div>

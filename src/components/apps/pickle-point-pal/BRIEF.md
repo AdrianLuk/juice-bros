@@ -322,14 +322,19 @@ the other side of the net (not derivable from anything in the log; that's
 `useRefFlipped`, toggled by the "Swap Sides" button). Team A starts on the left purely
 because it's entered first at setup.
 
-Visual direction: utility surface, not a brand surface. Orange stays as the accent on
-the active-server highlight and timeout state only. High-contrast for outdoor
-legibility. Every full-viewport screen shares one `.pp-surface` class
-(`globals.css`) rather than repeating `bg-white`/`text-neutral-950` per file - the
-surface is deliberately locked to light regardless of system/site theme; see
-PRODUCT.md's "Brand Commitments" for why. Brand-orange itself is used as
-white-on-orange/orange-on-white text below WCAG AA contrast on purpose (same
-doc) - that's a fixed brand decision, not an open a11y item.
+Visual direction: the redesign shipped "The Officiating Instrument" (direction seed
+7107de82) — an anodized-graphite chassis (`.pp-frame`) cradling a bright reflective
+readout panel (`.pp-panel`), the score as a true SVG seven-segment display, one hi-vis
+orange signal (`#f26522`) meaning serving/live/clock-running only, and Saira Condensed
+silkscreen legends on every control. The full recorded design system — tokens, named
+rules, component specs — lives in `DESIGN.md` next to this file (sidecar
+`.impeccable/design.json`); read it before touching any `.pp-*` surface. Every
+full-viewport screen shares one `.pp-surface` class (`globals.css`, the scoped `.pp-*`
+block) rather than repeating `bg-white`/`text-neutral-950` per file — the surface is
+deliberately locked to light regardless of system/site theme; see PRODUCT.md's "Brand
+Commitments" for why. Brand-orange itself is used as white-on-orange/orange-on-white
+text below WCAG AA contrast on purpose (same doc) — that's a fixed brand decision, not
+an open a11y item.
 
 ---
 

@@ -21,8 +21,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
-  // Kills double-tap zoom on the rally buttons without trapping pinch-zoom.
+  // The instrument's panel-white ground, so the browser/status bar blends into
+  // the surface rather than flashing pure white against it.
+  themeColor: "#f1efe9",
+  // Kills double-tap zoom on the rally keys without trapping pinch-zoom.
   maximumScale: 5,
 };
 
