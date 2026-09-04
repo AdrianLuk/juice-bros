@@ -48,6 +48,13 @@ insert into public.place_cache (place_id, name, formatted_address, latitude, lon
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000061", "role": "authenticated"}';
 
+-- Amy's own default is pinned to `none` so every assertion below stays a
+-- statement about Friend Groups, the thing this file was written to prove.
+-- The `calendar` default that ships out of the box (ADR 0021) has its own
+-- coverage in availability_windows.test.sql, on the same function.
+update public.profiles set default_friend_visibility = 'none'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000061';
+
 insert into public.orgs (id, owner_id, name, time_zone) values
   ('aaaa0000-0000-0000-0000-000000000061', 'aaaaaaaa-0000-0000-0000-000000000061', 'Amy''s Backyard Court', 'America/Toronto');
 

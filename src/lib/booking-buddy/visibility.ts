@@ -51,15 +51,24 @@ function levelFromGrants(grants: Grants): VisibilityLevel {
  *
  * An explicit per-friend override wins outright, in both directions — it is
  * the only way to shut one person out without dismantling the group they are
- * in. Otherwise every one of their groups contributes whatever it grants, and
- * the grants union — so being in a `slots` group and an `open_time` group
- * gives the same access as being in one `calendar` group, and adding someone
- * to a more open group can only ever expand what they see, never retract it.
+ * in. Otherwise the owner's own `defaultLevel` is the floor every Connection
+ * starts from (ADR 0021: `calendar` out of the box, so accepting a friend
+ * request is on its own enough to see each other's games and availability),
+ * and every one of their groups contributes whatever it grants on top. The
+ * grants union — so being in a `slots` group and an `open_time` group gives
+ * the same access as being in one `calendar` group, and a group can only ever
+ * raise someone above a lowered default, never pull them below it.
+ *
+ * `defaultLevel` is required rather than defaulting to `none` here: a caller
+ * that forgets to read the owner's setting should fail to compile, not
+ * quietly resurrect the old lattice-bottom floor.
  */
 export function resolveVisibility({
+  defaultLevel,
   groupLevels,
   override,
 }: {
+  defaultLevel: VisibilityLevel;
   groupLevels: VisibilityLevel[];
   override?: VisibilityLevel | null;
 }): VisibilityLevel {
@@ -72,7 +81,7 @@ export function resolveVisibility({
       const g = GRANTS_BY_LEVEL[level];
       return { slots: acc.slots || g.slots, openTime: acc.openTime || g.openTime };
     },
-    { slots: false, openTime: false },
+    { ...GRANTS_BY_LEVEL[defaultLevel] },
   );
 
   return levelFromGrants(grants);
@@ -94,15 +103,18 @@ export type VisibilityOverride = {
  * The resolved level for every one of the owner's accepted Connections.
  *
  * Driven by `connectionIds` rather than by the membership rows, so a friend in
- * no group still gets an entry. A caller reading a missing key as "unknown"
- * instead of "no access" is exactly the mistake this prevents.
+ * no group still gets an entry — now the owner's `defaultLevel` rather than
+ * `none`. A caller reading a missing key as "unknown" instead of "whatever my
+ * default grants" is exactly the mistake this prevents.
  */
 export function resolveVisibilityByConnection({
+  defaultLevel,
   connectionIds,
   groups,
   memberships,
   overrides,
 }: {
+  defaultLevel: VisibilityLevel;
   connectionIds: string[];
   groups: FriendGroupDefault[];
   memberships: GroupMembership[];
@@ -130,6 +142,7 @@ export function resolveVisibilityByConnection({
     connectionIds.map((connectionId) => [
       connectionId,
       resolveVisibility({
+        defaultLevel,
         groupLevels: groupLevelsByConnection.get(connectionId) ?? [],
         override: overrideByConnection.get(connectionId) ?? null,
       }),

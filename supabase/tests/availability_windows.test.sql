@@ -11,7 +11,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(11);
+select plan(15);
 
 select has_table('public', 'availability_windows', 'availability_windows table exists');
 
@@ -40,6 +40,13 @@ insert into public.connections (id, requester_id, addressee_id, status) values
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000021", "role": "authenticated"}';
+
+-- Amy's own default is pinned to `none` for the body of this file so every
+-- assertion below stays a statement about Friend Groups and overrides, the
+-- thing it was written to prove. The `calendar` default that ships out of the
+-- box (ADR 0021) gets its own block at the end.
+update public.profiles set default_friend_visibility = 'none'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000021';
 
 insert into public.friend_groups (id, owner_id, name, default_visibility)
 values ('66666666-0000-0000-0000-000000000021', 'aaaaaaaa-0000-0000-0000-000000000021', 'Calendar crew', 'calendar');
@@ -168,6 +175,62 @@ select is(
    where owner_id = 'aaaaaaaa-0000-0000-0000-000000000021'),
   2,
   'a friend with open_time Visibility into the owner can read their Availability Windows, same as calendar'
+);
+
+-- The owner's `default_friend_visibility` (ADR 0021) is the floor the whole
+-- chain above starts from. Cal is still what he has been all file — an
+-- accepted Connection in no group with no override — so he is the one who
+-- moves when the floor does.
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000021", "role": "authenticated"}';
+
+update public.profiles set default_friend_visibility = 'calendar'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000021';
+
+set local request.jwt.claims = '{"sub": "cccccccc-0000-0000-0000-000000000023", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.availability_windows
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000021'),
+  2,
+  'an accepted Connection with no group and no override reads the owner''s Availability Windows on the calendar default'
+);
+
+-- Ben still carries the `none` override set above: the explicit per-friend
+-- exception beats the default in the same direction it beats a group.
+set local request.jwt.claims = '{"sub": "bbbbbbbb-0000-0000-0000-000000000022", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.availability_windows
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000021'),
+  0,
+  'an override of none still closes a friend the calendar default would have opened'
+);
+
+-- Lowered to `slots`, which grants the other slice of the lattice entirely —
+-- not a rung above or below `open_time`, so Cal loses the windows again.
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000021", "role": "authenticated"}';
+
+update public.profiles set default_friend_visibility = 'slots'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000021';
+
+set local request.jwt.claims = '{"sub": "cccccccc-0000-0000-0000-000000000023", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.availability_windows
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000021'),
+  0,
+  'a default lowered past the open-time slice closes an ungrouped friend back off'
+);
+
+-- Eve's `Open time crew` membership raises her above that lowered default,
+-- which is the whole reason Friend Groups survive this change.
+set local request.jwt.claims = '{"sub": "eeeeeeee-0000-0000-0000-000000000025", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.availability_windows
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000021'),
+  2,
+  'a Friend Group still opens a friend the owner''s lowered default would close'
 );
 
 select * from finish();

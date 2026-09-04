@@ -9,7 +9,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(20);
 
 select has_table('public', 'slots', 'slots table exists');
 select has_table('public', 'responses', 'responses table exists');
@@ -34,6 +34,13 @@ insert into public.connections (id, requester_id, addressee_id, status) values
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000031", "role": "authenticated"}';
+
+-- Amy's own default is pinned to `none` for the body of this file so every
+-- assertion below stays a statement about Friend Groups and overrides, the
+-- thing it was written to prove. The `calendar` default that ships out of the
+-- box (ADR 0021) gets its own block at the end.
+update public.profiles set default_friend_visibility = 'none'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000031';
 
 insert into public.friend_groups (id, owner_id, name, default_visibility)
 values ('66666666-0000-0000-0000-000000000031', 'aaaaaaaa-0000-0000-0000-000000000031', 'Slots crew', 'slots');
@@ -210,6 +217,69 @@ select is(
    where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
   0,
   'open_time Visibility does not grant Slot visibility — it is not a rung below calendar, it is a different grant entirely'
+);
+
+-- The owner's `default_friend_visibility` (ADR 0021) is the floor the whole
+-- chain above starts from. Cal is still what he has been all file — an
+-- accepted Connection in no group with no override — so he is the one who
+-- moves when the floor does.
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000031", "role": "authenticated"}';
+
+update public.profiles set default_friend_visibility = 'calendar'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000031';
+
+set local request.jwt.claims = '{"sub": "cccccccc-0000-0000-0000-000000000033", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.slots
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
+  1,
+  'an accepted Connection with no group and no override reads the owner''s slot on the calendar default'
+);
+
+-- Ben still carries the `none` override set above: the explicit per-friend
+-- exception beats the default in the same direction it beats a group.
+set local request.jwt.claims = '{"sub": "bbbbbbbb-0000-0000-0000-000000000032", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.slots
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
+  0,
+  'an override of none still closes a friend the calendar default would have opened'
+);
+
+-- Lowered to `open_time`, which grants the other slice of the lattice
+-- entirely — not a rung above or below `slots`, so Cal loses the slot again.
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000031", "role": "authenticated"}';
+
+update public.profiles set default_friend_visibility = 'open_time'
+  where id = 'aaaaaaaa-0000-0000-0000-000000000031';
+
+set local request.jwt.claims = '{"sub": "cccccccc-0000-0000-0000-000000000033", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.slots
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
+  0,
+  'a default lowered past the slot slice closes an ungrouped friend back off'
+);
+
+-- Ben's `Slots crew` membership was never the thing closing him — his
+-- override was. Clear it and the group raises him above the lowered default,
+-- which is the whole reason Friend Groups survive this change.
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000031", "role": "authenticated"}';
+
+delete from public.visibility_overrides
+  where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'
+    and connection_id = '44444444-0000-0000-0000-000000000031';
+
+set local request.jwt.claims = '{"sub": "bbbbbbbb-0000-0000-0000-000000000032", "role": "authenticated"}';
+
+select is(
+  (select count(*)::int from public.slots
+   where owner_id = 'aaaaaaaa-0000-0000-0000-000000000031'),
+  1,
+  'a Friend Group still opens a friend the owner''s lowered default would close'
 );
 
 select * from finish();
