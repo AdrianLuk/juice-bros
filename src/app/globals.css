@@ -97,7 +97,6 @@
   --color-pp-panel-sink: var(--pp-panel-sink);
   --color-pp-panel-edge: var(--pp-panel-edge);
   --color-pp-hairline: var(--pp-hairline);
-  --color-pp-ghost: var(--pp-ghost);
   --color-pp-frame: var(--pp-frame);
   --color-pp-legend: var(--pp-legend);
   --color-pp-signal: var(--pp-signal);
@@ -314,9 +313,6 @@
   /* Secondary text on the panel - tinted from the panel's own warmth, never a
      flat gray. ~7:1 on --pp-panel, so it clears AA well past a sunlit glance. */
   --pp-ink-dim: oklch(0.42 0.01 255);
-  /* Unlit segments: a phantom of the full "8", present enough to read as a
-     segmented display, faint enough it never reads as a lit digit. */
-  --pp-ghost: oklch(0.905 0.004 95);
 
   --pp-signal: #f26522;
   --pp-signal-ink: #ffffff;
@@ -388,6 +384,17 @@
   font-family: var(--font-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
+}
+/* The score readout: a heavy, plain, tabular numeral in the signage face.
+   Big enough and clean enough to read across a court in the sun - no
+   segmented-display silhouette. */
+.pp-num {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 0.85;
+  color: var(--pp-ink);
 }
 
 /* ── The instrument body ─────────────────────────────────────────────────── */
@@ -559,33 +566,6 @@
 .pp-mark--alert { color: var(--pp-alert); background: var(--pp-alert-wash); }
 .pp-mark--caution { color: color-mix(in oklch, var(--pp-caution), black 22%); background: var(--pp-caution-wash); }
 .pp-mark--structural { color: var(--pp-ink-dim); background: var(--pp-panel-sink); }
-
-/* ── The seven-segment readout ──────────────────────────────────────────── */
-
-.pp-seg-svg {
-  display: block;
-  height: 1em;
-  width: auto;
-}
-.pp-seg-on { fill: var(--pp-ink); }
-/* Unlit segments stay visible as a phantom of the full 8 - just faint enough
-   that a lit digit never reads as the digit beside it. No leading phantom
-   *cell* is ever rendered (that misreads as a real digit); this is only the
-   dark segments within a digit that is genuinely lit. */
-.pp-seg-off { fill: var(--pp-ghost); }
-@media (prefers-reduced-motion: no-preference) {
-  /* The signature interaction: a score change is an instant per-segment swap
-     with a hair of stagger, the way a real scoreboard slams from 98 to 100 -
-     never a slide or a count-up. Delay is set inline per segment index. */
-  .pp-seg-svg polygon {
-    transition: fill 70ms linear;
-  }
-}
-
-/* The clock takes over the readout during a timeout - same segment grammar,
-   bigger, and it turns orange under the last fifteen seconds. */
-.pp-seg-clock.pp-seg-warn .pp-seg-on { fill: var(--pp-signal); }
-.pp-seg-clock.pp-seg-paused .pp-seg-on { fill: var(--pp-ink-dim); }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */
 

@@ -10,7 +10,7 @@ import { picklePointPalFaqs } from "@/data/pickle-point-pal-content";
  */
 export function PicklePointPalAbout() {
   return (
-    <section className="mx-auto mt-16 w-full max-w-2xl border-t-2 border-pp-frame/15 pt-10 text-pp-ink-dim">
+    <section className="mx-auto mt-16 w-full max-w-2xl border-t-2 border-[var(--pp-hairline)] pt-10 text-pp-ink-dim">
       <h2 className="pp-plate text-2xl text-pp-ink">
         A pickleball scorekeeper that thinks like a referee
       </h2>
@@ -48,7 +48,7 @@ export function PicklePointPalAbout() {
 
       <span className="mt-10 block h-px bg-pp-hairline" />
       <h3 className="pp-plate mt-6 text-lg text-pp-ink">Questions</h3>
-      <dl className="mt-4 divide-y divide-pp-hairline border-y border-pp-hairline">
+      <dl className="mt-4 divide-y divide-[var(--pp-hairline)] border-y border-pp-hairline">
         {picklePointPalFaqs.map((faq) => (
           <div
             key={faq.question}

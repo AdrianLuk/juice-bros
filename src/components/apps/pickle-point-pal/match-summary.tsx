@@ -34,7 +34,7 @@ export function MatchSummary({
             {teamName(state.config, winner)}
           </p>
           <div className="pp-panel pp-panel-settle mx-auto mt-3 flex w-fit px-5 py-3">
-            <span className="inline-flex items-start text-[clamp(2.25rem,12vw,3.5rem)] leading-none">
+            <span className="inline-flex items-center text-[clamp(2.5rem,13vw,4rem)] leading-none">
               <SegNumber value={state.gamesWon[winner]} reserve={1} />
               <SegSep />
               <SegNumber value={state.gamesWon[otherTeam(winner)]} reserve={1} />
@@ -43,7 +43,7 @@ export function MatchSummary({
         </>
       )}
 
-      <ul className="pp-well mt-6 divide-y divide-pp-hairline overflow-hidden">
+      <ul className="pp-well mt-6 divide-y divide-[var(--pp-hairline)] overflow-hidden">
         {state.games.map((game, i) => (
           <li
             key={i}
