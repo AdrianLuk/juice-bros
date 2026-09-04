@@ -39,19 +39,21 @@ the next step.
 | Order | Initiative | Why here |
 |---|---|---|
 | 1 | RR-1 Engine + plain output | Ships something new in a weekend, starts the SEO clock |
-| 2 | OD-0 Run a real Saturday | Not code. Everything else in On Deck waits on this |
-| 3 | BB-1 Recurring games | The retention lever that has been the top of the roadmap for two docs |
-| 4 | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench |
-| 5 | BB-2 Visibility default on accept | Cheap, removes the biggest onboarding cliff |
-| 6 | OD-1 Venue resilience | Informed by what broke on Saturday |
-| 7 | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
-| 8 | RR-3 Share, roster memory, print | Completes v1 of the generator |
-| 9 | OD-2 Announce turnovers | Cheapest big win for a self-serve session |
-| 10 | BB-4 Copy for group chat | Small, high-use |
-| 11 | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
-| 12 | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
-| 13 | RR-4 Constraint toggles | Fixed partners, singles, skill balance, mixed doubles |
-| 14 | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
+| 2 | OD-6 Demo night + QR sign (slices 1 and 3) | No venue needed, and the sign is needed for OD-0 anyway |
+| 3 | OD-0 Run a real Saturday | Not code. Every other On Deck initiative waits on this |
+| 4 | BB-1 Recurring games | The retention lever that has been the top of the roadmap for two docs |
+| 5 | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench |
+| 6 | BB-2 Visibility default on accept | Cheap, removes the biggest onboarding cliff |
+| 7 | OD-1 Venue resilience | Informed by what broke on Saturday |
+| 8 | OD-6 Self-serve Club, first-night kit, landing flip (slices 2, 4, 5) | Once one real night has run, open the door to the second club |
+| 9 | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
+| 10 | RR-3 Share, roster memory, print | Completes v1 of the generator |
+| 11 | OD-2 Announce turnovers | Cheapest big win for a self-serve session |
+| 12 | BB-4 Copy for group chat | Small, high-use |
+| 13 | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
+| 14 | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
+| 15 | RR-4 Constraint toggles | Fixed partners, singles, skill balance, mixed doubles |
+| 16 | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
 
 If only one thing per app ships this month: RR-1, OD-0, BB-1.
 
@@ -253,7 +255,8 @@ nudge in the roadmap needs to buzz. Pickle Point Pal already has the PWA plumbin
 
 Diagnosis: every issue in the spec shipped (#238 through #351, all closed). It is
 feature-complete for v1 and has never run a real Saturday. That's the only gap that
-matters. Every code initiative below is gated on OD-0.
+matters. Every code initiative below is gated on OD-0, except OD-6's demo night and
+sign, which need no real session and de-risk our own first night.
 
 **Frozen for now:**
 - Playing Style (deferred in the spec; Session Summaries decide whether the mismatch
@@ -397,19 +400,60 @@ the roster).
 2. Who can generate it?
    ➡️ The Organizer, from the closed Session's page.
 
-### OD-6 · Self-serve Club creation
+### OD-6 · Organizer adoption: demo night, self-serve Club, the sign
 
-**Size:** M. **Blocked by:** OD-0 and at least one more real session. Don't onboard a
-second club onto something that has run once.
+**Size:** L across four slices (each M or smaller). **Blocked by:** nothing for the demo
+and the sign; OD-0 for the landing-page social proof. Don't onboard a *second* real club
+until at least two sessions have run, but the path can be built now.
 
-**Claim.** Clubs are seeded by hand. The second tenant should create their own.
+**Claim.** Today an organizer can't evaluate On Deck, can't start it, and can't put it on
+the wall without emailing us. The landing page's only real CTA is "Talk to us," a signed-in
+organizer with no Club hits "created by hand, contact us," the Club QR is a raw URL, and
+there is no way to see it work without a venue and 50 people. The gap is not features.
+
+**Already decided.**
+- Free, and say so plainly on the landing page.
+- The demo is client-only: the real Floor, Display, and Kiosk components folding a canned
+  event log of a 40-player night in the browser. No sign-in, no database, no abuse
+  surface. The dev console (#351) is the precedent for simulated players; the demo does
+  not touch it or the DB.
+- `on_deck_clubs` keeps no direct write grants; creation goes through an RPC mirroring
+  `on_deck_update_club_defaults`. One Club per owner stays.
+- Co-organizers are additional owners per Club (same call as OD-1 Q3), not a handoff.
+
+**Slices, in order.**
+1. **Demo night.** Public route, no auth. Organizer taps "Game done" and watches the
+   board move; can switch between Floor, Display, and Kiosk views of the same demo state.
+2. **Self-serve Club creation.** Two required fields: club name, court count. Venue
+   defaults to the club name, group cap to 4, Floor Mode to hybrid, all editable in
+   settings. Lands on home with Start ready.
+3. **Print-ready Club QR sign.** Letter and A4. Big QR, club name, "Scan to join the
+   queue," three lines for Players, Juice Bros mark. One click from home.
+4. **First-night kit on home.** A four-item checklist with state (print the sign, decide
+   on a Kiosk tablet or skip it, share the Volunteer Link, tell your players) that
+   disappears after the first closed Session, plus a "tell your players" paragraph to
+   copy for the club chat.
+5. **Landing page flip.** Primary CTA "Try a demo night," secondary "Set up your club."
+   A short "when things go wrong" section (board stays up offline, volunteers can add or
+   pause anyone by hand, undo). Replace the hardcoded TO Pickleball Club section with real
+   Session Summary numbers after OD-0.
 
 **Open questions.**
-1. Flow?
-   ➡️ Sign in → "Create your club" (name, venue, courts, group cap, Floor Mode) → printable
-   Club QR page. Nothing else.
-2. Abuse?
-   ➡️ Ignore for now. One Club per account until someone asks.
+1. Does the demo play itself, or wait for taps?
+   ➡️ Waits for taps, with a "let it run" toggle that fires a Game done every few seconds.
+   An organizer wants to feel the turnover, then watch the night unfold.
+2. Can the Club draft start on the landing page before sign-in?
+   ➡️ Yes, if cheap: collect name and courts, carry them through sign-in the way Booking
+   Buddy carries the invite token. Otherwise the create screen is the first thing after
+   sign-in and that's fine.
+3. Who generates the QR?
+   ➡️ Client-side, no external service, so the sign works offline and nothing leaks the
+   Club id to a third party.
+4. Co-organizer invite: by email, or a link?
+   ➡️ Email. It's a standing role, not a night-of thing like the Volunteer Link.
+5. Where does the "tell your players" copy live long-term?
+   ➡️ On home under the checklist, and again on the closed-Session page for the next
+   week's post.
 
 ---
 
