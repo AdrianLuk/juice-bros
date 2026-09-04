@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormSelect } from "@/components/booking-buddy/visibility-select";
+import { DateField, useDateField } from "@/components/booking-buddy/date-field";
 import { OptionalOrgSelect } from "@/components/booking-buddy/org-select";
 import { BookingDetailsModal } from "@/components/booking-buddy/bookings";
 import {
@@ -148,6 +149,7 @@ export function CreateSlotForm({
     initialStartTime,
     initialDurationHours(initialStartTime, defaultEndTime),
   );
+  const dateInput = useDateField(defaultDate ?? "");
 
   useEffect(() => {
     if (state.ok && state.slotId) {
@@ -160,12 +162,11 @@ export function CreateSlotForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-date">Date</Label>
-          <Input
+          <DateField
             id="slot-date"
             name="date"
-            type="date"
-            defaultValue={defaultDate}
-            required
+            value={dateInput.date}
+            onChange={dateInput.setDate}
           />
         </div>
 
@@ -276,7 +277,10 @@ export function CreateSlotForm({
       </div>
 
       <div className="flex flex-col items-end gap-1">
-        <Button type="submit" disabled={pending || duration.endTime === null}>
+        <Button
+          type="submit"
+          disabled={pending || duration.endTime === null || !dateInput.date}
+        >
           {pending ? "Posting…" : "Post game"}
         </Button>
         <ActionError state={state} />

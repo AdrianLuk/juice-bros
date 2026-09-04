@@ -1,6 +1,7 @@
 import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
+import { pickDate, expectDate } from "./support/date-field.ts";
 import {
   PREFIX,
   addPlace,
@@ -226,7 +227,7 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
 
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("95");
-  await page.getByLabel("Date").fill(bookingDate.iso);
+  await pickDate(page, bookingDate.iso);
   await page.getByLabel("Start", { exact: true }).selectOption("16:00");
   // End is computed from Start + Duration (issue #57), not its own field.
   await page.getByRole("radio", { name: "1 hour" }).click();
@@ -256,7 +257,7 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
 
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("96");
-  await page.getByLabel("Date").fill(bookingDate.iso);
+  await pickDate(page, bookingDate.iso);
   await page.getByLabel("Start", { exact: true }).selectOption("22:00");
   await selectDuration(page, "22:00", "01:00");
 
@@ -293,7 +294,7 @@ test("a Week-view empty-cell + opens the booking dialog prefilled with that day 
 
   // The dialog opens with Date and Start already filled to the clicked cell.
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
-  await expect(page.getByLabel("Date")).toHaveValue(bookingDate.iso);
+  await expectDate(page, bookingDate.iso);
   await expect(page.getByLabel("Start", { exact: true })).toHaveValue("18:00");
 
   await page.getByLabel("Facility").selectOption({ label: place });
@@ -358,7 +359,7 @@ test("a Month-view day-cell + opens the booking dialog prefilled with that date,
   await page.getByRole("button", { name: plusLabel, exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
-  await expect(page.getByLabel("Date")).toHaveValue(isoDate(tomorrow));
+  await expectDate(page, isoDate(tomorrow));
   await expect(page.getByLabel("Start", { exact: true })).toHaveValue("18:00");
 
   await page.getByLabel("Facility").selectOption({ label: place });

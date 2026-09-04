@@ -732,6 +732,76 @@ html:has(.bb-app-chrome) {
   font-size: 1rem;
 }
 
+/* The date picker on "Post a game" / "Log booking" (react-day-picker), dressed
+   down to the kraft-and-ink card it opens on. Its popover carries `.bb-theme`
+   like the dialogs, so every colour here is a board-world token; the picked day
+   keeps the white-on-orange commit treatment the calendar chips already use. */
+.bb-daypicker .rdp-root {
+  --rdp-accent-color: var(--brand-orange);
+  --rdp-accent-background-color: color-mix(
+    in oklch,
+    var(--brand-orange),
+    var(--card) 82%
+  );
+  --rdp-today-color: var(--brand-orange);
+  --rdp-day-width: 2.25rem;
+  --rdp-day-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-border-radius: 4px;
+  --rdp-day_button-border: 1px solid transparent;
+  --rdp-selected-border: none;
+  --rdp-nav_button-width: 1.75rem;
+  --rdp-nav_button-height: 1.75rem;
+  padding: 0.75rem;
+  font-family: var(--font-bb-body), ui-sans-serif, system-ui, sans-serif;
+  color: var(--foreground);
+}
+.bb-daypicker .rdp-month_caption {
+  font-family: var(--font-bb-sign), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.92rem;
+  padding-inline: 0.35rem;
+}
+.bb-daypicker .rdp-weekday {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+.bb-daypicker .rdp-day_button {
+  font-size: 0.85rem;
+  transition: background-color 0.12s ease;
+}
+.bb-daypicker .rdp-day:not(.rdp-disabled):not(.rdp-selected) .rdp-day_button:hover {
+  background-color: var(--muted);
+}
+.bb-daypicker .rdp-selected .rdp-day_button,
+.bb-daypicker .rdp-selected .rdp-day_button:hover {
+  background-color: var(--brand-orange);
+  color: #fff;
+  font-weight: 600;
+}
+.bb-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  font-weight: 700;
+  color: var(--brand-orange);
+}
+.bb-daypicker .rdp-button_previous,
+.bb-daypicker .rdp-button_next {
+  color: var(--foreground);
+  border-radius: 4px;
+}
+.bb-daypicker .rdp-button_previous:not([disabled]):hover,
+.bb-daypicker .rdp-button_next:not([disabled]):hover {
+  background-color: var(--muted);
+}
+.bb-daypicker .rdp-chevron {
+  fill: currentColor;
+}
+
 /* A dashed "pencil outline" where the first thing goes — empty states. */
 .bb-outline {
   border: 2px dashed color-mix(in oklch, var(--foreground), transparent 74%);
