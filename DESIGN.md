@@ -29,6 +29,11 @@ typography:
     fontSize: "1.0625rem"
     fontWeight: 400
     lineHeight: 1.6
+  bodySmall:
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 400
+    lineHeight: 1.6
   label:
     fontFamily: "Geist Mono, ui-monospace, monospace"
     fontSize: "0.6875rem"
