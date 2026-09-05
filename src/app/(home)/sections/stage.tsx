@@ -20,16 +20,16 @@ export function Stage({ episode }: { episode: Episode }) {
   const hook = episode.description ? getEpisodeHook(episode.description) : "";
 
   return (
-    <section className="bx-measure pt-8 pb-14 sm:pt-10 sm:pb-20">
-      <div className="max-w-4xl">
+    <section className="bx-measure pt-7 pb-14 sm:pt-8 sm:pb-20">
+      <div className="max-w-[52rem]">
         <h1 className="bx-display text-[clamp(1.75rem,4.4vw,2.75rem)]">
           Pickleball talk for people who are still bad at it.
         </h1>
-        <p className="mt-3 max-w-[52ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+        <p className="mt-2.5 max-w-[54ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
           {siteConfig.description}
         </p>
 
-        <div className="mt-7 sm:mt-8">
+        <div className="mt-6">
           <Link
             href={`/podcast/${episode.slug}`}
             className="bx-tile bx-stage group aspect-video"
@@ -48,14 +48,9 @@ export function Stage({ episode }: { episode: Episode }) {
             <span className="bx-dur">{formatRuntime(episode.duration)}</span>
           </Link>
 
-          <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+          <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
             <div>
-              <p className="bx-meta">
-                New episode
-                <span aria-hidden> · </span>
-                {formatAired(episode.published)}
-              </p>
-              <h2 className="bx-h2 mt-2.5 max-w-[24ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
+              <h2 className="bx-h2 max-w-[24ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
                 <Link
                   href={`/podcast/${episode.slug}`}
                   className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
@@ -63,8 +58,15 @@ export function Stage({ episode }: { episode: Episode }) {
                   {episodeMetaTitle(episode.title)}
                 </Link>
               </h2>
+              <p className="bx-meta mt-2.5">
+                New episode
+                <span aria-hidden> · </span>
+                {formatAired(episode.published)}
+                <span aria-hidden> · </span>
+                {formatRuntime(episode.duration)}
+              </p>
               {hook && (
-                <p className="mt-2.5 max-w-[58ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+                <p className="mt-2 max-w-[58ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
                   {hook}
                 </p>
               )}

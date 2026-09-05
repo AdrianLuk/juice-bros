@@ -28,18 +28,20 @@ export function FreeTools() {
       <div className="mt-7 grid gap-4 md:grid-cols-2">
         {apps.map((app) => (
           <Link key={app.slug} href={app.href} className="bx-panel group flex flex-col p-6 sm:p-7">
-            <p className="bx-meta">
-              {app.status === "live" ? "Open now" : "Coming soon"}
-              <span aria-hidden> · </span>
-              Free
-            </p>
-            <h3 className="bx-h2 mt-3 text-xl transition-colors duration-200 group-hover:text-[var(--bx-muted)] sm:text-[1.375rem]">
+            <h3 className="bx-h2 text-xl transition-colors duration-200 group-hover:text-[var(--bx-muted)] sm:text-[1.375rem]">
               {app.title}
             </h3>
             <p className="mt-2.5 max-w-[46ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
               {app.description}
             </p>
-            <p className="mt-5 text-sm font-semibold text-[var(--bx-ink)]">
+            <p className="bx-meta mt-5">
+              Free
+              <span aria-hidden> · </span>
+              {app.slug === "booking-buddy" ? "Account needed" : "No sign-up"}
+              <span aria-hidden> · </span>
+              {app.status === "live" ? "Open now" : "Coming soon"}
+            </p>
+            <p className="mt-3 text-sm font-semibold text-[var(--bx-ink)]">
               Open {app.title}
               <span aria-hidden className="ml-1.5 inline-block transition-transform duration-200 group-hover:translate-x-0.5">
                 &rarr;

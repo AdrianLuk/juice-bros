@@ -2431,11 +2431,12 @@ html:has(.bb-app-chrome) {
     --bx-line: #23282e;
     --bx-line-soft: #191d22;
 
-    /* Ink. `--bx-muted` clears 6.6:1 on the ground and `--bx-faint` 4.9:1, so
-       both are safe for real copy; nothing smaller is set in anything fainter. */
+    /* Ink. One muted grey, and it clears 6.6:1 on the ground, so every piece
+       of secondary copy on the page is readable rather than atmospheric. There
+       is deliberately no third, fainter step: a tone that exists only to look
+       quiet is a contrast failure waiting to be written. */
     --bx-ink: #f2f4f6;
     --bx-muted: #8f98a3;
-    --bx-faint: #7b8390;
 
     /* The single accent. Brand orange clears 5.5:1 on this ground - the
        contrast problem PRODUCT.md documents is orange on *white*, which this
