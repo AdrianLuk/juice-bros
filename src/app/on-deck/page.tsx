@@ -5,6 +5,7 @@ import {
   buildOnDeckLandingJsonLd,
   toJsonLdScript,
 } from "@/lib/structured-data";
+import "./on-deck-landing.css";
 import { Hero } from "./sections/hero";
 import { TheProblem } from "./sections/the-problem";
 import { HowItRuns } from "./sections/how-it-runs";
@@ -22,7 +23,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function OnDeckPage() {
   return (
-    <div className="flex w-full flex-1 flex-col">
+    <div className="odl flex w-full flex-1 flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

@@ -1,0 +1,198 @@
+/*
+ * The On Deck marketing landing's own dark skin — the Arena Board world
+ * (on-deck/DESIGN.md) extended onto exactly `/on-deck`, without touching the
+ * real `.od-arena` CSS the live Session/Floor/Kiosk/Display surfaces run on.
+ * Same technique the two existing widgets on this page already use (`.odv`,
+ * `.odm`: locally-scoped custom properties, never the shared `--arena-*`
+ * tokens or `.od-arena` class), lifted to cover the whole page instead of one
+ * embedded mock, so a change here can never ripple into the live app.
+ *
+ * `--font-arena` / `--font-mono` are the exception: both are registered
+ * unscoped in globals.css's `@theme inline` block (they resolve to the
+ * already-loaded Saira Condensed / Geist Mono font faces everywhere), so
+ * referencing them directly here loads no new font and stays consistent with
+ * `.odv` / `.odm`.
+ */
+
+.odl {
+  --odl-bg: oklch(0.16 0.014 255);
+  --odl-panel: oklch(0.213 0.017 258);
+  --odl-panel-raised: oklch(0.253 0.019 258);
+  --odl-recessed: oklch(0.13 0.013 255);
+  --odl-line: oklch(0.36 0.02 258);
+  --odl-line-soft: oklch(0.3 0.018 258 / 0.6);
+  --odl-fg: oklch(0.97 0.006 250);
+  --odl-dim: oklch(0.74 0.012 250);
+  --odl-faint: oklch(0.64 0.012 250);
+  --odl-live: #f26522;
+  --odl-live-ink: #ffffff;
+  --odl-next: oklch(0.86 0.09 218);
+  --odl-next-line: oklch(0.72 0.1 218 / 0.7);
+  --odl-arena: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  --odl-readout: var(--font-mono), ui-monospace, monospace;
+
+  background: var(--odl-bg);
+  color: var(--odl-fg);
+}
+
+.odl ::selection {
+  background: oklch(0.66 0.2 40 / 0.35);
+  color: var(--odl-fg);
+}
+
+.odl :focus-visible {
+  outline: 2px solid var(--odl-next);
+  outline-offset: 2px;
+}
+
+/* --- Type voices --- */
+
+.odl-mono {
+  font-family: var(--odl-readout);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--odl-dim);
+}
+
+.odl-display {
+  font-family: var(--odl-arena);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--odl-fg);
+}
+
+.odl-body {
+  color: var(--odl-dim);
+  line-height: 1.6;
+}
+
+/* --- Panels (the bolted-panel shadow recipe, verbatim from DESIGN.md) --- */
+
+.odl-panel {
+  background: var(--odl-panel);
+  border: 1px solid var(--odl-line-soft);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.05),
+    0 1px 2px oklch(0 0 0 / 0.4),
+    0 18px 40px -22px oklch(0 0 0 / 0.7);
+}
+
+.odl-panel--next {
+  border-color: var(--odl-next-line);
+  box-shadow:
+    inset 0 1px 0 0 oklch(0.86 0.11 218 / 0.35),
+    inset 0 22px 40px -30px oklch(0.82 0.14 218 / 0.9),
+    0 18px 40px -22px oklch(0 0 0 / 0.7);
+}
+
+.odl-panel--live {
+  background: var(--odl-live);
+  color: var(--odl-live-ink);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.18),
+    0 0 0 1px oklch(0.66 0.2 40 / 0.6),
+    0 12px 40px -8px oklch(0.68 0.19 40 / 0.55);
+}
+
+/* --- Keys (buttons), per DESIGN.md's Keys spec --- */
+
+.odl-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 11px;
+  background: var(--odl-panel-raised);
+  border: 1px solid var(--odl-line);
+  color: var(--odl-fg);
+  font-family: var(--odl-arena);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.06),
+    0 2px 0 0 oklch(0 0 0 / 0.4),
+    0 6px 14px -8px oklch(0 0 0 / 0.6);
+  transition:
+    background-color 150ms ease,
+    transform 100ms ease,
+    box-shadow 100ms ease;
+}
+.odl-key:hover {
+  background: color-mix(in oklch, var(--odl-panel-raised), white 6%);
+}
+.odl-key:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.06);
+}
+
+.odl-key--go {
+  background: var(--odl-live);
+  color: var(--odl-live-ink);
+  border-color: transparent;
+}
+.odl-key--go:hover {
+  background: color-mix(in oklch, var(--odl-live), white 7%);
+}
+
+.odl-key--ghost {
+  height: 40px;
+  background: transparent;
+  color: var(--odl-dim);
+  box-shadow: none;
+  padding: 0 16px;
+}
+.odl-key--ghost:hover {
+  background: oklch(1 0 0 / 0.04);
+}
+
+/* --- Chips (the Floor Mode selector borrows the name-picker chip) --- */
+
+.odl-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--odl-line);
+  background: transparent;
+  color: var(--odl-dim);
+  font-family: var(--odl-arena);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.odl-chip:hover {
+  border-color: var(--odl-next-line);
+  color: var(--odl-fg);
+}
+.odl-chip[aria-checked="true"] {
+  background: var(--odl-next);
+  color: var(--odl-bg);
+  border-color: transparent;
+}
+
+/* --- Section rhythm --- */
+
+.odl-section {
+  width: 100%;
+}
+
+.odl-heading {
+  font-family: var(--odl-arena);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--odl-fg);
+}

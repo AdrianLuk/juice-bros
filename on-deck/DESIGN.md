@@ -99,16 +99,24 @@ components:
 
 # Design System: On Deck Arena Board
 
-This system governs **`/on-deck/session/*` and `/on-deck/c/*`** only — the `.od-arena` subtree
+This system governs **`/on-deck/session/*` and `/on-deck/c/*`** — the `.od-arena` subtree
 (the player Session view, the Organizer/Volunteer floor screen, the read-only Display, the
 courtside Kiosk, the Volunteer link, and the club-QR "nothing running" screen). It is set by
 `ArenaShell` (`src/components/on-deck/arena-shell.tsx`), which puts `.od-arena` on the wrapper;
 `globals.css` keeps every `--arena-*` token and every `.od-*` rule scoped under that class.
 
-**Out of scope:** the On Deck marketing landing at exactly `/on-deck`, and the Organizer
-home/settings pages. Those use the Juice Bros site's default shadcn light theme and are not
-touched by this file. The rest of the Juice Bros site keeps its own separate light marketing
-identity.
+The On Deck marketing landing at exactly `/on-deck` (`src/app/on-deck/page.tsx` and its
+`sections/*`) also runs this world, quoting the same colors, type voices, panel/key/shadow
+recipes, and Do's/Don'ts — but through its own locally-scoped classes (`.odl`, `.odlc`, plus the
+pre-existing `.odv` / `.odm` widgets), never `.od-arena` or the `--arena-*` tokens directly, so a
+landing-page change can never ripple into the live app. It composes those materials into a
+persuasive page (a hero, a scrollable narrative, marketing CTAs) rather than the live board's
+own single-panel Operate layout — see `.impeccable/surfaces/src-app-on-deck-page-tsx.md` for that
+surface's own direction contract.
+
+**Out of scope:** the Organizer home/settings pages. Those use the Juice Bros site's default
+shadcn light theme and are not touched by this file. The rest of the Juice Bros site keeps its
+own separate light marketing identity.
 
 ## Overview
 
