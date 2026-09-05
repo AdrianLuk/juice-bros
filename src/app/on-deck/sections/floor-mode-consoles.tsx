@@ -11,8 +11,8 @@ import { useState } from "react";
  * is something a visitor operates, not a bullet point they read.
  *
  * A drawn stand-in, like the other widgets on this page (`.odv`, `.odm`):
- * names are invented and nothing here is a screenshot. Scoped under `.odl` /
- * `.odlc`, never touching the real `.od-*` arena CSS.
+ * names are drawn from real top PPA pros and nothing here is a screenshot.
+ * Scoped under `.odl` / `.odlc`, never touching the real `.od-*` arena CSS.
  */
 
 type FloorModeId = "volunteer" | "self-serve" | "hybrid";
@@ -71,8 +71,8 @@ export function FloorModeConsoles() {
           <div className="odl-panel odlc-floor">
             <p className="odl-mono odlc-floor-court">Court 3</p>
             <ul className="odlc-floor-names odl-display">
-              <li>Priya S</li>
-              <li>Marcus T</li>
+              <li>Anna W</li>
+              <li>Ben J</li>
             </ul>
             <span className="odl-key odl-key--go odlc-floor-key" aria-hidden>
               Court 3 done
@@ -98,10 +98,10 @@ export function FloorModeConsoles() {
             </div>
             <ol className="odlc-board-queue odl-mono">
               <li>
-                <span>1</span>Ben K
+                <span>1</span>Tyson M
               </li>
               <li>
-                <span>2</span>Lourdes M
+                <span>2</span>Catherine P
               </li>
             </ol>
           </div>

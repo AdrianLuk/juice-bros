@@ -6,7 +6,7 @@ import { Reveal } from "@/components/motion/reveal";
  * near-black cool ground, bolted panels with a lit top edge, Saira Condensed
  * signage, Geist Mono readouts, orange reserved for the one foursome being
  * called — without pulling in any of the real `.od-*` arena CSS. Names are
- * invented; nothing here is a screenshot or a live view.
+ * drawn from real top PPA pros; nothing here is a screenshot or a live view.
  *
  * The board was always dark, depicting a physical display in a gym; the page
  * around it now shares the same ground (`.odl`), so the board reads as the
@@ -18,32 +18,32 @@ const onDeck = [
     slot: "Up next",
     tone: "next" as const,
     ready: "3 / 4 ready",
-    names: ["Priya S", "Marcus T", "Dana R", "open spot"],
+    names: ["Anna W", "Ben J", "Riley N", "open spot"],
   },
   {
     slot: "After that",
     tone: "wait" as const,
-    names: ["Ben K", "Lourdes M", "Ari P", "Nia W"],
+    names: ["Tyson M", "Catherine P", "Collin J", "JW J"],
   },
 ];
 
 const courts = [
-  { n: "1", names: ["Sam D", "Theo L", "Reggie B", "Kat V"] },
-  { n: "2", names: ["Iris F", "Owen H", "Mei C", "Jared N"] },
-  { n: "3", live: true, names: ["Priya S", "Marcus T", "Dana R", "Cole A"] },
-  { n: "4", names: ["Vik R", "Sunny O", "Tess G", "Rory M"] },
+  { n: "1", names: ["Zane N", "Dylan F", "Federico S", "Vivienne D"] },
+  { n: "2", names: ["Lea J", "James I", "Parris T", "Andrei D"] },
+  { n: "3", live: true, names: ["Anna W", "Ben J", "Riley N", "Rafa H"] },
+  { n: "4", names: ["Callan D", "Etta W", "Lauren S", "Thomas W"] },
 ];
 
 const queue = [
-  { name: "Ben K", wait: "6 MIN" },
-  { name: "Lourdes M", wait: "6 MIN" },
-  { name: "Ari P", wait: "5 MIN" },
-  { name: "Nia W", wait: "4 MIN" },
-  { name: "Deshawn E", wait: "3 MIN" },
-  { name: "Gaby Q", wait: "3 MIN" },
-  { name: "Hal T", wait: "2 MIN" },
-  { name: "Renata I", wait: "1 MIN" },
-  { name: "Cole A", wait: "just now" },
+  { name: "Tyson M", wait: "6 MIN" },
+  { name: "Catherine P", wait: "6 MIN" },
+  { name: "Collin J", wait: "5 MIN" },
+  { name: "JW J", wait: "4 MIN" },
+  { name: "Jack M", wait: "3 MIN" },
+  { name: "Irina T", wait: "3 MIN" },
+  { name: "Hunter J", wait: "2 MIN" },
+  { name: "Gabe T", wait: "1 MIN" },
+  { name: "Rafa H", wait: "just now" },
 ];
 
 const annotations = [
