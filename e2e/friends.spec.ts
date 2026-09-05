@@ -272,6 +272,52 @@ test.describe("the default-visibility control", () => {
   });
 });
 
+/**
+ * Seeds one account's game (a Booking) and a "Looking to play" Availability
+ * Window while it's still a stranger to the other side — the point of the
+ * test this backs is that *accepting the Connection* is what opens these up,
+ * with no Friend Group and no override involved in creating them.
+ */
+async function seedGameAndWindow(
+  page: Page,
+  user: { email: string; password: string },
+  place: string,
+  bookingDate: { iso: string },
+) {
+  await addPlace(page, place);
+  await insertAvailabilityWindow(user, {
+    type: "looking",
+    startsAt: `${bookingDate.iso}T22:00:00Z`,
+    endsAt: `${bookingDate.iso}T23:00:00Z`,
+  });
+  await logBooking(page, {
+    place,
+    court: "12",
+    date: bookingDate.iso,
+    start: "08:00",
+    end: "09:00",
+  });
+  // Wait for the logged row before moving on — the Server Action's round
+  // trip would otherwise race the next navigation (same reasoning as
+  // `dashboard.spec.ts`'s own booking tests). Filtered on the (unique,
+  // random-suffixed) place name too — "Court 12" alone can collide with a
+  // stray row a previous failed run left behind on this reused account.
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: place })
+    .filter({ hasText: "Court 12" })
+    .waitFor();
+}
+
+/** Opens `viewer`'s "View calendar" dialog for `friendHandle` and asserts `friendPlace`'s game and the Looking-to-play window both show. */
+async function assertFriendCalendarShows(viewer: Page, friendHandle: string, friendPlace: string) {
+  await viewer.goto("/booking-buddy/friends");
+  await personRow(viewer, friendHandle).getByRole("button", { name: "View calendar" }).click();
+  const dialog = viewer.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: friendPlace, exact: false })).toBeVisible();
+  await expect(dialog.locator('[title^="Looking to play"]')).toHaveCount(1);
+}
+
 test.describe("seeing each other's calendar after connecting", () => {
   // Safety net for a failed run's leftovers — same posture as
   // `dashboard.spec.ts`'s own `afterEach`. The test also sweeps its own
@@ -304,53 +350,17 @@ test.describe("seeing each other's calendar after connecting", () => {
     await disconnect(accounts);
     await deleteAvailabilityWindows(amyUser);
     await deleteAvailabilityWindows(benUser);
+    // Self-contained regardless of what "the default-visibility control"
+    // describe above left behind — this test is about the seeded `calendar`
+    // default (ADR 0021) itself, not whatever that describe's own cleanup did
+    // or didn't manage to restore.
+    await resetDefaultFriendVisibility(amyUser);
+    await resetDefaultFriendVisibility(benUser);
 
-    // Each seeds their own game and Availability Window while still
-    // strangers — the point of this test is that accepting the Connection is
-    // what opens them, with no Friend Group and no override on either side.
     const amyPlace = placeName("-amy");
     const benPlace = placeName("-ben");
-    await addPlace(amy, amyPlace);
-    await addPlace(ben, benPlace);
-    await insertAvailabilityWindow(amyUser, {
-      type: "looking",
-      startsAt: `${bookingDate.iso}T22:00:00Z`,
-      endsAt: `${bookingDate.iso}T23:00:00Z`,
-    });
-    await insertAvailabilityWindow(benUser, {
-      type: "looking",
-      startsAt: `${bookingDate.iso}T22:00:00Z`,
-      endsAt: `${bookingDate.iso}T23:00:00Z`,
-    });
-    await logBooking(amy, {
-      place: amyPlace,
-      court: "12",
-      date: bookingDate.iso,
-      start: "08:00",
-      end: "09:00",
-    });
-    // Wait for the logged row before moving on — the Server Action's round
-    // trip would otherwise race the next navigation (same reasoning as
-    // `dashboard.spec.ts`'s own booking tests). Filtered on the (unique,
-    // random-suffixed) place name too — "Court 12" alone can collide with a
-    // stray row a previous failed run left behind on this reused account.
-    await amy
-      .getByRole("listitem")
-      .filter({ hasText: amyPlace })
-      .filter({ hasText: "Court 12" })
-      .waitFor();
-    await logBooking(ben, {
-      place: benPlace,
-      court: "12",
-      date: bookingDate.iso,
-      start: "08:00",
-      end: "09:00",
-    });
-    await ben
-      .getByRole("listitem")
-      .filter({ hasText: benPlace })
-      .filter({ hasText: "Court 12" })
-      .waitFor();
+    await seedGameAndWindow(amy, amyUser, amyPlace, bookingDate);
+    await seedGameAndWindow(ben, benUser, benPlace, bookingDate);
 
     // Amy asks, Ben accepts — no Friend Group, no override, either side.
     await amy.goto("/booking-buddy/friends");
@@ -369,21 +379,8 @@ test.describe("seeing each other's calendar after connecting", () => {
 
     // The `calendar` default (ADR 0021) already grants everything, so each
     // can open the other's calendar with nothing else set up.
-    await amy.goto("/booking-buddy/friends");
-    await personRow(amy, accounts.ben2.username)
-      .getByRole("button", { name: "View calendar" })
-      .click();
-    const bensCalendar = amy.getByRole("dialog");
-    await expect(bensCalendar.getByRole("button", { name: benPlace, exact: false })).toBeVisible();
-    await expect(bensCalendar.locator('[title^="Looking to play"]')).toHaveCount(1);
-
-    await ben.goto("/booking-buddy/friends");
-    await personRow(ben, accounts.amy2.username)
-      .getByRole("button", { name: "View calendar" })
-      .click();
-    const amysCalendar = ben.getByRole("dialog");
-    await expect(amysCalendar.getByRole("button", { name: amyPlace, exact: false })).toBeVisible();
-    await expect(amysCalendar.locator('[title^="Looking to play"]')).toHaveCount(1);
+    await assertFriendCalendarShows(amy, accounts.ben2.username, benPlace);
+    await assertFriendCalendarShows(ben, accounts.amy2.username, amyPlace);
 
     await removePlace(amy, amyPlace);
     await removePlace(ben, benPlace);
