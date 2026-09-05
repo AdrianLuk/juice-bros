@@ -469,50 +469,77 @@ king of the court, pools into brackets, accounts, chat, native app. Live score s
 phones is v2 (RR-5) and gated on real usage.
 
 **Cross-cutting decisions.**
-- Event log from day one, even in RR-1. Roster, config, generate, lock round, score,
-  arrive, leave are all events folded by a pure reducer, same as `reduceMatch` and
-  `reduceSession`. Undo is dropping the last event. This is what makes RR-2's late
-  arrivals cheap instead of a rewrite.
+- Product name is **Match Mixer**, route `/tools/match-mixer`. Trades a weak SEO slug
+  for consistency with `/tools/pickle-point-pal`; the page title, H1, and body copy carry
+  "pickleball round robin generator" for search instead. Glossary and ADRs live at
+  `match-mixer/CONTEXT.md` and `match-mixer/docs/adr/` (settled in `/grill-with-docs`,
+  see PR #386) — read that before touching RR-2 onward, its terms supersede the ones
+  below.
+- RR-1 is **not** event-sourced, despite `reduceMatch` and `reduceSession` being the
+  house pattern elsewhere. Config (roster, courts, rounds, seed) is plain state; Schedule
+  is a pure, deterministic function of it — nothing is committed yet, so there is nothing
+  for a log to record. The event log begins in RR-2, above a *locked* schedule (now
+  called a **Mixer**, not a Session — see the context map's collision note). ADR 0001
+  has the reasoning.
+- Precomputed tables are keyed on **`(n, courts)`**, not `n` alone — the brief's keying
+  seats 8 players on a 1-court schedule that was really built for 2. Each table is a full
+  whist tournament (n−1 rounds, every pairing exactly once) and is served truncated to
+  the requested round count, since any leading prefix is still perfectly balanced. ADR
+  0002 has the proof sketch.
 - Engine lives in a relative-imports-only module so `node --test` can run it (see the
   node-test-no-path-aliases note in memory and Pickle Point Pal's `lib/scoring/` rule).
-- Route `/tools/round-robin`, catalogued in `src/data/apps.ts`, PWA plumbing like Pickle
-  Point Pal once RR-2 lands.
 - Tools are dev-led (Booking Buddy precedent). Design via Impeccable against the brief's
   direction; don't gate on Figma.
 
 ### RR-1 · Engine + plain output
 
-**Size:** M (a weekend). **Blocked by:** nothing. **Needs:** `/grill-with-docs` (new
-context: a `round-robin/CONTEXT.md` glossary for Roster, Round, Game, Bye, Lock, and the
-product name).
+**Size:** M (a weekend). **Blocked by:** nothing.
 
 **Claim.** Steps 1 through 4 of the brief. If the algorithm is right, a plain table is
 already useful to a club. Ship that before polishing. Starts the SEO clock.
 
 **Already decided.** Brief sections 1, 2, 3 (options), 6 (build order). Rotating partners
-is the default and the v1 algorithm. Paste-a-list entry, one name per line.
+is the default and the v1 algorithm. Paste-a-list entry, one name per line. Everything
+below was resolved in `/grill-with-docs` (PR #386) and is settled, not open.
 
-**Open questions.**
-1. Product name?
-   ➡️ Pick during the grill. Whatever it is, the page title and H1 carry "pickleball round
-   robin generator" for search.
-2. Which precomputed tables ship in RR-1?
-   ➡️ n = 8, 12, 16. Validate each with the scorer before trusting it. Everything else
-   goes through the greedy generator.
-3. Defaults for courts and rounds?
-   ➡️ Courts = floor(n/4), editable. Rounds = enough for every player to partner everyone
-   once where the math allows, capped at 10, editable. The live line under the textarea
-   shows the consequence: "8 players, 2 courts, 7 rounds, everyone partners everyone once."
-4. Min and max players?
-   ➡️ 4 to 32. Above 32 the greedy search gets slow and nobody runs a 40-person rotating
-   round robin on one schedule.
-5. Zero-state?
-   ➡️ The textarea is the first screen, with placeholder names. The schedule renders
-   below it as you type. No wizard, no steps, no "generate" button in the critical path
-   (keep one for re-seeding).
-6. What does the stats line say?
-   ➡️ Partner repeats, max opponent repeats, bye spread. The partner matrix renders at the
-   bottom from RR-1, not later; it's the proof and it's cheap.
+1. **Roster identity.** `{ id, name }[]` with a stable id per entry — the engine stays
+   index-based, but positions in the array are never the identity a locked round in RR-2
+   points at. Duplicate names get a quiet inline notice ("two players named Mike — the
+   schedule will work, the printout won't be clear"), never a block.
+2. **Tables.** n = 8, 12, 16 at `courts == n/4`, per the cross-cutting decision above.
+   Validate every table with the scorer before trusting it — published schedules are
+   often wrong. Anything else (fewer courts, `n` not divisible by 4, more rounds than a
+   table holds) falls through to the greedy generator, seeded from the table's prefix
+   counts when one exists.
+3. **Defaults.** Courts = `floor(n/4)`, and the field's max clamps live as `n` changes —
+   it cannot be set higher. Rounds = `min(naturalLength, 8)`, editable; a 15-round n=16
+   tournament is correct math and a bad Tuesday, so the default is a capped prefix, not
+   the full table. The live line under the textarea is always a readout of the scorer
+   against the schedule actually generated, never an assertion from the config — for a
+   clean prefix that reads "no repeat partners, nobody sits out"; when `n mod 4 != 0` or
+   courts is short of `n/4`, it reads "N players sit out each round, rotating evenly."
+4. **Min and max players.** 4 to 32. Above 32 the greedy search gets slow and nobody runs
+   a 40-person rotating round robin on one schedule.
+5. **Entry and zero-state.** The textarea is the first screen. Two-speed rendering: the
+   consequence line updates on every keystroke (cheap, and knowable up front for the
+   table cases); the schedule table itself renders on debounce, paste, or blur, so the
+   grid doesn't hard-reshuffle mid-keystroke against a "motion: none" design direction.
+   Below n = 4, show a greyed example draw sheet, not empty space. No wizard, no
+   "generate" button in the critical path (keep one for re-seeding, which just writes a
+   new seed — see `match-mixer/CONTEXT.md`'s **Seed**).
+6. **The stats line and partner matrix.** Partner repeats, bye spread, max opponent
+   repeats — computed by the scorer, per (3). The partner matrix renders in RR-1: cells
+   carry a *count*, not a filled/empty mark, since a balanced prefix is sparse by design
+   and the failure mode is a cell above 1, not an empty one. No orange (reserved for "round
+   in progress"); the diagonal reads as dead, not as a missing pairing; own `overflow-x`
+   scroll container at n = 32 (1024 cells).
+7. **Persistence.** `localStorage` only, debounced — no URL/share yet (that's RR-3). Cost
+   of deferring it is near zero because `seed` is already a first-class config field, so
+   RR-3's share link is serializing a value that already exists, not a refactor.
+8. **Output.** Print stylesheet ships in RR-1, not RR-3 — cheap given the grid markup the
+   design direction already requires, and it's the only way a club actually uses this on
+   a Saturday. The brief's "one round at a time on a phone" is a CSS concern (full grid
+   always in the DOM); implementing it in JS would make print RR-3's problem to undo.
 
 ### RR-2 · Courtside mode
 
