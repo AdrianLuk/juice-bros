@@ -31,8 +31,8 @@ const onDeck = [
 const courts = [
   { n: "1", names: ["Federico S", "Dylan F", "Andrei D", "Jorja J"] },
   { n: "2", names: ["Parris T", "Kate F", "Jade K", "Lea J"] },
-  { n: "3", live: true, names: ["Ben J", "Anna W", "Hunter J", "Christopher H"] },
-  { n: "4", names: ["Connor G", "Rachel R", "Brooke B", "Sahra D"] },
+  { n: "3", live: true, names: ["Ben J", "Anna W", "Hunter J", "Gabe T"] },
+  { n: "4", names: ["Connor G", "Rachel R", "Anna B", "Sahra D"] },
 ];
 
 const queue = [
@@ -44,7 +44,7 @@ const queue = [
   { name: "Tina P", wait: "3 MIN" },
   { name: "Chao Yi W", wait: "2 MIN" },
   { name: "Hayden P", wait: "1 MIN" },
-  { name: "Christopher H", wait: "just now" },
+  { name: "Gabe T", wait: "just now" },
 ];
 
 const annotations = [
