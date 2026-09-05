@@ -8,7 +8,9 @@ export function Hero() {
     <section className="odl-section w-full overflow-x-clip px-4 pt-28 pb-16 sm:px-6 sm:pt-40 sm:pb-24 lg:pt-44">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 text-center">
         <h1 className="odl-display jb-in text-4xl sm:text-6xl">
-          The queue remembers so nobody has to
+          Run your pickleball social.
+          <br />
+          Skip the paddle stack.
         </h1>
         <p className="odl-body jb-in jb-in-2 max-w-xl text-lg text-balance">
           Players scan a sign to join the Queue. On Deck calls the next
