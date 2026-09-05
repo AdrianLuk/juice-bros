@@ -1,5 +1,4 @@
 import { Reveal, RevealGroup } from "@/components/motion/reveal";
-import { SectionHeading } from "@/components/typography/section-heading";
 
 const breakdowns = [
   {
@@ -15,7 +14,7 @@ const breakdowns = [
     body: "There's no record of who has already shared a Court, so people play with the same three faces all night. That's the opposite of a social.",
   },
   {
-    title: "\"Am I next?\" never stops",
+    title: "“Am I next?” never stops",
     body: "Volunteers field that question all evening because a player has no way to check their own spot in line.",
   },
   {
@@ -26,30 +25,24 @@ const breakdowns = [
 
 export function TheProblem() {
   return (
-    <section className="w-full bg-muted/50">
+    <section className="odl-section w-full">
       <div className="mx-auto w-full max-w-3xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <Reveal>
-          <SectionHeading
-            eyebrow="The Saturday Problem"
-            title="The paddle stack stops working at 50 players"
-          />
-          <p className="mt-4 max-w-xl text-lg text-muted-foreground">
+          <h2 className="odl-display text-3xl sm:text-4xl">
+            The paddle stack stops working at 50 players
+          </h2>
+          <p className="odl-body mt-4 max-w-xl text-lg">
             Fifty or sixty people show up for a social on eight courts, and
             rotation is a physical paddle stack plus a couple of volunteers
             calling names from memory. At that size it comes apart in a few
             predictable ways.
           </p>
         </Reveal>
-        <RevealGroup className="mt-10 flex flex-col gap-4">
+        <RevealGroup className="mt-10 flex flex-col gap-3">
           {breakdowns.map((item) => (
-            <div
-              key={item.title}
-              className="rounded-[1.5rem] bg-card p-6 shadow-brand"
-            >
-              <p className="font-heading text-lg font-bold text-brand-orange">
-                {item.title}
-              </p>
-              <p className="mt-2 text-muted-foreground">{item.body}</p>
+            <div key={item.title} className="odl-panel p-6">
+              <p className="odl-display text-lg">{item.title}</p>
+              <p className="odl-body mt-2">{item.body}</p>
             </div>
           ))}
         </RevealGroup>

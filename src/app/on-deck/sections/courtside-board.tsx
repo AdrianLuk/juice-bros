@@ -1,18 +1,16 @@
 import { Reveal } from "@/components/motion/reveal";
-import { SectionHeading } from "@/components/typography/section-heading";
 
 /**
- * A static replica of the courtside board players and volunteers actually look
- * at, dropped into the light marketing page as one lit panel. It quotes the
- * On Deck Arena design system (`on-deck/DESIGN.md`) — near-black cool ground,
- * bolted panels with a lit top edge, Saira Condensed signage, Geist Mono
- * readouts, orange reserved for the one foursome being called — without pulling
- * in any of the real `.od-*` arena CSS. Names are invented; nothing here is a
- * screenshot or a live view.
+ * A static replica of the courtside board players and volunteers actually
+ * look at, quoting the On Deck Arena design system (`on-deck/DESIGN.md`) —
+ * near-black cool ground, bolted panels with a lit top edge, Saira Condensed
+ * signage, Geist Mono readouts, orange reserved for the one foursome being
+ * called — without pulling in any of the real `.od-*` arena CSS. Names are
+ * invented; nothing here is a screenshot or a live view.
  *
- * The board stays dark in both site themes on purpose: it depicts a physical
- * display in a gym, not a themeable surface. Only the section chrome around it
- * tracks the page palette.
+ * The board was always dark, depicting a physical display in a gym; the page
+ * around it now shares the same ground (`.odl`), so the board reads as the
+ * page's own material rather than a widget dropped onto it.
  */
 
 const onDeck = [
@@ -56,6 +54,7 @@ const annotations = [
   {
     head: "Orange means being called now",
     body: "Court 3 just turned over. Those four gather while every other court keeps playing. Nothing else on the board is orange.",
+    live: true,
   },
   {
     head: "Check your own spot",
@@ -65,15 +64,13 @@ const annotations = [
 
 export function CourtsideBoard() {
   return (
-    <section className="w-full">
+    <section className="odl-section w-full">
       <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <SectionHeading
-            eyebrow="The Board"
-            title="What the courtside screen shows"
-            align="center"
-          />
-          <p className="mt-4 text-lg text-muted-foreground">
+          <h2 className="odl-display text-3xl sm:text-4xl">
+            What the courtside screen shows
+          </h2>
+          <p className="odl-body mt-4 text-lg">
             One lit panel a loud gym reads at a glance: who&apos;s on which
             court, who&apos;s up next, and how long the line really is.
           </p>
@@ -180,7 +177,15 @@ export function CourtsideBoard() {
             <ul className="odm-notes">
               {annotations.map((note) => (
                 <li key={note.head} className="odm-note">
-                  <p className="odm-note-head">{note.head}</p>
+                  <p
+                    className={
+                      note.live
+                        ? "odm-note-head odm-note-head--live"
+                        : "odm-note-head"
+                    }
+                  >
+                    {note.head}
+                  </p>
                   <p className="odm-note-body">{note.body}</p>
                 </li>
               ))}
@@ -459,26 +464,33 @@ const boardCss = `
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
-  font-family: var(--font-heading), sans-serif;
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
   font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
-  color: var(--foreground);
+  font-size: 1.1rem;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--odm-fg);
 }
+/* Graphite by default - orange is reserved for the one note that is actually
+   about the LIVE state (the --live modifier), never a decorative bullet on
+   every item. */
 .odm-note-head::before {
   content: "";
   flex: none;
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 9999px;
-  background: var(--brand-orange);
+  background: var(--odm-faint);
   translate: 0 -0.1rem;
+}
+.odm-note-head--live::before {
+  background: var(--odm-live);
 }
 .odm-note-body {
   margin-top: 0.4rem;
   padding-left: 1.1rem;
   font-size: 0.95rem;
   line-height: 1.55;
-  color: var(--muted-foreground);
+  color: var(--odm-dim);
 }
 `;

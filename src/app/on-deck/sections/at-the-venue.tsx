@@ -1,17 +1,18 @@
 import { Reveal } from "@/components/motion/reveal";
-import { SectionHeading } from "@/components/typography/section-heading";
 
 /**
- * Two static props from the player's side of a night, dropped into the light
- * marketing page: the printed Club QR sign that never changes, and the one
- * verdict a player's phone collapses to once they're in the queue. Both quote
- * the On Deck Arena design system (`on-deck/DESIGN.md`) — Saira Condensed
- * signage, Geist Mono readouts, orange for LIVE, cool blue for on-deck — with
- * every rule scoped under `.odv`, never touching the real `.od-*` arena CSS.
+ * Two static props from the player's side of a night: the printed Club QR
+ * sign that never changes, and the one verdict a player's phone collapses to
+ * once they're in the queue. Both quote the On Deck Arena design system
+ * (`on-deck/DESIGN.md`) — Saira Condensed signage, Geist Mono readouts,
+ * orange for LIVE, cool blue for on-deck — with every rule scoped under
+ * `.odv`, never touching the real `.od-*` arena CSS.
  *
- * The sign and phone screen stay dark because they depict physical objects at
- * a venue, not themeable surfaces. Nothing here is a screenshot; the QR is a
- * drawn placeholder and scans as nothing.
+ * The sign and phone screen were always dark, depicting physical objects at a
+ * venue; the page around them now shares the same ground (`.odl`), so they
+ * read as one continuous world instead of a dark widget dropped on a light
+ * page. Nothing here is a screenshot; the QR is a drawn placeholder and scans
+ * as nothing.
  */
 
 // A drawn stand-in for a QR block: a fixed 11×11 bit grid with the three finder
@@ -33,15 +34,13 @@ const QR_BITS = [
 
 export function AtTheVenue() {
   return (
-    <section className="w-full bg-muted/50">
+    <section className="odl-section w-full">
       <div className="mx-auto w-full max-w-4xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <SectionHeading
-            eyebrow="At the Venue"
-            title="A sign on the wall and your phone"
-            align="center"
-          />
-          <p className="mt-4 text-lg text-muted-foreground">
+          <h2 className="odl-display text-3xl sm:text-4xl">
+            A sign on the wall and your phone
+          </h2>
+          <p className="odl-body mt-4 text-lg">
             The club prints one sign and never touches it again. A player scans
             it, gives a first name, and their phone does the rest.
           </p>
@@ -181,7 +180,7 @@ const venueCss = `
   text-align: center;
   font-size: 0.9rem;
   line-height: 1.55;
-  color: var(--muted-foreground);
+  color: var(--odv-dim);
 }
 
 /* --- The printed sign, on a light mount --- */

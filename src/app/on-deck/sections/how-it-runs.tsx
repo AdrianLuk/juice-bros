@@ -1,5 +1,4 @@
 import { Reveal, RevealGroup } from "@/components/motion/reveal";
-import { SectionHeading } from "@/components/typography/section-heading";
 
 const steps = [
   {
@@ -26,30 +25,36 @@ const steps = [
 
 export function HowItRuns() {
   return (
-    <section id="how-it-runs" className="w-full scroll-mt-24">
+    <section id="how-it-runs" className="odl-section w-full scroll-mt-24">
       <div className="mx-auto w-full max-w-3xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <Reveal>
-          <SectionHeading eyebrow="How It Works" title="How a night runs" />
+          <h2 className="odl-display text-3xl sm:text-4xl">
+            How a night runs
+          </h2>
         </Reveal>
         <RevealGroup as="ol" className="mt-10 flex flex-col gap-6">
           {steps.map((step, index) => (
             <li key={step.title} className="flex gap-4 sm:gap-5">
-              <span
-                aria-hidden
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-orange font-heading text-sm font-bold text-white"
-              >
+              <span aria-hidden className="odl-mono odl-step-rail">
                 {index + 1}
               </span>
-              <div className="pt-1">
-                <p className="font-heading text-lg font-bold tracking-[-0.01em]">
-                  {step.title}
-                </p>
-                <p className="mt-2 text-muted-foreground">{step.body}</p>
+              <div>
+                <p className="odl-display text-lg">{step.title}</p>
+                <p className="odl-body mt-2">{step.body}</p>
               </div>
             </li>
           ))}
         </RevealGroup>
       </div>
+      <style>{`
+        .odl-step-rail {
+          flex: none;
+          width: 2.25ch;
+          padding-top: 0.35rem;
+          text-align: right;
+          color: var(--odl-faint);
+        }
+      `}</style>
     </section>
   );
 }
