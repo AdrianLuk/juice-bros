@@ -77,6 +77,16 @@ competitor couldn't copy without losing the relatability.
 - Voice: casual, self-deprecating, relatable - "pull up a chair, you're one of us
   now." Content favors the psychology, friendships, and stories of the sport over
   technique or gear ranking.
+- Visual direction for the marketing site is the **category standard, executed
+  at full fidelity** - a standing preference Adrian chose explicitly over four
+  committed own-world directions (a season-guide print world, a public-access
+  broadcast world, a painted-court world, a group-chat world). Convention is
+  the commitment here, not a fallback: build the arrangement a visitor expects,
+  and spend the effort on finish rather than on invention. The craft bar he set
+  is **podcast structure with SaaS finish** - episode as hero and a genuinely
+  browsable archive, held to the type, spacing and state discipline of Linear,
+  Vercel and Stripe. Do not reintroduce an expressive visual world here without
+  asking; do not read this as permission to ship a template either.
 - Brand assets: logo (`public/brand/JB_Logo.svg`, white/whitebg variants), banner
   (`public/brand/JB_Banner*.jpeg`), OG image, host photo
   (`public/pictures/adrian-dav.jpg`).

@@ -2400,3 +2400,198 @@ html:has(.bb-app-chrome) {
     transform: scale(1);
   }
 }
+
+
+/* Everything below sits in Tailwind's `components` layer on purpose. Plain CSS
+   after `@import "tailwindcss"` is unlayered, and unlayered rules outrank every
+   layered utility - so a `.bx-btn md:hidden` would stay visible and a
+   `.bx-meta normal-case` would stay uppercase. Inside the layer, utilities win,
+   which is what every caller expects. */
+@layer components {
+
+  /* ==========================================================================
+     Broadcast Dark - the marketing home page's look.
+     Contract in .impeccable/surfaces/src-app-home.md; standing preference for
+     the category standard recorded in PRODUCT.md.
+
+     The category standard executed at full fidelity: a near-black stage with the
+     newest episode on it and the archive around it. Every colour on the page
+     comes from the episode thumbnails - the chrome is greyscale plus exactly one
+     accent, brand orange, which is spent only on the subscribe action.
+
+     Scoped to `.bx-dark` so the rest of the site, and the three apps with their
+     own worlds, never see it.
+     ========================================================================== */
+
+  .bx-dark {
+    /* Ground and the one raised surface. Cool near-black, not warm. */
+    --bx-bg: #08090b;
+    --bx-raised: #101317;
+    --bx-raised-2: #171b20;
+    --bx-line: #23282e;
+    --bx-line-soft: #191d22;
+
+    /* Ink. `--bx-muted` clears 6.6:1 on the ground and `--bx-faint` 4.9:1, so
+       both are safe for real copy; nothing smaller is set in anything fainter. */
+    --bx-ink: #f2f4f6;
+    --bx-muted: #8f98a3;
+    --bx-faint: #7b8390;
+
+    /* The single accent. Brand orange clears 5.5:1 on this ground - the
+       contrast problem PRODUCT.md documents is orange on *white*, which this
+       look never does. Reserved for the subscribe action and its focus ring. */
+    --bx-accent: var(--brand-orange);
+    --bx-accent-ink: #ffffff;
+
+    --bx-radius: 0.75rem;
+    --bx-radius-lg: 1rem;
+    --bx-shadow: 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9);
+
+    background: var(--bx-bg);
+    color: var(--bx-ink);
+    font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* One measure for the whole page. */
+  .bx-measure {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 640px) { .bx-measure { padding-inline: 2rem; } }
+
+  /* ---- Type ------------------------------------------------------------- */
+
+  .bx-display {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+  .bx-h2 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  /* Metadata only: dates, runtimes, counts, section kickers. Never body copy. */
+  .bx-meta {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--bx-muted);
+  }
+
+  /* ---- Controls ---------------------------------------------------------- */
+
+  .bx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.8125rem 1.375rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+      background-color 160ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-color 160ms cubic-bezier(0.32, 0.72, 0, 1),
+      color 160ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 160ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* The play action: white, because on this ground white is the loudest thing
+     available and the accent is already spoken for. */
+  .bx-btn-play { background: var(--bx-ink); color: var(--bx-bg); }
+  .bx-btn-play:hover { background: #fff; }
+  .bx-btn-ghost { border: 1px solid var(--bx-line); color: var(--bx-ink); }
+  .bx-btn-ghost:hover { border-color: #39414a; background: var(--bx-raised); }
+  /* The one place the accent is spent. */
+  .bx-btn-sub { background: var(--bx-accent); color: var(--bx-accent-ink); }
+  .bx-btn-sub:hover { background: #ff7433; }
+  .bx-btn:active { transform: translateY(1px); }
+
+  /* ---- The stage and the archive cards ---------------------------------- */
+
+  /* One gesture for the whole page: a thumbnail lifts and its play affordance
+     brightens. The stage and every archive card use it, so nothing on the page
+     moves in a way a visitor has not already learned. */
+  .bx-tile {
+    display: block;
+    position: relative;
+    border-radius: var(--bx-radius);
+    overflow: hidden;
+    background: var(--bx-raised);
+    box-shadow: 0 0 0 1px var(--bx-line-soft);
+    transition:
+      transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bx-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  @media (prefers-reduced-motion: no-preference) {
+    .bx-tile:hover, .bx-tile:focus-visible { transform: translateY(-3px); }
+  }
+  .bx-tile:hover, .bx-tile:focus-visible { box-shadow: 0 0 0 1px var(--bx-line), var(--bx-shadow); }
+
+  .bx-stage { border-radius: var(--bx-radius-lg); }
+
+  /* The play affordance, drawn rather than borrowed from an icon set. */
+  .bx-play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.92);
+    color: var(--bx-bg);
+    transition: background-color 220ms cubic-bezier(0.32, 0.72, 0, 1), scale 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bx-stage .bx-play { width: 4.5rem; height: 4.5rem; }
+  .bx-tile:hover .bx-play, .bx-tile:focus-visible .bx-play { background: #fff; scale: 1.06; }
+  @media (prefers-reduced-motion: reduce) { .bx-tile:hover .bx-play { scale: 1; } }
+
+  /* The runtime chip a video always carries. */
+  .bx-dur {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    border-radius: 0.25rem;
+    background: rgb(0 0 0 / 0.78);
+    padding: 0.1875rem 0.375rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+  }
+
+  /* ---- Panels ------------------------------------------------------------ */
+
+  .bx-panel {
+    border-radius: var(--bx-radius);
+    background: var(--bx-raised);
+    box-shadow: 0 0 0 1px var(--bx-line-soft);
+    transition: box-shadow 200ms cubic-bezier(0.32, 0.72, 0, 1), background-color 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  a.bx-panel:hover { background: var(--bx-raised-2); box-shadow: 0 0 0 1px var(--bx-line); }
+
+  .bx-hair { border-top: 1px solid var(--bx-line-soft); }
+
+  /* ---- Browser surfaces the page did not draw --------------------------- */
+
+  .bx-dark ::selection { background: var(--bx-accent); color: #fff; }
+  .bx-dark :focus-visible {
+    outline: 2px solid var(--bx-accent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+  .bx-dark a { text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+  .bx-dark { color-scheme: dark; }
+
+}
