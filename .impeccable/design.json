@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-05T00:00:00Z",
+  "title": "Design System: Juice Bros Pickleball — Marketing Site",
+  "extensions": {
+    "colorMeta": {
+      "bx-bg": {
+        "role": "neutral",
+        "displayName": "Cool Near-Black Ground",
+        "canonical": "#08090b",
+        "tonalRamp": ["#08090b", "#101317", "#171b20", "#23282e", "#3a4149", "#5c6570", "#8f98a3", "#f2f4f6"]
+      },
+      "bx-raised": {
+        "role": "neutral",
+        "displayName": "Raised Surface",
+        "canonical": "#101317",
+        "tonalRamp": ["#08090b", "#101317", "#171b20", "#23282e", "#3a4149", "#5c6570", "#8f98a3", "#f2f4f6"]
+      },
+      "bx-ink": {
+        "role": "neutral",
+        "displayName": "Ink (primary text)",
+        "canonical": "#f2f4f6",
+        "tonalRamp": ["#08090b", "#171b20", "#23282e", "#3a4149", "#5c6570", "#8f98a3", "#d1d6db", "#f2f4f6"]
+      },
+      "bx-muted": {
+        "role": "neutral",
+        "displayName": "Muted Grey (secondary text)",
+        "canonical": "#8f98a3",
+        "tonalRamp": ["#08090b", "#23282e", "#3a4149", "#5c6570", "#75808c", "#8f98a3", "#b5bcc4", "#f2f4f6"]
+      },
+      "bx-accent": {
+        "role": "primary",
+        "displayName": "Brand Orange (subscribe only)",
+        "canonical": "#f26522",
+        "tonalRamp": ["#5c2308", "#7a2f0a", "#a63f0f", "#d15216", "#f26522", "#ff7433", "#ffab7d", "#ffd9c2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The page's single h1 — the positioning line, not the brand wordmark." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings and the featured episode title." },
+      "body": { "displayName": "Body", "purpose": "Standfirst and supporting copy, 46–58ch measure." },
+      "label": { "displayName": "Label / Mono", "purpose": "Metadata only — dates, runtimes, counts. Never prose." }
+    },
+    "shadows": [
+      { "name": "resting-ring", "value": "0 0 0 1px var(--bx-line-soft)", "purpose": "Default state of every .bx-tile / .bx-panel." },
+      { "name": "hover-ring", "value": "0 0 0 1px var(--bx-line)", "purpose": "One-step-brighter ring on hover/focus." },
+      { "name": "bx-shadow", "value": "0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9)", "purpose": "The sole true drop shadow; appears only on .bx-tile hover/focus." }
+    ],
+    "motion": [
+      { "name": "bx-ease", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Shared easing for every transition on this look — buttons, tiles, panels, links." },
+      { "name": "tile-lift", "value": "transform 220ms; translateY(-3px)", "purpose": "The one shared gesture: every thumbnail lifts on hover/focus, gated behind prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Subscribe Button",
+      "kind": "button",
+      "refersTo": "button-sub",
+      "description": "The only place brand orange is spent — header pill and closing footer CTA.",
+      "html": "<a class=\"ds-btn ds-btn-sub\" href=\"#\">Subscribe</a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; white-space: nowrap; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1), transform 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-sub { background: #f26522; color: #ffffff; } .ds-btn-sub:hover { background: #ff7433; } .ds-btn-sub:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-sub:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Play Button",
+      "kind": "button",
+      "refersTo": "button-play",
+      "description": "White-on-ink solid fill; used for the primary 'Watch on YouTube' action.",
+      "html": "<a class=\"ds-btn ds-btn-play\" href=\"#\">Watch on YouTube</a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-play { background: #f2f4f6; color: #08090b; } .ds-btn-play:hover { background: #ffffff; } .ds-btn-play:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Outline pill for secondary actions (Listen, All appearances).",
+      "html": "<a class=\"ds-btn ds-btn-ghost\" href=\"#\">Listen</a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; transition: border-color 160ms cubic-bezier(0.32,0.72,0,1), background-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-ghost { border: 1px solid #23282e; color: #f2f4f6; background: transparent; } .ds-btn-ghost:hover { border-color: #39414a; background: #101317; }"
+    },
+    {
+      "name": "Episode Tile",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "The signature gesture: a thumbnail tile with an authored play mark and a runtime chip, used for the hero stage, archive grid, and Instagram strip alike.",
+      "html": "<a class=\"ds-tile\" href=\"#\"><img src=\"https://placehold.co/480x270\" alt=\"\" /><span class=\"ds-play\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"currentColor\"><path d=\"M6.6 3.4a1.4 1.4 0 0 1 2.1-1.2l11 8.6a1.4 1.4 0 0 1 0 2.4l-11 8.6a1.4 1.4 0 0 1-2.1-1.2Z\"/></svg></span><span class=\"ds-dur\">22:14</span></a>",
+      "css": ".ds-tile { display: block; position: relative; border-radius: 0.75rem; overflow: hidden; background: #101317; box-shadow: 0 0 0 1px #191d22; transition: transform 220ms cubic-bezier(0.32,0.72,0,1), box-shadow 220ms cubic-bezier(0.32,0.72,0,1); } .ds-tile img { display: block; width: 100%; height: 100%; object-fit: cover; } .ds-tile:hover, .ds-tile:focus-visible { transform: translateY(-3px); box-shadow: 0 0 0 1px #23282e, 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9); } .ds-play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: rgb(255 255 255 / 0.92); color: #08090b; transition: background-color 220ms cubic-bezier(0.32,0.72,0,1), scale 220ms cubic-bezier(0.32,0.72,0,1); } .ds-tile:hover .ds-play { background: #fff; scale: 1.06; } .ds-dur { position: absolute; right: 0.5rem; bottom: 0.5rem; border-radius: 0.25rem; background: rgb(0 0 0 / 0.78); padding: 0.1875rem 0.375rem; font-family: ui-monospace, monospace; font-size: 0.6875rem; color: #fff; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Generic raised block used for tool cards and the next-appearance panel.",
+      "html": "<a class=\"ds-panel\" href=\"#\"><h3>Booking Buddy</h3><p>Coordinate court time with your friend group.</p></a>",
+      "css": ".ds-panel { display: block; border-radius: 0.75rem; background: #101317; box-shadow: 0 0 0 1px #191d22; padding: 1.5rem; transition: background-color 200ms cubic-bezier(0.32,0.72,0,1), box-shadow 200ms cubic-bezier(0.32,0.72,0,1); color: #f2f4f6; } .ds-panel:hover { background: #171b20; box-shadow: 0 0 0 1px #23282e; } .ds-panel p { color: #8f98a3; margin-top: 0.625rem; font-size: 0.9375rem; }"
+    },
+    {
+      "name": "Metadata Label",
+      "kind": "custom",
+      "refersTo": "label",
+      "description": "The mono metadata line beneath a title — date, runtime, kicker. Reserved for real data only.",
+      "html": "<p class=\"ds-meta\">New episode · Aug 27, 2026 · 22:14</p>",
+      "css": ".ds-meta { font-family: ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #8f98a3; }"
+    },
+    {
+      "name": "Sticky Nav Bar",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Blurred sticky header with wordmark, link row (collapses under md), and the sole accent-colored Subscribe pill.",
+      "html": "<header class=\"ds-header\"><span class=\"ds-word\">Juice Bros Pickleball</span><nav class=\"ds-nav\"><a href=\"#\">Podcast</a><a href=\"#\">Gear</a><a href=\"#\">About</a></nav><a class=\"ds-btn ds-btn-sub\" href=\"#\">Subscribe</a></header>",
+      "css": ".ds-header { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 4rem; padding-inline: 1.25rem; background: rgb(8 9 11 / 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid #191d22; } .ds-word { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; color: #f2f4f6; } .ds-nav { display: flex; gap: 1.75rem; } .ds-nav a { font-size: 0.875rem; color: #8f98a3; transition: color 200ms ease; } .ds-nav a:hover { color: #f2f4f6; } .ds-btn-sub { background: #f26522; color: #fff; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Broadcast Dark",
+    "overview": "The page is the show's own screen: a near-black stage with the newest episode already sitting on it, and the rest of the catalogue arranged around it. This is not an own-world invention — it is the category standard (the arrangement a podcast-site visitor already expects) executed at full fidelity. Adrian chose this explicitly over four committed own-world directions (a season-guide print world, a public-access broadcast world, a painted-court world, a group-chat world); convention is the commitment, not a fallback. The craft bar is podcast structure with SaaS finish — held to the type, spacing, and state discipline of Linear, Vercel, and Stripe. The chrome is greyscale by design. Every color a visitor actually sees on the page comes from the episode thumbnails and photos; the system itself supplies only a ground, one raised surface, white ink, one muted grey, and a single reserved accent. This restraint is what lets fourteen different YouTube thumbnails sit on the same page without the chrome fighting them.",
+    "keyCharacteristics": [
+      "Near-black ground, one raised surface, no third \"quiet\" grey step",
+      "One accent (brand orange), spent on exactly one job: the subscribe action",
+      "One shared hover/focus gesture (lift + brighten) used identically everywhere a thumbnail appears",
+      "Geist at one rigorous scale for all reading type; Geist Mono reserved for metadata only",
+      "Pill-shaped controls, 0.75rem card radius, 4px-multiple spacing rhythm"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Brand orange is spent only on the subscribe action (the header pill and the closing footer CTA) and its focus ring. If a new element on this page reaches for orange for any other reason — a badge, a kicker, a decorative underline — that is a system violation, not a variant.", "section": "colors" },
+      { "name": "The No-Fake-Quiet Rule", "body": "There is no third, fainter neutral step beyond ink and muted. A color that exists only to look quiet is a contrast failure waiting to happen; if something needs to recede, use size, weight, or spacing, not a fainter grey.", "section": "colors" },
+      { "name": "The Metadata-Only Mono Rule", "body": "Geist Mono (.bx-meta) is reserved for machine-adjacent facts — a date, a runtime, a count — never for prose, section titles, or decorative labels. If a mono-styled string doesn't come from real data, it doesn't belong in .bx-meta.", "section": "typography" },
+      { "name": "The Depth-Is-Earned Rule", "body": "Nothing on this page carries a drop shadow at rest. A shadow only ever appears as the response to a hover or focus interaction on a .bx-tile; a panel that is merely raised in the layout gets a 1px ring, never a shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do author every hover/focus effect on a thumbnail through .bx-tile (lift + ring + shadow + play-mark brighten) rather than inventing a one-off transition — this is the page's one shared gesture.",
+      "Do keep every .bx-* rule inside Tailwind's components layer. Unlayered CSS placed after @import \"tailwindcss\" outranks every layered utility class — that broke md:hidden and normal-case mid-build. Any new .bx-* rule must go inside the existing @layer components { … } block, not appended outside it.",
+      "Do spend brand orange only on the subscribe action; every other accent need should reach for white-on-ink (.bx-btn-play) or the ghost outline instead.",
+      "Do draw icons and glyphs (the play mark, the mobile menu toggle) as authored inline SVG so their geometry matches the rest of the page's drawing, rather than importing an icon-set component for these specific marks.",
+      "Do render a section as null when its underlying data is empty (Archive, FreeTools, OnTheRoad, FromInstagram all do this) rather than printing an empty-state placeholder."
+    ],
+    "donts": [
+      "Don't darken or otherwise alter brand orange (#f26522) to \"fix\" contrast — this is a confirmed brand commitment in PRODUCT.md. It is moot on .bx-dark surfaces anyway, since orange-on-near-black already clears 5.5:1; the 3.15:1 problem the commitment describes is orange-on-white, which this look never does.",
+      "Don't add a third, fainter neutral tone beneath --bx-muted. The system has exactly two ink steps on purpose.",
+      "Don't carry Broadcast Dark's .bx-dark scope, tokens, or components onto Booking Buddy, On Deck, or Pickle Point Pal routes, or vice versa — the four visual worlds are deliberately separate and none of them import another's tokens.",
+      "Don't treat the six not-yet-migrated marketing routes (Podcast, Gear, About, Contact, Tools, Appearances) as already conforming to this system when auditing or extending them — they currently run the incumbent orange-pill-nav look and are pending migration, not already-compliant."
+    ]
+  }
+}
