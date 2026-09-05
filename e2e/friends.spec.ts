@@ -3,7 +3,9 @@ import { type Page } from "@playwright/test";
 import { expect, test, type Accounts } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import { clearConnectionBetween } from "./support/connection-request-link.ts";
-import { resetDefaultFriendVisibility } from "./support/db-reset.ts";
+import { deleteOrgs, resetDefaultFriendVisibility } from "./support/db-reset.ts";
+import { addPlace, logBooking, placeName, removePlace } from "./support/places.ts";
+import { deleteAvailabilityWindows, insertAvailabilityWindow } from "./support/availability.ts";
 
 /**
  * The two-sided half of Connections: a request only means anything once the
@@ -52,6 +54,23 @@ async function search(page: Page, handle: string) {
  */
 async function disconnect(accounts: Accounts) {
   await clearConnectionBetween(accounts.amy2.username, accounts.ben2.username);
+}
+
+/**
+ * Tomorrow, as a `YYYY-MM-DD` — always in the future, and (Saturday aside)
+ * always still inside the current calendar week the friend calendar defaults
+ * to. Mirrors `dashboard.spec.ts`'s own `requireTestBookingDate`, which isn't
+ * exported from there.
+ */
+function requireTestBookingDate(): { iso: string } {
+  const now = new Date();
+  test.skip(now.getDay() === 6, "no future day is left in the current calendar week on a Saturday");
+
+  const date = new Date(now);
+  date.setDate(date.getDate() + 1);
+  return {
+    iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+  };
 }
 
 test.describe("two Users, one Connection", () => {
@@ -248,6 +267,126 @@ test.describe("the default-visibility control", () => {
       "Sees: Games and my availability",
     );
 
+    await amyContext.close();
+    await benContext.close();
+  });
+});
+
+/**
+ * Seeds one account's game (a Booking) and a "Looking to play" Availability
+ * Window while it's still a stranger to the other side — the point of the
+ * test this backs is that *accepting the Connection* is what opens these up,
+ * with no Friend Group and no override involved in creating them.
+ */
+async function seedGameAndWindow(
+  page: Page,
+  user: { email: string; password: string },
+  place: string,
+  bookingDate: { iso: string },
+) {
+  await addPlace(page, place);
+  await insertAvailabilityWindow(user, {
+    type: "looking",
+    startsAt: `${bookingDate.iso}T22:00:00Z`,
+    endsAt: `${bookingDate.iso}T23:00:00Z`,
+  });
+  await logBooking(page, {
+    place,
+    court: "12",
+    date: bookingDate.iso,
+    start: "08:00",
+    end: "09:00",
+  });
+  // Wait for the logged row before moving on — the Server Action's round
+  // trip would otherwise race the next navigation (same reasoning as
+  // `dashboard.spec.ts`'s own booking tests). Filtered on the (unique,
+  // random-suffixed) place name too — "Court 12" alone can collide with a
+  // stray row a previous failed run left behind on this reused account.
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: place })
+    .filter({ hasText: "Court 12" })
+    .waitFor();
+}
+
+/** Opens `viewer`'s "View calendar" dialog for `friendHandle` and asserts `friendPlace`'s game and the Looking-to-play window both show. */
+async function assertFriendCalendarShows(viewer: Page, friendHandle: string, friendPlace: string) {
+  await viewer.goto("/booking-buddy/friends");
+  await personRow(viewer, friendHandle).getByRole("button", { name: "View calendar" }).click();
+  const dialog = viewer.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: friendPlace, exact: false })).toBeVisible();
+  await expect(dialog.locator('[title^="Looking to play"]')).toHaveCount(1);
+}
+
+test.describe("seeing each other's calendar after connecting", () => {
+  // Safety net for a failed run's leftovers — same posture as
+  // `dashboard.spec.ts`'s own `afterEach`. The test also sweeps its own
+  // fixtures as part of what it asserts; this is only the backstop.
+  test.afterEach(async ({ accounts }) => {
+    const amy = { email: accounts.amy2.email, password: accounts.password };
+    const ben = { email: accounts.ben2.email, password: accounts.password };
+    await deleteOrgs(amy);
+    await deleteOrgs(ben);
+    await deleteAvailabilityWindows(amy);
+    await deleteAvailabilityWindows(ben);
+    await disconnect(accounts);
+  });
+
+  test("connecting with zero groups and zero overrides shows each other's game and Availability Window", async ({
+    browser,
+    accounts,
+  }) => {
+    const bookingDate = requireTestBookingDate();
+    const amyUser = { email: accounts.amy2.email, password: accounts.password };
+    const benUser = { email: accounts.ben2.email, password: accounts.password };
+
+    const amyContext = await browser.newContext();
+    const benContext = await browser.newContext();
+    const amy = await amyContext.newPage();
+    const ben = await benContext.newPage();
+
+    await signIn(amy, accounts.amy2.email, "/booking-buddy/friends");
+    await signIn(ben, accounts.ben2.email, "/booking-buddy/friends");
+    await disconnect(accounts);
+    await deleteAvailabilityWindows(amyUser);
+    await deleteAvailabilityWindows(benUser);
+    // Self-contained regardless of what "the default-visibility control"
+    // describe above left behind — this test is about the seeded `calendar`
+    // default (ADR 0021) itself, not whatever that describe's own cleanup did
+    // or didn't manage to restore.
+    await resetDefaultFriendVisibility(amyUser);
+    await resetDefaultFriendVisibility(benUser);
+
+    const amyPlace = placeName("-amy");
+    const benPlace = placeName("-ben");
+    await seedGameAndWindow(amy, amyUser, amyPlace, bookingDate);
+    await seedGameAndWindow(ben, benUser, benPlace, bookingDate);
+
+    // Amy asks, Ben accepts — no Friend Group, no override, either side.
+    await amy.goto("/booking-buddy/friends");
+    await search(amy, accounts.ben2.username);
+    await searchRow(amy, accounts.ben2.username)
+      .getByRole("button", { name: "Add friend" })
+      .click();
+    await expect(searchRow(amy, accounts.ben2.username)).toContainText("Request sent");
+
+    // `goto`, not `reload` — Ben's last navigation was `logBooking`'s own
+    // Bookings page, and the other tests' `.reload()` only works because
+    // they never leave the Friends page in between.
+    await ben.goto("/booking-buddy/friends");
+    await section(ben, "Requests for you").getByRole("button", { name: "Accept" }).click();
+    await expect(section(ben, "Requests for you")).toHaveCount(0);
+
+    // The `calendar` default (ADR 0021) already grants everything, so each
+    // can open the other's calendar with nothing else set up.
+    await assertFriendCalendarShows(amy, accounts.ben2.username, benPlace);
+    await assertFriendCalendarShows(ben, accounts.amy2.username, amyPlace);
+
+    await removePlace(amy, amyPlace);
+    await removePlace(ben, benPlace);
+    await deleteAvailabilityWindows(amyUser);
+    await deleteAvailabilityWindows(benUser);
+    await disconnect(accounts);
     await amyContext.close();
     await benContext.close();
   });

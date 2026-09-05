@@ -73,6 +73,12 @@ test.describe("friend-request email links", () => {
     await expect(
       guest.getByRole("heading", { name: /wants to connect/ }),
     ).toContainText(accounts.amy2.username);
+    // The consequence is stated before the POST, not just after it (BB-2, #379) —
+    // the whole point of a session-less Accept link is informed consent on the
+    // page that carries the button.
+    await expect(
+      guest.getByText(/You'll both see each other's games and availability/),
+    ).toBeVisible();
 
     await guest.getByRole("button", { name: "Accept" }).click();
     await expect(guest.getByRole("heading", { name: "You're connected" })).toBeVisible();
