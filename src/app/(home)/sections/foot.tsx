@@ -33,7 +33,7 @@ export function Foot() {
             href={siteConfig.links.youtube}
             target="_blank"
             rel="noopener noreferrer"
-            className="bx-btn bx-btn-sub shrink-0 self-start px-6 py-3.5 text-base sm:self-auto"
+            className="bx-btn bx-btn-yt shrink-0 self-start px-6 py-3.5 text-base sm:self-auto"
           >
             <YoutubeIcon className="size-[1.125rem]" />
             Subscribe on YouTube

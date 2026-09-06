@@ -2438,11 +2438,25 @@ html:has(.bb-app-chrome) {
     --bx-ink: #f2f4f6;
     --bx-muted: #8f98a3;
 
-    /* The single accent. Brand orange clears 5.5:1 on this ground - the
-       contrast problem PRODUCT.md documents is orange on *white*, which this
-       look never does. Reserved for the subscribe action and its focus ring. */
+    /* Brand orange. It clears 5.5:1 on this ground - the contrast problem
+       PRODUCT.md documents is orange on *white*, which this look never does.
+       It is the bar's ground and the focus ring; it is no longer the subscribe
+       colour, because a brand-orange button on a brand-orange bar reads as an
+       outline at best. */
     --bx-accent: var(--brand-orange);
     --bx-accent-ink: #ffffff;
+
+    /* Platform colours. These are the two destinations the page exists to send
+       people to, so their buttons wear their own brands rather than the site's.
+       `--bx-spotify-ink` is black on purpose: white on Spotify green measures
+       2.6:1, black measures 8.2:1, and black is what Spotify's own brand
+       guidance specifies. YouTube red takes white at 4.0:1 - just under the
+       4.5:1 bar for button text, kept for brand fidelity at Adrian's call;
+       #cc0000 is the swap if that ever needs to clear AA. */
+    --bx-youtube: #ff0000;
+    --bx-youtube-ink: #ffffff;
+    --bx-spotify: #1db954;
+    --bx-spotify-ink: #0a0a0a;
 
     --bx-radius: 0.75rem;
     --bx-radius-lg: 1rem;
@@ -2510,9 +2524,15 @@ html:has(.bb-app-chrome) {
   .bx-btn-play:hover { background: #fff; }
   .bx-btn-ghost { border: 1px solid var(--bx-line); color: var(--bx-ink); }
   .bx-btn-ghost:hover { border-color: #39414a; background: var(--bx-raised); }
-  /* The one place the accent is spent. */
-  .bx-btn-sub { background: var(--bx-accent); color: var(--bx-accent-ink); }
-  .bx-btn-sub:hover { background: #ff7433; }
+  /* Subscribe, which sits on the orange bar and so cannot be orange itself. */
+  .bx-btn-sub { background: #0a0a0a; color: #ffffff; }
+  .bx-btn-sub:hover { background: #23282e; }
+
+  /* The platform actions, in their own brands. */
+  .bx-btn-yt { background: var(--bx-youtube); color: var(--bx-youtube-ink); }
+  .bx-btn-yt:hover { background: #e60000; }
+  .bx-btn-sp { background: var(--bx-spotify); color: var(--bx-spotify-ink); }
+  .bx-btn-sp:hover { background: #1ed760; }
   .bx-btn:active { transform: translateY(1px); }
 
   /* ---- The stage and the archive cards ---------------------------------- */

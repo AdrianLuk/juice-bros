@@ -37,7 +37,7 @@ export default async function Home() {
 
   return (
     <div className="bx-dark flex flex-1 flex-col">
-      <TopBar overlay />
+      <TopBar />
       <PhotoHero />
       {newest && <NowPlaying episode={newest} />}
       <Archive episodes={rest.slice(0, 8)} />

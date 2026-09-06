@@ -3,69 +3,66 @@ import { YoutubeIcon, SpotifyIcon } from "@/components/icons";
 import { HeroBackdrop } from "./hero-backdrop";
 
 /**
- * The full-bleed photo hero, kept from the incumbent and fixed rather than
- * replaced.
+ * The full-bleed photo hero, kept from the incumbent rather than replaced.
  *
  * One thing changed from the incumbent: the h1 is the positioning line, not the
  * show's own name. The name is in the bar directly above it, and the largest
- * text on the page telling a first-time visitor nothing was the incumbent's
- * real defect.
+ * text on the page telling a first-time visitor nothing was the real defect.
+ * The scrim stays, and so does the full viewport height on desktop - that means
+ * nothing playable reaches the first screen there, which is a real cost against
+ * this page's growth metric and Adrian's trade to make.
  *
- * Everything else is kept deliberately. The scrim stays - darkening a
- * photograph behind type is how you put type on a photograph, not a flaw to
- * design around. The full viewport height stays too, at Adrian's call: it
- * means nothing playable reaches the first screen, which is a real cost
- * against this page's growth metric, and it is his trade to make. Dropping to
- * `min-h-[34rem]` is the one-line change if he ever wants the newest episode
- * breaking the fold instead.
+ * Two layouts, not one:
+ *
+ * - **Wide**, the banner is the background and the copy sits on it, which is
+ *   what the image was composed for: the hosts are on the left and right thirds
+ *   and the middle is clear.
+ * - **Narrow**, the banner is a plain block and the copy sits underneath it on
+ *   the page's own ground. Cropping a 16:9 two-shot into a phone-shaped box
+ *   puts the hosts off-frame and drops the type onto whatever is left, so the
+ *   overlay stops being legible exactly where most visitors are.
  */
 export function PhotoHero() {
   return (
-    <section className="relative isolate flex min-h-svh flex-col justify-end overflow-hidden">
-      {/* LCP element. The hand-optimised WebP variants are the same ones the
-          incumbent hero shipped (see PROGRESS.md Phase 3.5); the .jpeg is the
-          fallback for anything ignoring <source>. */}
-      <picture>
-        <source
-          type="image/webp"
-          srcSet="/brand/JB_Banner-768.webp 768w, /brand/JB_Banner-1280.webp 1280w, /brand/JB_Banner-1600.webp 1600w"
-          sizes="100vw"
+    <section className="relative isolate flex flex-col sm:min-h-[calc(100svh-4rem)] sm:justify-end sm:overflow-hidden">
+      {/* Narrow: an in-flow banner block. Wide: the background of the section,
+          with the copy laid over it. */}
+      <div className="relative sm:absolute sm:inset-0 sm:-z-10">
+        <picture>
+          <source
+            type="image/webp"
+            srcSet="/brand/JB_Banner-768.webp 768w, /brand/JB_Banner-1280.webp 1280w, /brand/JB_Banner-1600.webp 1600w"
+            sizes="100vw"
+          />
+          <img
+            src="/brand/JB_Banner_1920.jpeg"
+            alt="Daven and Adrian, the hosts of Juice Bros Pickleball"
+            width={1600}
+            height={901}
+            fetchPriority="high"
+            decoding="async"
+            className="h-56 w-full object-cover object-center sm:h-full"
+          />
+        </picture>
+
+        {/* Static fallback for the citrus field: the warm glow carries the idea
+            when WebGL is unavailable. The canvas screen-blends over this. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 mix-blend-screen bg-[radial-gradient(ellipse_60%_50%_at_50%_58%,color-mix(in_oklch,var(--brand-orange),transparent_78%)_0%,transparent_70%)]"
         />
-        <img
-          src="/brand/JB_Banner_1920.jpeg"
-          alt=""
-          width={1600}
-          height={901}
-          fetchPriority="high"
-          decoding="async"
-          className="absolute inset-0 -z-10 size-full object-cover object-center"
+        <HeroBackdrop />
+
+        {/* Narrow, the banner only needs its foot softened into the ground it
+            sits above. Wide, the whole image carries type and takes the full
+            ramp plus an even wash. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-20 bg-[linear-gradient(to_top,var(--bx-bg),transparent)] sm:inset-0 sm:h-auto sm:bg-[linear-gradient(to_top,var(--bx-bg)_0%,color-mix(in_oklch,var(--bx-bg),transparent_25%)_38%,color-mix(in_oklch,var(--bx-bg),transparent_65%)_100%)]"
         />
-      </picture>
+      </div>
 
-      {/* Static fallback for the citrus field: the warm glow carries the idea
-          when WebGL is unavailable. The canvas screen-blends over this. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 mix-blend-screen bg-[radial-gradient(ellipse_60%_50%_at_50%_58%,color-mix(in_oklch,var(--brand-orange),transparent_78%)_0%,transparent_70%)]"
-      />
-      <HeroBackdrop />
-
-      {/* The scrim: a vertical ramp into the page's own ground so the hero does
-          not end on a hard edge, plus an even wash for type legibility. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[6] bg-[linear-gradient(to_top,var(--bx-bg)_0%,color-mix(in_oklch,var(--bx-bg),transparent_25%)_38%,color-mix(in_oklch,var(--bx-bg),transparent_65%)_100%)]"
-      />
-      {/* A second, shorter ramp under the bar. The photograph has to run to the
-          top of the page, but the banner's brightest passage sits exactly where
-          the nav items land, so without this the middle of the menu reads
-          against a lit straw. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 z-[7] h-28 bg-[linear-gradient(to_bottom,color-mix(in_oklch,var(--bx-bg),transparent_20%)_0%,transparent_100%)]"
-      />
-
-      <div className="bx-measure relative z-10 pt-24 pb-12 sm:pt-32 sm:pb-14">
+      <div className="bx-measure relative z-10 pt-8 pb-4 sm:pt-32 sm:pb-14">
         <h1 className="bx-display max-w-[18ch] text-[clamp(2rem,5.4vw,3.5rem)]">
           Pickleball, from two guys still trying to get good at it.
         </h1>
@@ -78,7 +75,7 @@ export function PhotoHero() {
             href={siteConfig.links.youtube}
             target="_blank"
             rel="noopener noreferrer"
-            className="bx-btn bx-btn-play"
+            className="bx-btn bx-btn-yt"
           >
             <YoutubeIcon className="size-4" />
             Watch on YouTube
@@ -87,7 +84,7 @@ export function PhotoHero() {
             href={siteConfig.links.spotify}
             target="_blank"
             rel="noopener noreferrer"
-            className="bx-btn bx-btn-ghost"
+            className="bx-btn bx-btn-sp"
           >
             <SpotifyIcon className="size-4" />
             Listen on Spotify
