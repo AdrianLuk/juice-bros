@@ -16,17 +16,32 @@ import { siteConfig } from "@/config/site";
  * Subscribe points at YouTube: that is the actual subscribe destination and
  * the metric this page exists to move. It is the only place on the page the
  * accent colour is spent.
+ *
+ * `overlay` puts the bar on top of a full-bleed hero instead of above it, so
+ * the hero's photograph runs continuously to the top of the page. Without it a
+ * photo hero ships with a bare strip of page ground over the image, which reads
+ * as a mistake.
  */
-export function TopBar() {
+export function TopBar({ overlay = false }: { overlay?: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--bx-line-soft)] bg-[var(--bx-bg)]/85 backdrop-blur-md">
+    <header
+      className={
+        overlay
+          ? "absolute inset-x-0 top-0 z-40"
+          : "sticky top-0 z-40 border-b border-[var(--bx-line-soft)] bg-[var(--bx-bg)]/85 backdrop-blur-md"
+      }
+    >
       <div className="bx-measure flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2.5">
           {/* Decorative: the wordmark sits right beside it. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
-          <img src="/brand/JB_Logo_White.svg" alt="" className="size-7 shrink-0" />
+          <img
+            src="/brand/JB_Logo_White.svg"
+            alt=""
+            className="size-7 shrink-0"
+          />
           <span className="text-[0.9375rem] font-semibold tracking-tight">
             {siteConfig.name}
           </span>
@@ -82,7 +97,11 @@ export function TopBar() {
         <nav
           id="home-nav-panel"
           aria-label="Main"
-          className="bx-measure border-t border-[var(--bx-line-soft)] pt-2 pb-4 md:hidden"
+          className={`border-t border-[var(--bx-line-soft)] pt-2 pb-4 md:hidden ${
+            overlay
+              ? "bx-measure bg-[var(--bx-bg)]/95 backdrop-blur-md"
+              : "bx-measure"
+          }`}
         >
           <ul className="grid">
             {siteConfig.nav

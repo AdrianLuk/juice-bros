@@ -14,12 +14,23 @@ import { InstagramIcon } from "@/components/icons";
 export function TheHosts() {
   return (
     <section className="bx-measure bx-hair py-14 sm:py-20">
-      {/* No photograph here. There is exactly one host photo in the library and
-          the stage already runs it beside the video; printing the same picture
-          twice on one page reads as an asset shortage rather than a design. The
-          section carries its weight in the equipment lines instead, which are
-          the most host-specific content on the page. */}
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-16">
+      {/* The photograph belongs here in this variant. The hero above runs the
+          brand banner rather than the on-court shot, so this is the only place
+          the two of them appear and it is not a duplicate. */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-center lg:gap-14">
+        <figure className="bx-tile aspect-[4/3]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local photo, no next/image optimization needed here */}
+          <img
+            src="/pictures/adrian-dav.jpg"
+            alt="Daven and Adrian on court between points"
+            width={1200}
+            height={900}
+            loading="lazy"
+            decoding="async"
+            className="object-[50%_28%]"
+          />
+        </figure>
+
         <div>
           <h2 className="bx-h2 text-[1.375rem] sm:text-2xl">
             Two rec players, not coaches

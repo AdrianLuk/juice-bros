@@ -5,7 +5,8 @@ import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
 import { getLatestInstagramPosts, INSTAGRAM_POST_COUNT } from "@/lib/instagram";
 import { TopBar } from "./sections/top-bar";
-import { Stage } from "./sections/stage";
+import { PhotoHero } from "./sections/photo-hero";
+import { NowPlaying } from "./sections/now-playing";
 import { Archive } from "./sections/archive";
 import { FreeTools } from "./sections/free-tools";
 import { OnTheRoad } from "./sections/on-the-road";
@@ -36,8 +37,9 @@ export default async function Home() {
 
   return (
     <div className="bx-dark flex flex-1 flex-col">
-      <TopBar />
-      {newest && <Stage episode={newest} />}
+      <TopBar overlay />
+      <PhotoHero />
+      {newest && <NowPlaying episode={newest} />}
       <Archive episodes={rest.slice(0, 8)} />
       <FreeTools />
       <OnTheRoad />
