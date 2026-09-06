@@ -857,70 +857,77 @@ function RotationBoardInner({
         </div>
       )}
 
-      {/* ── Courts ────────────────────────────────────────────────────── */}
-      <section>
-        <BoardHeading count={view.courts.length}>
-          {view.lastCall ? "Final games" : "On the courts"}
-        </BoardHeading>
-        <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
-          {view.courts.map((court) => {
-            const occupied = court.players.length > 0;
-            return (
-              <CourtPanel key={court.number} court={court}>
-                <button
-                  type="button"
-                  className={
-                    occupied
-                      ? "od-key od-key--go od-key--turnover mt-4"
-                      : "od-key od-key--ghost mt-4 w-full"
-                  }
-                  disabled={busy || (!occupied && !nextReady)}
-                  onClick={() =>
-                    finish.mutate({ number: court.number, since: court.since })
-                  }
-                >
-                  {occupied ? `Court ${court.number} done` : "Send next four"}
-                </button>
-                {occupied && (
-                  <NoShowSwap
-                    court={court.number}
-                    players={court.players}
-                    since={court.since}
-                    suggested={court.suggestedReplacement}
-                    waiting={view.waitingNames}
-                    onSwap={swap.mutate}
-                    pending={swap.isPending}
-                  />
-                )}
-              </CourtPanel>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── On Deck ───────────────────────────────────────────────────── */}
-      {!view.lastCall && (
-        <section>
-          <BoardHeading tone="next">On deck</BoardHeading>
-          <div className="mt-3 grid items-start gap-4 sm:grid-cols-2">
-            {([0, 1] as const).map((slot) => (
-              <FoursomePanel
-                key={slot}
-                slot={slot}
-                testIdPrefix="on-deck-"
-                names={view.onDeck[slot] ?? []}
-                isGroup={view.onDeckIsGroup[slot]}
-                emptyLabel="Not enough players waiting yet"
-                progress={
-                  slot === 0 && hasOnDeck
-                    ? (view.onDeck[0]?.length ?? 0) / 4
-                    : undefined
-                }
-              />
-            ))}
+      {/*
+        On mobile, On Deck leads — who's coming up next is what an operator
+        glances at first on a phone. Courts stays first from sm: up, where
+        there's room to see both without scrolling.
+      */}
+      <div className="flex flex-col gap-7">
+        {/* ── Courts ──────────────────────────────────────────────────── */}
+        <section className="order-2 sm:order-1">
+          <BoardHeading count={view.courts.length}>
+            {view.lastCall ? "Final games" : "On the courts"}
+          </BoardHeading>
+          <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
+            {view.courts.map((court) => {
+              const occupied = court.players.length > 0;
+              return (
+                <CourtPanel key={court.number} court={court}>
+                  <button
+                    type="button"
+                    className={
+                      occupied
+                        ? "od-key od-key--go od-key--turnover mt-4"
+                        : "od-key od-key--ghost mt-4 w-full"
+                    }
+                    disabled={busy || (!occupied && !nextReady)}
+                    onClick={() =>
+                      finish.mutate({ number: court.number, since: court.since })
+                    }
+                  >
+                    {occupied ? `Court ${court.number} done` : "Send next four"}
+                  </button>
+                  {occupied && (
+                    <NoShowSwap
+                      court={court.number}
+                      players={court.players}
+                      since={court.since}
+                      suggested={court.suggestedReplacement}
+                      waiting={view.waitingNames}
+                      onSwap={swap.mutate}
+                      pending={swap.isPending}
+                    />
+                  )}
+                </CourtPanel>
+              );
+            })}
           </div>
         </section>
-      )}
+
+        {/* ── On Deck ─────────────────────────────────────────────────── */}
+        {!view.lastCall && (
+          <section className="order-1 sm:order-2">
+            <BoardHeading tone="next">On deck</BoardHeading>
+            <div className="mt-3 grid items-start gap-4 sm:grid-cols-2">
+              {([0, 1] as const).map((slot) => (
+                <FoursomePanel
+                  key={slot}
+                  slot={slot}
+                  testIdPrefix="on-deck-"
+                  names={view.onDeck[slot] ?? []}
+                  isGroup={view.onDeckIsGroup[slot]}
+                  emptyLabel="Not enough players waiting yet"
+                  progress={
+                    slot === 0 && hasOnDeck
+                      ? (view.onDeck[0]?.length ?? 0) / 4
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
 
       {!view.lastCall && (
         <AddWalkup
