@@ -32,7 +32,7 @@ export function TheHosts() {
         </figure>
 
         <div>
-          <h2 className="bx-h2 text-[1.375rem] sm:text-2xl">
+          <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
             Two rec players, not coaches
           </h2>
           <p className="mt-3 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">

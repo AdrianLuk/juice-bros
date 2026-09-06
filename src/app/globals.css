@@ -2424,12 +2424,19 @@ html:has(.bb-app-chrome) {
      ========================================================================== */
 
   .bx-dark {
-    /* Ground and the one raised surface. Cool near-black, not warm. */
+    /* Ground and the one raised surface. Cool near-black, not warm.
+       The steps are set to what a screen can actually show: the first build
+       had rings at 1.16:1 and a raised fill at 1.07:1 against the ground,
+       which is a value difference on paper and nothing at all on a panel.
+       Now the resting ring sits at ~1.4:1 (the register Vercel's dark border
+       uses), the hover ring at ~1.75:1, and the raised fill at ~1.2:1 -
+       enough that a full-width band reads as a band. */
     --bx-bg: #08090b;
-    --bx-raised: #101317;
-    --bx-raised-2: #171b20;
-    --bx-line: #23282e;
-    --bx-line-soft: #191d22;
+    --bx-raised: #14181d;
+    --bx-raised-2: #1b2027;
+    --bx-line: #363d46;
+    --bx-line-soft: #262c34;
+    --bx-line-2: #48505a;
 
     /* Ink. One muted grey, and it clears 6.6:1 on the ground, so every piece
        of secondary copy on the page is readable rather than atmospheric. There
@@ -2440,9 +2447,9 @@ html:has(.bb-app-chrome) {
 
     /* Brand orange. It clears 5.5:1 on this ground - the contrast problem
        PRODUCT.md documents is orange on *white*, which this look never does.
-       It is the bar's ground and the focus ring; it is no longer the subscribe
-       colour, because a brand-orange button on a brand-orange bar reads as an
-       outline at best. */
+       It is the floating pill nav's ground (the global SiteHeader, shared with
+       every marketing route) and the focus ring. The nav carries no control,
+       so nothing ever has to sit on orange. */
     --bx-accent: var(--brand-orange);
     --bx-accent-ink: #ffffff;
 
@@ -2524,9 +2531,6 @@ html:has(.bb-app-chrome) {
   .bx-btn-play:hover { background: #fff; }
   .bx-btn-ghost { border: 1px solid var(--bx-line); color: var(--bx-ink); }
   .bx-btn-ghost:hover { border-color: #39414a; background: var(--bx-raised); }
-  /* Subscribe, which sits on the orange bar and so cannot be orange itself. */
-  .bx-btn-sub { background: #0a0a0a; color: #ffffff; }
-  .bx-btn-sub:hover { background: #23282e; }
 
   /* The platform actions, in their own brands. */
   .bx-btn-yt { background: var(--bx-youtube); color: var(--bx-youtube-ink); }
@@ -2603,6 +2607,18 @@ html:has(.bb-app-chrome) {
   a.bx-panel:hover { background: var(--bx-raised-2); box-shadow: 0 0 0 1px var(--bx-line); }
 
   .bx-hair { border-top: 1px solid var(--bx-line-soft); }
+
+  /* A full-bleed passage on the raised surface. The page's one peak below
+     the hero: Now Playing sits on it so the newest episode is a place the
+     scroll arrives at, not another row on the same black. */
+  .bx-band {
+    background: var(--bx-raised);
+    border-top: 1px solid var(--bx-line-soft);
+    border-bottom: 1px solid var(--bx-line-soft);
+  }
+  /* A tile on the band needs the next ring up to keep its edge. */
+  .bx-band .bx-tile { box-shadow: 0 0 0 1px var(--bx-line); }
+  .bx-band .bx-tile:hover, .bx-band .bx-tile:focus-visible { box-shadow: 0 0 0 1px var(--bx-line-2), var(--bx-shadow); }
 
   /* ---- Browser surfaces the page did not draw --------------------------- */
 

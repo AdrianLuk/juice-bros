@@ -6,58 +6,71 @@ import { PlayMark } from "./play-mark";
 import { formatAired, formatRuntime } from "./format";
 
 /**
- * The newest episode, sat directly under the photo hero.
+ * The newest episode, on the page's one raised band directly under the hero.
  *
- * This is the variant used when the hero carries the brand rather than the
- * episode: the platform buttons already live up there, so this block does not
- * repeat them. The thumbnail is the action, and it breaks the fold under the
- * hero so a visitor still meets something playable on the first screen.
+ * The hero owns the whole first screen (Adrian's call - the two hosts in
+ * frame), so this is where the page pays back the missing playable thing: the
+ * scroll lands on a lighter passage with the stage at full column width, the
+ * title at headline size, and nothing else competing. The platform buttons
+ * already live in the hero, so this block does not repeat them; the thumbnail
+ * is the action.
  */
 export function NowPlaying({ episode }: { episode: Episode }) {
   const hook = episode.description ? getEpisodeHook(episode.description) : "";
 
   return (
-    <section className="bx-measure pt-12 pb-14 sm:pt-14 sm:pb-20">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,32rem)_1fr] lg:items-center lg:gap-12">
-        <Link
-          href={`/podcast/${episode.slug}`}
-          className="bx-tile bx-stage group aspect-video"
-          aria-label={`Play ${episodeMetaTitle(episode.title)}`}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
-          <img
-            src={episode.thumbnail}
-            alt=""
-            width={1280}
-            height={720}
-            fetchPriority="high"
-            decoding="async"
-          />
-          <PlayMark />
-          <span className="bx-dur">{formatRuntime(episode.duration)}</span>
-        </Link>
+    <section className="bx-band">
+      <div className="bx-measure py-12 sm:py-16 lg:py-20">
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,44rem)_1fr] lg:items-center lg:gap-14">
+          <Link
+            href={`/podcast/${episode.slug}`}
+            className="bx-tile bx-stage group aspect-video"
+            aria-label={`Play ${episodeMetaTitle(episode.title)}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
+            <img
+              src={episode.thumbnail}
+              alt=""
+              width={1280}
+              height={720}
+              fetchPriority="high"
+              decoding="async"
+            />
+            <PlayMark />
+            <span className="bx-dur">{formatRuntime(episode.duration)}</span>
+          </Link>
 
-        <div>
-          <h2 className="bx-h2 max-w-[22ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
+          <div>
+            <p className="bx-meta">
+              New episode
+              <span aria-hidden> · </span>
+              {formatAired(episode.published)}
+              <span aria-hidden> · </span>
+              {formatRuntime(episode.duration)}
+            </p>
+            <h2 className="bx-h2 mt-3 max-w-[20ch] text-[clamp(1.5rem,3.4vw,2.125rem)]">
+              <Link
+                href={`/podcast/${episode.slug}`}
+                className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              >
+                {episodeMetaTitle(episode.title)}
+              </Link>
+            </h2>
+            {hook && (
+              <p className="mt-3.5 max-w-[48ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+                {hook}
+              </p>
+            )}
             <Link
               href={`/podcast/${episode.slug}`}
-              className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              className="mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
             >
-              {episodeMetaTitle(episode.title)}
+              Watch the episode
+              <span aria-hidden className="ml-1.5">
+                &rarr;
+              </span>
             </Link>
-          </h2>
-          <p className="bx-meta mt-2.5">
-            New episode
-            <span aria-hidden> · </span>
-            {formatAired(episode.published)}
-            <span aria-hidden> · </span>
-            {formatRuntime(episode.duration)}
-          </p>
-          {hook && (
-            <p className="mt-2.5 max-w-[52ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
-              {hook}
-            </p>
-          )}
+          </div>
         </div>
       </div>
     </section>

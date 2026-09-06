@@ -131,14 +131,16 @@ export default function RootLayout({
         </a>
         <div aria-hidden className="bg-noise" />
         {/* Suppressed on /booking-buddy — a standalone app shell with its own
-            nav (ADR 0016). Still shown on /s/[token], the Guest Slot Link. */}
-        <SiteChromeSlot>
+            nav (ADR 0016). Still shown on /s/[token], the Guest Slot Link, and
+            on / — the home page runs the same floating pill as every other
+            marketing route. */}
+        <SiteChromeSlot part="header">
           <SiteHeader />
         </SiteChromeSlot>
         <main id="main-content" className="flex flex-1 flex-col">
           {children}
         </main>
-        <SiteChromeSlot>
+        <SiteChromeSlot part="footer">
           <SiteFooter />
         </SiteChromeSlot>
         <Analytics />
