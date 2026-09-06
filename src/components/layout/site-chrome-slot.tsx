@@ -11,6 +11,10 @@ import { usePathname } from "next/navigation";
  * - **`/on-deck/*` app surfaces** — the live-session, floor, display, and
  *   organizer pages run in On Deck's own bare shell. The marketing landing at
  *   exactly `/on-deck` keeps the global chrome.
+ * - **`/`** — the home page ships a near-black look with its own slim bar and
+ *   its own footer. A bright orange pill floating over that stage would be two
+ *   identities on one screen. The other marketing routes keep the global chrome
+ *   until the look rolls out to them (see `.impeccable/surfaces/src-app-home.md`).
  *
  * `/s/[token]` — the Guest Slot Link page — keeps the global chrome: it's a
  * public marketing surface, not part of the app.
@@ -30,5 +34,7 @@ export function SiteChromeSlot({ children }: { children: ReactNode }) {
   // (exactly /on-deck) is marketing and keeps the global chrome.
   const isOnDeckApp = pathname.startsWith("/on-deck/");
 
-  return isBookingBuddy || isOnDeckApp ? null : <>{children}</>;
+  const isHome = pathname === "/";
+
+  return isBookingBuddy || isOnDeckApp || isHome ? null : <>{children}</>;
 }
