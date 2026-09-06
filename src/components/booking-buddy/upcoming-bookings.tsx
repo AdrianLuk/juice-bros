@@ -48,7 +48,7 @@ export function UpcomingBookingsSidebar({
             href={BOOKINGS_PATH}
             className="underline underline-offset-4 hover:text-primary"
           >
-            Log a court reservation
+            Log a booking
           </Link>{" "}
           to see it here.
         </p>
