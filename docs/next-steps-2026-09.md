@@ -465,8 +465,10 @@ first-class output, "the grid is the interface" design direction, no database in
 initiatives below sequence it and add what the brief is missing.
 
 **Out of scope for the whole tool** (decided in conversation, don't grill):
-king of the court, pools into brackets, accounts, chat, native app. Live score sync across
-phones is v2 (RR-5) and gated on real usage.
+king of the court, elimination brackets seeded off pool standings, accounts, chat, native
+app. Live score sync across phones is v2 (RR-5) and gated on real usage. Pools *without*
+the bracket — several independent round robins sharing one court set, no seeding, no
+playoff — is in scope; see RR-6.
 
 **Cross-cutting decisions.**
 - Product name is **Match Mixer**, route `/tools/match-mixer`. Trades a weak SEO slug
@@ -639,6 +641,50 @@ standings from their own phone.
 - Supabase, scoped to this tool's routes, same posture as Booking Buddy and On Deck.
 
 **Open questions.** Not yet. Grill this only when it's next.
+
+### RR-6 · Pools
+
+**Size:** M. **Blocked by:** RR-1. Independent of RR-2 and RR-3; orthogonal to RR-4's
+Format toggle (rotating, fixed-partner, and singles each run once per pool).
+
+**Claim.** A club night is often several simultaneous mini round robins sharing one set of
+courts (a 4.0 group and a 3.0 group, or just too many people for one shared rotation) —
+not a tournament. No seeding, no standings that feed a playoff; each pool is a complete,
+self-contained round robin that happens to share courts and a printout with the others.
+
+**Already decided.**
+- **Pool Count** joins Courts, Rounds, and Seed as a Config field. `1` (default) is
+  today's behavior — nothing changes for the existing user. `>1` partitions the Roster.
+- **Assignment is random, off the existing Seed** — no new input, no mandatory skill
+  ratings. Consistent with the glossary's rule that Roster order "means nothing." As even
+  a split as the numbers allow (13 players / 3 pools = 5/4/4); "regenerate" reshuffles
+  pools the same way it reshuffles everything else today.
+- **Courts split evenly across pools**, remainder rotating which pool gets the extra
+  court each Round, rather than a per-pool courts field. One fewer input; matches the
+  brief's "no wizard" posture.
+- Each pool gets its own Schedule, Scorer, and Bye accounting — a Bye in Pool A has
+  nothing to do with Pool B's balance. `match-mixer/CONTEXT.md`'s Scorer definition
+  ("this context's definition of fair") now applies per pool, not globally.
+- Bracket, seeding, and standings-across-pools stay out of scope per the note above —
+  this is RR-6 exactly because it's the non-bracket half of "pools into brackets."
+
+**Open questions.**
+1. Round count when pools land on different natural table sizes?
+   ➡️ Rounds stays one global Config field (a time slot across every court, per the
+   existing Round definition) — organizers running pools side by side expect to call
+   "next round" once for everyone. Each pool's own generator fills its slice of that
+   Round from its own table/greedy search, same fallback rule as RR-1 item 2.
+2. Minimum players per pool?
+   ➡️ 4, same floor as the whole-roster minimum today. Below that a pool is nothing but
+   byes. Validate against `players / poolCount`, not just total players — 15 players
+   into 4 pools quietly produces a pool of 3.
+3. Print/on-screen layout with more than one grid?
+   ➡️ Leaning stacked sections (Pool A's grid, then Pool B's, each with its own partner
+   matrix) over one interleaved grid — keeps RR-1's grid markup and print stylesheet
+   almost unchanged. Worth a pass in Impeccable against the brief's direction before
+   locking it.
+4. Naming?
+   ➡️ Pool A/B/C…, not editable in v1. A rename field is a cheap follow-up, not a blocker.
 
 ---
 
