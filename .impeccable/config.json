@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "0.72rem",
+        "createdAt": "2026-09-06T22:18:40.689Z",
+        "reason": "pre-existing On Deck arena convention: text-[0.72rem] paired with od-readout is the established 'readout/label' text size, used identically in player-join.tsx, queue-status.tsx and volunteer-link-card.tsx which this change never touched; DESIGN.md's ramp just doesn't list it, not a defect"
+      }
+    ]
+  }
+}
