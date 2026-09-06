@@ -17,7 +17,7 @@ export function TheHosts() {
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear and it is not a duplicate. */}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,24rem)_1fr] lg:items-center lg:gap-14">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start lg:gap-14">
         <figure className="bx-tile aspect-[4/3]">
           {/* eslint-disable-next-line @next/next/no-img-element -- local photo, no next/image optimization needed here */}
           <img
@@ -41,9 +41,32 @@ export function TheHosts() {
             week and fight for the same 8pm court booking.
           </p>
 
+          <dl className="mt-8 grid gap-7 sm:grid-cols-2">
+            {team.map((member) => (
+              <div key={member.name}>
+                <dt className="flex items-baseline gap-2.5">
+                  <span className="text-base font-semibold">{member.name}</span>
+                  <span className="bx-meta">{member.role}</span>
+                </dt>
+                <dd className="mt-1.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+                  {member.funFact}
+                  <a
+                    href={member.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2.5 flex items-center gap-2 text-sm font-medium text-[var(--bx-ink)] transition-colors duration-200 hover:text-[var(--bx-muted)]"
+                  >
+                    <InstagramIcon className="size-4" />
+                    Follow {member.name}
+                  </a>
+                </dd>
+              </div>
+            ))}
+          </dl>
+
           <Link
             href="/about"
-            className="mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
+            className="mt-8 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
           >
             The whole story
             <span aria-hidden className="ml-1.5">
@@ -51,29 +74,6 @@ export function TheHosts() {
             </span>
           </Link>
         </div>
-
-        <dl className="grid gap-8 sm:grid-cols-2">
-          {team.map((member) => (
-            <div key={member.name}>
-              <dt className="flex items-baseline gap-2.5">
-                <span className="text-base font-semibold">{member.name}</span>
-                <span className="bx-meta">{member.role}</span>
-              </dt>
-              <dd className="mt-1.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
-                {member.funFact}
-                <a
-                  href={member.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2.5 flex items-center gap-2 text-sm font-medium text-[var(--bx-ink)] transition-colors duration-200 hover:text-[var(--bx-muted)]"
-                >
-                  <InstagramIcon className="size-4" />
-                  Follow {member.name}
-                </a>
-              </dd>
-            </div>
-          ))}
-        </dl>
       </div>
     </section>
   );

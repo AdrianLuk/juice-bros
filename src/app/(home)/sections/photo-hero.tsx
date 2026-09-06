@@ -6,22 +6,22 @@ import { HeroBackdrop } from "./hero-backdrop";
  * The full-bleed photo hero, kept from the incumbent and fixed rather than
  * replaced.
  *
- * Two things changed from the version this is based on:
+ * One thing changed from the incumbent: the h1 is the positioning line, not the
+ * show's own name. The name is in the bar directly above it, and the largest
+ * text on the page telling a first-time visitor nothing was the incumbent's
+ * real defect.
  *
- * 1. The h1 is the positioning line, not the show's own name. The name is in
- *    the bar directly above it, and the largest text on the page telling a
- *    first-time visitor nothing was the incumbent's real defect.
- * 2. The hero is no longer a full viewport tall. At `min-h-[calc(100dvh-4rem)]`
- *    nothing playable reached the first screen, which works against the one
- *    metric this page exists to move. It is now sized so the newest episode
- *    breaks the fold underneath it.
- *
- * The scrim stays. Darkening a photograph behind type is how you put type on a
- * photograph, not a flaw to design around.
+ * Everything else is kept deliberately. The scrim stays - darkening a
+ * photograph behind type is how you put type on a photograph, not a flaw to
+ * design around. The full viewport height stays too, at Adrian's call: it
+ * means nothing playable reaches the first screen, which is a real cost
+ * against this page's growth metric, and it is his trade to make. Dropping to
+ * `min-h-[34rem]` is the one-line change if he ever wants the newest episode
+ * breaking the fold instead.
  */
 export function PhotoHero() {
   return (
-    <section className="relative isolate flex min-h-[30rem] flex-col justify-end overflow-hidden lg:min-h-[34rem]">
+    <section className="relative isolate flex min-h-svh flex-col justify-end overflow-hidden">
       {/* LCP element. The hand-optimised WebP variants are the same ones the
           incumbent hero shipped (see PROGRESS.md Phase 3.5); the .jpeg is the
           fallback for anything ignoring <source>. */}
