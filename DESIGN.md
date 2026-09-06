@@ -11,6 +11,10 @@ colors:
   bx-muted: "#8f98a3"
   bx-accent: "#f26522"
   bx-accent-ink: "#ffffff"
+  bx-youtube: "#ff0000"
+  bx-youtube-ink: "#ffffff"
+  bx-spotify: "#1db954"
+  bx-spotify-ink: "#0a0a0a"
 typography:
   display:
     fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
@@ -62,12 +66,26 @@ components:
     rounded: "{rounded.pill}"
     padding: "0.8125rem 1.375rem"
   button-sub:
-    backgroundColor: "{colors.bx-accent}"
-    textColor: "{colors.bx-accent-ink}"
+    backgroundColor: "#0a0a0a"
+    textColor: "#ffffff"
     rounded: "{rounded.pill}"
     padding: "0.8125rem 1.375rem"
   button-sub-hover:
-    backgroundColor: "#ff7433"
+    backgroundColor: "{colors.bx-line}"
+  button-yt:
+    backgroundColor: "{colors.bx-youtube}"
+    textColor: "{colors.bx-youtube-ink}"
+    rounded: "{rounded.pill}"
+    padding: "0.8125rem 1.375rem"
+  button-yt-hover:
+    backgroundColor: "#e60000"
+  button-sp:
+    backgroundColor: "{colors.bx-spotify}"
+    textColor: "{colors.bx-spotify-ink}"
+    rounded: "{rounded.pill}"
+    padding: "0.8125rem 1.375rem"
+  button-sp-hover:
+    backgroundColor: "#1ed760"
   panel:
     backgroundColor: "{colors.bx-raised}"
     rounded: "{rounded.card}"
@@ -103,25 +121,34 @@ world, a group-chat world); convention is the commitment, not a fallback. The
 craft bar is podcast structure with SaaS finish — held to the type, spacing,
 and state discipline of Linear, Vercel, and Stripe.
 
-The chrome is greyscale by design. Every color a visitor actually sees on the
-page comes from the episode thumbnails and photos; the system itself supplies
-only a ground, one raised surface, white ink, one muted grey, and a single
-reserved accent. This restraint is what lets fourteen different YouTube
-thumbnails sit on the same page without the chrome fighting them.
+The chrome is greyscale by design, with two deliberate exceptions: the top
+bar, which now carries brand orange as its own ground, and the two platform
+buttons (YouTube, Spotify), which wear their destinations' own brand colours
+because those are the two places the page exists to send people to. Every
+other colour a visitor sees comes from the episode thumbnails and photos; the
+system itself supplies a ground, one raised surface, white ink, one muted
+grey, brand orange, and the two platform colours. This restraint is what lets
+fourteen different YouTube thumbnails sit on the same page without the chrome
+fighting them.
 
 **Key Characteristics:**
-- Near-black ground, one raised surface, no third "quiet" grey step
-- One accent (brand orange), spent on exactly one job: the subscribe action
+- Near-black page ground, one raised surface, no third "quiet" grey step
+- Brand orange is the top bar's ground and the mobile corner button's fill — not the subscribe colour anymore
+- Two platform colours (YouTube red, Spotify green) carry their own ink decisions, reasoned from contrast math and each platform's own brand guidance
 - One shared hover/focus gesture (lift + brighten) used identically everywhere a thumbnail appears
-- Geist at one rigorous scale for all reading type; Geist Mono reserved for metadata only
+- Geist at one rigorous scale for all reading type, with a `bodySmall` step for supporting copy; Geist Mono reserved for metadata only
 - Pill-shaped controls, 0.75rem card radius, 4px-multiple spacing rhythm
 
 ## Colors
 
-The palette is a near-black neutral scale plus a single reserved accent; there is no secondary or tertiary brand color.
+The palette is a near-black neutral scale plus brand orange and two destination-brand colours; there is no invented secondary or tertiary color.
 
 ### Primary
-- **Brand Orange** (`#f26522`): reserved for exactly one job on this page — the subscribe button (`.bx-btn-sub`) and its focus ring/selection color. Never used for anything else on `.bx-dark` surfaces. On this near-black ground it measures 5.5:1 contrast; the 3.15:1 contrast problem PRODUCT.md documents is orange-on-white, which this look never does, so it does not need the "don't darken it to fix contrast" workaround here.
+- **Brand Orange** (`#f26522`): the top bar's ground (`<header>` background) and the fixed mobile corner menu button's fill, plus the focus-ring and selection color across the page. It is no longer the subscribe button's color — see The Bar-Ground Rule below. On the near-black page ground it measures 5.5:1 contrast; the 3.15:1 contrast problem PRODUCT.md documents is orange-on-white, which this look never does, so it does not need the "don't darken it to fix contrast" workaround here.
+
+### Secondary
+- **YouTube Red** (`#ff0000`, ink `#ffffff`): the "Watch on YouTube" button's own fill, in the platform's own brand color rather than the site's. White text on this red measures 4.0:1 — marginally under the 4.5:1 AA bar for button text — kept anyway for brand fidelity as an explicit, recorded call; `#cc0000` is the swap noted in code if that ever needs to clear AA.
+- **Spotify Green** (`#1db954`, ink `#0a0a0a`): the "Listen on Spotify" button's own fill. Ink is near-black, not white: white-on-this-green measures 2.6:1, near-black measures 8.2:1, and near-black is also what Spotify's own brand guidance specifies for this green.
 
 ### Neutral
 - **Ground** (`#08090b`): the page background — cool near-black, not warm.
@@ -131,9 +158,12 @@ The palette is a near-black neutral scale plus a single reserved accent; there i
 - **Line, soft** (`#191d22`): resting borders and hairline section dividers.
 - **Ink** (`#f2f4f6`): primary text and iconography. Clears 6.6:1 on the ground.
 - **Muted** (`#8f98a3`): the only secondary-text step. Also clears strong contrast on the ground; there is deliberately no third, fainter grey.
+- **Near-black subscribe fill** (`#0a0a0a`): a one-off neutral reserved for `.bx-btn-sub`; see The Bar-Ground Rule.
 
 ### Named Rules
-**The One Accent Rule.** Brand orange is spent only on the subscribe action (the header pill and the closing footer CTA) and its focus ring. If a new element on this page reaches for orange for any other reason — a badge, a kicker, a decorative underline — that is a system violation, not a variant.
+**The Bar-Ground Rule.** Brand orange is the top bar's ground and the mobile corner button's fill, so it cannot also be the subscribe button's color — a brand-orange button sitting on a brand-orange bar reads as an outline, not a call to action. `.bx-btn-sub` is near-black (`#0a0a0a`) instead, which reads as solid against the orange bar and matches the page's own ground below it. This supersedes the incumbent "subscribe is the one job orange does" rule: orange's one job is now the bar and the corner button, and subscribe is deliberately excluded from it.
+
+**Platform Colours Carry Their Own Ink.** The YouTube and Spotify buttons wear their destinations' brand colors, each with its own reasoned ink choice (white for YouTube red at 4.0:1, kept for brand fidelity; near-black for Spotify green at 8.2:1, both for contrast and to match Spotify's own guidance). Do not default new destination buttons to the page's ink/bg pair — resolve ink per platform color the same way.
 
 **The No-Fake-Quiet Rule.** There is no third, fainter neutral step beyond ink and muted. A color that exists only to look quiet is a contrast failure waiting to happen; if something needs to recede, use size, weight, or spacing, not a fainter grey.
 
@@ -147,7 +177,8 @@ The palette is a near-black neutral scale plus a single reserved accent; there i
 ### Hierarchy
 - **Display** (700, `clamp(1.75rem, 4.4vw, 2.75rem)`, line-height 1.06, letter-spacing −0.03em, `text-wrap: balance`): the page's single h1 — the positioning line, not the brand name (the name already lives in the bar above it).
 - **Headline** (700, `clamp(1.375rem, 3.2vw, 1.875rem)` down to a fixed 1.375rem/2xl at section scale, line-height 1.15, letter-spacing −0.02em): section headings and the featured episode title.
-- **Body** (400, 1.0625rem for lead copy / 0.9375rem for supporting copy, line-height ~1.6, `leading-relaxed`): standfirst and description copy, capped around 46–58ch measure.
+- **Body** (400, 1.0625rem, line-height ~1.6, `leading-relaxed`): standfirst copy, capped around 46–58ch measure.
+- **Body Small** (400, 0.9375rem, line-height ~1.6): supporting copy — card descriptions, footer text, host bios — used wherever body copy needs to sit a step down from the lead line without dropping into label territory.
 - **Label** (400, 0.6875rem, letter-spacing 0.14em, uppercase, tabular numerals, Geist Mono, muted color): dates, runtimes, counts, and the "New episode" / "Next tournament" style kickers that sit directly beside real data. Never used for body copy.
 
 ### Named Rules
@@ -157,9 +188,11 @@ The palette is a near-black neutral scale plus a single reserved accent; there i
 
 One `bx-measure` container (max-width 72rem, centered, 1.25rem inline padding below 640px, 2rem above) governs every section's width. Sections stack vertically with a consistent rhythm: `py-14` (3.5rem) on mobile, `py-20` (5rem) from `sm:` up, separated by a single hairline (`.bx-hair`, 1px `bx-line-soft` top border) rather than background-color changes or shadows.
 
-Grids follow a responsive step-up: the episode archive runs 1 → 2 (`sm`) → 3 (`lg`) → 4 (`xl`) columns; the Instagram strip runs 3 → 6 columns; the tools grid runs 1 → 2 columns. Gaps hold to a small set of steps: `gap-3` (0.75rem) for the tightest grid (Instagram), `gap-4`–`gap-6` for card grids, `gap-8`–`gap-14` between major layout blocks. All spacing values observed on the page are 4px-scale multiples (0.375rem tick shown in the shared token comment through to 5rem section padding), consistent with the direction contract's "4px spacing system."
+Grids follow a responsive step-up: the episode archive runs 1 → 2 (`sm`) → 3 (`lg`) → 4 (`xl`) columns; the Instagram strip runs 3 → 6 columns; the tools grid runs 1 → 2 columns. Gaps hold to a small set of steps: `gap-3` (0.75rem) for the tightest grid (Instagram), `gap-4`–`gap-6` for card grids, `gap-8`–`gap-14` between major layout blocks. All spacing values observed on the page are 4px-scale multiples, consistent with the direction contract's "4px spacing system."
 
-The header is a sticky, blurred bar (`sticky top-0`, `backdrop-blur-md`, 85%-opacity ground) that never obscures content because everything beneath it starts below `h-16`.
+**The header is no longer sticky or an overlay.** It is now an opaque orange bar in normal flow (`relative`, `bg-[var(--bx-accent)]`), not `sticky top-0` with a blurred, translucent ground — that was the incumbent behavior and the build has moved past it. On phones, the bar carries identity only (wordmark, no link row, no inline subscribe pill); navigation lives in a fixed corner button (bottom-right, `size-14`, brand-orange fill) that opens a Sheet panel anchored to the same corner, rather than an inline hamburger-triggered panel appearing beneath the bar.
+
+**The hero is a two-layout component**, not one fixed composition (`src/app/(home)/sections/photo-hero.tsx`). Wide (`sm:` and up), the banner photo is the section's own background (`sm:absolute sm:inset-0 sm:-z-10`) with the h1 and CTAs laid over it near the bottom. Narrow, the banner is a plain in-flow block (a fixed 14rem-tall strip) and the copy sits beneath it, on the page's own dark ground, not on top of the image. This is a deliberate crop decision, not a simplification: the banner is a wide two-shot composed with the hosts on the left and right thirds and clear space in the middle, so a phone-shaped crop of that same image puts the hosts off-frame and leaves the overlay illegible exactly where most visitors are.
 
 ## Elevation & Depth
 
@@ -173,17 +206,21 @@ The system is flat by default and uses a single hairline-plus-shadow pairing for
 ### Named Rules
 **The Depth-Is-Earned Rule.** Nothing on this page carries a drop shadow at rest. A shadow only ever appears as the response to a hover or focus interaction on a `.bx-tile`; a panel that is merely raised in the layout gets a 1px ring, never a shadow.
 
+**The Portal-Escapes-The-Scope Rule.** `SheetContent` (and any other portaled surface — dialogs, popovers, toasts) renders through a portal at the document root, outside the page's own `.bx-dark` subtree. Every `--bx-*` custom property is scoped to `.bx-dark`, so a portaled panel that doesn't carry the class itself resolves every `--bx-*` reference to nothing and comes out unpainted. Any portaled surface used from inside `.bx-dark` must repeat the `bx-dark` class on its own root. This sits beside the `@layer components` rule below as the system's other cascade trap.
+
 ## Shapes
 
-Two radius steps cover the whole system: `0.75rem` (`--bx-radius`) for standard cards, tiles, and panels, and `1rem` (`--bx-radius-lg`) reserved for the one large hero tile (`.bx-stage`). Every interactive control — buttons, the mobile menu toggle, social icon buttons — is a full pill (`border-radius: 999px`). There are no square-cornered buttons and no sharp-cornered cards anywhere in the system. Borders are always 1px, always drawn from the two line tokens, never a heavier weight.
+Two radius steps cover the whole system: `0.75rem` (`--bx-radius`) for standard cards, tiles, and panels, and `1rem` (`--bx-radius-lg`) reserved for the one large hero tile (`.bx-stage`). The mobile Sheet panel is the one exception, at a larger `rounded-3xl` to read as its own floating object anchored to the corner it grows from. Every interactive control — buttons, the mobile corner menu button, social icon buttons — is a full pill (`border-radius: 999px`). There are no square-cornered buttons and no sharp-cornered cards anywhere in the system. Borders are always 1px, always drawn from the two line tokens, never a heavier weight.
 
 ## Components
 
 ### Buttons (`.bx-btn`)
 - **Shape:** full pill (999px radius), `0.8125rem 1.375rem` padding at default size, 600-weight 0.9375rem label.
-- **Play** (`.bx-btn-play`): solid white-on-ink fill (background `--bx-ink`, text `--bx-bg`) — white is the loudest neutral available since the accent is already spoken for. Hover brightens to pure white.
+- **Play** (`.bx-btn-play`): solid white-on-ink fill (background `--bx-ink`, text `--bx-bg`) — white is the loudest neutral available since orange is spoken for elsewhere. Hover brightens to pure white.
 - **Ghost** (`.bx-btn-ghost`): 1px `--bx-line` border, transparent fill, ink text. Hover darkens the border and adds the raised-surface background.
-- **Subscribe** (`.bx-btn-sub`): the only button that spends the accent — solid brand orange fill, white text. Hover shifts to `#ff7433`. This is the sole place brand orange appears in the entire system.
+- **Subscribe** (`.bx-btn-sub`): near-black fill (`#0a0a0a`), white text. Hover shifts to `--bx-line`. See The Bar-Ground Rule — this button deliberately does not carry brand orange.
+- **YouTube** (`.bx-btn-yt`): solid YouTube red (`--bx-youtube`) fill, white text. Hover darkens to `#e60000`.
+- **Spotify** (`.bx-btn-sp`): solid Spotify green (`--bx-spotify`) fill, near-black text (`--bx-spotify-ink`). Hover brightens to `#1ed760`.
 - **Active state (all variants):** `translateY(1px)` press feedback.
 - **Transitions:** background/border/color/transform all animate over 160ms with the same eased curve (`cubic-bezier(0.32, 0.72, 0, 1)`) used sitewide on this look.
 
@@ -198,19 +235,25 @@ Two radius steps cover the whole system: `0.75rem` (`--bx-radius`) for standard 
 - **`.bx-meta`:** the metadata line beneath a title (date · runtime · kicker), Geist Mono, uppercase, 0.14em tracking, muted color, tabular numerals.
 
 ### Navigation
-The header is a sticky, blurred bar carrying the logo/wordmark, a horizontal link row (hidden below `md`), and the subscribe pill — the one accent-colored element in the bar. Below `md`, links collapse into a hamburger-triggered panel (a custom three-line SVG toggle that morphs to an X, not an icon-set glyph) that appears inline beneath the bar rather than as an overlay. Link hover is a color shift only (muted → ink), no underline, no background.
+The header is now an opaque, non-sticky brand-orange bar carrying the logo/wordmark, a horizontal link row (hidden below `md`), and the near-black Subscribe pill (hidden below `sm`). Below `sm`, the bar carries identity only; a fixed corner button (bottom-right, brand-orange fill, `lucide-react` menu glyph) opens a Sheet panel anchored to the same corner rather than an inline dropdown beneath the bar. The panel itself must carry `bx-dark` on its own root — see The Portal-Escapes-The-Scope Rule. Link hover is a color shift only (white/80 → white in the bar; muted → ink elsewhere), no underline, no background.
+
+### The Hero (signature, two-layout)
+Wide screens run the banner as the section background with the h1/CTAs laid over it; narrow screens run the banner as an in-flow block with the copy beneath it on the dark page ground. See Layout for the full reasoning — the composition of the source photo, not a generic responsive simplification, drives the split.
 
 ## Do's and Don'ts
 
 ### Do:
 - **Do** author every hover/focus effect on a thumbnail through `.bx-tile` (lift + ring + shadow + play-mark brighten) rather than inventing a one-off transition — this is the page's one shared gesture.
 - **Do** keep every `.bx-*` rule inside Tailwind's `components` layer. Unlayered CSS placed after `@import "tailwindcss"` outranks every layered utility class — that broke `md:hidden` and `normal-case` mid-build (a bare `.bx-btn` rule would have beaten a Tailwind responsive/case utility applied alongside it). Any new `.bx-*` rule must go inside the existing `@layer components { … }` block, not appended outside it.
-- **Do** spend brand orange only on the subscribe action; every other accent need should reach for white-on-ink (`.bx-btn-play`) or the ghost outline instead.
-- **Do** draw icons and glyphs (the play mark, the mobile menu toggle) as authored inline SVG so their geometry matches the rest of the page's drawing, rather than importing an icon-set component for these specific marks.
+- **Do** repeat the `bx-dark` class on any portaled surface (Sheet, Dialog, popover, toast) opened from within `.bx-dark` — see The Portal-Escapes-The-Scope Rule.
+- **Do** give a destination-brand button (YouTube, Spotify, or any future platform button) its own reasoned ink choice from a real contrast check against that platform's own color, rather than defaulting to the page's ink/bg pair.
+- **Do** draw icons and glyphs (the play mark, the runtime chip) as authored inline SVG so their geometry matches the rest of the page's drawing, rather than importing an icon-set component for these specific marks.
 - **Do** render a section as `null` when its underlying data is empty (Archive, FreeTools, OnTheRoad, FromInstagram all do this) rather than printing an empty-state placeholder.
 
 ### Don't:
 - **Don't** darken or otherwise alter brand orange (`#f26522`) to "fix" contrast — this is a confirmed brand commitment in PRODUCT.md. It is moot on `.bx-dark` surfaces anyway, since orange-on-near-black already clears 5.5:1; the 3.15:1 problem the commitment describes is orange-on-white, which this look never does.
+- **Don't** put brand orange on the subscribe button, or any button sitting on the orange bar — see The Bar-Ground Rule. Reach for the near-black fill instead.
 - **Don't** add a third, fainter neutral tone beneath `--bx-muted`. The system has exactly two ink steps on purpose.
 - **Don't** carry Broadcast Dark's `.bx-dark` scope, tokens, or components onto Booking Buddy, On Deck, or Pickle Point Pal routes, or vice versa — the four visual worlds are deliberately separate and none of them import another's tokens.
 - **Don't** treat the six not-yet-migrated marketing routes (Podcast, Gear, About, Contact, Tools, Appearances) as already conforming to this system when auditing or extending them — they currently run the incumbent orange-pill-nav look and are pending migration, not already-compliant.
+</content>
