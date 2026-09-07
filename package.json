@@ -10,6 +10,7 @@
     "test": "node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.ts\"",
     "test:rls": "supabase test db",
     "snapshot:videos": "node scripts/snapshot-videos.mts",
+    "optimize:images": "node scripts/optimize-images.mts",
     "seed:users": "node scripts/seed-booking-buddy-users.mts",
     "seed:on-deck": "node scripts/seed-on-deck.mts",
     "db:reset": "supabase db reset && npm run seed:users",
@@ -48,6 +49,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "sharp": "^0.35.4",
     "supabase": "^2.114.0",
     "tailwindcss": "^4",
     "typescript": "^5"
