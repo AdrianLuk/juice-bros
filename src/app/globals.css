@@ -2439,7 +2439,7 @@ html:has(.bb-app-chrome) {
     --bx-line-soft: #262c34;
     --bx-line-2: #48505a;
 
-    /* Ink. One muted grey, and it clears 6.6:1 on the ground, so every piece
+    /* Ink. One muted grey, and it clears 6.82:1 on the ground, so every piece
        of secondary copy on the page is readable rather than atmospheric. There
        is deliberately no third, fainter step: a tone that exists only to look
        quiet is a contrast failure waiting to be written. */
