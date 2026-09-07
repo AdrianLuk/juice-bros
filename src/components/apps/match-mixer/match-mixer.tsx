@@ -3,14 +3,15 @@
 import { useMemo, useState } from "react";
 
 import {
-  clampConfig,
   isSupportedRosterSize,
   MAX_ROUNDS,
   maxCourts,
+  resolveNumbers,
 } from "@/components/apps/match-mixer/lib/engine/config";
 import {
   describeConfig,
   describeNumbers,
+  describeUnsupportedRoster,
 } from "@/components/apps/match-mixer/lib/engine/describe";
 import {
   duplicateNames,
@@ -67,7 +68,7 @@ const EXAMPLE_ROSTER = EXAMPLE_NAMES.join("\n");
  */
 const EXAMPLE = (() => {
   const roster = parseRoster(EXAMPLE_ROSTER);
-  const config = clampConfig({ roster, courts: 2, rounds: 4, seed: 3 });
+  const config = { roster, courts: 2, rounds: 4, seed: 3 };
   const schedule = generateSchedule(config);
   return { roster, schedule, score: scoreSchedule(schedule, config) };
 })();
@@ -96,7 +97,10 @@ interface Draw {
  * change and should not leave the sheet flagged as stale.
  */
 function drawKey(roster: Roster, courts: number, rounds: number): string {
-  return `${courts}/${rounds}/${roster.map((player) => player.name).join(" ")}`;
+  // Joined on a newline because that is the one character `parseRoster` will
+  // not leave inside a name. On a space, "Mary Ann / Bo" and "Mary / Ann Bo"
+  // would key the same, and an edit between them would never flag the sheet.
+  return `${courts}/${rounds}/${roster.map((player) => player.name).join("\n")}`;
 }
 
 /** Never the Seed just used, so pressing again always redraws. */
@@ -129,21 +133,26 @@ export function MatchMixer() {
   const courtCeiling = maxCourts(size);
   // The fields show what the engine will actually use, which is the same clamp
   // `generateSchedule` applies rather than a second opinion beside it. A null
-  // choice is an untouched or emptied field, and means the default. The Seed is
-  // no part of this: it is written at the moment of the draw.
+  // choice is an untouched or emptied field, and means the default.
   const { courts, rounds } = useMemo(
     () =>
-      clampConfig({
-        roster,
-        courts: courtsChoice ?? undefined,
-        rounds: roundsChoice ?? undefined,
-        seed: 0,
-      }),
-    [roster, courtsChoice, roundsChoice],
+      resolveNumbers(
+        size,
+        courtsChoice ?? undefined,
+        roundsChoice ?? undefined,
+      ),
+    [size, courtsChoice, roundsChoice],
   );
 
   const repeated = duplicateNames(roster);
   const shape = { players: size, courts, rounds };
+  // The consequence line stays on the screen at every Roster size, including
+  // the sizes with no Config to describe: a Roster on its way to eleven names
+  // passes through them, and going quiet there is going quiet exactly when the
+  // organizer is least sure what they have.
+  const consequence = supported
+    ? describeConfig(shape)
+    : describeUnsupportedRoster(size);
   const key = drawKey(roster, courts, rounds);
   const stale = draw !== null && draw.key !== key;
 
@@ -168,9 +177,9 @@ export function MatchMixer() {
           <p className="mm-legend">Pickleball Tools</p>
           <h1 className="mm-title mt-3 text-4xl sm:text-5xl">Match Mixer</h1>
           <p className="mm-lede mt-4">
-            A pickleball round robin generator. Paste the names you have tonight and
-            get a doubles rotation where nobody partners the same person twice.
-            Nothing is saved and nothing is sent anywhere.
+            A pickleball round robin generator. Paste the names you have tonight
+            and get a doubles rotation where nobody partners the same person
+            twice. Nothing is saved and nothing is sent anywhere.
           </p>
         </header>
 
@@ -194,39 +203,39 @@ export function MatchMixer() {
             <DuplicateNotice names={repeated} />
 
             {supported ? (
-              <>
-                <div className="mm-fields mt-8">
-                  <NumberField
-                    id="mm-courts"
-                    label="Courts"
-                    value={courts}
-                    min={1}
-                    max={courtCeiling}
-                    onChange={setCourtsChoice}
-                    note={
-                      courtCeiling === 1
-                        ? `${size} players fill one court.`
-                        : `Up to ${courtCeiling} with ${size} players.`
-                    }
-                  />
-                  <NumberField
-                    id="mm-rounds"
-                    label="Rounds"
-                    value={rounds}
-                    min={1}
-                    max={MAX_ROUNDS}
-                    onChange={setRoundsChoice}
-                    note="How many you have court time for."
-                  />
-                </div>
-
-                {/* The fast speed: pure arithmetic, so it can afford to keep up
-                    with the keystrokes the Schedule below deliberately does
-                    not. Not announced, because a screen reader repeating it per
-                    character is worse than silence. */}
-                <p className="mm-summary mt-8">{describeConfig(shape)}</p>
-              </>
+              <div className="mm-fields mt-8">
+                <NumberField
+                  id="mm-courts"
+                  label="Courts"
+                  value={courts}
+                  min={1}
+                  max={courtCeiling}
+                  onChange={setCourtsChoice}
+                  note={
+                    courtCeiling === 1
+                      ? `${size} players fill one court.`
+                      : `Up to ${courtCeiling} with ${size} players.`
+                  }
+                />
+                <NumberField
+                  id="mm-rounds"
+                  label="Rounds"
+                  value={rounds}
+                  min={1}
+                  max={MAX_ROUNDS}
+                  onChange={setRoundsChoice}
+                  note="How many you have court time for."
+                />
+              </div>
             ) : null}
+
+            {/* The fast speed: pure arithmetic, so it can afford to keep up
+                with the keystrokes the Schedule deliberately does not. Neither
+                this nor the note under the button is announced live: both move
+                on every keystroke, and a screen reader reading them per
+                character is worse than silence. The note is tied to the button
+                instead, so it is read when the button is reached. */}
+            {size > 0 ? <p className="mm-summary mt-8">{consequence}</p> : null}
 
             <button
               type="button"
@@ -234,6 +243,7 @@ export function MatchMixer() {
               onClick={generate}
               disabled={!supported}
               data-stale={stale ? "true" : undefined}
+              aria-describedby="mm-action-note"
             >
               {!draw
                 ? "Make the schedule"
@@ -241,7 +251,7 @@ export function MatchMixer() {
                   ? "Update the schedule"
                   : "Draw it again"}
             </button>
-            <p className="mm-note mt-2" role="status">
+            <p className="mm-note mt-2" id="mm-action-note">
               <ActionNote draw={draw} stale={stale} size={size} />
             </p>
           </div>
@@ -250,9 +260,14 @@ export function MatchMixer() {
             {draw ? (
               <>
                 {stale ? (
-                  <p className="mm-flag">Out of date. Drawn from {draw.numbers}.</p>
+                  <p className="mm-flag">
+                    Out of date. Drawn from {draw.numbers}.
+                  </p>
                 ) : null}
-                <div className="mm-draw" data-stale={stale ? "true" : undefined}>
+                <div
+                  className="mm-draw"
+                  data-stale={stale ? "true" : undefined}
+                >
                   <ScheduleGrid
                     roster={draw.roster}
                     schedule={draw.schedule}
@@ -275,8 +290,10 @@ export function MatchMixer() {
 
 /**
  * What pressing the button will do to what is on screen. The label says the
- * action; this says the consequence, and below four names it says why there is
- * no action to take, which is the question the disabled button raises.
+ * action, this says the consequence, and while the button is disabled it says
+ * that there is no action rather than restating the count: the consequence
+ * line above already has that, and two places saying it is one place to go
+ * stale.
  */
 function ActionNote({
   draw,
@@ -288,18 +305,11 @@ function ActionNote({
   size: number;
 }) {
   if (size === 0) return <>Paste your names above, then draw the schedule.</>;
-  if (size < MIN_ROSTER_SIZE) {
-    return <>Doubles needs four players on a court. Add {MIN_ROSTER_SIZE - size} more.</>;
-  }
-  if (size > MAX_ROSTER_SIZE) {
-    return (
-      <>
-        Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Remove{" "}
-        {size - MAX_ROSTER_SIZE} and the button comes back.
-      </>
-    );
-  }
-  if (stale) return <>The sheet on screen is the previous draw, not this one.</>;
+  if (size < MIN_ROSTER_SIZE) return <>Nothing to draw until there are four.</>;
+  if (size > MAX_ROSTER_SIZE)
+    return <>Nothing to draw until the roster fits.</>;
+  if (stale)
+    return <>The sheet on screen is the previous draw, not this one.</>;
   if (draw) return <>Same names, same numbers, a different draw.</>;
   return <>Nothing is generated until you press it.</>;
 }
@@ -356,8 +366,8 @@ function TooManyPlayers({ size }: { size: number }) {
       <p className="mm-placeholder-head">{size} names: too many to schedule</p>
       <p className="mm-note mt-2">
         Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Above that the
-        partner matrix stops being readable on one sheet, and a night that size is
-        better split into two rotations. Remove {size - MAX_ROSTER_SIZE}.
+        partner matrix stops being readable on one sheet, and a night that size
+        is better split into two rotations. Remove {size - MAX_ROSTER_SIZE}.
       </p>
     </div>
   );
@@ -409,7 +419,8 @@ function NumberField({
           const raw = event.target.value;
           const next = Number.parseInt(raw, 10);
           setEmptied(raw === "");
-          if (raw === "" || !Number.isNaN(next)) onChange(raw === "" ? null : next);
+          if (raw === "" || !Number.isNaN(next))
+            onChange(raw === "" ? null : next);
         }}
         onBlur={() => setEmptied(false)}
         aria-describedby={`${id}-note`}

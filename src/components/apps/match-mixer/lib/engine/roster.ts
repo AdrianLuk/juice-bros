@@ -57,11 +57,18 @@ export function parseRoster(text: string, previous: Roster = []): Roster {
  * their behalf.
  */
 export function duplicateNames(roster: Roster): string[] {
-  const seen = new Set<string>();
-  const repeated = new Set<string>();
+  const counts = new Map<string, number>();
   for (const player of roster) {
-    if (seen.has(player.name)) repeated.add(player.name);
-    else seen.add(player.name);
+    counts.set(player.name, (counts.get(player.name) ?? 0) + 1);
   }
-  return [...repeated];
+  // Walked in Roster order and de-duplicated on the way, so the answer reads
+  // in the order the names were typed rather than the order they repeated.
+  const seen = new Set<string>();
+  const repeated: string[] = [];
+  for (const player of roster) {
+    if (seen.has(player.name)) continue;
+    seen.add(player.name);
+    if ((counts.get(player.name) ?? 0) > 1) repeated.push(player.name);
+  }
+  return repeated;
 }

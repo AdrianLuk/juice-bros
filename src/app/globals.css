@@ -3209,6 +3209,7 @@ html:has(.bb-app-chrome) {
   .mm-draw[data-stale] {
     --mm-ink: oklch(0.56 0 0);
     --mm-ink-dim: oklch(0.66 0 0);
+    --mm-rule: oklch(0.91 0 0);
     --mm-rule-strong: oklch(0.8 0 0);
     color: var(--mm-ink);
   }

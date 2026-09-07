@@ -1,4 +1,5 @@
 import { naturalLength } from "./config.ts";
+import { MAX_ROSTER_SIZE, MIN_ROSTER_SIZE } from "./types.ts";
 
 /**
  * The Config-consequence line: what these numbers mean, in plain language,
@@ -27,7 +28,11 @@ function plural(count: number, noun: string): string {
  * a line that has other work to do, which is how a stale sheet says what it
  * was drawn from.
  */
-export function describeNumbers({ players, courts, rounds }: ConfigShape): string {
+export function describeNumbers({
+  players,
+  courts,
+  rounds,
+}: ConfigShape): string {
   return `${plural(players, "player")} on ${plural(courts, "court")}, ${plural(rounds, "round")}`;
 }
 
@@ -41,13 +46,31 @@ export function describeConfig(shape: ConfigShape): string {
       ? "Everybody plays every round"
       : `${plural(sitting, "player")} ${sitting === 1 ? "sits" : "sit"} out each round, taking turns`;
 
-  // A statement about the arithmetic, not about the draw: past the natural
-  // length there are no unused pairs left, so a repeat is forced however good
-  // the search is.
+  // Both halves are statements about the supply of partnerships, which is all
+  // counting can establish. Past the natural length the pairs are spent and a
+  // repeat is forced however good the search is; within it there are enough to
+  // go round, which is not the same as promising a draw that uses them all
+  // without collision. Whether one came out is the Scorer's to report.
   const partners =
     rounds > natural
       ? `Partners start repeating after round ${natural}`
-      : "No partner has to repeat";
+      : "There are enough partnerships to go round";
 
   return [describeNumbers(shape), seating, partners].join(". ").concat(".");
+}
+
+/**
+ * The same line for a Roster the tool cannot seat. It exists so that the
+ * consequence line never goes away mid-edit: a Roster on its way from nothing
+ * to eleven names passes through the sizes where there is no Config to
+ * describe, and going quiet exactly there is going quiet when the organizer is
+ * least sure what they have.
+ */
+export function describeUnsupportedRoster(players: number): string {
+  if (players < MIN_ROSTER_SIZE) {
+    const missing = MIN_ROSTER_SIZE - players;
+    return `${plural(players, "player")}. ${missing} more and there is a court's worth.`;
+  }
+  const over = players - MAX_ROSTER_SIZE;
+  return `${plural(players, "player")}. ${over} more than one sheet holds.`;
 }
