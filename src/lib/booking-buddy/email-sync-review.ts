@@ -126,6 +126,17 @@ export type ReviewedCourtReserveEmails = {
    * duplicates a Booking already on file are both dropped too, and neither is
    * reported: nothing was suppressed there that the User can't already see
    * for themselves on their own Bookings page.
+   *
+   * A message this mailbox has already settled never gets here — the caller
+   * filters `processed_messages` out before fetching. So what lands in this
+   * list is either a **rebook** (a fresh message id for a slot the User
+   * cancelled and booked again) or the **counterpart** of a feed-side
+   * dismissal (a confirmation this mailbox was never asked about, re-read and
+   * re-dropped every sync). Both are "a message with no decision on it, for a
+   * slot the User said no to", and the slot is the only key the two sources
+   * share — see `reviewCalendarFeed`'s own `suppressed` for why that means
+   * neither review can tell them apart, and why reporting both is the honest
+   * end of it.
    */
   suppressed: BookingIdentity[];
 };

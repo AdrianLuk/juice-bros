@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ActionError } from "@/components/booking-buddy/action-error";
@@ -42,22 +42,17 @@ const EMPTY: ActionResult = {};
 export function SuppressedReservations({
   reservations,
   orgs,
+  onOfferedAgain,
 }: {
   /** Both sources' suppressed lists, concatenated. Deduped here, since only this component holds both. */
   reservations: readonly BookingIdentity[];
   orgs: Org[];
+  /** Drop this slot from both sync results — the dismissal behind it is gone. */
+  onOfferedAgain: (reservation: BookingIdentity) => void;
 }) {
-  // Taken back this session. The two suppressed lists come from the sync
-  // queries, and re-running those means re-running a whole sync (a mailbox
-  // round trip, every feed fetched) for a row this component knows is gone,
-  // so it drops the line itself instead.
-  const [offeredAgain, setOfferedAgain] = useState<readonly string[]>([]);
-
   const orgNameById = new Map(orgs.map((org) => [org.id, org.displayName]));
 
-  const listed = dedupeReservations(reservations).filter(
-    (reservation) => !offeredAgain.includes(reservationKey(reservation)),
-  );
+  const listed = dedupeReservations(reservations);
 
   if (listed.length === 0) {
     return null;
@@ -76,9 +71,7 @@ export function SuppressedReservations({
             key={reservationKey(reservation)}
             reservation={reservation}
             facilityName={orgNameById.get(reservation.orgId) ?? "That facility"}
-            onOfferedAgain={() =>
-              setOfferedAgain((keys) => [...keys, reservationKey(reservation)])
-            }
+            onOfferedAgain={() => onOfferedAgain(reservation)}
           />
         ))}
       </ul>
@@ -124,7 +117,10 @@ function SuppressedReservationRow({
       </div>
       <form action={action} className="shrink-0">
         <DismissedSlotFields slot={reservation} />
-        <Button type="submit" variant="ghost" size="sm" disabled={pending}>
+        {/* Outlined, not the `ghost` the Dismiss controls use: this is the only
+            control in the block, with no primary beside it to read as a button
+            against, and on its own a ghost button reads as a line of text. */}
+        <Button type="submit" variant="outline" size="sm" disabled={pending}>
           {pending ? "Offering…" : "Offer this again"}
         </Button>
       </form>

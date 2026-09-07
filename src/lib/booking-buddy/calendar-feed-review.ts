@@ -182,12 +182,24 @@ export type ReviewedCalendarFeed = {
    * — what the review screen says out loud, and offers to take back (issue
    * #444).
    *
-   * Only that one drop reason, and only the cross-source rule. An event whose
-   * own `org_feed_events` row is already `dismissed` isn't reported: the User
-   * dismissed that very card, from this very feed, and nothing has changed
-   * since. What #444 is about is the reservation they never saw — a cancel and
-   * rebook of a dismissed slot arrives under a fresh VEVENT UID and is dropped
-   * against the slot instead.
+   * Only that one drop reason. An event whose own `org_feed_events` row is
+   * already `dismissed` isn't reported: the User dismissed that very card,
+   * from this very feed, and this feed has its own record of it.
+   *
+   * Which leaves two kinds of event in here, and no way to tell them apart. A
+   * **rebook** — the reservation the User never saw, cancelled and booked
+   * again under a fresh VEVENT UID, dropped against the dismissal recorded for
+   * the one it replaced. And the **counterpart** of an email-side dismissal —
+   * still in the feed, never dismissed from *this* side, so it is dropped
+   * against the slot on every sync from here on, and reported on every one.
+   * Both are "a UID this feed has no decision about, for a slot the User said
+   * no to"; the slot is the only key the two sources share, which is the whole
+   * reason #437 works and the whole reason this can't discriminate.
+   *
+   * Reporting both is the honest end of that: a standing line saying a
+   * reservation is being skipped is true either way, and the alternative —
+   * guessing which is the counterpart and staying quiet about it — is how a
+   * rebook goes missing again.
    */
   suppressed: BookingIdentity[];
   /**

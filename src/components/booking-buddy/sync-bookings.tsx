@@ -18,6 +18,10 @@ import {
   mergeImportCandidates,
   type MergedImportCandidate,
 } from "@/lib/booking-buddy/merge-import-candidates";
+import {
+  isSameReservation,
+  type BookingIdentity,
+} from "@/lib/booking-buddy/import-candidate-shaping";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -141,6 +145,42 @@ export function SyncBookingsSection({
         };
       },
     );
+  }
+
+  // "Offer this again" (issue #444) deleted every `dismissed_reservations` row
+  // for this slot, so it is suppressed on neither side any more — drop it from
+  // both caches, the same way a resolved candidate is dropped, rather than
+  // re-running a whole sync (a mailbox round trip, every feed fetched) to
+  // learn what this already knows.
+  function handleSuppressedResolved(reservation: BookingIdentity) {
+    queryClient.setQueryData<SyncFromEmailResult>(EMAIL_QUERY_KEY, (previous) =>
+      previous?.status === "ok"
+        ? {
+            ...previous,
+            suppressed: previous.suppressed.filter(
+              (slot) => !isSameReservation(slot, reservation),
+            ),
+          }
+        : previous,
+    );
+    queryClient.setQueryData<SyncFacilityFeedsResult>(FEED_QUERY_KEY, (previous) => {
+      if (previous?.status !== "ok") {
+        return previous;
+      }
+      return {
+        ...previous,
+        feeds: previous.feeds.map((feed) =>
+          feed.status === "ok"
+            ? {
+                ...feed,
+                suppressed: feed.suppressed.filter(
+                  (slot) => !isSameReservation(slot, reservation),
+                ),
+              }
+            : feed,
+        ),
+      };
+    });
   }
 
   function handleMergedResolved(item: MergedImportCandidate) {
@@ -427,6 +467,7 @@ export function SyncBookingsSection({
         <SuppressedReservations
           reservations={suppressedReservations}
           orgs={orgs}
+          onOfferedAgain={handleSuppressedResolved}
         />
       </div>
     </section>

@@ -141,14 +141,27 @@ export async function listDismissedReservations(
     return [];
   }
 
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map(toReservation);
+}
+
+/** One stored row as the identity the reviews compare against. */
+function toReservation(row: DismissedReservationRow): BookingIdentity {
+  return {
     orgId: row.org_id,
+    date: row.slot_date,
     // Postgres hands a `time` back as `HH:MM:SS`; the reviews compare `HH:MM`.
     startTime: String(row.slot_start_time).slice(0, 5),
-    date: row.slot_date,
     courtLabel: row.court_label,
-  }));
+  };
 }
+
+/** The slot columns every read here selects — what `toReservation` reshapes. */
+type DismissedReservationRow = {
+  org_id: string;
+  slot_date: string;
+  slot_start_time: string;
+  court_label: string | null;
+};
 
 /**
  * Take a dismissal back (issue #444): delete every `dismissed_reservations`
@@ -191,15 +204,7 @@ export async function deleteDismissedReservations(
   }
 
   const matchingIds = (data ?? [])
-    .filter((row) =>
-      isSameReservation(slot, {
-        orgId: row.org_id,
-        date: row.slot_date,
-        // Postgres hands a `time` back as `HH:MM:SS`; the identity compares `HH:MM`.
-        startTime: String(row.slot_start_time).slice(0, 5),
-        courtLabel: row.court_label,
-      }),
-    )
+    .filter((row) => isSameReservation(slot, toReservation(row)))
     .map((row) => row.id);
 
   // Nothing to delete is success, not a failure: the caller's goal — this slot

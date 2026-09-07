@@ -175,9 +175,9 @@ export function isPastConfirmation(
 }
 
 /**
- * A dismissed slot's stable string form — Org, calendar day, start time and
- * court *number* — for a React key and for the "already taken back" set the
- * review screen keeps while it lists what a sync suppressed (issue #444).
+ * A reservation's stable string form — Org, calendar day, start time and
+ * court *number* — the React key for a row in the review screen's list of what
+ * a sync suppressed (issue #444).
  *
  * Not a substitute for `isSameReservation`, and not used as one: a side with
  * no readable court number matches *any* court in that slot, which no string

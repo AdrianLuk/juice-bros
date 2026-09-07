@@ -26,7 +26,7 @@
 -- Deliberately not done here: expiring a dismissal whose date has passed.
 -- Worth doing as housekeeping (`org_feed_events` already documents pruning as
 -- events age past), but it isn't the fix — the rebook that matters is of a
--- still-future slot.
+-- still-future slot. Tracked as issue #447.
 
 grant delete on public.dismissed_reservations to authenticated;
 
