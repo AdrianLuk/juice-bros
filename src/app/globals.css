@@ -303,7 +303,9 @@
   --pp-frame-hairline: oklch(0.43 0.008 255);
 
   /* Three light levels: the machined chassis ground the screens sit on, the
-     recessed shelf a control group sits in, the bright readout panel. */
+     recessed shelf a control group sits in, the bright readout panel. The
+     ground is repeated literally by `body:has(.pp-surface)` further down,
+     which paints the document behind this surface - change both. */
   --pp-ground: oklch(0.935 0.005 92);
   --pp-panel: oklch(0.99 0.002 95);
   --pp-panel-sink: oklch(0.965 0.004 95);
@@ -2705,8 +2707,20 @@ html:has(.bb-app-chrome) {
      header, main and footer, but the document body sits behind it - and shows
      through on overscroll, and in the strip the sticky pill nav floats in
      before any section has started. Without this, every interior route opened
-     on a bare light band above its own hero. */
+     on a bare light band above its own hero.
+
+     It has to follow the *surface*, not the shell. `SiteFooter` carries
+     `.bx-dark` itself so it stays painted on routes outside the dark shell, so
+     `body:has(.bx-dark)` alone also matched the two light tool worlds and
+     opened them on a near-black strip above their own ground (#419). Every
+     world that paints its own surface names its body ground here too, and wins
+     by being the later rule at the same specificity. Literal values rather
+     than `var(--pp-ground)` / `var(--mm-paper)`: those are declared on the
+     surface elements, which are inside the body, so they do not resolve here -
+     keep them in step with the surface blocks above. */
   body:has(.bx-dark) { background: #08090b; }
+  body:has(.pp-surface) { background: oklch(0.935 0.005 92); }
+  body:has(.mm-sheet) { background: #fff; }
 
   /* ---- Interior-page vocabulary ------------------------------------------
      The home page was one composition and could spell everything inline. Six
@@ -2860,6 +2874,8 @@ html:has(.bb-app-chrome) {
      are non-negotiable: the whole design depends on columns lining up.
      ========================================================================== */
   .mm-sheet {
+    /* The paper is repeated literally by `body:has(.mm-sheet)` above, which
+       paints the document behind this sheet - change both. */
     --mm-paper: #fff;
     --mm-sink: oklch(0.975 0 0);
     --mm-ink: oklch(0.18 0 0);
