@@ -1,0 +1,116 @@
+/**
+ * Domain types for the Match Mixer engine.
+ *
+ * Nothing under `lib/engine` may import React or use an `@/` alias — the
+ * module has to resolve under plain `node --test` (see the same constraint on
+ * Pickle Point Pal's `lib/scoring/`).
+ *
+ * A Schedule is always derived from a Config and never stored or patched
+ * (ADR 0001), so these types describe one direction of flow: Config in,
+ * Schedule out, ScorerResult read off the Schedule that was actually produced.
+ */
+
+/** One entry in the Roster. Identity is the `id`; the name is free to change. */
+export interface Player {
+  readonly id: string;
+  readonly name: string;
+}
+
+export type Roster = readonly Player[];
+
+/**
+ * A position in the Roster. The engine works in indices throughout — the `id`
+ * layer exists so a future Lock can point at an entry rather than a position,
+ * and is resolved back to a Player at the edge, in the UI.
+ */
+export type PlayerIndex = number;
+
+/** Two Players partnering in one Game. */
+export type Team = readonly [PlayerIndex, PlayerIndex];
+
+/** Four Players on one court within one Round. */
+export interface Game {
+  /** Zero-based column of the grid; not a venue and has no name. */
+  readonly court: number;
+  readonly teams: readonly [Team, Team];
+}
+
+/** One slice of the Schedule: every court plays at once, the rest take a Bye. */
+export interface Round {
+  readonly games: readonly Game[];
+  readonly byes: readonly PlayerIndex[];
+}
+
+/**
+ * Where a Schedule came from. Nothing may infer balance from this — the
+ * Scorer reads the Schedule itself (ADR 0002). `generated` is not produced
+ * yet; the randomized greedy generator arrives in RR-1.2.
+ */
+export type ScheduleSource = "table" | "generated";
+
+export interface Schedule {
+  readonly source: ScheduleSource;
+  readonly rounds: readonly Round[];
+}
+
+/**
+ * Everything the organizer has chosen. The only thing edited, and the only
+ * thing remembered between visits.
+ */
+export interface Config {
+  readonly roster: Roster;
+  readonly courts: number;
+  /**
+   * How many Rounds to produce. Omitted means the natural length of the
+   * Schedule this Config implies — for a Table, the whole Table.
+   */
+  readonly rounds?: number;
+  /** Makes generation reproducible. Unused while every Schedule is a Table. */
+  readonly seed: number;
+}
+
+/** A Roster below this can't fill a single court. */
+export const MIN_ROSTER_SIZE = 4;
+/** Above this the Partner Matrix stops being readable and the search stops being quick. */
+export const MAX_ROSTER_SIZE = 32;
+
+/**
+ * Roster sizes `generateSchedule` can serve today: the three sizes with a
+ * stored Table, each at `courts === n / 4`. RR-1.2 replaces this with the full
+ * MIN_ROSTER_SIZE..MAX_ROSTER_SIZE range once the greedy generator lands.
+ */
+export const SUPPORTED_ROSTER_SIZES: readonly number[] = [8, 12, 16];
+
+/**
+ * The Scorer's reading of one Schedule. `cost` is the number the generator
+ * minimizes; everything else is what the summary line and the Partner Matrix
+ * render. A perfectly balanced Schedule scores `cost === 0`.
+ */
+export interface ScorerResult {
+  readonly cost: number;
+  /** `[i][j]` — how many times i and j partnered. The diagonal stays zero. */
+  readonly partnerMatrix: number[][];
+  /** `[i][j]` — how many times i and j faced each other. */
+  readonly opponentMatrix: number[][];
+  readonly gamesPlayed: number[];
+  readonly byes: number[];
+  /** Pairs who partnered more than once — the headline failure. */
+  readonly repeatedPartnerPairs: number;
+  readonly maxPartnerCount: number;
+  readonly maxOpponentCount: number;
+  /** Most games played by anyone minus fewest — 0 means Byes fell evenly. */
+  readonly byeSpread: number;
+}
+
+/**
+ * A published, precomputed Schedule for a Roster size the maths solves
+ * perfectly. Stored in the compact form the whist construction produces —
+ * `rounds[round][game] = [[a, b], [c, d]]` over Roster indices — rather than
+ * as `Round` objects, because a Table has no Byes and its court index is just
+ * the position in the Round.
+ */
+export interface Table {
+  readonly n: number;
+  readonly courts: number;
+  readonly rounds: readonly (readonly (readonly [Team, Team])[])[];
+}

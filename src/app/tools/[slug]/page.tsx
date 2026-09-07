@@ -8,7 +8,7 @@ import { ComingSoon } from "@/components/apps/coming-soon";
 
 // Slugs Next resolves through a dedicated route folder
 // (e.g. src/app/tools/pickle-point-pal) rather than this catch-all.
-const DEDICATED_ROUTE_SLUGS = new Set(["pickle-point-pal"]);
+const DEDICATED_ROUTE_SLUGS = new Set(["pickle-point-pal", "match-mixer"]);
 
 // This catch-all only renders the "coming soon" stub for apps whose canonical
 // route is /tools/<slug>. An app hosted on its own path (Booking Buddy at

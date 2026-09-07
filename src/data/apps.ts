@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ClipboardList } from "lucide-react";
+import { CalendarCheck, ClipboardList, Grid3x3 } from "lucide-react";
 
 export type AppStatus = "coming-soon" | "live";
 
@@ -55,5 +55,14 @@ export const apps: AppItem[] = [
       "Opens straight from the browser, nothing to install",
     ],
     terms: ["Free", "No sign-up", "Open now"],
+  },
+  {
+    slug: "match-mixer",
+    title: "Match Mixer",
+    href: "/tools/match-mixer",
+    description:
+      "Paste your player list and get a balanced doubles round robin. Nobody partners the same person twice.",
+    icon: Grid3x3,
+    status: "live",
   },
 ];
