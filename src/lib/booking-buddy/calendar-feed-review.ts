@@ -42,6 +42,7 @@ import type { CourtReserveFeedEvent } from "./courtreserve-feed.ts";
 import { clockInZone, todayInZone } from "./datetime.ts";
 import {
   findSameReservation,
+  isDismissedReservation,
   isPastConfirmation,
   splitOverlongCourtLabel,
   stripCourtLabelPrefix,
@@ -153,6 +154,13 @@ export type ReviewCalendarFeedInput = {
   /** Every `org_feed_events` row already on file for this Org. */
   seenEvents: readonly SeenFeedEvent[];
   /**
+   * Reservations this User has already dismissed at this Org, from either
+   * import source (`dismissed_reservations`, issue #437). A dismissal leaves
+   * no Booking behind, so this list is the only trace an email-side dismissal
+   * leaves that the feed can recognise.
+   */
+  dismissedSlots?: readonly BookingIdentity[];
+  /**
    * UIDs the parser saw but couldn't turn into a usable event this sync
    * (`parseCourtReserveFeed`'s `unreadableUids`) — treated as *still present*
    * by the cancellation diff so a one-sync parse gap never reads as a vanish.
@@ -197,6 +205,7 @@ export function reviewCalendarFeed({
   org,
   existingBookings,
   seenEvents,
+  dismissedSlots = [],
   unreadableUids = [],
   now,
 }: ReviewCalendarFeedInput): ReviewedCalendarFeed {
@@ -286,6 +295,16 @@ export function reviewCalendarFeed({
         bookingId: matchedBooking.id,
         startsAt: startInstant.toISOString(),
       });
+      continue;
+    }
+
+    // The User already said no to this reservation on the email side (issue
+    // #437). Checked *after* the Booking match, not before: if they dismissed
+    // the email and then logged the reservation by hand anyway, the event
+    // still has to link to that Booking or the cancellation diff can never
+    // see this reservation vanish. Unlike a dismissed UID, there is no
+    // `dismissed` seen-event row here to be overwritten by that link.
+    if (isDismissedReservation(identity, dismissedSlots)) {
       continue;
     }
 
