@@ -12,14 +12,27 @@ import { formatAiredShort, formatRuntime } from "./format";
  * catalogue off-screen and turns browsing into a swipe most phone visitors
  * never make, which works against the one metric this page exists to serve.
  * Same cards, same ground, same gesture.
+ *
+ * It follows the band directly, so the episodes read as one passage: the
+ * newest one at full size, then the rest of the catalogue, with nothing
+ * between them. It carries no `bx-hair` for that reason - the band's own
+ * bottom border already draws that line.
+ *
+ * Each tile is its own tab stop, named by `aria-label` exactly like the stage
+ * in `now-playing.tsx` - it used to carry `tabIndex={-1} aria-hidden` so only
+ * the title link below it was reachable, which meant the page's one signature
+ * gesture (lift, brighten) never fired under keyboard navigation for any of
+ * these eight cards. The title stays as a second link to the same episode: a
+ * normal card pattern, and its accessible name (the title alone) reads
+ * distinctly from the tile's ("Play " + the title).
  */
 export function Archive({ episodes }: { episodes: Episode[] }) {
   if (episodes.length === 0) return null;
 
   return (
-    <section className="bx-measure bx-hair py-14 sm:py-20">
+    <section className="bx-measure py-16 sm:py-24">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="bx-h2 text-[1.375rem] sm:text-2xl">Every episode</h2>
+        <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Every episode</h2>
         <Link
           href="/podcast"
           className="text-sm text-[var(--bx-muted)] transition-colors duration-200 hover:text-[var(--bx-ink)]"
@@ -33,12 +46,11 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
           const runtime = formatRuntime(episode.duration);
           return (
             <li key={episode.id}>
-              <article>
+              <article className="bx-card">
                 <Link
                   href={`/podcast/${episode.slug}`}
                   className="bx-tile group aspect-video"
-                  tabIndex={-1}
-                  aria-hidden
+                  aria-label={`Play ${episodeMetaTitle(episode.title)}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
                   <img
@@ -61,14 +73,16 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
                     {episodeMetaTitle(episode.title)}
                   </Link>
                 </h3>
+                {/* Date only, visually. The runtime is already on the
+                    thumbnail, in the chip a video player would put it in, so
+                    printing it again spent the metadata line on something the
+                    visitor read two lines above. It stays in the accessibility
+                    tree: the tile's `aria-label` names the play action, not
+                    the runtime, so this is the only place a screen reader can
+                    hear it. */}
                 <p className="bx-meta mt-1.5">
                   {formatAiredShort(episode.published)}
-                  {runtime && (
-                    <>
-                      <span aria-hidden> · </span>
-                      {runtime}
-                    </>
-                  )}
+                  {runtime && <span className="sr-only">, {runtime}</span>}
                 </p>
               </article>
             </li>

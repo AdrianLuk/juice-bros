@@ -9,9 +9,9 @@ export function FromInstagram({ posts }: { posts: InstagramPost[] }) {
   if (posts.length === 0) return null;
 
   return (
-    <section className="bx-measure bx-hair py-14 sm:py-20">
+    <section className="bx-measure py-10 sm:py-14">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="bx-h2 text-[1.375rem] sm:text-2xl">Between episodes</h2>
+        <h2 className="bx-h2 text-lg sm:text-xl">Between episodes</h2>
         <a
           href={siteConfig.links.instagram}
           target="_blank"
@@ -22,7 +22,7 @@ export function FromInstagram({ posts }: { posts: InstagramPost[] }) {
         </a>
       </div>
 
-      <ul className="mt-7 grid grid-cols-3 gap-3 lg:grid-cols-6">
+      <ul className="mt-6 grid grid-cols-3 gap-3 lg:grid-cols-6">
         {posts.map((post) => (
           <li key={post.id}>
             <a

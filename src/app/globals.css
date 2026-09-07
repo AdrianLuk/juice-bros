@@ -2479,14 +2479,22 @@ html:has(.bb-app-chrome) {
      ========================================================================== */
 
   .bx-dark {
-    /* Ground and the one raised surface. Cool near-black, not warm. */
+    /* Ground and the one raised surface. Cool near-black, not warm.
+       The steps are set to what a screen can actually show: the first build
+       had rings at 1.16:1 and a raised fill at 1.07:1 against the ground,
+       which is a value difference on paper and nothing at all on a panel.
+       Measured off the shipped pixels, the resting ring now sits at 1.42:1
+       (the register Vercel's dark border uses), the hover ring at 1.81:1, and
+       the raised fill at 1.12:1 - lower than either line, and enough only
+       because it is spent across a full-bleed region rather than a hairline. */
     --bx-bg: #08090b;
-    --bx-raised: #101317;
-    --bx-raised-2: #171b20;
-    --bx-line: #23282e;
-    --bx-line-soft: #191d22;
+    --bx-raised: #14181d;
+    --bx-raised-2: #1b2027;
+    --bx-line: #363d46;
+    --bx-line-soft: #262c34;
+    --bx-line-2: #48505a;
 
-    /* Ink. One muted grey, and it clears 6.6:1 on the ground, so every piece
+    /* Ink. One muted grey, and it clears 6.82:1 on the ground, so every piece
        of secondary copy on the page is readable rather than atmospheric. There
        is deliberately no third, fainter step: a tone that exists only to look
        quiet is a contrast failure waiting to be written. */
@@ -2495,9 +2503,9 @@ html:has(.bb-app-chrome) {
 
     /* Brand orange. It clears 5.5:1 on this ground - the contrast problem
        PRODUCT.md documents is orange on *white*, which this look never does.
-       It is the bar's ground and the focus ring; it is no longer the subscribe
-       colour, because a brand-orange button on a brand-orange bar reads as an
-       outline at best. */
+       It is the floating pill nav's ground (the global SiteHeader, shared with
+       every marketing route) and the focus ring. The nav carries no control,
+       so nothing ever has to sit on orange. */
     --bx-accent: var(--brand-orange);
     --bx-accent-ink: #ffffff;
 
@@ -2544,7 +2552,9 @@ html:has(.bb-app-chrome) {
     letter-spacing: -0.02em;
     line-height: 1.15;
   }
-  /* Metadata only: dates, runtimes, counts, section kickers. Never body copy. */
+  /* Metadata only: dates, runtimes, counts. Never body copy, and never above
+     the heading it belongs to - a label over a heading is an eyebrow whatever
+     data it carries. It sits beneath. */
   .bx-meta {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-size: 0.6875rem;
@@ -2561,6 +2571,7 @@ html:has(.bb-app-chrome) {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 2.75rem;
     border-radius: 999px;
     padding: 0.8125rem 1.375rem;
     font-size: 0.9375rem;
@@ -2579,9 +2590,6 @@ html:has(.bb-app-chrome) {
   .bx-btn-play:hover { background: #fff; }
   .bx-btn-ghost { border: 1px solid var(--bx-line); color: var(--bx-ink); }
   .bx-btn-ghost:hover { border-color: #39414a; background: var(--bx-raised); }
-  /* Subscribe, which sits on the orange bar and so cannot be orange itself. */
-  .bx-btn-sub { background: #0a0a0a; color: #ffffff; }
-  .bx-btn-sub:hover { background: #23282e; }
 
   /* The platform actions, in their own brands. */
   .bx-btn-yt { background: var(--bx-youtube); color: var(--bx-youtube-ink); }
@@ -2658,6 +2666,18 @@ html:has(.bb-app-chrome) {
   a.bx-panel:hover { background: var(--bx-raised-2); box-shadow: 0 0 0 1px var(--bx-line); }
 
   .bx-hair { border-top: 1px solid var(--bx-line-soft); }
+
+  /* A full-bleed passage on the raised surface. The page's one peak below
+     the hero: Now Playing sits on it so the newest episode is a place the
+     scroll arrives at, not another row on the same black. */
+  .bx-band {
+    background: var(--bx-raised);
+    border-top: 1px solid var(--bx-line-soft);
+    border-bottom: 1px solid var(--bx-line-soft);
+  }
+  /* A tile on the band needs the next ring up to keep its edge. */
+  .bx-band .bx-tile { box-shadow: 0 0 0 1px var(--bx-line); }
+  .bx-band .bx-tile:hover, .bx-band .bx-tile:focus-visible { box-shadow: 0 0 0 1px var(--bx-line-2), var(--bx-shadow); }
 
   /* ---- Browser surfaces the page did not draw --------------------------- */
 
