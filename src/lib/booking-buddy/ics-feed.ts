@@ -74,6 +74,14 @@ export type IcsFeedParseResult = {
    * overlapping `events`.
    */
   unreadableUids: string[];
+  /**
+   * Whether the body was an iCalendar object at all — a `BEGIN:VCALENDAR`
+   * line is present. It says nothing about the events: a club feed with
+   * nothing booked is a well-formed calendar with no `VEVENT` in it, and
+   * reads `true` here with an empty `events`. The caller needs the two apart
+   * to tell "you have no reservations" from "that wasn't a calendar" (#431).
+   */
+  isCalendar: boolean;
 };
 
 export type ParseIcsFeedOptions = {
@@ -526,10 +534,13 @@ export function parseIcsFeed(
   const unreadable = new Set<string>();
 
   let blocks: string[][];
+  let isCalendar: boolean;
   try {
-    blocks = extractVeventBlocks(unfoldLines(text));
+    const lines = unfoldLines(text);
+    isCalendar = lines.some((line) => line.trim().toUpperCase() === "BEGIN:VCALENDAR");
+    blocks = extractVeventBlocks(lines);
   } catch {
-    return { events, unreadableUids: [] };
+    return { events, unreadableUids: [], isCalendar: false };
   }
 
   for (const block of blocks) {
@@ -552,5 +563,6 @@ export function parseIcsFeed(
   return {
     events,
     unreadableUids: [...unreadable].filter((uid) => !parsedUids.has(uid)),
+    isCalendar,
   };
 }

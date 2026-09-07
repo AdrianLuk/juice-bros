@@ -182,6 +182,12 @@ export type FacilityFeedResult =
       cancellations: CalendarFeedCancellationItem[];
       /** Rail 4 tripped — show the "this feed looks wrong — check the URL" warning instead of the candidates. */
       feedLooksWrong: boolean;
+      /**
+       * The feed is a well-formed calendar that holds nothing — the User has
+       * no upcoming reservations at this Facility. A healthy sync, reported
+       * as such rather than as a fetch failure (#431).
+       */
+      empty: boolean;
     }
   | { orgId: string; status: "error"; message: string };
 
@@ -233,19 +239,37 @@ async function syncOneFeed(
   }
 
   const zone = feedFallbackZone(org.time_zone);
-  const { events, unreadableUids } = parseCourtReserveFeed(fetched.text, { fallbackTimeZone: zone });
+  const { events, unreadableUids, isCalendar } = parseCourtReserveFeed(fetched.text, {
+    fallbackTimeZone: zone,
+  });
 
-  // Rail 1 — the healthy-fetch gate (ADR-0019). A 2xx body that parses to zero
-  // usable events (an empty calendar, junk that isn't a calendar at all, or a
-  // body every VEVENT of which failed to parse) is treated as an unhealthy
-  // sync: a sync error, and **no diff runs**. A CourtReserve hiccup must never
-  // read as "every reservation cancelled". The non-2xx / timeout / redirect /
-  // oversize cases are already `fetched.ok === false` above.
+  // Rail 1 — the healthy-fetch gate (ADR-0019). Zero usable events means **no
+  // diff runs**, whatever the reason: a CourtReserve hiccup must never read as
+  // "every reservation cancelled". The non-2xx / timeout / redirect / oversize
+  // cases are already `fetched.ok === false` above.
+  //
+  // What the three remaining cases differ on is what the User is told (#431).
+  // A well-formed calendar holding nothing is a *healthy* sync — they have no
+  // upcoming reservations at this Facility, which is an ordinary state and not
+  // a broken link. Only a body that wasn't a calendar, or one whose every
+  // VEVENT failed to parse, is worth an error.
   if (events.length === 0) {
+    if (isCalendar && unreadableUids.length === 0) {
+      return {
+        orgId: org.id,
+        status: "ok",
+        items: [],
+        cancellations: [],
+        feedLooksWrong: false,
+        empty: true,
+      };
+    }
     return {
       orgId: org.id,
       status: "error",
-      message: "That feed came back empty. If it keeps happening, re-copy the URL from CourtReserve.",
+      message: isCalendar
+        ? "None of that feed's reservations could be read. If this keeps happening, re-copy the feed URL from CourtReserve and save it again."
+        : "That link didn't return a calendar. Re-copy the feed URL from CourtReserve and save it again.",
     };
   }
 
@@ -364,7 +388,7 @@ async function syncOneFeed(
     }
   }
 
-  return { orgId: org.id, status: "ok", items, cancellations, feedLooksWrong };
+  return { orgId: org.id, status: "ok", items, cancellations, feedLooksWrong, empty: false };
 }
 
 /** The parsed event's start instant, for the seen-event row's `starts_at`. */

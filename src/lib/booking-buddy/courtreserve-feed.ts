@@ -75,6 +75,13 @@ export type ParsedCourtReserveFeed = {
    * and a parse gap is never diffed as a cancellation.
    */
   unreadableUids: string[];
+  /**
+   * Whether the body was an iCalendar object at all. A club feed with nothing
+   * booked is a well-formed calendar with no events in it — `true` here with
+   * an empty `events` — which the caller has to tell apart from a body that
+   * wasn't a calendar (#431).
+   */
+  isCalendar: boolean;
 };
 
 function toFormat(summary: string): BookingFormat {
@@ -107,6 +114,6 @@ export function parseCourtReserveFeed(
   text: string,
   options: ParseIcsFeedOptions,
 ): ParsedCourtReserveFeed {
-  const { events, unreadableUids } = parseIcsFeed(text, options);
-  return { events: events.map(mapCourtReserveFeedEvent), unreadableUids };
+  const { events, unreadableUids, isCalendar } = parseIcsFeed(text, options);
+  return { events: events.map(mapCourtReserveFeedEvent), unreadableUids, isCalendar };
 }

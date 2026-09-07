@@ -315,3 +315,24 @@ test("parseCourtReserveFeed forwards the parser's unreadable UIDs", () => {
   assert.deepEqual(events, []);
   assert.deepEqual(unreadableUids, ["CR_40100@70000010"]);
 });
+
+test("parseCourtReserveFeed forwards isCalendar, so a member with nothing booked is told apart from a body that wasn't a calendar", () => {
+  // Both come back with no events; only the second is a real failure (#431).
+  const nothingBooked = parseCourtReserveFeed(
+    [
+      "BEGIN:VCALENDAR",
+      "PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN",
+      "VERSION:2.0",
+      "END:VCALENDAR",
+    ].join("\r\n"),
+    { fallbackTimeZone: TORONTO },
+  );
+  assert.deepEqual(nothingBooked.events, []);
+  assert.equal(nothingBooked.isCalendar, true);
+
+  const notACalendar = parseCourtReserveFeed("<html><body>Sign in</body></html>", {
+    fallbackTimeZone: TORONTO,
+  });
+  assert.deepEqual(notACalendar.events, []);
+  assert.equal(notACalendar.isCalendar, false);
+});
