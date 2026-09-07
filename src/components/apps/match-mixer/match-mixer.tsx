@@ -3,12 +3,11 @@
 import { useMemo, useState } from "react";
 
 import {
-  clampCourts,
-  clampRounds,
-  defaultRounds,
+  clampConfig,
   isSupportedRosterSize,
   MAX_ROUNDS,
   maxCourts,
+  type ResolvedConfig,
 } from "@/components/apps/match-mixer/lib/engine/config";
 import { parseRoster } from "@/components/apps/match-mixer/lib/engine/roster";
 import { scoreSchedule } from "@/components/apps/match-mixer/lib/engine/scorer";
@@ -16,7 +15,6 @@ import { generateSchedule } from "@/components/apps/match-mixer/lib/engine/sched
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
-  type Config,
   type Roster,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
@@ -47,6 +45,12 @@ const EXAMPLE_ROSTER = [
   "Jorja Johnson",
 ].join("\n");
 
+/**
+ * Fixed for now. RR-1.3 turns it into state so that "new schedule" can write a
+ * fresh one, which is the whole of what regenerating means.
+ */
+const SEED = 1;
+
 export function MatchMixer() {
   const [text, setText] = useState("");
   // The Roster is kept beside the text rather than derived from it, because
@@ -66,17 +70,26 @@ export function MatchMixer() {
   const size = roster.length;
   const supported = isSupportedRosterSize(size);
   const courtCeiling = maxCourts(size);
-  const courts =
-    courtsChoice === null ? courtCeiling : clampCourts(size, courtsChoice);
-  const rounds =
-    roundsChoice === null ? defaultRounds(size, courts) : clampRounds(roundsChoice);
+  // The fields show what the engine will actually use, which is the same clamp
+  // `generateSchedule` applies rather than a second opinion beside it. A null
+  // choice is an untouched or emptied field, and means the default.
+  const config = useMemo<ResolvedConfig>(
+    () =>
+      clampConfig({
+        roster,
+        courts: courtsChoice ?? undefined,
+        rounds: roundsChoice ?? undefined,
+        seed: SEED,
+      }),
+    [roster, courtsChoice, roundsChoice],
+  );
+  const { courts, rounds } = config;
 
   const result = useMemo(() => {
     if (!supported) return null;
-    const config: Config = { roster, courts, rounds, seed: 1 };
     const schedule = generateSchedule(config);
     return { schedule, score: scoreSchedule(schedule, config) };
-  }, [roster, courts, rounds, supported]);
+  }, [config, supported]);
 
   return (
     <div className="mm-sheet">
@@ -159,9 +172,13 @@ export function MatchMixer() {
 
 /**
  * The field shows the value the engine will actually use, so a number the
- * Roster cannot support snaps back the moment it is typed rather than
- * generating something the Roster cannot seat. Clearing the field hands the
- * setting back to its default.
+ * Roster cannot support snaps back to the ceiling the moment it is typed
+ * rather than generating something the Roster cannot seat.
+ *
+ * An emptied field is the one thing that cannot snap back, because backspacing
+ * to nothing is how you start typing a different number. It is held as a draft
+ * for as long as the field has focus, means "the default" while it is empty,
+ * and gives way to the real value on blur.
  */
 function NumberField({
   id,
@@ -180,8 +197,10 @@ function NumberField({
   note: string;
   onChange: (next: number | null) => void;
 }) {
+  const [emptied, setEmptied] = useState(false);
+
   return (
-    <div className="mm-field">
+    <div>
       <label className="mm-legend block" htmlFor={id}>
         {label}
       </label>
@@ -190,13 +209,16 @@ function NumberField({
         type="number"
         inputMode="numeric"
         className="mm-input mm-number mt-2"
-        value={value}
+        value={emptied ? "" : value}
         min={min}
         max={max}
         onChange={(event) => {
-          const next = Number.parseInt(event.target.value, 10);
-          onChange(Number.isNaN(next) ? null : next);
+          const raw = event.target.value;
+          const next = Number.parseInt(raw, 10);
+          setEmptied(raw === "");
+          if (raw === "" || !Number.isNaN(next)) onChange(raw === "" ? null : next);
         }}
+        onBlur={() => setEmptied(false)}
         aria-describedby={`${id}-note`}
       />
       <p id={`${id}-note`} className="mm-note mt-2">

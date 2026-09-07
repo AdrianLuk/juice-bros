@@ -18,31 +18,23 @@ function teamNames(roster: Roster, team: Team): string {
 }
 
 /**
- * How unevenly the Byes could possibly have fallen. Sit-outs divide among the
- * Roster like anything else: when they do not go round exactly, somebody has
- * to sit once more than somebody else, and that is not a flaw to report.
- */
-function idealByeSpread(n: number, sitting: number, rounds: number): number {
-  if (n === 0 || sitting === 0) return 0;
-  return (sitting * rounds) % n === 0 ? 0 : 1;
-}
-
-/**
  * The summary line is a readout of the Scorer against the Schedule that was
- * actually produced, never a claim derived from the Config.
+ * actually produced, never a claim derived from the Config. Whether the Byes
+ * rotate evenly is the Scorer's verdict too, not a second rule worked out
+ * here from the roster size.
  */
-function summarise(score: ScorerResult, schedule: Schedule, size: number): string {
+function summarise(score: ScorerResult, schedule: Schedule): string {
   const rounds = schedule.rounds.length;
   const sitting = schedule.rounds[0]?.byes.length ?? 0;
-  const evenly = score.byeSpread <= idealByeSpread(size, sitting, rounds);
+  const sit = sitting === 1 ? "player sits" : "players sit";
 
   let byes: string;
   if (sitting === 0) {
     byes = "nobody sits out";
-  } else if (evenly) {
-    byes = `${sitting} ${sitting === 1 ? "player sits" : "players sit"} out each round, rotating evenly`;
+  } else if (score.byesRotateEvenly) {
+    byes = `${sitting} ${sit} out each round, rotating evenly`;
   } else {
-    byes = `${sitting} ${sitting === 1 ? "player sits" : "players sit"} out each round, but some sit out ${score.byeSpread} more times than others`;
+    byes = `${sitting} ${sit} out each round, but some sit out ${score.byeSpread} more time${score.byeSpread === 1 ? "" : "s"} than others`;
   }
 
   return [
@@ -74,7 +66,7 @@ export function ScheduleGrid({
       <h2 id="mm-schedule-heading" className="mm-legend">
         Schedule
       </h2>
-      <p className="mm-summary mt-2">{summarise(score, schedule, roster.length)}</p>
+      <p className="mm-summary mt-2">{summarise(score, schedule)}</p>
 
       <div className="mm-scroll mt-5">
         <table className="mm-grid">

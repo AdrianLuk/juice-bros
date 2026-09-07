@@ -2,9 +2,11 @@ import {
   FREE_OPPONENT_MEETINGS,
   OPPONENT_REPEAT_WEIGHT,
   PARTNER_REPEAT_WEIGHT,
+  recordRound,
   scoreRounds,
+  tallyRounds,
 } from "./scorer.ts";
-import type { Game, PlayerIndex, Round, Team } from "./types.ts";
+import type { Game, PlayerIndex, Round, Tally, Team } from "./types.ts";
 
 /**
  * The randomized greedy generator: everything a Table doesn't cover.
@@ -19,8 +21,19 @@ import type { Game, PlayerIndex, Round, Team } from "./types.ts";
  * tie-breaks, improve it by swapping players between courts while that helps,
  * then throw the whole attempt away and do it again from a different random
  * order. The Scorer picks the winner. Nothing here decides what "fair" means;
- * it only searches for what the Scorer already rewards.
+ * it only searches for what the Scorer already rewards, in the Scorer's own
+ * weights and off the Scorer's own Tally.
  */
+
+/** What the search needs: a Config with the names taken off. */
+export interface GenerationSpec {
+  readonly n: number;
+  readonly courts: number;
+  readonly rounds: number;
+  readonly seed: number;
+  /** Rounds to keep at the front and build on, usually a Table. */
+  readonly prefix?: readonly Round[];
+}
 
 /** How wide the search goes. Trimmed for long Schedules so a paste stays quick. */
 function attemptsFor(roundsToBuild: number): number {
@@ -50,69 +63,30 @@ function shuffle<T>(items: T[], random: () => number): T[] {
 }
 
 /**
- * What the Scorer has already been told about the Rounds built so far. The
- * generator reads these to guess and the Scorer re-reads the finished Schedule
- * to judge, so the two cannot drift apart on a technicality.
- */
-interface Counts {
-  readonly partner: number[][];
-  readonly opponent: number[][];
-  readonly byes: number[];
-}
-
-function emptyCounts(n: number): Counts {
-  return {
-    partner: Array.from({ length: n }, () => new Array<number>(n).fill(0)),
-    opponent: Array.from({ length: n }, () => new Array<number>(n).fill(0)),
-    byes: new Array<number>(n).fill(0),
-  };
-}
-
-function record(counts: Counts, round: Round): void {
-  const bump = (grid: number[][], a: PlayerIndex, b: PlayerIndex) => {
-    grid[a][b] += 1;
-    grid[b][a] += 1;
-  };
-  for (const game of round.games) {
-    const [teamA, teamB] = game.teams;
-    bump(counts.partner, teamA[0], teamA[1]);
-    bump(counts.partner, teamB[0], teamB[1]);
-    for (const x of teamA) for (const y of teamB) bump(counts.opponent, x, y);
-  }
-  for (const p of round.byes) counts.byes[p] += 1;
-}
-
-function countsFrom(rounds: readonly Round[], n: number): Counts {
-  const counts = emptyCounts(n);
-  for (const round of rounds) record(counts, round);
-  return counts;
-}
-
-/**
  * What it would cost to put these two together, in the Scorer's weights.
  * Repeats past the first keep getting dearer, so the search prefers spreading
  * an unavoidable repeat around rather than piling it onto one pair.
  */
-function partnerCost(counts: Counts, a: PlayerIndex, b: PlayerIndex): number {
-  return counts.partner[a][b] * PARTNER_REPEAT_WEIGHT;
+function partnerCost(tally: Tally, a: PlayerIndex, b: PlayerIndex): number {
+  return tally.partnerMatrix[a][b] * PARTNER_REPEAT_WEIGHT;
 }
 
-function opponentCost(counts: Counts, a: PlayerIndex, b: PlayerIndex): number {
-  const met = counts.opponent[a][b];
+function opponentCost(tally: Tally, a: PlayerIndex, b: PlayerIndex): number {
+  const met = tally.opponentMatrix[a][b];
   return Math.max(0, met - FREE_OPPONENT_MEETINGS + 1) * OPPONENT_REPEAT_WEIGHT;
 }
 
-function gameCost(counts: Counts, teams: readonly [Team, Team]): number {
+function gameCost(tally: Tally, teams: readonly [Team, Team]): number {
   const [teamA, teamB] = teams;
-  let cost = partnerCost(counts, teamA[0], teamA[1]);
-  cost += partnerCost(counts, teamB[0], teamB[1]);
-  for (const x of teamA) for (const y of teamB) cost += opponentCost(counts, x, y);
+  let cost = partnerCost(tally, teamA[0], teamA[1]);
+  cost += partnerCost(tally, teamB[0], teamB[1]);
+  for (const x of teamA) for (const y of teamB) cost += opponentCost(tally, x, y);
   return cost;
 }
 
-function roundCost(counts: Counts, games: readonly Game[]): number {
+function roundCost(tally: Tally, games: readonly Game[]): number {
   let cost = 0;
-  for (const game of games) cost += gameCost(counts, game.teams);
+  for (const game of games) cost += gameCost(tally, game.teams);
   return cost;
 }
 
@@ -124,15 +98,17 @@ function roundCost(counts: Counts, games: readonly Game[]): number {
 function chooseByes(
   n: number,
   sitting: number,
-  counts: Counts,
+  tally: Tally,
   random: () => number,
 ): PlayerIndex[] {
   if (sitting <= 0) return [];
+  // Shuffle first and sort after: the sort is stable, so equal Bye counts come
+  // back in the random order rather than in roster order.
   const order = shuffle(
     Array.from({ length: n }, (_, i) => i),
     random,
   );
-  order.sort((a, b) => counts.byes[a] - counts.byes[b]);
+  order.sort((a, b) => tally.byes[a] - tally.byes[b]);
   return order.slice(0, sitting).sort((a, b) => a - b);
 }
 
@@ -140,7 +116,7 @@ function chooseByes(
 function seatGreedily(
   seated: readonly PlayerIndex[],
   courts: number,
-  counts: Counts,
+  tally: Tally,
   random: () => number,
 ): Game[] {
   const pool = shuffle([...seated], random);
@@ -156,7 +132,7 @@ function seatGreedily(
     for (let i = 0; i < pool.length; i++) {
       // The fractional term is the random tie-break: it can separate two equal
       // choices but never outweigh a whole repeat.
-      const cost = partnerCost(counts, a, pool[i]) + random();
+      const cost = partnerCost(tally, a, pool[i]) + random();
       if (cost < bestPartnerCost) {
         bestPartnerCost = cost;
         bestPartner = i;
@@ -172,7 +148,7 @@ function seatGreedily(
           [a, b],
           [pool[i], pool[j]],
         ];
-        const cost = gameCost(counts, teams) + random();
+        const cost = gameCost(tally, teams) + random();
         if (cost < bestPairCost) {
           bestPairCost = cost;
           bestPair = [i, j];
@@ -194,7 +170,7 @@ function seatGreedily(
  * worst choices end up. Swapping two seats at a time undoes most of that, and
  * a swap is only ever kept if the Round got cheaper.
  */
-function improveBySwapping(games: readonly Game[], counts: Counts): Game[] {
+function improveBySwapping(games: readonly Game[], tally: Tally): Game[] {
   const seats: PlayerIndex[] = [];
   for (const game of games) seats.push(...game.teams[0], ...game.teams[1]);
 
@@ -207,14 +183,14 @@ function improveBySwapping(games: readonly Game[], counts: Counts): Game[] {
       ] as [Team, Team],
     }));
 
-  let best = roundCost(counts, games);
+  let best = roundCost(tally, games);
 
   for (let pass = 0; pass < IMPROVEMENT_PASSES; pass++) {
     let improved = false;
     for (let i = 0; i < seats.length; i++) {
       for (let j = i + 1; j < seats.length; j++) {
         [seats[i], seats[j]] = [seats[j], seats[i]];
-        const cost = roundCost(counts, rebuild(seats));
+        const cost = roundCost(tally, rebuild(seats));
         if (cost < best) {
           best = cost;
           improved = true;
@@ -232,34 +208,27 @@ function improveBySwapping(games: readonly Game[], counts: Counts): Game[] {
 function buildRound(
   n: number,
   courts: number,
-  counts: Counts,
+  tally: Tally,
   random: () => number,
 ): Round {
-  const byes = chooseByes(n, n - courts * 4, counts, random);
+  const byes = chooseByes(n, n - courts * 4, tally, random);
   const sittingOut = new Set(byes);
   const seated = Array.from({ length: n }, (_, i) => i).filter(
     (p) => !sittingOut.has(p),
   );
 
   return {
-    games: improveBySwapping(seatGreedily(seated, courts, counts, random), counts),
+    games: improveBySwapping(seatGreedily(seated, courts, tally, random), tally),
     byes,
   };
 }
 
 /**
- * Build out to `rounds` Rounds, keeping `prefix` (a Table, usually) at the
- * front untouched. Deterministic in `seed`: the same arguments always hand
- * back the same Rounds, which is what lets a Schedule be rebuilt from its
- * Config rather than stored.
+ * Build out to `rounds` Rounds, keeping the prefix at the front untouched.
+ * Deterministic in `seed`: the same spec always hands back the same Rounds,
+ * which is what lets a Schedule be rebuilt from its Config rather than stored.
  */
-export function generateRounds(spec: {
-  n: number;
-  courts: number;
-  rounds: number;
-  seed: number;
-  prefix?: readonly Round[];
-}): Round[] {
+export function generateRounds(spec: GenerationSpec): Round[] {
   const prefix = (spec.prefix ?? []).slice(0, spec.rounds);
   const toBuild = spec.rounds - prefix.length;
   if (toBuild <= 0) return [...prefix];
@@ -272,12 +241,12 @@ export function generateRounds(spec: {
     // Each attempt is its own deterministic stream, so the search is
     // reproducible even though it is random.
     const random = randomFrom(spec.seed + attempt * 0x9e3779b9);
-    const counts = countsFrom(prefix, spec.n);
+    const tally = tallyRounds(prefix, spec.n);
     const candidate = [...prefix];
 
     for (let r = 0; r < toBuild; r++) {
-      const round = buildRound(spec.n, spec.courts, counts, random);
-      record(counts, round);
+      const round = buildRound(spec.n, spec.courts, tally, random);
+      recordRound(tally, round);
       candidate.push(round);
     }
 

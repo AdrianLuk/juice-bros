@@ -61,14 +61,24 @@ export function isSupportedRosterSize(n: number): boolean {
   return n >= MIN_ROSTER_SIZE && n <= MAX_ROSTER_SIZE;
 }
 
+/** A Config with nothing left to decide: both numbers settled and in range. */
+export type ResolvedConfig = Config & {
+  readonly courts: number;
+  readonly rounds: number;
+};
+
 /**
- * A Config with the fields the organizer edits brought inside what the Roster
- * supports, and an absent Round count resolved to the default. Roster size is
- * left alone: outside 4 to 32 the answer is a message, not a quiet clamp.
+ * The Config the engine will actually use: the fields the organizer edits
+ * brought inside what the Roster supports, and anything left unset resolved to
+ * its default. Courts are settled first, because the Round count depends on
+ * how many there turn out to be.
+ *
+ * Roster size is left alone. Outside 4 to 32 the answer is a message, not a
+ * quiet trim of somebody off the end.
  */
-export function clampConfig(config: Config): Config {
+export function clampConfig(config: Config): ResolvedConfig {
   const n = config.roster.length;
-  const courts = clampCourts(n, config.courts);
+  const courts = clampCourts(n, config.courts ?? maxCourts(n));
   return {
     ...config,
     courts,

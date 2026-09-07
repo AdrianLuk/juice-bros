@@ -1,4 +1,4 @@
-import { clampCourts, clampRounds, defaultRounds } from "./config.ts";
+import { clampConfig } from "./config.ts";
 import { generateRounds } from "./generator.ts";
 import { findTable } from "./tables.ts";
 import {
@@ -54,8 +54,9 @@ export function generateSchedule(config: Config): Schedule {
     );
   }
 
-  const courts = clampCourts(n, config.courts);
-  const rounds = clampRounds(config.rounds ?? defaultRounds(n, courts));
+  // Run the same clamps the fields run, so a Config assembled anywhere else
+  // still cannot ask for a Schedule the Roster could not sit down to.
+  const { courts, rounds } = clampConfig(config);
 
   const prefix = tablePrefix(n, courts, rounds);
   if (prefix.length >= rounds) return { source: "table", rounds: prefix };

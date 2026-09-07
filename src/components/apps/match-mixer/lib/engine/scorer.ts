@@ -1,4 +1,4 @@
-import type { Config, PlayerIndex, Round, Schedule, ScorerResult } from "./types.ts";
+import type { Config, PlayerIndex, Round, Schedule, ScorerResult, Tally } from "./types.ts";
 
 /**
  * The Scorer: this context's definition of "fair". Partner repeats first, Bye
@@ -21,6 +21,45 @@ function matrix(n: number): number[][] {
   return Array.from({ length: n }, () => new Array<number>(n).fill(0));
 }
 
+export function emptyTally(n: number): Tally {
+  return {
+    partnerMatrix: matrix(n),
+    opponentMatrix: matrix(n),
+    gamesPlayed: new Array<number>(n).fill(0),
+    byes: new Array<number>(n).fill(0),
+  };
+}
+
+/**
+ * Add one Round to a Tally, in place. This is the only place in the app that
+ * counts who played with and against whom, so the generator guessing its next
+ * move and the Scorer judging the finished Schedule cannot come to different
+ * arithmetic.
+ */
+export function recordRound(tally: Tally, round: Round): void {
+  const bump = (grid: number[][], a: PlayerIndex, b: PlayerIndex) => {
+    grid[a][b] += 1;
+    grid[b][a] += 1;
+  };
+
+  for (const game of round.games) {
+    const [teamA, teamB] = game.teams;
+    bump(tally.partnerMatrix, teamA[0], teamA[1]);
+    bump(tally.partnerMatrix, teamB[0], teamB[1]);
+    for (const x of teamA) {
+      for (const y of teamB) bump(tally.opponentMatrix, x, y);
+    }
+    for (const p of [...teamA, ...teamB]) tally.gamesPlayed[p] += 1;
+  }
+  for (const p of round.byes) tally.byes[p] += 1;
+}
+
+export function tallyRounds(rounds: readonly Round[], n: number): Tally {
+  const tally = emptyTally(n);
+  for (const round of rounds) recordRound(tally, round);
+  return tally;
+}
+
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult {
   return scoreRounds(schedule.rounds, config.roster.length);
 }
@@ -32,28 +71,7 @@ export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult 
  * Schedule rather than by a second opinion that might disagree.
  */
 export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
-  const partnerMatrix = matrix(n);
-  const opponentMatrix = matrix(n);
-  const gamesPlayed = new Array<number>(n).fill(0);
-  const byes = new Array<number>(n).fill(0);
-
-  const bump = (grid: number[][], a: PlayerIndex, b: PlayerIndex) => {
-    grid[a][b] += 1;
-    grid[b][a] += 1;
-  };
-
-  for (const round of rounds) {
-    for (const game of round.games) {
-      const [teamA, teamB] = game.teams;
-      bump(partnerMatrix, teamA[0], teamA[1]);
-      bump(partnerMatrix, teamB[0], teamB[1]);
-      for (const x of teamA) {
-        for (const y of teamB) bump(opponentMatrix, x, y);
-      }
-      for (const p of [...teamA, ...teamB]) gamesPlayed[p] += 1;
-    }
-    for (const p of round.byes) byes[p] += 1;
-  }
+  const { partnerMatrix, opponentMatrix, gamesPlayed, byes } = tallyRounds(rounds, n);
 
   let cost = 0;
   let repeatedPartnerPairs = 0;
@@ -82,6 +100,14 @@ export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
   const byeSpread = n === 0 ? 0 : Math.max(...gamesPlayed) - Math.min(...gamesPlayed);
   cost += byeSpread * BYE_IMBALANCE_WEIGHT;
 
+  // Byes divide among the Roster like anything else: when the total does not
+  // go round exactly, somebody has to take one more than somebody else. That
+  // is arithmetic rather than a flaw, so it still counts as rotating evenly,
+  // and this is the only place allowed to decide that.
+  const totalByes = byes.reduce((sum, count) => sum + count, 0);
+  const byesRotateEvenly =
+    n === 0 || totalByes % n === 0 ? byeSpread === 0 : byeSpread <= 1;
+
   return {
     cost,
     partnerMatrix,
@@ -92,5 +118,6 @@ export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
     maxPartnerCount,
     maxOpponentCount,
     byeSpread,
+    byesRotateEvenly,
   };
 }
