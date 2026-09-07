@@ -11,25 +11,20 @@ import { usePathname } from "next/navigation";
  * - **`/on-deck/*` app surfaces** — the live-session, floor, display, and
  *   organizer pages run in On Deck's own bare shell. The marketing landing at
  *   exactly `/on-deck` keeps the global chrome.
- * - **`/`** keeps the global header — the same floating orange pill every
- *   other marketing page has, by Adrian's call — but ships its own footer,
- *   which closes the near-black look on the subscribe action rather than
- *   handing off to `SiteFooter` two sections from the end. So the slot is
- *   told which part it holds.
- *
  * `/s/[token]` — the Guest Slot Link page — keeps the global chrome: it's a
  * public marketing surface, not part of the app.
+ *
+ * `/` used to suppress the global footer and ship its own, because it was the
+ * only route in the Broadcast Dark look and would otherwise have handed off to
+ * a different one two sections from the end. Every marketing route wears that
+ * look now and `SiteFooter` *is* the dark footer, so both the exception and the
+ * `part` prop that existed to express it are gone: the two halves suppress
+ * together on exactly the same routes.
  *
  * The chrome is a Server Component passed in as `children`, so it still renders
  * on the server; this boundary only decides whether to mount it.
  */
-export function SiteChromeSlot({
-  part,
-  children,
-}: {
-  part: "header" | "footer";
-  children: ReactNode;
-}) {
+export function SiteChromeSlot({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "";
 
   // Mirrors `isUnderRoot` in routes.ts — an exact match or a real segment
@@ -41,7 +36,5 @@ export function SiteChromeSlot({
   // (exactly /on-deck) is marketing and keeps the global chrome.
   const isOnDeckApp = pathname.startsWith("/on-deck/");
 
-  const isHomeFooter = pathname === "/" && part === "footer";
-
-  return isBookingBuddy || isOnDeckApp || isHomeFooter ? null : <>{children}</>;
+  return isBookingBuddy || isOnDeckApp ? null : <>{children}</>;
 }

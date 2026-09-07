@@ -68,20 +68,24 @@ export const IMAGE_MANIFEST = {
   "/appearances/apa-admiral-cup-2026.png": {
     width: 600,
     height: 315,
-    // Rendered in a 128px-wide row thumbnail, so 384 covers it to 3x.
-    widths: [384],
+    // 384 covers the 10rem row thumbnail to 2.4x. 600 - the master's own width,
+    // so there is nothing beyond it to gain - is for the Appearances band,
+    // where the next confirmed tournament runs its art at 22rem. 384 there is
+    // 1.09x and visibly soft on a 2x screen, which is the same failure #416
+    // fixed on the episode hero.
+    widths: [384, 600],
     quality: { avif: 58, webp: 80 },
   },
   "/appearances/vaughan-fall-open-2026.png": {
     width: 600,
     height: 315,
-    widths: [384],
+    widths: [384, 600],
     quality: { avif: 58, webp: 80 },
   },
   "/appearances/ig-nationals-2026.png": {
     width: 600,
     height: 315,
-    widths: [384],
+    widths: [384, 600],
     quality: { avif: 58, webp: 80 },
   },
 } as const satisfies Record<string, ImageSource>;

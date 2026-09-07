@@ -17,6 +17,7 @@ import { buildOrganizationJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteChromeSlot } from "@/components/layout/site-chrome-slot";
+import { SiteShell } from "@/components/layout/site-shell";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -130,19 +131,26 @@ export default function RootLayout({
           Skip to content
         </a>
         <div aria-hidden className="bg-noise" />
-        {/* Suppressed on /booking-buddy — a standalone app shell with its own
-            nav (ADR 0016). Still shown on /s/[token], the Guest Slot Link, and
-            on / — the home page runs the same floating pill as every other
-            marketing route. */}
-        <SiteChromeSlot part="header">
-          <SiteHeader />
-        </SiteChromeSlot>
-        <main id="main-content" className="flex flex-1 flex-col">
-          {children}
-        </main>
-        <SiteChromeSlot part="footer">
-          <SiteFooter />
-        </SiteChromeSlot>
+        {/* `SiteShell` carries the Broadcast Dark ground on the marketing
+            routes. It has to wrap the header as well as the page: the pill nav
+            is `sticky` on interior routes, so it sits in flow above <main>, and
+            a ground applied per-page left a bare light band across the top of
+            every dark one. */}
+        <SiteShell>
+          {/* Suppressed on /booking-buddy — a standalone app shell with its own
+              nav (ADR 0016). Still shown on /s/[token], the Guest Slot Link, and
+              on / — the home page runs the same floating pill as every other
+              marketing route. */}
+          <SiteChromeSlot>
+            <SiteHeader />
+          </SiteChromeSlot>
+          <main id="main-content" className="flex flex-1 flex-col">
+            {children}
+          </main>
+          <SiteChromeSlot>
+            <SiteFooter />
+          </SiteChromeSlot>
+        </SiteShell>
         <Analytics />
         <SpeedInsights />
       </body>

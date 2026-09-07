@@ -2,8 +2,8 @@ import Link from "next/link";
 
 import { getEpisodeHook } from "@/lib/youtube";
 import { episodeMetaTitle, type Episode } from "@/lib/episodes";
-import { PlayMark } from "./play-mark";
-import { formatAired, formatRuntime } from "./format";
+import { PlayMark } from "@/components/bx/play-mark";
+import { formatAired, formatRuntime } from "@/components/bx/format";
 
 /**
  * The newest episode, on the page's one raised band directly under the hero,
