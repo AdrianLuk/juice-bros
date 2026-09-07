@@ -3,8 +3,11 @@ import test from "node:test";
 
 import { COURT_LABEL_MAX_LENGTH, NOTES_MAX_LENGTH } from "./bookings.ts";
 import {
+  courtNumber,
+  findSameReservation,
   isDuplicateBooking,
   isPastConfirmation,
+  isSameReservation,
   splitOverlongCourtLabel,
   stripCourtLabelPrefix,
 } from "./import-candidate-shaping.ts";
@@ -77,6 +80,62 @@ test("a null courtLabel on both sides still counts as matching, not as two diffe
 
 test("no existing Bookings at all is never a duplicate", () => {
   assert.equal(isDuplicateBooking(SAME_SLOT, []), false);
+});
+
+// --- cross-source court identity (issue #432) -----------------------------
+
+test("courtNumber reads the court out of either source's wording", () => {
+  // Email Court(s), after stripCourtLabelPrefix.
+  assert.equal(courtNumber("#9 - Hard"), "9");
+  // Calendar feed DESCRIPTION, after the same strip.
+  assert.equal(courtNumber("#9"), "9");
+  assert.equal(courtNumber("Court 10"), "10");
+  assert.equal(courtNumber("10"), "10");
+});
+
+test("courtNumber ignores a leading zero, so #09 and #9 are one court", () => {
+  assert.equal(courtNumber("#09"), "9");
+  assert.equal(courtNumber("#09 - Hard"), courtNumber("#9"));
+});
+
+test("courtNumber is null when there's no number to read", () => {
+  assert.equal(courtNumber(null), null);
+  assert.equal(courtNumber(""), null);
+  assert.equal(courtNumber("Centre Court"), null);
+});
+
+test("the same reservation from the two sources is one Booking, despite the court wording (#432)", () => {
+  // The exact pair from a real sync: the email's Court(s) is "#9 - Hard", the
+  // feed's DESCRIPTION is "#9". Before #432 these read as two reservations,
+  // so the feed re-offered every email-imported Booking without its Players.
+  const fromEmail = { ...SAME_SLOT, courtLabel: "#9 - Hard" };
+  const fromFeed = { ...SAME_SLOT, courtLabel: "#9" };
+  assert.equal(isSameReservation(fromEmail, fromFeed), true);
+  assert.equal(isDuplicateBooking(fromFeed, [fromEmail]), true);
+  assert.equal(isDuplicateBooking(fromEmail, [fromFeed]), true);
+});
+
+test("a different court number at the same Org/date/time is still a different reservation", () => {
+  const onNine = { ...SAME_SLOT, courtLabel: "#9 - Hard" };
+  const onEight = { ...SAME_SLOT, courtLabel: "#8" };
+  assert.equal(isSameReservation(onNine, onEight), false);
+  assert.equal(isDuplicateBooking(onNine, [onEight]), false);
+});
+
+test("a side with no readable court matches any court in that slot — a hand-typed Booking is not a second reservation", () => {
+  const handTyped = { ...SAME_SLOT, courtLabel: null };
+  const fromFeed = { ...SAME_SLOT, courtLabel: "#9" };
+  assert.equal(isSameReservation(handTyped, fromFeed), true);
+  assert.equal(isSameReservation(fromFeed, handTyped), true);
+});
+
+test("findSameReservation hands back the matched Booking, so the feed can auto-link to its id", () => {
+  const bookings = [
+    { ...SAME_SLOT, id: "booking-8", courtLabel: "#8 - Hard" },
+    { ...SAME_SLOT, id: "booking-9", courtLabel: "#9 - Hard" },
+  ];
+  assert.equal(findSameReservation({ ...SAME_SLOT, courtLabel: "#9" }, bookings)?.id, "booking-9");
+  assert.equal(findSameReservation({ ...SAME_SLOT, courtLabel: "#7" }, bookings), undefined);
 });
 
 test("a confirmation dated before today in its own zone is past", () => {

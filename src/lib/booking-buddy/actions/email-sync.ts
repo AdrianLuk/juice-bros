@@ -31,6 +31,7 @@ import {
   type ReviewItem,
 } from "../email-sync-review.ts";
 import { upsertFeedEventRow } from "../feed-events.ts";
+import { findSameReservation } from "../import-candidate-shaping.ts";
 import type { MergedImportCandidate } from "../merge-import-candidates.ts";
 import { parseNewBooking } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
@@ -439,23 +440,19 @@ export async function confirmImportCandidate(
     .eq("owner_id", session.userId)
     .eq("org_id", parsed.orgId);
 
-  const alreadyBookedRow = (guardBookings ?? [])
-    .map((row) => ({
+  // Cross-source, so court is compared by number, not by text: the Booking
+  // covering this slot may have come from the calendar feed, which writes the
+  // court as `"#9"` where this email's Court(s) says `"#9 - Hard"` (#432).
+  const alreadyBookedRow = findSameReservation(
+    parsed,
+    (guardBookings ?? []).map((row) => ({
       id: row.id,
-      identity: {
-        orgId: row.org_id,
-        courtLabel: row.court_label,
-        date: todayInZone(guardZone, new Date(row.starts_at)),
-        startTime: clockInZone(guardZone, new Date(row.starts_at)),
-      },
-    }))
-    .find(
-      ({ identity }) =>
-        identity.orgId === parsed.orgId &&
-        identity.courtLabel === parsed.courtLabel &&
-        identity.date === parsed.date &&
-        identity.startTime === parsed.startTime,
-    );
+      orgId: row.org_id,
+      courtLabel: row.court_label,
+      date: todayInZone(guardZone, new Date(row.starts_at)),
+      startTime: clockInZone(guardZone, new Date(row.starts_at)),
+    })),
+  );
 
   if (alreadyBookedRow) {
     // Record the message as settled, tied to the Booking that already covers
@@ -586,23 +583,19 @@ export async function confirmMergedCandidate(
     .eq("owner_id", session.userId)
     .eq("org_id", parsed.orgId);
 
-  const alreadyBookedRow = (guardBookings ?? [])
-    .map((row) => ({
+  // Cross-source, so court is compared by number, not by text: the Booking
+  // covering this slot may have come from the calendar feed, which writes the
+  // court as `"#9"` where this email's Court(s) says `"#9 - Hard"` (#432).
+  const alreadyBookedRow = findSameReservation(
+    parsed,
+    (guardBookings ?? []).map((row) => ({
       id: row.id,
-      identity: {
-        orgId: row.org_id,
-        courtLabel: row.court_label,
-        date: todayInZone(guardZone, new Date(row.starts_at)),
-        startTime: clockInZone(guardZone, new Date(row.starts_at)),
-      },
-    }))
-    .find(
-      ({ identity }) =>
-        identity.orgId === parsed.orgId &&
-        identity.courtLabel === parsed.courtLabel &&
-        identity.date === parsed.date &&
-        identity.startTime === parsed.startTime,
-    );
+      orgId: row.org_id,
+      courtLabel: row.court_label,
+      date: todayInZone(guardZone, new Date(row.starts_at)),
+      startTime: clockInZone(guardZone, new Date(row.starts_at)),
+    })),
+  );
 
   const bookingId = alreadyBookedRow?.id ?? null;
 

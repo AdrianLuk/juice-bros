@@ -66,21 +66,75 @@ export type BookingIdentity = {
 };
 
 /**
- * A parsed confirmation that already matches an existing Booking on Org +
- * court + date/time — the exact fields a real second reservation for the
- * same slot would also share, and the ones #59 names for this check.
+ * The court *number* a label names — `"#9 - Hard"` → `"9"`, `"Court 10"` →
+ * `"10"`, `"#09"` → `"9"` — or `null` when there's no number in it at all.
+ *
+ * This exists because the two import sources write the same court differently
+ * (issue #432). A CourtReserve confirmation email's Court(s) section carries
+ * the surface too (`"Court #9 - Hard"`); the calendar feed's DESCRIPTION
+ * carries only `"Court #9"`. Compared as text they never agree, so the
+ * four-field identity below could never recognise one source's reservation in
+ * the other's — the feed re-offered every email-imported Booking, stripped of
+ * its Players, and the email re-offered every feed-imported one.
+ *
+ * Only the first run of digits is read. A multi-court label (a Partner Play
+ * session's `"#4, Court #5, Court #6"`) reduces to its first court, but those
+ * run past `COURT_LABEL_MAX_LENGTH` and `splitOverlongCourtLabel` has already
+ * folded them into notes with a null label by the time anything compares them.
  */
+export function courtNumber(courtLabel: string | null): string | null {
+  if (!courtLabel) {
+    return null;
+  }
+  const digits = /\d+/.exec(courtLabel);
+  // Through `Number` so `"#09"` and `"#9"` are the same court.
+  return digits ? String(Number(digits[0])) : null;
+}
+
+/**
+ * Whether two records name the same real reservation: same Org, same calendar
+ * day, same start time, and — when both sides name a court at all — the same
+ * court number.
+ *
+ * A side with no readable court number matches any court in that slot. That is
+ * the deliberate half: a Booking typed in by hand with no court noted, and a
+ * feed event on Court #9 at the same Org and time, are one reservation, and
+ * treating them as two is the failure this is here to stop. Court is kept in
+ * the key at all (rather than dropped, which would be simpler) because same
+ * Org, same time, different court is a real distinction — `mergeImportCandidates`
+ * documents refusing to guess in exactly that case.
+ */
+export function isSameReservation(a: BookingIdentity, b: BookingIdentity): boolean {
+  if (a.orgId !== b.orgId || a.date !== b.date || a.startTime !== b.startTime) {
+    return false;
+  }
+  const aCourt = courtNumber(a.courtLabel);
+  const bCourt = courtNumber(b.courtLabel);
+  return aCourt === null || bCourt === null || aCourt === bCourt;
+}
+
+/**
+ * The existing Booking a parsed confirmation refers to, or `undefined` when
+ * none does — the fields a real second reservation for the same slot would
+ * also share (#59), compared across sources by `isSameReservation`.
+ *
+ * Returns the Booking rather than a boolean because the feed review needs its
+ * `id` for the auto-link; `isDuplicateBooking` is the yes/no wrapper the email
+ * review reads.
+ */
+export function findSameReservation<T extends BookingIdentity>(
+  candidate: BookingIdentity,
+  existingBookings: readonly T[],
+): T | undefined {
+  return existingBookings.find((booking) => isSameReservation(candidate, booking));
+}
+
+/** `findSameReservation` as a yes/no — a candidate that's already on file. */
 export function isDuplicateBooking(
   candidate: BookingIdentity,
   existingBookings: readonly BookingIdentity[],
 ): boolean {
-  return existingBookings.some(
-    (booking) =>
-      booking.orgId === candidate.orgId &&
-      booking.courtLabel === candidate.courtLabel &&
-      booking.date === candidate.date &&
-      booking.startTime === candidate.startTime,
-  );
+  return findSameReservation(candidate, existingBookings) !== undefined;
 }
 
 /**

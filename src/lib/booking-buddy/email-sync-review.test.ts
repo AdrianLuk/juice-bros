@@ -175,6 +175,43 @@ test("a confirmation that duplicates a booking already on file is dropped", () =
   assert.deepEqual(result.items, []);
 });
 
+test("a confirmation whose Booking came from the calendar feed is dropped, despite the court wording (#432)", () => {
+  // The email says "Court #9 - Hard"; the feed-imported Booking says "#9".
+  // Compared as text these never matched, so the email re-offered a
+  // reservation already on file and confirming it wrote a second copy.
+  const result = review(
+    [
+      email(
+        CONFIRM_SUBJECT,
+        confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court #9 - Hard" }),
+      ),
+    ],
+    {
+      existingBookings: [
+        { id: "from-feed", orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" },
+      ],
+    },
+  );
+  assert.deepEqual(result.items, []);
+});
+
+test("a confirmation for a different court at the same time is still offered", () => {
+  const result = review(
+    [
+      email(
+        CONFIRM_SUBJECT,
+        confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court #9 - Hard" }),
+      ),
+    ],
+    {
+      existingBookings: [
+        { id: "from-feed", orgId: "org-pp", courtLabel: "#8", date: "2026-07-01", startTime: "18:00" },
+      ],
+    },
+  );
+  assert.equal(importsOf(result).length, 1);
+});
+
 test("a confirmation whose time range has no end is dropped before matching", () => {
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ end: null }))]);
   assert.deepEqual(result, { items: [] });

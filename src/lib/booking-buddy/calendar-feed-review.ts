@@ -26,9 +26,9 @@
  * Pure, and free of Next.js / Supabase imports — same discipline as
  * `import-candidate-shaping.ts`, whose shared helpers it reuses
  * (`splitOverlongCourtLabel` / `stripCourtLabelPrefix` / `isPastConfirmation`).
- * The "already on file" match is the same four-field comparison
- * `isDuplicateBooking` makes, kept inline here because this composition needs
- * the matched Booking's `id` for the auto-link, not just a yes/no.
+ * The "already on file" match is `findSameReservation`, the cross-source
+ * identity the email review reads too — court compared by number, not by the
+ * two sources' differing court text (issue #432).
  * `syncFacilityFeed` (`actions/calendar-feed.ts`) does the decrypt / HTTPS
  * fetch / `parseIcsFeed` / Supabase reads and writes around it.
  *
@@ -41,6 +41,7 @@ import type { BookingFormat } from "./capacity.ts";
 import type { CourtReserveFeedEvent } from "./courtreserve-feed.ts";
 import { clockInZone, todayInZone } from "./datetime.ts";
 import {
+  findSameReservation,
   isPastConfirmation,
   splitOverlongCourtLabel,
   stripCourtLabelPrefix,
@@ -271,13 +272,12 @@ export function reviewCalendarFeed({
       startTime,
     };
 
-    const matchedBooking = existingBookings.find(
-      (booking) =>
-        booking.orgId === identity.orgId &&
-        booking.courtLabel === identity.courtLabel &&
-        booking.date === identity.date &&
-        booking.startTime === identity.startTime,
-    );
+    // Cross-source, so the court is compared by number and not by text: this
+    // Booking may well have come from the confirmation email, whose Court(s)
+    // section says `"#9 - Hard"` where the feed says `"#9"` (issue #432).
+    // Without that, every email-imported reservation was offered a second time
+    // here, carrying none of the Players the email had.
+    const matchedBooking = findSameReservation(identity, existingBookings);
 
     if (matchedBooking) {
       autoLinked.push({

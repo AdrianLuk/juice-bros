@@ -201,6 +201,75 @@ test("email + feed candidates for the same reservation consolidate into one card
   expect(await orgIdByName(user, facility)).toBe(orgId);
 });
 
+test("a feed doesn't re-offer a reservation already imported from email, whatever the court wording (#432)", async ({
+  page,
+  accounts,
+}) => {
+  // The real shape of the bug: the two sources land in *different* syncs, so
+  // the merged card never gets a chance. The email confirms first and writes
+  // the Booking with its Players and its own court text ("#9 - Hard"); the
+  // feed is configured afterwards and says only "#9". Compared as text those
+  // never matched, so the feed offered the same reservation a second time,
+  // carrying no Players — and confirming it wrote a duplicate Booking.
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+
+  await connectGmail(page);
+  gmail.registerMessages([
+    confirmationEmail({ id: messageId(), facility, court: "Court #9 - Hard" }),
+  ]);
+
+  // Sync #1 — email only, no feed configured yet. Confirm it.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  const section = feedSection(page);
+  const cards = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+  await expect(cards).toContainText("Amy Ace, Ben Backhand");
+  await cards.getByRole("button", { name: "Confirm" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+  const afterEmail = await bookingsForOrg(user, orgId);
+  expect(afterEmail).toHaveLength(1);
+  expect(afterEmail[0].court_label).toBe("#9 - Hard");
+
+  // Now configure the feed, whose event is the same reservation on "Court #9".
+  await page.goto("/booking-buddy/orgs");
+  await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/cross-source"));
+  feed.registerFeed("/feed/cross-source", {
+    kind: "ics",
+    body: icsBody([
+      {
+        uid: "sync-cross-source",
+        summary: "Doubles",
+        description: "Court #9",
+        location: facility,
+        start: "2027-03-15T22:00:00Z",
+        end: "2027-03-15T23:00:00Z",
+      },
+    ]),
+  });
+
+  // Sync #2 — the feed recognises the Booking and links to it silently.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(cards).toHaveCount(0);
+
+  // Still one Booking, still carrying the Players the email brought.
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+
+  const feedEvents = await feedEventsForOrg(user, orgId);
+  expect(feedEvents).toEqual([
+    expect.objectContaining({ uid: "sync-cross-source", status: "imported" }),
+  ]);
+  expect(feedEvents[0].booking_id).toBe(afterEmail[0].id);
+});
+
 test("dismissing a consolidated card settles both sources — neither re-offers it (#348)", async ({
   page,
   accounts,
