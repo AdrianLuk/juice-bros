@@ -62,7 +62,7 @@ export const appearances: Appearance[] = [
   },
   {
     name: "APA - The Admiral Cup - Powered By Dink Monsters",
-    startDate: "2026-09-17",
+    startDate: "2026-09-16",
     endDate: "2026-09-20",
     location: "The Backyard Club, Vaughan, ON",
     url: "https://pickleballtournaments.com/tournaments/apa-the-admiral-cup-powered-by-dink-monsters-1",
@@ -74,7 +74,7 @@ export const appearances: Appearance[] = [
       { name: "Mixed Doubles 4.999 & Under (14+)", date: "2026-09-19", players: "adrian" },
       { name: "Split Age Men's Doubles 4.499 & Under", date: "2026-09-17", players: "both" },
       { name: "Mixed Doubles 4.499 & Under (35+)", date: "2026-09-19", players: "daven" },
-      { name: "Men's Singles 3.999 & Under (14+)", players: "adrian" },
+      { name: "Men's Singles 3.999 & Under (14+)", date: "2026-09-16", players: "adrian" },
     ],
   },
   {
