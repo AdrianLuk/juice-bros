@@ -19,15 +19,30 @@ function teamNames(roster: Roster, team: Team): string {
 
 /**
  * The summary line is a readout of the Scorer against the Schedule that was
- * actually produced, never a claim derived from the Config.
+ * actually produced, never a claim derived from the Config. Whether the Byes
+ * rotate evenly is the Scorer's verdict too, not a second rule worked out
+ * here from the roster size.
  */
-function summarise(score: ScorerResult, rounds: number): string {
+function summarise(score: ScorerResult, schedule: Schedule): string {
+  const rounds = schedule.rounds.length;
+  const sitting = schedule.rounds[0]?.byes.length ?? 0;
+  const sit = sitting === 1 ? "player sits" : "players sit";
+
+  let byes: string;
+  if (sitting === 0) {
+    byes = "nobody sits out";
+  } else if (score.byesRotateEvenly) {
+    byes = `${sitting} ${sit} out each round, rotating evenly`;
+  } else {
+    byes = `${sitting} ${sit} out each round, but some sit out ${score.byeSpread} more time${score.byeSpread === 1 ? "" : "s"} than others`;
+  }
+
   return [
-    `${rounds} rounds`,
+    `${rounds} ${rounds === 1 ? "round" : "rounds"}`,
     score.repeatedPartnerPairs === 0
       ? "no repeat partners"
       : `${score.repeatedPartnerPairs} repeat partnerships`,
-    score.byeSpread === 0 ? "nobody sits out" : "byes spread evenly",
+    byes,
     score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
       ? "nobody faces the same person more than twice"
       : `some players face each other ${score.maxOpponentCount} times`,
@@ -44,13 +59,14 @@ export function ScheduleGrid({
   score: ScorerResult;
 }) {
   const courts = schedule.rounds[0]?.games.length ?? 0;
+  const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
 
   return (
     <section aria-labelledby="mm-schedule-heading">
       <h2 id="mm-schedule-heading" className="mm-legend">
         Schedule
       </h2>
-      <p className="mm-summary mt-2">{summarise(score, schedule.rounds.length)}</p>
+      <p className="mm-summary mt-2">{summarise(score, schedule)}</p>
 
       <div className="mm-scroll mt-5">
         <table className="mm-grid">
@@ -65,6 +81,7 @@ export function ScheduleGrid({
                   Court {court + 1}
                 </th>
               ))}
+              {anyByes ? <th scope="col">Sitting out</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -78,6 +95,11 @@ export function ScheduleGrid({
                     <span className="mm-side">{teamNames(roster, game.teams[1])}</span>
                   </td>
                 ))}
+                {anyByes ? (
+                  <td className="mm-byes" data-court="Sitting out">
+                    {round.byes.map((player) => roster[player].name).join(", ")}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

@@ -1,4 +1,6 @@
-import { findTable, TABLES } from "./tables.ts";
+import { clampConfig } from "./config.ts";
+import { generateRounds } from "./generator.ts";
+import { findTable } from "./tables.ts";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
@@ -8,32 +10,39 @@ import {
 } from "./types.ts";
 
 /**
- * The engine's generation entry point. Table lookup only for now: RR-1.2 adds
- * the randomized greedy fallback behind this same signature, which is why
- * callers ask for a Schedule rather than asking whether a Table exists.
+ * The engine's generation entry point: Table lookup first, then the randomized
+ * greedy generator for everything else, behind one signature (ADR 0002).
+ *
+ * Three things send a Config to the generator: fewer courts than `n / 4`, a
+ * Roster size with no stored Table, and more Rounds than a Table holds. Only
+ * the last of those has a Table to start from, and when it does, the generator
+ * continues from that prefix rather than rebuilding it.
  */
 
 /**
- * Roster sizes `generateSchedule` can serve, for callers that need to know
- * before they ask — the UI has to offer a "not yet supported" state rather
- * than catch. Today that is exactly the sizes with a stored Table, so it is
- * read off the Tables rather than restated beside them; RR-1.2 widens it to
- * MIN_ROSTER_SIZE..MAX_ROSTER_SIZE when the greedy generator lands.
- */
-export const SUPPORTED_ROSTER_SIZES: readonly number[] = TABLES.map(
-  (table) => table.n,
-);
-
-/**
- * Thrown when no Schedule can be produced for a Config. Callers screen for
- * this ahead of time with `SUPPORTED_ROSTER_SIZES`; reaching it means the UI
- * offered a Config the engine never claimed to serve.
+ * Thrown when no Schedule can be produced for a Config. Only Roster size can
+ * reach this now: courts and Round count are clamped into range rather than
+ * refused, because a number picker cannot offer an impossible value in the
+ * first place, whereas a pasted list of names can be any length at all.
  */
 export class UnsupportedConfigError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "UnsupportedConfigError";
   }
+}
+
+function tablePrefix(n: number, courts: number, limit: number): Round[] {
+  const table = findTable(n, courts);
+  if (!table) return [];
+
+  // Truncation is the normal case, not a compromise: any leading run of a
+  // whist tournament is still balanced (ADR 0002).
+  return table.rounds.slice(0, limit).map((games) => ({
+    games: games.map((teams, court) => ({ court, teams })),
+    // A Table seats everyone every Round, by construction.
+    byes: [],
+  }));
 }
 
 export function generateSchedule(config: Config): Schedule {
@@ -45,23 +54,17 @@ export function generateSchedule(config: Config): Schedule {
     );
   }
 
-  const table = findTable(n, config.courts);
-  if (!table) {
-    throw new UnsupportedConfigError(
-      `No Table for ${n} players on ${config.courts} courts, and the generator is not built yet.`,
-    );
-  }
+  // Run the same clamps the fields run, so a Config assembled anywhere else
+  // still cannot ask for a Schedule the Roster could not sit down to.
+  const { courts, rounds } = clampConfig(config);
 
-  // Truncation is the normal case, not a compromise: any leading run of a
-  // whist tournament is still balanced (ADR 0002).
-  const requested = config.rounds ?? table.rounds.length;
-  const length = Math.max(0, Math.min(requested, table.rounds.length));
+  const prefix = tablePrefix(n, courts, rounds);
+  if (prefix.length >= rounds) return { source: "table", rounds: prefix };
 
-  const rounds: Round[] = table.rounds.slice(0, length).map((games) => ({
-    games: games.map((teams, court) => ({ court, teams })),
-    // A Table seats everyone every Round, by construction.
-    byes: [],
-  }));
-
-  return { source: "table", rounds };
+  return {
+    // Part Table is still part generated, and the label exists so that nothing
+    // downstream mistakes a Table for a guarantee of balance.
+    source: "generated",
+    rounds: generateRounds({ n, courts, rounds, seed: config.seed, prefix }),
+  };
 }
