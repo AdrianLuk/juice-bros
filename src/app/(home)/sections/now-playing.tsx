@@ -6,58 +6,81 @@ import { PlayMark } from "./play-mark";
 import { formatAired, formatRuntime } from "./format";
 
 /**
- * The newest episode, sat directly under the photo hero.
+ * The newest episode, on the page's one raised band directly under the hero,
+ * and the page's rank-one section: the peak heading step, the most vertical
+ * air on the page, and the only lighter ground.
  *
- * This is the variant used when the hero carries the brand rather than the
- * episode: the platform buttons already live up there, so this block does not
- * repeat them. The thumbnail is the action, and it breaks the fold under the
- * hero so a visitor still meets something playable on the first screen.
+ * The hero owns the whole first screen (Adrian's call - the two hosts in
+ * frame), so this is where the page pays back the missing playable thing: the
+ * scroll lands on a lighter passage with the stage at full column width, the
+ * title at headline size, and nothing else competing. The platform buttons
+ * already live in the hero, so this block does not repeat them; the thumbnail
+ * is the action.
  */
 export function NowPlaying({ episode }: { episode: Episode }) {
   const hook = episode.description ? getEpisodeHook(episode.description) : "";
+  const runtime = formatRuntime(episode.duration);
 
   return (
-    <section className="bx-measure pt-12 pb-14 sm:pt-14 sm:pb-20">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,32rem)_1fr] lg:items-center lg:gap-12">
-        <Link
-          href={`/podcast/${episode.slug}`}
-          className="bx-tile bx-stage group aspect-video"
-          aria-label={`Play ${episodeMetaTitle(episode.title)}`}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
-          <img
-            src={episode.thumbnail}
-            alt=""
-            width={1280}
-            height={720}
-            fetchPriority="high"
-            decoding="async"
-          />
-          <PlayMark />
-          <span className="bx-dur">{formatRuntime(episode.duration)}</span>
-        </Link>
+    <section className="bx-band">
+      <div className="bx-measure py-16 sm:py-24 lg:py-28">
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,38rem)_1fr] lg:items-center lg:gap-12">
+          <Link
+            href={`/podcast/${episode.slug}`}
+            className="bx-tile bx-stage group aspect-video"
+            aria-label={`Play ${episodeMetaTitle(episode.title)}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
+            <img
+              src={episode.thumbnail}
+              alt=""
+              width={1280}
+              height={720}
+              fetchPriority="high"
+              decoding="async"
+            />
+            <PlayMark />
+            {runtime && <span className="bx-dur">{runtime}</span>}
+          </Link>
 
-        <div>
-          <h2 className="bx-h2 max-w-[22ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
+          <div>
+            {/* Title first, metadata under it - the same order the archive
+                cards and the tournament panel use. A label above a heading is
+                an eyebrow whatever data it carries, and it made the largest
+                type in the section the second thing read. */}
+            <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.75rem,3.4vw,2.125rem)]">
+              <Link
+                href={`/podcast/${episode.slug}`}
+                className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              >
+                {episodeMetaTitle(episode.title)}
+              </Link>
+            </h2>
+            {/* The runtime is the stage's chip, not printed text - the
+                archive cards below do the same. It is kept for screen readers,
+                which never reach the chip: this link is named by its
+                `aria-label`, so its contents are not announced. */}
+            <p className="bx-meta mt-3">
+              New episode
+              <span aria-hidden> · </span>
+              {formatAired(episode.published)}
+              {runtime && <span className="sr-only">, {runtime}</span>}
+            </p>
+            {hook && (
+              <p className="mt-3.5 max-w-[48ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+                {hook}
+              </p>
+            )}
             <Link
               href={`/podcast/${episode.slug}`}
-              className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              className="group mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
             >
-              {episodeMetaTitle(episode.title)}
+              Watch the episode
+              <span aria-hidden className="ml-1.5 inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+                &rarr;
+              </span>
             </Link>
-          </h2>
-          <p className="bx-meta mt-2.5">
-            New episode
-            <span aria-hidden> · </span>
-            {formatAired(episode.published)}
-            <span aria-hidden> · </span>
-            {formatRuntime(episode.duration)}
-          </p>
-          {hook && (
-            <p className="mt-2.5 max-w-[52ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
-              {hook}
-            </p>
-          )}
+          </div>
         </div>
       </div>
     </section>

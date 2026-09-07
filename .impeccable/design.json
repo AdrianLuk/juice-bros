@@ -1,192 +1,251 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-06T00:00:00Z",
+  "generatedAt": "2026-09-06T00:00:00.000Z",
   "title": "Design System: Juice Bros Pickleball — Marketing Site",
   "extensions": {
+    "scope": "Marketing site only. Today just the home page (src/app/(home)), under the .bx-dark scope in src/app/globals.css. Booking Buddy, On Deck and Pickle Point Pal are separate worlds with their own documentation.",
     "colorMeta": {
       "bx-bg": {
         "role": "neutral",
-        "displayName": "Cool Near-Black Ground",
+        "displayName": "Ground",
         "canonical": "#08090b",
-        "tonalRamp": ["#08090b", "#101317", "#171b20", "#23282e", "#3a4149", "#5c6570", "#8f98a3", "#f2f4f6"]
+        "note": "Cool near-black page background. Every contrast figure in this system is measured against it.",
+        "tonalRamp": ["#08090b", "#14181d", "#1b2027", "#262c34", "#363d46", "#48505a", "#8f98a3", "#f2f4f6"]
       },
       "bx-raised": {
         "role": "neutral",
         "displayName": "Raised Surface",
-        "canonical": "#101317",
-        "tonalRamp": ["#08090b", "#101317", "#171b20", "#23282e", "#3a4149", "#5c6570", "#8f98a3", "#f2f4f6"]
+        "canonical": "#14181d",
+        "note": "The one raised fill: panels, tiles, the stage, the full-bleed band. 1.12:1 on the ground — legible only because it is spent across area, never a hairline.",
+        "tonalRamp": ["#0b0e11", "#14181d", "#1b2027", "#242a32", "#2f3640", "#414a56", "#7d8794", "#e6eaef"]
+      },
+      "bx-raised-2": {
+        "role": "neutral",
+        "displayName": "Raised, Hover",
+        "canonical": "#1b2027",
+        "note": "Hover fill of a linked panel. 1.22:1 on the ground.",
+        "tonalRamp": ["#0d1013", "#151a1f", "#1b2027", "#252c35", "#313943", "#434c58", "#7f8996", "#e7ebf0"]
+      },
+      "bx-line-soft": {
+        "role": "neutral",
+        "displayName": "Line, Soft",
+        "canonical": "#262c34",
+        "note": "Resting ring and hairline divider. 1.42:1 on the ground — the Visible-Step floor for a line.",
+        "tonalRamp": ["#101319", "#191d23", "#262c34", "#333b45", "#414a57", "#566171", "#8e97a4", "#e9edf2"]
+      },
+      "bx-line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#363d46",
+        "note": "Hover/focus ring on the page ground; resting ring of a tile on the band. 1.81:1.",
+        "tonalRamp": ["#14171b", "#212630", "#2c333c", "#363d46", "#454e59", "#5b6673", "#939ca8", "#ebeff3"]
+      },
+      "bx-line-2": {
+        "role": "neutral",
+        "displayName": "Line, Strong",
+        "canonical": "#48505a",
+        "note": "Hover ring of a tile on the band. 2.44:1.",
+        "tonalRamp": ["#171a1e", "#252a30", "#333941", "#48505a", "#5a6470", "#707c8a", "#a0a9b5", "#eef1f5"]
       },
       "bx-ink": {
         "role": "neutral",
-        "displayName": "Ink (primary text)",
+        "displayName": "Ink",
         "canonical": "#f2f4f6",
-        "tonalRamp": ["#08090b", "#171b20", "#23282e", "#3a4149", "#5c6570", "#8f98a3", "#d1d6db", "#f2f4f6"]
+        "note": "Primary text and iconography. 18.07:1 on the ground, 16.17:1 on the band. Also the Play button's fill.",
+        "tonalRamp": ["#15181b", "#22262a", "#333940", "#4a525b", "#6b747f", "#98a1ab", "#c9cfd6", "#f2f4f6"]
       },
       "bx-muted": {
         "role": "neutral",
-        "displayName": "Muted Grey (secondary text)",
+        "displayName": "Muted",
         "canonical": "#8f98a3",
-        "tonalRamp": ["#08090b", "#23282e", "#3a4149", "#5c6570", "#75808c", "#8f98a3", "#b5bcc4", "#f2f4f6"]
+        "note": "The only secondary-text step. 6.82:1 on the ground, 6.10:1 on the band. There is deliberately no third, fainter grey.",
+        "tonalRamp": ["#14171a", "#212528", "#333941", "#4a525c", "#6c7681", "#8f98a3", "#bcc3cb", "#eef0f3"]
       },
       "bx-accent": {
         "role": "primary",
-        "displayName": "Brand Orange (bar ground + corner button)",
+        "displayName": "Brand Orange",
         "canonical": "#f26522",
-        "tonalRamp": ["#5c2308", "#7a2f0a", "#a63f0f", "#d15216", "#f26522", "#ff7433", "#ffab7d", "#ffd9c2"]
+        "note": "The floating pill nav's ground, the mobile corner button's fill, the focus ring and the selection colour. Never a button on the page. 6.32:1 on the ground; the 3.15:1 problem is orange-on-white, which this look never does. Locked — never darkened to fix contrast.",
+        "tonalRamp": ["#3a1405", "#5c2109", "#83300e", "#ab4114", "#d2551b", "#f26522", "#f79263", "#fcd3bd"]
       },
       "bx-youtube": {
         "role": "secondary",
         "displayName": "YouTube Red",
         "canonical": "#ff0000",
-        "tonalRamp": ["#3d0000", "#660000", "#990000", "#cc0000", "#ff0000", "#ff3333", "#ff7a7a", "#ffc2c2"]
+        "note": "The subscribe/watch buttons, in the platform's own brand colour. White ink measures 4.00:1 — under AA for button text, kept for brand fidelity as a recorded call; #cc0000 is the noted swap.",
+        "tonalRamp": ["#3d0000", "#660000", "#8f0000", "#b80000", "#e00000", "#ff0000", "#ff5c5c", "#ffc2c2"]
       },
       "bx-spotify": {
         "role": "secondary",
         "displayName": "Spotify Green",
         "canonical": "#1db954",
-        "tonalRamp": ["#072415", "#0d3a21", "#135a32", "#187a43", "#1db954", "#3ed373", "#7fe4a3", "#c2f3d3"]
+        "note": "The listen button. Ink is near-black (#0a0a0a, 7.66:1), not white (2.59:1) — both for contrast and because it is what Spotify's own brand guidance specifies.",
+        "tonalRamp": ["#062112", "#0a381e", "#0f512b", "#146c39", "#188947", "#1db954", "#4ede7f", "#b6f3ca"]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "The page's single h1 — the positioning line, not the brand wordmark." },
-      "headline": { "displayName": "Headline", "purpose": "Section headings and the featured episode title." },
-      "body": { "displayName": "Body", "purpose": "Standfirst copy, 46–58ch measure." },
-      "bodySmall": { "displayName": "Body Small", "purpose": "Supporting copy: card descriptions, footer text, host bios." },
-      "label": { "displayName": "Label / Mono", "purpose": "Metadata only — dates, runtimes, counts. Never prose." }
+      "display": { "displayName": "Display", "purpose": "The page's single h1 — the positioning line, not the brand name. Max 18ch, text-wrap: balance. Mobile floor 36px." },
+      "peak": { "displayName": "Peak", "purpose": "The Now Playing title, alone. Rank one on the page; nothing else takes this step. Mobile floor 28px." },
+      "headline": { "displayName": "Headline", "purpose": "The major sections — the archive, the hosts, the footer's closing line. Mobile floor 22px." },
+      "minor": { "displayName": "Minor", "purpose": "The supporting shelf — free tools, next tournament, Instagram. 1.125rem rising to 1.25rem at sm; content headings inside a shelf drop to 1rem/1.125rem." },
+      "body": { "displayName": "Body", "purpose": "Standfirst and lead paragraphs, capped at a 46–48ch measure." },
+      "bodySmall": { "displayName": "Body Small", "purpose": "Supporting copy: card titles (600 weight), panel descriptions, host bios, footer copy." },
+      "label": { "displayName": "Metadata", "purpose": "Geist Mono, uppercase, tabular numerals, muted. Dates, counts, terms — machine-adjacent facts only, and always beneath the heading they describe. Not runtimes: those are drawn on the thumbnail chip instead." }
     },
     "shadows": [
-      { "name": "resting-ring", "value": "0 0 0 1px var(--bx-line-soft)", "purpose": "Default state of every .bx-tile / .bx-panel." },
-      { "name": "hover-ring", "value": "0 0 0 1px var(--bx-line)", "purpose": "One-step-brighter ring on hover/focus." },
-      { "name": "bx-shadow", "value": "0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9)", "purpose": "The sole true drop shadow; appears only on .bx-tile hover/focus." },
-      { "name": "corner-button-shadow", "value": "0 10px 30px -8px rgb(0 0 0 / 0.8)", "purpose": "Under the fixed mobile corner menu button, to lift it off the page beneath it." }
+      { "name": "resting-ring", "value": "0 0 0 1px var(--bx-line-soft)", "purpose": "The default state of every tile and panel on the page ground. Not a drop shadow." },
+      { "name": "hover-ring", "value": "0 0 0 1px var(--bx-line)", "purpose": "One step brighter on hover/focus. Panels take it alone; tiles take it with bx-shadow." },
+      { "name": "band-resting-ring", "value": "0 0 0 1px var(--bx-line)", "purpose": "A tile inside the band rests one step up, because line-soft would fall to 1.27:1 on the raised fill." },
+      { "name": "band-hover-ring", "value": "0 0 0 1px var(--bx-line-2)", "purpose": "The hover ring of a tile on the band, so the gesture reads the same on the lighter ground." },
+      { "name": "bx-shadow", "value": "0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9)", "purpose": "A hairline highlight plus a soft, far-thrown dark shadow. The system's only true drop shadow, and only ever on tile hover/focus." }
     ],
     "motion": [
-      { "name": "bx-ease", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Shared easing for every transition on this look — buttons, tiles, panels, links, the mobile Sheet panel." },
-      { "name": "tile-lift", "value": "transform 220ms; translateY(-3px)", "purpose": "The one shared gesture: every thumbnail lifts on hover/focus, gated behind prefers-reduced-motion." }
+      { "name": "ease-standard", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "The page's one easing curve — every transition on this look uses it." },
+      { "name": "duration-control", "value": "160ms", "purpose": "Button background, border, colour and transform." },
+      { "name": "duration-link", "value": "200ms", "purpose": "Link colour shifts, panel state, and the arrow nudge." },
+      { "name": "duration-tile", "value": "220ms", "purpose": "The tile gesture: lift, ring, shadow, play-mark brighten and scale." },
+      { "name": "tile-lift", "value": "translateY(-3px)", "purpose": "Tile hover/focus lift, gated behind prefers-reduced-motion: no-preference." },
+      { "name": "press", "value": "translateY(1px)", "purpose": "Button active-state press feedback." }
     ],
     "breakpoints": [
       { "name": "sm", "value": "640px" },
       { "name": "md", "value": "768px" },
       { "name": "lg", "value": "1024px" },
       { "name": "xl", "value": "1280px" }
+    ],
+    "rhythm": [
+      { "name": "band", "value": "py-16 sm:py-24 lg:py-28", "purpose": "Now Playing, rank one. The most air on the page." },
+      { "name": "major", "value": "py-16 sm:py-24", "purpose": "The archive and the hosts." },
+      { "name": "shelf", "value": "py-10 sm:py-14", "purpose": "Free tools, next tournament, Instagram strip." },
+      { "name": "footer", "value": "py-14 sm:py-16", "purpose": "The closing subscribe block." }
     ]
   },
   "components": [
     {
-      "name": "Subscribe Button",
-      "kind": "button",
-      "refersTo": "button-sub",
-      "description": "Near-black fill, not brand orange — the bar it sits on is already orange, so a same-color button would read as an outline.",
-      "html": "<a class=\"ds-btn ds-btn-sub\" href=\"#\">Subscribe</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; white-space: nowrap; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1), transform 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-sub { background: #0a0a0a; color: #ffffff; } .ds-btn-sub:hover { background: #23282e; } .ds-btn-sub:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-sub:active { transform: translateY(1px); }"
-    },
-    {
-      "name": "YouTube Button",
+      "name": "Platform Button (YouTube)",
       "kind": "button",
       "refersTo": "button-yt",
-      "description": "Wears the destination's own brand red; white text kept at 4.0:1 for brand fidelity, just under AA, with #cc0000 as the documented swap.",
-      "html": "<a class=\"ds-btn ds-btn-yt\" href=\"#\">Watch on YouTube</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-yt { background: #ff0000; color: #ffffff; } .ds-btn-yt:hover { background: #e60000; } .ds-btn-yt:active { transform: translateY(1px); }"
+      "description": "The subscribe/watch action, in the destination's own brand colour rather than the site's.",
+      "html": "<a class=\"ds-btn ds-btn-yt\" href=\"#\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z\"/></svg>Watch on YouTube</a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; white-space: nowrap; text-decoration: none; cursor: pointer; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), border-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1), transform 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-yt { background: #ff0000; color: #ffffff; border: none; } .ds-btn-yt:hover { background: #e60000; } .ds-btn-yt:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-yt:active { transform: translateY(1px); }"
     },
     {
-      "name": "Spotify Button",
+      "name": "Platform Button (Spotify)",
       "kind": "button",
       "refersTo": "button-sp",
-      "description": "Wears the destination's own brand green; near-black text at 8.2:1, matching Spotify's own brand guidance.",
-      "html": "<a class=\"ds-btn ds-btn-sp\" href=\"#\">Listen on Spotify</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-sp { background: #1db954; color: #0a0a0a; } .ds-btn-sp:hover { background: #1ed760; } .ds-btn-sp:active { transform: translateY(1px); }"
+      "description": "The listen action. Near-black ink on the green, per contrast math and Spotify's own guidance.",
+      "html": "<a class=\"ds-btn ds-btn-sp\" href=\"#\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z\"/></svg>Listen on Spotify</a>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; white-space: nowrap; text-decoration: none; cursor: pointer; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), transform 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-sp { background: #1db954; color: #0a0a0a; border: none; } .ds-btn-sp:hover { background: #1ed760; } .ds-btn-sp:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-sp:active { transform: translateY(1px); }"
     },
     {
       "name": "Play Button",
       "kind": "button",
       "refersTo": "button-play",
-      "description": "White-on-ink solid fill; used for the primary internal watch action.",
-      "html": "<a class=\"ds-btn ds-btn-play\" href=\"#\">Watch</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-play { background: #f2f4f6; color: #08090b; } .ds-btn-play:hover { background: #ffffff; } .ds-btn-play:active { transform: translateY(1px); }"
+      "description": "The loudest neutral control available: ink fill, ground text. Used where an action needs weight and orange is spoken for.",
+      "html": "<button class=\"ds-btn ds-btn-play\" type=\"button\">Watch the episode</button>",
+      "css": ".ds-btn-play { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: none; border-radius: 999px; padding: 0.8125rem 1.375rem; background: #f2f4f6; color: #08090b; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), transform 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-play:hover { background: #ffffff; } .ds-btn-play:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-play:active { transform: translateY(1px); }"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Outline pill for secondary actions (Listen, All appearances).",
-      "html": "<a class=\"ds-btn ds-btn-ghost\" href=\"#\">Listen</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; transition: border-color 160ms cubic-bezier(0.32,0.72,0,1), background-color 160ms cubic-bezier(0.32,0.72,0,1), color 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-ghost { border: 1px solid #23282e; color: #f2f4f6; background: transparent; } .ds-btn-ghost:hover { border-color: #39414a; background: #101317; }"
+      "description": "The outlined control. Also the footer's square-sized social icon buttons, at size 2.5rem with no padding.",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\">All appearances</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid #363d46; border-radius: 999px; padding: 0.8125rem 1.375rem; background: transparent; color: #f2f4f6; font-family: Geist, ui-sans-serif, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 600; line-height: 1; cursor: pointer; transition: background-color 160ms cubic-bezier(0.32,0.72,0,1), border-color 160ms cubic-bezier(0.32,0.72,0,1), transform 160ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-ghost:hover { border-color: #39414a; background: #14181d; } .ds-btn-ghost:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-btn-ghost:active { transform: translateY(1px); }"
     },
     {
-      "name": "Episode Tile",
+      "name": "Tile (the signature gesture)",
       "kind": "card",
-      "refersTo": "panel",
-      "description": "The signature gesture: a thumbnail tile with an authored play mark and a runtime chip, used for the hero stage, archive grid, and Instagram strip alike.",
-      "html": "<a class=\"ds-tile\" href=\"#\"><img src=\"https://placehold.co/480x270\" alt=\"\" /><span class=\"ds-play\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"currentColor\"><path d=\"M6.6 3.4a1.4 1.4 0 0 1 2.1-1.2l11 8.6a1.4 1.4 0 0 1 0 2.4l-11 8.6a1.4 1.4 0 0 1-2.1-1.2Z\"/></svg></span><span class=\"ds-dur\">22:14</span></a>",
-      "css": ".ds-tile { display: block; position: relative; border-radius: 0.75rem; overflow: hidden; background: #101317; box-shadow: 0 0 0 1px #191d22; transition: transform 220ms cubic-bezier(0.32,0.72,0,1), box-shadow 220ms cubic-bezier(0.32,0.72,0,1); } .ds-tile img { display: block; width: 100%; height: 100%; object-fit: cover; } .ds-tile:hover, .ds-tile:focus-visible { transform: translateY(-3px); box-shadow: 0 0 0 1px #23282e, 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9); } .ds-play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: rgb(255 255 255 / 0.92); color: #08090b; transition: background-color 220ms cubic-bezier(0.32,0.72,0,1), scale 220ms cubic-bezier(0.32,0.72,0,1); } .ds-tile:hover .ds-play { background: #fff; scale: 1.06; } .ds-dur { position: absolute; right: 0.5rem; bottom: 0.5rem; border-radius: 0.25rem; background: rgb(0 0 0 / 0.78); padding: 0.1875rem 0.375rem; font-family: ui-monospace, monospace; font-size: 0.6875rem; color: #fff; }"
+      "refersTo": "tile",
+      "description": "Every thumbnail-bearing surface on the page. One hover/focus gesture — lift, brighter ring, shadow, play-mark brighten — applied identically everywhere.",
+      "html": "<a class=\"ds-tile\" href=\"#\"><span class=\"ds-tile-img\"></span><span class=\"ds-play\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"20\" height=\"20\"><path d=\"M6.6 3.4a1.4 1.4 0 0 1 2.1-1.2l11 8.6a1.4 1.4 0 0 1 0 2.4l-11 8.6a1.4 1.4 0 0 1-2.1-1.2Z\"/></svg></span><span class=\"ds-dur\">42:18</span></a>",
+      "css": ".ds-tile { display: block; position: relative; width: 20rem; aspect-ratio: 16 / 9; border-radius: 0.75rem; overflow: hidden; background: #14181d; box-shadow: 0 0 0 1px #262c34; transition: transform 220ms cubic-bezier(0.32,0.72,0,1), box-shadow 220ms cubic-bezier(0.32,0.72,0,1); } .ds-tile-img { position: absolute; inset: 0; background: linear-gradient(135deg, #1b2027, #2b333d); } .ds-tile:hover, .ds-tile:focus-visible { transform: translateY(-3px); box-shadow: 0 0 0 1px #363d46, 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9); outline: none; } .ds-play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: rgb(255 255 255 / 0.92); color: #08090b; transition: background-color 220ms cubic-bezier(0.32,0.72,0,1), scale 220ms cubic-bezier(0.32,0.72,0,1); } .ds-tile:hover .ds-play, .ds-tile:focus-visible .ds-play { background: #fff; scale: 1.06; } .ds-dur { position: absolute; right: 0.5rem; bottom: 0.5rem; border-radius: 0.25rem; background: rgb(0 0 0 / 0.78); padding: 0.1875rem 0.375rem; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.6875rem; font-variant-numeric: tabular-nums; color: #fff; } @media (prefers-reduced-motion: reduce) { .ds-tile:hover, .ds-tile:focus-visible { transform: none; } .ds-tile:hover .ds-play { scale: 1; } }"
     },
     {
       "name": "Panel",
       "kind": "card",
       "refersTo": "panel",
-      "description": "Generic raised block used for tool cards and the next-appearance panel.",
-      "html": "<a class=\"ds-panel\" href=\"#\"><h3>Booking Buddy</h3><p>Coordinate court time with your friend group.</p></a>",
-      "css": ".ds-panel { display: block; border-radius: 0.75rem; background: #101317; box-shadow: 0 0 0 1px #191d22; padding: 1.5rem; transition: background-color 200ms cubic-bezier(0.32,0.72,0,1), box-shadow 200ms cubic-bezier(0.32,0.72,0,1); color: #f2f4f6; } .ds-panel:hover { background: #171b20; box-shadow: 0 0 0 1px #23282e; } .ds-panel p { color: #8f98a3; margin-top: 0.625rem; font-size: 0.9375rem; }"
+      "description": "The generic raised block — tool cards, the tournament panel. A ring at rest, a fill and ring brighten on hover when it is itself a link. No lift, no shadow: a panel is not a tile.",
+      "html": "<a class=\"ds-panel\" href=\"#\"><h3 class=\"ds-panel-title\">Booking Buddy</h3><p class=\"ds-panel-body\">Find a court time that actually works for your whole group.</p><p class=\"ds-meta\">Free · Account needed · Open now</p><p class=\"ds-panel-cta\">Open Booking Buddy <span class=\"ds-arrow\">&rarr;</span></p></a>",
+      "css": ".ds-panel { display: flex; flex-direction: column; border-radius: 0.75rem; background: #14181d; box-shadow: 0 0 0 1px #262c34; padding: 1.5rem; width: 22rem; text-decoration: none; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #f2f4f6; transition: box-shadow 200ms cubic-bezier(0.32,0.72,0,1), background-color 200ms cubic-bezier(0.32,0.72,0,1); } .ds-panel:hover { background: #1b2027; box-shadow: 0 0 0 1px #363d46; } .ds-panel:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; } .ds-panel-title { margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; transition: color 200ms cubic-bezier(0.32,0.72,0,1); } .ds-panel:hover .ds-panel-title { color: #8f98a3; } .ds-panel-body { margin: 0.625rem 0 0; font-size: 0.9375rem; line-height: 1.6; color: #8f98a3; } .ds-meta { margin: 1.25rem 0 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #8f98a3; } .ds-panel-cta { margin: 0.75rem 0 0; font-size: 0.875rem; font-weight: 600; } .ds-arrow { display: inline-block; margin-left: 0.375rem; transition: transform 200ms cubic-bezier(0.32,0.72,0,1); } .ds-panel:hover .ds-arrow { transform: translateX(0.125rem); }"
     },
     {
-      "name": "Metadata Label",
+      "name": "Band (Now Playing)",
       "kind": "custom",
-      "refersTo": "label",
-      "description": "The mono metadata line beneath a title — date, runtime, kicker. Reserved for real data only.",
-      "html": "<p class=\"ds-meta\">New episode · Aug 27, 2026 · 22:14</p>",
-      "css": ".ds-meta { font-family: ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #8f98a3; }"
+      "refersTo": "band",
+      "description": "The page's one full-bleed raised passage, with a hairline above and below. A region of the page, not an object on it. Used exactly once.",
+      "html": "<section class=\"ds-band\"><div class=\"ds-band-inner\"><h2 class=\"ds-peak\">The one shot every 3.5 keeps getting wrong</h2><p class=\"ds-meta\">New episode · 2 Sep 2026 · 42:18</p></div></section>",
+      "css": ".ds-band { background: #14181d; border-top: 1px solid #262c34; border-bottom: 1px solid #262c34; font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-band-inner { max-width: 72rem; margin-inline: auto; padding: 4rem 2rem; } .ds-peak { margin: 0; max-width: 20ch; font-size: clamp(1.75rem, 3.4vw, 2.125rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: #f2f4f6; } .ds-meta { margin: 0.75rem 0 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #8f98a3; }"
     },
     {
-      "name": "Top Bar (opaque, orange)",
+      "name": "Archive Card",
+      "kind": "card",
+      "refersTo": "tile",
+      "description": "An episode in the archive grid: an aria-hidden thumbnail tile, the real link in the title beside it, and metadata beneath. Focus on the title mirrors the full tile gesture from the wrapper.",
+      "html": "<article class=\"ds-card\"><span class=\"ds-card-tile\"><span class=\"ds-card-img\"></span><span class=\"ds-card-play\"><svg viewBox=\"0 0 24 24\" fill=\"currentColor\" width=\"16\" height=\"16\"><path d=\"M6.6 3.4a1.4 1.4 0 0 1 2.1-1.2l11 8.6a1.4 1.4 0 0 1 0 2.4l-11 8.6a1.4 1.4 0 0 1-2.1-1.2Z\"/></svg></span><span class=\"ds-card-dur\">31:04</span></span><h3 class=\"ds-card-title\"><a href=\"#\">Why your third shot drop keeps popping up</a></h3><p class=\"ds-card-meta\">2 Sep · 31:04</p></article>",
+      "css": ".ds-card { width: 17rem; font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-card-tile { display: block; position: relative; aspect-ratio: 16 / 9; border-radius: 0.75rem; overflow: hidden; background: #14181d; box-shadow: 0 0 0 1px #262c34; transition: transform 220ms cubic-bezier(0.32,0.72,0,1), box-shadow 220ms cubic-bezier(0.32,0.72,0,1); } .ds-card-img { position: absolute; inset: 0; background: linear-gradient(135deg, #1b2027, #333b45); } .ds-card-play { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 999px; background: rgb(255 255 255 / 0.92); color: #08090b; transition: background-color 220ms cubic-bezier(0.32,0.72,0,1), scale 220ms cubic-bezier(0.32,0.72,0,1); } .ds-card-dur { position: absolute; right: 0.5rem; bottom: 0.5rem; border-radius: 0.25rem; background: rgb(0 0 0 / 0.78); padding: 0.1875rem 0.375rem; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.6875rem; font-variant-numeric: tabular-nums; color: #fff; } .ds-card:hover .ds-card-tile, .ds-card:focus-within .ds-card-tile { transform: translateY(-3px); box-shadow: 0 0 0 1px #363d46, 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9); } .ds-card:hover .ds-card-play, .ds-card:focus-within .ds-card-play { background: #fff; scale: 1.06; } .ds-card-title { margin: 0.875rem 0 0; font-size: 0.9375rem; font-weight: 600; line-height: 1.35; } .ds-card-title a { color: #f2f4f6; text-decoration: none; transition: color 200ms cubic-bezier(0.32,0.72,0,1); } .ds-card-title a:hover { color: #8f98a3; } .ds-card-title a:focus-visible { outline: 2px solid #f26522; outline-offset: 2px; border-radius: 0.25rem; } .ds-card-meta { margin: 0.375rem 0 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #8f98a3; } @media (prefers-reduced-motion: reduce) { .ds-card:hover .ds-card-tile, .ds-card:focus-within .ds-card-tile { transform: none; } .ds-card:hover .ds-card-play, .ds-card:focus-within .ds-card-play { scale: 1; } }"
+    },
+    {
+      "name": "Floating Pill Nav",
       "kind": "nav",
-      "refersTo": "navigation",
-      "description": "Non-sticky opaque brand-orange header carrying wordmark, link row (collapses under md), and the near-black Subscribe pill (shown from sm up).",
-      "html": "<header class=\"ds-header\"><span class=\"ds-word\">Juice Bros Pickleball</span><nav class=\"ds-nav\"><a href=\"#\">Podcast</a><a href=\"#\">Gear</a><a href=\"#\">About</a></nav><a class=\"ds-btn ds-btn-sub\" href=\"#\">Subscribe</a></header>",
-      "css": ".ds-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 4rem; padding-inline: 1.25rem; background: #f26522; color: #fff; } .ds-word { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; color: #fff; } .ds-nav { display: flex; gap: 1.75rem; } .ds-nav a { font-size: 0.875rem; color: rgb(255 255 255 / 0.8); transition: color 200ms ease; } .ds-nav a:hover { color: #fff; } .ds-btn-sub { background: #0a0a0a; color: #fff; border-radius: 999px; padding: 0.8125rem 1.375rem; font-size: 0.9375rem; font-weight: 600; }"
+      "refersTo": null,
+      "description": "The global SiteHeader, shared with every marketing route: a brand-orange pill carrying identity and links, and no control of any kind. Fixed over the hero on the home page.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav-brand\" href=\"#\"><span class=\"ds-nav-mark\">JB</span><span>Juice Bros Pickleball</span></a><nav class=\"ds-nav-links\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Home</a><a class=\"ds-nav-link\" href=\"#\">Podcast</a><a class=\"ds-nav-link\" href=\"#\">Gear</a><a class=\"ds-nav-link\" href=\"#\">About</a></nav></header>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 64rem; border: 1px solid rgb(255 255 255 / 0.15); border-radius: 999px; background: #f26522; padding: 0.5rem 1rem; color: #fff; font-family: Geist, ui-sans-serif, system-ui, sans-serif; box-shadow: 0 12px 32px -12px rgb(242 101 34 / 0.5); } .ds-nav-brand { display: flex; align-items: center; gap: 0.5rem; color: #fff; text-decoration: none; font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em; padding: 0.25rem 0.5rem 0.25rem 0.25rem; } .ds-nav-mark { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 999px; background: rgb(255 255 255 / 0.2); font-size: 0.6875rem; font-weight: 700; } .ds-nav-links { display: flex; align-items: center; gap: 0.25rem; } .ds-nav-link { position: relative; border-radius: 999px; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; color: rgb(255 255 255 / 0.7); text-decoration: none; transition: color 300ms cubic-bezier(0.32,0.72,0,1), background-color 300ms cubic-bezier(0.32,0.72,0,1); } .ds-nav-link:hover { color: #fff; } .ds-nav-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; } .ds-nav-link-active { color: #fff; background: rgb(255 255 255 / 0.12); }"
     },
     {
-      "name": "Mobile Corner Menu Button",
-      "kind": "custom",
-      "refersTo": "navigation",
-      "description": "Phones only: a fixed brand-orange circle in the bottom-right corner, replacing the incumbent inline hamburger; opens a Sheet panel anchored to the same corner. The panel itself must carry the bx-dark class since it renders through a portal outside the .bx-dark subtree.",
-      "html": "<button class=\"ds-corner-btn\" aria-label=\"Open menu\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><line x1=\"4\" y1=\"7\" x2=\"20\" y2=\"7\"/><line x1=\"4\" y1=\"12\" x2=\"20\" y2=\"12\"/><line x1=\"4\" y1=\"17\" x2=\"20\" y2=\"17\"/></svg></button>",
-      "css": ".ds-corner-btn { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 50; display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border-radius: 999px; background: #f26522; color: #fff; box-shadow: 0 10px 30px -8px rgb(0 0 0 / 0.8); transition: transform 300ms cubic-bezier(0.32,0.72,0,1); } .ds-corner-btn:active { transform: scale(0.95); }"
+      "name": "Metadata Line",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "The mono metadata line. Machine-adjacent facts only, and always beneath the heading it describes — never stacked above it.",
+      "html": "<div class=\"ds-metablock\"><h3 class=\"ds-metablock-title\">Sacramento Fall Open</h3><p class=\"ds-metaline\">17–19 Oct 2026 · Mixed 3.5 · Men's 4.0</p></div>",
+      "css": ".ds-metablock { font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #f2f4f6; } .ds-metablock-title { margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; } .ds-metaline { margin: 0.5rem 0 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #8f98a3; }"
     }
   ],
   "narrative": {
     "northStar": "Broadcast Dark",
-    "overview": "The page is the show's own screen: a near-black stage with the newest episode already sitting on it, and the rest of the catalogue arranged around it. This is not an own-world invention — it is the category standard (the arrangement a podcast-site visitor already expects) executed at full fidelity. Adrian chose this explicitly over four committed own-world directions (a season-guide print world, a public-access broadcast world, a painted-court world, a group-chat world); convention is the commitment, not a fallback. The craft bar is podcast structure with SaaS finish — held to the type, spacing, and state discipline of Linear, Vercel, and Stripe. The chrome is greyscale by design, with two deliberate exceptions: the top bar, which now carries brand orange as its own ground, and the two platform buttons (YouTube, Spotify), which wear their destinations' own brand colours because those are the two places the page exists to send people to. Every other colour a visitor sees comes from the episode thumbnails and photos; the system itself supplies a ground, one raised surface, white ink, one muted grey, brand orange, and the two platform colours. This restraint is what lets fourteen different YouTube thumbnails sit on the same page without the chrome fighting them.",
+    "overview": "The page is the show's own screen: a near-black stage with the newest episode already sitting on it, and the rest of the catalogue arranged around it. This is not an own-world invention — it is the category standard, the arrangement a podcast-site visitor already expects, executed at full fidelity. Adrian chose it explicitly over four committed own-world directions (a season-guide print world, a public-access broadcast world, a painted-court world, a group-chat world), so convention is the commitment, not a fallback. The craft bar is podcast structure with SaaS finish — held to the type, spacing, and state discipline of Linear, Vercel, and Stripe.\n\nThe chrome is greyscale by design, with two deliberate exceptions: the floating pill nav (the global SiteHeader, shared with every marketing route), which carries brand orange as its own ground, and the two platform buttons (YouTube, Spotify), which wear their destinations' own brand colours because those are the two places the page exists to send people to. Every other colour a visitor sees comes from the episode thumbnails and photos; the system itself supplies a ground, one raised surface, three line steps, white ink, one muted grey, brand orange, and the two platform colours. This restraint is what lets a dozen different YouTube thumbnails sit on the same page without the chrome fighting them.",
     "keyCharacteristics": [
-      "Near-black page ground, one raised surface, no third \"quiet\" grey step",
-      "Brand orange is the top bar's ground and the mobile corner button's fill — not the subscribe colour anymore",
-      "Two platform colours (YouTube red, Spotify green) carry their own ink decisions, reasoned from contrast math and each platform's own brand guidance",
-      "One shared hover/focus gesture (lift + brighten) used identically everywhere a thumbnail appears",
-      "Geist at one rigorous scale for all reading type, with a bodySmall step for supporting copy; Geist Mono reserved for metadata only",
-      "Pill-shaped controls, 0.75rem card radius, 4px-multiple spacing rhythm"
+      "Near-black page ground, one raised surface a measured step above it (1.12:1), with rings from 1.42:1 up to 2.44:1; no third \"quiet\" grey step for ink",
+      "One peak below the hero — Now Playing, on the page's only full-bleed raised band — then the archive and the hosts as equal-rank majors, then a compressed three-section shelf, then the footer",
+      "Brand orange is the floating pill nav's ground, the mobile corner button's fill, and the focus ring and selection colour; it is never a button on the page",
+      "Two platform colours (YouTube red, Spotify green) carry their own reasoned ink",
+      "One shared hover/focus gesture (lift, brighter ring, shadow, play-mark brighten) used identically everywhere a thumbnail appears",
+      "Geist at one rigorous scale for every heading and every line of prose, with a supporting small step; Geist Mono reserved for metadata",
+      "Pill controls, 0.75rem card radius, 4px-multiple spacing rhythm"
     ],
     "rules": [
-      { "name": "The Bar-Ground Rule", "body": "Brand orange is the top bar's ground and the mobile corner button's fill, so it cannot also be the subscribe button's color — a brand-orange button sitting on a brand-orange bar reads as an outline, not a call to action. .bx-btn-sub is near-black (#0a0a0a) instead. This supersedes the incumbent 'subscribe is the one job orange does' rule.", "section": "colors" },
-      { "name": "Platform Colours Carry Their Own Ink", "body": "The YouTube and Spotify buttons wear their destinations' brand colors, each with its own reasoned ink choice (white for YouTube red at 4.0:1, kept for brand fidelity; near-black for Spotify green at 8.2:1, both for contrast and to match Spotify's own guidance). Do not default new destination buttons to the page's ink/bg pair.", "section": "colors" },
-      { "name": "The No-Fake-Quiet Rule", "body": "There is no third, fainter neutral step beyond ink and muted. A color that exists only to look quiet is a contrast failure waiting to happen; if something needs to recede, use size, weight, or spacing, not a fainter grey.", "section": "colors" },
-      { "name": "The Metadata-Only Mono Rule", "body": "Geist Mono (.bx-meta) is reserved for machine-adjacent facts — a date, a runtime, a count — never for prose, section titles, or decorative labels. If a mono-styled string doesn't come from real data, it doesn't belong in .bx-meta.", "section": "typography" },
-      { "name": "The Depth-Is-Earned Rule", "body": "Nothing on this page carries a drop shadow at rest. A shadow only ever appears as the response to a hover or focus interaction on a .bx-tile; a panel that is merely raised in the layout gets a 1px ring, never a shadow.", "section": "elevation" },
-      { "name": "The Portal-Escapes-The-Scope Rule", "body": "SheetContent (and any other portaled surface) renders through a portal at the document root, outside the page's own .bx-dark subtree. Every --bx-* custom property is scoped to .bx-dark, so a portaled panel that doesn't carry the class itself resolves every --bx-* reference to nothing. Any portaled surface used from inside .bx-dark must repeat the bx-dark class on its own root.", "section": "elevation" }
+      { "name": "The Chrome-Carries-No-Control Rule", "body": "Brand orange is the floating pill nav's ground and the mobile corner button's fill, and the nav carries identity and links only — no subscribe pill, no button of any kind. A control on an orange ground would have to be near-black or an outline to be seen at all, and either reads weaker than the same action on the page ground. So the subscribe path lives where it can wear its own colour: the YouTube-red and Spotify-green buttons in the hero, and the YouTube-red close in the footer.", "section": "colors" },
+      { "name": "The Visible-Step Rule", "body": "Every value step has to survive a real screen, and the floor depends on how much area the step is spent across. A hairline or a resting ring needs 1.4:1 against the ground it is actually drawn on; a fill covering a full-bleed region gets away with 1.1:1, because area does the work a thin line cannot. This is why a tile inside the band steps its rings up from line-soft/line to line/line-strong: on the raised fill, line-soft would fall to 1.27:1. Measure what you ship rather than estimating it. When a new surface needs to recede, use size, weight or spacing, never a step below these floors.", "section": "colors" },
+      { "name": "Platform Colours Carry Their Own Ink", "body": "The YouTube and Spotify buttons wear their destinations' brand colours, each with its own reasoned ink choice. Do not default a new destination button to the page's ink/bg pair — resolve its ink from a real contrast check against that platform's colour the same way.", "section": "colors" },
+      { "name": "The No-Fake-Quiet Rule", "body": "There is no third, fainter neutral step beneath muted. A colour that exists only to look quiet is a contrast failure waiting to happen; if something needs to recede, use size, weight, or spacing.", "section": "colors" },
+      { "name": "The Fact-Appears-Once Rule", "body": "An episode's runtime is drawn on its thumbnail, in the chip a video player would put it in, so it is not printed again in the metadata line below — that line carries the date alone. The thumbnail is read before the caption, so a caption repeating it spends the page's smallest type on something already known. Where the visible instance sits inside an aria-hidden tile or a link named by its aria-label, the caption keeps an sr-only copy: once means once per reader, not once per document.", "section": "layout" },
+      { "name": "The Metadata-Only Mono Rule", "body": "Geist Mono (.bx-meta) is reserved for machine-adjacent facts — a date, a runtime, a count, a terms line. Never prose, never section titles, never a decorative label. If a mono-styled string doesn't come from real data, it doesn't belong in .bx-meta. The footer's copyright line is the single borderline use, and it opts out of the uppercase and the tracking rather than shouting a legal string.", "section": "typography" },
+      { "name": "The Metadata-Sits-Under-Its-Heading Rule", "body": "A .bx-meta line always follows the heading it describes; it never sits above it. A small tracked label stacked over a heading is an eyebrow no matter how real its data, and it costs the section its own title as the first thing read. Now Playing, the archive cards, the tool panels and the tournament panel all run title-then-metadata.", "section": "typography" },
+      { "name": "One Arrow Behaviour", "body": "Every inline arrow link on the page (Watch the episode, The whole story, Tournament details, Open <tool>) carries the same translate-x-0.5 nudge on group hover, over 200ms. Identical-looking links behaving two different ways is the scattered-effect failure; either all of them move or none do.", "section": "typography" },
+      { "name": "The Depth-Is-Earned Rule", "body": "Nothing on this page carries a drop shadow at rest. A shadow only ever appears as the response to a hover or focus interaction on a tile; a panel that is merely raised in the layout gets a 1px ring, never a shadow.", "section": "elevation" },
+      { "name": "The Portal-Escapes-The-Scope Rule", "body": "Every --bx-* custom property is scoped to .bx-dark. A portaled surface — Sheet, Dialog, popover, toast — renders at the document root, outside that subtree, so it resolves every --bx-* reference to nothing and comes out unpainted. Any portaled surface opened from inside .bx-dark must repeat the bx-dark class on its own root.", "section": "elevation" }
     ],
     "dos": [
       "Do author every hover/focus effect on a thumbnail through .bx-tile (lift + ring + shadow + play-mark brighten) rather than inventing a one-off transition — this is the page's one shared gesture.",
-      "Do keep every .bx-* rule inside Tailwind's components layer. Unlayered CSS placed after @import \"tailwindcss\" outranks every layered utility class — that broke md:hidden and normal-case mid-build. Any new .bx-* rule must go inside the existing @layer components { … } block, not appended outside it.",
-      "Do repeat the bx-dark class on any portaled surface (Sheet, Dialog, popover, toast) opened from within .bx-dark — see The Portal-Escapes-The-Scope Rule.",
-      "Do give a destination-brand button (YouTube, Spotify, or any future platform button) its own reasoned ink choice from a real contrast check against that platform's own color, rather than defaulting to the page's ink/bg pair.",
-      "Do draw icons and glyphs (the play mark, the runtime chip) as authored inline SVG so their geometry matches the rest of the page's drawing, rather than importing an icon-set component for these specific marks.",
-      "Do render a section as null when its underlying data is empty (Archive, FreeTools, OnTheRoad, FromInstagram all do this) rather than printing an empty-state placeholder."
+      "Do mirror a tile's gesture from a wrapper's :focus-within whenever the tile itself is aria-hidden and the real link sits outside it, so keyboard and pointer get the same feedback.",
+      "Do keep every .bx-* rule inside Tailwind's components layer. Unlayered CSS placed after @import \"tailwindcss\" outranks every layered utility — that broke md:hidden and normal-case mid-build. Any new .bx-* rule goes inside the existing @layer components { … } block, not appended outside it.",
+      "Do repeat the bx-dark class on any portaled surface (Sheet, Dialog, popover, toast) opened from within .bx-dark.",
+      "Do give a destination-brand button its own reasoned ink choice from a real contrast check against that platform's colour, rather than defaulting to the page's ink/bg pair.",
+      "Do draw the page's own marks — the play glyph, the platform icons — as authored inline SVG, so their geometry and optical centring match the rest of the page's drawing.",
+      "Do render a section as null when its data is empty (Archive, FreeTools, OnTheRoad, FromInstagram all do) rather than printing an empty-state placeholder.",
+      "Do carry rank in all three channels at once — vertical air, heading step, and composition scale. Any one of them alone reads as an accident."
     ],
     "donts": [
-      "Don't darken or otherwise alter brand orange (#f26522) to \"fix\" contrast — this is a confirmed brand commitment in PRODUCT.md. It is moot on .bx-dark surfaces anyway, since orange-on-near-black already clears 5.5:1; the 3.15:1 problem the commitment describes is orange-on-white, which this look never does.",
-      "Don't put brand orange on the subscribe button, or any button sitting on the orange bar — see The Bar-Ground Rule. Reach for the near-black fill instead.",
-      "Don't add a third, fainter neutral tone beneath --bx-muted. The system has exactly two ink steps on purpose.",
-      "Don't carry Broadcast Dark's .bx-dark scope, tokens, or components onto Booking Buddy, On Deck, or Pickle Point Pal routes, or vice versa — the four visual worlds are deliberately separate and none of them import another's tokens.",
-      "Don't treat the six not-yet-migrated marketing routes (Podcast, Gear, About, Contact, Tools, Appearances) as already conforming to this system when auditing or extending them — they currently run the incumbent orange-pill-nav look and are pending migration, not already-compliant."
+      "Don't darken or otherwise alter brand orange (#f26522) to \"fix\" contrast — a confirmed brand commitment in PRODUCT.md. It is moot on .bx-dark surfaces anyway: orange on this ground clears 6.32:1, and the 3.15:1 problem the commitment describes is orange-on-white, which this look never does.",
+      "Don't put a control on the pill nav, or brand orange on any button on this page — see The Chrome-Carries-No-Control Rule. The subscribe path wears YouTube red.",
+      "Don't add a ring, hairline or fill step below the Visible-Step floor (1.4:1 for a line against the ground it sits on, 1.1:1 for a full-bleed fill). If it would not show on a phone in a bright room, it is not hierarchy.",
+      "Don't add a third, fainter neutral tone beneath muted. The system has exactly two ink steps on purpose.",
+      "Don't put a hairline on every section. Rules group; a rule between every pair of sections flattens the page into equals.",
+      "Don't add a second band, or a second peak heading. Rank one is Now Playing, and the page has only one.",
+      "Don't stack a mono metadata line above the heading it belongs to; that is an eyebrow regardless of how real the data is.",
+      "Don't carry Broadcast Dark's .bx-dark scope, tokens, or components onto Booking Buddy, On Deck, or Pickle Point Pal, or vice versa — the four visual worlds are deliberately separate and none of them imports another's tokens.",
+      "Don't treat the six not-yet-migrated marketing routes (Podcast, Gear, About, Contact, Tools, Appearances) as already conforming to this system when auditing or extending them — they run the incumbent orange-pill-nav look and are pending migration, not already compliant."
     ]
   }
 }
-</content>

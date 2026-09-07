@@ -3,14 +3,17 @@ import { YoutubeIcon, SpotifyIcon } from "@/components/icons";
 import { HeroBackdrop } from "./hero-backdrop";
 
 /**
- * The full-bleed photo hero, kept from the incumbent rather than replaced.
+ * The full-bleed photo hero, kept from the incumbent rather than replaced -
+ * Adrian's call: the two of them in frame is the thing he wants a visitor to
+ * meet first.
  *
  * One thing changed from the incumbent: the h1 is the positioning line, not the
- * show's own name. The name is in the bar directly above it, and the largest
- * text on the page telling a first-time visitor nothing was the real defect.
- * The scrim stays, and so does the full viewport height on desktop - that means
- * nothing playable reaches the first screen there, which is a real cost against
- * this page's growth metric and Adrian's trade to make.
+ * show's own name. The name is in the floating pill directly above it, and the
+ * largest text on the page telling a first-time visitor nothing was the real
+ * defect. The scrim stays, and so does the full viewport height on desktop -
+ * the global pill nav floats over it (`hasOverlayHero` in SiteHeader), so the
+ * section owns the whole first screen. Nothing playable reaches that screen;
+ * the Now Playing band directly under it is where the page pays that back.
  *
  * Two layouts, not one:
  *
@@ -24,7 +27,7 @@ import { HeroBackdrop } from "./hero-backdrop";
  */
 export function PhotoHero() {
   return (
-    <section className="relative isolate flex flex-col sm:min-h-[calc(100svh-4rem)] sm:justify-end sm:overflow-hidden">
+    <section className="relative isolate flex flex-col sm:min-h-[100svh] sm:justify-end sm:overflow-hidden">
       {/* Narrow: an in-flow banner block. Wide: the background of the section,
           with the copy laid over it. */}
       <div className="relative sm:absolute sm:inset-0 sm:-z-10">
@@ -58,12 +61,12 @@ export function PhotoHero() {
             ramp plus an even wash. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-20 bg-[linear-gradient(to_top,var(--bx-bg),transparent)] sm:inset-0 sm:h-auto sm:bg-[linear-gradient(to_top,var(--bx-bg)_0%,color-mix(in_oklch,var(--bx-bg),transparent_25%)_38%,color-mix(in_oklch,var(--bx-bg),transparent_65%)_100%)]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-20 bg-[linear-gradient(to_top,var(--bx-bg),transparent)] sm:inset-0 sm:h-auto sm:bg-[linear-gradient(to_top,var(--bx-bg)_0%,var(--bx-bg)_14%,color-mix(in_oklch,var(--bx-bg),transparent_22%)_42%,color-mix(in_oklch,var(--bx-bg),transparent_65%)_100%)]"
         />
       </div>
 
       <div className="bx-measure relative z-10 pt-8 pb-4 sm:pt-32 sm:pb-14">
-        <h1 className="bx-display max-w-[18ch] text-[clamp(2rem,5.4vw,3.5rem)]">
+        <h1 className="bx-display max-w-[18ch] text-[clamp(2.25rem,5.4vw,3.5rem)]">
           Pickleball, from two guys still trying to get good at it.
         </h1>
         <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">

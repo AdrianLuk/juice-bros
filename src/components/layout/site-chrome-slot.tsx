@@ -11,10 +11,11 @@ import { usePathname } from "next/navigation";
  * - **`/on-deck/*` app surfaces** — the live-session, floor, display, and
  *   organizer pages run in On Deck's own bare shell. The marketing landing at
  *   exactly `/on-deck` keeps the global chrome.
- * - **`/`** — the home page ships a near-black look with its own slim bar and
- *   its own footer. A bright orange pill floating over that stage would be two
- *   identities on one screen. The other marketing routes keep the global chrome
- *   until the look rolls out to them (see `.impeccable/surfaces/src-app-home.md`).
+ * - **`/`** keeps the global header — the same floating orange pill every
+ *   other marketing page has, by Adrian's call — but ships its own footer,
+ *   which closes the near-black look on the subscribe action rather than
+ *   handing off to `SiteFooter` two sections from the end. So the slot is
+ *   told which part it holds.
  *
  * `/s/[token]` — the Guest Slot Link page — keeps the global chrome: it's a
  * public marketing surface, not part of the app.
@@ -22,7 +23,13 @@ import { usePathname } from "next/navigation";
  * The chrome is a Server Component passed in as `children`, so it still renders
  * on the server; this boundary only decides whether to mount it.
  */
-export function SiteChromeSlot({ children }: { children: ReactNode }) {
+export function SiteChromeSlot({
+  part,
+  children,
+}: {
+  part: "header" | "footer";
+  children: ReactNode;
+}) {
   const pathname = usePathname() ?? "";
 
   // Mirrors `isUnderRoot` in routes.ts — an exact match or a real segment
@@ -34,7 +41,7 @@ export function SiteChromeSlot({ children }: { children: ReactNode }) {
   // (exactly /on-deck) is marketing and keeps the global chrome.
   const isOnDeckApp = pathname.startsWith("/on-deck/");
 
-  const isHome = pathname === "/";
+  const isHomeFooter = pathname === "/" && part === "footer";
 
-  return isBookingBuddy || isOnDeckApp || isHome ? null : <>{children}</>;
+  return isBookingBuddy || isOnDeckApp || isHomeFooter ? null : <>{children}</>;
 }

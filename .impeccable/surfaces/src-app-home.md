@@ -36,7 +36,14 @@ swipe most phone visitors never make, which works against the one metric this
 page exists to serve. Same cards, same ground, same character.
 
 Constraints: the JB logo, brand orange (`#f26522`) and the hosts' real photos
-are fixed. The named failure mode from the ask round is "if it looked like every
+are fixed. Two more pins from Adrian on 2026-09-06, after seeing the first
+build: the **full-bleed banner photo of both hosts stays as the hero** (he
+chose it over a stage-first first viewport, shown to him both ways), and the
+**global floating orange pill nav** from the other marketing routes is the
+header here too — no private bar. His diagnosis of the first build, "nothing
+sticks out, nothing feels emphasized", was a value-contrast problem (rings at
+1.16:1, raised fill at 1.07:1) and is answered inside the world, not by
+changing it. The named failure mode from the ask round is "if it looked like every
 podcast site" - which the standing exit knowingly accepts, so the defence is
 finish, not novelty. Apps (Booking Buddy, On Deck, Pickle Point Pal) keep their
 own visual worlds and are untouched.
@@ -49,28 +56,49 @@ six routes move over.
 
 ## Direction contract
 
-THESIS: The page is the show's own screen - the newest episode plays the room,
-and everything else is the archive around it. It refuses the incumbent's
-arrangement, where a full viewport of brand identity sits above anything a
-visitor can actually press.
+THESIS: The page is the show's own screen - the two hosts meet you first
+(Adrian's pin), then the newest episode plays the room on the page's one raised
+band, and everything else is the archive around it. The full-screen photo hero
+is paid for by the band directly beneath it, so the first scroll lands on
+something playable.
 
-OWN-WORLD: Near-black ground (#08090B) with a single raised surface, white ink,
-one muted grey, and brand orange reserved for exactly one job: the subscribe
-action. Geist at one rigorous scale for everything, Geist Mono for metadata
+OWN-WORLD: Near-black ground (#08090B) with a single raised surface set a
+visible step above it (fill ~1.2:1, rings ~1.4:1), white ink, one muted grey,
+and brand orange reserved for the chrome: the floating pill nav and the mobile
+corner button. Geist at one rigorous scale for everything, Geist Mono for metadata
 only. A 4px spacing system, one shadow token, 0.75rem card radius, pill
 controls. All page colour comes from the episode thumbnails; the chrome never
 competes with them.
 
 STORY: A rec player lands, reads in one line that this show is made by people at
 their own level, sees the newest episode already sitting there ready to play,
-starts it - or scans fourteen more and subscribes.
+starts it - or scans the rest of the catalogue, finds one that speaks to them,
+and meets the two hosts on the way down to subscribing.
 
-FIRST VIEWPORT: A slim sticky bar with the seal, wordmark, links and one orange
-Subscribe pill. Under it, a compact positioning line as the h1 with a one-line
-standfirst. Then the stage: the newest episode's thumbnail at 16:9 in a centred
-column, a play affordance and runtime chip on it, and beneath it a row carrying
-the episode's date kicker and title on the left with Watch on YouTube (white
-pill) and Listen (outline pill) on the right.
+Section order, and the rank it encodes (revised 2026-09-06): hero, Now Playing,
+**the archive**, the hosts, then a compressed shelf of tools / next tournament /
+Instagram. The episodes run as one uninterrupted passage: the newest at full
+size on the band, then the catalogue directly beneath it. An earlier build put
+the hosts between the two, on the reasoning that it is the only section proving
+the positioning rather than asserting it - but that made a visitor who came to
+watch something read a bio halfway through the thing they came for. The hosts
+keep major rank immediately after the catalogue, well above the sixth position
+they held before, where only the already-convinced reached them. Rank is carried
+in three channels at once - vertical air, heading step, and composition scale -
+because any one of them alone reads as an accident.
+
+FIRST VIEWPORT: The global floating orange pill nav over the full-bleed
+banner photo of both hosts, which owns the whole first screen. Low on the
+photo: the positioning line as the h1, a one-line standfirst, Watch on YouTube
+(YouTube red) and Listen on Spotify (Spotify green). Directly beneath, the
+page's one raised band: the newest episode's stage at 16:9 up to 44rem with the
+play affordance and runtime chip, and beside it the title one step above every
+other section heading, the date beneath it, the hook, and a Watch the episode
+link. The runtime is on the chip and nowhere else in print; the caption keeps an
+`sr-only` copy, since the link is named by its `aria-label` and a screen reader
+never reaches the chip.
+Below 640px the banner is a 14rem in-flow strip under the orange identity strip,
+and the copy sits on the page ground beneath it.
 
 FORM: The category standard, chosen by Adrian over four own-world directions;
 look "Broadcast Dark", chosen from three rendered alternatives. Seed keys
