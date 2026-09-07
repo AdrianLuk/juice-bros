@@ -15,8 +15,8 @@ import {
 import { signOut } from "@/lib/on-deck/actions/auth";
 import { TonightControls } from "@/components/on-deck/tonight-controls";
 import {
+  ON_DECK_QR_DISPLAY_PATH,
   ON_DECK_SETTINGS_PATH,
-  clubQrPath,
   floorPath,
   sessionPath,
 } from "@/lib/on-deck/routes";
@@ -77,21 +77,30 @@ export default async function OnDeckHomePage() {
                   <dt className="text-muted-foreground">Floor Mode</dt>
                   <dd>{FLOOR_MODE_LABEL[club.floorMode]}</dd>
                 </dl>
-                <p className="mt-4 text-xs text-muted-foreground">
-                  Club QR sign points at{" "}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Link
-                    href={clubQrPath(club.id)}
+                    href={ON_DECK_QR_DISPLAY_PATH}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    Show the QR
+                  </Link>
+                  <Link
+                    href={ON_DECK_SETTINGS_PATH}
+                    className="text-sm underline underline-offset-4"
+                  >
+                    Edit defaults
+                  </Link>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  No sign on the wall today? Pull up{" "}
+                  <Link
+                    href={ON_DECK_QR_DISPLAY_PATH}
                     className="underline underline-offset-4"
                   >
-                    {clubQrPath(club.id)}
-                  </Link>
+                    the QR
+                  </Link>{" "}
+                  and hold your screen up instead. Same link, printed or not.
                 </p>
-                <Link
-                  href={ON_DECK_SETTINGS_PATH}
-                  className="mt-4 inline-block text-sm underline underline-offset-4"
-                >
-                  Edit defaults
-                </Link>
               </div>
 
               {openSession ? (
