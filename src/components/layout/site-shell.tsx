@@ -26,8 +26,15 @@ import { usePathname } from "next/navigation";
 
 const DARK_ROUTES = ["/", "/podcast", "/tools", "/gear", "/appearances", "/about", "/contact"];
 
-/** Pickle Point Pal lives under /tools but is its own world (`.pp-surface`). */
-const DARK_EXCEPTIONS = ["/tools/pickle-point-pal"];
+/**
+ * The tools that live under /tools but paint their own surface: Pickle Point
+ * Pal (`.pp-surface`, panel white) and Match Mixer (`.mm-sheet`, paper white).
+ * Both are committed light with no dark variant, so the dark shell would put a
+ * near-black strip above their own ground. Their body ground is named beside
+ * `body:has(.bx-dark)` in globals.css so the strip the pill nav floats in
+ * belongs to the tool as well.
+ */
+const DARK_EXCEPTIONS = ["/tools/pickle-point-pal", "/tools/match-mixer"];
 
 export function isDarkRoute(pathname: string): boolean {
   if (DARK_EXCEPTIONS.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
