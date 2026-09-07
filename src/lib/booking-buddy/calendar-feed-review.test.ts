@@ -110,6 +110,58 @@ test("an event matching an existing Booking is auto-linked, not offered", () => 
   ]);
 });
 
+test("an event whose Booking came from the confirmation email is auto-linked, not re-offered (#432)", () => {
+  // The email's Court(s) carries the surface — "#6 - Hard" — where the feed's
+  // DESCRIPTION carries only "#6". Compared as text they never matched, so
+  // this reservation was offered a second time, with none of the Players the
+  // email had put on the Booking.
+  const fromEmail: ExistingBookingForFeedReview[] = [
+    {
+      id: "booking-from-email",
+      orgId: "org-1",
+      courtLabel: "#6 - Hard",
+      date: "2026-10-01",
+      startTime: "18:00",
+    },
+  ];
+
+  const { items, autoLinked } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: fromEmail,
+    seenEvents: [],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 0);
+  assert.equal(autoLinked.length, 1);
+  assert.equal(autoLinked[0].bookingId, "booking-from-email");
+});
+
+test("an event on a different court at the same time is still offered, not swallowed by the looser match", () => {
+  const otherCourt: ExistingBookingForFeedReview[] = [
+    {
+      id: "booking-other-court",
+      orgId: "org-1",
+      courtLabel: "#7 - Hard",
+      date: "2026-10-01",
+      startTime: "18:00",
+    },
+  ];
+
+  const { items, autoLinked } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: otherCourt,
+    seenEvents: [],
+    now: NOW,
+  });
+
+  assert.equal(autoLinked.length, 0);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].courtLabel, "#6");
+});
+
 test("the auto-link fires however the Booking was created — a hand-entered Booking on a different court is not a match", () => {
   const existing: ExistingBookingForFeedReview[] = [
     { id: "booking-x", orgId: "org-1", courtLabel: "#7", date: "2026-10-01", startTime: "18:00" },

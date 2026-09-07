@@ -25,6 +25,7 @@ import {
 import { todayInZone, clockInZone } from "../datetime.ts";
 import { upsertFeedEventRow, type FeedEventUpsert } from "../feed-events.ts";
 import { parseNewBooking } from "../bookings.ts";
+import { findSameReservation } from "../import-candidate-shaping.ts";
 import { insertValidatedBooking, deleteOwnedBooking } from "./bookings.ts";
 import { trackFacilitySyncEvent } from "../analytics.ts";
 
@@ -551,19 +552,16 @@ export async function confirmFeedCandidate(
     startTime: clockInZone(zone, new Date(row.starts_at)),
   }));
 
-  const alreadyBooked = existing.find(
-    (booking) =>
-      booking.orgId === parsed.orgId &&
-      booking.courtLabel === parsed.courtLabel &&
-      booking.date === parsed.date &&
-      booking.startTime === parsed.startTime,
-  );
+  // Cross-source, so court is compared by number: the Booking covering this
+  // slot may have come from the confirmation email, which writes the court as
+  // `"#9 - Hard"` where this feed candidate says `"#9"` (issue #432).
+  const alreadyBooked = findSameReservation(parsed, existing);
 
   if (alreadyBooked) {
     // No second Booking — link the feed event to the one that already exists
     // and report success; the User's intent ("this slot is on my calendar")
-    // is satisfied. `alreadyBooked` and `isDuplicateBooking` compare the same
-    // four fields, so this one check covers the whole duplicate case.
+    // is satisfied. This and the review's own filter run the same
+    // `findSameReservation`, so the one check covers the whole duplicate case.
     await recordFeedEvent(supabase, session.userId, {
       orgId,
       uid: feedEventUid,
