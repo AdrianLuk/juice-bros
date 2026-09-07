@@ -116,5 +116,8 @@ test("an operator adds four walk-ups, corrects a rating, and 'Send next four' ca
   for (const [first, initial] of walkups) {
     await expect(court1.getByText(`${first} ${initial}.`)).toBeVisible();
   }
-  await expect(page.getByTestId("on-deck-0")).toHaveCount(0);
+  // The panel itself (`data-testid="on-deck-0"`) always renders, empty or not
+  // (`FoursomePanel`'s "Not enough players waiting yet" placeholder), so the
+  // empty check is on its names, not its presence.
+  await expect(page.getByTestId("on-deck-0").locator("li")).toHaveCount(0);
 });
