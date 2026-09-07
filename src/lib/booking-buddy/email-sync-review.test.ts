@@ -216,6 +216,51 @@ test("a confirmation whose reservation the User dismissed from the feed side is 
   assert.deepEqual(result.items, []);
 });
 
+test("a suppressed confirmation is reported, so the review screen can offer it back (#444)", () => {
+  // The rebook case: this reservation is new — a fresh message id for a slot
+  // the User cancelled and booked again — and the dismissal recorded against
+  // the one it replaced drops it. Silently, before #444.
+  const result = review(
+    [
+      email(
+        CONFIRM_SUBJECT,
+        confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court #9 - Hard" }),
+      ),
+    ],
+    {
+      dismissedSlots: [
+        { orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" },
+      ],
+    },
+  );
+  assert.deepEqual(result.suppressed, [
+    { orgId: "org-pp", courtLabel: "#9 - Hard", date: "2026-07-01", startTime: "18:00" },
+  ]);
+});
+
+test("a past or already-booked confirmation is dropped without being reported (#444)", () => {
+  const past = review([
+    email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-05-01", start: "18:00" })),
+  ]);
+  assert.deepEqual(past.suppressed, []);
+
+  const alreadyOnFile = review(
+    [
+      email(
+        CONFIRM_SUBJECT,
+        confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court #9 - Hard" }),
+      ),
+    ],
+    {
+      existingBookings: [
+        { id: "b1", orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" },
+      ],
+    },
+  );
+  assert.deepEqual(alreadyOnFile.items, []);
+  assert.deepEqual(alreadyOnFile.suppressed, []);
+});
+
 test("a dismissed slot at another court leaves this confirmation alone", () => {
   const result = review(
     [
@@ -273,17 +318,17 @@ test("a confirmation for a different court at the same time is still offered", (
 
 test("a confirmation whose time range has no end is dropped before matching", () => {
   const result = review([email(CONFIRM_SUBJECT, confirmationHtml({ end: null }))]);
-  assert.deepEqual(result, { items: [] });
+  assert.deepEqual(result, { items: [], suppressed: [] });
 });
 
 test("an email that isn't a booking notification is ignored", () => {
   const result = review([email("Your CourtReserve waitlist spot opened up", confirmationHtml())]);
-  assert.deepEqual(result, { items: [] });
+  assert.deepEqual(result, { items: [], suppressed: [] });
 });
 
 test("an email that looks like a confirmation but whose body doesn't parse is dropped", () => {
   const result = review([email(CONFIRM_SUBJECT, "<html><body>nothing here</body></html>")]);
-  assert.deepEqual(result, { items: [] });
+  assert.deepEqual(result, { items: [], suppressed: [] });
 });
 
 test("a cancellation matched to a booking on file carries that booking's id", () => {
@@ -325,7 +370,7 @@ test("a confirmation and a later cancellation for the same slot net to nothing",
     email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-07-01", start: "18:00" }), { receivedAt: 1000 }),
     email(CANCEL_SUBJECT, cancellationHtml({ date: "2026-07-01", start: "18:00" }), { receivedAt: 2000 }),
   ]);
-  assert.deepEqual(result, { items: [] });
+  assert.deepEqual(result, { items: [], suppressed: [] });
 });
 
 test("a confirmation then an update for the same slot yields one candidate carrying the update's fields and id", () => {

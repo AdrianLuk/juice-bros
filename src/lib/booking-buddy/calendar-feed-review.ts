@@ -178,6 +178,19 @@ export type ReviewedCalendarFeed = {
   /** Previously-seen, Booking-linked events that vanished or went cancelled — earliest slot first. Empty when `feedLooksWrong`. */
   cancellations: CalendarFeedCancellationItem[];
   /**
+   * Events this run dropped because their slot is in `dismissed_reservations`
+   * — what the review screen says out loud, and offers to take back (issue
+   * #444).
+   *
+   * Only that one drop reason, and only the cross-source rule. An event whose
+   * own `org_feed_events` row is already `dismissed` isn't reported: the User
+   * dismissed that very card, from this very feed, and nothing has changed
+   * since. What #444 is about is the reservation they never saw — a cancel and
+   * rebook of a dismissed slot arrives under a fresh VEVENT UID and is dropped
+   * against the slot instead.
+   */
+  suppressed: BookingIdentity[];
+  /**
    * Rail 4 tripped — the diff would have flagged more than
    * `CANCELLATION_ABSOLUTE_CAP` or more than half this Org's feed-tracked
    * Bookings, so `cancellations` is suppressed and the caller shows a
@@ -229,6 +242,7 @@ export function reviewCalendarFeed({
 
   const items: CalendarFeedReviewItem[] = [];
   const autoLinked: AutoLinkedFeedEvent[] = [];
+  const suppressed: BookingIdentity[] = [];
 
   for (const event of events) {
     // A cancelled event is the cancellation diff's job (next slice), never an
@@ -305,6 +319,7 @@ export function reviewCalendarFeed({
     // see this reservation vanish. Unlike a dismissed UID, there is no
     // `dismissed` seen-event row here to be overwritten by that link.
     if (isDismissedReservation(identity, dismissedSlots)) {
+      suppressed.push(identity);
       continue;
     }
 
@@ -326,6 +341,9 @@ export function reviewCalendarFeed({
   }
 
   items.sort(byDateAndStartTime);
+  // Earliest slot first, like the candidates. Not deduped against the email
+  // side's own suppressed list — only the review screen holds both.
+  suppressed.sort(byDateAndStartTime);
 
   /* ---------------------------------------------------------------------- */
   /* The feed-diff cancellation mechanism + its four safety rails.          */
@@ -420,6 +438,11 @@ export function reviewCalendarFeed({
     items,
     autoLinked,
     cancellations: feedLooksWrong ? [] : cancellations,
+    // Reported even when rail 4 has fired. `feedLooksWrong` suppresses the
+    // *cancellations* because acting on them would delete Bookings; a
+    // suppressed import is a reservation the feed offered and this review
+    // dropped, which a wrong feed doesn't make any less true.
+    suppressed,
     feedLooksWrong,
   };
 }

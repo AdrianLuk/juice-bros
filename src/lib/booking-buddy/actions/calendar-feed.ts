@@ -29,7 +29,7 @@ import {
   recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
 import { parseNewBooking } from "../bookings.ts";
-import { findSameReservation } from "../import-candidate-shaping.ts";
+import { findSameReservation, type BookingIdentity } from "../import-candidate-shaping.ts";
 import { insertValidatedBooking, deleteOwnedBooking } from "./bookings.ts";
 import { trackFacilitySyncEvent } from "../analytics.ts";
 
@@ -185,6 +185,8 @@ export type FacilityFeedResult =
       items: CalendarFeedReviewItem[];
       /** Feed-diff cancellation candidates (issue #296). Empty when `feedLooksWrong`. */
       cancellations: CalendarFeedCancellationItem[];
+      /** Events dropped against `dismissed_reservations` — the review screen names them and offers each back (issue #444). */
+      suppressed: BookingIdentity[];
       /** Rail 4 tripped — show the "this feed looks wrong — check the URL" warning instead of the candidates. */
       feedLooksWrong: boolean;
     }
@@ -257,7 +259,14 @@ async function syncOneFeed(
       // Indistinguishable from a feed whose events all matched a Booking
       // already, and deliberately so (#438): both mean "nothing new here", and
       // the review section says that once, for every source at once.
-      return { orgId: org.id, status: "ok", items: [], cancellations: [], feedLooksWrong: false };
+      return {
+        orgId: org.id,
+        status: "ok",
+        items: [],
+        cancellations: [],
+        suppressed: [],
+        feedLooksWrong: false,
+      };
     }
     return {
       orgId: org.id,
@@ -309,7 +318,7 @@ async function syncOneFeed(
   // the match above to recognise, so this list is what carries it across.
   const dismissedSlots = await listDismissedReservations(supabase, ownerId, org.id);
 
-  const { items, autoLinked, cancellations, feedLooksWrong } = reviewCalendarFeed({
+  const { items, autoLinked, cancellations, suppressed, feedLooksWrong } = reviewCalendarFeed({
     events,
     org: { id: org.id, timeZone: zone },
     existingBookings,
@@ -389,7 +398,7 @@ async function syncOneFeed(
     }
   }
 
-  return { orgId: org.id, status: "ok", items, cancellations, feedLooksWrong };
+  return { orgId: org.id, status: "ok", items, cancellations, suppressed, feedLooksWrong };
 }
 
 /** The parsed event's start instant, for the seen-event row's `starts_at`. */

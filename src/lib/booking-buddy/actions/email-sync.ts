@@ -35,7 +35,7 @@ import {
   listDismissedReservations,
   recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
-import { findSameReservation } from "../import-candidate-shaping.ts";
+import { findSameReservation, type BookingIdentity } from "../import-candidate-shaping.ts";
 import type { MergedImportCandidate } from "../merge-import-candidates.ts";
 import { parseNewBooking } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
@@ -226,7 +226,12 @@ export async function disconnectMailbox(): Promise<ActionResult> {
 }
 
 export type SyncFromEmailResult =
-  | { status: "ok"; items: ReviewItem[] }
+  | {
+      status: "ok";
+      items: ReviewItem[];
+      /** Confirmations dropped against `dismissed_reservations` — the review screen names them and offers each back (issue #444). */
+      suppressed: BookingIdentity[];
+    }
   | { status: "reconnect_required" }
   | { status: "error"; message: string };
 
@@ -355,7 +360,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     rawEmails.push({ gmailMessageId: messageId, ...fetched.email });
   }
 
-  const { items } = reviewCourtReserveEmails({
+  const { items, suppressed } = reviewCourtReserveEmails({
     emails: rawEmails,
     orgs: orgs.map((org) => ({
       orgId: org.id,
@@ -384,7 +389,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     trackEmailSyncEvent("bb_email_sync_run", link.provider, { candidates: items.length }),
   );
 
-  return { status: "ok", items };
+  return { status: "ok", items, suppressed };
 }
 
 /**

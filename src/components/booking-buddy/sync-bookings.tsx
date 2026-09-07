@@ -13,6 +13,7 @@ import {
   FeedCandidateCard,
   FeedCancellationCard,
 } from "@/components/booking-buddy/sync-facilities";
+import { SuppressedReservations } from "@/components/booking-buddy/suppressed-reservations";
 import {
   mergeImportCandidates,
   type MergedImportCandidate,
@@ -177,6 +178,15 @@ export function SyncBookingsSection({
     (feed) => feed.cancellations,
   );
   const feedsLookingWrong = okFeeds.filter((feed) => feed.feedLooksWrong);
+
+  // Reservations both sources dropped against `dismissed_reservations` (issue
+  // #444). Concatenated raw — `SuppressedReservations` dedupes, because when
+  // both sources are configured for a facility the same reservation is
+  // suppressed once on each side and the User said no to it only once.
+  const suppressedReservations = [
+    ...(emailData?.status === "ok" ? emailData.suppressed : []),
+    ...okFeeds.flatMap((feed) => feed.suppressed),
+  ];
 
   // One reservation the User made can arrive from both sources at once (a
   // Mailbox Link and a calendar feed for the same facility) — consolidate the
@@ -410,6 +420,14 @@ export function SyncBookingsSection({
             No new bookings found.
           </p>
         )}
+
+        {/* Last, and after the empty state: "no new bookings found" plus "3
+            were skipped because you dismissed them before" is the pair that
+            actually answers "where is my booking?". */}
+        <SuppressedReservations
+          reservations={suppressedReservations}
+          orgs={orgs}
+        />
       </div>
     </section>
   );
