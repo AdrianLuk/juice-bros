@@ -317,7 +317,10 @@ export function MatchMixer() {
         </header>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-14">
-          <div>
+          {/* Named only so the print stylesheet can take the whole column off
+              the page in one rule — everything in it is an edit, and nothing
+              you can edit belongs on paper. */}
+          <div className="mm-controls">
             <div className="mm-field-head">
               <label className="mm-legend" htmlFor="mm-roster">
                 Roster
