@@ -30,6 +30,7 @@ import {
 } from "./courtreserve-email.ts";
 import type { BookingFormat } from "./capacity.ts";
 import {
+  isDismissedReservation,
   isDuplicateBooking,
   isPastConfirmation,
   splitOverlongCourtLabel,
@@ -135,6 +136,13 @@ export type ReviewCourtReserveEmailsInput = {
   orgs: readonly OrgForReview[];
   /** The caller's existing Bookings, each with the id `confirmCancellationCandidate`/`confirmUpdateCandidate` will act on. */
   existingBookings: readonly (BookingIdentity & { id: string })[];
+  /**
+   * Reservations this User has already dismissed, from either import source
+   * (`dismissed_reservations`, issue #437). A dismissal leaves no Booking
+   * behind, so this list is the only trace a feed-side dismissal leaves that
+   * the email review can recognise.
+   */
+  dismissedSlots?: readonly BookingIdentity[];
   connectionCandidates: readonly ConnectionCandidate[];
   /** Passed in, never read from the clock here — determinism, same as the rest of this app. */
   now: Date;
@@ -155,6 +163,7 @@ type ReviewContext = {
   orgCandidates: OrgCandidate[];
   orgTimeZoneById: Map<string, string>;
   existingBookings: readonly (BookingIdentity & { id: string })[];
+  dismissedSlots: readonly BookingIdentity[];
   connectionCandidates: readonly ConnectionCandidate[];
   now: Date;
 };
@@ -241,9 +250,13 @@ function zoneFor(matchedOrgId: string | null, ctx: ReviewContext): string {
 
 /**
  * A reconciled confirmation → an `import` `ReviewItem`, or `null` when it
- * shouldn't reach the review queue at all: a date/time already passed, or a
+ * shouldn't reach the review queue at all: a date/time already passed, a
  * duplicate of a Booking already on file (same Org, court, date/time — the
- * fields a real second reservation would also share).
+ * fields a real second reservation would also share), or a reservation the
+ * User already dismissed from the calendar feed's own card (#437).
+ *
+ * Both of the latter two need a matched Org to compare against — an email
+ * whose facility didn't resolve has no Org to key on, and is offered.
  */
 function shapeImportReviewItem(
   event: Extract<ReconciliationEvent<ConfirmedEmail>, { kind: "confirmation" }>,
@@ -259,14 +272,19 @@ function shapeImportReviewItem(
 
   const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(confirmation.courtLabel));
 
-  if (
-    matchedOrgId &&
-    isDuplicateBooking(
-      { orgId: matchedOrgId, courtLabel, date: confirmation.date, startTime: confirmation.startTime },
-      ctx.existingBookings,
-    )
-  ) {
-    return null;
+  if (matchedOrgId) {
+    const identity: BookingIdentity = {
+      orgId: matchedOrgId,
+      courtLabel,
+      date: confirmation.date,
+      startTime: confirmation.startTime,
+    };
+    if (
+      isDuplicateBooking(identity, ctx.existingBookings) ||
+      isDismissedReservation(identity, ctx.dismissedSlots)
+    ) {
+      return null;
+    }
   }
 
   return {
@@ -369,6 +387,7 @@ export function reviewCourtReserveEmails({
   emails,
   orgs,
   existingBookings,
+  dismissedSlots = [],
   connectionCandidates,
   now,
 }: ReviewCourtReserveEmailsInput): ReviewedCourtReserveEmails {
@@ -376,6 +395,7 @@ export function reviewCourtReserveEmails({
     orgCandidates: orgs.map((org) => ({ orgId: org.orgId, displayName: org.displayName })),
     orgTimeZoneById: new Map(orgs.map((org) => [org.orgId, org.timeZone])),
     existingBookings,
+    dismissedSlots,
     connectionCandidates,
     now,
   };

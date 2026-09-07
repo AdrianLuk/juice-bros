@@ -138,6 +138,28 @@ export function isDuplicateBooking(
 }
 
 /**
+ * A candidate for a reservation the User has already dismissed — from *either*
+ * import source (issue #437).
+ *
+ * The same `isSameReservation` identity as the duplicate check, read against a
+ * different list: `isDuplicateBooking` asks "is this already a Booking?",
+ * this asks "did the User already say no to this?". Two questions, so two
+ * names at the call sites, even though the comparison underneath is one.
+ *
+ * Dismissing settles only the source it came from — an email dismissal writes
+ * `processed_messages`, a feed dismissal writes `org_feed_events` — and a
+ * dismissal leaves no Booking behind for the other source to recognise the way
+ * a confirmation does. So each dismissal also records its slot
+ * (`dismissed_reservations`), and both reviews check the list here.
+ */
+export function isDismissedReservation(
+  candidate: BookingIdentity,
+  dismissedSlots: readonly BookingIdentity[],
+): boolean {
+  return dismissedSlots.some((slot) => isSameReservation(candidate, slot));
+}
+
+/**
  * A confirmation for a date/time that's already passed, filtered out
  * automatically (#59) so a first sync doesn't dump irrelevant history into
  * the review queue. Reuses `isPastDate`'s existing coarse, calendar-day-only

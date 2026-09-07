@@ -24,6 +24,10 @@ import {
 } from "../calendar-feed-review.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
 import { upsertFeedEventRow, type FeedEventUpsert } from "../feed-events.ts";
+import {
+  listDismissedReservations,
+  recordDismissedSlotFromForm,
+} from "../dismissed-reservations.ts";
 import { parseNewBooking } from "../bookings.ts";
 import { findSameReservation } from "../import-candidate-shaping.ts";
 import { insertValidatedBooking, deleteOwnedBooking } from "./bookings.ts";
@@ -300,11 +304,17 @@ async function syncOneFeed(
     bookingId: row.booking_id,
   }));
 
+  // Reservations the User has already dismissed at this Facility, from either
+  // source (issue #437) — an email-side dismissal leaves no Booking behind for
+  // the match above to recognise, so this list is what carries it across.
+  const dismissedSlots = await listDismissedReservations(supabase, ownerId, org.id);
+
   const { items, autoLinked, cancellations, feedLooksWrong } = reviewCalendarFeed({
     events,
     org: { id: org.id, timeZone: zone },
     existingBookings,
     seenEvents,
+    dismissedSlots,
     unreadableUids,
     now,
   });
@@ -594,6 +604,15 @@ export async function confirmFeedCandidate(
  * `dismissed` row is what stops the vanished event being re-flagged on every
  * future sync. That does clear the Booking link (`booking_id` -> null), which
  * is the intended effect — the feed is no longer tracking this reservation.
+ *
+ * An *import* candidate's Dismiss also records the reservation's slot
+ * (`dismissed_reservations`, issue #437) so the email side honours it too —
+ * the `org_feed_events` row above is keyed on a VEVENT UID the email review
+ * knows nothing about, and a dismissal leaves no Booking behind for it to
+ * recognise either. A cancellation candidate's "Keep booking" posts no slot
+ * and records none: it means "keep this Booking", not "I don't want this
+ * reservation", and suppressing a future import of a slot the User is still
+ * playing would be the opposite of what they asked for.
  */
 export async function dismissFeedCandidate(
   _prev: ActionResult,
@@ -627,6 +646,8 @@ export async function dismissFeedCandidate(
   if (error) {
     return { error: "Couldn't dismiss that. Try again." };
   }
+
+  await recordDismissedSlotFromForm(supabase, session.userId, formData);
 
   return { ok: true };
 }

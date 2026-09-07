@@ -111,6 +111,7 @@ function review(emails: RawCourtReserveEmail[], ctx: Partial<ReviewInput> = {}) 
     emails,
     orgs: ctx.orgs ?? [ORG],
     existingBookings: ctx.existingBookings ?? [],
+    dismissedSlots: ctx.dismissedSlots ?? [],
     connectionCandidates: ctx.connectionCandidates ?? [],
     now: ctx.now ?? NOW,
   });
@@ -193,6 +194,64 @@ test("a confirmation whose Booking came from the calendar feed is dropped, despi
     },
   );
   assert.deepEqual(result.items, []);
+});
+
+test("a confirmation whose reservation the User dismissed from the feed side is dropped (#437)", () => {
+  // Dismissing the feed candidate wrote an `org_feed_events` row, which the
+  // email side never reads — and a dismissal leaves no Booking behind to
+  // recognise. The slot it recorded is what carries the decision across.
+  const result = review(
+    [
+      email(
+        CONFIRM_SUBJECT,
+        confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court #9 - Hard" }),
+      ),
+    ],
+    {
+      dismissedSlots: [
+        { orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" },
+      ],
+    },
+  );
+  assert.deepEqual(result.items, []);
+});
+
+test("a dismissed slot at another court leaves this confirmation alone", () => {
+  const result = review(
+    [
+      email(
+        CONFIRM_SUBJECT,
+        confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court #9 - Hard" }),
+      ),
+    ],
+    {
+      dismissedSlots: [
+        { orgId: "org-pp", courtLabel: "#10", date: "2026-07-01", startTime: "18:00" },
+      ],
+    },
+  );
+  assert.equal(importsOf(result).length, 1);
+});
+
+test("a dismissed slot never suppresses a cancellation or update — only an import", () => {
+  const dismissedSlots = [
+    { orgId: "org-pp", courtLabel: null, date: "2026-07-01", startTime: "18:00" },
+  ];
+  const existingBookings = [
+    { id: "b7", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" },
+  ];
+
+  const cancellation = review(
+    [email(CANCEL_SUBJECT, cancellationHtml({ date: "2026-07-01", start: "18:00" }))],
+    { dismissedSlots, existingBookings },
+  );
+  assert.equal(cancellationsOf(cancellation).length, 1);
+
+  const update = review(
+    [email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "18:00", end: "20:00" }))],
+    { dismissedSlots, existingBookings },
+  );
+  assert.equal(updatesOf(update).length, 1);
 });
 
 test("a confirmation for a different court at the same time is still offered", () => {

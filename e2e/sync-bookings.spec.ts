@@ -314,3 +314,124 @@ test("dismissing a consolidated card settles both sources — neither re-offers 
   await page.getByRole("button", { name: "Sync bookings" }).click();
   await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
 });
+
+test("dismissing an email candidate settles the feed too — it never re-offers the reservation (#437)", async ({
+  page,
+  accounts,
+}) => {
+  // The sources land in different syncs, so the merged card never gets a
+  // chance. Dismissing the email wrote only a `processed_messages` row keyed
+  // on an opaque message id, and a dismissal leaves no Booking behind for the
+  // feed to recognise — so the feed offered the same reservation again,
+  // stripped of the Players the email had carried.
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+
+  await connectGmail(page);
+  gmail.registerMessages([
+    confirmationEmail({ id: messageId(), facility, court: "Court #9 - Hard" }),
+  ]);
+
+  // Sync #1 — email only, no feed configured yet. Dismiss it.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  const section = feedSection(page);
+  const cards = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+  await cards.getByRole("button", { name: "Dismiss" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+  // Now configure the feed, whose event is the same reservation on "Court #9".
+  await page.goto("/booking-buddy/orgs");
+  await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/dismissed-by-email"));
+  feed.registerFeed("/feed/dismissed-by-email", {
+    kind: "ics",
+    body: icsBody([
+      {
+        uid: "sync-dismissed-by-email",
+        summary: "Doubles",
+        description: "Court #9",
+        location: facility,
+        start: "2027-03-15T22:00:00Z",
+        end: "2027-03-15T23:00:00Z",
+      },
+    ]),
+  });
+
+  // Sync #2 — the feed honours the dismissal instead of re-offering it.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(cards).toHaveCount(0);
+
+  // A dismissal never touches a Booking, and a skipped event is not recorded
+  // as seen — there is nothing to diff for a reservation that was never taken.
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(0);
+  expect(await feedEventsForOrg(user, orgId)).toEqual([]);
+});
+
+test("dismissing a feed candidate settles the mailbox too — the email never re-offers it (#437)", async ({
+  page,
+  accounts,
+}) => {
+  // The other direction: dismissing the feed candidate wrote only an
+  // `org_feed_events` row keyed on a VEVENT UID, which the email review never
+  // reads.
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+
+  // Gmail is connected up front so both syncs run the same two sources; the
+  // confirmation itself only arrives for sync #2, keeping the two candidates
+  // out of one run and so out of the merged card.
+  await connectGmail(page);
+  await page.goto("/booking-buddy/orgs");
+  await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/dismissed-by-feed"));
+  feed.registerFeed("/feed/dismissed-by-feed", {
+    kind: "ics",
+    body: icsBody([
+      {
+        uid: "sync-dismissed-by-feed",
+        summary: "Doubles",
+        description: "Court #9",
+        location: facility,
+        start: "2027-03-15T22:00:00Z",
+        end: "2027-03-15T23:00:00Z",
+      },
+    ]),
+  });
+
+  // Sync #1 — feed only. Dismiss it.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  const section = feedSection(page);
+  const cards = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+  await cards.getByRole("button", { name: "Dismiss" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+  expect(await feedEventsForOrg(user, orgId)).toEqual([
+    expect.objectContaining({ uid: "sync-dismissed-by-feed", status: "dismissed" }),
+  ]);
+
+  // The confirmation email for that same reservation arrives afterwards.
+  gmail.registerMessages([
+    confirmationEmail({ id: messageId(), facility, court: "Court #9 - Hard" }),
+  ]);
+
+  // Reloaded first, so sync #1's own "No new bookings found." is gone and the
+  // wait below is on sync #2's result rather than passing against the old one.
+  await page.goto("/booking-buddy/bookings");
+  await expect(page.getByText("No new bookings found.")).toHaveCount(0);
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(cards).toHaveCount(0);
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(0);
+});

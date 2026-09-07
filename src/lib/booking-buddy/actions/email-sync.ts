@@ -31,6 +31,10 @@ import {
   type ReviewItem,
 } from "../email-sync-review.ts";
 import { upsertFeedEventRow } from "../feed-events.ts";
+import {
+  listDismissedReservations,
+  recordDismissedSlotFromForm,
+} from "../dismissed-reservations.ts";
 import { findSameReservation } from "../import-candidate-shaping.ts";
 import type { MergedImportCandidate } from "../merge-import-candidates.ts";
 import { parseNewBooking } from "../bookings.ts";
@@ -324,9 +328,14 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   const processedIds = new Set((processedRows ?? []).map((row) => row.provider_message_id));
   const unseenIds = searchResult.messageIds.filter((id) => !processedIds.has(id));
 
-  const [{ orgs, bookings }, connections] = await Promise.all([
+  const [{ orgs, bookings }, connections, dismissedSlots] = await Promise.all([
     getBookingsPageData(),
     listConnections(),
+    // Reservations already dismissed from either source (issue #437) — a
+    // feed-side dismissal leaves no Booking behind for the duplicate check to
+    // recognise, so this list is what carries it across. Every Org, since an
+    // email's facility is only matched to one further down.
+    listDismissedReservations(supabase, session.userId),
   ]);
 
   // Captured once, ahead of the per-message fetch, so every past-date check
@@ -366,6 +375,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       date: todayInZone(booking.timeZone, new Date(booking.startsAt)),
       startTime: clockInZone(booking.timeZone, new Date(booking.startsAt)),
     })),
+    dismissedSlots,
     connectionCandidates: connectionCandidatesFromFriends(connections.friends),
     now,
   });
@@ -634,6 +644,13 @@ export async function confirmMergedCandidate(
  * later email sync skips the message) and a `dismissed` `org_feed_events` row
  * (so a later feed sync skips the still-present event). Mirrors
  * `dismissReviewItem` + `dismissFeedCandidate` run together.
+ *
+ * And, like both of them, records the reservation's slot
+ * (`dismissed_reservations`, issue #437). Redundant on the happy path — both
+ * source rows are already written here — but it keeps one rule with no
+ * exceptions ("dismissing an import candidate records its slot"), and it is
+ * what still holds if a source later hands the same reservation back under a
+ * new key: a re-issued VEVENT UID, or a message id this sync never saw.
  */
 export async function dismissMergedCandidate(
   _prev: ActionResult,
@@ -663,7 +680,13 @@ export async function dismissMergedCandidate(
     outcome: "dismissed",
   });
 
-  return outcome.hardError ? { error: "Couldn't dismiss that. Try again." } : { ok: true };
+  if (outcome.hardError) {
+    return { error: "Couldn't dismiss that. Try again." };
+  }
+
+  await recordDismissedSlotFromForm(supabase, session.userId, formData);
+
+  return { ok: true };
 }
 
 /**
@@ -871,6 +894,15 @@ export async function confirmUpdateCandidate(
  * kind-generic (it reads only `gmail_message_id`), so one action covers an
  * import, a cancellation, and an update alike — matched or the "no match
  * found" notice.
+ *
+ * An `import` card also posts the reservation's slot, recorded in
+ * `dismissed_reservations` (issue #437) so the calendar feed honours the
+ * dismissal too — that `processed_messages` row is keyed on an opaque provider
+ * message id the feed review knows nothing about, and a dismissal leaves no
+ * Booking behind for it to recognise either. A `cancellation`/`update` card
+ * posts no slot and records none: dismissing one means "leave this Booking
+ * alone", not "I don't want this reservation". Neither does an import whose
+ * facility matched no Org — there is no Org to key the slot on.
  */
 export async function dismissReviewItem(
   _prev: ActionResult,
@@ -903,6 +935,8 @@ export async function dismissReviewItem(
   if (error && (error as { code?: string }).code !== "23505") {
     return { error: "Couldn't dismiss that. Try again." };
   }
+
+  await recordDismissedSlotFromForm(supabase, session.userId, formData);
 
   return { ok: true };
 }

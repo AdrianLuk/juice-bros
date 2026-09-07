@@ -14,6 +14,7 @@ import {
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ActionError } from "@/components/booking-buddy/action-error";
+import { DismissedSlotFields } from "@/components/booking-buddy/dismissed-slot-fields";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import {
   formatCandidateDate,
@@ -417,6 +418,20 @@ export function ReviewItemCard({
           name="gmail_message_id"
           value={item.gmailMessageId}
         />
+        {/* Only an import, and only one whose facility matched an Org —
+            the slot is keyed on one (issue #437). A cancellation or update
+            renders none: those mean "leave this Booking alone", not "I don't
+            want this reservation". */}
+        {item.kind === "import" && item.matchedOrgId && (
+          <DismissedSlotFields
+            slot={{
+              orgId: item.matchedOrgId,
+              date: item.date,
+              startTime: item.startTime,
+              courtLabel: item.courtLabel,
+            }}
+          />
+        )}
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>
@@ -539,6 +554,10 @@ export function MergedCandidateCard({
         <input type="hidden" name="org_id" value={item.orgId} />
         <input type="hidden" name="sequence" value={item.sequence} />
         <input type="hidden" name="starts_at" value={item.startsAt} />
+        {/* Same slot either single-source card carries (issue #437) —
+            redundant while both source rows land, and what still holds if a
+            source hands this reservation back under a new key later. */}
+        <DismissedSlotFields slot={item} />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>
