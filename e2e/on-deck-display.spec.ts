@@ -14,8 +14,9 @@ import {
  * On Deck: the read-only Display (issue #253). A tablet on the snack table
  * shows Courts and occupants, the ordered Queue with Wait Times, and the two
  * On Deck Foursomes prominently, with a one-line queue-order explainer. No
- * buttons, no Skill Level, no contact data. It reflects a join, a Court
- * finish, and an On Deck change within a poll interval.
+ * buttons and no contact data. Every name is inked by its Player's Skill Level
+ * and the legend spells the four out. It reflects a join, a Court finish, and
+ * an On Deck change within a poll interval.
  */
 const ORGANIZER = `on-deck-display-${Date.now()}@example.com`;
 const PASSWORD = "pickleball123";
@@ -24,18 +25,19 @@ let sessionId: string;
 let volunteerToken: string;
 
 // Ten queued from the start — enough for a seated Court plus two committed On
-// Deck Foursomes with people still visibly waiting.
-const PLAYERS: [string, string, string][] = [
-  ["dev-disp-1", "Ana", "A"],
-  ["dev-disp-2", "Bea", "B"],
-  ["dev-disp-3", "Cal", "C"],
-  ["dev-disp-4", "Dan", "D"],
-  ["dev-disp-5", "Eve", "E"],
-  ["dev-disp-6", "Fin", "F"],
-  ["dev-disp-7", "Gus", "G"],
-  ["dev-disp-8", "Hal", "H"],
-  ["dev-disp-9", "Ivy", "I"],
-  ["dev-disp-10", "Jo", "J"],
+// Deck Foursomes with people still visibly waiting. All four Skill Levels are
+// represented so the board's name ink can be read off every one of them.
+const PLAYERS: [string, string, string, string][] = [
+  ["dev-disp-1", "Ana", "A", "newbie"],
+  ["dev-disp-2", "Bea", "B", "beginner"],
+  ["dev-disp-3", "Cal", "C", "intermediate"],
+  ["dev-disp-4", "Dan", "D", "advanced"],
+  ["dev-disp-5", "Eve", "E", "newbie"],
+  ["dev-disp-6", "Fin", "F", "beginner"],
+  ["dev-disp-7", "Gus", "G", "intermediate"],
+  ["dev-disp-8", "Hal", "H", "advanced"],
+  ["dev-disp-9", "Ivy", "I", "beginner"],
+  ["dev-disp-10", "Jo", "J", "advanced"],
 ];
 
 test.beforeAll(async ({ browser }) => {
@@ -59,8 +61,8 @@ test.beforeAll(async ({ browser }) => {
     floorMode: "hybrid",
   }));
 
-  for (const [token, first, initial] of PLAYERS) {
-    await joinPlayerViaRpc(sessionId, token, first, initial);
+  for (const [token, first, initial, skill] of PLAYERS) {
+    await joinPlayerViaRpc(sessionId, token, first, initial, skill);
     await queuePlayerViaRpc(sessionId, token);
   }
 });
@@ -100,10 +102,29 @@ test("the Display renders courts, the ordered queue with wait times, and the On 
     page.getByText(/Groups line up at the middle/),
   ).toBeVisible();
 
-  // No Skill Level anywhere on the board, and no operational buttons.
-  await expect(board.getByText(/newbie|beginner|intermediate|advanced/i)).toHaveCount(
-    0,
-  );
+  // Every name is inked by its Player's Skill Level. The colour itself isn't
+  // assertable, but the attribute that drives it is — and it has to agree with
+  // what each Player declared at join, wherever on the board they turn up.
+  for (const [, first, initial, skill] of PLAYERS) {
+    const inked = board.locator(
+      `[data-player-name="${first} ${initial}."][data-skill="${skill}"]`,
+    );
+    await expect(inked.first()).toBeVisible();
+  }
+  // Nobody is printed without a level.
+  await expect(
+    board.locator("[data-player-name]:not([data-skill])"),
+  ).toHaveCount(0);
+
+  // The legend spells the four levels out, so the ink is never the only
+  // carrier of what a colour means.
+  const key = board.getByTestId("skill-key");
+  await expect(key).toBeVisible();
+  for (const word of ["Newbie", "Beginner", "Intermediate", "Advanced"]) {
+    await expect(key.getByText(word, { exact: true })).toBeVisible();
+  }
+
+  // Still strictly read-only.
   await expect(board.getByRole("button")).toHaveCount(0);
 
   // A tablet viewport: no horizontal scroll.

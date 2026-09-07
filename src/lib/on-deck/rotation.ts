@@ -24,7 +24,8 @@ import { createClient } from "./supabase/server.ts";
  * Device tokens never leave the server: a token is a Player's whole identity
  * (ADR 0001), and the open Session is world-readable. A caller passes their
  * own token to learn their own position; everyone else is shown display names
- * only — exactly what the venue's Display tablet already puts on a wall.
+ * and Skill Levels only — exactly what the venue's Display tablet already puts
+ * on a wall.
  */
 export type RotationCourt = {
   number: number;
@@ -114,6 +115,19 @@ export type RotationView = {
   /** Parallel to `onDeck` — whether each Foursome came from a Queue Together
    * Group (issue #250), for a "Group" label on the card. */
   onDeckIsGroup: boolean[];
+  /**
+   * Every Player's Skill Level, keyed by the display name every other field on
+   * this view carries — so a surface that already holds a name can colour it
+   * without a second round trip. Display names are unique within a Session
+   * (the fold suffixes a collision: "Sarah K.", then "Sarah K. 2"), which is
+   * what makes the name a safe key.
+   *
+   * This is public, unlike a device token: a Skill Level is the Player's own
+   * declaration in the club's four words, it is already read aloud when a
+   * Volunteer calls a Foursome, and every board — the wall Display included —
+   * now prints it as the colour of the name.
+   */
+  skillByName: Record<string, SkillLevel>;
   /**
    * Players who have stepped out (issue #246), newest last — display name plus
    * which door they came through, for the Organizer's "set aside" list and its
@@ -270,6 +284,9 @@ export function rotationViewFrom(
     groupCapMax: state.config.groupCap,
     onDeck: state.onDeck.map((f) => f.players.map(nameOf)),
     onDeckIsGroup: state.onDeck.map((f) => f.groupId !== null),
+    skillByName: Object.fromEntries(
+      state.roster.map((p) => [p.displayName, p.skillLevel]),
+    ),
     paused: state.paused.map((p) => ({ name: nameOf(p.playerId), reason: p.reason })),
     undo: status === "open" ? describeUndo(loaded.lastEvent, now) : null,
     me,
@@ -289,10 +306,12 @@ export async function loadRotationView(
 /**
  * Every Player in the Session, in join order — display name and current Skill
  * Level. Feeds the operator's "add a walk-up" and "fix a skill level" controls
- * (issue #249). Deliberately *not* on `RotationView`: that read model is
- * world-readable (a Player polls it with no account), and a self-declared
- * Skill Level is operator-facing, not wall-of-the-venue public. Every caller
- * of `floorRosterFrom` is behind Organizer auth or a Volunteer Link.
+ * (issue #249), which are behind Organizer auth or a Volunteer Link.
+ *
+ * Overlaps `RotationView.skillByName`, which carries the same pairs publicly
+ * for the name colouring. This one stays because it is roster order over
+ * *every* Player — including the ones neither queued, on a Court, nor On Deck
+ * — which is the list the "fix a skill level" control has to offer.
  */
 export type FloorRoster = { name: string; skillLevel: SkillLevel }[];
 

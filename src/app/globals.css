@@ -2011,6 +2011,21 @@ html:has(.bb-app-chrome) {
 
   --arena-warn: oklch(0.83 0.13 85);
 
+  /* SKILL LEVEL — a Player's self-declared level, carried on their name
+     wherever the board lists them. Newbie stays the board's own ink: black is
+     the *uncoloured* default on a paper clipboard, and its dark-board
+     equivalent is plain white, not an invisible black. The other three are
+     read at a gym's viewing distance, so each clears AA on --arena-panel and
+     the three are separated by lightness as well as hue — green and red sit
+     ~0.14 L apart so a red/green-blind reader still tells them apart by value.
+     Deliberately off the orange (--arena-live, hue ~42) and the cyan
+     (--arena-next, hue 218) the board already spends on state: skill is a
+     property of a person, state is a property of a moment. */
+  --arena-skill-newbie: var(--arena-fg);
+  --arena-skill-beginner: oklch(0.82 0.16 150);
+  --arena-skill-intermediate: oklch(0.78 0.14 252);
+  --arena-skill-advanced: oklch(0.68 0.21 15);
+
   --arena-radius: 14px;
 
   background-color: var(--arena-bg);
@@ -2320,6 +2335,46 @@ html:has(.bb-app-chrome) {
   width: 2.25ch;
   flex: none;
   text-align: right;
+}
+
+/* ── Skill Level ink ─────────────────────────────────────────────────────── */
+
+/* Every name the board prints carries `data-skill`, so one rule colours it in
+   a court tile, an on-deck panel, the queue and the set-aside list alike. The
+   colour is never the only carrier: `SkillKey` prints the legend on each
+   board, and the roster control on the floor screen still names the level in
+   words. */
+.od-arena [data-skill="newbie"] {
+  color: var(--arena-skill-newbie);
+}
+.od-arena [data-skill="beginner"] {
+  color: var(--arena-skill-beginner);
+}
+.od-arena [data-skill="intermediate"] {
+  color: var(--arena-skill-intermediate);
+}
+.od-arena [data-skill="advanced"] {
+  color: var(--arena-skill-advanced);
+}
+
+/* Board state outranks skill. On the orange LIVE fill and on a pressed cyan
+   chip the ink is chosen for that ground, and a green or red name on either
+   would be unreadable — so skill ink yields and the level reads from the
+   legend instead. */
+.od-arena .od-live [data-skill],
+.od-arena .od-chip--on[data-skill],
+.od-arena .od-chip--on [data-skill] {
+  color: inherit;
+}
+
+/* The legend swatch — a solid block of the level's own ink. */
+.od-skill-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  background-color: currentColor;
+  flex: none;
 }
 
 /* ── Motion — one authored moment: the call ─────────────────────────────── */

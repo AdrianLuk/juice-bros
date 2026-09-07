@@ -1,6 +1,13 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { createContext, useContext, type ReactNode } from "react";
 
 import { formatWaitLabel } from "@/lib/on-deck/session/wait";
+import {
+  SKILL_LEVELS,
+  SKILL_LEVEL_LABEL,
+  type SkillLevel,
+} from "@/lib/on-deck/session/types";
 import type { QueueEntryView, RotationCourt } from "@/lib/on-deck/rotation";
 
 /*
@@ -13,6 +20,72 @@ import type { QueueEntryView, RotationCourt } from "@/lib/on-deck/rotation";
  */
 
 const ON_DECK_LABEL = ["Up next", "After that"] as const;
+
+/*
+ * ── Skill Level ink ────────────────────────────────────────────────────────
+ *
+ * Every name on the board is printed in its Player's Skill Level colour.
+ * The mapping lives in `RotationView.skillByName`, keyed by display name, and
+ * rides down through context rather than a prop on every list: a name is
+ * rendered five levels deep in three different boards, and threading a lookup
+ * through `CourtPanel` / `FoursomePanel` / `QueueList` would put a `skillOf`
+ * on every one of them for a purely typographic concern.
+ */
+
+const SkillContext = createContext<Record<string, SkillLevel>>({});
+
+/** Wraps a board so every `PlayerName` under it can colour itself. */
+export function SkillColors({
+  by,
+  children,
+}: {
+  by: Record<string, SkillLevel>;
+  children: ReactNode;
+}) {
+  return <SkillContext.Provider value={by}>{children}</SkillContext.Provider>;
+}
+
+/**
+ * One Player's name, inked by their Skill Level. `data-skill` drives the
+ * colour (see `.od-arena [data-skill=...]` in globals.css) and doubles as the
+ * hook the e2e specs assert on. A name with no known level — a roster entry
+ * that has aged out of the view between polls — simply renders uncoloured.
+ */
+export function PlayerName({
+  name,
+  className = "",
+}: {
+  name: string;
+  className?: string;
+}) {
+  const skill = useContext(SkillContext)[name];
+  return (
+    <span className={className} data-skill={skill} data-player-name={name}>
+      {name}
+    </span>
+  );
+}
+
+/**
+ * The legend. Colour is never the only carrier of the level — this prints the
+ * four words next to their four inks, so a board read from across the gym (or
+ * by someone who can't separate the green from the red) still resolves.
+ */
+export function SkillKey({ className = "" }: { className?: string }) {
+  return (
+    <ul
+      className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 ${className}`}
+      data-testid="skill-key"
+    >
+      {SKILL_LEVELS.map((level) => (
+        <li key={level} className="flex items-center gap-1.5" data-skill={level}>
+          <span className="od-skill-swatch" aria-hidden="true" />
+          <Readout>{SKILL_LEVEL_LABEL[level]}</Readout>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** A tracked mono label — the starter's-clipboard voice. */
 export function Readout({
@@ -114,7 +187,7 @@ export function FoursomePanel({
           <ul className="mt-3 space-y-0.5">
             {names.map((name, i) => (
               <li key={i} className={nameClass}>
-                {name}
+                <PlayerName name={name} />
               </li>
             ))}
             {Array.from({ length: open }, (_, k) => (
@@ -201,7 +274,7 @@ export function CourtPanel({
         <ul key={foursomeKey} className="od-court-fill mt-2.5 space-y-0.5">
           {court.players.map((name, i) => (
             <li key={i} className={nameClass}>
-              {name}
+              <PlayerName name={name} />
             </li>
           ))}
         </ul>
@@ -258,9 +331,10 @@ export function QueueList({
               className="flex items-center gap-3 border-b border-arena-line-soft py-2"
             >
               <span className="od-rail">{pos}</span>
-              <span className="od-display flex-1 text-2xl sm:text-3xl">
-                {entry.name}
-              </span>
+              <PlayerName
+                name={entry.name}
+                className="od-display flex-1 text-2xl sm:text-3xl"
+              />
               <Readout className="text-arena-dim">
                 {formatWaitLabel(entry.waitSince, now)}
               </Readout>
@@ -308,7 +382,10 @@ export function QueueList({
                   key={name}
                   className="flex items-center justify-between gap-3"
                 >
-                  <span className="od-display text-xl sm:text-2xl">{name}</span>
+                  <PlayerName
+                    name={name}
+                    className="od-display text-xl sm:text-2xl"
+                  />
                   {onSetAside && !lastCall && (
                     <button
                       type="button"

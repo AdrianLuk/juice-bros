@@ -213,9 +213,11 @@ migration's timestamp past whatever else merged (the drift lesson
   forward. `floor-ops.ts` gains `addWalkupOutcome` / `overrideSkillOutcome` and
   a `FloorOutcomeType` (the undoable `FloorEventType` set plus the two
   non-undoable roster events). The operator roster + skill levels ride a new
-  auth-gated `getFloorRoster` action, **not** the world-readable `RotationView`
-  (a self-declared level is operator-facing). `RotationBoard` gets an "Add a
-  walk-up" form and a collapsed `<details>` "Fix a skill level" list. The
+  auth-gated `getFloorRoster` action, at the time **not** part of the
+  world-readable `RotationView` (a self-declared level was treated as
+  operator-facing) — reversed post-v1, see "Skill Level joins the public
+  board" under Post-v1. `RotationBoard` gets an "Add a walk-up" form and a
+  collapsed `<details>` "Fix a skill level" list. The
   Organizer INSERTs both event types directly (the foundation append policy
   doesn't constrain the type); `on_deck_volunteer_append` learns the two types
   with guards (a volunteer `PLAYER_JOINED` must be a queued walk-up with a
@@ -344,16 +346,17 @@ migration's timestamp past whatever else merged (the drift lesson
   Group's is the median of its members', matching where it queues), rendered
   through `session/wait.ts` `formatWaitLabel` (pure, `now`-injected, relative
   imports only — "just now" / "7 min" / "1 hr 12 min", future-skew clamped).
-  `DisplayBoard` polls `getRotationView` with **no token** (display names only
-  — no Skill Level, no contact data ever reach it) and rides `useRotationSync`
-  (#252) for ~1s updates, with a 30s local clock tick so idle Wait Times still
-  advance. Zero operational buttons. The `QUEUE_TOGETHER_EXPLAINER` line is
-  always shown. A Session runs identically with no Display open — it only ever
-  reads. The Organizer floor screen links to it ("Got a spare screen?"). Tests:
-  `wait.test.ts`, `routes.test.ts` (Display is not Organizer-gated),
-  `e2e/on-deck-display.spec.ts` (courts / queue+wait-times / both On Deck
-  Foursomes render, no Skill Level, no buttons, no horizontal scroll on a
-  tablet; reflects a join, a Court finish, and an On Deck change).
+  `DisplayBoard` polls `getRotationView` with **no token** (display names only,
+  no contact data reaches it at all — Skill Level joined this list post-v1, see
+  "Skill Level joins the public board" under Post-v1) and rides
+  `useRotationSync` (#252) for ~1s updates, with a 30s local clock tick so idle
+  Wait Times still advance. Zero operational buttons. The
+  `QUEUE_TOGETHER_EXPLAINER` line is always shown. A Session runs identically
+  with no Display open — it only ever reads. The Organizer floor screen links
+  to it ("Got a spare screen?"). Tests: `wait.test.ts`, `routes.test.ts`
+  (Display is not Organizer-gated), `e2e/on-deck-display.spec.ts` (courts /
+  queue+wait-times / both On Deck Foursomes render, no buttons, no horizontal
+  scroll on a tablet; reflects a join, a Court finish, and an On Deck change).
 
   **App shell.** Every surface under `/on-deck/` (session view, Display, floor,
   Volunteer Link, `home`, `sign-in`, `auth`) now runs inside On Deck's own bare
@@ -556,6 +559,31 @@ migration's timestamp past whatever else merged (the drift lesson
   Tests: `dev-players.test.ts` (the name/skill generator), `routes.test.ts`
   (gating + path shapes). Walkthrough for a manual test night:
   [docs/dev-console.md](docs/dev-console.md).
+
+## Post-v1
+
+- [x] **Skill Level joins the public board (PR #408, 2026-09-06).** Names on
+  every live surface — Floor, Volunteer link, Kiosk, Display, and the
+  player's own groupmate picker — are now inked by their Player's Skill
+  Level: newbie in the board's own ink (white, not black — the board is a
+  near-black ground, and black is the *uncoloured* clipboard default, not an
+  invisible one), beginner green, intermediate blue, advanced red. This
+  **reverses #249 and #253's stance** that a self-declared Skill Level was
+  operator-facing and stayed off the world-readable `RotationView` — a
+  reconsideration, not a bug fix. Skill Level is the Player's own declaration
+  in the club's four words, already read aloud when a Volunteer calls a
+  foursome, and ADR 0006 already treated it as one of "the same facts already
+  printed on the Display tablet" even before the Display actually printed it.
+  `RotationView` gains `skillByName`, keyed on display name (the fold's
+  per-Session collision suffix makes that a safe key); `getFloorRoster`
+  stays gated, but only because it's the roster's *write* surface backing the
+  override control, not because the level itself needs hiding. Every board
+  carries a `SkillKey` legend so colour is never the only carrier. Colours are
+  raw CSS custom properties on `[data-skill]`, not Tailwind utility classes
+  (this project's Tailwind v4 has silently dropped custom-colour utilities
+  used inside `cn()` strings before). `e2e/on-deck-display.spec.ts` flipped
+  from asserting no Skill Level ever reaches the Display to asserting every
+  name's `data-skill` matches what its Player declared at join.
 
 ## Next
 

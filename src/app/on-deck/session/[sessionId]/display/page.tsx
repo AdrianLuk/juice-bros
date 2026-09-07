@@ -32,9 +32,10 @@ export async function generateMetadata({
  * one-line explainer of how Group order works.
  *
  * No account, no token — it renders only what the venue's wall already shows
- * (display names; no Skill Level, no contact data) and carries no operational
- * buttons. A Session runs identically with no Display open. Updates ride the
- * same Realtime/poll sync as every other surface.
+ * (display names and Skill Levels, each name inked by its level; no contact
+ * data) and carries no operational buttons. A Session runs identically with
+ * no Display open. Updates ride the same Realtime/poll sync as every other
+ * surface.
  */
 export default async function DisplayPage({
   params,
