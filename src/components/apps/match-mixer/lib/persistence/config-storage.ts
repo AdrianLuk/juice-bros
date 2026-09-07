@@ -1,4 +1,8 @@
-import { isSupportedRosterSize, type ResolvedConfig } from "../engine/config.ts";
+import {
+  isSupportedRosterSize,
+  resolveNumbers,
+  type ResolvedConfig,
+} from "../engine/config.ts";
 import type { Roster } from "../engine/types.ts";
 
 /**
@@ -9,11 +13,10 @@ import type { Roster } from "../engine/types.ts";
  * again, not by being stored. That is what keeps this module small enough to
  * be the only thing in Match Mixer that touches `window.localStorage`.
  *
- * Two Configs, because the screen can hold two. What is in the fields is the
- * one being edited; what the sheet was drawn from is the one that produced
- * what is on screen. They are usually the same, and when they are not the
- * screen says so — which it can only keep saying after a reload if both come
- * back.
+ * Two Configs, because the screen can hold two. The edited one is what is in
+ * the fields; the drawn one is what produced the sheet on screen. They are
+ * usually the same, and when they are not the screen says so — which it can
+ * only keep saying after a reload if both come back.
  */
 const KEY = "juicebros.matchmixer.config";
 
@@ -21,23 +24,23 @@ const KEY = "juicebros.matchmixer.config";
 const SCHEMA = 1;
 
 /**
- * What is in the fields. A Config with no Seed, because a Seed is something a
- * draw has rather than something the organizer sets.
+ * The Config as it stands in the fields: everything but the Seed, which is
+ * something a draw has rather than something the organizer sets.
  *
  * `null` for courts or rounds means the field is following the Roster rather
  * than holding a number the organizer chose, which is a distinction worth
  * saving: restoring a resolved number instead would quietly nail the field
  * down, and the next name pasted would no longer move it.
  */
-export interface SavedFields {
+export interface EditedConfig {
   readonly roster: Roster;
   readonly courts: number | null;
   readonly rounds: number | null;
 }
 
-export interface SavedSession {
+export interface SavedVisit {
   readonly schema: number;
-  readonly fields: SavedFields;
+  readonly edited: EditedConfig;
   /** The Config the sheet on screen came from, or null if nothing was drawn. */
   readonly drawn: ResolvedConfig | null;
   readonly savedAt: number;
@@ -47,21 +50,23 @@ export interface SavedSession {
  * Callers debounce. A Roster is a few hundred bytes, so the write itself is
  * far cheaper than the keystroke that triggered it, but writing on every
  * keystroke is still work nobody asked for.
+ *
+ * An emptied Roster deletes the save rather than shrinking it: the box is how
+ * an organizer says they are done with that list, and the sheet drawn from it
+ * would otherwise come back next week looking like this visit's work. Callers
+ * decide when they mean it — a tab that has never held anything must not call
+ * this at all, or it would delete what another tab just saved.
  */
-export function save(fields: SavedFields, drawn: ResolvedConfig | null): void {
+export function save(edited: EditedConfig, drawn: ResolvedConfig | null): void {
   if (typeof window === "undefined") return;
-  // An emptied box is the organizer saying they are done with that list, so
-  // nothing survives it — including the sheet drawn from it, which the screen
-  // keeps on show as a stale draw but which would come back next week looking
-  // like this visit's work.
-  if (fields.roster.length === 0) {
+  if (edited.roster.length === 0) {
     clear();
     return;
   }
   try {
-    const payload: SavedSession = {
+    const payload: SavedVisit = {
       schema: SCHEMA,
-      fields,
+      edited,
       drawn,
       savedAt: Date.now(),
     };
@@ -82,7 +87,7 @@ export function save(fields: SavedFields, drawn: ResolvedConfig | null): void {
  * on the server, so reading it while rendering hydrates a different tree than
  * the server sent.
  */
-export function load(): SavedSession | null {
+export function load(): SavedVisit | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -90,15 +95,15 @@ export function load(): SavedSession | null {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || parsed.schema !== SCHEMA) return null;
 
-    const fields = readFields(parsed.fields);
-    if (!fields) return null;
+    const edited = readEdited(parsed.edited);
+    if (!edited) return null;
 
     const drawn = parsed.drawn == null ? null : readDrawn(parsed.drawn);
     if (parsed.drawn != null && !drawn) return null;
 
     return {
       schema: SCHEMA,
-      fields,
+      edited,
       drawn,
       savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : 0,
     };
@@ -137,7 +142,7 @@ function readChoice(value: unknown): number | null | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-function readFields(value: unknown): SavedFields | null {
+function readEdited(value: unknown): EditedConfig | null {
   if (!isRecord(value)) return null;
   const roster = readRoster(value.roster);
   const courts = readChoice(value.courts);
@@ -156,9 +161,11 @@ function readDrawn(value: unknown): ResolvedConfig | null {
   if (!isFiniteNumber(courts) || !isFiniteNumber(rounds) || !isFiniteNumber(seed)) {
     return null;
   }
-  // Courts and rounds are clamped by `generateSchedule` itself, so they need
-  // only be numbers here.
-  return { roster, courts, rounds, seed };
+  // Brought inside what the Roster supports here rather than left to
+  // `generateSchedule`, which clamps its own copy and hands nothing back: the
+  // restored numbers are read again for the stale key and for the line naming
+  // what the sheet was drawn from, and both have to be the numbers used.
+  return { roster, seed, ...resolveNumbers(roster.length, courts, rounds) };
 }
 
 function isFiniteNumber(value: unknown): value is number {

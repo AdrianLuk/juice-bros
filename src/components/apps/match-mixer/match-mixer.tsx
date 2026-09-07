@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   isSupportedRosterSize,
@@ -127,6 +127,21 @@ function drawKey(roster: Roster, courts: number, rounds: number): string {
   return `${courts}/${rounds}/${roster.map((player) => player.name).join("\n")}`;
 }
 
+/**
+ * A cleared Roster, held only in memory. The text and the parsed entries both,
+ * so that putting it back restores the ids as well as the names and a Player
+ * comes back as the same Player.
+ */
+interface ClearedRoster {
+  readonly text: string;
+  readonly roster: Roster;
+}
+
+/** "12 names", "1 name" — what pressing the button puts back. */
+function countNames(count: number): string {
+  return `${count} ${count === 1 ? "name" : "names"}`;
+}
+
 /** Never the Seed just used, so pressing again always redraws. */
 function nextSeed(previous: number | undefined): number {
   const roll = () => 1 + Math.floor(Math.random() * 0x7ffffffe);
@@ -151,6 +166,14 @@ export function MatchMixer() {
   // does not wait on it: the example sheet is server-rendered and stays until
   // there is something truer to put in its place.
   const [restored, setRestored] = useState(false);
+  // What the box held before Clear emptied it, kept for as long as it stays
+  // empty rather than for a few seconds: an organizer who looks up from the
+  // court a minute later should still find the way back.
+  const [cleared, setCleared] = useState<ClearedRoster | null>(null);
+  // Whether this tab has ever had a Roster in it, which decides whether its
+  // empty box means anything. A tab left open on the zero state has nothing to
+  // say about the save, and must not be the one that deletes it.
+  const held = useRef(false);
 
   // Reading storage happens in an effect and never during render, because
   // localStorage does not exist on the server and rendering from it would
@@ -159,11 +182,11 @@ export function MatchMixer() {
     const saved = load();
     /* eslint-disable react-hooks/set-state-in-effect -- one-shot read of an external store on mount */
     if (saved) {
-      const names = saved.fields.roster.map((player) => player.name).join("\n");
+      const names = saved.edited.roster.map((player) => player.name).join("\n");
       setText(names);
-      setRoster(saved.fields.roster);
-      setCourtsChoice(saved.fields.courts);
-      setRoundsChoice(saved.fields.rounds);
+      setRoster(saved.edited.roster);
+      setCourtsChoice(saved.edited.courts);
+      setRoundsChoice(saved.edited.rounds);
       // The sheet is generated again rather than stored, so what comes back is
       // the same sheet down to the seat every name sat in.
       setDraw(saved.drawn ? drawFrom(saved.drawn) : null);
@@ -178,10 +201,20 @@ export function MatchMixer() {
   // is in the middle of restoring.
   useEffect(() => {
     if (!restored) return;
-    const fields = { roster, courts: courtsChoice, rounds: roundsChoice };
+    // While the undo is standing, the save is what backs it. Writing the empty
+    // box over it would make Clear irreversible the moment the tab went away,
+    // which is the mistake the undo is there for.
+    if (cleared) return;
+    // A tab that has never held a Roster has nothing to say about the save,
+    // and an empty one saying it would delete the Roster another tab is in the
+    // middle of keeping.
+    held.current ||= roster.length > 0 || draw !== null;
+    if (!held.current) return;
+
+    const edited = { roster, courts: courtsChoice, rounds: roundsChoice };
     const drawn = draw?.config ?? null;
 
-    const timer = setTimeout(() => save(fields, drawn), SAVE_DEBOUNCE_MS);
+    const timer = setTimeout(() => save(edited, drawn), SAVE_DEBOUNCE_MS);
     // A tab closed on the last name typed is exactly the visit worth keeping,
     // and it closes well inside the debounce. Both events, because between
     // them they cover a close, a navigation and a phone being pocketed. They
@@ -189,7 +222,7 @@ export function MatchMixer() {
     // which is worth guarding: the same bytes written twice cost nothing.
     const flush = () => {
       clearTimeout(timer);
-      save(fields, drawn);
+      save(edited, drawn);
     };
     window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", flush);
@@ -199,11 +232,40 @@ export function MatchMixer() {
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flush);
     };
-  }, [restored, roster, courtsChoice, roundsChoice, draw]);
+  }, [restored, cleared, roster, courtsChoice, roundsChoice, draw]);
 
   const editRoster = (next: string) => {
     setText(next);
     setRoster((previous) => parseRoster(next, previous));
+    // Typing gives up the cleared list. By then the sheet may have been drawn
+    // from different names, and putting the old ones back beside it would be
+    // offering to undo something that is no longer what happened.
+    setCleared(null);
+  };
+
+  /**
+   * Emptying the box is how an organizer says the list is finished with, and
+   * on a phone doing it by hand is a long-press, a select-all and a delete. It
+   * is one press here, and the press that undoes it is the same button.
+   *
+   * No confirmation: this is an edit to a text box, and a dialog in front of
+   * every one of them would be heavier than the thing it guards and dismissed
+   * unread by the time it mattered. What answers a mistake is the undo, and
+   * for the undo to be worth more than a dialog it has to survive the tab —
+   * which is why the save is left alone while it stands, and only overwritten
+   * once the organizer types and the list is genuinely finished with.
+   */
+  const clearRoster = () => {
+    setCleared({ text, roster });
+    setText("");
+    setRoster([]);
+  };
+
+  const restoreRoster = () => {
+    if (!cleared) return;
+    setText(cleared.text);
+    setRoster(cleared.roster);
+    setCleared(null);
   };
 
   const size = roster.length;
@@ -256,9 +318,24 @@ export function MatchMixer() {
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-14">
           <div>
-            <label className="mm-legend block" htmlFor="mm-roster">
-              Roster
-            </label>
+            <div className="mm-field-head">
+              <label className="mm-legend" htmlFor="mm-roster">
+                Roster
+              </label>
+              {/* One button rather than two swapped in and out, so pressing
+                  Clear leaves the focus on the control that undoes it. */}
+              {size > 0 || cleared ? (
+                <button
+                  type="button"
+                  className="mm-quiet"
+                  onClick={cleared ? restoreRoster : clearRoster}
+                >
+                  {cleared
+                    ? `Put ${countNames(cleared.roster.length)} back`
+                    : "Clear"}
+                </button>
+              ) : null}
+            </div>
             <textarea
               id="mm-roster"
               className="mm-input mt-3 h-64 w-full resize-y p-3"
