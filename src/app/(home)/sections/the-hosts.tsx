@@ -4,17 +4,21 @@ import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
 
 /**
- * The two hosts, third on the page.
+ * The two hosts, under the episodes.
  *
  * The h1 claims "two guys still trying to get good at it"; this is the only
  * section that proves it - real names, the on-court photo, the paddle each of
  * them actually plays and the shot each is known for. Positioning is the one
  * thing PRODUCT.md says a competitor cannot copy, so it is evidence, not a
- * footer credit, and it sits directly under the newest episode rather than
- * below the catalogue where only the already-convinced would reach it.
+ * footer credit.
  *
- * It carries no `bx-hair`: it follows the band, whose own bottom border
- * already draws that line, and a second rule there would double it.
+ * It sits after the catalogue rather than between the newest episode and it:
+ * a podcast home page's job is the episodes, and interrupting them halfway to
+ * introduce the hosts made a visitor who came to watch something read a bio
+ * first. Everything below this point is the supporting shelf.
+ *
+ * It carries `bx-hair`, since it now follows the archive on the same ground
+ * and needs the rule the band used to draw for it.
  *
  * The page renders each host's `funFact` (paddle and signature shot), which is
  * real copy. The interim `bio` strings in `content/team.ts` are the About
@@ -22,7 +26,7 @@ import { InstagramIcon } from "@/components/icons";
  */
 export function TheHosts() {
   return (
-    <section className="bx-measure py-16 sm:py-24">
+    <section className="bx-measure bx-hair py-16 sm:py-24">
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear and it is not a duplicate. */}

@@ -72,16 +72,20 @@ competes with them.
 
 STORY: A rec player lands, reads in one line that this show is made by people at
 their own level, sees the newest episode already sitting there ready to play,
-starts it - or meets the two hosts, believes the claim the h1 made, and scans
-fourteen more before subscribing.
+starts it - or scans the rest of the catalogue, finds one that speaks to them,
+and meets the two hosts on the way down to subscribing.
 
-Section order, and the rank it encodes (set 2026-09-06): hero, Now Playing,
-**the hosts**, the archive, then a compressed shelf of tools / next tournament /
-Instagram. The hosts moved up from sixth: it is the only section that proves the
-positioning rather than asserting it, and at sixth it only ever reached visitors
-who were already convinced. Rank is carried in three channels at once - vertical
-air, heading step, and composition scale - because any one of them alone reads
-as an accident.
+Section order, and the rank it encodes (revised 2026-09-06): hero, Now Playing,
+**the archive**, the hosts, then a compressed shelf of tools / next tournament /
+Instagram. The episodes run as one uninterrupted passage: the newest at full
+size on the band, then the catalogue directly beneath it. An earlier build put
+the hosts between the two, on the reasoning that it is the only section proving
+the positioning rather than asserting it - but that made a visitor who came to
+watch something read a bio halfway through the thing they came for. The hosts
+keep major rank immediately after the catalogue, well above the sixth position
+they held before, where only the already-convinced reached them. Rank is carried
+in three channels at once - vertical air, heading step, and composition scale -
+because any one of them alone reads as an accident.
 
 FIRST VIEWPORT: The global floating orange pill nav over the full-bleed
 banner photo of both hosts, which owns the whole first screen. Low on the

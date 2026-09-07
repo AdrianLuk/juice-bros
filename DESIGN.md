@@ -166,7 +166,7 @@ them.
 - Near-black page ground, one raised surface a measured step above it (1.12:1),
   with rings from 1.42:1 up to 2.44:1; no third "quiet" grey step for ink
 - One peak below the hero — Now Playing, on the page's only full-bleed raised
-  band — then the hosts and the archive as equal-rank majors, then a compressed
+  band — then the archive and the hosts as equal-rank majors, then a compressed
   three-section shelf, then the footer
 - Brand orange is the floating pill nav's ground, the mobile corner button's
   fill, and the focus ring and selection colour; it is never a button on the page
@@ -326,7 +326,7 @@ YouTube and Spotify), plus the footer's own close:
   Playing. The most air on the page, as well as the only lighter ground and the
   only peak heading — rank one has to win in every channel, or the channels argue
   with each other.
-- **Major** (`py-16 sm:py-24` — 4/6rem): the hosts and the archive, the
+- **Major** (`py-16 sm:py-24` — 4/6rem): the archive and the hosts, the
   positioning proof and the catalogue. Peers by rank, told apart by composition
   (a 26rem photo and prose against a dense four-column grid) rather than by size.
 - **Shelf** (`py-10 sm:py-14` — 2.5/3.5rem): free tools, the next tournament, the
@@ -337,10 +337,10 @@ YouTube and Spotify), plus the footer's own close:
   between shelf and major in air.
 
 **Hairlines group, they do not decorate.** `.bx-hair` (1px line-soft top border)
-is drawn in exactly three places at section level: it opens the archive, it opens
-the shelf (on the first shelf section only), and it opens the footer. The other
-two shelf sections run with no rule between them, so the zone reads as one
-supporting passage rather than three peers of the archive; the hosts section
+is drawn in exactly three places at section level: it opens the hosts section, it
+opens the shelf (on the first shelf section only), and it opens the footer. The
+other two shelf sections run with no rule between them, so the zone reads as one
+supporting passage rather than three peers of the archive; the archive itself
 carries no hairline at all because the band directly above it already ends on a
 border, and a second rule there would double it. Inside the footer the same
 hairline is reused twice more as an internal divider — the one place on the page

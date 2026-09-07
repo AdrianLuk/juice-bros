@@ -12,12 +12,17 @@ import { formatAiredShort, formatRuntime } from "./format";
  * catalogue off-screen and turns browsing into a swipe most phone visitors
  * never make, which works against the one metric this page exists to serve.
  * Same cards, same ground, same gesture.
+ *
+ * It follows the band directly, so the episodes read as one passage: the
+ * newest one at full size, then the rest of the catalogue, with nothing
+ * between them. It carries no `bx-hair` for that reason - the band's own
+ * bottom border already draws that line.
  */
 export function Archive({ episodes }: { episodes: Episode[] }) {
   if (episodes.length === 0) return null;
 
   return (
-    <section className="bx-measure bx-hair py-16 sm:py-24">
+    <section className="bx-measure py-16 sm:py-24">
       <div className="flex items-baseline justify-between gap-6">
         <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Every episode</h2>
         <Link

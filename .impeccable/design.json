@@ -86,7 +86,7 @@
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "The page's single h1 — the positioning line, not the brand name. Max 18ch, text-wrap: balance. Mobile floor 36px." },
       "peak": { "displayName": "Peak", "purpose": "The Now Playing title, alone. Rank one on the page; nothing else takes this step. Mobile floor 28px." },
-      "headline": { "displayName": "Headline", "purpose": "The major sections — the hosts, the archive, the footer's closing line. Mobile floor 22px." },
+      "headline": { "displayName": "Headline", "purpose": "The major sections — the archive, the hosts, the footer's closing line. Mobile floor 22px." },
       "minor": { "displayName": "Minor", "purpose": "The supporting shelf — free tools, next tournament, Instagram. 1.125rem rising to 1.25rem at sm; content headings inside a shelf drop to 1rem/1.125rem." },
       "body": { "displayName": "Body", "purpose": "Standfirst and lead paragraphs, capped at a 46–48ch measure." },
       "bodySmall": { "displayName": "Body Small", "purpose": "Supporting copy: card titles (600 weight), panel descriptions, host bios, footer copy." },
@@ -115,7 +115,7 @@
     ],
     "rhythm": [
       { "name": "band", "value": "py-16 sm:py-24 lg:py-28", "purpose": "Now Playing, rank one. The most air on the page." },
-      { "name": "major", "value": "py-16 sm:py-24", "purpose": "The hosts and the archive." },
+      { "name": "major", "value": "py-16 sm:py-24", "purpose": "The archive and the hosts." },
       { "name": "shelf", "value": "py-10 sm:py-14", "purpose": "Free tools, next tournament, Instagram strip." },
       { "name": "footer", "value": "py-14 sm:py-16", "purpose": "The closing subscribe block." }
     ]
@@ -207,7 +207,7 @@
     "overview": "The page is the show's own screen: a near-black stage with the newest episode already sitting on it, and the rest of the catalogue arranged around it. This is not an own-world invention — it is the category standard, the arrangement a podcast-site visitor already expects, executed at full fidelity. Adrian chose it explicitly over four committed own-world directions (a season-guide print world, a public-access broadcast world, a painted-court world, a group-chat world), so convention is the commitment, not a fallback. The craft bar is podcast structure with SaaS finish — held to the type, spacing, and state discipline of Linear, Vercel, and Stripe.\n\nThe chrome is greyscale by design, with two deliberate exceptions: the floating pill nav (the global SiteHeader, shared with every marketing route), which carries brand orange as its own ground, and the two platform buttons (YouTube, Spotify), which wear their destinations' own brand colours because those are the two places the page exists to send people to. Every other colour a visitor sees comes from the episode thumbnails and photos; the system itself supplies a ground, one raised surface, three line steps, white ink, one muted grey, brand orange, and the two platform colours. This restraint is what lets a dozen different YouTube thumbnails sit on the same page without the chrome fighting them.",
     "keyCharacteristics": [
       "Near-black page ground, one raised surface a measured step above it (1.12:1), with rings from 1.42:1 up to 2.44:1; no third \"quiet\" grey step for ink",
-      "One peak below the hero — Now Playing, on the page's only full-bleed raised band — then the hosts and the archive as equal-rank majors, then a compressed three-section shelf, then the footer",
+      "One peak below the hero — Now Playing, on the page's only full-bleed raised band — then the archive and the hosts as equal-rank majors, then a compressed three-section shelf, then the footer",
       "Brand orange is the floating pill nav's ground, the mobile corner button's fill, and the focus ring and selection colour; it is never a button on the page",
       "Two platform colours (YouTube red, Spotify green) carry their own reasoned ink",
       "One shared hover/focus gesture (lift, brighter ring, shadow, play-mark brighten) used identically everywhere a thumbnail appears",
