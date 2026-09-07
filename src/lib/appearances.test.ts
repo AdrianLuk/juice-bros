@@ -11,6 +11,7 @@ import {
   formatAppearanceDates,
   formatShortDay,
   nextConfirmedAppearance,
+  sortDivisions,
   splitAppearances,
 } from "./appearances.ts";
 
@@ -93,6 +94,53 @@ test("formatAppearanceDates: single day, same-month range, cross-month range", (
 test("formatShortDay gives a month + day label with no year", () => {
   assert.equal(formatShortDay("2026-08-29"), "Aug 29");
   assert.equal(formatShortDay("2026-09-01"), "Sep 1");
+});
+
+test("sortDivisions orders divisions by day, soonest first", () => {
+  const sorted = sortDivisions([
+    { name: "Men's Doubles", date: "2026-09-20", players: "both" },
+    { name: "Mixed 4.999", date: "2026-09-19", players: "adrian" },
+    { name: "Split Age Men's", date: "2026-09-17", players: "both" },
+    { name: "Men's Singles", date: "2026-09-16", players: "adrian" },
+  ]);
+  assert.deepEqual(sorted.map((d) => d.date), [
+    "2026-09-16",
+    "2026-09-17",
+    "2026-09-19",
+    "2026-09-20",
+  ]);
+});
+
+test("sortDivisions keeps same-day divisions in their written order", () => {
+  const sorted = sortDivisions([
+    { name: "Mixed 4.999", date: "2026-09-19", players: "adrian" },
+    { name: "Mixed 4.499", date: "2026-09-19", players: "daven" },
+  ]);
+  assert.deepEqual(sorted.map((d) => d.name), ["Mixed 4.999", "Mixed 4.499"]);
+});
+
+test("sortDivisions puts undated divisions last, in their written order", () => {
+  const sorted = sortDivisions([
+    { name: "No day yet", players: "both" },
+    { name: "Men's Doubles", date: "2026-09-20", players: "both" },
+    { name: "Still no day", players: "adrian" },
+    { name: "Men's Singles", date: "2026-09-16", players: "adrian" },
+  ]);
+  assert.deepEqual(sorted.map((d) => d.name), [
+    "Men's Singles",
+    "Men's Doubles",
+    "No day yet",
+    "Still no day",
+  ]);
+});
+
+test("sortDivisions leaves the input array untouched", () => {
+  const input = [
+    { name: "Later", date: "2026-09-20", players: "both" as const },
+    { name: "Sooner", date: "2026-09-16", players: "both" as const },
+  ];
+  sortDivisions(input);
+  assert.deepEqual(input.map((d) => d.name), ["Later", "Sooner"]);
 });
 
 test("describePlayers covers both, solo, and an explicit name list", () => {

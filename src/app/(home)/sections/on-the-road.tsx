@@ -6,6 +6,7 @@ import {
   formatAppearanceDates,
   formatShortDay,
   nextConfirmedAppearance,
+  sortDivisions,
 } from "@/lib/appearances";
 
 /**
@@ -26,7 +27,7 @@ export function OnTheRoad() {
   const next = nextConfirmedAppearance(appearances);
   if (!next) return null;
 
-  const divisions = next.divisions ?? [];
+  const divisions = sortDivisions(next.divisions ?? []);
 
   return (
     <section className="bx-measure py-10 sm:py-14">
