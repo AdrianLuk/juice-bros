@@ -17,7 +17,7 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
   if (episodes.length === 0) return null;
 
   return (
-    <section className="bx-measure bx-hair py-14 sm:py-20">
+    <section className="bx-measure bx-hair py-16 sm:py-24">
       <div className="flex items-baseline justify-between gap-6">
         <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Every episode</h2>
         <Link

@@ -21,7 +21,7 @@ export function NowPlaying({ episode }: { episode: Episode }) {
   return (
     <section className="bx-band">
       <div className="bx-measure py-12 sm:py-16 lg:py-20">
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,44rem)_1fr] lg:items-center lg:gap-14">
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,38rem)_1fr] lg:items-center lg:gap-12">
           <Link
             href={`/podcast/${episode.slug}`}
             className="bx-tile bx-stage group aspect-video"

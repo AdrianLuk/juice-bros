@@ -4,20 +4,29 @@ import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
 
 /**
- * The two hosts. A category-standard podcast home page carries one, and it is
- * the section that does the positioning work the h1 only gestures at: these
- * are rec players, not coaches.
+ * The two hosts, third on the page and its second peak.
  *
- * The bios in `content/team.ts` are interim copy pending Adrian writing the
- * real ones, and they say so on the page rather than pretending otherwise.
+ * The h1 claims "two guys still trying to get good at it"; this is the only
+ * section that proves it - real names, the on-court photo, the paddle each of
+ * them actually plays and the shot each is known for. Positioning is the one
+ * thing PRODUCT.md says a competitor cannot copy, so it is evidence, not a
+ * footer credit, and it sits directly under the newest episode rather than
+ * below the catalogue where only the already-convinced would reach it.
+ *
+ * It carries no `bx-hair`: it follows the band, whose own bottom border
+ * already draws that line, and a second rule there would double it.
+ *
+ * The page renders each host's `funFact` (paddle and signature shot), which is
+ * real copy. The interim `bio` strings in `content/team.ts` are the About
+ * page's problem, not this section's - nothing here is placeholder.
  */
 export function TheHosts() {
   return (
-    <section className="bx-measure bx-hair py-14 sm:py-20">
+    <section className="bx-measure py-16 sm:py-24">
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear and it is not a duplicate. */}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start lg:gap-14">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
         <figure className="bx-tile aspect-[4/3]">
           {/* eslint-disable-next-line @next/next/no-img-element -- local photo, no next/image optimization needed here */}
           <img
@@ -32,16 +41,16 @@ export function TheHosts() {
         </figure>
 
         <div>
-          <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
+          <h2 className="bx-h2 text-[clamp(1.5rem,3.4vw,2.125rem)]">
             Two rec players, not coaches
           </h2>
-          <p className="mt-3 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+          <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
             Most pickleball shows are hosted by people who have already arrived.
             This one is hosted by two people who lose to the same team every
             week and fight for the same 8pm court booking.
           </p>
 
-          <dl className="mt-8 grid gap-7 sm:grid-cols-2">
+          <dl className="mt-9 grid gap-8 sm:grid-cols-2">
             {team.map((member) => (
               <div key={member.name}>
                 <dt className="flex items-baseline gap-2.5">

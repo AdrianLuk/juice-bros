@@ -72,7 +72,16 @@ competes with them.
 
 STORY: A rec player lands, reads in one line that this show is made by people at
 their own level, sees the newest episode already sitting there ready to play,
-starts it - or scans fourteen more and subscribes.
+starts it - or meets the two hosts, believes the claim the h1 made, and scans
+fourteen more before subscribing.
+
+Section order, and the rank it encodes (set 2026-09-06): hero, Now Playing,
+**the hosts**, the archive, then a compressed shelf of tools / next tournament /
+Instagram. The hosts moved up from sixth: it is the only section that proves the
+positioning rather than asserting it, and at sixth it only ever reached visitors
+who were already convinced. Rank is carried in three channels at once - vertical
+air, heading step, and composition scale - because any one of them alone reads
+as an accident.
 
 FIRST VIEWPORT: The global floating orange pill nav over the full-bleed
 banner photo of both hosts, which owns the whole first screen. Low on the

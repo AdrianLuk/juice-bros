@@ -6,10 +6,10 @@ import { getEpisodes } from "@/lib/episodes";
 import { getLatestInstagramPosts, INSTAGRAM_POST_COUNT } from "@/lib/instagram";
 import { PhotoHero } from "./sections/photo-hero";
 import { NowPlaying } from "./sections/now-playing";
+import { TheHosts } from "./sections/the-hosts";
 import { Archive } from "./sections/archive";
 import { FreeTools } from "./sections/free-tools";
 import { OnTheRoad } from "./sections/on-the-road";
-import { TheHosts } from "./sections/the-hosts";
 import { FromInstagram } from "./sections/from-instagram";
 import { Foot } from "./sections/foot";
 
@@ -39,10 +39,10 @@ export default async function Home() {
     <div className="bx-dark flex flex-1 flex-col">
       <PhotoHero />
       {newest && <NowPlaying episode={newest} />}
+      <TheHosts />
       <Archive episodes={rest.slice(0, 8)} />
       <FreeTools />
       <OnTheRoad />
-      <TheHosts />
       <FromInstagram posts={instagramPosts} />
       <Foot />
     </div>

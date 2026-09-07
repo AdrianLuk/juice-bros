@@ -132,7 +132,7 @@ fighting them.
 
 **Key Characteristics:**
 - Near-black page ground, one raised surface set a visible step above it (~1.2:1) with rings at ~1.4:1; no third "quiet" grey step for ink
-- The page has one peak below the hero: Now Playing on a full-bleed raised band, the stage at full column width
+- The page has two peaks below the hero: Now Playing on a full-bleed raised band, then the hosts; the archive follows, and the rest is a compressed shelf
 - Brand orange is the floating pill nav's ground and the mobile corner button's fill — the global chrome, never a private bar, and never the subscribe colour
 - Two platform colours (YouTube red, Spotify green) carry their own ink decisions, reasoned from contrast math and each platform's own brand guidance
 - One shared hover/focus gesture (lift + brighten) used identically everywhere a thumbnail appears
@@ -183,20 +183,32 @@ The palette is a near-black neutral scale plus brand orange and two destination-
 - **Body Small** (400, 0.9375rem, line-height ~1.6): supporting copy — card descriptions, footer text, host bios — used wherever body copy needs to sit a step down from the lead line without dropping into label territory.
 - **Label** (400, 0.6875rem, letter-spacing 0.14em, uppercase, tabular numerals, Geist Mono, muted color): dates, runtimes, counts, and the "New episode" / "Next tournament" style kickers that sit directly beside real data. Never used for body copy.
 
-Every section heading on the page sits on the Headline step (`clamp(1.375rem, 3.2vw, 1.875rem)`), and the Now Playing title takes one step more (`clamp(1.5rem, 3.4vw, 2.125rem)`) — the one heading below the hero that is allowed to be louder than its siblings, because its section is the page's peak.
+Section headings run on three steps, and the step is what tells a visitor how much a section matters:
+
+- **Peak** (`clamp(1.5rem, 3.4vw, 2.125rem)`): the two sections the page is actually for — the Now Playing title and "Two rec players, not coaches".
+- **Headline** (`clamp(1.375rem, 3.2vw, 1.875rem)`): the episode archive, and the footer's closing line.
+- **Minor** (`1.25rem`): the supporting shelf — Free tools, the next tournament, the Instagram strip. Inside a shelf section, content headings drop a step further (`1.125rem` on the tool names) so the local hierarchy still holds.
 
 ### Named Rules
 **The Metadata-Only Mono Rule.** Geist Mono (`.bx-meta`) is reserved for machine-adjacent facts — a date, a runtime, a count — never for prose, section titles, or decorative labels. If a mono-styled string doesn't come from real data, it doesn't belong in `.bx-meta`.
 
 ## Layout
 
-One `bx-measure` container (max-width 72rem, centered, 1.25rem inline padding below 640px, 2rem above) governs every section's width. Sections stack vertically with a consistent rhythm: `py-14` (3.5rem) on mobile, `py-20` (5rem) from `sm:` up, separated by a single hairline (`.bx-hair`, 1px `bx-line-soft` top border) rather than background-color changes or shadows.
+One `bx-measure` container (max-width 72rem, centered, 1.25rem inline padding below 640px, 2rem above) governs every section's width.
+
+**Vertical rhythm encodes rank; it is not one repeated value.** Three tiers, matched to the heading steps above and to the page's job (audience growth on YouTube and Spotify):
+
+- **Major** (`py-16 sm:py-24`): the hosts and the archive — the positioning proof and the catalogue.
+- **Band** (`py-12 sm:py-16 lg:py-20` inside `.bx-band`): Now Playing.
+- **Shelf** (`py-10 sm:py-14`): Free tools, the next tournament, the Instagram strip.
+
+**Hairlines group, they do not decorate.** `.bx-hair` (1px `bx-line-soft` top border) opens the archive and opens the shelf, and that is all. The three shelf sections run with no rules between them so they read as one supporting zone rather than three peers of the archive, and the hosts section carries no hairline at all because the band directly above it already ends on a border — a second rule there would double it. Adding a hairline to every section is what made the first build read as a flat plateau of equals.
 
 Grids follow a responsive step-up: the episode archive runs 1 → 2 (`sm`) → 3 (`lg`) → 4 (`xl`) columns; the Instagram strip runs 3 → 6 columns; the tools grid runs 1 → 2 columns. Gaps hold to a small set of steps: `gap-3` (0.75rem) for the tightest grid (Instagram), `gap-4`–`gap-6` for card grids, `gap-8`–`gap-14` between major layout blocks. All spacing values observed on the page are 4px-scale multiples, consistent with the direction contract's "4px spacing system."
 
 **The header is the global floating pill.** `SiteHeader` — the same component every marketing route renders — is `fixed top-0` on `/` (`hasOverlayHero`): a `rounded-full` brand-orange pill at `max-w-6xl` with `pt-4` above it, floating over the hero and staying fixed down the page. The home page has no private bar; `SiteChromeSlot` mounts the global header on `/` and suppresses only the global footer. Below `sm` the header is an in-flow orange identity strip (wordmark only) plus a fixed corner button (bottom-right, `size-14`, brand-orange fill) that opens a Sheet panel anchored to the same corner.
 
-**Now Playing is a full-bleed band.** `.bx-band` paints the raised surface edge to edge with a hairline above and below, and the section's `bx-measure` sits inside it. It is the page's one peak below the hero: the scroll arrives at a lighter passage with the stage at up to 44rem (`lg:grid-cols-[minmax(0,44rem)_1fr]`), and every other section returns to the page ground. Do not put a second band on the page.
+**Now Playing is a full-bleed band.** `.bx-band` paints the raised surface edge to edge with a hairline above and below, and the section's `bx-measure` sits inside it. It is the page's one peak below the hero: the scroll arrives at a lighter passage with the stage at up to 38rem (`lg:grid-cols-[minmax(0,38rem)_1fr]`, sized so the title beside it still has a readable measure rather than wrapping to four lines), and every other section returns to the page ground. Do not put a second band on the page.
 
 **The hero is a two-layout component**, not one fixed composition (`src/app/(home)/sections/photo-hero.tsx`), and the banner photo of both hosts is a pinned asset — Adrian chose it over a stage-first hero, and it owns the full first screen (`sm:min-h-[100svh]`) under the floating pill. Wide (`sm:` and up), the banner photo is the section's own background (`sm:absolute sm:inset-0 sm:-z-10`) with the h1 and CTAs laid over it near the bottom, on a ramp that is fully opaque for its lowest 14% so the copy never shares a band with the banner's own baked-in type strip. Narrow, the banner is a plain in-flow block (a fixed 14rem-tall strip) and the copy sits beneath it, on the page's own dark ground, not on top of the image. This is a deliberate crop decision, not a simplification: the banner is a wide two-shot composed with the hosts on the left and right thirds and clear space in the middle, so a phone-shaped crop of that same image puts the hosts off-frame and leaves the overlay illegible exactly where most visitors are.
 
