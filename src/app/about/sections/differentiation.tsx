@@ -9,11 +9,17 @@
  * It runs left where the Mission above it runs centred, which is what keeps two
  * consecutive passages of prose from reading as the same section twice.
  *
+ * No hairline: this is the second of the page's two majors after the band, and
+ * it belongs with the hosts above it rather than being cut off from them. The
+ * page's other rule now opens the shelf below, where the register actually
+ * changes. Hairlines group; a rule between every pair of sections is what made
+ * the incumbent read as a flat plateau of equals.
+ *
  * Copy unchanged from the published About page.
  */
 export function Differentiation() {
   return (
-    <section className="bx-measure bx-hair py-16 sm:py-24">
+    <section className="bx-measure py-16 sm:py-24">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-16">
         <div>
           <h2 className="bx-h2 max-w-[16ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">

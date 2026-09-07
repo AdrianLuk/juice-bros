@@ -1,3 +1,5 @@
+import { Reveal } from "@/components/motion/reveal";
+
 /**
  * Why the show exists, on the page's one band and at its one peak heading.
  *
@@ -9,13 +11,21 @@
  * to a room; everything around it is the two of them talking, which is set
  * left like the rest of the site.
  *
+ * Motion: the statement arrives, scaled in from just under full size. It is
+ * the page's rank-one section, so it is one of only two places below the hero
+ * that move at all - the band itself never scales, only the measure inside it,
+ * or a full-bleed fill would open a gap at each edge on the way in.
+ *
  * Copy unchanged from the published About page.
  */
 export function Mission() {
   return (
     <section className="bx-band">
       <div className="bx-measure py-20 sm:py-28 lg:py-32">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <Reveal
+          variant="scale"
+          className="mx-auto flex max-w-3xl flex-col items-center text-center"
+        >
           <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.75rem,3.4vw,2.125rem)]">
             To create the most relatable pickleball conversations on the
             internet.
@@ -38,7 +48,7 @@ export function Mission() {
               way more serious than you, this is the show that isn&apos;t.
             </p>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

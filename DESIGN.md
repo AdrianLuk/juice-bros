@@ -373,7 +373,8 @@ rather than shouting a legal string.
 the heading it describes; it never sits above it. A small tracked label stacked
 over a heading is an eyebrow no matter how real its data, and it costs the
 section its own title as the first thing read. Now Playing, the archive cards,
-the tool panels and the tournament panel all run title-then-metadata.
+the tool panels, the tournament panel and the About hero all run
+title-then-metadata.
 
 **One Arrow Behaviour.** Every inline `→` link on the page (`Watch the episode`,
 `The whole story`, `Tournament details`, `Open <tool>`) carries the same
@@ -405,6 +406,13 @@ YouTube and Spotify), plus the footer's own close:
 - **Footer** (`py-14 sm:py-16`, after a `mt-4`): the closing subscribe block,
   between shelf and major in air.
 
+The four ranks are the site's; the exact values above are the home page's
+instance of them. Interior routes run the same ladder — band above major above
+shelf above a close — and set their own values inside it against their own
+rank-one moment (About's band opens wider than the home page's, its close a step
+tighter). What does not vary is the ordering: a route never gives a shelf section
+more air than a major one.
+
 **A fact appears once.** An episode's runtime is drawn on its thumbnail, in the
 chip a video player would put it in, so it is not printed again in the metadata
 line below — that line carries the date alone. The rule is about the whole
@@ -415,15 +423,20 @@ named by its `aria-label`, the caption keeps an `sr-only` copy, because "once"
 means once per reader, not once per document.
 
 **Hairlines group, they do not decorate.** `.bx-hair` (1px line-soft top border)
-is drawn in exactly three places at section level: it opens the hosts section, it
-opens the shelf (on the first shelf section only), and it opens the footer. The
-other two shelf sections run with no rule between them, so the zone reads as one
-supporting passage rather than three peers of the archive; the archive itself
+is drawn where a rule groups, never on a cadence, so the count is a consequence
+of the grouping rather than a target. The home page lands on exactly three at
+section level: it opens the hosts section, it opens the shelf (on the first shelf
+section only), and it opens the footer. The other two shelf sections run with no
+rule between them, so the zone reads as one supporting passage rather than three
+peers of the archive; the archive itself
 carries no hairline at all because the band directly above it already ends on a
 border, and a second rule there would double it. Inside the footer the same
 hairline is reused twice more as an internal divider — the one place on the page
-a rule separates rows rather than sections. Putting a hairline on every section
-is what made an earlier build read as a flat plateau of equals.
+a rule separates rows rather than sections. About runs the same logic to a
+different count — two: one opening the first section under the hero, one opening
+its shelf row; its band section takes none, because it already ends on its own
+border. Putting a hairline on every section is what made an earlier build read as
+a flat plateau of equals.
 
 **Grids step up responsively.** The episode archive runs 1 → 2 (`sm`) → 3 (`lg`)
 → 4 (`xl`) columns; the Instagram strip runs 3 → 6 (`lg`); the tools grid runs
@@ -445,15 +458,23 @@ anchored to the same corner.
 
 **Now Playing is a full-bleed band.** `.bx-band` paints the raised surface edge
 to edge with a hairline above and below, and the section's measure sits inside
-it. It is the page's one peak below the hero: the scroll arrives at a lighter
-passage with the stage at up to 38rem
+it. It is the home page's one peak below the hero: the scroll arrives at a
+lighter passage carrying a `.bx-stage` at up to 38rem
 (`lg:grid-cols-[minmax(0,38rem)_1fr]`, sized so the title beside it keeps a
 readable measure rather than wrapping to four lines), and every other section
-returns to the page ground. Do not put a second band on the page.
+returns to the page ground. A page gets one band; do not put a second on it.
 
-**The hero is a two-layout component**, not one fixed composition
-(`sections/photo-hero.tsx`), and the banner photo of both hosts is a pinned asset
-— Adrian chose it over a stage-first hero, and it owns the full first screen
+38rem is the stage's ceiling sitewide, not Now Playing's private width. The
+About hero locks a stage at the same size (stepping `lg:34rem` → `xl:38rem`, so
+the headline column beside it does not squeeze at a 960px measure), because a
+route's rank-one moment gets the site's one gesture at full scale rather than a
+step under the home page's.
+
+**The home page's hero is a two-layout component**, not one fixed composition
+(`(home)/sections/photo-hero.tsx`; the site's other hero shape, About's
+stage-beside-headline lock, is in Components), and the banner photo of both
+hosts is a pinned asset — Adrian chose it over a stage-first hero, and it owns
+the full first screen
 (`sm:min-h-[100svh]`) under the floating pill. Wide (`sm:` and up), the banner is
 the section's own background (`sm:absolute sm:inset-0 sm:-z-10`) with the h1 and
 CTAs laid over it near the bottom, on a ramp that is fully opaque for its lowest
@@ -558,8 +579,8 @@ thumbnails, 4:3 for the hosts photo, 1:1 for the Instagram strip.
   the scale are both dropped under `prefers-reduced-motion: reduce`; the ring and
   the shadow are not.
 - **`.bx-stage`** — a tile modifier that changes only the radius (1rem) and
-  enlarges the play mark. Used on the newest episode and on the episode page's
-  player.
+  enlarges the play mark. Used on the newest episode, on the episode page's
+  player, and on the About hero.
 - **`.bx-plate`** — a `.bx-tile` modifier that swaps the raised fill for white
   and the image fit from `cover` to `contain`. For artwork drawn by somebody
   else for a white ground: gear photographs, tournament cover art. A `cover`
@@ -611,11 +632,26 @@ blur, staggered link entrance). That header and its Sheet render outside
 applies to any portal the page itself opens. Link hover elsewhere on the page is
 a colour shift only (muted ↔ ink over 200ms), no underline, no background.
 
-### The Hero (signature, two-layout)
-Wide screens run the banner as the section background with the h1 and CTAs laid
-over it; narrow screens run the banner as an in-flow block with the copy beneath
-it on the dark page ground. See Layout for the reasoning — the composition of the
-source photograph, not a generic responsive simplification, drives the split.
+### Heroes (signature, two shapes)
+The site runs two hero compositions. Which one a route gets follows from the
+strongest asset that route owns, not from a rotation.
+
+- **The photograph hero** (`/`) is itself two layouts. Wide screens run the
+  banner as the section background with the h1 and CTAs laid over it; narrow
+  screens run the banner as an in-flow block with the copy beneath it on the dark
+  page ground. See Layout for the reasoning — the composition of the source
+  photograph, not a generic responsive simplification, drives the split.
+- **The stage-beside-headline lock** (`/about`) puts a `.bx-stage` in the left
+  column at the full 38rem stage width and the `PageHead` order beside it: h1,
+  `.bx-meta`, `.bx-lead`, then the action row. The h1 keeps the display rank on a
+  tightened clamp (to 2.875rem rather than 3.5rem) so it holds a column against
+  the stage instead of competing with it. Narrow, the stage runs first at full
+  width with the copy stacked beneath. The stage is the play control and wears
+  the play mark, so the action row never repeats it — it carries the two paths
+  the stage cannot: the catalogue in the ink register and subscribing in YouTube
+  red. Entrance is the authored on-load stagger down the right column, with the
+  stage on the transform-only variant so its poster (the LCP element) is not held
+  behind an opacity ramp.
 
 ## Do's and Don'ts
 
