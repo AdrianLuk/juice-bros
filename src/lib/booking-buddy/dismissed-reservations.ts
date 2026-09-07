@@ -18,14 +18,22 @@
  * Org + wall-clock date + start time + the source's own court text, compared
  * by court *number* rather than as text.
  *
- * What a dismissal means therefore widens: it was "never show me *this
- * message* again" (email) or "never show me *this VEVENT* again" (feed), and
- * it becomes "never offer me *this slot* again", from either source. That is
- * the only key the two sources share — a dismissal leaves nothing else behind
- * to recognise — but it does mean a genuinely new reservation for the same
- * Org, day, start time and court is dropped too, rather than offered. Both
- * sources already treated a dismissal as permanent with no un-dismiss, so this
- * widens its reach, not its lifetime.
+ * What a dismissal means therefore changes, and not only in reach. It was
+ * "never show me *this message* again" (email) or "never show me *this
+ * VEVENT* again" (feed); it becomes "never offer me *this slot* again", from
+ * either source. The concrete cost is a **cancel and rebook of the same
+ * slot** — same Org, day, start time and court. That is a genuinely new
+ * reservation; it used to arrive with a fresh message id and a fresh VEVENT
+ * UID and be offered by both sources, and it is now dropped by both, silently
+ * (nothing on the review screen says a candidate was suppressed) and for good
+ * (there is no un-dismiss).
+ *
+ * Accepted because a slot is the only key the two sources share, and
+ * suppressing only the *counterpart* source doesn't help — a rebook
+ * regenerates both sides, so the same slot arrives fresh from each. But it
+ * makes two properties that were merely a gap while a dismissal hid one
+ * message — invisible, and permanent — load-bearing. Issue #444 tracks giving
+ * dismissals somewhere to be seen and a way to be taken back.
  *
  * Takes the Supabase client as a parameter and imports nothing from Next.js,
  * for the same reason `feed-events.ts` does: a `"use server"` module can't
