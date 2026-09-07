@@ -4,7 +4,7 @@ import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
 
 /**
- * The two hosts, third on the page and its second peak.
+ * The two hosts, third on the page.
  *
  * The h1 claims "two guys still trying to get good at it"; this is the only
  * section that proves it - real names, the on-court photo, the paddle each of
@@ -41,7 +41,10 @@ export function TheHosts() {
         </figure>
 
         <div>
-          <h2 className="bx-h2 text-[clamp(1.5rem,3.4vw,2.125rem)]">
+          {/* The headline step, not the peak one: this section outranks the
+              shelf and ties the archive, but the newest episode leads the page
+              and has to be able to say so. */}
+          <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
             Two rec players, not coaches
           </h2>
           <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
@@ -75,10 +78,10 @@ export function TheHosts() {
 
           <Link
             href="/about"
-            className="mt-8 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
+            className="group mt-8 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
           >
             The whole story
-            <span aria-hidden className="ml-1.5">
+            <span aria-hidden className="ml-1.5 inline-block transition-transform duration-200 group-hover:translate-x-0.5">
               &rarr;
             </span>
           </Link>

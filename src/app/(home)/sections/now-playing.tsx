@@ -6,7 +6,9 @@ import { PlayMark } from "./play-mark";
 import { formatAired, formatRuntime } from "./format";
 
 /**
- * The newest episode, on the page's one raised band directly under the hero.
+ * The newest episode, on the page's one raised band directly under the hero,
+ * and the page's rank-one section: the peak heading step, the most vertical
+ * air on the page, and the only lighter ground.
  *
  * The hero owns the whole first screen (Adrian's call - the two hosts in
  * frame), so this is where the page pays back the missing playable thing: the
@@ -20,7 +22,7 @@ export function NowPlaying({ episode }: { episode: Episode }) {
 
   return (
     <section className="bx-band">
-      <div className="bx-measure py-12 sm:py-16 lg:py-20">
+      <div className="bx-measure py-16 sm:py-24 lg:py-28">
         <div className="grid gap-7 lg:grid-cols-[minmax(0,38rem)_1fr] lg:items-center lg:gap-12">
           <Link
             href={`/podcast/${episode.slug}`}
@@ -41,14 +43,11 @@ export function NowPlaying({ episode }: { episode: Episode }) {
           </Link>
 
           <div>
-            <p className="bx-meta">
-              New episode
-              <span aria-hidden> · </span>
-              {formatAired(episode.published)}
-              <span aria-hidden> · </span>
-              {formatRuntime(episode.duration)}
-            </p>
-            <h2 className="bx-h2 mt-3 max-w-[20ch] text-[clamp(1.5rem,3.4vw,2.125rem)]">
+            {/* Title first, metadata under it - the same order the archive
+                cards and the tournament panel use. A label above a heading is
+                an eyebrow whatever data it carries, and it made the largest
+                type in the section the second thing read. */}
+            <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.75rem,3.4vw,2.125rem)]">
               <Link
                 href={`/podcast/${episode.slug}`}
                 className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
@@ -56,6 +55,13 @@ export function NowPlaying({ episode }: { episode: Episode }) {
                 {episodeMetaTitle(episode.title)}
               </Link>
             </h2>
+            <p className="bx-meta mt-3">
+              New episode
+              <span aria-hidden> · </span>
+              {formatAired(episode.published)}
+              <span aria-hidden> · </span>
+              {formatRuntime(episode.duration)}
+            </p>
             {hook && (
               <p className="mt-3.5 max-w-[48ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
                 {hook}
@@ -63,10 +69,10 @@ export function NowPlaying({ episode }: { episode: Episode }) {
             )}
             <Link
               href={`/podcast/${episode.slug}`}
-              className="mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              className="group mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
             >
               Watch the episode
-              <span aria-hidden className="ml-1.5">
+              <span aria-hidden className="ml-1.5 inline-block transition-transform duration-200 group-hover:translate-x-0.5">
                 &rarr;
               </span>
             </Link>

@@ -11,7 +11,7 @@ export function FromInstagram({ posts }: { posts: InstagramPost[] }) {
   return (
     <section className="bx-measure py-10 sm:py-14">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="bx-h2 text-xl">Between episodes</h2>
+        <h2 className="bx-h2 text-lg sm:text-xl">Between episodes</h2>
         <a
           href={siteConfig.links.instagram}
           target="_blank"

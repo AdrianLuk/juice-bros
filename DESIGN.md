@@ -132,7 +132,7 @@ fighting them.
 
 **Key Characteristics:**
 - Near-black page ground, one raised surface set a visible step above it (~1.2:1) with rings at ~1.4:1; no third "quiet" grey step for ink
-- The page has two peaks below the hero: Now Playing on a full-bleed raised band, then the hosts; the archive follows, and the rest is a compressed shelf
+- The page has one peak below the hero — Now Playing, on a full-bleed raised band — then the hosts and the archive as equal-rank majors, then a compressed shelf
 - Brand orange is the floating pill nav's ground and the mobile corner button's fill — the global chrome, never a private bar, and never the subscribe colour
 - Two platform colours (YouTube red, Spotify green) carry their own ink decisions, reasoned from contrast math and each platform's own brand guidance
 - One shared hover/focus gesture (lift + brighten) used identically everywhere a thumbnail appears
@@ -152,10 +152,10 @@ The palette is a near-black neutral scale plus brand orange and two destination-
 
 ### Neutral
 - **Ground** (`#08090b`): the page background — cool near-black, not warm.
-- **Raised** (`#14181d`): the one raised surface — panels, tiles, the stage, and the full-bleed Now Playing band. ~1.2:1 on the ground: the least step at which a band is still seen as a band.
+- **Raised** (`#14181d`): the one raised surface — panels, tiles, the stage, and the full-bleed Now Playing band. 1.12:1 on the ground, measured: lower than either line token, and legible only because it is spent across a full-bleed region.
 - **Raised (hover)** (`#1b2027`): the hover state of a raised panel.
-- **Line** (`#363d46`): borders on hover/focus states, and the resting ring of a tile that sits on the band (~1.75:1 on the ground).
-- **Line, soft** (`#262c34`): resting borders and hairline section dividers. ~1.4:1 on the ground, the register Vercel's dark border sits at. The first build shipped `#191d22` here, which measures 1.16:1 and did not render on a real panel — the reason the page read as "nothing sticks out".
+- **Line** (`#363d46`): borders on hover/focus states, and the resting ring of a tile that sits on the band (1.81:1 on the ground).
+- **Line, soft** (`#262c34`): resting borders and hairline section dividers. 1.42:1 on the ground, the register Vercel's dark border sits at. The first build shipped `#191d22` here, which measures 1.16:1 and did not render on a real panel — the reason the page read as "nothing sticks out".
 - **Line, strong** (`#48505a`): the hover ring of a tile on the band, one step above Line so the gesture still reads on the lighter ground.
 - **Ink** (`#f2f4f6`): primary text and iconography. Clears 6.6:1 on the ground.
 - **Muted** (`#8f98a3`): the only secondary-text step. Also clears strong contrast on the ground; there is deliberately no third, fainter grey.
@@ -163,7 +163,7 @@ The palette is a near-black neutral scale plus brand orange and two destination-
 ### Named Rules
 **The Chrome-Carries-No-Control Rule.** Brand orange is the floating pill nav's ground and the mobile corner button's fill, and the nav carries identity and links only — no subscribe pill, no button of any kind. A control on an orange ground would have to be near-black or an outline to be seen at all, and either reads weaker than the same action on the page ground. So the subscribe path lives where it can wear its own colour: the YouTube-red and Spotify-green buttons in the hero, and the YouTube-red close in the footer.
 
-**The Visible-Step Rule.** Every value step in this system has to survive a real screen. A ring or a raised fill that only differs from the ground on paper is a hierarchy that does not exist: the first build's rings measured 1.16:1 and its raised fill 1.07:1, and the page read as flat black with text on it. The floor is ~1.4:1 for a hairline or resting ring and ~1.2:1 for a fill that has to read as a region. When a new surface needs to recede, use size, weight or spacing, not a step below that floor.
+**The Visible-Step Rule.** Every value step has to survive a real screen, and the floor depends on how much area the step is spent across. A hairline or a resting ring needs **1.4:1** against its ground; a fill covering a full-bleed region gets away with **1.1:1**, because area does the work a thin line cannot. The first build ignored both: rings at 1.16:1 and a raised fill at 1.07:1, and the page read as flat black with text on it. Measure what you ship rather than estimating it — `#14181d` was documented here as "~1.2:1" and actually measures 1.12:1. When a new surface needs to recede, use size, weight or spacing, not a step below these floors.
 
 **Platform Colours Carry Their Own Ink.** The YouTube and Spotify buttons wear their destinations' brand colors, each with its own reasoned ink choice (white for YouTube red at 4.0:1, kept for brand fidelity; near-black for Spotify green at 8.2:1, both for contrast and to match Spotify's own guidance). Do not default new destination buttons to the page's ink/bg pair — resolve ink per platform color the same way.
 
@@ -181,16 +181,22 @@ The palette is a near-black neutral scale plus brand orange and two destination-
 - **Headline** (700, `clamp(1.375rem, 3.2vw, 1.875rem)` down to a fixed 1.375rem/2xl at section scale, line-height 1.15, letter-spacing −0.02em): section headings and the featured episode title.
 - **Body** (400, 1.0625rem, line-height ~1.6, `leading-relaxed`): standfirst copy, capped around 46–58ch measure.
 - **Body Small** (400, 0.9375rem, line-height ~1.6): supporting copy — card descriptions, footer text, host bios — used wherever body copy needs to sit a step down from the lead line without dropping into label territory.
-- **Label** (400, 0.6875rem, letter-spacing 0.14em, uppercase, tabular numerals, Geist Mono, muted color): dates, runtimes, counts, and the "New episode" / "Next tournament" style kickers that sit directly beside real data. Never used for body copy.
+- **Label** (400, 0.6875rem, letter-spacing 0.14em, uppercase, tabular numerals, Geist Mono, muted color): dates, runtimes and counts. Never used for body copy, and never placed above the heading it belongs to — see The Metadata-Sits-Under-Its-Heading Rule.
 
 Section headings run on three steps, and the step is what tells a visitor how much a section matters:
 
-- **Peak** (`clamp(1.5rem, 3.4vw, 2.125rem)`): the two sections the page is actually for — the Now Playing title and "Two rec players, not coaches".
-- **Headline** (`clamp(1.375rem, 3.2vw, 1.875rem)`): the episode archive, and the footer's closing line.
-- **Minor** (`1.25rem`): the supporting shelf — Free tools, the next tournament, the Instagram strip. Inside a shelf section, content headings drop a step further (`1.125rem` on the tool names) so the local hierarchy still holds.
+- **Peak** (`clamp(1.75rem, 3.4vw, 2.125rem)`): the Now Playing title, alone. This is the section the page exists to deliver, and nothing else takes this step.
+- **Headline** (`clamp(1.375rem, 3.2vw, 1.875rem)`): "Two rec players, not coaches", the episode archive, and the footer's closing line.
+- **Minor** (`1.125rem` → `1.25rem` from `sm:`): the supporting shelf — Free tools, the next tournament, the Instagram strip. Inside a shelf section, content headings drop a step further (`1rem` → `1.125rem`) so the local hierarchy still holds.
+
+**Every step keeps its floor above the next step's.** A clamp whose lower bound collapses onto its neighbour's deletes the whole channel at the viewport where most visitors are: the first version of this ladder bottomed out at 24/22/20px below 640px, a 4px spread across four ranks, so on a phone the page had no heading hierarchy at all. The floors are now 28/22/18/16px, and a new step is checked at 390px before it is checked at 1440.
 
 ### Named Rules
 **The Metadata-Only Mono Rule.** Geist Mono (`.bx-meta`) is reserved for machine-adjacent facts — a date, a runtime, a count — never for prose, section titles, or decorative labels. If a mono-styled string doesn't come from real data, it doesn't belong in `.bx-meta`.
+
+**The Metadata-Sits-Under-Its-Heading Rule.** A `.bx-meta` line always follows the heading it describes; it never sits above it. A small tracked label stacked over a heading is an eyebrow no matter how real its data, and it costs the section its own title as the first thing read. The archive cards, the tournament panel and Now Playing all run title-then-metadata.
+
+**One Arrow Behaviour.** Every inline `→` link on the page (`Watch the episode`, `The whole story`, `Open <tool>`) carries the same `group-hover:translate-x-0.5` nudge. Three identical-looking links behaving two different ways is the scattered-effect failure; either all of them move or none do.
 
 ## Layout
 
@@ -198,9 +204,9 @@ One `bx-measure` container (max-width 72rem, centered, 1.25rem inline padding be
 
 **Vertical rhythm encodes rank; it is not one repeated value.** Three tiers, matched to the heading steps above and to the page's job (audience growth on YouTube and Spotify):
 
-- **Major** (`py-16 sm:py-24`): the hosts and the archive — the positioning proof and the catalogue.
-- **Band** (`py-12 sm:py-16 lg:py-20` inside `.bx-band`): Now Playing.
-- **Shelf** (`py-10 sm:py-14`): Free tools, the next tournament, the Instagram strip.
+- **Band** (`py-16 sm:py-24 lg:py-28` inside `.bx-band`): Now Playing. The most air on the page, as well as the only lighter ground and the only peak heading — rank one has to win in every channel, or the channels argue with each other.
+- **Major** (`py-16 sm:py-24`): the hosts and the archive — the positioning proof and the catalogue. Peers by rank, told apart by composition (a 26rem photo and prose against a dense four-column grid) rather than by size.
+- **Shelf** (`py-10 sm:py-14`): Free tools, the next tournament, the Instagram strip. Each shelf section carries a label heading and its own "all of them" link, so the zone reads as matching sections rather than one labelled section beside an unidentifiable card.
 
 **Hairlines group, they do not decorate.** `.bx-hair` (1px `bx-line-soft` top border) opens the archive and opens the shelf, and that is all. The three shelf sections run with no rules between them so they read as one supporting zone rather than three peers of the archive, and the hosts section carries no hairline at all because the band directly above it already ends on a border — a second rule there would double it. Adding a hairline to every section is what made the first build read as a flat plateau of equals.
 
@@ -245,6 +251,7 @@ Two radius steps cover the whole system: `0.75rem` (`--bx-radius`) for standard 
 ### Cards / Containers
 - **`.bx-panel`:** the generic raised block (tool cards, the appearance panel). 0.75rem radius, `--bx-raised` background, 1px resting ring, hover brightens to `--bx-raised-2` when the panel itself is a link.
 - **`.bx-band`:** the full-bleed raised passage. `--bx-raised` background, 1px `--bx-line-soft` top and bottom, no radius — it is a region of the page, not an object on it. Used once, for Now Playing.
+- **`.bx-card`:** the archive card wrapper. Its thumbnail link is `aria-hidden`/`tabIndex={-1}` (the title beside it is the real link), so `.bx-tile:focus-visible` can never fire on it; `.bx-card:focus-within` mirrors the full gesture instead, and a keyboard visitor gets the same lift a pointer does.
 - **`.bx-tile` (the signature gesture):** every thumbnail-bearing surface — the hero stage, archive cards, Instagram grid, the hosts' photo — is a `.bx-tile`. One hover/focus treatment (lift 3px, ring brightens, shadow appears, its `.bx-play` mark brightens and scales to 1.06) is applied identically everywhere a thumbnail exists, so the whole page has one gesture instead of scattered per-component effects. `.bx-stage` is a `.bx-tile` modifier that only changes the radius (1rem) and enlarges the play mark.
 - **Internal Padding:** panels use `p-6`–`p-8` (1.5–2rem); tiles have no internal padding — the image fills the tile edge-to-edge.
 

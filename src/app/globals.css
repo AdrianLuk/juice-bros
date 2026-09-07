@@ -2428,9 +2428,10 @@ html:has(.bb-app-chrome) {
        The steps are set to what a screen can actually show: the first build
        had rings at 1.16:1 and a raised fill at 1.07:1 against the ground,
        which is a value difference on paper and nothing at all on a panel.
-       Now the resting ring sits at ~1.4:1 (the register Vercel's dark border
-       uses), the hover ring at ~1.75:1, and the raised fill at ~1.2:1 -
-       enough that a full-width band reads as a band. */
+       Measured off the shipped pixels, the resting ring now sits at 1.42:1
+       (the register Vercel's dark border uses), the hover ring at 1.81:1, and
+       the raised fill at 1.12:1 - lower than either line, and enough only
+       because it is spent across a full-bleed region rather than a hairline. */
     --bx-bg: #08090b;
     --bx-raised: #14181d;
     --bx-raised-2: #1b2027;
@@ -2496,7 +2497,9 @@ html:has(.bb-app-chrome) {
     letter-spacing: -0.02em;
     line-height: 1.15;
   }
-  /* Metadata only: dates, runtimes, counts, section kickers. Never body copy. */
+  /* Metadata only: dates, runtimes, counts. Never body copy, and never above
+     the heading it belongs to - a label over a heading is an eyebrow whatever
+     data it carries. It sits beneath. */
   .bx-meta {
     font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-size: 0.6875rem;
@@ -2562,6 +2565,20 @@ html:has(.bb-app-chrome) {
   .bx-tile:hover, .bx-tile:focus-visible { box-shadow: 0 0 0 1px var(--bx-line), var(--bx-shadow); }
 
   .bx-stage { border-radius: var(--bx-radius-lg); }
+
+  /* An archive card's thumbnail link is `aria-hidden` with `tabIndex={-1}` -
+     the title beside it is the real link - so `.bx-tile:focus-visible` can
+     never fire there, and a keyboard visitor got a focus ring with none of the
+     page's one gesture. Mirror it from the card, so tabbing a title lifts its
+     thumbnail exactly as pointing at it does. */
+  .bx-card:focus-within .bx-tile { box-shadow: 0 0 0 1px var(--bx-line), var(--bx-shadow); }
+  .bx-card:focus-within .bx-play { background: #fff; scale: 1.06; }
+  @media (prefers-reduced-motion: no-preference) {
+    .bx-card:focus-within .bx-tile { transform: translateY(-3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bx-card:focus-within .bx-play { scale: 1; }
+  }
 
   /* The play affordance, drawn rather than borrowed from an icon set. */
   .bx-play {

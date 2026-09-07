@@ -33,7 +33,7 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
           const runtime = formatRuntime(episode.duration);
           return (
             <li key={episode.id}>
-              <article>
+              <article className="bx-card">
                 <Link
                   href={`/podcast/${episode.slug}`}
                   className="bx-tile group aspect-video"

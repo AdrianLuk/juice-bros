@@ -88,8 +88,9 @@ banner photo of both hosts, which owns the whole first screen. Low on the
 photo: the positioning line as the h1, a one-line standfirst, Watch on YouTube
 (YouTube red) and Listen on Spotify (Spotify green). Directly beneath, the
 page's one raised band: the newest episode's stage at 16:9 up to 44rem with the
-play affordance and runtime chip, and beside it the date kicker, the title one
-step above every other section heading, the hook, and a Watch the episode link.
+play affordance and runtime chip, and beside it the title one step above every
+other section heading, the date and runtime beneath it, the hook, and a Watch
+the episode link.
 Below 640px the banner is a 14rem in-flow strip under the orange identity strip,
 and the copy sits on the page ground beneath it.
 
