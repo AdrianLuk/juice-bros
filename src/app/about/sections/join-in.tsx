@@ -18,34 +18,36 @@ import { InstagramIcon } from "@/components/icons";
  * White on `#e1306c` measures 4.34:1 - the same register as the YouTube red
  * already shipping here, and kept for the same reason.
  *
- * Composition is a close, not a seventh stacked block. Differentiation above
- * it already runs heading-then-prose set left at major air, and shipping the
- * same shape again at the same rank is exactly the flatness this redesign set
- * out to end - the incumbent's last three sections were indistinguishable in
- * every channel. So this one turns: the ask and the two ways to answer it sit
- * side by side on a wide screen, at tighter air than the majors above, and the
- * page arrives at something that reads as an ending rather than as one more
+ * Composition is a close, not a seventh block at major air. It is a narrow
+ * column - the only narrow measure on the page - stacked and set left at the
+ * page's tightest air, so it reads as a sign-off rather than as one more
  * section that happens to be last.
+ *
+ * It got there by way of the wrong answer. A first pass split it into heading
+ * left and actions right-flush, which did separate it from Differentiation
+ * above - and landed it on the exact shape of the global footer close directly
+ * beneath it, two-line heading and a right-flush button group with a single
+ * hairline between them. That traded a repeat two sections apart for one
+ * immediately adjacent, which is worse. The footer keeps the shape it owns
+ * sitewide; this narrows instead.
  *
  * Copy unchanged from the published About page.
  */
 export function JoinIn() {
   return (
     <section className="bx-measure py-12 sm:py-16">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-16">
-        <div>
-          <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
-            This only works if you&apos;re part of it
-          </h2>
-          <p className="mt-5 max-w-[52ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
-            Got a story from your local courts? A club we should know about? A
-            hot take you need to get off your chest? We want to hear it. Follow
-            along, send us a message, or just show up in the comments.
-            That&apos;s half the show.
-          </p>
-        </div>
+      <div className="max-w-[34rem]">
+        <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
+          This only works if you&apos;re part of it
+        </h2>
+        <p className="mt-5 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+          Got a story from your local courts? A club we should know about? A hot
+          take you need to get off your chest? We want to hear it. Follow along,
+          send us a message, or just show up in the comments. That&apos;s half
+          the show.
+        </p>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="mt-7 flex flex-wrap gap-3">
           <a
             href={siteConfig.links.instagram}
             target="_blank"

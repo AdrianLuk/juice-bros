@@ -18,6 +18,12 @@ import type { Episode } from "@/lib/episodes";
  * rather than a step under it, because this is the page's rank-one moment and
  * the site's one tile gesture should be at its biggest here.
  *
+ * That full width waits for `xl:`. The lock engages at `lg:`, where the measure
+ * is 960px, and a 38rem stage there leaves the h1 a 304px column with its clamp
+ * already pinned to the ladder's 36px floor - a real squeeze at a common laptop
+ * width. The stage steps 34rem then 38rem instead, so the column the headline
+ * gets never falls below what the headline needs.
+ *
  * There is no "Play episode one" button beside it, deliberately. The stage
  * *is* the play control - it carries that gesture and the same play mark every
  * thumbnail on the site wears - and a labelled pill repeating the action would
@@ -60,7 +66,7 @@ export function Hero({
 
   return (
     <section className="bx-measure overflow-x-clip pt-14 pb-16 sm:pt-20 sm:pb-24">
-      <div className="grid items-center gap-9 lg:grid-cols-[minmax(0,38rem)_1fr] lg:gap-12">
+      <div className="grid items-center gap-9 lg:grid-cols-[minmax(0,34rem)_1fr] lg:gap-10 xl:grid-cols-[minmax(0,38rem)_1fr] xl:gap-12">
         <div className="jb-hero-img">
           <EpisodePlayer
             videoId={episodeId}

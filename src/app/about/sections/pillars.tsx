@@ -36,7 +36,10 @@ const pillars = [
  * It opens with the page's second and last hairline, because this is where the
  * register changes - the argument ends above it and a supporting shelf begins.
  * Like every shelf section on the site it carries its own way out, so the body
- * of the page is no longer a run of six sections with nowhere to click.
+ * of the page is no longer a run of six sections with nowhere to click. It is
+ * labelled "View all", the site's own shelf wording, and not "Every episode" -
+ * that is the hero's ink pill, to the same destination, and two identical
+ * labels 3,400px apart read as a stutter rather than as two ways out.
  *
  * Shelf rank, not a fourth major: DESIGN.md's ladder puts supporting sections
  * at py-10/14 under a minor heading, and this one is four one-line blurbs
@@ -56,7 +59,7 @@ export function Pillars() {
             href="/podcast"
             className="bx-quietlink group inline-flex items-center whitespace-nowrap"
           >
-            Every episode
+            View all
             <span aria-hidden className="bx-arrow">
               &rarr;
             </span>
