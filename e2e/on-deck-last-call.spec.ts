@@ -85,6 +85,10 @@ test("last call → finish → close → the QR shows nothing running", async ({
     court2.getByRole("button", { name: "Send next four" }),
   ).toBeEnabled();
 
+  // Both ways in are on offer while the night is still taking players.
+  await expect(page.getByTestId("floor-join-qr")).toBeVisible();
+  await expect(page.getByTestId("add-walkup")).toBeVisible();
+
   // Last Call — takes a confirm.
   const wrapUp = page.getByTestId("wrap-up");
   await wrapUp.getByTestId("last-call-button").click();
@@ -97,6 +101,10 @@ test("last call → finish → close → the QR shows nothing running", async ({
   ).toBeDisabled();
   // The On Deck foursomes are cleared — queued players are done.
   await expect(page.getByTestId("on-deck-0")).toHaveCount(0);
+  // ...and so are both ways in. Scanning after Last Call would only buy a
+  // place in a queue nobody is coming off for.
+  await expect(page.getByTestId("floor-join-qr")).toHaveCount(0);
+  await expect(page.getByTestId("add-walkup")).toHaveCount(0);
 
   // The Game already on Court 1 still finishes normally.
   await court1.getByRole("button", { name: "Court 1 done" }).click();
