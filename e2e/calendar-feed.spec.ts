@@ -353,14 +353,12 @@ test("an unhealthy feed fetch produces zero cancellation candidates — nothing 
   await expect(section.getByRole("alert").filter({ hasText: facility })).toBeVisible();
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
 
-  // A well-formed calendar that simply holds nothing is *healthy* — the member
-  // has no upcoming reservations at this Facility. It reads as a quiet note,
-  // not a fetch error, and the diff still doesn't run (issue #431).
+  // A well-formed calendar that simply holds nothing is *healthy* — no error,
+  // and the diff still doesn't run (issue #431). It reads as the shared
+  // "nothing new" line rather than anything naming this Facility (issue #438).
   mock.registerFeed("/feed/unhealthy", { kind: "no-events" });
   await syncFacilities(page);
-  await expect(
-    section.getByText(`${facility}'s feed has no upcoming reservations.`),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
   await expect(section.getByRole("alert").filter({ hasText: facility })).toHaveCount(0);
   await expect(
     section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) }),
