@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ClipboardList } from "lucide-react";
+import { CalendarCheck, ClipboardList, Grid3x3 } from "lucide-react";
 
 export type AppStatus = "coming-soon" | "live";
 
@@ -53,6 +53,21 @@ export const apps: AppItem[] = [
       "Score, server and side, tracked the way a ref calls them",
       "Built for a phone held courtside between rallies",
       "Opens straight from the browser, nothing to install",
+    ],
+    terms: ["Free", "No sign-up", "Open now"],
+  },
+  {
+    slug: "match-mixer",
+    title: "Match Mixer",
+    href: "/tools/match-mixer",
+    description:
+      "Paste your player list and get a balanced doubles round robin. Nobody partners the same person twice.",
+    icon: Grid3x3,
+    status: "live",
+    highlights: [
+      "Paste your list of names and get every round back at once",
+      "Nobody partners the same person twice and nobody sits out",
+      "A partner grid underneath shows you the schedule is fair",
     ],
     terms: ["Free", "No sign-up", "Open now"],
   },
