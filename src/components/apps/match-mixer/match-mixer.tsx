@@ -7,34 +7,46 @@ import {
   isSupportedRosterSize,
   MAX_ROUNDS,
   maxCourts,
-  type ResolvedConfig,
 } from "@/components/apps/match-mixer/lib/engine/config";
-import { parseRoster } from "@/components/apps/match-mixer/lib/engine/roster";
+import {
+  describeConfig,
+  describeNumbers,
+} from "@/components/apps/match-mixer/lib/engine/describe";
+import {
+  duplicateNames,
+  parseRoster,
+} from "@/components/apps/match-mixer/lib/engine/roster";
 import { scoreSchedule } from "@/components/apps/match-mixer/lib/engine/scorer";
 import { generateSchedule } from "@/components/apps/match-mixer/lib/engine/schedule";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
   type Roster,
+  type Schedule,
+  type ScorerResult,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
 import { PartnerMatrix } from "./partner-matrix";
 import { ScheduleGrid } from "./schedule-grid";
 
 /**
- * Match Mixer's only screen. Paste a Roster, set your courts, read the
+ * Match Mixer's only screen. Paste a Roster, set your courts, draw the
  * Schedule.
  *
- * Any Roster from 4 to 32 works: the three sizes with a stored Table are
- * served from it, everything else is generated and scored the same way, and
- * the screen cannot tell you which because it never claims a Schedule is
- * balanced. Only the summary line does, off the Scorer.
+ * The screen runs at two speeds. The consequence line is arithmetic over the
+ * Config and updates on every keystroke, so the numbers always describe what is
+ * in the box. The Schedule is a search that can take a third of a second on a
+ * big Roster, so it runs when the organizer asks for it rather than while they
+ * are still typing a name. What that costs is the chance of reading a stale
+ * grid as a current one, which is what the button's label, the note under it
+ * and the flag over the sheet are all spent preventing.
  *
- * Debounced rendering, the reseed action and the print sheet arrive in RR-1.3
- * onward; the Config is already the shape they need.
+ * Reseeding is the same button: pressing it with nothing changed writes a new
+ * Seed, which is the whole of what a fresh draw is (ADR 0001). One control, so
+ * the screen doesn't grow two ways to ask the same question.
  */
 
-const EXAMPLE_ROSTER = [
+const EXAMPLE_NAMES = [
   "Ben Johns",
   "Anna Leigh Waters",
   "Federico Staksrud",
@@ -43,13 +55,57 @@ const EXAMPLE_ROSTER = [
   "Anna Bright",
   "Gabriel Tardio",
   "Jorja Johnson",
-].join("\n");
+];
+
+const EXAMPLE_ROSTER = EXAMPLE_NAMES.join("\n");
 
 /**
- * Fixed for now. RR-1.3 turns it into state so that "new schedule" can write a
- * fresh one, which is the whole of what regenerating means.
+ * The zero state's draw sheet: a real Schedule, generated the way any other
+ * one is, so what it shows is what the tool actually does. Fixed Seed and
+ * built once at module scope, because it must not differ between the server's
+ * render and the browser's, and it never changes after that.
  */
-const SEED = 1;
+const EXAMPLE = (() => {
+  const roster = parseRoster(EXAMPLE_ROSTER);
+  const config = clampConfig({ roster, courts: 2, rounds: 4, seed: 3 });
+  const schedule = generateSchedule(config);
+  return { roster, schedule, score: scoreSchedule(schedule, config) };
+})();
+
+/** What the Schedule on screen was drawn from, kept beside it. */
+interface Draw {
+  /** The Roster and numbers it came from, for telling current from stale. */
+  readonly key: string;
+  readonly seed: number;
+  /**
+   * The names as they were at the moment of the draw. The engine works in
+   * positions, so a Schedule only means anything beside the Roster it was
+   * generated against: reading it against a Roster edited since would put the
+   * wrong names on the court.
+   */
+  readonly roster: Roster;
+  /** The numbers it was drawn from, for the flag over a stale sheet. */
+  readonly numbers: string;
+  readonly schedule: Schedule;
+  readonly score: ScorerResult;
+}
+
+/**
+ * Everything generation depends on. Ids are deliberately absent: the engine
+ * sees names and numbers only, so typing a name back to what it was is not a
+ * change and should not leave the sheet flagged as stale.
+ */
+function drawKey(roster: Roster, courts: number, rounds: number): string {
+  return `${courts}/${rounds}/${roster.map((player) => player.name).join(" ")}`;
+}
+
+/** Never the Seed just used, so pressing again always redraws. */
+function nextSeed(previous: number | undefined): number {
+  const roll = () => 1 + Math.floor(Math.random() * 0x7ffffffe);
+  let seed = roll();
+  while (seed === previous) seed = roll();
+  return seed;
+}
 
 export function MatchMixer() {
   const [text, setText] = useState("");
@@ -61,6 +117,7 @@ export function MatchMixer() {
   // the names being pasted until the organizer overrules them.
   const [courtsChoice, setCourtsChoice] = useState<number | null>(null);
   const [roundsChoice, setRoundsChoice] = useState<number | null>(null);
+  const [draw, setDraw] = useState<Draw | null>(null);
 
   const editRoster = (next: string) => {
     setText(next);
@@ -72,24 +129,37 @@ export function MatchMixer() {
   const courtCeiling = maxCourts(size);
   // The fields show what the engine will actually use, which is the same clamp
   // `generateSchedule` applies rather than a second opinion beside it. A null
-  // choice is an untouched or emptied field, and means the default.
-  const config = useMemo<ResolvedConfig>(
+  // choice is an untouched or emptied field, and means the default. The Seed is
+  // no part of this: it is written at the moment of the draw.
+  const { courts, rounds } = useMemo(
     () =>
       clampConfig({
         roster,
         courts: courtsChoice ?? undefined,
         rounds: roundsChoice ?? undefined,
-        seed: SEED,
+        seed: 0,
       }),
     [roster, courtsChoice, roundsChoice],
   );
-  const { courts, rounds } = config;
 
-  const result = useMemo(() => {
-    if (!supported) return null;
+  const repeated = duplicateNames(roster);
+  const shape = { players: size, courts, rounds };
+  const key = drawKey(roster, courts, rounds);
+  const stale = draw !== null && draw.key !== key;
+
+  const generate = () => {
+    const seed = nextSeed(draw?.seed);
+    const config = { roster, courts, rounds, seed };
     const schedule = generateSchedule(config);
-    return { schedule, score: scoreSchedule(schedule, config) };
-  }, [config, supported]);
+    setDraw({
+      key,
+      seed,
+      roster,
+      numbers: describeNumbers(shape),
+      schedule,
+      score: scoreSchedule(schedule, config),
+    });
+  };
 
   return (
     <div className="mm-sheet">
@@ -104,7 +174,7 @@ export function MatchMixer() {
           </p>
         </header>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:gap-14">
+        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-14">
           <div>
             <label className="mm-legend block" htmlFor="mm-roster">
               Roster
@@ -121,51 +191,174 @@ export function MatchMixer() {
             <p id="mm-roster-note" className="mm-note mt-2">
               One name per line, {MIN_ROSTER_SIZE} to {MAX_ROSTER_SIZE} players.
             </p>
+            <DuplicateNotice names={repeated} />
 
             {supported ? (
-              <div className="mm-fields mt-8">
-                <NumberField
-                  id="mm-courts"
-                  label="Courts"
-                  value={courts}
-                  min={1}
-                  max={courtCeiling}
-                  onChange={setCourtsChoice}
-                  note={
-                    courtCeiling === 1
-                      ? `${size} players fill one court.`
-                      : `Up to ${courtCeiling} with ${size} players.`
-                  }
-                />
-                <NumberField
-                  id="mm-rounds"
-                  label="Rounds"
-                  value={rounds}
-                  min={1}
-                  max={MAX_ROUNDS}
-                  onChange={setRoundsChoice}
-                  note="How many you have court time for."
-                />
-              </div>
+              <>
+                <div className="mm-fields mt-8">
+                  <NumberField
+                    id="mm-courts"
+                    label="Courts"
+                    value={courts}
+                    min={1}
+                    max={courtCeiling}
+                    onChange={setCourtsChoice}
+                    note={
+                      courtCeiling === 1
+                        ? `${size} players fill one court.`
+                        : `Up to ${courtCeiling} with ${size} players.`
+                    }
+                  />
+                  <NumberField
+                    id="mm-rounds"
+                    label="Rounds"
+                    value={rounds}
+                    min={1}
+                    max={MAX_ROUNDS}
+                    onChange={setRoundsChoice}
+                    note="How many you have court time for."
+                  />
+                </div>
+
+                {/* The fast speed: pure arithmetic, so it can afford to keep up
+                    with the keystrokes the Schedule below deliberately does
+                    not. Not announced, because a screen reader repeating it per
+                    character is worse than silence. */}
+                <p className="mm-summary mt-8">{describeConfig(shape)}</p>
+              </>
             ) : null}
+
+            <button
+              type="button"
+              className="mm-button mt-4"
+              onClick={generate}
+              disabled={!supported}
+              data-stale={stale ? "true" : undefined}
+            >
+              {!draw
+                ? "Make the schedule"
+                : stale
+                  ? "Update the schedule"
+                  : "Draw it again"}
+            </button>
+            <p className="mm-note mt-2" role="status">
+              <ActionNote draw={draw} stale={stale} size={size} />
+            </p>
           </div>
 
           <div className="min-w-0">
-            {result ? (
+            {draw ? (
               <>
-                <ScheduleGrid
-                  roster={roster}
-                  schedule={result.schedule}
-                  score={result.score}
-                />
-                <PartnerMatrix roster={roster} score={result.score} />
+                {stale ? (
+                  <p className="mm-flag">Out of date. Drawn from {draw.numbers}.</p>
+                ) : null}
+                <div className="mm-draw" data-stale={stale ? "true" : undefined}>
+                  <ScheduleGrid
+                    roster={draw.roster}
+                    schedule={draw.schedule}
+                    score={draw.score}
+                  />
+                  <PartnerMatrix roster={draw.roster} score={draw.score} />
+                </div>
               </>
+            ) : size > MAX_ROSTER_SIZE ? (
+              <TooManyPlayers size={size} />
             ) : (
-              <RosterOutOfRange size={size} />
+              <ExampleSheet supported={supported} />
             )}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * What pressing the button will do to what is on screen. The label says the
+ * action; this says the consequence, and below four names it says why there is
+ * no action to take, which is the question the disabled button raises.
+ */
+function ActionNote({
+  draw,
+  stale,
+  size,
+}: {
+  draw: Draw | null;
+  stale: boolean;
+  size: number;
+}) {
+  if (size === 0) return <>Paste your names above, then draw the schedule.</>;
+  if (size < MIN_ROSTER_SIZE) {
+    return <>Doubles needs four players on a court. Add {MIN_ROSTER_SIZE - size} more.</>;
+  }
+  if (size > MAX_ROSTER_SIZE) {
+    return (
+      <>
+        Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Remove{" "}
+        {size - MAX_ROSTER_SIZE} and the button comes back.
+      </>
+    );
+  }
+  if (stale) return <>The sheet on screen is the previous draw, not this one.</>;
+  if (draw) return <>Same names, same numbers, a different draw.</>;
+  return <>Nothing is generated until you press it.</>;
+}
+
+/**
+ * Two players called Mike is a printing problem, not a scheduling one: the
+ * engine tells them apart by id and the Schedule comes out the same. So this
+ * says what will actually go wrong and gets out of the way.
+ */
+function DuplicateNotice({ names }: { names: string[] }) {
+  if (names.length === 0) return null;
+
+  return (
+    <p className="mm-notice mt-4">
+      {names.length === 1
+        ? `More than one player named ${names[0]}.`
+        : `These names are on the list more than once: ${names.join(", ")}.`}{" "}
+      The schedule still works. The sheet just won&rsquo;t tell them apart.
+    </p>
+  );
+}
+
+/**
+ * The zero state. A greyed, non-interactive draw sheet says what this page
+ * produces better than a sentence about it does, and leaves the column holding
+ * something rather than nothing.
+ */
+function ExampleSheet({ supported }: { supported: boolean }) {
+  return (
+    <section aria-labelledby="mm-example-caption">
+      <p className="mm-legend" id="mm-example-caption">
+        Example draw sheet
+      </p>
+      <p className="mm-note mt-2">
+        {supported
+          ? "Eight names, two courts, four rounds. Yours takes its place as soon as you draw it."
+          : "Eight names, two courts, four rounds. This is the shape of what you get."}
+      </p>
+      <div className="mm-example mt-5" aria-hidden="true" inert>
+        <ScheduleGrid
+          roster={EXAMPLE.roster}
+          schedule={EXAMPLE.schedule}
+          score={EXAMPLE.score}
+          headingId="mm-example-heading"
+        />
+      </div>
+    </section>
+  );
+}
+
+function TooManyPlayers({ size }: { size: number }) {
+  return (
+    <div className="mm-placeholder">
+      <p className="mm-placeholder-head">{size} names: too many to schedule</p>
+      <p className="mm-note mt-2">
+        Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Above that the
+        partner matrix stops being readable on one sheet, and a night that size is
+        better split into two rotations. Remove {size - MAX_ROSTER_SIZE}.
+      </p>
     </div>
   );
 }
@@ -223,36 +416,6 @@ function NumberField({
       />
       <p id={`${id}-note`} className="mm-note mt-2">
         {note}
-      </p>
-    </div>
-  );
-}
-
-function RosterOutOfRange({ size }: { size: number }) {
-  if (size === 0) {
-    return (
-      <div className="mm-placeholder">
-        <p className="mm-placeholder-head">No roster yet</p>
-        <p className="mm-note mt-2">
-          Paste your names into the box, one per line, and the schedule appears
-          here.
-        </p>
-      </div>
-    );
-  }
-
-  const tooFew = size < MIN_ROSTER_SIZE;
-
-  return (
-    <div className="mm-placeholder">
-      <p className="mm-placeholder-head">
-        {size} {size === 1 ? "name" : "names"}:{" "}
-        {tooFew ? "not enough to play" : "too many to schedule"}
-      </p>
-      <p className="mm-note mt-2">
-        {tooFew
-          ? `Doubles needs four players on a court. Add ${MIN_ROSTER_SIZE - size} more and the schedule appears.`
-          : `Match Mixer schedules up to ${MAX_ROSTER_SIZE} players. Above that the partner matrix stops being readable on one sheet, and a night that size is better split into two rotations. Remove ${size - MAX_ROSTER_SIZE}.`}
       </p>
     </div>
   );

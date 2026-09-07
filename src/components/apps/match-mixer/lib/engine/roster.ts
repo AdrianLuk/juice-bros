@@ -44,3 +44,24 @@ export function parseRoster(text: string, previous: Roster = []): Roster {
     return { id, name };
   });
 }
+
+/**
+ * Names carried by more than one Player, first appearance first.
+ *
+ * Never a reason to refuse a Roster: two Mikes schedule perfectly well, and
+ * the engine has ids to tell them apart. It is the printout that can't, which
+ * is why this exists only to hand the UI a quiet inline notice.
+ *
+ * Matching is exact, so "mike" and "Mike" are two different players — whether
+ * they are the same person is the organizer's call and not a guess to make on
+ * their behalf.
+ */
+export function duplicateNames(roster: Roster): string[] {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const player of roster) {
+    if (seen.has(player.name)) repeated.add(player.name);
+    else seen.add(player.name);
+  }
+  return [...repeated];
+}
