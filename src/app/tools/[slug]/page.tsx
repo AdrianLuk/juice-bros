@@ -3,8 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { apps, type AppItem } from "@/data/apps";
 import { pageMetadata } from "@/lib/metadata";
-import { Reveal } from "@/components/motion/reveal";
-import { PageHeading } from "@/components/typography/page-heading";
+import { PageHead } from "@/components/bx/page-head";
 import { ComingSoon } from "@/components/apps/coming-soon";
 
 // Slugs Next resolves through a dedicated route folder
@@ -45,15 +44,11 @@ export default async function AppPage({ params }: PageProps<"/tools/[slug]">) {
   if (app.href !== `/tools/${slug}`) redirect(app.href);
 
   return (
-    <div className="flex w-full flex-1 flex-col px-4 py-16 sm:px-6 lg:px-8">
-      <PageHeading
-        eyebrow="Pickleball Tools"
-        title={app.title}
-        description={app.description}
-      />
-      <Reveal variant="scale">
-        <ComingSoon icon={app.icon} />
-      </Reveal>
+    <div className="flex w-full flex-1 flex-col">
+      <PageHead title={app.title} meta={app.terms.join(" · ")} lead={app.description} />
+      <div className="bx-measure pb-20 sm:pb-28">
+        <ComingSoon />
+      </div>
     </div>
   );
 }

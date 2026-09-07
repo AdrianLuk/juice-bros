@@ -1,23 +1,29 @@
 import Link from "next/link";
 
-import type { LucideIcon } from "lucide-react";
-
-export function ComingSoon({ icon: Icon }: { icon: LucideIcon }) {
+/**
+ * The stub for a tool that is listed but not built yet.
+ *
+ * Unreachable today - both shipped tools are live - but it is the first thing
+ * a visitor would see for the next one, so it wears the same look as
+ * everything else rather than the incumbent's dashed-border placeholder with a
+ * floating icon in it. No glyph: a generic mark hovering over an empty panel
+ * is decoration standing in for information, which is the exact failure the
+ * tools index was redesigned to fix.
+ */
+export function ComingSoon() {
   return (
-    <div className="mt-12 flex flex-col items-center rounded-[1.75rem] border border-dashed border-border/80 p-12 text-center">
-      <Icon className="jb-float size-10 text-brand-orange/40" />
-      <p className="mt-4 font-heading text-lg font-semibold">
-        This tool is in the works
+    <div className="bx-panel mt-10 max-w-2xl p-8 sm:p-10">
+      <h2 className="bx-h2 text-lg sm:text-xl">Still building this one</h2>
+      <p className="bx-meta mt-2.5">Not ready yet</p>
+      <p className="mt-4 max-w-[46ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+        It&apos;s on the bench while we finish it. The tools that are ready to
+        use are all free and open right now.
       </p>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        We&apos;re still building this one. Check back soon, or browse the
-        other tools in the meantime.
-      </p>
-      <Link
-        href="/tools"
-        className="mt-6 text-sm font-medium text-brand-orange underline-offset-4 hover:underline"
-      >
-        ← Back to Tools
+      <Link href="/tools" className="bx-actionlink group mt-7">
+        See the tools that are ready
+        <span aria-hidden className="bx-arrow">
+          &rarr;
+        </span>
       </Link>
     </div>
   );

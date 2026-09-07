@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,6 +13,9 @@ import { cn } from "@/lib/utils";
  * a11y tree. `prefers-reduced-motion` drops every transition to an instant
  * toggle. The rows themselves are still server-rendered and passed in as
  * `children`.
+ *
+ * The chevron is drawn here rather than imported from an icon set, like every
+ * other mark in this look, so its weight matches the play glyph and the arrows.
  */
 export function PastDisclosure({
   count,
@@ -26,24 +28,36 @@ export function PastDisclosure({
   const panelId = useId();
 
   return (
-    <section className="mt-14 border-t border-border pt-8">
-      <h2 className="font-heading text-2xl font-semibold tracking-[-0.02em]">
+    <section className="bx-hair py-14 sm:py-20">
+      <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-controls={panelId}
-          className="group -mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-left outline-none transition-colors duration-300 hover:text-brand-orange focus-visible:ring-2 focus-visible:ring-brand-orange/50 focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+          className="group -mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors duration-200 hover:text-[var(--bx-muted)]"
         >
-          <ChevronRight
+          <svg
             aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className={cn(
-              "size-5 shrink-0 text-muted-foreground transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:text-brand-orange motion-reduce:transition-none",
+              "size-[0.875em] shrink-0 text-[var(--bx-muted)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
               open && "rotate-90",
             )}
-          />
-          Past
-          <span className="text-base font-medium text-muted-foreground">({count})</span>
+          >
+            <path d="m9 5 7 7-7 7" />
+          </svg>
+          Already played
+          {/* Not `.bx-meta`: at 11px beside a 30px heading the count read as a
+              footnote marker rather than as part of the label. */}
+          <span className="text-base font-medium text-[var(--bx-muted)]">
+            ({count})
+          </span>
         </button>
       </h2>
 

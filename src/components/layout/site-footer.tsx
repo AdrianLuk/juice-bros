@@ -3,79 +3,98 @@ import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { YoutubeIcon, SpotifyIcon, InstagramIcon } from "@/components/icons";
 
-const socialLinks = [
-  {
-    name: "YouTube",
-    href: siteConfig.links.youtube,
-    icon: YoutubeIcon,
-    hoverClass: "hover:border-[#ff0000]/40 hover:text-[#ff0000]",
-  },
-  {
-    name: "Spotify",
-    href: siteConfig.links.spotify,
-    icon: SpotifyIcon,
-    hoverClass: "hover:border-[#1db954]/40 hover:text-[#1db954]",
-  },
-  {
-    name: "Instagram",
-    href: siteConfig.links.instagram,
-    icon: InstagramIcon,
-    hoverClass: "hover:border-[#e1306c]/40 hover:text-[#e1306c]",
-  },
+const socials = [
+  { name: "YouTube", href: siteConfig.links.youtube, icon: YoutubeIcon },
+  { name: "Spotify", href: siteConfig.links.spotify, icon: SpotifyIcon },
+  { name: "Instagram", href: siteConfig.links.instagram, icon: InstagramIcon },
 ];
 
+/**
+ * The site footer, in Broadcast Dark.
+ *
+ * Began as the home page's private `Foot` while `/` was the only route in this
+ * look, with `SiteChromeSlot` suppressing the global footer there so the page
+ * would not hand off to a different one two sections from the end. Now that
+ * every marketing route wears the look, that split has no job left: this is the
+ * global footer and the exception is gone.
+ *
+ * It closes on the action the whole site is for - subscribing on YouTube - and
+ * carries no newsletter signup. Audience growth on those two platforms is the
+ * stated success metric (PRODUCT.md), a second capture ask on every page splits
+ * it, and there is no publication to post a form to. Adrian's call, 2026-09-06.
+ *
+ * It carries `bx-dark` itself rather than inheriting it: the footer also
+ * renders on routes outside the dark shell (`/s/[token]`, `/connect/[token]`,
+ * the On Deck landing), where every `--bx-*` reference would otherwise resolve
+ * to nothing and the whole block would come out unpainted. The incumbent footer
+ * was near-black on those pages too, so nothing about them changes.
+ */
 export function SiteFooter() {
   return (
-    <footer className="relative overflow-hidden bg-brand-black text-white">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-      />
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-14 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-center gap-3">
-            {/* Decorative: the "Juice Bros Pickleball" wordmark sits right beside it. */}
+    <footer className="bx-dark bx-hair mt-4">
+      <div className="bx-measure py-14 sm:py-16">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
+              New episode every week. Come argue with us.
+            </h2>
+            <p className="mt-2.5 text-[0.9375rem] text-[var(--bx-muted)]">
+              Free on YouTube, or audio only on Spotify.
+            </p>
+          </div>
+          <a
+            href={siteConfig.links.youtube}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bx-btn bx-btn-yt shrink-0 self-start px-6 py-3.5 text-base sm:self-auto"
+          >
+            <YoutubeIcon className="size-[1.125rem]" />
+            Subscribe on YouTube
+          </a>
+        </div>
+
+        <div className="bx-hair mt-12 flex flex-col gap-8 pt-8 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            {/* Decorative: the wordmark sits right beside it. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- local trusted SVG, no next/image optimization needed */}
-            <img src="/brand/JB_Logo_White.svg" alt="" className="h-8 w-8" />
-            <div>
-              <p className="font-heading text-base font-semibold tracking-tight">
-                {siteConfig.name}
-              </p>
-              <p className="text-sm text-white/50">The podcast for everyday players.</p>
-            </div>
+            <img src="/brand/JB_Logo_White.svg" alt="" className="size-7 shrink-0" />
+            <span className="text-[0.9375rem] font-semibold tracking-tight">
+              {siteConfig.name}
+            </span>
           </div>
 
-          <nav className="grid grid-cols-2 gap-x-8 gap-y-2 sm:flex sm:gap-6">
-            {siteConfig.nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm text-white/60 transition-colors duration-300 hover:text-white"
-              >
-                {item.title}
-              </Link>
-            ))}
+          <nav aria-label="Footer">
+            <ul className="grid grid-cols-2 gap-x-10 gap-y-2.5 sm:flex sm:gap-7">
+              {siteConfig.nav.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="bx-quietlink">
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </nav>
         </div>
 
-        <div className="flex flex-col-reverse items-center gap-6 border-t border-white/10 pt-8 sm:flex-row sm:justify-between">
-          <p className="text-sm text-white/60">
+        <div className="bx-hair mt-8 flex flex-col-reverse items-start gap-5 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="bx-meta normal-case tracking-normal">
             &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>
-          <div className="flex items-center gap-3">
-            {socialLinks.map((social) => (
-              <a
-                key={social.name}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={social.name}
-                className={`group/social flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-white/10 active:translate-y-0 ${social.hoverClass}`}
-              >
-                <social.icon className="size-4" />
-              </a>
+          <ul className="flex items-center gap-2">
+            {socials.map((social) => (
+              <li key={social.name}>
+                <a
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.name}
+                  className="bx-btn bx-btn-ghost size-11 p-0"
+                >
+                  <social.icon className="size-4" />
+                </a>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </div>
     </footer>

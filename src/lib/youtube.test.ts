@@ -4,9 +4,37 @@ import test from "node:test";
 import {
   deriveOrientation,
   getEpisodeHook,
+  getEpisodeShowNotes,
   parsePlaylistItems,
   parseVideoDetails,
 } from "./youtube.ts";
+
+test("getEpisodeShowNotes leaves a description that is all real writing alone", () => {
+  const description = "We talk about the 8pm court booking.\n\nThen it gets worse.";
+  assert.equal(getEpisodeShowNotes(description), description);
+});
+
+test("getEpisodeShowNotes drops hashtag, link and call-to-action lines", () => {
+  const description = [
+    "Adrian explains the backhand roll.",
+    "",
+    "Drop your answer in the comments 👇",
+    "Like, comment and subscribe",
+    "https://instagram.com/juicebrospickleball",
+    "#Pickleball #PickleballPodcast #PickleballCanada",
+  ].join("\n");
+  assert.equal(getEpisodeShowNotes(description), "Adrian explains the backhand roll.");
+});
+
+test("getEpisodeShowNotes keeps a line that merely mentions a stripped word", () => {
+  const description = "We argued about whether the comments were fair.";
+  assert.equal(getEpisodeShowNotes(description), description);
+});
+
+test("getEpisodeShowNotes collapses the blank lines a stripped block leaves behind", () => {
+  const description = "First.\n\n#Pickleball\n\nSecond.";
+  assert.equal(getEpisodeShowNotes(description), "First.\n\nSecond.");
+});
 
 test("getEpisodeHook takes just the first paragraph, collapsed to one line", () => {
   const description = "Line one\ncontinues here.\n\nSecond paragraph never shows up.";

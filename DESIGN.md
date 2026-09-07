@@ -16,6 +16,8 @@ colors:
   bx-youtube-ink: "#ffffff"
   bx-spotify: "#1db954"
   bx-spotify-ink: "#0a0a0a"
+  bx-instagram: "#e1306c"
+  bx-instagram-ink: "#ffffff"
 typography:
   display:
     fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
@@ -51,6 +53,16 @@ typography:
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.6
+  link:
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 600
+    lineHeight: 1.4
+  field:
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
   label:
     fontFamily: "Geist Mono, ui-monospace, monospace"
     fontSize: "0.6875rem"
@@ -98,6 +110,27 @@ components:
     padding: "0.8125rem 1.375rem"
   button-sp-hover:
     backgroundColor: "#1ed760"
+  button-ig:
+    backgroundColor: "{colors.bx-instagram}"
+    textColor: "{colors.bx-instagram-ink}"
+    rounded: "{rounded.pill}"
+    padding: "0.8125rem 1.375rem"
+  button-ig-hover:
+    backgroundColor: "#d81b60"
+  field:
+    backgroundColor: "{colors.bx-bg}"
+    textColor: "{colors.bx-ink}"
+    rounded: "{rounded.card}"
+    padding: "0.75rem 0.875rem"
+    typography: "{typography.field}"
+  chip:
+    backgroundColor: "transparent"
+    textColor: "{colors.bx-ink}"
+    rounded: "{rounded.chip}"
+    padding: "0.1875rem 0.4375rem"
+  plate:
+    backgroundColor: "#ffffff"
+    rounded: "{rounded.card}"
   panel:
     backgroundColor: "{colors.bx-raised}"
     rounded: "{rounded.card}"
@@ -129,13 +162,21 @@ Buddy, On Deck, and Pickle Point Pal are separate worlds with their own
 documentation, indexed by `CONTEXT-MAP.md`. Nothing here governs those three
 surfaces, and nothing in their worlds should be imported into this one.
 
-**Current adoption state.** Only the home page (`src/app/(home)`) ships this
-system today, scoped under the `.bx-dark` class in `src/app/globals.css`. The
-other six marketing routes still run the incumbent look (the same floating
-orange pill nav the home page shares, plus eyebrow-pill labels and rounded card
-grids) and have **not** adopted Broadcast Dark yet. Treat this file as the
-target for those routes' next pass, not as a description of how they look right
-now.
+**Current adoption state.** The whole marketing site ships this system: Home,
+Podcast (index and `/podcast/[slug]`), Tools (index and `/tools/[slug]`), Gear,
+Appearances, About and Contact. The `.bx-dark` scope is applied once, by
+`SiteShell` (`src/components/layout/site-shell.tsx`), to the wrapper holding the
+header, `<main>` and the footer — not per page. It has to be the shell: the pill
+nav is `sticky` on interior routes, so it sits in flow above `<main>`, and a
+per-page ground left a bare light band across the top of every dark route.
+`body:has(.bx-dark)` paints the document behind it, which is what shows on an
+elastic overscroll.
+
+Routes deliberately **outside** the scope: Booking Buddy, On Deck and Pickle
+Point Pal (their own worlds), and `/s/[token]` and `/connect/[token]`, which are
+Booking Buddy flows wearing the global chrome and stay on the incumbent light
+ground until Booking Buddy's world reaches them. `SiteFooter` carries `bx-dark`
+on its own root so it paints correctly on those pages too.
 
 ## Overview
 
@@ -200,6 +241,13 @@ destination-brand colours; there is no invented secondary or tertiary hue.
   Ink is near-black, not white: white on this green measures 2.59:1, near-black
   measures **7.66:1**, and near-black is what Spotify's own brand guidance
   specifies for this green.
+- **Instagram Pink** (`#e1306c`, ink `#ffffff`, hover `#d81b60`): the third
+  destination fill, used in exactly two places — the About page's closing "Follow
+  on Instagram" and the Contact page's "The show". White on it measures
+  **4.34:1**, the same register as white on YouTube red, kept on the same
+  recorded reasoning. It is *not* used in the footer, where Instagram is one
+  social link among three and stays a ghost icon button; a brand fill there
+  would make the least important of the three the loudest.
 
 ### Neutral
 All ratios below are measured against the page ground `#08090b`.
@@ -249,6 +297,20 @@ from a real contrast check against that platform's colour the same way.
 muted. A colour that exists only to look quiet is a contrast failure waiting to
 happen; if something needs to recede, use size, weight, or spacing.
 
+**The Field-Rings-Step-Up Rule.** A form field sits inside a `.bx-panel`, so its
+resting ring is `--bx-line` and its hover ring `--bx-line-2` — the same step-up
+a tile takes on the band, for the same reason: on the raised fill, `line-soft`
+falls to 1.27:1 and disappears. The field's own fill drops to the page ground so
+it reads as cut into the panel rather than stacked on it. Nothing on a panel
+takes a resting ring at `line-soft`.
+
+**A Panel Cannot Sit On The Band.** `.bx-panel` and `.bx-band` are both
+`--bx-raised`, so a panel drawn on the band is invisible, and stepping it to
+`raised-2` only buys 1.09:1 — under the floor for a shape that is not full
+bleed. A band section holds content directly (Now Playing, the Mission, Up
+Next), never a grid of cards. If a section wants cards, it belongs on the page
+ground.
+
 ## Typography
 
 **Display/Body Font:** Geist (with ui-sans-serif, system-ui, sans-serif fallback)
@@ -279,6 +341,13 @@ accent.
   card titles (at 600 weight), panel descriptions, host bios, footer copy —
   wherever prose sits a step below the lead line without dropping into label
   territory.
+- **Link** (600 for `.bx-actionlink`, 400 for `.bx-quietlink`, `0.875rem`): the
+  inline link register — "Watch the episode", "View all", "Open Booking Buddy".
+  It shipped on the home page as `text-sm` from the first build and was simply
+  never written down; it is named here because six more routes now use it.
+- **Field** (400, `1rem`, `.bx-field` / `.bx-label` at `0.875rem`): form
+  controls. 16px is the one literal off the ramp and it is deliberate — anything
+  smaller makes iOS Safari zoom the page when an input takes focus.
 - **Label** (400, 0.6875rem, letter-spacing 0.14em, uppercase, tabular numerals,
   Geist Mono, muted): dates, runtimes, counts, terms.
 
@@ -489,7 +558,34 @@ thumbnails, 4:3 for the hosts photo, 1:1 for the Instagram strip.
   the scale are both dropped under `prefers-reduced-motion: reduce`; the ring and
   the shadow are not.
 - **`.bx-stage`** — a tile modifier that changes only the radius (1rem) and
-  enlarges the play mark. Used once, on the newest episode.
+  enlarges the play mark. Used on the newest episode and on the episode page's
+  player.
+- **`.bx-plate`** — a `.bx-tile` modifier that swaps the raised fill for white
+  and the image fit from `cover` to `contain`. For artwork drawn by somebody
+  else for a white ground: gear photographs, tournament cover art. A `cover`
+  crop of a brand's studio backdrop is not a product shot, and a transparent
+  logo lockup on near-black is an empty rectangle. It keeps the tile gesture, so
+  it lifts and rings like every other image on the site.
+
+### Interior-page vocabulary
+Named once in `globals.css` rather than respelled per route. The home page was
+one composition and could afford inline strings; seven routes cannot.
+- **`.bx-lead`** — the standfirst under an h1 or section heading. Body step,
+  muted, 48ch.
+- **`.bx-prose`** — multi-paragraph passages (the About page's story and
+  argument). Body step at 1.7 line-height, 62ch, `1.125rem` gaps. `strong`
+  inside it promotes to ink; that is the passage's only emphasis, and it stays
+  inside the two-step ink scale rather than inventing a third tone.
+- **`.bx-actionlink`** / **`.bx-quietlink`** — the two link registers. An action
+  link is ink dropping to muted (the thing to do next); a quiet link is muted
+  rising to ink (the way out of a section). Colour only, 200ms.
+- **`.bx-arrow`** — One Arrow Behaviour, in one place: `translateX(2px)` on
+  `.group:hover`, 200ms. Pair with Tailwind's `group` on the link.
+- **`.bx-chip`** — a small factual chip in the metadata register but ringed and
+  in ink: a discount code, a "tentative" flag. Something a visitor may copy or
+  act on, which is why it is not muted. Brand orange stays out of it.
+- **`.bx-field`** / **`.bx-label`** — form controls, on the Contact page only.
+  See The Field-Rings-Step-Up Rule below.
 
 ### Signature Component: the play/duration pairing
 - **`.bx-play`** — an authored SVG play glyph (never an icon-set import),
@@ -570,7 +666,31 @@ source photograph, not a generic responsive simplification, drives the split.
 - **Don't** carry Broadcast Dark's `.bx-dark` scope, tokens, or components onto
   Booking Buddy, On Deck, or Pickle Point Pal, or vice versa — the four visual
   worlds are deliberately separate and none of them imports another's tokens.
-- **Don't** treat the six not-yet-migrated marketing routes (Podcast, Gear,
-  About, Contact, Tools, Appearances) as already conforming to this system when
-  auditing or extending them — they run the incumbent orange-pill-nav look and
-  are pending migration, not already compliant.
+- **Don't** demote a removed eyebrow into a `.bx-meta` line under the heading.
+  Dropping the eyebrow is right; keeping its words and setting them in tracked
+  mono is the same decorative label one line lower, and it breaks the
+  Metadata-Only Mono Rule by name. The About page shipped five of these ("Why we
+  do this", "The two behind the mic") before a review caught them. If the words
+  are worth keeping they are prose; usually the heading already said it.
+- **Don't** edit copy PRODUCT.md records as published, including its
+  punctuation. Normalising it is a rewrite of confirmed brand voice, and the
+  no-dash rule governs copy *we* write. Raise it as a question instead.
+  **This is the process rule, and it held:** the About page's spaced-hyphen
+  dashes were changed silently during the rollout, reverted when a review
+  caught it, put to Adrian as a question, and removed on **2026-09-07 at his
+  explicit instruction** — About prose, the `content/team.ts` bios, two
+  `src/data/gear.ts` blurbs, and the Podcast and Contact meta descriptions.
+  A diff against pre-rollout `master` will show that copy differing; that is
+  the sanctioned change, not a regression to restore.
+- **Don't** clamp text on an element whose only child is a `.bx-actionlink`.
+  That class is `inline-flex`, so `line-clamp-2` clamps one flex child instead
+  of the text inside it — which is how episode titles ran to four lines in the
+  catalogue grid. A clamped title takes a plain inline link.
+- **Don't** put a `.bx-meta` line at the top of a card in a grid. Cards stretch
+  to their row's height, so the metadata goes last with `mt-auto`, which is what
+  lines every date in a row up on one baseline.
+- **Don't** reach for the shadcn form primitives (`Input`, `Select`, `Field`)
+  inside `.bx-dark`. They carry the light theme's semantic tokens as Tailwind
+  *utilities*, which outrank anything this scope declares in the components
+  layer, and `Select` portals its popup outside the scope on top of that. Use
+  native elements with `.bx-field`; `color-scheme: dark` handles the dropdown.

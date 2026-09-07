@@ -2521,6 +2521,15 @@ html:has(.bb-app-chrome) {
     --bx-spotify: #1db954;
     --bx-spotify-ink: #0a0a0a;
 
+    /* Instagram, the third destination. Only the About page's close and the
+       Contact page's follow row use it as a fill; the footer keeps Instagram
+       as a ghost icon button, because there it is one social link among three
+       rather than the action being asked for. White on this pink measures
+       4.34:1 - the same register as white on YouTube red, kept on the same
+       recorded reasoning. */
+    --bx-instagram: #e1306c;
+    --bx-instagram-ink: #ffffff;
+
     --bx-radius: 0.75rem;
     --bx-radius-lg: 1rem;
     --bx-shadow: 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 48px -32px rgb(0 0 0 / 0.9);
@@ -2596,6 +2605,8 @@ html:has(.bb-app-chrome) {
   .bx-btn-yt:hover { background: #e60000; }
   .bx-btn-sp { background: var(--bx-spotify); color: var(--bx-spotify-ink); }
   .bx-btn-sp:hover { background: #1ed760; }
+  .bx-btn-ig { background: var(--bx-instagram); color: var(--bx-instagram-ink); }
+  .bx-btn-ig:hover { background: #d81b60; }
   .bx-btn:active { transform: translateY(1px); }
 
   /* ---- The stage and the archive cards ---------------------------------- */
@@ -2689,5 +2700,143 @@ html:has(.bb-app-chrome) {
   }
   .bx-dark a { text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
   .bx-dark { color-scheme: dark; }
+
+  /* The ground behind the ground. `.bx-dark` paints the shell that holds the
+     header, main and footer, but the document body sits behind it - and shows
+     through on overscroll, and in the strip the sticky pill nav floats in
+     before any section has started. Without this, every interior route opened
+     on a bare light band above its own hero. */
+  body:has(.bx-dark) { background: #08090b; }
+
+  /* ---- Interior-page vocabulary ------------------------------------------
+     The home page was one composition and could spell everything inline. Six
+     more routes repeating those strings is how a system drifts, so the
+     recurring parts are named here once: the standfirst under an h1, the two
+     link registers, the arrow every inline link shares, and the controls the
+     home page never needed (fields, chips, the white product plate).
+     ------------------------------------------------------------------------ */
+
+  /* The standfirst under a page or section heading. Capped at a 48ch measure,
+     which is where this size stops being comfortable to read. */
+  .bx-lead {
+    max-width: 48ch;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--bx-muted);
+  }
+
+  /* Long-form passages - the About page's origin story, mission and argument.
+     A slightly looser line height and a wider measure than `.bx-lead`, since
+     these run for paragraphs rather than a line or two. A sentence promoted to
+     ink is the passage's own emphasis and stays inside the two-step ink scale
+     rather than inventing a third tone. */
+  .bx-prose {
+    display: flex;
+    flex-direction: column;
+    gap: 1.125rem;
+    max-width: 62ch;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--bx-muted);
+  }
+  .bx-prose strong { font-weight: 600; color: var(--bx-ink); }
+
+  /* One arrow behaviour, in one place. Every inline `->` link on the site
+     nudges the same 2px over the same 200ms; the home page spelled this out at
+     six call sites, which is exactly how two of them would eventually drift.
+     Pair with Tailwind's `group` on the link. */
+  .bx-arrow {
+    display: inline-block;
+    margin-left: 0.375rem;
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .group:hover .bx-arrow { transform: translateX(2px); }
+
+  /* The two link registers. An action link is ink dropping to muted (it is the
+     thing to do next); a quiet link is muted rising to ink (it is the way out
+     of a section). Both 200ms, colour only - no underline, no background. */
+  .bx-actionlink {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--bx-ink);
+    transition: color 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bx-actionlink:hover { color: var(--bx-muted); }
+
+  .bx-quietlink {
+    font-size: 0.875rem;
+    color: var(--bx-muted);
+    transition: color 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bx-quietlink:hover { color: var(--bx-ink); }
+
+  /* A small factual chip - a discount code, a "tentative" flag. Metadata
+     register, but ringed and in ink rather than muted, because the string
+     inside it is something a visitor may have to copy or act on. Brand orange
+     deliberately stays out of it: the accent has its jobs already. */
+  .bx-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0.25rem;
+    padding: 0.1875rem 0.4375rem;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--bx-ink);
+    box-shadow: 0 0 0 1px var(--bx-line);
+  }
+
+  /* A product photograph's plate. Paddles, grips and shoes are all shot on
+     white by the brands that sell them, so the honest presentation is a white
+     plate and `contain`, not a `cover` crop of someone else's studio backdrop.
+     It is still a `.bx-tile`, so it lifts and rings like every other image on
+     the site - only the fill and the fit change. Declared after `.bx-tile` on
+     purpose: it overrides that rule's raised fill. */
+  .bx-plate { background: #fff; }
+  .bx-plate img { object-fit: contain; padding: 0.875rem; }
+
+  /* ---- Form controls -----------------------------------------------------
+     Only the contact form needs these. Fields sit inside a `.bx-panel`, so
+     their rings step up to line/line-2 - on the raised fill, `line-soft` falls
+     to 1.27:1 and disappears, which is the Visible-Step Rule's whole point.
+     The field itself drops to the page ground so it reads as cut into the
+     panel rather than stacked on it.
+     ------------------------------------------------------------------------ */
+  .bx-field {
+    width: 100%;
+    border: 0;
+    /* The card radius, not a new step for form controls. 16px is the one
+       literal here that is not on the ramp, and it is deliberate: anything
+       under 16px on an input makes iOS Safari zoom the page on focus. */
+    border-radius: var(--bx-radius);
+    background: var(--bx-bg);
+    box-shadow: 0 0 0 1px var(--bx-line);
+    padding: 0.75rem 0.875rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--bx-ink);
+    transition:
+      box-shadow 160ms cubic-bezier(0.32, 0.72, 0, 1),
+      background-color 160ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bx-field::placeholder { color: var(--bx-muted); }
+  .bx-field:hover { box-shadow: 0 0 0 1px var(--bx-line-2); }
+  /* A required `<select>` still on its empty option is `:invalid`, which is
+     the only hook a native select gives for "nothing chosen yet". Without it
+     the placeholder sat in full ink and read as an answer. */
+  select.bx-field:invalid { color: var(--bx-muted); }
+
+  /* The field's own label. Ink, not muted: a label a visitor has to squint at
+     is the fastest way to make a form feel like paperwork. */
+  .bx-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--bx-ink);
+  }
 
 }

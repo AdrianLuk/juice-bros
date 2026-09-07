@@ -35,11 +35,12 @@ export function FreeTools() {
               {app.description}
             </p>
             <p className="bx-meta mt-5">
-              Free
-              <span aria-hidden> · </span>
-              {app.slug === "booking-buddy" ? "Account needed" : "No sign-up"}
-              <span aria-hidden> · </span>
-              {app.status === "live" ? "Open now" : "Coming soon"}
+              {app.terms.map((term, index) => (
+                <span key={term}>
+                  {index > 0 && <span aria-hidden> · </span>}
+                  {term}
+                </span>
+              ))}
             </p>
             <p className="mt-3 text-sm font-semibold text-[var(--bx-ink)]">
               Open {app.title}

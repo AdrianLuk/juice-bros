@@ -1,7 +1,7 @@
 /**
  * The play affordance drawn on every thumbnail. An authored SVG rather than a
  * unicode triangle or an icon-set glyph, so its optical centring and its
- * corner radius match the rest of the page's drawing.
+ * corner radius match the rest of the site's drawing.
  */
 export function PlayMark() {
   return (

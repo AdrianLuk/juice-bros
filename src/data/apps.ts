@@ -10,6 +10,19 @@ export type AppItem = {
   description: string;
   icon: LucideIcon;
   status: AppStatus;
+  /**
+   * What the tool actually does, in the words someone deciding whether to open
+   * it would use. Kept short - these are read at a glance beside three others,
+   * not studied.
+   */
+  highlights: string[];
+  /**
+   * What it costs and what it asks for, as a metadata line. Lives here rather
+   * than as a `slug === "booking-buddy"` branch inside a card component, which
+   * is where it used to live and where the next tool would have had to be
+   * added by editing a component instead of this file.
+   */
+  terms: string[];
 };
 
 export const apps: AppItem[] = [
@@ -21,6 +34,12 @@ export const apps: AppItem[] = [
       "Plan pickleball with your friends. Open a time, see who's in, and keep your court bookings in one place.",
     icon: CalendarCheck,
     status: "live",
+    highlights: [
+      "Post a time and watch your friends say yes or no to it",
+      "Keep the people you actually play with in groups",
+      "Every booking your group has made, on one calendar",
+    ],
+    terms: ["Free", "Account needed", "Open now"],
   },
   {
     slug: "pickle-point-pal",
@@ -30,5 +49,11 @@ export const apps: AppItem[] = [
       "Keep score and track serves for a pickleball match like a referee would.",
     icon: ClipboardList,
     status: "live",
+    highlights: [
+      "Score, server and side, tracked the way a ref calls them",
+      "Built for a phone held courtside between rallies",
+      "Opens straight from the browser, nothing to install",
+    ],
+    terms: ["Free", "No sign-up", "Open now"],
   },
 ];
