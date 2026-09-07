@@ -18,8 +18,9 @@ const socials = [
  * every marketing route wears the look, that split has no job left: this is the
  * global footer and the exception is gone.
  *
- * It closes on the action the whole site is for - subscribing on YouTube - and
- * carries no newsletter signup. Audience growth on those two platforms is the
+ * It closes on the action the whole site is for - subscribing on YouTube, at
+ * the `sub_confirmation` URL so the dialog opens on arrival rather than leaving
+ * the visitor to find the button - and carries no newsletter signup. Audience growth on those two platforms is the
  * stated success metric (PRODUCT.md), a second capture ask on every page splits
  * it, and there is no publication to post a form to. Adrian's call, 2026-09-06.
  *
@@ -43,7 +44,7 @@ export function SiteFooter() {
             </p>
           </div>
           <a
-            href={siteConfig.links.youtube}
+            href={siteConfig.youtubeSubscribe}
             target="_blank"
             rel="noopener noreferrer"
             className="bx-btn bx-btn-yt shrink-0 self-start px-6 py-3.5 text-base sm:self-auto"
