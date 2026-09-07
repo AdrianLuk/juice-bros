@@ -55,11 +55,21 @@ band, sees the two of them, recognises himself in the difference, and leaves via
 Instagram or the contact form.
 
 FIRST VIEWPORT: The floating orange pill on near-black. Below it a two-column
-lock — episode one on a `.bx-stage` tile at up to 38rem on the left, the h1
-("Two friends who couldn't stop talking about pickleball") at the display step
-on the right with its standfirst, a mono line naming the episode, and two
-actions: a solid ink "Play episode one" and a ghost "Every episode". Narrow, the
-stage runs first at full width with the h1 beneath it.
+lock — episode one on a `.bx-stage` tile at 38rem on the left, the same width
+as the home page's Now Playing so the site's one gesture is at its largest
+here. Right column runs the `PageHead` order: the h1 ("Two friends who couldn't
+stop talking about pickleball") at the display step, a `.bx-meta` line naming
+the episode and its date, the standfirst, then two actions — a solid ink "Every
+episode" and a YouTube-red "Subscribe on YouTube". Narrow, the stage runs first
+at full width with the h1 beneath it.
+
+The actions are an amendment, made at the finish review and recorded here
+rather than left as a silent substitution. The contract first named a solid ink
+"Play episode one"; the stage already is the play control, carrying the play
+mark every thumbnail on the site wears, so a labelled pill repeating it gave
+one action two affordances. The ink register moved to "Every episode", which is
+the genuine next step from this page, and subscribing takes the platform colour
+DESIGN.md reserves for it.
 
 FORM: Category standard at full fidelity, composition rank 3 of 7 on the ranked
 list, dealt lead. Seed key `0ef54dfa` (surface scope, persuade; degraded roll —

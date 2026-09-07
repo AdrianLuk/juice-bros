@@ -49,9 +49,11 @@ const ORIGIN_EPISODE_ID = getYoutubeVideoId(ORIGIN_EPISODE_URL) ?? "";
  *
  * The episode lookup is live, like every other episode surface on the site
  * (`docs/adr/0002`), so the hero's date and runtime chip are real rather than
- * hand-maintained. It resolves against the same snapshot fallback the rest of
- * the site uses, and the hero degrades to the player alone if the id ever
- * falls out of the feed entirely.
+ * hand-maintained, and the origin story can link to episode one's own page by
+ * a slug that is computed rather than typed. It resolves against the same
+ * snapshot fallback the rest of the site uses; if the id ever falls out of the
+ * feed entirely, the hero degrades to the player alone and the story's link
+ * drops out rather than pointing at a slug that will not resolve.
  */
 export default async function AboutPage() {
   const episodes = await getEpisodes();
@@ -61,7 +63,7 @@ export default async function AboutPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
       <Hero episodeId={ORIGIN_EPISODE_ID} episode={originEpisode} />
-      <OriginStory />
+      <OriginStory episodeSlug={originEpisode?.slug} />
       <Mission />
       <MeetTheBros />
       <Differentiation />

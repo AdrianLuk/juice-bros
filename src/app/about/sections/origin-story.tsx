@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Reveal } from "@/components/motion/reveal";
 
 /**
@@ -19,9 +21,16 @@ import { Reveal } from "@/components/motion/reveal";
  * marks the top of the argument and then gets out of the way, rather than
  * giving all seven sections the same entrance.
  *
+ * The story closes on the site's inline action register - the one exit the
+ * body of this page used to lack entirely. It points at episode one's own page
+ * rather than back at the catalogue: the hero already plays the episode, and
+ * what that page adds is the thing this section is describing in prose, the
+ * chapter list and the notes. It drops out when the lookup misses, because a
+ * link built from a slug that does not resolve is worse than no link.
+ *
  * All copy here is the published About page's own, unchanged.
  */
-export function OriginStory() {
+export function OriginStory({ episodeSlug }: { episodeSlug?: string }) {
   return (
     <section className="bx-measure bx-hair py-16 sm:py-24">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,23rem)] lg:items-start lg:gap-14">
@@ -49,10 +58,21 @@ export function OriginStory() {
               us now.</strong>
             </p>
           </div>
+          {episodeSlug && (
+            <Link
+              href={`/podcast/${episodeSlug}`}
+              className="bx-actionlink group mt-7"
+            >
+              Show notes and chapters
+              <span aria-hidden className="bx-arrow">
+                &rarr;
+              </span>
+            </Link>
+          )}
         </Reveal>
 
         <Reveal variant="right" as="aside" className="bx-panel p-6 sm:p-7">
-          <h3 className="bx-h2 text-base sm:text-lg">How we got the name</h3>
+          <h3 className="bx-h2 text-lg sm:text-xl">How we got the name</h3>
           <div className="mt-4 flex flex-col gap-4 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
             <p>
               Back when we first started, we both played at the same local park.

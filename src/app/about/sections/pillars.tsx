@@ -1,3 +1,7 @@
+import Link from "next/link";
+
+import { SectionHead } from "@/components/bx/page-head";
+
 const pillars = [
   {
     name: "Conversations",
@@ -29,6 +33,11 @@ const pillars = [
  * than the incumbent's brand orange: orange has its jobs on this site and a
  * card heading is not one of them.
  *
+ * It opens with the page's second and last hairline, because this is where the
+ * register changes - the argument ends above it and a supporting shelf begins.
+ * Like every shelf section on the site it carries its own way out, so the body
+ * of the page is no longer a run of six sections with nowhere to click.
+ *
  * Shelf rank, not a fourth major: DESIGN.md's ladder puts supporting sections
  * at py-10/14 under a minor heading, and this one is four one-line blurbs
  * rather than an argument. Every section on this page carried identical air
@@ -38,14 +47,28 @@ const pillars = [
  */
 export function Pillars() {
   return (
-    <section className="bx-measure py-10 sm:py-14">
-      <h2 className="bx-h2 text-lg sm:text-xl">More than a podcast</h2>
+    <section className="bx-measure bx-hair py-10 sm:py-14">
+      <SectionHead
+        title="More than a podcast"
+        size="minor"
+        link={
+          <Link
+            href="/podcast"
+            className="bx-quietlink group inline-flex items-center whitespace-nowrap"
+          >
+            Every episode
+            <span aria-hidden className="bx-arrow">
+              &rarr;
+            </span>
+          </Link>
+        }
+      />
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {pillars.map((pillar) => (
           <li key={pillar.name} className="flex">
             <div className="bx-panel flex w-full flex-col p-6">
-              <h3 className="bx-h2 text-base">{pillar.name}</h3>
+              <h3 className="bx-h2 text-base sm:text-lg">{pillar.name}</h3>
               <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
                 {pillar.blurb}
               </p>
