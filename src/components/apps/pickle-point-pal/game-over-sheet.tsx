@@ -36,7 +36,14 @@ export function GameOverSheet({
       </p>
 
       <div className="pp-panel pp-panel-settle mx-auto mt-4 flex px-6 py-4">
-        <span className="inline-flex items-center text-[clamp(3rem,17vw,5.5rem)] leading-none">
+        {/* `SegSep` is decorative, so without a label of its own this reads out
+            as one run-together number — "110" for 11-0. Same `role="img"` +
+            spoken label `SegReadout` and `SegClock` each carry. */}
+        <span
+          role="img"
+          aria-label={`Final score ${game.scores[winner]}-${game.scores[otherTeam(winner)]}`}
+          className="inline-flex items-center text-[clamp(3rem,17vw,5.5rem)] leading-none"
+        >
           <SegNumber value={game.scores[winner]} reserve={2} />
           <SegSep />
           <SegNumber value={game.scores[otherTeam(winner)]} reserve={2} />

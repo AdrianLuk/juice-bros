@@ -8,7 +8,8 @@ import {
   deleteAvailabilityWindows,
   insertAvailabilityWindow,
 } from "./support/availability.ts";
-import { deleteFriendGroups } from "./support/db-reset.ts";
+import { deleteFriendGroups, deleteVisibilityOverrides } from "./support/db-reset.ts";
+import { pinFriendVisibility } from "./support/visibility.ts";
 
 /**
  * "Find a time" (issue #195) — Plan's third child. Pick friends who share their
@@ -16,11 +17,13 @@ import { deleteFriendGroups } from "./support/db-reset.ts";
  * the "Looking to play" surfaces that hang off the same visibility gate (#230):
  * the Games page's "Friends looking to play" pool and the Find-a-time nudge.
  *
- * The seeded `@amyace` ↔ `@benbackhand2` pair starts at the visibility
- * lattice's bottom (see booking-buddy/docs/local-test-accounts.md), so each
- * test first has Ben2 put Amy in an `open_time` group, torn down after.
- * `@amyace` ↔ `@benbackhand` stays at the bottom — that pair is the negative
- * case: a friend with no grant never appears in the picker.
+ * Both sides of the gate are stated outright rather than left to whatever the
+ * seed data resolves to: Ben2 puts Amy in an `open_time` group (torn down
+ * after), and Ben pins Amy shut with a per-friend override of `none`. Since
+ * ADR 0021 the floor is each User's `default_friend_visibility`, seeded to
+ * `calendar` — so "connected and nothing else" now *does* reach the picker,
+ * and a negative case that leans on the floor is only ever one default change
+ * away from asserting nothing (#446).
  *
  * Ben2's grant is done in its own browser context — `signIn` bounces off the
  * sign-in page when a session already exists, so one context can't switch
@@ -66,10 +69,13 @@ function friendCheckbox(page: Page, handle: string) {
 }
 
 test.afterEach(async ({ accounts }) => {
+  const ben = { email: accounts.ben.email, password: accounts.password };
   const ben2 = { email: accounts.ben2.email, password: accounts.password };
   const amy = { email: accounts.amy.email, password: accounts.password };
   await deleteAvailabilityWindows(ben2);
   await deleteAvailabilityWindows(amy);
+  // Puts Ben back on his own default — the picker test pins Amy shut.
+  await deleteVisibilityOverrides(ben);
   // Ben2 owns the `open_time` group each test creates to grant Amy visibility;
   // clear it straight at Postgres so a failed run can't leave Amy able to see
   // more than she should. (The click-through sweep raced `revalidatePath`
@@ -83,6 +89,13 @@ test("only friends who share their availability show in the picker", async ({
   accounts,
 }) => {
   await grantAmyOpenTime(browser, accounts);
+  // Ben is the negative case, and says so: an override of `none` shuts Amy out
+  // whatever his default and groups would otherwise resolve to.
+  await pinFriendVisibility(
+    { email: accounts.ben.email, password: accounts.password },
+    { email: accounts.amy.email, password: accounts.password },
+    "none",
+  );
 
   await signIn(page, accounts.amy.email, "/booking-buddy/overlap");
 

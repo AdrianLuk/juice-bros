@@ -3,7 +3,8 @@ import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
-import { deleteFriendGroups } from "./support/db-reset.ts";
+import { deleteFriendGroups, deleteVisibilityOverrides } from "./support/db-reset.ts";
+import { pinFriendVisibility } from "./support/visibility.ts";
 import {
   addPlace,
   logBooking,
@@ -256,8 +257,18 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
   browser,
   accounts,
 }) => {
-  // No group granted here — Amy and Ben2 are Connections per the seed data,
-  // but a friend with no group and no override defaults to no access.
+  // Said outright, not left to the seed data: Amy and Ben2 are Connections,
+  // and since ADR 0021 that alone puts Ben2 on Amy's `calendar` default. The
+  // per-friend override is what actually shuts him out, and is what this test
+  // is about — leaning on the default instead is what left this red from #377
+  // until #446.
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  await pinFriendVisibility(
+    amy,
+    { email: accounts.ben2.email, password: accounts.password },
+    "none",
+  );
+
   const slotId = await createSlot(page, {
     date: "2031-06-06",
     start: "08:00",
@@ -289,7 +300,10 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
       await ben2Context.close();
     }
   } finally {
-    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
+    await deleteSlots([slotId], amy);
+    // Back onto Amy's own default, so the next test in this file starts where
+    // every other one assumes it does.
+    await deleteVisibilityOverrides(amy);
   }
 });
 

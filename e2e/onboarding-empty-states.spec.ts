@@ -48,17 +48,20 @@ test("the dashboard's empty calendar and sidebar point a new User at their first
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  // "Coming up" sidebar — server-rendered alongside every calendar view.
-  await expect(page.getByText("Nothing booked yet.")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Log a court reservation" }),
-  ).toBeVisible();
+  // "Upcoming courts" sidebar — server-rendered alongside every calendar view,
+  // so once the Agenda is showing its CTA and the Agenda's are both on the
+  // page. #407 gave them the same name ("Log a booking"), so each assertion is
+  // scoped to the empty state it belongs to rather than matched page-wide.
+  const sidebarEmpty = page.getByText("Nothing booked yet.");
+  await expect(sidebarEmpty).toBeVisible();
+  await expect(sidebarEmpty.getByRole("link", { name: "Log a booking" })).toBeVisible();
 
   // Agenda view — the calendar's own empty state, with both first-step CTAs.
   await page.getByRole("button", { name: "Agenda", exact: true }).click();
-  await expect(
-    page.getByText(/Your games and bookings show up here/),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Log a booking" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Post a time" })).toBeVisible();
+  const agendaEmpty = page
+    .locator("div.bb-outline")
+    .filter({ hasText: "Your games and bookings show up here" });
+  await expect(agendaEmpty).toBeVisible();
+  await expect(agendaEmpty.getByRole("link", { name: "Log a booking" })).toBeVisible();
+  await expect(agendaEmpty.getByRole("link", { name: "Post a time" })).toBeVisible();
 });
