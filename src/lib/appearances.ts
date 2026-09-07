@@ -1,4 +1,4 @@
-import type { Appearance } from "../../content/appearances.ts";
+import type { Appearance, AppearanceDivision } from "../../content/appearances.ts";
 
 export type {
   Appearance,
@@ -81,6 +81,21 @@ export function formatAppearanceDates(appearance: Appearance): string {
 export function formatShortDay(iso: string): string {
   const [, m, d] = iso.split("-").map(Number);
   return `${MONTHS[m - 1]} ${d}`;
+}
+
+/**
+ * Divisions in the order they play, soonest day first. The content file is
+ * hand-edited as registrations come in, so the array order is the order Adrian
+ * typed them, not the order they happen on court. Undated divisions keep their
+ * written order and sit at the end - there is nothing to sort them by.
+ */
+export function sortDivisions(
+  divisions: readonly AppearanceDivision[],
+): AppearanceDivision[] {
+  return [...divisions].sort((a, b) => {
+    if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
+    return a.date.localeCompare(b.date);
+  });
 }
 
 /** "Adrian and Daven" / "Adrian" / "Daven" for the "who's playing" line. */
