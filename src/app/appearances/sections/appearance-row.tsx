@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { Appearance } from "@/lib/appearances";
 import { describePlayers, formatAppearanceDates, formatShortDay } from "@/lib/appearances";
 import { cn } from "@/lib/utils";
+import { Picture } from "@/components/picture";
 
 const FALLBACK_IMAGE = "/brand/JB_Logo_White.svg";
 
@@ -72,10 +73,10 @@ export function AppearanceRow({
             hasImage ? "bg-muted p-1.5" : "bg-brand-orange",
           )}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- local asset, no next/image optimization needed */}
-          <img
+          <Picture
             src={appearance.image ?? FALLBACK_IMAGE}
             alt=""
+            sizes="(min-width: 640px) 8rem, 6rem"
             loading="lazy"
             className={cn(
               "object-contain transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",

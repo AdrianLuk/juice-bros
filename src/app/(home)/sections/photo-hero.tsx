@@ -1,5 +1,6 @@
 import { siteConfig } from "@/config/site";
 import { YoutubeIcon, SpotifyIcon } from "@/components/icons";
+import { Picture } from "@/components/picture";
 import { HeroBackdrop } from "./hero-backdrop";
 
 /**
@@ -31,22 +32,13 @@ export function PhotoHero() {
       {/* Narrow: an in-flow banner block. Wide: the background of the section,
           with the copy laid over it. */}
       <div className="relative sm:absolute sm:inset-0 sm:-z-10">
-        <picture>
-          <source
-            type="image/webp"
-            srcSet="/brand/JB_Banner-768.webp 768w, /brand/JB_Banner-1280.webp 1280w, /brand/JB_Banner-1600.webp 1600w"
-            sizes="100vw"
-          />
-          <img
-            src="/brand/JB_Banner_1920.jpeg"
-            alt="Daven and Adrian, the hosts of Juice Bros Pickleball"
-            width={1600}
-            height={901}
-            fetchPriority="high"
-            decoding="async"
-            className="h-56 w-full object-cover object-center sm:h-full"
-          />
-        </picture>
+        <Picture
+          src="/brand/JB_Banner.jpeg"
+          alt="Daven and Adrian, the hosts of Juice Bros Pickleball"
+          sizes="100vw"
+          fetchPriority="high"
+          className="h-56 w-full object-cover object-center sm:h-full"
+        />
 
         {/* Static fallback for the citrus field: the warm glow carries the idea
             when WebGL is unavailable. The canvas screen-blends over this. */}

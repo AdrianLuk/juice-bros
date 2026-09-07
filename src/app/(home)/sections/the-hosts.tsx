@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
+import { Picture } from "@/components/picture";
 
 /**
  * The two hosts, under the episodes.
@@ -32,14 +33,11 @@ export function TheHosts() {
           the two of them appear and it is not a duplicate. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
         <figure className="bx-tile aspect-[4/3]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local photo, no next/image optimization needed here */}
-          <img
+          <Picture
             src="/pictures/adrian-dav.jpg"
             alt="Daven and Adrian on court between points"
-            width={1200}
-            height={900}
+            sizes="(min-width: 1024px) 26rem, 100vw"
             loading="lazy"
-            decoding="async"
             className="object-[50%_28%]"
           />
         </figure>
