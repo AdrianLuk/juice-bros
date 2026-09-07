@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
 import { cn } from "@/lib/utils";
-import { PageHeading } from "@/components/typography/page-heading";
+import { BbPageHeading } from "@/components/booking-buddy/bb/page-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { BOOKING_BUDDY_ROOT, FRIENDS_PATH } from "@/lib/booking-buddy/routes";
 import { getConnectionRequestByToken } from "@/lib/booking-buddy/connection-request-notify";
@@ -58,6 +58,17 @@ const DONE_COPY: Record<string, { title: string; description: string }> = {
   },
 };
 
+/**
+ * The cork ground and Booking Buddy's tokens, carried by the page itself.
+ * Everything under `/booking-buddy` gets these from the section layout; this
+ * route sits outside it (a friend request is followed from an email, with no
+ * account required), so it sets them here.
+ *
+ * It used to run on the global light `--background`, which #415 turned
+ * near-black underneath it and left the heading unreadable (#421). The board
+ * is the ground it should have had anyway: this is a Booking Buddy surface
+ * wearing the global chrome, the same thing `/booking-buddy/join/<token>` is.
+ */
 function Shell({
   title,
   description,
@@ -68,10 +79,10 @@ function Shell({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex w-full flex-1 flex-col">
+    <div className="bb-theme bb-board flex w-full flex-1 flex-col text-foreground">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl">
-          <PageHeading eyebrow="Booking Buddy" title={title} description={description} />
+          <BbPageHeading title={title} description={description} />
           {children}
         </div>
       </section>
@@ -79,12 +90,17 @@ function Shell({
   );
 }
 
+/**
+ * `secondary`, not `outline`: on the cork board an outline button is a
+ * transparent slab with a hairline, which all but disappears into the ground.
+ * Secondary is the kraft slab the Booking Buddy landing uses for the same rank.
+ */
 function FriendsLink({ label = "Go to your Friends page" }: { label?: string }) {
   return (
     <div className="mt-8">
       <Link
         href={FRIENDS_PATH}
-        className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+        className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
       >
         {label}
       </Link>
@@ -163,7 +179,7 @@ export default async function ConnectPage({
           type="submit"
           name="a"
           value="decline"
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+          className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
         >
           Decline
         </button>

@@ -2721,6 +2721,11 @@ html:has(.bb-app-chrome) {
   body:has(.bx-dark) { background: #08090b; }
   body:has(.pp-surface) { background: oklch(0.935 0.005 92); }
   body:has(.mm-sheet) { background: #fff; }
+  /* The same vignetted rim `html:has(.bb-board)` paints into the scrollbar
+     gutter, for the same reason one step down: the board sits on an inner div,
+     so the strip the sticky pill nav floats in belonged to the body and came
+     out near-black above the cork. */
+  body:has(.bb-board) { background: oklch(0.6 0.05 58); }
 
   /* ---- Interior-page vocabulary ------------------------------------------
      The home page was one composition and could spell everything inline. Six
