@@ -138,6 +138,65 @@ test("an event whose Booking came from the confirmation email is auto-linked, no
   assert.equal(autoLinked[0].bookingId, "booking-from-email");
 });
 
+test("an event whose reservation the User dismissed from the email side is not re-offered (#437)", () => {
+  // Dismissing the email wrote a `processed_messages` row, which the feed
+  // knows nothing about — and a dismissal leaves no Booking behind for the
+  // feed to recognise. The slot it recorded is what carries the decision
+  // across, court text and all ("#6 - Hard" from the email, "#6" here).
+  const { items, autoLinked } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: [],
+    seenEvents: [],
+    dismissedSlots: [
+      { orgId: "org-1", courtLabel: "#6 - Hard", date: "2026-10-01", startTime: "18:00" },
+    ],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 0);
+  assert.equal(autoLinked.length, 0);
+});
+
+test("a dismissed slot at a different court leaves this event alone", () => {
+  const { items } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: [],
+    seenEvents: [],
+    dismissedSlots: [
+      { orgId: "org-1", courtLabel: "#7 - Hard", date: "2026-10-01", startTime: "18:00" },
+    ],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 1);
+});
+
+test("a Booking made after the dismissal still auto-links — the dismissal suppresses the offer, not the record", () => {
+  // The User dismissed the email candidate, then logged the reservation by
+  // hand anyway. The feed event has to link to that Booking, or the
+  // cancellation diff can never notice this reservation being cancelled.
+  const byHand: ExistingBookingForFeedReview[] = [
+    { id: "booking-by-hand", orgId: "org-1", courtLabel: "#6", date: "2026-10-01", startTime: "18:00" },
+  ];
+
+  const { items, autoLinked } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: byHand,
+    seenEvents: [],
+    dismissedSlots: [
+      { orgId: "org-1", courtLabel: "#6 - Hard", date: "2026-10-01", startTime: "18:00" },
+    ],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 0);
+  assert.equal(autoLinked.length, 1);
+  assert.equal(autoLinked[0].bookingId, "booking-by-hand");
+});
+
 test("an event on a different court at the same time is still offered, not swallowed by the looser match", () => {
   const otherCourt: ExistingBookingForFeedReview[] = [
     {

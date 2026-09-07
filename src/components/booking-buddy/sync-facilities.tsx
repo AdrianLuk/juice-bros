@@ -122,6 +122,12 @@ export function FeedCandidateCard({
         <input type="hidden" name="org_id" value={item.orgId} />
         <input type="hidden" name="sequence" value={item.sequence} />
         <input type="hidden" name="starts_at" value={item.startsAt} />
+        {/* The reservation's slot, so the dismissal settles the email side
+            too (issue #437). The Facility select above is the confirm form's;
+            a dismissal always names the feed's own Org. */}
+        <input type="hidden" name="date" value={item.date} />
+        <input type="hidden" name="start_time" value={item.startTime} />
+        <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>
@@ -185,6 +191,10 @@ export function FeedCancellationCard({
       </form>
       <ActionError state={confirmState} />
 
+      {/* Deliberately posts no slot, unlike the import card above: "Keep
+          booking" means keep this Booking, not "I don't want this
+          reservation", so it must never record a dismissal that suppresses a
+          future import of a slot the User is still playing (issue #437). */}
       <form action={dismissAction} className="self-start">
         <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
         <input type="hidden" name="org_id" value={item.orgId} />

@@ -417,6 +417,23 @@ export function ReviewItemCard({
           name="gmail_message_id"
           value={item.gmailMessageId}
         />
+        {/* An import's slot, so the dismissal settles the calendar feed too
+            (issue #437) — only when the facility matched an Org, since the
+            slot is keyed on one. A cancellation or update posts none: those
+            mean "leave this Booking alone", not "I don't want this
+            reservation". */}
+        {item.kind === "import" && item.matchedOrgId && (
+          <>
+            <input type="hidden" name="org_id" value={item.matchedOrgId} />
+            <input type="hidden" name="date" value={item.date} />
+            <input type="hidden" name="start_time" value={item.startTime} />
+            <input
+              type="hidden"
+              name="court_label"
+              value={item.courtLabel ?? ""}
+            />
+          </>
+        )}
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>
@@ -539,6 +556,12 @@ export function MergedCandidateCard({
         <input type="hidden" name="org_id" value={item.orgId} />
         <input type="hidden" name="sequence" value={item.sequence} />
         <input type="hidden" name="starts_at" value={item.startsAt} />
+        {/* The slot, same as either single-source card posts (issue #437) —
+            redundant while both source rows land, and what still holds if a
+            source hands this reservation back under a new key later. */}
+        <input type="hidden" name="date" value={item.date} />
+        <input type="hidden" name="start_time" value={item.startTime} />
+        <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Dismiss"}
         </Button>

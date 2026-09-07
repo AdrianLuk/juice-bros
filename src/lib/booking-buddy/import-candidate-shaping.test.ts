@@ -5,6 +5,7 @@ import { COURT_LABEL_MAX_LENGTH, NOTES_MAX_LENGTH } from "./bookings.ts";
 import {
   courtNumber,
   findSameReservation,
+  isDismissedReservation,
   isDuplicateBooking,
   isPastConfirmation,
   isSameReservation,
@@ -136,6 +137,24 @@ test("findSameReservation hands back the matched Booking, so the feed can auto-l
   ];
   assert.equal(findSameReservation({ ...SAME_SLOT, courtLabel: "#9" }, bookings)?.id, "booking-9");
   assert.equal(findSameReservation({ ...SAME_SLOT, courtLabel: "#7" }, bookings), undefined);
+});
+
+test("a candidate whose slot the User already dismissed from the other source is dismissed", () => {
+  const dismissedFromEmail = { ...SAME_SLOT, courtLabel: "#9 - Hard" };
+  const offeredByTheFeed = { ...SAME_SLOT, courtLabel: "#9" };
+  assert.equal(isDismissedReservation(offeredByTheFeed, [dismissedFromEmail]), true);
+});
+
+test("a dismissed slot suppresses nothing at a different court, date or time", () => {
+  const dismissed = [{ ...SAME_SLOT, courtLabel: "#9" }];
+  assert.equal(isDismissedReservation({ ...SAME_SLOT, courtLabel: "#10" }, dismissed), false);
+  assert.equal(isDismissedReservation({ ...SAME_SLOT, date: "2026-09-16" }, dismissed), false);
+  assert.equal(isDismissedReservation({ ...SAME_SLOT, startTime: "19:00" }, dismissed), false);
+  assert.equal(isDismissedReservation({ ...SAME_SLOT, orgId: "org-2" }, dismissed), false);
+});
+
+test("nothing is dismissed when no slots have been dismissed", () => {
+  assert.equal(isDismissedReservation(SAME_SLOT, []), false);
 });
 
 test("a confirmation dated before today in its own zone is past", () => {
