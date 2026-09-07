@@ -512,6 +512,49 @@ test("an unusable fallback zone degrades to UTC rather than throwing", () => {
 test("empty input and non-calendar text yield an empty result, not an error", () => {
   for (const junk of ["", "hello world", "BEGIN:VCALENDAR\r\nEND:VCALENDAR"]) {
     const result = parseIcsFeed(junk, { fallbackTimeZone: TORONTO });
-    assert.deepEqual(result, { events: [], unreadableUids: [] });
+    assert.deepEqual(result.events, []);
+    assert.deepEqual(result.unreadableUids, []);
   }
+});
+
+test("a well-formed calendar holding no events reports isCalendar, so an empty club feed reads as healthy rather than broken", () => {
+  // A real captured CourtReserve feed for a member with nothing booked
+  // (issue #431) — well-formed, and completely event-free.
+  const result = parseIcsFeed(
+    [
+      "BEGIN:VCALENDAR",
+      "PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN",
+      "VERSION:2.0",
+      "END:VCALENDAR",
+    ].join("\r\n"),
+    { fallbackTimeZone: TORONTO },
+  );
+
+  assert.deepEqual(result.events, []);
+  assert.deepEqual(result.unreadableUids, []);
+  assert.equal(result.isCalendar, true);
+});
+
+test("a body that isn't a calendar at all reads isCalendar false", () => {
+  for (const junk of ["", "hello world", "<html><body>Sign in</body></html>"]) {
+    assert.equal(parseIcsFeed(junk, { fallbackTimeZone: TORONTO }).isCalendar, false);
+  }
+});
+
+test("isCalendar is about the wrapper, not the events — a calendar whose every event is unreadable still reads true", () => {
+  const result = parseIcsFeed(
+    feed(
+      [
+        "UID:res-broken@courtreserve.com",
+        "SUMMARY:Doubles",
+        "DTSTART:20260915T231500Z",
+        "DTEND:20260916T001500Z",
+      ].join("\r\n"),
+    ),
+    { fallbackTimeZone: TORONTO },
+  );
+
+  assert.deepEqual(result.events, []);
+  assert.deepEqual(result.unreadableUids, ["res-broken@courtreserve.com"]);
+  assert.equal(result.isCalendar, true);
 });

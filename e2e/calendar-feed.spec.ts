@@ -347,10 +347,24 @@ test("an unhealthy feed fetch produces zero cancellation candidates — nothing 
   ).toHaveCount(0);
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
 
-  // An empty (but 200) body is unhealthy the same way.
+  // An empty (but 200) body is unhealthy the same way — it isn't a calendar.
   mock.registerFeed("/feed/unhealthy", { kind: "empty" });
   await syncFacilities(page);
   await expect(section.getByRole("alert").filter({ hasText: facility })).toBeVisible();
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+
+  // A well-formed calendar that simply holds nothing is *healthy* — the member
+  // has no upcoming reservations at this Facility. It reads as a quiet note,
+  // not a fetch error, and the diff still doesn't run (issue #431).
+  mock.registerFeed("/feed/unhealthy", { kind: "no-events" });
+  await syncFacilities(page);
+  await expect(
+    section.getByText(`${facility}'s feed has no upcoming reservations.`),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(section.getByRole("alert").filter({ hasText: facility })).toHaveCount(0);
+  await expect(
+    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Remove booking" }) }),
+  ).toHaveCount(0);
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
 });
 

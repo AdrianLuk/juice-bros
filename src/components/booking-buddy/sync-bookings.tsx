@@ -177,6 +177,10 @@ export function SyncBookingsSection({
     (feed) => feed.cancellations,
   );
   const feedsLookingWrong = okFeeds.filter((feed) => feed.feedLooksWrong);
+  // Healthy feeds holding nothing — named individually rather than folded into
+  // the shared "No new bookings found." line, so a User with several Facilities
+  // can see which one had nothing rather than guessing (#431).
+  const emptyFeeds = okFeeds.filter((feed) => feed.empty);
 
   // One reservation the User made can arrive from both sources at once (a
   // Mailbox Link and a calendar feed for the same facility) — consolidate the
@@ -228,6 +232,7 @@ export function SyncBookingsSection({
     feedCancellations.length === 0 &&
     erroredFeeds.length === 0 &&
     feedsLookingWrong.length === 0 &&
+    emptyFeeds.length === 0 &&
     !emailReconnectRequired &&
     !emailError &&
     !feedError;
@@ -336,11 +341,15 @@ export function SyncBookingsSection({
               {orgNameById.get(feed.orgId) ?? "that facility"}
               &apos;s feed.
             </p>
-            <p className="mt-0.5">
-              {feed.message} If this keeps happening, re-copy the feed URL from
-              CourtReserve and save it again.
-            </p>
+            <p className="mt-0.5">{feed.message}</p>
           </div>
+        ))}
+
+        {emptyFeeds.map((feed) => (
+          <p key={feed.orgId} className="text-sm text-muted-foreground">
+            {orgNameById.get(feed.orgId) ?? "That facility"}&apos;s feed has no
+            upcoming reservations.
+          </p>
         ))}
 
         {feedsLookingWrong.map((feed) => (
