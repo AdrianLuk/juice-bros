@@ -24,6 +24,8 @@ import {
   FoursomePanel,
   QueueList,
   Readout,
+  SkillColors,
+  SkillKey,
 } from "@/components/on-deck/board-parts";
 
 /**
@@ -350,6 +352,7 @@ function KioskBoardInner({
   const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
 
   return (
+    <SkillColors by={view.skillByName}>
     <div className="space-y-7" data-testid="kiosk-board">
       {error && (
         <p
@@ -497,6 +500,9 @@ function KioskBoardInner({
           data-testid="kiosk-queue"
         />
       </section>
+
+      <SkillKey className="border-t border-arena-line-soft pt-4" />
     </div>
+    </SkillColors>
   );
 }

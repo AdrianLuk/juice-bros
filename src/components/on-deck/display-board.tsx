@@ -14,6 +14,8 @@ import {
   CourtPanel,
   FoursomePanel,
   QueueList,
+  SkillColors,
+  SkillKey,
 } from "@/components/on-deck/board-parts";
 
 function displayQueryKey(sessionId: string) {
@@ -26,8 +28,8 @@ function displayQueryKey(sessionId: string) {
  * NEXT" carries the filled orange progress-to-court ladder — then the courts as
  * a grid of panels (an open court reads OPEN in orange until its foursome flips
  * on), then the numbered queue behind its rail. No token is ever passed to
- * `getRotationView` — display names only, no Skill Level, no contact data, no
- * buttons.
+ * `getRotationView` — display names and Skill Levels only (every name is inked
+ * by its level, with the legend under the queue), no contact data, no buttons.
  */
 export function DisplayBoard(props: {
   sessionId: string;
@@ -74,6 +76,7 @@ function DisplayBoardInner({
   const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
 
   return (
+    <SkillColors by={view.skillByName}>
     <div className="space-y-7" data-testid="display-board">
       {view.lastCall && (
         <BoardBanner tone="last-call" data-testid="display-last-call">
@@ -138,6 +141,9 @@ function DisplayBoardInner({
           </p>
         )}
       </section>
+
+      <SkillKey className="border-t border-arena-line-soft pt-4" />
     </div>
+    </SkillColors>
   );
 }

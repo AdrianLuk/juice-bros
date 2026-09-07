@@ -9,8 +9,11 @@ import {
   BoardHeading,
   CourtPanel,
   FoursomePanel,
+  PlayerName,
   QueueList,
   Readout,
+  SkillColors,
+  SkillKey,
 } from "@/components/on-deck/board-parts";
 import {
   addWalkup,
@@ -400,7 +403,7 @@ function SkillLevels({
       <ul className="mt-3 space-y-2">
         {roster.map((p) => (
           <li key={p.name} className="flex items-center justify-between gap-3">
-            <span className="od-display text-lg">{p.name}</span>
+            <PlayerName name={p.name} className="od-display text-lg" />
             <select
               aria-label={`Skill level for ${p.name}`}
               className="od-select w-40"
@@ -496,7 +499,7 @@ function QueueTogether({
                     className={`od-chip ${on ? "od-chip--on" : ""}`}
                     onClick={() => toggle(name)}
                   >
-                    {name}
+                    <PlayerName name={name} />
                   </button>
                 </li>
               );
@@ -827,6 +830,7 @@ function RotationBoardInner({
   const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
 
   return (
+    <SkillColors by={view.skillByName}>
     <div className="space-y-7">
       {error && (
         <p
@@ -1002,7 +1006,7 @@ function RotationBoardInner({
                 className="flex items-center justify-between gap-3 border-b border-arena-line-soft py-2"
               >
                 <span className="od-display text-lg">
-                  {p.name}{" "}
+                  <PlayerName name={p.name} />{" "}
                   <span className="od-readout ml-1 text-arena-dim">
                     {PAUSE_REASON_LABEL[p.reason]}
                   </span>
@@ -1020,6 +1024,9 @@ function RotationBoardInner({
           </ul>
         </section>
       )}
+
+      <SkillKey className="border-t border-arena-line-soft pt-4" />
     </div>
+    </SkillColors>
   );
 }

@@ -18,6 +18,11 @@ import {
   type FloorMode,
 } from "@/lib/on-deck/session/types";
 import { TurnNotifications } from "@/components/on-deck/turn-notifications";
+import {
+  PlayerName,
+  SkillColors,
+  SkillKey,
+} from "@/components/on-deck/board-parts";
 
 function rotationQueryKey(sessionId: string) {
   return ["on-deck", "rotation", sessionId, "me"] as const;
@@ -223,8 +228,10 @@ function QueueStatusInner({
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
 
+  // The one place this screen lists other people — so the Skill Level ink the
+  // rest of the boards use is scoped to here rather than the whole verdict.
   const groupControls = (
-    <>
+    <SkillColors by={query.data?.skillByName ?? {}}>
       {me?.group && (
         <div className="mt-4" data-testid="queue-group-note">
           <p className="text-sm text-arena-faint">
@@ -269,6 +276,7 @@ function QueueStatusInner({
           <p className="mt-2 text-xs text-arena-faint">
             {QUEUE_TOGETHER_EXPLAINER}
           </p>
+          <SkillKey className="mt-2" />
           <ul className="mt-2 flex flex-wrap gap-2">
             {me.groupmateOptions.map((name) => {
               const on = picked.includes(name);
@@ -281,7 +289,7 @@ function QueueStatusInner({
                     className={`od-chip ${on ? "od-chip--on" : ""}`}
                     onClick={() => toggle(name)}
                   >
-                    {name}
+                    <PlayerName name={name} />
                   </button>
                 </li>
               );
@@ -304,7 +312,7 @@ function QueueStatusInner({
           </button>
         </details>
       )}
-    </>
+    </SkillColors>
   );
 
   const stepOut = (
