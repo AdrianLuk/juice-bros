@@ -36,9 +36,15 @@ export function UpNext({ appearance }: { appearance: Appearance }) {
             <p className="mt-3.5 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
               {appearance.location}
             </p>
-            <p className="mt-1 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
-              Playing: {describePlayers(appearance.players)}
-            </p>
+            {/* Who is playing is only stated here when there are no brackets to
+                state it more precisely. With divisions listed, this line named
+                the same two people the five rows below it already name, one per
+                row - six printings of "Adrian and Daven" inside one block. */}
+            {divisions.length === 0 && (
+              <p className="mt-1 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+                Playing: {describePlayers(appearance.players)}
+              </p>
+            )}
 
             {divisions.length > 0 && (
               <div className="mt-8 max-w-2xl">

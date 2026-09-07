@@ -13,6 +13,13 @@ export type GearItem = {
   code: string;
   url: string;
   image?: string;
+  /**
+   * Set when the brand's photo has its own dark or coloured background baked
+   * in, rather than being shot on white. Those sit on the card's normal raised
+   * fill; only a genuinely white-ground product shot gets the white plate, or
+   * the card renders as a black rectangle floating inside a white box.
+   */
+  imageHasOwnGround?: boolean;
 };
 
 export type HostGear = {
@@ -30,6 +37,7 @@ const triggerGripCard: GearItem = {
   url: "https://triggergrippro.com/products/tgp-premium-grip",
   image:
     "https://cdn.shopify.com/s/files/1/0608/2596/0544/files/TGP_Premium_Grip_Stealth_Grey.png?v=1778789661",
+  imageHasOwnGround: true,
 };
 
 const daven: HostGear = {
@@ -53,6 +61,7 @@ const daven: HostGear = {
       url: "https://www.udrippin.com/collections/udrippin-overgrips",
       image:
         "https://www.udrippin.com/cdn/shop/files/udrippin_white_main.webp?v=1707586921&width=1750",
+      imageHasOwnGround: true,
     },
   ],
   bag: [],

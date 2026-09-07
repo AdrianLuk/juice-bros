@@ -20,18 +20,17 @@ export function Mission() {
             To create the most relatable pickleball conversations on the
             internet.
           </h2>
-          <p className="bx-meta mt-5">Why we do this</p>
           <div className="mt-7 flex flex-col gap-5 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
             <p>
               We&apos;re not here to fix your third shot drop or rank the best
-              paddles. There are plenty of people already doing that, and doing
+              paddles - there are plenty of people already doing that, and doing
               it better than we would.
             </p>
             <p>
               We&apos;re here for everything else: the psychology, the
               friendships, the rivalry that started over one bad line call, the
               pre-tournament nerves, the post-tournament food. The stuff that
-              happens before, during, and after every game, the stuff that
+              happens before, during, and after every game - the stuff that
               actually makes this sport what it is.
             </p>
             <p className="font-medium text-[var(--bx-ink)]">

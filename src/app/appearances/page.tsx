@@ -40,15 +40,10 @@ export default function AppearancesPage() {
 
       <PageHead
         title="Where to catch us in person"
-        meta={
-          upcoming.length > 0 ? (
-            <>
-              {upcoming.length} coming up
-              <span aria-hidden> &middot; </span>
-              Ontario and around
-            </>
-          ) : undefined
-        }
+        // The count alone. An earlier draft added "Ontario and around", which
+        // was one word wider than the truth - every entry on the calendar is
+        // in Ontario.
+        meta={upcoming.length > 0 ? `${upcoming.length} coming up` : undefined}
         lead="The tournaments we're actually signed up for, with the brackets we're in. If you're playing one of these, come say hi between matches."
       />
 

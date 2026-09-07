@@ -35,7 +35,6 @@ export function Pillars() {
       <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
         More than a podcast
       </h2>
-      <p className="bx-meta mt-3">What you&apos;ll find here</p>
 
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {pillars.map((pillar) => (

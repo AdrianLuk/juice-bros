@@ -26,9 +26,9 @@ export function Hero() {
           bigger, which added a type step the ramp doesn't have for the sake of
           one paragraph - the 68px h1 above it is already carrying the hero. */}
       <p className="bx-lead mt-7 max-w-[54ch]">
-        So we hit record. Juice Bros is a podcast, a community, and most days a
-        group chat that got a little out of hand. All for the everyday player
-        who just wants to feel like they&apos;re part of something.
+        So we hit record. Juice Bros is a podcast, a community, and - most days
+        - a group chat that got a little out of hand. All for the everyday
+        player who just wants to feel like they&apos;re part of something.
       </p>
     </section>
   );

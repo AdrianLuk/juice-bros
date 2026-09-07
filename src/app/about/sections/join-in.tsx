@@ -29,8 +29,8 @@ export function JoinIn() {
       <p className="mt-5 max-w-[52ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
         Got a story from your local courts? A club we should know about? A hot
         take you need to get off your chest? We want to hear it. Follow along,
-        send us a message, or just show up in the comments. That&apos;s half the
-        show.
+        send us a message, or just show up in the comments - that&apos;s half
+        the show.
       </p>
 
       <div className="mt-8 flex flex-wrap gap-3">
@@ -44,7 +44,7 @@ export function JoinIn() {
           Follow on Instagram
         </a>
         <Link href="/contact" className="bx-btn bx-btn-ghost">
-          Send us a message
+          Send Us a Message
         </Link>
       </div>
     </section>

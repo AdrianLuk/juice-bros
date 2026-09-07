@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/metadata";
-import { getEpisodeHook } from "@/lib/youtube";
+import { getEpisodeHook, getEpisodeShowNotes } from "@/lib/youtube";
 import { episodeMetaTitle, getEpisodes, type Episode } from "@/lib/episodes";
 import { buildEpisodeJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { YoutubeIcon, SpotifyIcon } from "@/components/icons";
@@ -84,6 +84,7 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
   const title = episodeMetaTitle(episode.title);
   const runtime = formatRuntime(episode.duration);
   const spokenRuntime = formatRuntimeWords(episode.duration);
+  const showNotes = episode.description ? getEpisodeShowNotes(episode.description) : "";
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -114,24 +115,26 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
         </div>
 
         {/* Title, then metadata under it - the order every other surface in
-            this system uses. */}
-        <h1 className="bx-display mt-9 max-w-[22ch] text-[clamp(1.875rem,4.2vw,2.75rem)]">
+            this system uses. The clamp keeps the ladder's 36px h1 floor at
+            390px and only lowers the ceiling, since an episode title is a
+            sentence rather than a two-word page name. */}
+        <h1 className="bx-display mt-9 max-w-[22ch] text-[clamp(2.25rem,4.6vw,2.875rem)]">
           {title}
         </h1>
+        {/* The date alone. The runtime is already on the player's chip, in the
+            place a video puts it, so printing "22 min" here as well spent the
+            metadata line on a fact read two lines above - and in a second
+            format. It stays for screen readers, which never reach the chip:
+            the player is named by its `aria-label`. */}
         <p className="bx-meta mt-4">
           {formatAiredLong(episode.published)}
-          {spokenRuntime && (
-            <>
-              <span aria-hidden> &middot; </span>
-              {spokenRuntime}
-            </>
-          )}
+          {spokenRuntime && <span className="sr-only">, {spokenRuntime}</span>}
         </p>
 
-        {episode.description && (
-          <p className="mt-7 max-w-[62ch] text-[1.0625rem] leading-relaxed whitespace-pre-line text-[var(--bx-muted)]">
-            {episode.description}
-          </p>
+        {showNotes && (
+          <div className="mt-7 max-w-[62ch] text-[1.0625rem] leading-relaxed whitespace-pre-line">
+            {showNotes}
+          </div>
         )}
 
         <div className="mt-9 flex flex-wrap gap-3">

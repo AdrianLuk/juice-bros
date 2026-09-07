@@ -666,6 +666,16 @@ source photograph, not a generic responsive simplification, drives the split.
 - **Don't** carry Broadcast Dark's `.bx-dark` scope, tokens, or components onto
   Booking Buddy, On Deck, or Pickle Point Pal, or vice versa — the four visual
   worlds are deliberately separate and none of them imports another's tokens.
+- **Don't** demote a removed eyebrow into a `.bx-meta` line under the heading.
+  Dropping the eyebrow is right; keeping its words and setting them in tracked
+  mono is the same decorative label one line lower, and it breaks the
+  Metadata-Only Mono Rule by name. The About page shipped five of these ("Why we
+  do this", "The two behind the mic") before a review caught them. If the words
+  are worth keeping they are prose; usually the heading already said it.
+- **Don't** edit copy PRODUCT.md records as published, including its
+  punctuation. The About page's em dashes are Adrian's; normalising them to
+  commas is a rewrite of confirmed brand voice, and the no-em-dash rule governs
+  copy *we* write. Raise it as a question instead.
 - **Don't** clamp text on an element whose only child is a `.bx-actionlink`.
   That class is `inline-flex`, so `line-clamp-2` clamps one flex child instead
   of the text inside it — which is how episode titles ran to four lines in the

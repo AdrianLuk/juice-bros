@@ -69,6 +69,39 @@ export function getEpisodeHook(description: string, maxLength = 140) {
   return `${firstParagraph.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
+// A YouTube description ends in furniture written for YouTube: a wall of
+// hashtags, "Like, comment and subscribe", a prompt pointing at a comment box,
+// a row of social links. On the channel page that is unremarkable. On the
+// episode page it is the main reading matter, and it asks the reader to do
+// things this page cannot do.
+const HASHTAG_LINE = /^\s*(?:#[\p{L}\p{N}_]+[\s,]*)+$/u;
+const URL_LINE = /^\s*(?:https?:\/\/\S+\s*)+$/i;
+const CTA_LINE =
+  /\b(?:like,?\s*(?:comment|share|and subscribe)|subscribe (?:to|for|here)|hit (?:the|that) (?:bell|like)|smash that|(?:drop|leave|share) (?:a|your|it)\b[^.]{0,40}\b(?:comments?|below)|comment below|let us know in the comments|link in (?:the )?(?:bio|description)|follow (?:us|along) on|check us out on|watch (?:the )?full episode)\b/i;
+
+/**
+ * An episode's description as show notes: the writing about the episode, with
+ * YouTube's own furniture removed.
+ *
+ * Conservative on purpose. It drops whole lines that are nothing but hashtags,
+ * nothing but links, or a recognisable call to action, and then tidies the
+ * blank lines that leaves behind. It never edits inside a line and never
+ * touches a paragraph of prose, so a description that is all real writing comes
+ * back untouched.
+ */
+export function getEpisodeShowNotes(description: string): string {
+  const kept = description
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (trimmed === "") return true;
+      return !HASHTAG_LINE.test(trimmed) && !URL_LINE.test(trimmed) && !CTA_LINE.test(trimmed);
+    })
+    .join("\n");
+
+  return kept.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /**
  * A video's aspect ratio, expressed as the orientation Short/Episode
  * classification cares about. `embedHeight` is what videos.list's `player`

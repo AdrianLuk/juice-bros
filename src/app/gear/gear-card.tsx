@@ -22,10 +22,21 @@ import { GearCategory, type GearItem } from "@/data/gear";
  */
 function GearImage({ item }: { item: GearItem }) {
   if (item.image) {
+    // Only a genuinely white-ground product shot gets the white plate. The
+    // grip photos carry their own dark and grey backgrounds, and on a plate
+    // they rendered as black rectangles floating inside white boxes - three of
+    // five cards, and a stack of white slabs at 390.
+    const ground = item.imageHasOwnGround ? "" : " bx-plate";
     return (
-      <div className="bx-tile bx-plate aspect-[4/3]">
+      <div className={`bx-tile aspect-[4/3]${ground}`}>
         {/* eslint-disable-next-line @next/next/no-img-element -- remote brand CDN asset, no next/image optimization needed */}
-        <img src={item.image} alt="" loading="lazy" decoding="async" />
+        <img
+          src={item.image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className={item.imageHasOwnGround ? "object-contain p-3.5" : undefined}
+        />
       </div>
     );
   }

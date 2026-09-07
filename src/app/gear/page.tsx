@@ -47,8 +47,8 @@ export default function GearPage() {
       />
 
       <div className="bx-measure pb-6">
-        {hosts.map((host) => (
-          <HostGearSection key={host.name} host={host} />
+        {hosts.map((host, index) => (
+          <HostGearSection key={host.name} host={host} first={index === 0} />
         ))}
         <PartnerCodesSection items={partnerCodes} />
       </div>

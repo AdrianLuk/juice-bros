@@ -16,8 +16,7 @@ import { InstagramIcon } from "@/components/icons";
 export function MeetTheBros() {
   return (
     <section className="bx-measure py-16 sm:py-24">
-      <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Meet the bros</h2>
-      <p className="bx-meta mt-3">The two behind the mic</p>
+      <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Meet the Bros</h2>
 
       <figure className="bx-tile mt-8 aspect-[16/9]">
         {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}

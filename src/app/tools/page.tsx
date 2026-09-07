@@ -46,7 +46,11 @@ export default function ToolsPage() {
             No ads
           </>
         }
-        lead="Things we wanted for our own games and couldn't find, so we built them. They stay free, and more are coming as we get annoyed by more things."
+        // "Free to use" states what is true today. An earlier draft promised
+        // "they stay free", which PRODUCT.md explicitly leaves open - whether
+        // any tool goes paid later is an undecided question, not a commitment
+        // this page gets to make on Adrian's behalf.
+        lead="Things we wanted for our own games and couldn't find, so we built them. Free to use, and more are coming as we get annoyed by more things."
       />
 
       <div className="bx-measure pb-20 sm:pb-28">
@@ -57,7 +61,7 @@ export default function ToolsPage() {
                 href={app.href}
                 className="bx-panel group flex w-full flex-col p-6 sm:p-8"
               >
-                <h2 className="bx-h2 text-xl transition-colors duration-200 group-hover:text-[var(--bx-muted)] sm:text-2xl">
+                <h2 className="bx-h2 text-lg transition-colors duration-200 group-hover:text-[var(--bx-muted)] sm:text-xl">
                   {app.title}
                 </h2>
                 <p className="bx-meta mt-2.5">

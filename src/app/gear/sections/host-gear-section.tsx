@@ -22,11 +22,17 @@ function Subsection({ label, items }: { label: string; items: GearItem[] }) {
   );
 }
 
-export function HostGearSection({ host }: { host: HostGear }) {
+/**
+ * `first` draws the rule that opens the whole hosts block. The second host
+ * doesn't get one: a hairline between every pair of sections is what flattens a
+ * page into a run of equals, and the two hosts are one passage with two parts,
+ * not two unrelated sections.
+ */
+export function HostGearSection({ host, first = false }: { host: HostGear; first?: boolean }) {
   const total = host.current.length + host.bag.length;
 
   return (
-    <section className="bx-hair py-14 sm:py-20">
+    <section className={`py-14 sm:py-20${first ? " bx-hair" : ""}`}>
       <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
         What {host.name} plays with
       </h2>
