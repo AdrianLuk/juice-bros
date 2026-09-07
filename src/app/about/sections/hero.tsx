@@ -29,7 +29,8 @@ import type { Episode } from "@/lib/episodes";
  * thumbnail on the site wears - and a labelled pill repeating the action would
  * give one action two affordances. The row carries the two paths the stage
  * cannot: the rest of the catalogue in the ink register, then subscribing in
- * YouTube's own colour.
+ * YouTube's own colour, at the `sub_confirmation` URL so the dialog opens on
+ * arrival rather than leaving the visitor to find the button.
  *
  * Order in the right column is the site's own - title, metadata, standfirst,
  * actions, the `PageHead` sequence every other interior route uses. The date
@@ -104,7 +105,7 @@ export function Hero({
               Every episode
             </Link>
             <a
-              href={siteConfig.links.youtube}
+              href={siteConfig.youtubeSubscribe}
               target="_blank"
               rel="noopener noreferrer"
               className="bx-btn bx-btn-yt"
