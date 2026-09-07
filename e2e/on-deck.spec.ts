@@ -188,8 +188,10 @@ test("the rotation loop: a Player joins the Queue, is called onto a Court, and r
   await court1.getByRole("button", { name: "Send next four" }).click();
   await expect(court1.getByText("Dana R.")).toBeVisible();
   // The committed Foursome walked straight onto the Court — On Deck is empty
-  // again until more Players queue.
-  await expect(organizer.getByTestId("on-deck-0")).toHaveCount(0);
+  // again until more Players queue. The panel itself (`data-testid="on-deck-0"`)
+  // always renders, empty or not (`FoursomePanel`'s "Not enough players waiting
+  // yet" placeholder), so the empty check is on its names, not its presence.
+  await expect(organizer.getByTestId("on-deck-0").locator("li")).toHaveCount(0);
 
   // Our Player's own screen updates within a poll interval: they're up.
   await expect(page.getByText("You're up, Court 1")).toBeVisible({
@@ -280,8 +282,10 @@ test("the no-show swap: the Organizer swaps a called Player who didn't show for 
   await expect(seats).toHaveCount(4);
   await expect(seats.filter({ hasText: noShow })).toHaveCount(0);
   await expect(seats.filter({ hasText: suggested })).toHaveCount(1);
+  // `RotationBoard` renders the reason as a plain trailing word, not
+  // parenthesized — "Anna A. no-show", not "Anna A. (no-show)".
   await expect(
-    organizer.getByTestId("paused-list").getByText(`${noShow} (no-show)`),
+    organizer.getByTestId("paused-list").getByText(`${noShow} no-show`),
   ).toBeVisible();
 
   // Set one more waiting Player aside, so the board shows the full Paused

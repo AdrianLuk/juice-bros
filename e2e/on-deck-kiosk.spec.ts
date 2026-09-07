@@ -93,7 +93,7 @@ test("a full self-serve turnover runs on the kiosk alone — court done, add me,
   // No login, no token — just the session URL.
   await page.goto(`/on-deck/session/${selfServeSessionId}/kiosk`);
 
-  await expect(page.getByText("Kiosk", { exact: true })).toBeVisible();
+  await expect(page.getByText("Courtside kiosk", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Trinity Bellwoods" }),
   ).toBeVisible();

@@ -115,13 +115,12 @@ test("an action in one browser context appears in the other within ~1s, no reloa
 
   // Direction 2 — phone → floor. Ivy steps out of the queue from her phone and
   // the floor's queue count drops back without the organizer touching anything.
-  await expect(
-    floor.getByRole("heading", { name: /^Queue \(/ }),
-  ).toContainText("(2)");
+  // `BoardHeading` reads "In the queue" with the zero-padded count as a
+  // trailing badge ("In the queue02"), not "Queue (2)".
+  const queueHeading = floor.getByRole("heading", { name: /in the queue/i });
+  await expect(queueHeading).toContainText("02");
   await phone.getByRole("button", { name: "Leave the queue" }).click();
-  await expect(
-    floor.getByRole("heading", { name: /^Queue \(/ }),
-  ).toContainText("(1)", { timeout: 8_000 });
+  await expect(queueHeading).toContainText("01", { timeout: 8_000 });
 
   await phoneCtx.close();
 });
