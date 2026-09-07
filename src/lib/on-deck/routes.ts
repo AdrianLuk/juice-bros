@@ -62,7 +62,8 @@ export function floorPath(sessionId: string): string {
  * The read-only Display (issue #253) — Courts, the ordered Queue with Wait
  * Times, and the two On Deck Foursomes, for a tablet on the snack table. No
  * account and no token: it renders only what the venue's wall already shows
- * (display names, no Skill Level, no contact data) and carries no buttons.
+ * (display names and Skill Levels — each name inked by its level — no contact
+ * data) and carries no buttons.
  */
 export function displayPath(sessionId: string): string {
   return `${ON_DECK_ROOT}/session/${sessionId}/display`;

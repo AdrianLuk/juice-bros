@@ -28,11 +28,13 @@ export async function getRotationView(
 }
 
 /**
- * The Session roster with each Player's current Skill Level, for the floor's
- * "add a walk-up" and "fix a skill level" controls (issue #249). Not part of
- * the world-readable `RotationView` — a self-declared Skill Level is
- * operator-facing — so this is gated: an account that owns the Club, or a
- * Volunteer Link token. `null` when neither checks out.
+ * The Session roster with each Player's current Skill Level, in join order,
+ * for the floor's "add a walk-up" and "fix a skill level" controls (issue
+ * #249). Gated — an account that owns the Club, or a Volunteer Link token —
+ * because it's the roster's *write* surface (it backs the override control),
+ * not because a Skill Level needs hiding: `RotationView.skillByName` already
+ * carries the same pairs publicly, for the board's name colouring. `null`
+ * when neither auth path checks out.
  */
 export async function getFloorRoster(
   sessionId: string,
