@@ -20,11 +20,20 @@ import { PlayMark } from "./play-mark";
  *
  * `morphTarget` names the poster as the shared element for the transition in
  * from a `.bx-tile` grid (see `episode-card.tsx`). Only ever one per page.
+ *
+ * The poster asks YouTube for `maxresdefault` (1280x720), because the grid's
+ * `hqdefault` (480x360) upscaled across this much wider box is visibly blurry -
+ * the fix from #416, which this component absorbed when the episode page moved
+ * from a still image to a real player. `posterFallback` is that fix's other
+ * half: not every video has a maxres thumbnail, and YouTube answers the ones
+ * that don't with a grey placeholder rather than a 404, so the `onError` swap
+ * matters. Pass the episode's own `thumbnail`.
  */
 export function EpisodePlayer({
   videoId,
   title,
   poster,
+  posterFallback,
   runtime,
   morphTarget = false,
   stage = true,
@@ -32,11 +41,15 @@ export function EpisodePlayer({
   videoId: string;
   title: string;
   poster?: string;
+  posterFallback?: string;
   runtime?: string;
   morphTarget?: boolean;
   stage?: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
+  const [posterSrc, setPosterSrc] = useState(
+    poster ?? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
+  );
   const shape = `aspect-video w-full${stage ? " bx-stage" : ""}`;
 
   if (playing) {
@@ -63,12 +76,13 @@ export function EpisodePlayer({
       {/* Decorative: the accessible name lives on the button's aria-label. */}
       {/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN poster, no next/image optimization needed */}
       <img
-        src={poster ?? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
+        src={posterSrc}
         alt=""
         width={1280}
         height={720}
         fetchPriority="high"
         decoding="async"
+        onError={() => posterFallback && setPosterSrc(posterFallback)}
         style={morphTarget ? { viewTransitionName: "jb-episode-hero" } : undefined}
       />
       <PlayMark />

@@ -1,5 +1,6 @@
 import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
+import { Picture } from "@/components/picture";
 
 /**
  * The two hosts, with the on-court photograph at the size it deserves.
@@ -18,13 +19,17 @@ export function MeetTheBros() {
     <section className="bx-measure py-16 sm:py-24">
       <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Meet the Bros</h2>
 
+      {/* `Picture` (#418) rather than a bare <img>: it renders the pre-encoded
+          AVIF/WebP sources for this photo and takes its intrinsic dimensions
+          from the manifest. Its `<picture>` carries `display: contents`, so the
+          `<img>` is still `.bx-tile`'s direct child for `object-fit: cover`.
+          `sizes` is this layout's own - the figure runs the full 72rem measure
+          here, not the 48rem column the incumbent gave it. */}
       <figure className="bx-tile mt-8 aspect-[16/9]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
-        <img
+        <Picture
           src="/pictures/adrian-dav.jpg"
           alt="Daven and Adrian courtside, mid-match"
-          width={2000}
-          height={1333}
+          sizes="(min-width: 1216px) 72rem, 100vw"
           loading="lazy"
           decoding="async"
           className="object-[50%_30%]"

@@ -1,3 +1,5 @@
+import { Picture } from "@/components/picture";
+
 /**
  * A tournament's cover art, when there is any.
  *
@@ -23,9 +25,20 @@ export function AppearanceArt({
 
   return (
     <div className={`bx-tile bx-plate ${className}`}>
-      {/* Decorative: the tournament's name is the heading beside it. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- local asset, no next/image optimization needed */}
-      <img src={image} alt="" loading="lazy" decoding="async" />
+      {/* `Picture` (#418) serves the 384w AVIF/WebP variants encoded for these
+          three files; its `display: contents` keeps the `<img>` as
+          `.bx-plate`'s direct child so the contain-and-pad rule still applies.
+          `sizes` is wider than the incumbent's 8rem row thumbnail because this
+          layout gives the art a 10rem column, and the full width of the band on
+          the featured entry. Decorative: the tournament's name is the heading
+          beside it. */}
+      <Picture
+        src={image}
+        alt=""
+        sizes="(min-width: 1024px) 22rem, (min-width: 640px) 10rem, 100vw"
+        loading="lazy"
+        decoding="async"
+      />
     </div>
   );
 }

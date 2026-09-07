@@ -109,6 +109,7 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
             videoId={episode.id}
             title={title}
             poster={`https://i.ytimg.com/vi/${episode.id}/maxresdefault.jpg`}
+            posterFallback={episode.thumbnail}
             runtime={runtime}
             morphTarget
           />

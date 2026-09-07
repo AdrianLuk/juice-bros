@@ -7,6 +7,7 @@ import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
 import { volunteerPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
+import { clubJoinQr } from "@/lib/on-deck/qr";
 
 export async function generateMetadata({
   params,
@@ -46,6 +47,7 @@ export default async function VolunteerFloorPage({
 
   const view = rotationViewFrom(loaded);
   const roster = floorRosterFrom(loaded);
+  const joinQr = await clubJoinQr(loaded.config.clubId);
 
   return (
     <ArenaShell>
@@ -69,6 +71,7 @@ export default async function VolunteerFloorPage({
               sessionId={sessionId}
               initialView={view}
               initialRoster={roster}
+              joinQr={joinQr}
               auth={{ kind: "volunteer", token }}
             />
           </div>

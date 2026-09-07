@@ -32,6 +32,13 @@ export const ON_DECK_DEV_PATH = `${ON_DECK_ROOT}/dev`;
 /** Where `?key=` is exchanged for the dev-access cookie (issue #351). */
 export const ON_DECK_DEV_ENTER_PATH = `${ON_DECK_ROOT}/dev/enter`;
 
+/**
+ * The Organizer's full-screen Club QR — an on-screen stand-in for the
+ * printed sign, for a day it isn't on the wall. Same stable link as the
+ * sign; nothing about it is per-Session.
+ */
+export const ON_DECK_QR_DISPLAY_PATH = `${ON_DECK_ROOT}/home/qr`;
+
 /** Create a Session ahead of time (issue #254). */
 export const ON_DECK_NEW_SESSION_PATH = `${ON_DECK_ROOT}/home/sessions/new`;
 
