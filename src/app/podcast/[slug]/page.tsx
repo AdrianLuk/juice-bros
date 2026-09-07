@@ -6,6 +6,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { getEpisodeHook } from "@/lib/youtube";
 import { episodeMetaTitle, getEpisodes, type Episode } from "@/lib/episodes";
 import { buildEpisodeJsonLd, toJsonLdScript } from "@/lib/structured-data";
+import { EpisodeHeroImage } from "@/components/episode-hero-image";
 import { WatchListenButtons } from "@/components/watch-listen-buttons";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -77,18 +78,7 @@ export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]
 
       <div className="jb-hero-img mt-6 overflow-hidden rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
         <div className="aspect-video overflow-hidden rounded-[1.25rem]">
-          {/* Decorative: the episode title is the <h1> directly below this. */}
-          {/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN thumbnail, no next/image optimization needed */}
-          <img
-            src={episode.thumbnail}
-            alt=""
-            // Shared element for the transition in from the archive grid: the
-            // clicked tile tags its own thumbnail with this same name on click
-            // (episode-card.tsx) so the two morph. Same aspect ratio both ends,
-            // so it's a clean grow. Fixed name - only ever one on a page.
-            style={{ viewTransitionName: "jb-episode-hero" }}
-            className="h-full w-full object-cover"
-          />
+          <EpisodeHeroImage id={episode.id} fallbackSrc={episode.thumbnail} />
         </div>
       </div>
 
