@@ -18,6 +18,15 @@
  * Org + wall-clock date + start time + the source's own court text, compared
  * by court *number* rather than as text.
  *
+ * What a dismissal means therefore widens: it was "never show me *this
+ * message* again" (email) or "never show me *this VEVENT* again" (feed), and
+ * it becomes "never offer me *this slot* again", from either source. That is
+ * the only key the two sources share — a dismissal leaves nothing else behind
+ * to recognise — but it does mean a genuinely new reservation for the same
+ * Org, day, start time and court is dropped too, rather than offered. Both
+ * sources already treated a dismissal as permanent with no un-dismiss, so this
+ * widens its reach, not its lifetime.
+ *
  * Takes the Supabase client as a parameter and imports nothing from Next.js,
  * for the same reason `feed-events.ts` does: a `"use server"` module can't
  * export a non-action helper, and all three dismiss actions — two in
@@ -28,45 +37,28 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { BookingIdentity } from "./import-candidate-shaping.ts";
 
-/** One reservation the User dismissed — `BookingIdentity` under its own name. */
-export type DismissedReservation = BookingIdentity;
-
-/**
- * The slot fields a dismiss form posts, or `null` when it posted none.
- *
- * Only an *import* candidate's Dismiss carries them. A cancellation
- * candidate's "Keep booking" posts to the same feed action and deliberately
- * does not: it means "keep this Booking", not "I don't want this reservation",
- * and recording a dismissal there would suppress a future import of a slot the
- * User is still playing. An email candidate whose facility matched no Org
- * carries none either — there is no Org to key the slot on.
- *
- * The values are the candidate's own, posted back as hidden inputs the same
- * way every confirm form on this screen posts the fields it re-validates. A
- * tampered post can only suppress one of the caller's own future candidates,
- * which is strictly less than what the confirm forms already accept.
- */
-export type DismissedSlotPost = {
-  orgId: string;
-  /** `YYYY-MM-DD` in the Org's own zone. */
-  date: string;
-  /** `HH:MM`, 24-hour, in the Org's own zone. */
-  startTime: string;
-  /** The source's own court text, unnormalised; null when it named no court. */
-  courtLabel: string | null;
-};
-
 /** `YYYY-MM-DD`. */
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 /** `HH:MM`, 24-hour. */
 const TIME_PATTERN = /^\d{2}:\d{2}$/;
 
 /**
- * Read the dismissed slot off a dismiss form's `FormData`, or `null` when it
- * isn't there or doesn't look like a slot. Never throws and never reports —
- * "no slot posted" is an ordinary, expected case, not an error.
+ * Read the dismissed slot off a dismiss form's `FormData`
+ * (`DismissedSlotFields`), or `null` when it posted none.
+ *
+ * "No slot posted" is an ordinary case, not an error, so this never throws and
+ * never reports: only an *import* candidate's Dismiss carries a slot. A
+ * cancellation candidate's "Keep booking" posts to the same feed action and
+ * deliberately does not — it means "keep this Booking", not "I don't want this
+ * reservation" — and neither does an email import whose facility matched no
+ * Org, since there is no Org to key the slot on.
+ *
+ * The values are the candidate's own, posted back as hidden inputs the same
+ * way every confirm form on this screen posts the fields it re-validates. A
+ * tampered post can only suppress one of the caller's own future candidates,
+ * which is strictly less than what the confirm forms already accept.
  */
-export function readDismissedSlotPost(formData: FormData): DismissedSlotPost | null {
+export function readDismissedSlotPost(formData: FormData): BookingIdentity | null {
   const orgId = String(formData.get("org_id") ?? "").trim();
   const date = String(formData.get("date") ?? "").trim();
   const startTime = String(formData.get("start_time") ?? "").trim();
@@ -81,17 +73,24 @@ export function readDismissedSlotPost(formData: FormData): DismissedSlotPost | n
 }
 
 /**
- * Record one dismissed reservation. Failures are logged, never surfaced: the
- * dismissal of the candidate's *own* source has already happened (or is about
- * to), which is what the User asked for, and a lost row here degrades to
- * exactly the behaviour before #437 — the other source offers the reservation
- * once more and one extra Dismiss settles it.
+ * Record the dismissed slot a dismiss form carried, if it carried one — the
+ * whole of what each of the three dismiss actions does about #437.
+ *
+ * Failures are logged, never surfaced: the dismissal of the candidate's *own*
+ * source has already happened, which is what the User asked for, and a lost
+ * row here degrades to exactly the behaviour before #437 — the other source
+ * offers the reservation once more and one extra Dismiss settles it.
  */
-export async function recordDismissedReservation(
+export async function recordDismissedSlotFromForm(
   supabase: SupabaseClient,
   ownerId: string,
-  slot: DismissedSlotPost,
+  formData: FormData,
 ): Promise<void> {
+  const slot = readDismissedSlotPost(formData);
+  if (!slot) {
+    return;
+  }
+
   const { error } = await supabase.from("dismissed_reservations").insert({
     owner_id: ownerId,
     org_id: slot.orgId,
@@ -118,7 +117,7 @@ export async function listDismissedReservations(
   supabase: SupabaseClient,
   ownerId: string,
   orgId?: string,
-): Promise<DismissedReservation[]> {
+): Promise<BookingIdentity[]> {
   let query = supabase
     .from("dismissed_reservations")
     .select("org_id, slot_date, slot_start_time, court_label")

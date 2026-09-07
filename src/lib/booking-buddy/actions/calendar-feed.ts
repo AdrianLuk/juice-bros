@@ -26,8 +26,7 @@ import { todayInZone, clockInZone } from "../datetime.ts";
 import { upsertFeedEventRow, type FeedEventUpsert } from "../feed-events.ts";
 import {
   listDismissedReservations,
-  readDismissedSlotPost,
-  recordDismissedReservation,
+  recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
 import { parseNewBooking } from "../bookings.ts";
 import { findSameReservation } from "../import-candidate-shaping.ts";
@@ -648,10 +647,7 @@ export async function dismissFeedCandidate(
     return { error: "Couldn't dismiss that. Try again." };
   }
 
-  const slot = readDismissedSlotPost(formData);
-  if (slot) {
-    await recordDismissedReservation(supabase, session.userId, slot);
-  }
+  await recordDismissedSlotFromForm(supabase, session.userId, formData);
 
   return { ok: true };
 }

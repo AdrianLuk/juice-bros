@@ -33,8 +33,7 @@ import {
 import { upsertFeedEventRow } from "../feed-events.ts";
 import {
   listDismissedReservations,
-  readDismissedSlotPost,
-  recordDismissedReservation,
+  recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
 import { findSameReservation } from "../import-candidate-shaping.ts";
 import type { MergedImportCandidate } from "../merge-import-candidates.ts";
@@ -685,10 +684,7 @@ export async function dismissMergedCandidate(
     return { error: "Couldn't dismiss that. Try again." };
   }
 
-  const slot = readDismissedSlotPost(formData);
-  if (slot) {
-    await recordDismissedReservation(supabase, session.userId, slot);
-  }
+  await recordDismissedSlotFromForm(supabase, session.userId, formData);
 
   return { ok: true };
 }
@@ -940,10 +936,7 @@ export async function dismissReviewItem(
     return { error: "Couldn't dismiss that. Try again." };
   }
 
-  const slot = readDismissedSlotPost(formData);
-  if (slot) {
-    await recordDismissedReservation(supabase, session.userId, slot);
-  }
+  await recordDismissedSlotFromForm(supabase, session.userId, formData);
 
   return { ok: true };
 }
