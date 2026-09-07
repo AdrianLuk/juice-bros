@@ -33,29 +33,56 @@ more. All assume a solo dev with agent help.
 
 ### Suggested interleave across the three apps
 
-The apps don't block each other, so alternate to keep momentum and let real usage inform
-the next step.
+Reordered 2026-09-07. The original order assumed nothing external had a date on it and
+alternated across the apps purely to keep momentum. **OD-0 is now booked**, which makes it
+the one fixed point in the list: it is not code, it gates six other On Deck rows, and the
+things the night itself needs are now deadline work rather than roadmap work. Everything
+else sequences around that date.
+
+Two rules the order follows:
+
+- **Before the night, only build what the night needs.** That is the printed sign and
+  nothing else. The demo night and self-serve Club are for acquiring the *second* club,
+  and OD-6 says not to onboard one until two sessions have run.
+- **After the night, the retro reorders this table.** Rows 5 onward in On Deck are guesses
+  until it exists. Don't build them ahead of it just because they're specced.
 
 | Order | Initiative | Why here |
 |---|---|---|
-| 1 | RR-1 Engine + plain output | Ships something new in a weekend, starts the SEO clock |
-| 2 | OD-6 Demo night + QR sign (slices 1 and 3) | No venue needed, and the sign is needed for OD-0 anyway |
-| 3 | OD-0 Run a real Saturday | Not code. Every other On Deck initiative waits on this |
-| 4 | BB-1 Recurring games | The retention lever that has been the top of the roadmap for two docs |
-| 5 | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench |
-| 6 | BB-2 Visibility default on accept | Cheap, removes the biggest onboarding cliff |
-| 7 | OD-1 Venue resilience | Informed by what broke on Saturday |
-| 8 | OD-6 Self-serve Club, first-night kit, landing flip (slices 2, 4, 5) | Once one real night has run, open the door to the second club |
-| 9 | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
-| 10 | RR-3 Share, roster memory, print | Completes v1 of the generator |
-| 11 | OD-2 Announce turnovers | Cheapest big win for a self-serve session |
+| 1 | OD-6 Printed Club QR sign (slice 3 only) | Deadline work. OD-0's checklist opens with "print the Club QR on a sign", and #413 shipped the on-screen QR explicitly as the fallback *for days without it* |
+| 2 | RR-1 remainder (#394 to #397) | Already specced and 1 of 5 shipped. Fills the run-up to the night without touching On Deck, and finishing beats parking it half-built |
+| 3 | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
+| 4 | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses |
+| 5 | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
+| 6 | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can |
+| 7 | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
+| 8 | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Now correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
+| 9 | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench |
+| 10 | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
+| 11 | RR-3 Share, roster memory, print | Completes v1 of the generator |
 | 12 | BB-4 Copy for group chat | Small, high-use |
-| 13 | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
-| 14 | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
+| 13 | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
+| 14 | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
 | 15 | RR-4 Constraint toggles | Fixed partners, singles, skill balance, mixed doubles |
 | 16 | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
 
-If only one thing per app ships this month: RR-1, OD-0, BB-1.
+If only one thing per app ships this month: RR-1, OD-0, BB-1. Unchanged, and OD-0 being
+booked is what makes it reachable.
+
+### Shipped since this doc was written
+
+Recorded 2026-09-07 so the table above doesn't silently drift again.
+
+- **BB-2 Visibility default on accept** — done (#376 and its four slices, #377 to #380).
+  Dropped from the interleave.
+- **RR-1.1 Table cases** — #393, in review as PR #417. The other four RR-1 tickets
+  (#394 to #397) are open and specced.
+- **On-screen Club QR** — #413. Adjacent to OD-6 slice 3 but not a substitute: there is
+  still no print stylesheet anywhere in `src/`, so the printed sign is unbuilt.
+- **Marketing site work not on this table at all** — Broadcast Dark on Home and the six
+  other routes (#399, #406, #415), Tools surfaced on the homepage (#381), image weight
+  (#414). Worth noting the table only governs the three apps; marketing work has been
+  jumping it, which is fine, but it means "next in the table" has not been "next built".
 
 ---
 
@@ -124,6 +151,9 @@ Booking Reminder semantics unchanged. `bb_first_slot` analytics: decide whether 
 instance counts.
 
 ### BB-2 · Visibility defaults to `calendar` on accept
+
+**Shipped 2026-09-06** (#376, slices #377 to #380). Kept below for the reasoning; dropped
+from the interleave.
 
 **Size:** S–M. **Blocked by:** nothing. **Needs:** `/grill-with-docs` (an ADR; this
 changes the default of ADR 0007's lattice, not the lattice).
@@ -265,6 +295,10 @@ sign, which need no real session and de-risk our own first night.
 - Team assignment inside a Foursome (ADR 0003).
 
 ### OD-0 · Run a real Saturday
+
+**Booked as of 2026-09-07**, which is what the interleave above is now sequenced around.
+The one build item it depends on is the printed Club QR sign (OD-6 slice 3), which is
+row 1 for that reason.
 
 **Size:** not code. **Blocked by:** nothing. **Gates:** every other OD initiative.
 
@@ -494,6 +528,12 @@ playoff — is in scope; see RR-6.
   direction; don't gate on Figma.
 
 ### RR-1 · Engine + plain output
+
+**In progress.** Specced as #389, ticketed #393 to #397. #393 (Table cases) is PR #417;
+#394 to #397 are open. One correction from building it: the n=8 table published in the
+brief is not a valid whist tournament — partners are right, but players 0/1, 2/3, 4/5 and
+6/7 each face each other six times. It scores 20 under the Scorer, not 0, so it is not
+what shipped. See ADR 0002 and `scripts/build-match-mixer-tables.mts`.
 
 **Size:** M (a weekend). **Blocked by:** nothing.
 
