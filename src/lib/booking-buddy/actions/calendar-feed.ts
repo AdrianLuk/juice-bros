@@ -183,12 +183,6 @@ export type FacilityFeedResult =
       cancellations: CalendarFeedCancellationItem[];
       /** Rail 4 tripped — show the "this feed looks wrong — check the URL" warning instead of the candidates. */
       feedLooksWrong: boolean;
-      /**
-       * The feed is a well-formed calendar that holds nothing — the User has
-       * no upcoming reservations at this Facility. A healthy sync, reported
-       * as such rather than as a fetch failure (#431).
-       */
-      empty: boolean;
     }
   | { orgId: string; status: "error"; message: string };
 
@@ -256,14 +250,10 @@ async function syncOneFeed(
   // VEVENT failed to parse, is worth an error.
   if (events.length === 0) {
     if (isCalendar && unreadableUids.length === 0) {
-      return {
-        orgId: org.id,
-        status: "ok",
-        items: [],
-        cancellations: [],
-        feedLooksWrong: false,
-        empty: true,
-      };
+      // Indistinguishable from a feed whose events all matched a Booking
+      // already, and deliberately so (#438): both mean "nothing new here", and
+      // the review section says that once, for every source at once.
+      return { orgId: org.id, status: "ok", items: [], cancellations: [], feedLooksWrong: false };
     }
     return {
       orgId: org.id,
@@ -389,7 +379,7 @@ async function syncOneFeed(
     }
   }
 
-  return { orgId: org.id, status: "ok", items, cancellations, feedLooksWrong, empty: false };
+  return { orgId: org.id, status: "ok", items, cancellations, feedLooksWrong };
 }
 
 /** The parsed event's start instant, for the seen-event row's `starts_at`. */

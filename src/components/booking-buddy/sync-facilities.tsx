@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ActionError } from "@/components/booking-buddy/action-error";
+import { CandidateSource } from "@/components/booking-buddy/sync-from-email";
 import {
   formatCandidateDate,
   formatCourtLabel,
@@ -76,6 +77,7 @@ export function FeedCandidateCard({
           {formatCourtLabel(item.courtLabel)} ·{" "}
           {BOOKING_FORMAT_LABEL[item.format]}
         </p>
+        <CandidateSource from="feed" />
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
             Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}
@@ -170,6 +172,7 @@ export function FeedCancellationCard({
         <p className="mt-1 text-xs text-muted-foreground">
           Confirm to remove the matching booking from Booking Buddy.
         </p>
+        <CandidateSource from="feed" />
       </div>
 
       <form action={confirmAction} className="self-start">

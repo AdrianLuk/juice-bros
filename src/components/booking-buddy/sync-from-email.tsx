@@ -38,6 +38,32 @@ import {
 const EMPTY: ActionResult = {};
 
 /**
+ * Which import source a review card came from, said on the card (issue #438).
+ *
+ * Only the merged card used to carry this, which left the case where it
+ * matters most unexplained: a feed card has no Players — a CourtReserve member
+ * feed carries none — and with nothing saying where the card came from, it
+ * reads as a reservation that genuinely had nobody in it. Every kind gets the
+ * same line in the same place instead, including the cancellations, where
+ * "the facility's calendar dropped this" and "a cancellation email arrived"
+ * are worth telling apart.
+ *
+ * Exported so the feed cards (`sync-facilities.tsx`) render the identical
+ * element rather than a second copy of the same sentence.
+ */
+export function CandidateSource({ from }: { from: "mailbox" | "feed" | "both" }) {
+  return (
+    <p className="mt-1 text-xs text-muted-foreground">
+      {from === "mailbox"
+        ? "From your mailbox."
+        : from === "feed"
+          ? "From a facility calendar feed."
+          : "From your mailbox and a facility calendar feed."}
+    </p>
+  );
+}
+
+/**
  * The email ("Sync from Email") review cards, rendered by the unified "Sync
  * bookings" section (issue #336) — this file no longer owns a section wrapper
  * or a TanStack Query; `SyncBookingsSection` runs the email sync and merges
@@ -70,6 +96,7 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
             With: {item.matchedPlayers.map((player) => player.name).join(", ")}
           </p>
         )}
+        <CandidateSource from="mailbox" />
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
             Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}
@@ -96,6 +123,7 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
             No matching booking found. Your records may be out of sync.
           </p>
         )}
+        <CandidateSource from="mailbox" />
       </>
     );
   }
@@ -127,6 +155,7 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
           No matching booking found. Your records may be out of sync.
         </p>
       )}
+      <CandidateSource from="mailbox" />
     </>
   );
 }
@@ -452,9 +481,7 @@ export function MergedCandidateCard({
             With: {item.matchedPlayers.map((player) => player.name).join(", ")}
           </p>
         )}
-        <p className="mt-1 text-xs text-muted-foreground">
-          From your mailbox and a facility calendar feed.
-        </p>
+        <CandidateSource from="both" />
         {item.notes && (
           <p className="mt-1 text-xs text-muted-foreground">
             Court list was too long to fit. Saved to Notes: &ldquo;{item.notes}
