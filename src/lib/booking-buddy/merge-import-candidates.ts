@@ -18,8 +18,11 @@
  * settles *both* sources (`confirmMergedCandidate`, `actions/email-sync.ts`).
  *
  * The match is Org + date + start time, deliberately **not** court — the two
- * sources genuinely disagree on court text, which is the whole reason a
- * cross-source dedupe can't lean on `isDuplicateBooking`'s four-field key.
+ * sources genuinely disagree on court text (`"#5 - Hard"` against `"#5"`).
+ * Issue #432 taught `isSameReservation` to compare the court *number* instead,
+ * which is what lets a Booking already on file be recognised across sources;
+ * this stays looser still, because a candidate whose court text overflowed
+ * into notes carries no court at all and must pair with its other half anyway.
  * Same "Org + date + start, not court" identity `matchCancellationToBooking`
  * already uses, and the same "refuse to guess" posture: an email item whose
  * facility didn't match an Org isn't merged (no Org to key on), and neither
