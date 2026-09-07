@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   isSupportedRosterSize,
   MAX_ROUNDS,
   maxCourts,
   resolveNumbers,
+  type ResolvedConfig,
 } from "@/components/apps/match-mixer/lib/engine/config";
 import {
   describeConfig,
@@ -19,6 +20,10 @@ import {
 } from "@/components/apps/match-mixer/lib/engine/roster";
 import { scoreSchedule } from "@/components/apps/match-mixer/lib/engine/scorer";
 import { generateSchedule } from "@/components/apps/match-mixer/lib/engine/schedule";
+import {
+  load,
+  save,
+} from "@/components/apps/match-mixer/lib/persistence/config-storage";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
@@ -61,6 +66,12 @@ const EXAMPLE_NAMES = [
 const EXAMPLE_ROSTER = EXAMPLE_NAMES.join("\n");
 
 /**
+ * Long enough that a typed name is one write rather than eight, short enough
+ * that anything worth keeping is on disk before attention moves on.
+ */
+const SAVE_DEBOUNCE_MS = 400;
+
+/**
  * The zero state's draw sheet: a real Schedule, generated the way any other
  * one is, so what it shows is what the tool actually does. Fixed Seed and
  * built once at module scope, because it must not differ between the server's
@@ -75,20 +86,33 @@ const EXAMPLE = (() => {
 
 /** What the Schedule on screen was drawn from, kept beside it. */
 interface Draw {
+  /**
+   * The whole Config it came from, held rather than just its outputs. The
+   * names matter because the engine works in positions, so a Schedule only
+   * means anything beside the Roster it was generated against; the Seed
+   * matters because it is what lets the same sheet be generated again after a
+   * reload instead of stored (ADR 0001).
+   */
+  readonly config: ResolvedConfig;
   /** The Roster and numbers it came from, for telling current from stale. */
   readonly key: string;
-  readonly seed: number;
-  /**
-   * The names as they were at the moment of the draw. The engine works in
-   * positions, so a Schedule only means anything beside the Roster it was
-   * generated against: reading it against a Roster edited since would put the
-   * wrong names on the court.
-   */
-  readonly roster: Roster;
   /** The numbers it was drawn from, for the flag over a stale sheet. */
   readonly numbers: string;
   readonly schedule: Schedule;
   readonly score: ScorerResult;
+}
+
+/** Draws the sheet for a Config, whether it was just asked for or restored. */
+function drawFrom(config: ResolvedConfig): Draw {
+  const { roster, courts, rounds } = config;
+  const schedule = generateSchedule(config);
+  return {
+    config,
+    key: drawKey(roster, courts, rounds),
+    numbers: describeNumbers({ players: roster.length, courts, rounds }),
+    schedule,
+    score: scoreSchedule(schedule, config),
+  };
 }
 
 /**
@@ -122,6 +146,60 @@ export function MatchMixer() {
   const [courtsChoice, setCourtsChoice] = useState<number | null>(null);
   const [roundsChoice, setRoundsChoice] = useState<number | null>(null);
   const [draw, setDraw] = useState<Draw | null>(null);
+  // Whether the saved Config has been read yet, which is only ever asked so
+  // that saving cannot start before loading has finished. The screen itself
+  // does not wait on it: the example sheet is server-rendered and stays until
+  // there is something truer to put in its place.
+  const [restored, setRestored] = useState(false);
+
+  // Reading storage happens in an effect and never during render, because
+  // localStorage does not exist on the server and rendering from it would
+  // hydrate a different tree than the server sent.
+  useEffect(() => {
+    const saved = load();
+    /* eslint-disable react-hooks/set-state-in-effect -- one-shot read of an external store on mount */
+    if (saved) {
+      const names = saved.fields.roster.map((player) => player.name).join("\n");
+      setText(names);
+      setRoster(saved.fields.roster);
+      setCourtsChoice(saved.fields.courts);
+      setRoundsChoice(saved.fields.rounds);
+      // The sheet is generated again rather than stored, so what comes back is
+      // the same sheet down to the seat every name sat in.
+      setDraw(saved.drawn ? drawFrom(saved.drawn) : null);
+    }
+    setRestored(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  // Debounced because the Roster arrives a keystroke at a time and a write per
+  // keystroke is work nobody asked for. The write is guarded against running
+  // before the read above, which would save an empty screen over the roster it
+  // is in the middle of restoring.
+  useEffect(() => {
+    if (!restored) return;
+    const fields = { roster, courts: courtsChoice, rounds: roundsChoice };
+    const drawn = draw?.config ?? null;
+
+    const timer = setTimeout(() => save(fields, drawn), SAVE_DEBOUNCE_MS);
+    // A tab closed on the last name typed is exactly the visit worth keeping,
+    // and it closes well inside the debounce. Both events, because between
+    // them they cover a close, a navigation and a phone being pocketed. They
+    // overlap, and one of them fires again on the way back in, neither of
+    // which is worth guarding: the same bytes written twice cost nothing.
+    const flush = () => {
+      clearTimeout(timer);
+      save(fields, drawn);
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", flush);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", flush);
+    };
+  }, [restored, roster, courtsChoice, roundsChoice, draw]);
 
   const editRoster = (next: string) => {
     setText(next);
@@ -157,17 +235,9 @@ export function MatchMixer() {
   const stale = draw !== null && draw.key !== key;
 
   const generate = () => {
-    const seed = nextSeed(draw?.seed);
-    const config = { roster, courts, rounds, seed };
-    const schedule = generateSchedule(config);
-    setDraw({
-      key,
-      seed,
-      roster,
-      numbers: describeNumbers(shape),
-      schedule,
-      score: scoreSchedule(schedule, config),
-    });
+    setDraw(
+      drawFrom({ roster, courts, rounds, seed: nextSeed(draw?.config.seed) }),
+    );
   };
 
   return (
@@ -179,7 +249,8 @@ export function MatchMixer() {
           <p className="mm-lede mt-4">
             A pickleball round robin generator. Paste the names you have tonight
             and get a doubles rotation where nobody partners the same person
-            twice. Nothing is saved and nothing is sent anywhere.
+            twice. Your list stays in this browser and waits here for next
+            week. Nothing is sent anywhere.
           </p>
         </header>
 
@@ -269,11 +340,11 @@ export function MatchMixer() {
                   data-stale={stale ? "true" : undefined}
                 >
                   <ScheduleGrid
-                    roster={draw.roster}
+                    roster={draw.config.roster}
                     schedule={draw.schedule}
                     score={draw.score}
                   />
-                  <PartnerMatrix roster={draw.roster} score={draw.score} />
+                  <PartnerMatrix roster={draw.config.roster} score={draw.score} />
                 </div>
               </>
             ) : size > MAX_ROSTER_SIZE ? (
