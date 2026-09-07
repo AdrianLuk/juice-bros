@@ -1,4 +1,5 @@
 import { Eyebrow } from "@/components/typography/eyebrow";
+import { Picture } from "@/components/picture";
 
 export function Hero() {
   return (
@@ -16,12 +17,10 @@ export function Hero() {
           </p>
         </div>
         <div className="jb-hero-img-x rounded-[2rem] bg-white/10 p-2 ring-1 ring-white/15">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local trusted asset, no next/image optimization needed */}
-          <img
+          <Picture
             src="/brand/JB_Banner.jpeg"
             alt="The Juice Bros"
-            width={1600}
-            height={900}
+            sizes="(min-width: 640px) 34rem, 100vw"
             className="aspect-video w-full rounded-[1.6rem] object-cover"
           />
         </div>
