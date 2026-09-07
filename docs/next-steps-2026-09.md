@@ -573,9 +573,6 @@ every other generator gets wrong and the reason organizers give up and freehand 
    the round drops a game rather than playing three.
 5. When does a round lock?
    ➡️ Explicit "next round" tap by the organizer. Entering all scores does not lock.
-6. The bye line?
-   ➡️ "Sitting out: Sam. You're on scores for Court 2." One line, rotating the job among
-   byes. On brand, and it's the on-ramp to a future match-charting tool.
 
 ### RR-3 · Share, roster memory, find-me, print
 
