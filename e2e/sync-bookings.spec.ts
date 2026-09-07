@@ -103,8 +103,8 @@ test("one section, one button — replaces the two old sync sections", async ({ 
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Confirm" }) });
   await expect(cards).toHaveCount(2, { timeout: 15_000 });
-  await expect(cards.filter({ hasText: "Mon 03-15-2027" })).toHaveCount(1);
-  await expect(cards.filter({ hasText: "10-01-2026" })).toHaveCount(1);
+  await expect(cards.filter({ hasText: "Mon Mar 15, 2027" })).toHaveCount(1);
+  await expect(cards.filter({ hasText: "Thu Oct 01, 2026" })).toHaveCount(1);
 });
 
 test("one source failing still shows the other's candidates, failure named", async ({ page, accounts }) => {

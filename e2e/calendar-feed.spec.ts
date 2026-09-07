@@ -123,7 +123,7 @@ test("paste → Sync bookings → confirm → a Booking with facility / date / t
     .filter({ has: page.getByRole("button", { name: "Confirm" }) });
   await expect(card).toBeVisible();
   await expect(card).toContainText(CLUB);
-  await expect(card).toContainText("10-01-2026");
+  await expect(card).toContainText("Thu Oct 01, 2026");
   await expect(card).toContainText("6:00 PM");
   await expect(card).toContainText("8:00 PM");
   await expect(card).toContainText("Court #6");
@@ -299,7 +299,7 @@ test("a reservation that vanishes from the feed becomes a cancellation candidate
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Remove booking" }) });
   await expect(cancelCard).toBeVisible();
-  await expect(cancelCard).toContainText("10-09-2026");
+  await expect(cancelCard).toContainText("Fri Oct 09, 2026");
 
   await cancelCard.getByRole("button", { name: "Remove booking" }).click();
   await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
