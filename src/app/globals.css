@@ -3419,21 +3419,43 @@ html:has(.bb-app-chrome) {
   .mm-matrix thead {
     display: table-header-group;
   }
-  /* A legend stranded at the foot of a page is a heading for nothing. */
+  /* A legend stranded at the foot of a page is a heading for nothing, and
+     neither is the line under it - which is `.mm-summary` beneath the
+     Schedule but `.mm-note` beneath the Partner Matrix. */
   .mm-legend,
   .mm-summary,
+  .mm-note,
   .mm-flag {
     break-after: avoid;
   }
+  /* Tighter than the screen, which can afford the air. Being unlayered, this
+     outranks the two padding rules the layered block sets on top of its own
+     shorthand, so both are restated rather than quietly dropped: the header
+     row's flush top and the gutter after the round number. */
   .mm-grid th,
   .mm-grid td {
     padding: 0.4rem 0.7rem 0.4rem 0;
   }
   .mm-grid thead th {
+    padding-top: 0;
     border-bottom-width: 2px;
+  }
+  .mm-grid tbody th {
+    padding-right: 1rem;
   }
   .mm-side {
     font-size: 0.875rem;
+  }
+  /* The same floor the matrix's names set, one table over: a name cannot be
+     broken, so eight courts of long ones give the grid a minimum width wider
+     than the paper and the last court falls off the edge. On screen the
+     scroller catches that; paper has no sideways. Breaking mid-name is ugly
+     and only happens when the alternative is not printing the court at all -
+     at any ordinary roster the column is already wider than its longest name
+     and nothing breaks. */
+  .mm-side,
+  .mm-byes {
+    overflow-wrap: anywhere;
   }
 
   /* Fixed cell sizes are a screen affordance - they keep the matrix square
@@ -3458,8 +3480,14 @@ html:has(.bb-app-chrome) {
     height: 1.15rem;
     padding: 0 0.15rem;
   }
+  /* The name column is the only one on the sheet that can give, so it is the
+     one allowed to. Held at `nowrap` it sets a floor the table cannot get
+     under, and a roster with a "Maria Fernanda Rodriguez Villanueva" in it
+     pushes 32 columns past the edge of an A4 page - which is the cut-off this
+     whole block is here to prevent. A wrapped name costs one taller row. */
   .mm-matrix tbody th {
     padding-right: 0.5rem;
+    white-space: normal;
   }
   .mm-matrix-index {
     width: 1.25rem;
