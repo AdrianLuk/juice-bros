@@ -1,5 +1,5 @@
 import type { AppearanceDivision } from "@/lib/appearances";
-import { describePlayers, formatShortDay } from "@/lib/appearances";
+import { describePlayers, formatShortDay, sortDivisions } from "@/lib/appearances";
 
 /**
  * The brackets the hosts are entered in.
@@ -8,15 +8,20 @@ import { describePlayers, formatShortDay } from "@/lib/appearances";
  * around - which day, which bracket, which of the two of them - so it is set
  * as a readable list with the division in ink and the day and players in
  * metadata beside it, the same shape the home page's tournament panel uses.
+ *
+ * Sorted by day here rather than in the content file, so the hand-edited data
+ * can stay in whatever order registrations came in.
  */
 export function DivisionsList({ divisions }: { divisions: AppearanceDivision[] }) {
   if (divisions.length === 0) return null;
+
+  const byDay = sortDivisions(divisions);
 
   return (
     <div>
       <p className="bx-meta">Entered in</p>
       <ul className="mt-2.5 space-y-px">
-        {divisions.map((division) => (
+        {byDay.map((division) => (
           <li
             key={division.name}
             className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-[var(--bx-line-soft)] py-2 last:border-b-0"

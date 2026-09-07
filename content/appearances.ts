@@ -43,7 +43,8 @@ export type Appearance = {
 // splits these into upcoming (soonest-first) and a collapsed past list
 // (most-recent-first) by date. Adrian keeps the dates/players/divisions in
 // sync as registrations firm up; flip `status` to "confirmed" once a spot is
-// locked.
+// locked. `divisions` order doesn't matter either - the page sorts those by
+// day, so new brackets can just be appended as they are registered.
 export const appearances: Appearance[] = [
   {
     name: "2026 IG Wealth Management National Championships presented by Hearing Life",
