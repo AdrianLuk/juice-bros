@@ -30,10 +30,10 @@ export function OriginStory() {
           <div className="bx-prose mt-5">
             <p>
               It started on the sidelines, the way most good ideas do. Daven and
-              Adrian were two regulars at their local courts - always the last
+              Adrian were two regulars at their local courts, always the last
               two still talking after everyone else had packed up their paddles
               and gone home. Wins, losses, weird matchups, the friend who
-              won&apos;t stop coaching from the fence - it was all fair game.
+              won&apos;t stop coaching from the fence. It was all fair game.
             </p>
             <p>
               Eventually one of us said, &ldquo;we should just record
@@ -42,7 +42,7 @@ export function OriginStory() {
             <p>
               Juice Bros Pickleball started as two friends riffing after a few
               games. It&apos;s grown into a show about the people, stories, and
-              community that make this sport what it is - but the vibe
+              community that make this sport what it is, but the vibe
               hasn&apos;t changed. <strong>Pull up a chair. You&apos;re one of
               us now.</strong>
             </p>

@@ -673,9 +673,15 @@ source photograph, not a generic responsive simplification, drives the split.
   do this", "The two behind the mic") before a review caught them. If the words
   are worth keeping they are prose; usually the heading already said it.
 - **Don't** edit copy PRODUCT.md records as published, including its
-  punctuation. The About page's em dashes are Adrian's; normalising them to
-  commas is a rewrite of confirmed brand voice, and the no-em-dash rule governs
-  copy *we* write. Raise it as a question instead.
+  punctuation. Normalising it is a rewrite of confirmed brand voice, and the
+  no-dash rule governs copy *we* write. Raise it as a question instead.
+  **This is the process rule, and it held:** the About page's spaced-hyphen
+  dashes were changed silently during the rollout, reverted when a review
+  caught it, put to Adrian as a question, and removed on **2026-09-07 at his
+  explicit instruction** — About prose, the `content/team.ts` bios, two
+  `src/data/gear.ts` blurbs, and the Podcast and Contact meta descriptions.
+  A diff against pre-rollout `master` will show that copy differing; that is
+  the sanctioned change, not a regression to restore.
 - **Don't** clamp text on an element whose only child is a `.bx-actionlink`.
   That class is `inline-flex`, so `line-clamp-2` clamps one flex child instead
   of the text inside it — which is how episode titles ran to four lines in the

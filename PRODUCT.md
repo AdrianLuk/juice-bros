@@ -103,7 +103,13 @@ competitor couldn't copy without losing the relatability.
 ## Evidence on Hand
 
 - Real, published About page copy (origin story, mission, differentiation) -
-  already written and shipped; treat as confirmed brand voice, not draft.
+  already written and shipped; treat as confirmed brand voice, not draft. Its
+  wording is unchanged, but on 2026-09-07 Adrian asked for the spaced-hyphen
+  dashes to be taken out of it (and out of the team bios, two gear blurbs and
+  two meta descriptions), so its punctuation now differs from the version
+  shipped before that date. The standing rule that no-dash conventions apply
+  to copy *we* write, not to his published prose, is unchanged - this was an
+  instruction, not an inference.
 - Real host photo and Instagram links for both co-hosts.
 - Real logo/banner/OG assets in `public/brand/`.
 - No case studies, testimonials, or usage metrics on hand - do not fabricate any.

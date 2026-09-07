@@ -12,7 +12,7 @@ import { OnSpotify } from "./sections/on-spotify";
 export const metadata: Metadata = pageMetadata({
   title: "Podcast",
   description:
-    "Every episode of Juice Bros Pickleball in one place - watch on YouTube, listen on Spotify, or browse the full archive.",
+    "Every episode of Juice Bros Pickleball in one place. Watch on YouTube, listen on Spotify, or browse the full archive.",
   path: "/podcast",
 });
 

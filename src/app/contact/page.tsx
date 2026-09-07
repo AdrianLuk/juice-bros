@@ -10,7 +10,7 @@ import { ContactInfo } from "./sections/contact-info";
 export const metadata: Metadata = pageMetadata({
   title: "Contact",
   description:
-    "Get in touch with Juice Bros Pickleball - questions, guest pitches, sponsorships, and more.",
+    "Get in touch with Juice Bros Pickleball: questions, guest pitches, sponsorships, and more.",
   path: "/contact",
 });
 
