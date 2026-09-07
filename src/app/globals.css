@@ -2941,6 +2941,40 @@ html:has(.bb-app-chrome) {
 
   /* ---- Roster entry ----------------------------------------------------- */
 
+  /* A field's label and the one edit that belongs to it, on one line. The
+     edit sits with the field it acts on rather than under the button below,
+     which is the screen's action and the only thing that should read as one. */
+  .mm-field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  /* Underlined text rather than anything with a border: this is an edit to the
+     box above it, and a second framed control beside the stamp would ask to be
+     read as a second way to draw the schedule. */
+  .mm-quiet {
+    /* Padded out to a thumb's worth of target and pulled back by the same
+       amount, so the hit area clears 24px without the label moving off the
+       label row's baseline. */
+    padding: 0.4rem 0.3rem;
+    margin: -0.4rem -0.3rem;
+    border: 0;
+    background: none;
+    color: var(--mm-ink);
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+    text-decoration-thickness: 1px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .mm-quiet:hover {
+    text-decoration-thickness: 2px;
+  }
+
   .mm-input {
     border: 1px solid var(--mm-rule-strong);
     border-radius: 0;
