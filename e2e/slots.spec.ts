@@ -3,8 +3,12 @@ import { expect, test } from "./support/accounts.ts";
 
 import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
-import { deleteFriendGroups, deleteVisibilityOverrides } from "./support/db-reset.ts";
-import { pinFriendVisibility } from "./support/visibility.ts";
+import {
+  deleteFriendGroups,
+  deleteVisibilityOverrides,
+  pinFriendVisibility,
+} from "./support/db-reset.ts";
+
 import {
   addPlace,
   logBooking,
@@ -71,6 +75,20 @@ async function resetGender(page: Page) {
 
 test.beforeEach(async ({ page, accounts }) => {
   await signIn(page, accounts.amy.email, "/booking-buddy/slots");
+});
+
+/**
+ * Puts Amy back on her own default Visibility. Only the "no slots Visibility"
+ * test pins anyone, but it pins before it has a Slot to sweep in a `finally`,
+ * and an override outranks the Friend Group the tests around it grant through
+ * — so a throw in between would shut Ben2 out for the rest of the file. Same
+ * safety-net posture, and the same reason, as `overlap.spec.ts`'s own sweep.
+ */
+test.afterEach(async ({ accounts }) => {
+  await deleteVisibilityOverrides({
+    email: accounts.amy.email,
+    password: accounts.password,
+  });
 });
 
 /**
@@ -261,7 +279,9 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
   // and since ADR 0021 that alone puts Ben2 on Amy's `calendar` default. The
   // per-friend override is what actually shuts him out, and is what this test
   // is about — leaning on the default instead is what left this red from #377
-  // until #446.
+  // until #446. The `afterEach` above is what clears it, so a throw between
+  // here and the sweep below can't leave Amy pinned shut for the rest of the
+  // file.
   const amy = { email: accounts.amy.email, password: accounts.password };
   await pinFriendVisibility(
     amy,
@@ -301,9 +321,6 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
     }
   } finally {
     await deleteSlots([slotId], amy);
-    // Back onto Amy's own default, so the next test in this file starts where
-    // every other one assumes it does.
-    await deleteVisibilityOverrides(amy);
   }
 });
 

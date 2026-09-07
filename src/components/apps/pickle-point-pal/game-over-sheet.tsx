@@ -4,7 +4,7 @@ import { gamesToWin } from "@/components/apps/pickle-point-pal/lib/scoring/reduc
 import { teamName } from "@/components/apps/pickle-point-pal/lib/scoring/selectors";
 import { otherTeam, type MatchState } from "@/components/apps/pickle-point-pal/lib/scoring/types";
 
-import { SegNumber, SegSep } from "./seg-readout";
+import { SegReadout } from "./seg-readout";
 
 /**
  * Game point does not auto-advance. A ref needs a beat to confirm the call
@@ -36,18 +36,19 @@ export function GameOverSheet({
       </p>
 
       <div className="pp-panel pp-panel-settle mx-auto mt-4 flex px-6 py-4">
-        {/* `SegSep` is decorative, so without a label of its own this reads out
-            as one run-together number — "110" for 11-0. Same `role="img"` +
-            spoken label `SegReadout` and `SegClock` each carry. */}
-        <span
-          role="img"
-          aria-label={`Final score ${game.scores[winner]}-${game.scores[otherTeam(winner)]}`}
-          className="inline-flex items-center text-[clamp(3rem,17vw,5.5rem)] leading-none"
-        >
-          <SegNumber value={game.scores[winner]} reserve={2} />
-          <SegSep />
-          <SegNumber value={game.scores[otherTeam(winner)]} reserve={2} />
-        </span>
+        {/* Winner first, so `serving`/`receiving` read as the final pair rather
+            than the live call — the only place the readout is used after the
+            rally that decided it. Rolling the two numerals by hand here is what
+            left the sheet reading out as one run-together number ("110" for
+            11-0): the separator is decorative, and the label that says so
+            belongs to `SegReadout`. */}
+        <SegReadout
+          serving={game.scores[winner]}
+          receiving={game.scores[otherTeam(winner)]}
+          serverNumber={null}
+          label={`Final score ${game.scores[winner]}-${game.scores[otherTeam(winner)]}`}
+          className="text-[clamp(3rem,17vw,5.5rem)]"
+        />
       </div>
 
       <p className="mt-6 text-center text-sm text-pp-ink-dim">

@@ -8,8 +8,11 @@ import {
   deleteAvailabilityWindows,
   insertAvailabilityWindow,
 } from "./support/availability.ts";
-import { deleteFriendGroups, deleteVisibilityOverrides } from "./support/db-reset.ts";
-import { pinFriendVisibility } from "./support/visibility.ts";
+import {
+  deleteFriendGroups,
+  deleteVisibilityOverrides,
+  pinFriendVisibility,
+} from "./support/db-reset.ts";
 
 /**
  * "Find a time" (issue #195) — Plan's third child. Pick friends who share their
@@ -90,7 +93,8 @@ test("only friends who share their availability show in the picker", async ({
 }) => {
   await grantAmyOpenTime(browser, accounts);
   // Ben is the negative case, and says so: an override of `none` shuts Amy out
-  // whatever his default and groups would otherwise resolve to.
+  // whatever his default and groups would otherwise resolve to. `afterEach`
+  // clears it again.
   await pinFriendVisibility(
     { email: accounts.ben.email, password: accounts.password },
     { email: accounts.amy.email, password: accounts.password },
