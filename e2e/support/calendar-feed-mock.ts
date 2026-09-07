@@ -29,6 +29,8 @@ type FeedResponse =
   | { kind: "ics"; body: string }
   | { kind: "status"; status: number }
   | { kind: "empty" }
+  /** A well-formed VCALENDAR with no VEVENT in it — a member with nothing booked (#431). */
+  | { kind: "no-events" }
   | { kind: "malformed" }
   | { kind: "oversized" }
   | { kind: "redirect"; location: string };
@@ -103,6 +105,15 @@ export class CalendarFeedMock {
         return;
       case "empty":
         res.writeHead(200, { "Content-Type": "text/calendar" }).end("");
+        return;
+      case "no-events":
+        res
+          .writeHead(200, { "Content-Type": "text/calendar; charset=utf-8" })
+          .end(
+            ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//CourtReserve//EN", "END:VCALENDAR"].join(
+              "\r\n",
+            ),
+          );
         return;
       case "malformed":
         res
