@@ -21,6 +21,7 @@ import {
 const ORGANIZER = `on-deck-display-${Date.now()}@example.com`;
 const PASSWORD = "pickleball123";
 
+let clubId: string;
 let sessionId: string;
 let volunteerToken: string;
 
@@ -52,7 +53,7 @@ test.beforeAll(async ({ browser }) => {
   await page.waitForURL((url) => !url.pathname.includes("/sign-in"));
   await page.close();
 
-  const clubId = await seedClubForOrganizer(ORGANIZER, {
+  clubId = await seedClubForOrganizer(ORGANIZER, {
     name: "Display Club",
     venueName: "Ramsden Park",
     floorMode: "hybrid",
@@ -83,6 +84,19 @@ test("the Display renders courts, the ordered queue with wait times, and the On 
   // main Juice Bros site nav.
   await expect(page.getByRole("link", { name: "On Deck" }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Podcast" })).toHaveCount(0);
+
+  // The join QR leads the board — the tablet doubles as the printed sign, so
+  // someone not yet in the queue can get in without finding a person first.
+  // It has to encode the *Club* link (the stable one the sign carries), never
+  // this Session's own URL.
+  const joinQr = board.getByTestId("display-join-qr");
+  await expect(joinQr).toContainText("Scan to join");
+  // Exactly one image in the a11y tree: the labelled code, not the drawn
+  // `<svg>` underneath it announcing itself again unnamed.
+  await expect(joinQr.getByRole("img")).toHaveAttribute(
+    "aria-label",
+    new RegExp(`/on-deck/c/${clubId}$`),
+  );
 
   // Both On Deck Foursomes are shown and are the prominent element.
   await expect(page.getByTestId("display-on-deck-0")).toContainText("Up next");

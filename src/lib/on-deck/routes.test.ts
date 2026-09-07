@@ -6,6 +6,7 @@ import {
   ON_DECK_DEV_PATH,
   ON_DECK_HOME_PATH,
   ON_DECK_NEW_SESSION_PATH,
+  ON_DECK_QR_DISPLAY_PATH,
   ON_DECK_SETTINGS_PATH,
   ON_DECK_SIGN_IN_PATH,
   clubQrPath,
@@ -24,6 +25,7 @@ test("only the Organizer subtree requires a session", () => {
   assert.equal(requiresOrganizerSession("/on-deck/home/settings"), true);
   assert.equal(requiresOrganizerSession(ON_DECK_SETTINGS_PATH), true);
   assert.equal(requiresOrganizerSession(ON_DECK_NEW_SESSION_PATH), true);
+  assert.equal(requiresOrganizerSession(ON_DECK_QR_DISPLAY_PATH), true);
   assert.equal(
     requiresOrganizerSession(editSessionPath("session-1")),
     true,
@@ -94,6 +96,7 @@ test("path builders produce the stable shapes the proxy and pages share", () => 
     "/on-deck/home/sessions/session-1",
   );
   assert.equal(ON_DECK_NEW_SESSION_PATH, "/on-deck/home/sessions/new");
+  assert.equal(ON_DECK_QR_DISPLAY_PATH, "/on-deck/home/qr");
   assert.equal(ON_DECK_SETTINGS_PATH, "/on-deck/home/settings");
   assert.equal(ON_DECK_DEV_PATH, "/on-deck/dev");
   assert.equal(ON_DECK_DEV_ENTER_PATH, "/on-deck/dev/enter");

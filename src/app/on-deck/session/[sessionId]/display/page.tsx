@@ -8,6 +8,7 @@ import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { displayPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { DisplayBoard } from "@/components/on-deck/display-board";
+import { clubJoinQr } from "@/lib/on-deck/qr";
 
 export async function generateMetadata({
   params,
@@ -51,6 +52,7 @@ export default async function DisplayPage({
   }
 
   const view = rotationViewFrom(loaded);
+  const joinQr = await clubJoinQr(loaded.config.clubId);
 
   return (
     <ArenaShell>
@@ -70,7 +72,11 @@ export default async function DisplayPage({
           </header>
 
           <div className="mt-7">
-            <DisplayBoard sessionId={sessionId} initialView={view} />
+            <DisplayBoard
+              sessionId={sessionId}
+              initialView={view}
+              joinQr={joinQr}
+            />
           </div>
         </div>
       </section>

@@ -8,12 +8,14 @@ import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
 import type { RotationView } from "@/lib/on-deck/actions/rotation";
 import { QUEUE_TOGETHER_EXPLAINER } from "@/lib/on-deck/session/types";
+import type { ClubJoinQr } from "@/lib/on-deck/qr";
 import {
   BoardBanner,
   BoardHeading,
   CourtPanel,
   FoursomePanel,
   QueueList,
+  Readout,
   SkillColors,
   SkillKey,
 } from "@/components/on-deck/board-parts";
@@ -34,6 +36,7 @@ function displayQueryKey(sessionId: string) {
 export function DisplayBoard(props: {
   sessionId: string;
   initialView: RotationView;
+  joinQr: ClubJoinQr;
 }) {
   return (
     <QueryProvider>
@@ -45,9 +48,11 @@ export function DisplayBoard(props: {
 function DisplayBoardInner({
   sessionId,
   initialView,
+  joinQr,
 }: {
   sessionId: string;
   initialView: RotationView;
+  joinQr: ClubJoinQr;
 }) {
   const queryKey = displayQueryKey(sessionId);
   const pollInterval = useRotationSync(sessionId, [queryKey]);
@@ -82,6 +87,36 @@ function DisplayBoardInner({
         <BoardBanner tone="last-call" data-testid="display-last-call">
           Last call. Final games only, no new foursomes tonight.
         </BoardBanner>
+      )}
+
+      {/*
+        The printed sign, miniaturised onto the tablet already sitting on the
+        snack table — the one surface at the venue a newcomer can reach without
+        finding a person first. Leads the board on purpose: everything below it
+        is unreadable to someone not yet in the queue. Gone at Last Call, when
+        scanning in would only buy a place in a queue going nowhere.
+      */}
+      {!view.lastCall && (
+        <div
+          className="od-panel flex items-center gap-4 p-4 sm:w-fit"
+          data-testid="display-join-qr"
+        >
+          {/* A QR is unreadable to a screen reader, so the code carries the
+              address it encodes as its accessible name — the only way that
+              reader gets into the queue. */}
+          <div
+            role="img"
+            aria-label={`Scan to join at ${joinQr.url}`}
+            className="w-24 shrink-0 rounded-lg bg-white p-1.5 sm:w-32 [&_svg]:h-auto [&_svg]:w-full"
+            dangerouslySetInnerHTML={{ __html: joinQr.svg }}
+          />
+          <div className="min-w-0">
+            <Readout className="text-arena-dim">Scan to join</Readout>
+            <p className="mt-1.5 text-sm text-arena-faint">
+              New here? Point your camera at this. No app, no sign-up.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* ── On Deck — the lead ─────────────────────────────────────────── */}

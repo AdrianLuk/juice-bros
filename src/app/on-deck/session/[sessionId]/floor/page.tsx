@@ -20,6 +20,7 @@ import {
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { RotationBoard } from "@/components/on-deck/rotation-board";
 import { VolunteerLinkCard } from "@/components/on-deck/volunteer-link-card";
+import { clubJoinQr } from "@/lib/on-deck/qr";
 
 export async function generateMetadata({
   params,
@@ -60,6 +61,7 @@ export default async function FloorPage({
 
   const view = rotationViewFrom(loaded);
   const roster = floorRosterFrom(loaded);
+  const joinQr = await clubJoinQr(club.id);
 
   // The Volunteer Link is offered only for the *open* Session, and only when
   // Floor Mode includes volunteers (volunteer-run / hybrid) — under self-serve
@@ -137,6 +139,7 @@ export default async function FloorPage({
               sessionId={sessionId}
               initialView={view}
               initialRoster={roster}
+              joinQr={joinQr}
             />
           </div>
         </div>

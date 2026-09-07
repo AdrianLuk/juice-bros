@@ -97,8 +97,11 @@ test("a volunteer opens the link with no login, ends a game, and reads the queue
   await expect(
     page.getByRole("heading", { name: "Ramsden Park" }),
   ).toBeVisible();
-  // The Queue is readable.
-  await expect(page.getByText("In the queue")).toBeVisible();
+  // The Queue is readable. Matched as the section heading it is, so board
+  // copy that happens to use the same words can't stand in for it.
+  await expect(
+    page.getByRole("heading", { name: "In the queue" }),
+  ).toBeVisible();
 
   const court1 = page.getByTestId("court-1");
   await court1.getByRole("button", { name: "Send next four" }).click();

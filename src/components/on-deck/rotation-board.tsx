@@ -54,6 +54,7 @@ import {
   SKILL_LEVEL_LABEL,
   type PauseReason,
 } from "@/lib/on-deck/session/types";
+import type { ClubJoinQr } from "@/lib/on-deck/qr";
 
 /**
  * How the person driving the board is authorized (issue #248). The Organizer
@@ -94,11 +95,14 @@ export function RotationBoard({
   sessionId,
   initialView,
   initialRoster,
+  joinQr,
   auth = ORGANIZER_AUTH,
 }: {
   sessionId: string;
   initialView: RotationView;
   initialRoster: FloorRoster;
+  /** The Club QR, rendered by the server page that has the Club id. */
+  joinQr: ClubJoinQr;
   auth?: FloorAuth;
 }) {
   return (
@@ -107,6 +111,7 @@ export function RotationBoard({
         sessionId={sessionId}
         initialView={initialView}
         initialRoster={initialRoster}
+        joinQr={joinQr}
         auth={auth}
       />
     </QueryProvider>
@@ -282,6 +287,41 @@ function NoShowSwap({
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * "Show the QR": the Club QR on the Operator's own screen, for the night the
+ * printed sign isn't on the wall. Held out to a new arrival, it saves the
+ * Operator typing them in one field at a time — the self-serve path first,
+ * `AddWalkup` behind it for someone with no phone at all.
+ *
+ * Collapsed into a `<details>` like `SkillLevels`: needed a few times a night,
+ * never while a Court is turning over. White card behind the code, the same
+ * treatment the printed sign gives it — the arena panel is far too dark to
+ * scan against.
+ */
+function ShowTheQr({ qr }: { qr: ClubJoinQr }) {
+  return (
+    <details className="od-panel p-4" data-testid="floor-join-qr">
+      <summary className="od-readout cursor-pointer text-[0.72rem] text-arena-dim">
+        Show the QR
+      </summary>
+      {/* Deliberately not phrased "in the queue": that is a board heading two
+          panels down, and loose text matchers can't tell the two apart. */}
+      <p className="mt-1 text-sm text-arena-faint">
+        Hold this up and they add themselves, no typing from you. Same code as
+        the sign on the wall.
+      </p>
+      {/* A QR is unreadable to a screen reader, so the code carries the
+          address it encodes as its accessible name. */}
+      <div
+        role="img"
+        aria-label={`Scan to join at ${qr.url}`}
+        className="mt-3 w-40 rounded-lg bg-white p-2 [&_svg]:h-auto [&_svg]:w-full"
+        dangerouslySetInnerHTML={{ __html: qr.svg }}
+      />
+    </details>
   );
 }
 
@@ -674,11 +714,13 @@ function RotationBoardInner({
   sessionId,
   initialView,
   initialRoster,
+  joinQr,
   auth,
 }: {
   sessionId: string;
   initialView: RotationView;
   initialRoster: FloorRoster;
+  joinQr: ClubJoinQr;
   auth: FloorAuth;
 }) {
   const queryClient = useQueryClient();
@@ -933,11 +975,16 @@ function RotationBoardInner({
         )}
       </div>
 
+      {/* Both ways to get a new arrival in — and neither survives Last Call,
+          which is the point at which nobody else gets a game tonight. */}
       {!view.lastCall && (
-        <AddWalkup
-          onAdd={(args) => walkup.mutateAsync(args)}
-          pending={walkup.isPending}
-        />
+        <>
+          <ShowTheQr qr={joinQr} />
+          <AddWalkup
+            onAdd={(args) => walkup.mutateAsync(args)}
+            pending={walkup.isPending}
+          />
+        </>
       )}
 
       {/* ── Queue ─────────────────────────────────────────────────────── */}
