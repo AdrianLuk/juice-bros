@@ -166,7 +166,7 @@ export function OwnerDashboardCalendar({
       agendaEmptyMessage={
         <div className="mx-auto flex max-w-sm flex-col items-center gap-4">
           <p>
-            Your games and bookings show up here. Log a court reservation, or
+            Your games and bookings show up here. Log a booking, or
             post a time for your group to respond to.
           </p>
           <div className="flex flex-wrap justify-center gap-2">

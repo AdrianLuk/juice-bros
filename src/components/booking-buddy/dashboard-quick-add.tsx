@@ -16,12 +16,12 @@ import { Button } from "@/components/ui/button";
 import { CreateAvailabilityWindowForm } from "@/components/booking-buddy/availability";
 
 /**
- * The dashboard's quick-add actions — "Log a court" (the shared Log-a-booking
+ * The dashboard's quick-add actions — "Log a booking" (the shared Log-a-Booking
  * dialog lifted into `OwnerDashboardCalendar`, issue #303) and "Block off
  * time" — pinned to the bottom-right corner as a small stack of kraft notes.
  * `bottom-24` on mobile clears the fixed bottom tab bar; `sm:bottom-6` on
  * desktop. Kept kraft, not orange: the one orange commit pin on the dashboard
- * is "Post a new game" up on the board. "Log a court" carries a small orange
+ * is "Post a new game" up on the board. "Log a booking" carries a small orange
  * pushpin as the primary of the two.
  *
  * Portaled to `<body>` so `position: fixed` pins it to the viewport, not to
@@ -97,7 +97,7 @@ export function DashboardQuickActions({
           }}
         />
         <PlusIcon />
-        Log a court
+        Log a booking
       </Button>
     </div>,
     document.body,
