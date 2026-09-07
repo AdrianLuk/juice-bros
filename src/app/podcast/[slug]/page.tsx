@@ -2,17 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodeHook } from "@/lib/youtube";
 import { episodeMetaTitle, getEpisodes, type Episode } from "@/lib/episodes";
 import { buildEpisodeJsonLd, toJsonLdScript } from "@/lib/structured-data";
-import { WatchListenButtons } from "@/components/watch-listen-buttons";
+import { YoutubeIcon, SpotifyIcon } from "@/components/icons";
+import { EpisodePlayer } from "@/components/bx/episode-player";
+import { EpisodeGrid } from "@/components/bx/episode-card";
+import { SectionHead } from "@/components/bx/page-head";
+import { formatAiredLong, formatRuntime, formatRuntimeWords } from "@/components/bx/format";
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
+/** How many other episodes to offer at the foot of the page. */
+const MORE_COUNT = 4;
 
 /**
  * Direct slug match wins. Failing that, a request for a former slug (an
@@ -58,60 +60,117 @@ export async function generateMetadata({
   });
 }
 
+/**
+ * One episode.
+ *
+ * The change that matters here is that the episode now plays. The incumbent
+ * page put a still thumbnail at the top and two buttons underneath it, so
+ * every tile on the site promising "Play <episode>" delivered a picture of a
+ * play button and a trip to another domain. It plays in place now, through the
+ * same click-to-load embed the About page uses, which keeps YouTube's player JS
+ * off the first paint until someone actually asks for it.
+ *
+ * The second change is that the page is no longer a dead end: it closes on four
+ * more episodes rather than on a pair of outbound buttons, so finishing one is
+ * an invitation to start another.
+ */
 export default async function EpisodePage({ params }: PageProps<"/podcast/[slug]">) {
   const { slug } = await params;
   const episode = await resolveEpisode(slug);
 
+  const episodes = await getEpisodes();
+  const more = episodes.filter((candidate) => candidate.id !== episode.id).slice(0, MORE_COUNT);
+
+  const title = episodeMetaTitle(episode.title);
+  const runtime = formatRuntime(episode.duration);
+  const spokenRuntime = formatRuntimeWords(episode.duration);
+
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+    <div className="flex w-full flex-1 flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildEpisodeJsonLd(episode)) }}
       />
-      <Link
-        href="/podcast"
-        className="jb-in w-fit text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
-      >
-        &larr; All episodes
-      </Link>
 
-      <div className="jb-hero-img mt-6 overflow-hidden rounded-[1.75rem] bg-black/3 p-1.5 ring-1 ring-black/5">
-        <div className="aspect-video overflow-hidden rounded-[1.25rem]">
-          {/* Decorative: the episode title is the <h1> directly below this. */}
-          {/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN thumbnail, no next/image optimization needed */}
-          <img
-            src={episode.thumbnail}
-            alt=""
-            // Shared element for the transition in from the archive grid: the
-            // clicked tile tags its own thumbnail with this same name on click
-            // (episode-card.tsx) so the two morph. Same aspect ratio both ends,
-            // so it's a clean grow. Fixed name - only ever one on a page.
-            style={{ viewTransitionName: "jb-episode-hero" }}
-            className="h-full w-full object-cover"
+      <article className="bx-measure pt-10 pb-16 sm:pt-14 sm:pb-20">
+        <Link href="/podcast" className="bx-quietlink group inline-flex items-center">
+          <span
+            aria-hidden
+            className="mr-1.5 inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
+          >
+            &larr;
+          </span>
+          All episodes
+        </Link>
+
+        <div className="mt-6">
+          <EpisodePlayer
+            videoId={episode.id}
+            title={title}
+            poster={`https://i.ytimg.com/vi/${episode.id}/maxresdefault.jpg`}
+            runtime={runtime}
+            morphTarget
           />
         </div>
-      </div>
 
-      <div className="mt-8 flex flex-col gap-5">
-        <div className="jb-in jb-in-2">
-          <p className="text-sm text-muted-foreground">
-            {dateFormatter.format(new Date(episode.published))}
-          </p>
-          <h1 className="mt-2 font-heading text-3xl font-black tracking-[-0.02em] text-balance sm:text-4xl">
-            {episode.title}
-          </h1>
-        </div>
+        {/* Title, then metadata under it - the order every other surface in
+            this system uses. */}
+        <h1 className="bx-display mt-9 max-w-[22ch] text-[clamp(1.875rem,4.2vw,2.75rem)]">
+          {title}
+        </h1>
+        <p className="bx-meta mt-4">
+          {formatAiredLong(episode.published)}
+          {spokenRuntime && (
+            <>
+              <span aria-hidden> &middot; </span>
+              {spokenRuntime}
+            </>
+          )}
+        </p>
 
         {episode.description && (
-          <p className="jb-in jb-in-3 max-w-2xl text-lg whitespace-pre-line text-muted-foreground">
+          <p className="mt-7 max-w-[62ch] text-[1.0625rem] leading-relaxed whitespace-pre-line text-[var(--bx-muted)]">
             {episode.description}
           </p>
         )}
 
-        <div className="jb-in jb-in-4 flex flex-col gap-3 sm:flex-row">
-          <WatchListenButtons youtubeUrl={episode.url} />
+        <div className="mt-9 flex flex-wrap gap-3">
+          <a
+            href={episode.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bx-btn bx-btn-yt"
+          >
+            <YoutubeIcon className="size-[1.125rem]" />
+            Watch on YouTube
+          </a>
+          <a
+            href={siteConfig.links.spotify}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bx-btn bx-btn-sp"
+          >
+            <SpotifyIcon className="size-[1.125rem]" />
+            Listen on Spotify
+          </a>
         </div>
-      </div>
+      </article>
+
+      {more.length > 0 && (
+        <section className="bx-measure bx-hair py-14 sm:py-20">
+          <SectionHead
+            title="More episodes"
+            link={
+              <Link href="/podcast" className="bx-quietlink">
+                View all
+              </Link>
+            }
+          />
+          <div className="mt-7">
+            <EpisodeGrid episodes={more} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

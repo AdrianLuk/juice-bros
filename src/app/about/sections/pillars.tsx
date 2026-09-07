@@ -1,5 +1,3 @@
-import { SectionHeading } from "@/components/typography/section-heading";
-
 const pillars = [
   {
     name: "Conversations",
@@ -8,11 +6,13 @@ const pillars = [
   },
   {
     name: "Entertainment",
-    blurb: "Funny stories, friendly debates, and running jokes that have gotten a little out of hand.",
+    blurb:
+      "Funny stories, friendly debates, and running jokes that have gotten a little out of hand.",
   },
   {
     name: "Community",
-    blurb: "Your stories, your clubs, your questions. Ontario and Canadian pickleball, front and center.",
+    blurb:
+      "Your stories, your clubs, your questions. Ontario and Canadian pickleball, front and center.",
   },
   {
     name: "Culture",
@@ -20,23 +20,35 @@ const pillars = [
   },
 ];
 
+/**
+ * What the show covers.
+ *
+ * Four equal panels on one line. The incumbent nudged every second card down
+ * by 20px, which is decoration pretending to be rhythm - these are four peers
+ * and reading them as a row is the whole point. Their names are ink rather
+ * than the incumbent's brand orange: orange has its jobs on this site and a
+ * card heading is not one of them.
+ */
 export function Pillars() {
   return (
-    <section className="w-full bg-muted/50">
-      <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 lg:px-8">
-        <SectionHeading eyebrow="What You'll Find Here" title="More than a podcast" align="center" />
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {pillars.map((pillar, index) => (
-            <div
-              key={pillar.name}
-              className={`flex flex-col gap-2 rounded-[1.5rem] bg-card p-6 shadow-brand ${index % 2 === 1 ? "lg:mt-5" : ""}`}
-            >
-              <p className="font-heading text-lg font-bold text-brand-orange">{pillar.name}</p>
-              <p className="text-sm text-muted-foreground">{pillar.blurb}</p>
+    <section className="bx-measure py-16 sm:py-24">
+      <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
+        More than a podcast
+      </h2>
+      <p className="bx-meta mt-3">What you&apos;ll find here</p>
+
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {pillars.map((pillar) => (
+          <li key={pillar.name} className="flex">
+            <div className="bx-panel flex w-full flex-col p-6">
+              <h3 className="bx-h2 text-base sm:text-lg">{pillar.name}</h3>
+              <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+                {pillar.blurb}
+              </p>
             </div>
-          ))}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

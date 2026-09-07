@@ -48,11 +48,18 @@ podcast site" - which the standing exit knowingly accepts, so the defence is
 finish, not novelty. Apps (Booking Buddy, On Deck, Pickle Point Pal) keep their
 own visual worlds and are untouched.
 
-Unresolved: whether the home page should carry a newsletter signup (CLAUDE.md
-wants one in the footer sitewide; neither the incumbent home page nor
-`SiteFooter` has ever had one, so it is unbuilt intention rather than lost
-behaviour). Whether Bricolage can be dropped from the font set once the other
-six routes move over.
+Resolved since: **no newsletter signup** — Adrian's call, 2026-09-06, against
+CLAUDE.md's standing wish for one. Audience growth on YouTube/Spotify is the
+stated success metric, a second capture ask on every page splits it, and there
+is no publication to post a form to. The footer closes on Subscribe on YouTube.
+
+Also since: this page no longer owns the `.bx-dark` ground (`SiteShell` does,
+for the whole marketing site) or its private `Foot` (now `SiteFooter`), and its
+archive card is shared with the Podcast catalogue
+(`@/components/bx/episode-card`). What renders here is unchanged.
+
+Still unresolved: whether Bricolage can be dropped from `layout.tsx`. The
+marketing site no longer uses it; the three app worlds decide.
 
 ## Direction contract
 

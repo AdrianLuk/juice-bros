@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { episodeMetaTitle, type Episode } from "@/lib/episodes";
-import { PlayMark } from "./play-mark";
-import { formatAiredShort, formatRuntime } from "./format";
+import type { Episode } from "@/lib/episodes";
+import { EpisodeGrid } from "@/components/bx/episode-card";
+import { SectionHead } from "@/components/bx/page-head";
 
 /**
  * The archive.
@@ -11,84 +11,35 @@ import { formatAiredShort, formatRuntime } from "./format";
  * disclosed deviation (see the surface brief). A rail keeps most of the
  * catalogue off-screen and turns browsing into a swipe most phone visitors
  * never make, which works against the one metric this page exists to serve.
- * Same cards, same ground, same gesture.
  *
  * It follows the band directly, so the episodes read as one passage: the
  * newest one at full size, then the rest of the catalogue, with nothing
  * between them. It carries no `bx-hair` for that reason - the band's own
  * bottom border already draws that line.
  *
- * Each tile is its own tab stop, named by `aria-label` exactly like the stage
- * in `now-playing.tsx` - it used to carry `tabIndex={-1} aria-hidden` so only
- * the title link below it was reachable, which meant the page's one signature
- * gesture (lift, brighten) never fired under keyboard navigation for any of
- * these eight cards. The title stays as a second link to the same episode: a
- * normal card pattern, and its accessible name (the title alone) reads
- * distinctly from the tile's ("Play " + the title).
+ * The card itself now lives in `@/components/bx/episode-card`, shared with the
+ * Podcast catalogue: same object, same card, so a visitor moving between the
+ * two pages does not have to re-learn it. `morph` stays off here — this grid is
+ * one section among several, so it keeps the plain page cross-fade, while the
+ * catalogue (where the grid *is* the page) grows the clicked thumbnail into the
+ * episode page's player.
  */
 export function Archive({ episodes }: { episodes: Episode[] }) {
   if (episodes.length === 0) return null;
 
   return (
     <section className="bx-measure py-16 sm:py-24">
-      <div className="flex items-baseline justify-between gap-6">
-        <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">Every episode</h2>
-        <Link
-          href="/podcast"
-          className="text-sm text-[var(--bx-muted)] transition-colors duration-200 hover:text-[var(--bx-ink)]"
-        >
-          View all
-        </Link>
+      <SectionHead
+        title="Every episode"
+        link={
+          <Link href="/podcast" className="bx-quietlink">
+            View all
+          </Link>
+        }
+      />
+      <div className="mt-7">
+        <EpisodeGrid episodes={episodes} />
       </div>
-
-      <ul className="mt-7 grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {episodes.map((episode) => {
-          const runtime = formatRuntime(episode.duration);
-          return (
-            <li key={episode.id}>
-              <article className="bx-card">
-                <Link
-                  href={`/podcast/${episode.slug}`}
-                  className="bx-tile group aspect-video"
-                  aria-label={`Play ${episodeMetaTitle(episode.title)}`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
-                  <img
-                    src={episode.thumbnail}
-                    alt=""
-                    width={480}
-                    height={270}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <PlayMark />
-                  {runtime && <span className="bx-dur">{runtime}</span>}
-                </Link>
-
-                <h3 className="mt-3.5 line-clamp-2 text-[0.9375rem] leading-snug font-semibold">
-                  <Link
-                    href={`/podcast/${episode.slug}`}
-                    className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
-                  >
-                    {episodeMetaTitle(episode.title)}
-                  </Link>
-                </h3>
-                {/* Date only, visually. The runtime is already on the
-                    thumbnail, in the chip a video player would put it in, so
-                    printing it again spent the metadata line on something the
-                    visitor read two lines above. It stays in the accessibility
-                    tree: the tile's `aria-label` names the play action, not
-                    the runtime, so this is the only place a screen reader can
-                    hear it. */}
-                <p className="bx-meta mt-1.5">
-                  {formatAiredShort(episode.published)}
-                  {runtime && <span className="sr-only">, {runtime}</span>}
-                </p>
-              </article>
-            </li>
-          );
-        })}
-      </ul>
     </section>
   );
 }

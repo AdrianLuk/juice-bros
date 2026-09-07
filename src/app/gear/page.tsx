@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import { hosts, partnerCodes } from "@/data/gear";
 import { pageMetadata } from "@/lib/metadata";
 import { buildGearJsonLd, toJsonLdScript } from "@/lib/structured-data";
-import { Reveal } from "@/components/motion/reveal";
-import { PageHeading } from "@/components/typography/page-heading";
+import { PageHead } from "@/components/bx/page-head";
 import { HostGearSection } from "./sections/host-gear-section";
 import { PartnerCodesSection } from "./sections/partner-codes-section";
 
@@ -15,32 +14,44 @@ export const metadata: Metadata = pageMetadata({
   path: "/gear",
 });
 
+/**
+ * The gear page, in Broadcast Dark.
+ *
+ * The one page on the site where the visitor is looking at objects rather than
+ * reading, so the products carry all the colour and the chrome gets out of the
+ * way entirely: white plates, ink titles, and a metadata line each. See
+ * `gear-card.tsx` for why the plate is white and why the discount code is not
+ * orange.
+ *
+ * The disclosure is a plain sentence in the header rather than a boxed notice
+ * at the bottom. It is a real commercial relationship and it belongs where
+ * someone reads it before clicking, not underneath the thing it discloses.
+ */
 export default function GearPage() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+    <div className="flex w-full flex-1 flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildGearJsonLd(hosts, partnerCodes)) }}
       />
-      <PageHeading
-        eyebrow="What We Play With"
-        title="Gear"
-        description="The paddles, apparel, and accessories we actually use - plus our ambassador codes for a discount. We only share products we genuinely play with and believe in."
+
+      <PageHead
+        title="What we actually play with"
+        lead="Our paddles, our grips, the stuff that ends up in the bag. Nothing here is on the list because a brand asked, and we've each got our own setup."
+        note={
+          <>
+            Some links below are ambassador codes. They take a bit off your
+            order and earn us a commission at no extra cost to you.
+          </>
+        }
       />
-      <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-        Affiliate disclosure: some links below are ambassador codes that earn us a
-        commission at no extra cost to you.
-      </p>
 
-      {hosts.map((host) => (
-        <Reveal key={host.name}>
-          <HostGearSection host={host} />
-        </Reveal>
-      ))}
-
-      <Reveal>
+      <div className="bx-measure pb-6">
+        {hosts.map((host) => (
+          <HostGearSection key={host.name} host={host} />
+        ))}
         <PartnerCodesSection items={partnerCodes} />
-      </Reveal>
+      </div>
     </div>
   );
 }

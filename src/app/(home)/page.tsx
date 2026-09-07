@@ -11,7 +11,6 @@ import { TheHosts } from "./sections/the-hosts";
 import { FreeTools } from "./sections/free-tools";
 import { OnTheRoad } from "./sections/on-the-road";
 import { FromInstagram } from "./sections/from-instagram";
-import { Foot } from "./sections/foot";
 
 export const metadata: Metadata = pageMetadata({
   description: siteConfig.description,
@@ -25,9 +24,13 @@ export const metadata: Metadata = pageMetadata({
  * The category standard executed at full fidelity, which is a standing brand
  * commitment recorded in PRODUCT.md rather than a default. The global
  * `SiteHeader` (the floating orange pill every marketing route shares) sits
- * over the hero; the page renders its own footer, so `/` suppresses only the
- * global footer in `SiteChromeSlot`. The `.bx-dark` scope in globals.css
- * carries the whole look and nothing here reaches outside it.
+ * over the hero.
+ *
+ * Two things moved out from under this page when the look rolled out to the
+ * other six routes: the `.bx-dark` ground, now carried by `SiteShell` for the
+ * whole marketing site, and the private `Foot`, which became `SiteFooter`. What
+ * renders is unchanged — the page just no longer owns chrome that turned out to
+ * belong to every route.
  */
 export default async function Home() {
   const episodes = await getEpisodes();
@@ -36,7 +39,7 @@ export default async function Home() {
   const [newest, ...rest] = episodes;
 
   return (
-    <div className="bx-dark flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col">
       <PhotoHero />
       {newest && <NowPlaying episode={newest} />}
       <Archive episodes={rest.slice(0, 8)} />
@@ -44,7 +47,6 @@ export default async function Home() {
       <FreeTools />
       <OnTheRoad />
       <FromInstagram posts={instagramPosts} />
-      <Foot />
     </div>
   );
 }

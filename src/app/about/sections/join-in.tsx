@@ -1,50 +1,51 @@
 import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
-import { Button } from "@/components/ui/button";
 import { InstagramIcon } from "@/components/icons";
-import { SectionHeading } from "@/components/typography/section-heading";
 
+/**
+ * The About page's close.
+ *
+ * The site footer directly below closes on subscribing, so this one doesn't:
+ * two subscribe asks stacked on top of each other cancel out. This page's own
+ * ask is participation, which is what the published copy already says, so it
+ * sends people to Instagram and to the contact form and leaves YouTube to the
+ * footer.
+ *
+ * The Instagram button wears Instagram's own colour, under the same rule the
+ * YouTube and Spotify buttons follow: a destination button carries its
+ * destination's brand, with its ink resolved from a real contrast check.
+ * White on `#e1306c` measures 4.34:1 - the same register as the YouTube red
+ * already shipping here, and kept for the same reason.
+ *
+ * Copy unchanged from the published About page.
+ */
 export function JoinIn() {
   return (
-    <section className="relative overflow-hidden bg-brand-black text-white">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,color-mix(in_oklch,var(--brand-orange),transparent_88%)_0%,transparent_60%)]"
-      />
-      <div className="relative flex w-full flex-col items-center gap-4 px-4 py-24 text-center sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow="Join In"
-          title="This only works if you're part of it"
-          align="center"
-        />
-        <p className="max-w-md text-white/60">
-          Got a story from your local courts? A club we should know about? A hot take
-          you need to get off your chest? We want to hear it. Follow along, send us a
-          message, or just show up in the comments - that&apos;s half the show.
-        </p>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <Button
-            size="lg"
-            nativeButton={false}
-            className="group h-12 rounded-full bg-[#e1306c] pr-2 pl-6 text-base text-white hover:bg-[#e1306c]/90"
-            render={<a href={siteConfig.links.instagram} target="_blank" rel="noopener noreferrer" />}
-          >
-            Follow on Instagram
-            <span className="flex size-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
-              <InstagramIcon className="size-4" />
-            </span>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            nativeButton={false}
-            className="h-12 rounded-full border-white/15 bg-white/5 px-6 text-base text-white hover:bg-white/10 hover:text-white"
-            render={<Link href="/contact" />}
-          >
-            Send Us a Message
-          </Button>
-        </div>
+    <section className="bx-measure py-16 sm:py-24">
+      <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
+        This only works if you&apos;re part of it
+      </h2>
+      <p className="mt-5 max-w-[52ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+        Got a story from your local courts? A club we should know about? A hot
+        take you need to get off your chest? We want to hear it. Follow along,
+        send us a message, or just show up in the comments. That&apos;s half the
+        show.
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <a
+          href={siteConfig.links.instagram}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bx-btn bx-btn-ig"
+        >
+          <InstagramIcon className="size-[1.125rem]" />
+          Follow on Instagram
+        </a>
+        <Link href="/contact" className="bx-btn bx-btn-ghost">
+          Send us a message
+        </Link>
       </div>
     </section>
   );
