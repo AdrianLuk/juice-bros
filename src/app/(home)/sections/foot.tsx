@@ -78,7 +78,7 @@ export function Foot() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.name}
-                  className="bx-btn bx-btn-ghost size-10 p-0"
+                  className="bx-btn bx-btn-ghost size-11 p-0"
                 >
                   <social.icon className="size-4" />
                 </a>

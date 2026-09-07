@@ -2516,6 +2516,7 @@ html:has(.bb-app-chrome) {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 2.75rem;
     border-radius: 999px;
     padding: 0.8125rem 1.375rem;
     font-size: 0.9375rem;
@@ -2565,20 +2566,6 @@ html:has(.bb-app-chrome) {
   .bx-tile:hover, .bx-tile:focus-visible { box-shadow: 0 0 0 1px var(--bx-line), var(--bx-shadow); }
 
   .bx-stage { border-radius: var(--bx-radius-lg); }
-
-  /* An archive card's thumbnail link is `aria-hidden` with `tabIndex={-1}` -
-     the title beside it is the real link - so `.bx-tile:focus-visible` can
-     never fire there, and a keyboard visitor got a focus ring with none of the
-     page's one gesture. Mirror it from the card, so tabbing a title lifts its
-     thumbnail exactly as pointing at it does. */
-  .bx-card:focus-within .bx-tile { box-shadow: 0 0 0 1px var(--bx-line), var(--bx-shadow); }
-  .bx-card:focus-within .bx-play { background: #fff; scale: 1.06; }
-  @media (prefers-reduced-motion: no-preference) {
-    .bx-card:focus-within .bx-tile { transform: translateY(-3px); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .bx-card:focus-within .bx-play { scale: 1; }
-  }
 
   /* The play affordance, drawn rather than borrowed from an icon set. */
   .bx-play {

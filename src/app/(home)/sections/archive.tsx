@@ -17,6 +17,14 @@ import { formatAiredShort, formatRuntime } from "./format";
  * newest one at full size, then the rest of the catalogue, with nothing
  * between them. It carries no `bx-hair` for that reason - the band's own
  * bottom border already draws that line.
+ *
+ * Each tile is its own tab stop, named by `aria-label` exactly like the stage
+ * in `now-playing.tsx` - it used to carry `tabIndex={-1} aria-hidden` so only
+ * the title link below it was reachable, which meant the page's one signature
+ * gesture (lift, brighten) never fired under keyboard navigation for any of
+ * these eight cards. The title stays as a second link to the same episode: a
+ * normal card pattern, and its accessible name (the title alone) reads
+ * distinctly from the tile's ("Play " + the title).
  */
 export function Archive({ episodes }: { episodes: Episode[] }) {
   if (episodes.length === 0) return null;
@@ -42,8 +50,7 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
                 <Link
                   href={`/podcast/${episode.slug}`}
                   className="bx-tile group aspect-video"
-                  tabIndex={-1}
-                  aria-hidden
+                  aria-label={`Play ${episodeMetaTitle(episode.title)}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail, already sized by the API */}
                   <img
@@ -70,8 +77,9 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
                     thumbnail, in the chip a video player would put it in, so
                     printing it again spent the metadata line on something the
                     visitor read two lines above. It stays in the accessibility
-                    tree: the chip lives inside an `aria-hidden` tile, so this
-                    is the only place a screen reader can hear it. */}
+                    tree: the tile's `aria-label` names the play action, not
+                    the runtime, so this is the only place a screen reader can
+                    hear it. */}
                 <p className="bx-meta mt-1.5">
                   {formatAiredShort(episode.published)}
                   {runtime && <span className="sr-only">, {runtime}</span>}
