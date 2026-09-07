@@ -53,17 +53,20 @@ export function ScheduleGrid({
   roster,
   schedule,
   score,
+  headingId = "mm-schedule-heading",
 }: {
   roster: Roster;
   schedule: Schedule;
   score: ScorerResult;
+  /** Overridden by the zero state, which shows a second grid of its own. */
+  headingId?: string;
 }) {
   const courts = schedule.rounds[0]?.games.length ?? 0;
   const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
 
   return (
-    <section aria-labelledby="mm-schedule-heading">
-      <h2 id="mm-schedule-heading" className="mm-legend">
+    <section aria-labelledby={headingId}>
+      <h2 id={headingId} className="mm-legend">
         Schedule
       </h2>
       <p className="mm-summary mt-2">{summarise(score, schedule)}</p>

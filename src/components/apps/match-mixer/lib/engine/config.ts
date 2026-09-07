@@ -62,26 +62,43 @@ export function isSupportedRosterSize(n: number): boolean {
 }
 
 /** A Config with nothing left to decide: both numbers settled and in range. */
-export type ResolvedConfig = Config & {
+export type ResolvedConfig = Config & ResolvedNumbers;
+
+export interface ResolvedNumbers {
   readonly courts: number;
   readonly rounds: number;
-};
+}
+
+/**
+ * The two numbers, settled, for a Roster of this size. Courts are decided
+ * first, because the Round count depends on how many there turn out to be.
+ *
+ * Split out from `clampConfig` because the fields need these before there is
+ * anything to generate, and a Seed is no part of the question they are asking.
+ */
+export function resolveNumbers(
+  n: number,
+  courts?: number,
+  rounds?: number,
+): ResolvedNumbers {
+  const settled = clampCourts(n, courts ?? maxCourts(n));
+  return {
+    courts: settled,
+    rounds: clampRounds(rounds ?? defaultRounds(n, settled)),
+  };
+}
 
 /**
  * The Config the engine will actually use: the fields the organizer edits
  * brought inside what the Roster supports, and anything left unset resolved to
- * its default. Courts are settled first, because the Round count depends on
- * how many there turn out to be.
+ * its default.
  *
  * Roster size is left alone. Outside 4 to 32 the answer is a message, not a
  * quiet trim of somebody off the end.
  */
 export function clampConfig(config: Config): ResolvedConfig {
-  const n = config.roster.length;
-  const courts = clampCourts(n, config.courts ?? maxCourts(n));
   return {
     ...config,
-    courts,
-    rounds: clampRounds(config.rounds ?? defaultRounds(n, courts)),
+    ...resolveNumbers(config.roster.length, config.courts, config.rounds),
   };
 }

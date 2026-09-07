@@ -3151,6 +3151,97 @@ html:has(.bb-app-chrome) {
     font-weight: 700;
   }
 
+  /* ---- Asking for a draw ------------------------------------------------ */
+
+  /* The one control on the page, so it is the one solid black mark on it: a
+     stamp on a document rather than a button on a form. Pressing it is the
+     only moment the grid changes, which is why nothing else here competes. */
+  .mm-button {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--mm-ink);
+    border-radius: 0;
+    background: var(--mm-ink);
+    color: var(--mm-paper);
+    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .mm-button:hover:not(:disabled) {
+    background: var(--mm-paper);
+    color: var(--mm-ink);
+  }
+  .mm-button:disabled {
+    border-color: var(--mm-rule);
+    background: var(--mm-sink);
+    color: oklch(0.66 0 0);
+    cursor: not-allowed;
+  }
+  /* A second rule around the stamp while the sheet is out of date: the label
+     already says "update", this is what carries it at a glance. */
+  .mm-button[data-stale] {
+    box-shadow:
+      0 0 0 2px var(--mm-paper),
+      0 0 0 3px var(--mm-ink);
+  }
+
+  /* Ruled top and bottom like a stamp across a filed document, because that is
+     its whole job: stop the sheet under it being read as the current one. */
+  .mm-flag {
+    margin-bottom: 1.75rem;
+    padding: 0.5rem 0;
+    border-top: 2px solid var(--mm-ink);
+    border-bottom: 1px solid var(--mm-ink);
+    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mm-ink);
+  }
+  /* Dimmed by moving the ink itself, so the grid and the matrix inside go with
+     it without either of them knowing what stale means. */
+  .mm-draw[data-stale] {
+    --mm-ink: oklch(0.56 0 0);
+    --mm-ink-dim: oklch(0.66 0 0);
+    --mm-rule: oklch(0.91 0 0);
+    --mm-rule-strong: oklch(0.8 0 0);
+    color: var(--mm-ink);
+  }
+
+  /* A repeated name is a printing problem, not an error, so it is a marginal
+     note against the roster rather than anything louder. */
+  .mm-notice {
+    max-width: 52ch;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--mm-ink);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--mm-ink);
+  }
+
+  /* ---- The example draw sheet -------------------------------------------- */
+
+  /* The same grid the tool produces, greyed the same way: by moving the ink,
+     not by opacity, so the hairlines stay hairlines. Dashed frame and no
+     selection say it is a specimen and not tonight's sheet. */
+  .mm-example {
+    --mm-ink: oklch(0.62 0 0);
+    --mm-ink-dim: oklch(0.7 0 0);
+    --mm-rule: oklch(0.9 0 0);
+    --mm-rule-strong: oklch(0.82 0 0);
+
+    padding: 1.25rem;
+    border: 1px dashed var(--mm-rule-strong);
+    color: var(--mm-ink);
+    user-select: none;
+  }
+
   /* ---- Nothing to show yet ---------------------------------------------- */
 
   .mm-placeholder {
