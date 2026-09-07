@@ -66,7 +66,7 @@ export function PhotoHero() {
       </div>
 
       <div className="bx-measure relative z-10 pt-8 pb-4 sm:pt-32 sm:pb-14">
-        <h1 className="bx-display max-w-[18ch] text-[clamp(2rem,5.4vw,3.5rem)]">
+        <h1 className="bx-display max-w-[18ch] text-[clamp(2.25rem,5.4vw,3.5rem)]">
           Pickleball, from two guys still trying to get good at it.
         </h1>
         <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
