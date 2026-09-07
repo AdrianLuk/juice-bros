@@ -66,8 +66,8 @@ export const apps: AppItem[] = [
     status: "live",
     highlights: [
       "Paste your list of names and get every round back at once",
-      "Nobody partners the same person twice and nobody sits out",
-      "A partner grid underneath shows you the schedule is fair",
+      "Any roster from 4 to 32, on however many courts you have free",
+      "Nobody partners the same person twice, and sit-outs rotate evenly",
     ],
     terms: ["Free", "No sign-up", "Open now"],
   },

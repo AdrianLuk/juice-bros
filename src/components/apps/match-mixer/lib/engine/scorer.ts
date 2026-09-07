@@ -1,4 +1,4 @@
-import type { Config, PlayerIndex, Schedule, ScorerResult } from "./types.ts";
+import type { Config, PlayerIndex, Round, Schedule, ScorerResult } from "./types.ts";
 
 /**
  * The Scorer: this context's definition of "fair". Partner repeats first, Bye
@@ -22,7 +22,16 @@ function matrix(n: number): number[][] {
 }
 
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult {
-  const n = config.roster.length;
+  return scoreRounds(schedule.rounds, config.roster.length);
+}
+
+/**
+ * The same reading, taken over bare Rounds. The generator scores its own
+ * half-built attempts before there is a Roster or a Config to hand over, and
+ * it has to be judged by exactly the function that judges the finished
+ * Schedule rather than by a second opinion that might disagree.
+ */
+export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
   const partnerMatrix = matrix(n);
   const opponentMatrix = matrix(n);
   const gamesPlayed = new Array<number>(n).fill(0);
@@ -33,7 +42,7 @@ export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult 
     grid[b][a] += 1;
   };
 
-  for (const round of schedule.rounds) {
+  for (const round of rounds) {
     for (const game of round.games) {
       const [teamA, teamB] = game.teams;
       bump(partnerMatrix, teamA[0], teamA[1]);

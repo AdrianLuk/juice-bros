@@ -42,9 +42,10 @@ export interface Round {
 }
 
 /**
- * Where a Schedule came from. Nothing may infer balance from this — the
- * Scorer reads the Schedule itself (ADR 0002). `generated` is not produced
- * yet; the randomized greedy generator arrives in RR-1.2.
+ * Where a Schedule came from. Nothing may infer balance from this — the Scorer
+ * reads the Schedule itself (ADR 0002). A Schedule that starts with a Table
+ * and is then extended past it reads as `generated`, because what matters here
+ * is whether anything was searched for rather than looked up.
  */
 export type ScheduleSource = "table" | "generated";
 
@@ -61,11 +62,15 @@ export interface Config {
   readonly roster: Roster;
   readonly courts: number;
   /**
-   * How many Rounds to produce. Omitted means the natural length of the
-   * Schedule this Config implies — for a Table, the whole Table.
+   * How many Rounds to produce. Omitted means `defaultRounds` for this Roster
+   * and court count — an evening, not the whole rotation.
    */
   readonly rounds?: number;
-  /** Makes generation reproducible. Unused while every Schedule is a Table. */
+  /**
+   * Makes generation reproducible: the same Config and Seed always give the
+   * same Schedule, which is why a Schedule never has to be stored. A Config
+   * served entirely from a Table ignores it, having nothing to randomize.
+   */
   readonly seed: number;
 }
 

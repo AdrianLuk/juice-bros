@@ -18,16 +18,39 @@ function teamNames(roster: Roster, team: Team): string {
 }
 
 /**
+ * How unevenly the Byes could possibly have fallen. Sit-outs divide among the
+ * Roster like anything else: when they do not go round exactly, somebody has
+ * to sit once more than somebody else, and that is not a flaw to report.
+ */
+function idealByeSpread(n: number, sitting: number, rounds: number): number {
+  if (n === 0 || sitting === 0) return 0;
+  return (sitting * rounds) % n === 0 ? 0 : 1;
+}
+
+/**
  * The summary line is a readout of the Scorer against the Schedule that was
  * actually produced, never a claim derived from the Config.
  */
-function summarise(score: ScorerResult, rounds: number): string {
+function summarise(score: ScorerResult, schedule: Schedule, size: number): string {
+  const rounds = schedule.rounds.length;
+  const sitting = schedule.rounds[0]?.byes.length ?? 0;
+  const evenly = score.byeSpread <= idealByeSpread(size, sitting, rounds);
+
+  let byes: string;
+  if (sitting === 0) {
+    byes = "nobody sits out";
+  } else if (evenly) {
+    byes = `${sitting} ${sitting === 1 ? "player sits" : "players sit"} out each round, rotating evenly`;
+  } else {
+    byes = `${sitting} ${sitting === 1 ? "player sits" : "players sit"} out each round, but some sit out ${score.byeSpread} more times than others`;
+  }
+
   return [
-    `${rounds} rounds`,
+    `${rounds} ${rounds === 1 ? "round" : "rounds"}`,
     score.repeatedPartnerPairs === 0
       ? "no repeat partners"
       : `${score.repeatedPartnerPairs} repeat partnerships`,
-    score.byeSpread === 0 ? "nobody sits out" : "byes spread evenly",
+    byes,
     score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
       ? "nobody faces the same person more than twice"
       : `some players face each other ${score.maxOpponentCount} times`,
@@ -44,13 +67,14 @@ export function ScheduleGrid({
   score: ScorerResult;
 }) {
   const courts = schedule.rounds[0]?.games.length ?? 0;
+  const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
 
   return (
     <section aria-labelledby="mm-schedule-heading">
       <h2 id="mm-schedule-heading" className="mm-legend">
         Schedule
       </h2>
-      <p className="mm-summary mt-2">{summarise(score, schedule.rounds.length)}</p>
+      <p className="mm-summary mt-2">{summarise(score, schedule, roster.length)}</p>
 
       <div className="mm-scroll mt-5">
         <table className="mm-grid">
@@ -65,6 +89,7 @@ export function ScheduleGrid({
                   Court {court + 1}
                 </th>
               ))}
+              {anyByes ? <th scope="col">Sitting out</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -78,6 +103,11 @@ export function ScheduleGrid({
                     <span className="mm-side">{teamNames(roster, game.teams[1])}</span>
                   </td>
                 ))}
+                {anyByes ? (
+                  <td className="mm-byes" data-court="Sitting out">
+                    {round.byes.map((player) => roster[player].name).join(", ")}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
