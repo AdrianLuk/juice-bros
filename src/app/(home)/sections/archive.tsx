@@ -66,14 +66,15 @@ export function Archive({ episodes }: { episodes: Episode[] }) {
                     {episodeMetaTitle(episode.title)}
                   </Link>
                 </h3>
+                {/* Date only, visually. The runtime is already on the
+                    thumbnail, in the chip a video player would put it in, so
+                    printing it again spent the metadata line on something the
+                    visitor read two lines above. It stays in the accessibility
+                    tree: the chip lives inside an `aria-hidden` tile, so this
+                    is the only place a screen reader can hear it. */}
                 <p className="bx-meta mt-1.5">
                   {formatAiredShort(episode.published)}
-                  {runtime && (
-                    <>
-                      <span aria-hidden> · </span>
-                      {runtime}
-                    </>
-                  )}
+                  {runtime && <span className="sr-only">, {runtime}</span>}
                 </p>
               </article>
             </li>

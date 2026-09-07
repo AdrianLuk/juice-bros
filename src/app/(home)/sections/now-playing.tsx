@@ -19,6 +19,7 @@ import { formatAired, formatRuntime } from "./format";
  */
 export function NowPlaying({ episode }: { episode: Episode }) {
   const hook = episode.description ? getEpisodeHook(episode.description) : "";
+  const runtime = formatRuntime(episode.duration);
 
   return (
     <section className="bx-band">
@@ -39,7 +40,7 @@ export function NowPlaying({ episode }: { episode: Episode }) {
               decoding="async"
             />
             <PlayMark />
-            <span className="bx-dur">{formatRuntime(episode.duration)}</span>
+            {runtime && <span className="bx-dur">{runtime}</span>}
           </Link>
 
           <div>
@@ -55,12 +56,15 @@ export function NowPlaying({ episode }: { episode: Episode }) {
                 {episodeMetaTitle(episode.title)}
               </Link>
             </h2>
+            {/* The runtime is the stage's chip, not printed text - the
+                archive cards below do the same. It is kept for screen readers,
+                which never reach the chip: this link is named by its
+                `aria-label`, so its contents are not announced. */}
             <p className="bx-meta mt-3">
               New episode
               <span aria-hidden> · </span>
               {formatAired(episode.published)}
-              <span aria-hidden> · </span>
-              {formatRuntime(episode.duration)}
+              {runtime && <span className="sr-only">, {runtime}</span>}
             </p>
             {hook && (
               <p className="mt-3.5 max-w-[48ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">

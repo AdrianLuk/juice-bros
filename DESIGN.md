@@ -336,6 +336,15 @@ YouTube and Spotify), plus the footer's own close:
 - **Footer** (`py-14 sm:py-16`, after a `mt-4`): the closing subscribe block,
   between shelf and major in air.
 
+**A fact appears once.** An episode's runtime is drawn on its thumbnail, in the
+chip a video player would put it in, so it is not printed again in the metadata
+line below — that line carries the date alone. The rule is about the whole
+composition, not the string: the thumbnail is read before the caption, so a
+caption that repeats it spends the page's smallest type on something already
+known. Where the visible instance sits inside an `aria-hidden` tile or a link
+named by its `aria-label`, the caption keeps an `sr-only` copy, because "once"
+means once per reader, not once per document.
+
 **Hairlines group, they do not decorate.** `.bx-hair` (1px line-soft top border)
 is drawn in exactly three places at section level: it opens the hosts section, it
 opens the shelf (on the first shelf section only), and it opens the footer. The
@@ -488,8 +497,9 @@ thumbnails, 4:3 for the hosts photo, 1:1 for the Instagram strip.
   standard, 4.5rem on the stage; the glyph is 38% of the disc and nudged 6% right
   for optical centring.
 - **`.bx-dur`** — the runtime chip, bottom-right of the tile, 78%-black fill,
-  white Geist Mono with tabular numerals, 0.25rem radius.
-- **`.bx-meta`** — the metadata line beneath a title (date · runtime · kicker),
+  white Geist Mono with tabular numerals, 0.25rem radius. It is the only place
+  an episode's runtime is printed; see the Fact-Appears-Once Rule.
+- **`.bx-meta`** — the metadata line beneath a title (date, kicker, terms),
   Geist Mono, uppercase, 0.14em tracking, muted, tabular numerals.
 
 ### Navigation
