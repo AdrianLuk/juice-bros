@@ -7,9 +7,8 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
-import { onDeckAbsoluteUrl } from "@/lib/on-deck/request-origin";
-import { clubQrSvg } from "@/lib/on-deck/qr";
-import { ON_DECK_HOME_PATH, ON_DECK_QR_DISPLAY_PATH, clubQrPath } from "@/lib/on-deck/routes";
+import { clubJoinQr } from "@/lib/on-deck/qr";
+import { ON_DECK_HOME_PATH, ON_DECK_QR_DISPLAY_PATH } from "@/lib/on-deck/routes";
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -36,8 +35,7 @@ export default async function OnDeckQrDisplayPage() {
     redirect(ON_DECK_HOME_PATH);
   }
 
-  const url = await onDeckAbsoluteUrl(clubQrPath(club.id));
-  const svg = await clubQrSvg(url);
+  const { url, svg } = await clubJoinQr(club.id);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -51,6 +49,8 @@ export default async function OnDeckQrDisplayPage() {
           </p>
 
           <div
+            role="img"
+            aria-label="Club QR code"
             className="mx-auto mt-8 w-full max-w-xs rounded-2xl border bg-white p-6 shadow-sm [&_svg]:h-auto [&_svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svg }}
           />
