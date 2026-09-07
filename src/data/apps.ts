@@ -64,5 +64,11 @@ export const apps: AppItem[] = [
       "Paste your player list and get a balanced doubles round robin. Nobody partners the same person twice.",
     icon: Grid3x3,
     status: "live",
+    highlights: [
+      "Paste your list of names and get every round back at once",
+      "Nobody partners the same person twice and nobody sits out",
+      "A partner grid underneath shows you the schedule is fair",
+    ],
+    terms: ["Free", "No sign-up", "Open now"],
   },
 ];
