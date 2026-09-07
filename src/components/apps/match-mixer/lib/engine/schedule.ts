@@ -1,5 +1,6 @@
 import { clampConfig } from "./config.ts";
 import { generateRounds } from "./generator.ts";
+import { seating } from "./random.ts";
 import { findTable } from "./tables.ts";
 import {
   MAX_ROSTER_SIZE,
@@ -7,6 +8,7 @@ import {
   type Config,
   type Round,
   type Schedule,
+  type Team,
 } from "./types.ts";
 
 /**
@@ -32,14 +34,35 @@ export class UnsupportedConfigError extends Error {
   }
 }
 
-function tablePrefix(n: number, courts: number, limit: number): Round[] {
+/**
+ * A Table drawn with this Seed. The Seed decides which Roster position takes
+ * each of the Table's seats and nothing else, so every guarantee ADR 0002
+ * makes about the Table survives: relabeling the players in a whist tournament
+ * permutes the partner and opponent counts along with them and leaves the
+ * shape alone.
+ *
+ * Without this, the three Roster sizes with a stored Table would be the three
+ * sizes where asking for a fresh draw returns the same sheet.
+ */
+function tablePrefix(
+  n: number,
+  courts: number,
+  limit: number,
+  seed: number,
+): Round[] {
   const table = findTable(n, courts);
   if (!table) return [];
+
+  const seat = seating(n, seed);
+  const relabel = (team: Team): Team => [seat[team[0]], seat[team[1]]];
 
   // Truncation is the normal case, not a compromise: any leading run of a
   // whist tournament is still balanced (ADR 0002).
   return table.rounds.slice(0, limit).map((games) => ({
-    games: games.map((teams, court) => ({ court, teams })),
+    games: games.map((teams, court) => ({
+      court,
+      teams: [relabel(teams[0]), relabel(teams[1])] as const,
+    })),
     // A Table seats everyone every Round, by construction.
     byes: [],
   }));
@@ -58,7 +81,7 @@ export function generateSchedule(config: Config): Schedule {
   // still cannot ask for a Schedule the Roster could not sit down to.
   const { courts, rounds } = clampConfig(config);
 
-  const prefix = tablePrefix(n, courts, rounds);
+  const prefix = tablePrefix(n, courts, rounds, config.seed);
   if (prefix.length >= rounds) return { source: "table", rounds: prefix };
 
   return {

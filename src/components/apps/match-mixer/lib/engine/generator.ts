@@ -1,3 +1,4 @@
+import { randomFrom, shuffle } from "./random.ts";
 import {
   FREE_OPPONENT_MEETINGS,
   OPPONENT_REPEAT_WEIGHT,
@@ -42,25 +43,6 @@ function attemptsFor(roundsToBuild: number): number {
 
 /** Bounded, because the swap pass usually settles after one or two sweeps. */
 const IMPROVEMENT_PASSES = 4;
-
-/** mulberry32: small, fast, and the same sequence in every browser. */
-function randomFrom(seed: number): () => number {
-  let state = seed >>> 0 || 0x9e3779b9;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffle<T>(items: T[], random: () => number): T[] {
-  for (let i = items.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]];
-  }
-  return items;
-}
 
 /**
  * What it would cost to put these two together, in the Scorer's weights.

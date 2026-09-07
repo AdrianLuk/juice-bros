@@ -267,3 +267,36 @@ test("roster sizes outside 4-32 are refused at the boundary", () => {
     assert.ok(generateSchedule(configFor(n)).rounds.length > 0, `n=${n}`);
   }
 });
+
+test("a new seed redraws a Table-served schedule, and it still scores zero", () => {
+  // Without this, the three sizes with a stored Table are exactly the sizes
+  // where "draw it again" does nothing. A Table's balance is a property of its
+  // shape, not of which player sits in which slot, so the Seed relabels who
+  // takes each seat and the guarantees come through untouched.
+  for (const table of TABLES) {
+    const { roster } = configFor(table.n);
+    const base = { roster, courts: table.courts, rounds: table.n - 1 };
+    const one = generateSchedule({ ...base, seed: 1 });
+    const two = generateSchedule({ ...base, seed: 7 });
+
+    assert.equal(one.source, "table", `n=${table.n} first source`);
+    assert.equal(two.source, "table", `n=${table.n} second source`);
+    assert.notDeepEqual(one.rounds, two.rounds, `n=${table.n} redraw`);
+
+    const score = scoreSchedule(two, { ...base, seed: 7 });
+    assert.equal(score.cost, 0, `n=${table.n} redrawn cost`);
+    assert.equal(score.maxPartnerCount, 1, `n=${table.n} redrawn partners`);
+    assertWellFormed(two, table.n, table.courts);
+  }
+});
+
+test("a redrawn Table seats the same players, only in different places", () => {
+  const table = TABLES[0];
+  const { roster } = configFor(table.n);
+  const base = { roster, courts: table.courts, rounds: 4 };
+  const everyone = Array.from({ length: table.n }, (_, i) => i);
+
+  for (const seats of seatedIn(generateSchedule({ ...base, seed: 12345 }))) {
+    assert.deepEqual(seats, everyone);
+  }
+});
