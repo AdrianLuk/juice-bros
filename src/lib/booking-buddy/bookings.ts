@@ -151,18 +151,50 @@ export function formatCourtLabel(courtLabel: string | null): string {
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+/** "Sept", not "Sep" — the abbreviation people actually write for September. */
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sept",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
 /**
- * `"2026-08-19"` → `"Wed 08-19-2026"` — the month/day/year part is a plain
+ * `"2026-08-19"` → `"Wed Aug 19, 2026"` — the month/day/year part is a plain
  * string reslice, not a `Date` round-trip, since the input already is a
  * calendar date with no zone to misread. The weekday alone needs a `Date` to
- * read off, so it's parsed as UTC midnight and read with `getUTCDay` — the
- * same zoneless-string convention `isRealDate`/`shiftCalendarDate`
- * (datetime.ts) already use for this exact date-only string shape.
+ * read off, so it's parsed as UTC midnight and read with `getUTCDay` — the same
+ * zoneless-string convention `isRealDate`/`shiftCalendarDate` (datetime.ts)
+ * already use for this exact date-only string shape.
+ *
+ * A month name rather than `08-19-2026` (issue #433): the review cards are read
+ * at a glance, and a numeric month/day pair asks the reader which half is
+ * which. The day keeps its leading zero and the weekday takes no comma, which
+ * is deliberately *not* `Intl`'s `en-US` shape — the Booking cards above these
+ * render `"Wed, Aug 19, 2026"` through `formatInstantDateAndTime`. Built by
+ * hand for that reason, and because the input is a zoneless date string rather
+ * than an instant, so giving `Intl` a zone to read it in would be inventing one.
+ *
+ * A string that isn't a real calendar date comes back verbatim. Callers only
+ * ever pass a validated one, but the old numeric form rendered "undefined" for
+ * a bad input and this shouldn't inherit that.
  */
 export function formatCandidateDate(date: string): string {
+  const weekdayIndex = new Date(`${date}T00:00:00Z`).getUTCDay();
+  if (Number.isNaN(weekdayIndex)) {
+    return date;
+  }
+
   const [year, month, day] = date.split("-");
-  const weekday = WEEKDAY_SHORT[new Date(`${date}T00:00:00Z`).getUTCDay()];
-  return `${weekday} ${month}-${day}-${year}`;
+  return `${WEEKDAY_SHORT[weekdayIndex]} ${MONTH_SHORT[Number(month) - 1]} ${day}, ${year}`;
 }
 
 // The court-label shaping an Import Candidate needs — `splitOverlongCourtLabel`

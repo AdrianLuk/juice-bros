@@ -9,6 +9,7 @@ import {
   PLAYER_NAME_MAX_LENGTH,
   bookingWriteMessage,
   formatBookingWhen,
+  formatCandidateDate,
   formatCourtLabel,
   formatTimeLabel,
   parseNewBooking,
@@ -301,4 +302,22 @@ test("the database's own past-time rejection (same-day, already-passed hour) rea
     bookingWriteMessage({ code: "23514", message: "a booking cannot start in the past" }),
     /already passed/,
   );
+});
+
+test("a candidate's date reads as a weekday and a named month (issue #433)", () => {
+  assert.equal(formatCandidateDate("2026-09-09"), "Wed Sept 09, 2026");
+  assert.equal(formatCandidateDate("2026-08-19"), "Wed Aug 19, 2026");
+  assert.equal(formatCandidateDate("2026-01-01"), "Thu Jan 01, 2026");
+  assert.equal(formatCandidateDate("2026-12-31"), "Thu Dec 31, 2026");
+});
+
+test("the day keeps its leading zero and September abbreviates to Sept", () => {
+  assert.equal(formatCandidateDate("2026-10-01"), "Thu Oct 01, 2026");
+  assert.equal(formatCandidateDate("2026-09-01"), "Tue Sept 01, 2026");
+});
+
+test("a string that isn't a real calendar date comes back verbatim, never as \"undefined …\"", () => {
+  for (const bad of ["2026-13-01", "not-a-date", ""]) {
+    assert.equal(formatCandidateDate(bad), bad);
+  }
 });
