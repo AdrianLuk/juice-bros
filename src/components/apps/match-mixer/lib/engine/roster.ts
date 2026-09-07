@@ -12,13 +12,14 @@ import type { Roster } from "./types.ts";
 
 const ID_PREFIX = "p";
 
-function nextIdFrom(previous: Roster): number {
-  let highest = 0;
+/** The lowest id number not already taken, so a new entry never reuses one. */
+function nextIdAfter(previous: Roster): number {
+  let next = 0;
   for (const player of previous) {
     const match = /^p(\d+)$/.exec(player.id);
-    if (match) highest = Math.max(highest, Number(match[1]) + 1);
+    if (match) next = Math.max(next, Number(match[1]) + 1);
   }
-  return highest;
+  return next;
 }
 
 export function parseRoster(text: string, previous: Roster = []): Roster {
@@ -36,19 +37,10 @@ export function parseRoster(text: string, previous: Roster = []): Roster {
     else unclaimed.set(player.name, [player.id]);
   }
 
-  let nextId = nextIdFrom(previous);
+  let nextId = nextIdAfter(previous);
   return names.map((name) => {
     const reusable = unclaimed.get(name);
     const id = reusable?.shift() ?? `${ID_PREFIX}${nextId++}`;
     return { id, name };
   });
-}
-
-/** Names entered more than once — a notice for the organizer, never a block. */
-export function duplicateNames(roster: Roster): string[] {
-  const counts = new Map<string, number>();
-  for (const player of roster) {
-    counts.set(player.name, (counts.get(player.name) ?? 0) + 1);
-  }
-  return [...counts.entries()].filter(([, count]) => count > 1).map(([name]) => name);
 }

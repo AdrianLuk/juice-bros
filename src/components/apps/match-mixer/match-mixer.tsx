@@ -4,13 +4,17 @@ import { useMemo, useState } from "react";
 
 import { parseRoster } from "@/components/apps/match-mixer/lib/engine/roster";
 import { scoreSchedule } from "@/components/apps/match-mixer/lib/engine/scorer";
-import { generateSchedule } from "@/components/apps/match-mixer/lib/engine/schedule";
 import {
+  generateSchedule,
   SUPPORTED_ROSTER_SIZES,
-  type Config,
+} from "@/components/apps/match-mixer/lib/engine/schedule";
+import type {
+  Config,
+  Roster,
 } from "@/components/apps/match-mixer/lib/engine/types";
-import { PartnerMatrix } from "@/components/apps/match-mixer/partner-matrix";
-import { ScheduleGrid } from "@/components/apps/match-mixer/schedule-grid";
+
+import { PartnerMatrix } from "./partner-matrix";
+import { ScheduleGrid } from "./schedule-grid";
 
 /**
  * Match Mixer's only screen. Paste a Roster, read the Schedule.
@@ -39,8 +43,16 @@ function listSizes(sizes: readonly number[]): string {
 
 export function MatchMixer() {
   const [text, setText] = useState("");
+  // The Roster is kept beside the text rather than derived from it, because
+  // parsing has to see the previous entries to hand a corrected or reordered
+  // line back its existing id.
+  const [roster, setRoster] = useState<Roster>([]);
 
-  const roster = useMemo(() => parseRoster(text), [text]);
+  const editRoster = (next: string) => {
+    setText(next);
+    setRoster((previous) => parseRoster(next, previous));
+  };
+
   const size = roster.length;
   const supported = SUPPORTED_ROSTER_SIZES.includes(size);
 
@@ -73,7 +85,7 @@ export function MatchMixer() {
               id="mm-roster"
               className="mm-input mt-3 h-64 w-full resize-y p-3"
               value={text}
-              onChange={(event) => setText(event.target.value)}
+              onChange={(event) => editRoster(event.target.value)}
               placeholder={EXAMPLE_ROSTER}
               spellCheck={false}
               aria-describedby="mm-roster-note"
@@ -81,13 +93,6 @@ export function MatchMixer() {
             <p id="mm-roster-note" className="mm-note mt-2">
               One name per line. {listSizes(SUPPORTED_ROSTER_SIZES)} players for now.
             </p>
-            <button
-              type="button"
-              className="mm-button mt-3"
-              onClick={() => setText(EXAMPLE_ROSTER)}
-            >
-              Use an example roster
-            </button>
           </div>
 
           <div className="min-w-0">

@@ -25,8 +25,12 @@ export function PartnerMatrix({
         Partner Matrix
       </h2>
       <p className="mm-note mt-2">
-        How many times each pair played together. Every count is 1 or blank, so no
-        pair repeats.
+        How many times each pair played together.{" "}
+        {score.repeatedPartnerPairs === 0
+          ? "Every count is 1 or blank, so no pair repeats."
+          : `${score.repeatedPartnerPairs} ${
+              score.repeatedPartnerPairs === 1 ? "pair" : "pairs"
+            } played together more than once, boxed below.`}
       </p>
 
       <div className="mm-scroll mt-5">

@@ -1,4 +1,4 @@
-import { findTable } from "./tables.ts";
+import { findTable, TABLES } from "./tables.ts";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
@@ -12,6 +12,17 @@ import {
  * the randomized greedy fallback behind this same signature, which is why
  * callers ask for a Schedule rather than asking whether a Table exists.
  */
+
+/**
+ * Roster sizes `generateSchedule` can serve, for callers that need to know
+ * before they ask — the UI has to offer a "not yet supported" state rather
+ * than catch. Today that is exactly the sizes with a stored Table, so it is
+ * read off the Tables rather than restated beside them; RR-1.2 widens it to
+ * MIN_ROSTER_SIZE..MAX_ROSTER_SIZE when the greedy generator lands.
+ */
+export const SUPPORTED_ROSTER_SIZES: readonly number[] = TABLES.map(
+  (table) => table.n,
+);
 
 /**
  * Thrown when no Schedule can be produced for a Config. Callers screen for

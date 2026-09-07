@@ -19,9 +19,9 @@
  * finite partner pairs and exactly twice among the finite opponent pairs,
  * because developing a pair of difference d produces one such pair per Round.
  *
- * The Scorer is not used here on purpose. `tables.test.ts` scores the
- * committed data, so the check that matters runs against what actually ships,
- * through code the app itself uses.
+ * The Scorer is not used here on purpose. `lib/engine/schedule.test.ts` scores
+ * the committed data, so the check that matters runs against what actually
+ * ships, through code the app itself uses.
  */
 
 type Pair = [number, number];

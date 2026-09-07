@@ -75,13 +75,6 @@ export const MIN_ROSTER_SIZE = 4;
 export const MAX_ROSTER_SIZE = 32;
 
 /**
- * Roster sizes `generateSchedule` can serve today: the three sizes with a
- * stored Table, each at `courts === n / 4`. RR-1.2 replaces this with the full
- * MIN_ROSTER_SIZE..MAX_ROSTER_SIZE range once the greedy generator lands.
- */
-export const SUPPORTED_ROSTER_SIZES: readonly number[] = [8, 12, 16];
-
-/**
  * The Scorer's reading of one Schedule. `cost` is the number the generator
  * minimizes; everything else is what the summary line and the Partner Matrix
  * render. A perfectly balanced Schedule scores `cost === 0`.

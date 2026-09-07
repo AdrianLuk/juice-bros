@@ -2841,13 +2841,13 @@ html:has(.bb-app-chrome) {
 
 
   /* ==========================================================================
-     Match Mixer - the draw sheet.
+     Match Mixer - the schedule sheet.
 
-     CONCEPT - the grid is the interface. The subject is a paper draw sheet, so
-     the page behaves like one: rounds down, courts across, hairline rules and
-     precise alignment rather than cards, shadows or rounded corners. Elegance
-     here is spacing, not decoration, which is why there is no motion on this
-     surface at all.
+     CONCEPT - the grid is the interface. The subject is a sheet of paper
+     pinned up at the desk, so the page behaves like one: rounds down, courts
+     across, hairline rules and precise alignment rather than cards, shadows
+     or rounded corners. Elegance here is spacing, not decoration, which is
+     why there is no motion on this surface at all.
 
      COLOR - black on white, always. A schedule is a document; it is read in a
      gym and printed on a mono printer, so there is no dark variant and no
@@ -2931,23 +2931,6 @@ html:has(.bb-app-chrome) {
   }
   .mm-input::placeholder {
     color: oklch(0.74 0 0);
-  }
-  .mm-button {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0 0.875rem;
-    border: 1px solid var(--mm-rule-strong);
-    background: var(--mm-paper);
-    color: var(--mm-ink);
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-    font-weight: 600;
-    font-size: 0.75rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-  .mm-button:hover {
-    background: var(--mm-sink);
   }
 
   /* A wide table gets its own scroller so the page itself never scrolls

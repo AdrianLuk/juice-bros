@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { duplicateNames, parseRoster } from "./roster.ts";
+import { parseRoster } from "./roster.ts";
 
 test("one name per line, blank lines and stray whitespace dropped", () => {
   const roster = parseRoster(
@@ -42,11 +42,4 @@ test("a removed name's id is not handed to a later arrival", () => {
 
   assert.equal(second[0].id, first[0].id);
   assert.notEqual(second[1].id, first[1].id);
-});
-
-test("duplicate names are reported, once each", () => {
-  assert.deepEqual(duplicateNames(parseRoster("Mike\nBen Johns\nMike\nMike")), [
-    "Mike",
-  ]);
-  assert.deepEqual(duplicateNames(parseRoster("Ben Johns\nAnna Leigh Waters")), []);
 });

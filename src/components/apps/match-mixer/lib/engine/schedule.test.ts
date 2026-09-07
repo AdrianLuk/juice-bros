@@ -3,9 +3,13 @@ import test from "node:test";
 
 import { parseRoster } from "./roster.ts";
 import { scoreSchedule } from "./scorer.ts";
-import { generateSchedule, UnsupportedConfigError } from "./schedule.ts";
+import {
+  generateSchedule,
+  SUPPORTED_ROSTER_SIZES,
+  UnsupportedConfigError,
+} from "./schedule.ts";
 import { TABLES } from "./tables.ts";
-import { SUPPORTED_ROSTER_SIZES, type Config, type Schedule } from "./types.ts";
+import type { Config, Schedule } from "./types.ts";
 
 function configFor(n: number, overrides: Partial<Config> = {}): Config {
   const roster = parseRoster(
@@ -76,11 +80,11 @@ test("a Table seats every player exactly once per round and nobody sits out", ()
   }
 });
 
-test("Tables cover exactly the supported roster sizes at n / 4 courts", () => {
-  assert.deepEqual(
-    TABLES.map((table) => table.n),
-    [...SUPPORTED_ROSTER_SIZES],
-  );
+test("every advertised roster size really schedules, at n / 4 courts", () => {
+  assert.ok(SUPPORTED_ROSTER_SIZES.length > 0);
+  for (const n of SUPPORTED_ROSTER_SIZES) {
+    assert.equal(generateSchedule(configFor(n)).source, "table");
+  }
   for (const table of TABLES) {
     assert.equal(table.courts, table.n / 4);
   }
