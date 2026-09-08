@@ -7,8 +7,12 @@ import { Label } from "@/components/ui/label";
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ActionError } from "@/components/booking-buddy/action-error";
-import { CandidateSource } from "@/components/booking-buddy/sync-from-email";
+import {
+  CandidateSource,
+  ReviewActions,
+} from "@/components/booking-buddy/sync-from-email";
 import { DismissedSlotFields } from "@/components/booking-buddy/dismissed-slot-fields";
+import type { ReviewOutcome } from "@/components/booking-buddy/review-outcome";
 import {
   formatCandidateDate,
   formatCourtLabel,
@@ -52,7 +56,7 @@ export function FeedCandidateCard({
 }: {
   item: CalendarFeedReviewItem;
   orgs: Org[];
-  onResolved: (feedEventUid: string) => void;
+  onResolved: (feedEventUid: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmFeedCandidate,
@@ -64,9 +68,14 @@ export function FeedCandidateCard({
   );
   const busy = confirmPending || dismissPending;
   const facilityFieldId = `feed-facility-${item.feedEventUid}`;
+  const dismissFormId = `feed-dismiss-${item.feedEventUid}`;
 
-  useResolveOnSuccess(confirmState, () => onResolved(item.feedEventUid));
-  useResolveOnSuccess(dismissState, () => onResolved(item.feedEventUid));
+  useResolveOnSuccess(confirmState, () =>
+    onResolved(item.feedEventUid, "added"),
+  );
+  useResolveOnSuccess(dismissState, () =>
+    onResolved(item.feedEventUid, "skipped"),
+  );
 
   return (
     <li className="bb-card flex flex-col gap-3 p-4">
@@ -87,11 +96,8 @@ export function FeedCandidateCard({
         )}
       </div>
 
-      <form
-        action={confirmAction}
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
-      >
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <form action={confirmAction} className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1.5 sm:max-w-sm">
           <Label htmlFor={facilityFieldId}>Facility</Label>
           <OrgSelect
             id={facilityFieldId}
@@ -112,23 +118,25 @@ export function FeedCandidateCard({
         <input type="hidden" name="notes" value={item.notes ?? ""} />
         <input type="hidden" name="players" value="" />
 
-        <Button type="submit" disabled={busy}>
-          {confirmPending ? "Confirming…" : "Confirm"}
-        </Button>
+        <ReviewActions
+          dismissFormId={dismissFormId}
+          confirmPending={confirmPending}
+          dismissPending={dismissPending}
+          busy={busy}
+        />
       </form>
       <ActionError state={confirmState} />
 
-      <form action={dismissAction} className="self-start">
+      <form id={dismissFormId} action={dismissAction} className="self-start">
         <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
         <input type="hidden" name="org_id" value={item.orgId} />
         <input type="hidden" name="sequence" value={item.sequence} />
         <input type="hidden" name="starts_at" value={item.startsAt} />
         {/* The Facility select above belongs to the confirm form; a
-            dismissal always names the feed's own Org (issue #437). */}
+            dismissal always names the feed's own Org (issue #437). Button-less
+            for the same reason the email import card's form is: it lives in
+            `ReviewActions` above and reaches this form by `id` (issue #464). */}
         <DismissedSlotFields slot={item} />
-        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
-          {dismissPending ? "Dismissing…" : "Dismiss"}
-        </Button>
       </form>
       <ActionError state={dismissState} />
     </li>
@@ -147,7 +155,7 @@ export function FeedCancellationCard({
   onResolved,
 }: {
   item: CalendarFeedCancellationItem;
-  onResolved: (feedEventUid: string) => void;
+  onResolved: (feedEventUid: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmFeedCancellation,
@@ -159,8 +167,14 @@ export function FeedCancellationCard({
   );
   const busy = confirmPending || dismissPending;
 
-  useResolveOnSuccess(confirmState, () => onResolved(item.feedEventUid));
-  useResolveOnSuccess(dismissState, () => onResolved(item.feedEventUid));
+  // "Keep booking" is not a skip: it leaves a Booking standing, which is the
+  // opposite outcome to the Remove beside it, and the tally says so.
+  useResolveOnSuccess(confirmState, () =>
+    onResolved(item.feedEventUid, "removed"),
+  );
+  useResolveOnSuccess(dismissState, () =>
+    onResolved(item.feedEventUid, "kept"),
+  );
 
   return (
     <li className="bb-card flex flex-col gap-3 border-destructive/30 p-4">
@@ -174,7 +188,7 @@ export function FeedCancellationCard({
           {formatCandidateDate(item.date)} · {formatTimeLabel(item.startTime)}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Confirm to remove the matching booking from Booking Buddy.
+          Removing it takes the matching booking out of Booking Buddy.
         </p>
         <CandidateSource from="feed" />
       </div>

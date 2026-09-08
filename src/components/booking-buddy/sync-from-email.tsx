@@ -24,6 +24,7 @@ import {
 } from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import { describeUpdateChanges } from "@/lib/booking-buddy/update-diff";
+import type { ReviewOutcome } from "@/components/booking-buddy/review-outcome";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -63,6 +64,48 @@ export function CandidateSource({ from }: { from: "mailbox" | "feed" | "both" })
           ? "From a facility calendar feed."
           : "From your mailbox and a facility calendar feed."}
     </p>
+  );
+}
+
+/**
+ * The two answers to one Import Candidate, side by side (issue #464).
+ *
+ * They used to sit in two separate `<form>` elements a layout apart — the
+ * primary right-aligned beside the Facility field, Dismiss a ghost button on
+ * its own line underneath — which read as two unrelated controls rather than
+ * "yes / no on this reservation". They are still two forms, because they post
+ * to two different Server Actions, but the dismiss button now reaches its own
+ * form by `id` so both can share one row.
+ *
+ * Exported so the feed card (`sync-facilities.tsx`) renders the identical row
+ * rather than a second copy of it.
+ */
+export function ReviewActions({
+  dismissFormId,
+  confirmPending,
+  dismissPending,
+  busy,
+}: {
+  /** `id` of the sibling dismiss `<form>`, which carries the hidden inputs and no button of its own. */
+  dismissFormId: string;
+  confirmPending: boolean;
+  dismissPending: boolean;
+  busy: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button type="submit" disabled={busy}>
+        {confirmPending ? "Adding…" : "Add to my bookings"}
+      </Button>
+      <Button
+        type="submit"
+        form={dismissFormId}
+        variant="ghost"
+        disabled={busy}
+      >
+        {dismissPending ? "Dismissing…" : "Dismiss"}
+      </Button>
+    </div>
   );
 }
 
@@ -218,17 +261,20 @@ function ImportBody({
   confirmAction,
   confirmState,
   confirmPending,
+  dismissFormId,
+  dismissPending,
   busy,
-}: BodyProps<"import"> & { orgs: Org[] }) {
+}: BodyProps<"import"> & {
+  orgs: Org[];
+  dismissFormId: string;
+  dismissPending: boolean;
+}) {
   const facilityFieldId = `sync-facility-${item.gmailMessageId}`;
 
   return (
     <>
-      <form
-        action={confirmAction}
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
-      >
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <form action={confirmAction} className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1.5 sm:max-w-sm">
           <div className="flex items-center gap-1.5">
             <Label htmlFor={facilityFieldId}>Facility</Label>
             <FacilityFieldHint />
@@ -267,9 +313,12 @@ function ImportBody({
             .join(", ")}
         />
 
-        <Button type="submit" disabled={busy}>
-          {confirmPending ? "Confirming…" : "Confirm"}
-        </Button>
+        <ReviewActions
+          dismissFormId={dismissFormId}
+          confirmPending={confirmPending}
+          dismissPending={dismissPending}
+          busy={busy}
+        />
       </form>
       <ActionError state={confirmState} />
     </>
@@ -528,7 +577,7 @@ export function ReviewItemCard({
 }: {
   item: ReviewItem;
   orgs: Org[];
-  onResolved: (gmailMessageId: string) => void;
+  onResolved: (gmailMessageId: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
     CONFIRM_ACTION[item.kind],
@@ -539,9 +588,24 @@ export function ReviewItemCard({
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
+  const dismissFormId = `sync-dismiss-${item.gmailMessageId}`;
 
-  useResolveOnSuccess(confirmState, () => onResolved(item.gmailMessageId));
-  useResolveOnSuccess(dismissState, () => onResolved(item.gmailMessageId));
+  // What confirming this kind did, in the section's own tally. Each kind's
+  // button already names its own outcome, and the tally repeats it rather than
+  // flattening all three into "confirmed".
+  const confirmedOutcome: ReviewOutcome =
+    item.kind === "import"
+      ? "added"
+      : item.kind === "cancellation"
+        ? "removed"
+        : "updated";
+
+  useResolveOnSuccess(confirmState, () =>
+    onResolved(item.gmailMessageId, confirmedOutcome),
+  );
+  useResolveOnSuccess(dismissState, () =>
+    onResolved(item.gmailMessageId, "skipped"),
+  );
 
   return (
     <li className="bb-card flex flex-col gap-3 p-4">
@@ -557,6 +621,8 @@ export function ReviewItemCard({
           confirmAction={confirmAction}
           confirmState={confirmState}
           confirmPending={confirmPending}
+          dismissFormId={dismissFormId}
+          dismissPending={dismissPending}
           busy={busy}
         />
       ) : item.kind === "cancellation" ? (
@@ -577,7 +643,7 @@ export function ReviewItemCard({
         />
       )}
 
-      <form action={dismissAction} className="self-start">
+      <form id={dismissFormId} action={dismissAction} className="self-start">
         <input
           type="hidden"
           name="gmail_message_id"
@@ -597,9 +663,17 @@ export function ReviewItemCard({
             }}
           />
         )}
-        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
-          {dismissPending ? "Dismissing…" : "Dismiss"}
-        </Button>
+        {/* An import's Dismiss button lives in `ReviewActions`, beside the one
+            it is the alternative to (issue #464), and reaches this form by
+            `id`. The other two kinds keep a standalone button: a cancellation
+            renders no confirm button at all when unmatched, and an update can
+            render several (one per suggested match), so neither has a single
+            primary to pair with. */}
+        {item.kind !== "import" && (
+          <Button type="submit" variant="ghost" size="sm" disabled={busy}>
+            {dismissPending ? "Dismissing…" : "Dismiss"}
+          </Button>
+        )}
       </form>
       <ActionError state={dismissState} />
     </li>
@@ -626,7 +700,7 @@ export function MergedCandidateCard({
 }: {
   item: MergedImportCandidate;
   orgs: Org[];
-  onResolved: (item: MergedImportCandidate) => void;
+  onResolved: (item: MergedImportCandidate, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
     confirmMergedCandidate,
@@ -638,9 +712,10 @@ export function MergedCandidateCard({
   );
   const busy = confirmPending || dismissPending;
   const facilityFieldId = `merged-facility-${item.mergeKey}`;
+  const dismissFormId = `merged-dismiss-${item.mergeKey}`;
 
-  useResolveOnSuccess(confirmState, () => onResolved(item));
-  useResolveOnSuccess(dismissState, () => onResolved(item));
+  useResolveOnSuccess(confirmState, () => onResolved(item, "added"));
+  useResolveOnSuccess(dismissState, () => onResolved(item, "skipped"));
 
   const players = item.matchedPlayers
     .map((player) => player.name.slice(0, PLAYER_NAME_MAX_LENGTH))
@@ -670,11 +745,8 @@ export function MergedCandidateCard({
         )}
       </div>
 
-      <form
-        action={confirmAction}
-        className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
-      >
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <form action={confirmAction} className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-1.5 sm:max-w-sm">
           <div className="flex items-center gap-1.5">
             <Label htmlFor={facilityFieldId}>Facility</Label>
             <FacilityFieldHint />
@@ -703,13 +775,16 @@ export function MergedCandidateCard({
         <input type="hidden" name="notes" value={item.notes ?? ""} />
         <input type="hidden" name="players" value={players} />
 
-        <Button type="submit" disabled={busy}>
-          {confirmPending ? "Confirming…" : "Confirm"}
-        </Button>
+        <ReviewActions
+          dismissFormId={dismissFormId}
+          confirmPending={confirmPending}
+          dismissPending={dismissPending}
+          busy={busy}
+        />
       </form>
       <ActionError state={confirmState} />
 
-      <form action={dismissAction} className="self-start">
+      <form id={dismissFormId} action={dismissAction} className="self-start">
         <input
           type="hidden"
           name="gmail_message_id"
@@ -722,10 +797,9 @@ export function MergedCandidateCard({
         {/* Same slot either single-source card carries (issue #437) —
             redundant while both source rows land, and what still holds if a
             source hands this reservation back under a new key later. */}
+        {/* Button-less, same as the single-source import card: it lives in
+            `ReviewActions` above and reaches this form by `id` (issue #464). */}
         <DismissedSlotFields slot={item} />
-        <Button type="submit" variant="ghost" size="sm" disabled={busy}>
-          {dismissPending ? "Dismissing…" : "Dismiss"}
-        </Button>
       </form>
       <ActionError state={dismissState} />
     </li>
@@ -749,7 +823,7 @@ export function ReviewItemGroups({
 }: {
   items: ReviewItem[];
   orgs: Org[];
-  onResolved: (gmailMessageId: string) => void;
+  onResolved: (gmailMessageId: string, outcome: ReviewOutcome) => void;
 }) {
   if (items.length === 0) {
     return null;

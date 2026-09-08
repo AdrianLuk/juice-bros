@@ -120,7 +120,7 @@ test("paste → Sync bookings → confirm → a Booking with facility / date / t
   const section = feedSection(page);
   const card = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(card).toBeVisible();
   await expect(card).toContainText(CLUB);
   await expect(card).toContainText("Thu Oct 01, 2026");
@@ -130,8 +130,8 @@ test("paste → Sync bookings → confirm → a Booking with facility / date / t
   await expect(card).toContainText("Doubles");
   await expect(card.getByLabel("Facility", { exact: true })).not.toHaveValue("");
 
-  await card.getByRole("button", { name: "Confirm" }).click();
-  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await card.getByRole("button", { name: "Add to my bookings" }).click();
+  await expect(section.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
 
   await expect(row(page, "Court #6")).toContainText(facility);
 
@@ -228,7 +228,7 @@ test("a per-Facility fetch error names the Facility and doesn't stop the others"
   await expect(section.getByRole("alert").filter({ hasText: bad })).toBeVisible();
   // The good feed still produced its candidate.
   await expect(
-    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Confirm" }) }),
+    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Add to my bookings" }) }),
   ).toBeVisible();
 });
 
@@ -255,7 +255,7 @@ test("the feed field and section are available to a User not on EMAIL_SYNC_ALLOW
   await expect(
     feedSection(page)
       .getByRole("listitem")
-      .filter({ has: page.getByRole("button", { name: "Confirm" }) }),
+      .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) }),
   ).toBeVisible();
 });
 
@@ -282,13 +282,13 @@ test("a reservation that vanishes from the feed becomes a cancellation candidate
   for (let i = 0; i < 2; i++) {
     await section
       .getByRole("listitem")
-      .filter({ has: page.getByRole("button", { name: "Confirm" }) })
+      .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) })
       .first()
-      .getByRole("button", { name: "Confirm" })
+      .getByRole("button", { name: "Add to my bookings" })
       .click();
     await page.waitForTimeout(300);
   }
-  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(section.getByText("Added 2 bookings.")).toBeVisible({ timeout: 15_000 });
   expect(await bookingsForOrg(user, orgId)).toHaveLength(2);
 
   // The `gone` reservation drops out of the feed.
@@ -302,7 +302,7 @@ test("a reservation that vanishes from the feed becomes a cancellation candidate
   await expect(cancelCard).toContainText("Fri Oct 09, 2026");
 
   await cancelCard.getByRole("button", { name: "Remove booking" }).click();
-  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(section.getByText("Removed 1 booking.")).toBeVisible({ timeout: 15_000 });
 
   const remaining = await bookingsForOrg(user, orgId);
   expect(remaining).toHaveLength(1);
@@ -331,10 +331,10 @@ test("an unhealthy feed fetch produces zero cancellation candidates — nothing 
   const section = feedSection(page);
   await section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) })
-    .getByRole("button", { name: "Confirm" })
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) })
+    .getByRole("button", { name: "Add to my bookings" })
     .click();
-  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(section.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
 
   // The feed now 500s — the diff must not run, so no cancellation candidate and
@@ -390,13 +390,13 @@ test("a sync that would flag more than the cap shows the 'feed looks wrong' warn
   for (let i = 0; i < 6; i++) {
     await section
       .getByRole("listitem")
-      .filter({ has: page.getByRole("button", { name: "Confirm" }) })
+      .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) })
       .first()
-      .getByRole("button", { name: "Confirm" })
+      .getByRole("button", { name: "Add to my bookings" })
       .click();
     await page.waitForTimeout(300);
   }
-  await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(section.getByText("Added 6 bookings.")).toBeVisible({ timeout: 15_000 });
   expect(await bookingsForOrg(user, orgId)).toHaveLength(6);
 
   // Feed collapses to just the anchor — five reservations vanish at once.
