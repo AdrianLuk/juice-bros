@@ -73,15 +73,21 @@ function clampToDay(
 export type EventRange = { startMs: number; endMs: number };
 
 // WEEK_EVENT_CLASS renders at `text-[13px] leading-tight` with `py-1` — one
-// line needs ~25px (16.25px line + 8px padding), a second ~16px more, a
-// third ~16px more. (Bumped from 11px in the white-on-orange a11y pass —
+// line needs ~25px (16.25px line + 8px padding), and every line after it
+// ~16px more. (Bumped from 11px in the white-on-orange a11y pass —
 // still short of the 18.66px+bold "large text" AA threshold, which the
 // HOUR_HEIGHT=48 grid can't fit even for a 30-min slot; this is as far as
 // size goes without also rescaling the grid.) A chip shorter than a line
 // budget's floor clips that line's text under `overflow-hidden` instead of
 // showing it, so callers use this to pick how many lines of detail to
-// render rather than always assuming all three fit.
-export function eventChipLineBudget(heightPx: number): 1 | 2 | 3 {
+// render rather than always assuming they all fit.
+//
+// Four tiers, not three: the court moved off the end of the time line onto
+// its own (issue #459), so a fully-detailed Booking chip is now name, org,
+// time, court. A 4th line wants 73px, which an hour-and-a-half booking
+// (72px) just misses and a 2-hour one (96px) clears comfortably.
+export function eventChipLineBudget(heightPx: number): 1 | 2 | 3 | 4 {
+  if (heightPx >= 73) return 4;
   if (heightPx >= 57) return 3;
   if (heightPx >= 41) return 2;
   return 1;
