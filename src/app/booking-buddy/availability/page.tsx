@@ -80,28 +80,6 @@ export default async function AvailabilityPage() {
                   ))}
                 </ul>
               )}
-              {past.length > 0 && (
-                <Collapsible className="mt-6">
-                  <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                    <ChevronDownIcon className="size-4 transition-transform duration-200 group-data-panel-open:rotate-180" />
-                    History
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <ul className="mt-4 flex flex-col gap-2">
-                      {past.map((window) => (
-                        <AvailabilityWindowRow
-                          key={window.id}
-                          window={window}
-                          rangeLabel={formatAvailabilityWindowRange(
-                            window,
-                            DEFAULT_HAND_NAMED_TIME_ZONE,
-                          )}
-                        />
-                      ))}
-                    </ul>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
             </section>
             <section>
               <h2 className="bb-h text-[1.05rem]">Block off time</h2>
@@ -113,6 +91,28 @@ export default async function AvailabilityPage() {
                 <CreateAvailabilityWindowForm />
               </div>
             </section>
+            {past.length > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <ChevronDownIcon className="size-4 transition-transform duration-200 group-data-panel-open:rotate-180" />
+                  History
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <ul className="mt-4 flex flex-col gap-2">
+                    {past.map((window) => (
+                      <AvailabilityWindowRow
+                        key={window.id}
+                        window={window}
+                        rangeLabel={formatAvailabilityWindowRange(
+                          window,
+                          DEFAULT_HAND_NAMED_TIME_ZONE,
+                        )}
+                      />
+                    ))}
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
           <BbFooter />
         </div>
