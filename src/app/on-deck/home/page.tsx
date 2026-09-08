@@ -8,17 +8,22 @@ import { cn } from "@/lib/utils";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
+import { getSummariesForClub } from "@/lib/on-deck/summaries";
+import { sessionDate } from "@/lib/on-deck/session-date";
 import {
   getOpenSessionForClub,
   getScheduledSessionsForClub,
 } from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
 import { TonightControls } from "@/components/on-deck/tonight-controls";
+import { AdoptTimeZone } from "@/components/on-deck/adopt-time-zone";
 import {
   ON_DECK_QR_DISPLAY_PATH,
   ON_DECK_SETTINGS_PATH,
+  ON_DECK_SUMMARIES_PATH,
   floorPath,
   sessionPath,
+  summaryPath,
 } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 
@@ -39,12 +44,20 @@ export default async function OnDeckHomePage() {
     club && !openSession
       ? await getScheduledSessionsForClub(supabase, club.id)
       : [];
+  // The three most recent closed nights. The full list has its own page; this
+  // is the way in, so the reader is not something you have to know the URL of.
+  const pastSessions = club ? await getSummariesForClub(supabase, club.id, 3) : [];
 
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-lg">
           <PageHeading eyebrow="On Deck" title="Tonight" />
+
+          {/* The Club's clock, established from the Organizer's own browser
+              rather than asked for. Mounted only while it is unset, so this is
+              one write on one visit and nothing thereafter. */}
+          {club && club.timeZone === null ? <AdoptTimeZone /> : null}
 
           {!club ? (
             <div className="mt-8 rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
@@ -83,6 +96,12 @@ export default async function OnDeckHomePage() {
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                   >
                     The club sign
+                  </Link>
+                  <Link
+                    href={ON_DECK_SUMMARIES_PATH}
+                    className="text-sm underline underline-offset-4"
+                  >
+                    Past nights
                   </Link>
                   <Link
                     href={ON_DECK_SETTINGS_PATH}
@@ -125,6 +144,45 @@ export default async function OnDeckHomePage() {
               ) : (
                 <TonightControls scheduledSessions={scheduledSessions} />
               )}
+
+              {/* The three most recent, shown only once there are some:
+                  before the club's first close this card would be explaining
+                  an absence on the one screen that should be about tonight.
+                  The way *in* is the "Past nights" link above, which is there
+                  from the start — the empty state has to be reachable. */}
+              {pastSessions.length > 0 ? (
+                <div className="rounded-2xl border bg-card p-6">
+                  <h2 className="font-heading text-base font-semibold">
+                    Past nights
+                  </h2>
+                  <ul className="mt-3 flex flex-col gap-2">
+                    {pastSessions.map((session) => (
+                      <li key={session.sessionId}>
+                        <Link
+                          href={summaryPath(session.sessionId)}
+                          className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm underline-offset-4 hover:underline"
+                        >
+                          <span>
+                            {sessionDate({
+                              at: session.startedAt,
+                              timeZone: session.timeZone,
+                            })}
+                          </span>
+                          <span className="tabular-nums text-muted-foreground">
+                            {session.attendance} played, {session.gamesPlayed} games
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={ON_DECK_SUMMARIES_PATH}
+                    className="mt-4 inline-block text-sm underline underline-offset-4"
+                  >
+                    All past nights
+                  </Link>
+                </div>
+              ) : null}
             </div>
           )}
 

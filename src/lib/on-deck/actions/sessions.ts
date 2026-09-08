@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
-import { getOwnedClub, updateClubDefaults } from "../clubs.ts";
+import {
+  adoptClubTimeZone,
+  getOwnedClub,
+  setClubTimeZone,
+  updateClubDefaults,
+} from "../clubs.ts";
+import { isKnownTimeZone } from "../timezone.ts";
 import { getOpenSessionForClub } from "../sessions.ts";
 import {
   ON_DECK_HOME_PATH,
@@ -144,9 +150,78 @@ function validateFields(
 }
 
 /**
+ * Adopts the Organizer's own browser zone as the Club's clock, if the Club
+ * has none yet (issue #469).
+ *
+ * Fired from the Organizer's home screen rather than asked as a question. The
+ * browser is the only party that knows this, and an Organizer opening On Deck
+ * has no reason to care that a `timestamptz` needs a zone to become a date.
+ *
+ * Deliberately silent in both directions. It reports nothing on success,
+ * because there is nothing to tell; and it swallows failure, because a clock
+ * that stays unset costs a wrong-looking date on a page that is not even open
+ * yet, and that is not worth an error on the screen someone opened to start
+ * tonight's session. The RPC is a no-op once a zone exists, so calling it on
+ * every visit is free.
+ */
+export async function adoptDetectedTimeZone(timeZone: string): Promise<void> {
+  await verifyOrganizer();
+
+  if (!isKnownTimeZone(timeZone)) return;
+
+  try {
+    const supabase = await createClient();
+    await adoptClubTimeZone(supabase, timeZone);
+  } catch (error) {
+    console.error("on-deck: adopting the Club's time zone failed", error);
+    return;
+  }
+
+  revalidatePath(ON_DECK_HOME_PATH);
+  revalidatePath(ON_DECK_SETTINGS_PATH);
+}
+
+/**
+ * Sets the Club's clock, because the adopted guess was wrong (issue #469).
+ *
+ * Its own action rather than a field on `saveClubDefaults`, for the reason
+ * that RPC's comment gives: saving a venue must not commit a zone nobody
+ * chose. This one is only ever reached by somebody deciding.
+ */
+export async function saveClubTimeZone(
+  timeZone: string,
+): Promise<SessionSettingsResult> {
+  await verifyOrganizer();
+
+  // The `on_deck_clubs` trigger is the authority and would refuse this too;
+  // checking here is what turns a constraint violation into a sentence about
+  // the field the Organizer just changed.
+  const zone = timeZone.trim();
+  if (!isKnownTimeZone(zone)) {
+    return { ok: false, error: "Pick a time zone from the list." };
+  }
+
+  const supabase = await createClient();
+  const club = await getOwnedClub(supabase);
+  if (!club) return { error: "No club is set up for this account yet." };
+
+  try {
+    await setClubTimeZone(supabase, zone);
+  } catch (error) {
+    console.error("on-deck: saving the Club's time zone failed", error);
+    return { error: "Couldn't save the time zone just now. Try again." };
+  }
+
+  revalidatePath(ON_DECK_HOME_PATH);
+  revalidatePath(ON_DECK_SETTINGS_PATH);
+  return { ok: true };
+}
+
+/**
  * Saves the Club's saved Session defaults (issue #254, user story 44). Only the
  * Club owner reaches this — `verifyOrganizer` plus the RPC's own ownership
- * check — and only venue / court count / group cap move.
+ * check — and only venue / court count / group cap move. The clock has its
+ * own action, so a form opened to change a court count cannot commit one.
  */
 export async function saveClubDefaults(input: {
   venueName: string;

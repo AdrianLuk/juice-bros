@@ -54,6 +54,7 @@ export async function seedClubForOrganizer(
     courtCount?: number;
     groupCap?: number;
     floorMode?: "volunteer-run" | "self-serve" | "hybrid";
+    timeZone?: string;
   },
 ): Promise<string> {
   const ownerId = await userIdForEmail(email);
@@ -66,6 +67,10 @@ export async function seedClubForOrganizer(
     court_count: club.courtCount ?? 8,
     group_cap: club.groupCap ?? 4,
     floor_mode: club.floorMode ?? "hybrid",
+    // Left unset unless a test says otherwise, which is what a hand-seeded
+    // Club really looks like (issue #469) — the app adopts the Organizer's
+    // browser zone on their first visit. A Session inherits it by trigger.
+    ...(club.timeZone ? { time_zone: club.timeZone } : {}),
   };
 
   const res = await fetch(`${LOCAL_SUPABASE_API_URL}/rest/v1/on_deck_clubs`, {

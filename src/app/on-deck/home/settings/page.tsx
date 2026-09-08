@@ -9,6 +9,8 @@ import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 import { ON_DECK_HOME_PATH, ON_DECK_SETTINGS_PATH } from "@/lib/on-deck/routes";
 import { ClubDefaultsForm } from "@/components/on-deck/club-defaults-form";
+import { ClubClockCard } from "@/components/on-deck/club-clock-card";
+import { knownTimeZones } from "@/lib/on-deck/timezone";
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -47,6 +49,8 @@ export default async function OnDeckClubSettingsPage() {
             courtCount={club.courtCount}
             groupCap={club.groupCap}
           />
+
+          <ClubClockCard timeZone={club.timeZone} zones={knownTimeZones()} />
         </div>
       </section>
     </div>
