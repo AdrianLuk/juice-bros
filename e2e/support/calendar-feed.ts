@@ -148,6 +148,39 @@ export async function feedEventsForOrg(
   );
 }
 
+/**
+ * Records a dismissed reservation directly (issue #444's `dismissed_reservations`),
+ * so a spec can set one up without walking a whole dismiss flow — the prune
+ * test needs a slot dated in the past, which no sync would ever offer.
+ */
+export async function seedDismissedReservation(
+  user: FixtureUser,
+  row: { orgId: string; date: string; startTime: string; courtLabel?: string | null },
+): Promise<void> {
+  const ownerId = await fixtureUserId(user);
+  await restAsUser(user, "dismissed_reservations", {
+    method: "POST",
+    body: JSON.stringify({
+      owner_id: ownerId,
+      org_id: row.orgId,
+      slot_date: row.date,
+      slot_start_time: row.startTime,
+      court_label: row.courtLabel ?? null,
+    }),
+  });
+}
+
+/** Every dismissed reservation the caller holds, earliest slot first. */
+export async function dismissedReservationsFor(
+  user: FixtureUser,
+): Promise<{ slot_date: string; slot_start_time: string; court_label: string | null }[]> {
+  return restAsUser(
+    user,
+    "dismissed_reservations?select=slot_date,slot_start_time,court_label&order=slot_date",
+    {},
+  );
+}
+
 /** Sweeps every Facility the caller owns whose name starts with `prefix` (their feed events + bookings cascade). */
 export async function deleteFacilities(user: FixtureUser, prefix: string): Promise<void> {
   await restAsUser(user, `orgs?name=like.${encodeURIComponent(`${prefix}%`)}`, { method: "DELETE" });

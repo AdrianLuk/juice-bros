@@ -7,9 +7,11 @@ import { CalendarFeedMock, icsBody } from "./support/calendar-feed-mock.ts";
 import { confirmationEmail, messageId } from "./support/sync-from-email-scenarios.ts";
 import {
   bookingsForOrg,
+  dismissedReservationsFor,
   feedEventsForOrg,
   feedSection,
   orgIdByName,
+  seedDismissedReservation,
   seedFacility,
   setFeedUrlViaForm,
 } from "./support/calendar-feed.ts";
@@ -489,4 +491,59 @@ test("a rebooked slot is named as skipped, and offering it again brings it back 
   await cards.getByRole("button", { name: "Confirm" }).click();
   await expect(cards).toHaveCount(0, { timeout: 15_000 });
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+});
+
+test("a sync prunes a dismissal whose slot has passed, and leaves a live one (#447)", async ({
+  page,
+  accounts,
+}) => {
+  // Dead weight: both reviews drop a past-dated candidate before they ever
+  // reach the dismissal check, so a row for a slot that has been and gone can
+  // suppress nothing. Invisible either way — what this pins is that the delete
+  // actually clears RLS and the grant in a live stack, and that it stops at
+  // the cutoff instead of taking a still-live dismissal with it.
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+
+  await seedDismissedReservation(user, {
+    orgId,
+    date: "2020-03-15",
+    startTime: "18:00",
+    courtLabel: "#9",
+  });
+  await seedDismissedReservation(user, {
+    orgId,
+    date: "2099-03-15",
+    startTime: "18:00",
+    courtLabel: "#4",
+  });
+
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+  await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/prune"));
+  feed.registerFeed("/feed/prune", {
+    kind: "ics",
+    body: icsBody([
+      {
+        uid: "sync-prune-evt",
+        summary: "Doubles",
+        description: "Court #1",
+        location: facility,
+        start: "2027-03-15T22:00:00Z",
+        end: "2027-03-15T23:00:00Z",
+      },
+    ]),
+  });
+
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  const section = feedSection(page);
+  const cards = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+
+  expect(await dismissedReservationsFor(user)).toEqual([
+    expect.objectContaining({ slot_date: "2099-03-15", court_label: "#4" }),
+  ]);
 });

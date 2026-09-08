@@ -26,6 +26,7 @@ import { todayInZone, clockInZone } from "../datetime.ts";
 import { upsertFeedEventRow, type FeedEventUpsert } from "../feed-events.ts";
 import {
   listDismissedReservations,
+  pruneExpiredDismissedReservations,
   recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
 import { parseNewBooking } from "../bookings.ts";
@@ -466,6 +467,11 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
 
   // One "now" for the whole run, same as `syncFromEmail`.
   const now = new Date();
+
+  // Housekeeping (issue #447): once for the run, not once per Facility — the
+  // prune isn't scoped to an Org, and running it inside the loop below would
+  // repeat a delete that already found everything the first time.
+  await pruneExpiredDismissedReservations(supabase, session.userId, now);
 
   // Sequential rather than Promise.all: a hostile or slow feed shouldn't get
   // to run four outbound fetches in parallel off one click, and a real User

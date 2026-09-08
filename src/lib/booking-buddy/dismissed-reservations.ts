@@ -227,3 +227,66 @@ export async function deleteDismissedReservations(
 
   return { ok: true };
 }
+
+/**
+ * The `slot_date` a prune deletes *below* — one full calendar day behind UTC's
+ * own date (issue #447).
+ *
+ * A dismissal for a slot whose date has passed can suppress nothing: both
+ * reviews drop a past-dated candidate (`isPastConfirmation`) before they ever
+ * reach the dismissal check, so the row is dead weight from the day after the
+ * reservation. Pruning it is tidiness, not behaviour — see the caller.
+ *
+ * The day of slack is what makes one cutoff safe for every Facility at once.
+ * `slot_date` is wall-clock in the *Org's* zone, and the reviews' own past
+ * check is calendar-day-only, so a slot dated "today" in Honolulu is still
+ * live while UTC has already rolled over. A prune keyed on UTC's date alone
+ * would delete that row a few hours early and un-suppress a reservation the
+ * User is about to play. Stepping back a day clears every zone on Earth
+ * (UTC-12 through UTC+14), and one extra day of retention costs nothing —
+ * these rows are being deleted for being worthless, not for being urgent.
+ *
+ * Takes `now` rather than reading the clock, like every other date decision in
+ * this app, so the rule is testable and one sync shares one "now".
+ */
+export function dismissalPruneCutoff(now: Date): string {
+  const cutoff = new Date(now.getTime());
+  cutoff.setUTCDate(cutoff.getUTCDate() - 1);
+  return cutoff.toISOString().slice(0, 10);
+}
+
+/**
+ * Delete this User's dismissals for slots that have already happened (issue
+ * #447), run opportunistically by each sync.
+ *
+ * Where it runs, and why there rather than on a schedule: a sync is the only
+ * thing that ever reads this table, so a row that is never read costs nothing
+ * until one runs — and when one does, the prune is a single indexed delete
+ * alongside reads the action is already making. A cron route would mean a new
+ * schedule, a new auth surface and a new failure mode for a table that tidies
+ * itself perfectly well at the moment of use.
+ *
+ * (`org_feed_events` describes itself as "pruned as events age past", which
+ * reads like prior art for this and isn't: what that table actually has is the
+ * cancellation diff's in-window *skip* of a past-dated event, which deletes
+ * nothing. This is the first real prune of either.)
+ *
+ * Never fails the sync it runs inside: the sync is what the User asked for,
+ * and a prune that didn't happen leaves the table exactly as tidy as it was
+ * before — the next sync tries again.
+ */
+export async function pruneExpiredDismissedReservations(
+  supabase: SupabaseClient,
+  ownerId: string,
+  now: Date,
+): Promise<void> {
+  const { error } = await supabase
+    .from("dismissed_reservations")
+    .delete()
+    .eq("owner_id", ownerId)
+    .lt("slot_date", dismissalPruneCutoff(now));
+
+  if (error) {
+    console.error("booking-buddy: pruning expired dismissed reservations failed", error);
+  }
+}
