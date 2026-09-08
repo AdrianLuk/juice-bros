@@ -104,7 +104,7 @@ test("one section, one button — replaces the two old sync sections", async ({ 
   // the confirmation's date; the feed candidate carries its Court #6 / Oct 1.
   const cards = feedSection(page)
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(2, { timeout: 15_000 });
   await expect(cards.filter({ hasText: "Mon Mar 15, 2027" })).toHaveCount(1);
   await expect(cards.filter({ hasText: "Thu Oct 01, 2026" })).toHaveCount(1);
@@ -134,7 +134,7 @@ test("one source failing still shows the other's candidates, failure named", asy
   ).toBeVisible({ timeout: 15_000 });
   // The email candidate still rendered.
   await expect(
-    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Confirm" }) }),
+    section.getByRole("listitem").filter({ has: page.getByRole("button", { name: "Add to my bookings" }) }),
   ).toContainText(emailFacility);
 });
 
@@ -175,7 +175,7 @@ test("email + feed candidates for the same reservation consolidate into one card
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
 
   // One consolidated card, not two — carrying the email's players and the
   // "both sources" note.
@@ -183,8 +183,8 @@ test("email + feed candidates for the same reservation consolidate into one card
   await expect(cards).toContainText("Amy Ace, Ben Backhand");
   await expect(cards).toContainText("From your mailbox and a facility calendar feed.");
 
-  await cards.getByRole("button", { name: "Confirm" }).click();
-  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await cards.getByRole("button", { name: "Add to my bookings" }).click();
+  await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
 
   // Exactly one Booking for the slot.
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
@@ -230,11 +230,11 @@ test("a feed doesn't re-offer a reservation already imported from email, whateve
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
   await expect(cards).toContainText("Amy Ace, Ben Backhand");
-  await cards.getByRole("button", { name: "Confirm" }).click();
-  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await cards.getByRole("button", { name: "Add to my bookings" }).click();
+  await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
 
   const afterEmail = await bookingsForOrg(user, orgId);
   expect(afterEmail).toHaveLength(1);
@@ -343,10 +343,10 @@ test("dismissing an email candidate settles the feed too — it never re-offers 
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
   await cards.getByRole("button", { name: "Dismiss" }).click();
-  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Skipped 1.")).toBeVisible({ timeout: 15_000 });
 
   // Now configure the feed, whose event is the same reservation on "Court #9".
   await page.goto("/booking-buddy/orgs");
@@ -415,10 +415,10 @@ test("dismissing a feed candidate settles the mailbox too — the email never re
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
   await cards.getByRole("button", { name: "Dismiss" }).click();
-  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Skipped 1.")).toBeVisible({ timeout: 15_000 });
 
   expect(await feedEventsForOrg(user, orgId)).toEqual([
     expect.objectContaining({ uid: "sync-dismissed-by-feed", status: "dismissed" }),
@@ -463,10 +463,10 @@ test("a rebooked slot is named as skipped, and offering it again brings it back 
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
   await cards.getByRole("button", { name: "Dismiss" }).click();
-  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Skipped 1.")).toBeVisible({ timeout: 15_000 });
 
   // The rebook: same facility, same slot, same court, brand new confirmation.
   gmail.registerMessages([
@@ -489,8 +489,12 @@ test("a rebooked slot is named as skipped, and offering it again brings it back 
   await page.goto("/booking-buddy/bookings");
   await page.getByRole("button", { name: "Sync bookings" }).click();
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
-  await cards.getByRole("button", { name: "Confirm" }).click();
-  await expect(cards).toHaveCount(0, { timeout: 15_000 });
+  await cards.getByRole("button", { name: "Add to my bookings" }).click();
+  // The tally, not the card going: a card leaves `cards` the moment its button
+  // flips to "Adding…", which is before the Booking is written. The tally line
+  // only renders once the action has come back ok.
+  await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
+  await expect(cards).toHaveCount(0);
   expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
 });
 
@@ -546,7 +550,7 @@ test("a sync prunes a dismissal whose slot has passed, and leaves a live one (#4
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
 
   expect(await dismissedReservationsForOrg(user, orgId)).toEqual([
@@ -621,7 +625,7 @@ test("a sync prunes a long-past feed event, and keeps one the feed still touches
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+    .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
 
   const uids = (await feedEventsForOrg(user, orgId)).map((row) => row.uid);

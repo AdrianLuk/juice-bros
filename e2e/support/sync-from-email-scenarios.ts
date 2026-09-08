@@ -200,13 +200,13 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
       const card = page
         .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+        .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
       await expect(card).toBeVisible();
       await expect(card).toContainText(facility);
       await expect(card.getByLabel("Facility", { exact: true })).not.toHaveValue("");
 
-      await card.getByRole("button", { name: "Confirm" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await card.getByRole("button", { name: "Add to my bookings" }).click();
+      await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
       await expect(card).toHaveCount(0);
 
       await expect(row(page, "Court 3")).toContainText(facility);
@@ -248,14 +248,14 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
       const importCard = page
         .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+        .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
 
       // Import the confirmation into a real Booking.
       await page.goto("/booking-buddy/bookings");
       await page.getByRole("button", { name: "Sync bookings" }).click();
       await expect(importCard).toBeVisible();
-      await importCard.getByRole("button", { name: "Confirm" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await importCard.getByRole("button", { name: "Add to my bookings" }).click();
+      await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
       await expect(row(page, "Court 3")).toContainText(facility);
 
       // Deleting that Booking from the UI cascades its ledger row away, so the
@@ -307,13 +307,13 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
       const card = page
         .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+        .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
       await expect(card).toBeVisible();
       await expect(card).toContainText("Alice Tsang, Sam Wong, Adrian Luk, Janice Kwan, Calvin Yu");
       await expect(page.getByText("No matching booking found", { exact: false })).toHaveCount(0);
 
-      await card.getByRole("button", { name: "Confirm" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await card.getByRole("button", { name: "Add to my bookings" }).click();
+      await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
       await expect(row(page, "Court 3")).toContainText(facility);
 
       await removePlace(page, facility);
@@ -347,7 +347,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await expect(card).toContainText("Cancelled. Matches a Booking you logged.");
 
       await card.getByRole("button", { name: "Remove booking" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("Removed 1 booking.")).toBeVisible({ timeout: 15_000 });
       await expect(row(page, "Court 3")).toHaveCount(0);
 
       await removePlace(page, facility);
@@ -404,12 +404,12 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
       const card = page
         .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+        .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
       await expect(card).toBeVisible();
       await expect(card).toContainText("Amy Ace, Ben Backhand, Cara Crosscourt");
 
-      await card.getByRole("button", { name: "Confirm" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await card.getByRole("button", { name: "Add to my bookings" }).click();
+      await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
       await expect(row(page, "Court 3")).toContainText("Doubles");
 
       await removePlace(page, facility);
@@ -449,7 +449,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await expect(card).toContainText("Updates a booking you logged.");
 
       await card.getByRole("button", { name: "Apply update" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("Updated 1 booking.")).toBeVisible({ timeout: 15_000 });
 
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
       await expect(row(page, "Court 5")).toContainText("Doubles");
@@ -500,7 +500,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await expect(card).toContainText("6:00 PM–7:00 PM");
 
       await card.getByRole("button", { name: "Yes, update it" }).click();
-      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("Updated 1 booking.")).toBeVisible({ timeout: 15_000 });
 
       const booking = row(page, "Court 3");
       await expect(booking).toHaveCount(1);

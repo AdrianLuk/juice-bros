@@ -22,7 +22,8 @@ import {
   isSameReservation,
   type BookingIdentity,
 } from "@/lib/booking-buddy/import-candidate-shaping";
-import { ORGS_PATH } from "@/lib/booking-buddy/routes";
+import { BOOKINGS_PATH, ORGS_PATH } from "@/lib/booking-buddy/routes";
+import type { ReviewOutcome } from "@/components/booking-buddy/review-outcome";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
   MAILBOX_PROVIDER_IDENTITY_LABEL,
@@ -43,6 +44,69 @@ import {
 
 const EMAIL_QUERY_KEY = ["booking-buddy", "email-sync-candidates"] as const;
 const FEED_QUERY_KEY = ["booking-buddy", "facility-feed-candidates"] as const;
+
+/** Anchor on the Bookings page's own "Booked" heading, linked from the tally. */
+const BOOKED_HREF = `${BOOKINGS_PATH}#booked`;
+
+/** The tally's lines, in the order they read. */
+const SETTLED_ORDER: ReviewOutcome[] = [
+  "added",
+  "updated",
+  "removed",
+  "kept",
+  "skipped",
+];
+
+/** Each outcome's own line. Only "skipped" has no Booking to count, so it counts candidates. */
+const SETTLED_LINE: Record<ReviewOutcome, (count: number) => string> = {
+  added: (count) =>
+    count === 1 ? "Added 1 booking." : `Added ${count} bookings.`,
+  updated: (count) =>
+    count === 1 ? "Updated 1 booking." : `Updated ${count} bookings.`,
+  removed: (count) =>
+    count === 1 ? "Removed 1 booking." : `Removed ${count} bookings.`,
+  kept: (count) => (count === 1 ? "Kept 1 booking." : `Kept ${count} bookings.`),
+  skipped: (count) => (count === 1 ? "Skipped 1." : `Skipped ${count}.`),
+};
+
+/**
+ * What this sync has settled so far, said out loud (issue #464).
+ *
+ * A settled card is dropped from the query cache and unmounts, so until now
+ * the only feedback a confirm gave was the card disappearing — and the Booked
+ * list it landed in sits above this section, off-screen on a phone. A first
+ * time User reading that as "it deleted my reservation" is exactly the
+ * confusion this section already invites by looking finished the moment the
+ * cards render.
+ *
+ * Counts, not a line per booking: the card carried the detail, and repeating
+ * it here would rebuild the list the User just cleared.
+ */
+function SettledTally({ counts }: { counts: Record<ReviewOutcome, number> }) {
+  const lines = SETTLED_ORDER.filter((outcome) => counts[outcome] > 0);
+
+  if (lines.length === 0) {
+    return null;
+  }
+
+  // `role="status"` so the outcome reaches a screen reader too — the card it
+  // replaces has already gone by the time this renders.
+  return (
+    <div
+      role="status"
+      className="bb-outline flex flex-col gap-1 p-4 text-sm sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2"
+    >
+      {lines.map((outcome) => (
+        <p key={outcome}>{SETTLED_LINE[outcome](counts[outcome])}</p>
+      ))}
+      {counts.added > 0 && (
+        <Link href={BOOKED_HREF} className="underline underline-offset-4">
+          See them under Booked
+        </Link>
+      )}
+    </div>
+  );
+}
 
 /**
  * "Sync bookings" (issue #336) — the one review section that replaces the
@@ -83,7 +147,25 @@ export function SyncBookingsSection({
   hasConfiguredFeed: boolean;
 }) {
   const [hasSynced, setHasSynced] = useState(false);
+  const [settled, setSettled] = useState<Record<ReviewOutcome, number>>({
+    added: 0,
+    updated: 0,
+    removed: 0,
+    kept: 0,
+    skipped: 0,
+  });
   const queryClient = useQueryClient();
+  const settledTotal = Object.values(settled).reduce(
+    (total, count) => total + count,
+    0,
+  );
+
+  function recordOutcome(outcome: ReviewOutcome) {
+    setSettled((previous) => ({
+      ...previous,
+      [outcome]: previous[outcome] + 1,
+    }));
+  }
 
   // Allowlisted but nothing connected yet — there's no mailbox to search, so
   // email sync doesn't run; the section points them at Settings instead.
@@ -105,7 +187,13 @@ export function SyncBookingsSection({
     (emailConnected && emailQuery.isFetching) ||
     (hasConfiguredFeed && feedQuery.isFetching);
 
-  function handleEmailResolved(gmailMessageId: string) {
+  function handleEmailResolved(
+    gmailMessageId: string,
+    outcome?: ReviewOutcome,
+  ) {
+    if (outcome) {
+      recordOutcome(outcome);
+    }
     queryClient.setQueryData<SyncFromEmailResult>(
       EMAIL_QUERY_KEY,
       (previous) =>
@@ -120,7 +208,10 @@ export function SyncBookingsSection({
     );
   }
 
-  function handleFeedResolved(feedEventUid: string) {
+  function handleFeedResolved(feedEventUid: string, outcome?: ReviewOutcome) {
+    if (outcome) {
+      recordOutcome(outcome);
+    }
     queryClient.setQueryData<SyncFacilityFeedsResult>(
       FEED_QUERY_KEY,
       (previous) => {
@@ -183,9 +274,15 @@ export function SyncBookingsSection({
     });
   }
 
-  function handleMergedResolved(item: MergedImportCandidate) {
+  function handleMergedResolved(
+    item: MergedImportCandidate,
+    outcome: ReviewOutcome,
+  ) {
     // A merged card is one reservation from both sources — clear it from both
-    // query caches so it can't come back from either side.
+    // query caches so it can't come back from either side. The outcome is
+    // recorded once here rather than passed to both, since the User settled
+    // one card and one reservation, not two.
+    recordOutcome(outcome);
     handleEmailResolved(item.gmailMessageId);
     handleFeedResolved(item.feedEventUid);
   }
@@ -269,8 +366,22 @@ export function SyncBookingsSection({
     !emailConnected || (emailQuery.isFetched && !emailQuery.isFetching);
   const feedSettled =
     !hasConfiguredFeed || (feedQuery.isFetched && !feedQuery.isFetching);
+  // Every card the User still has a decision to make on, across both sources
+  // and all three kinds (issue #464). Drives the "nothing here is saved yet"
+  // framing, which is the whole point: the cards used to render with no
+  // indication that they were a queue rather than the finished result.
+  const reviewCount =
+    mergedCandidates.length +
+    emailItemsToRender.length +
+    feedCandidatesToRender.length +
+    feedCancellations.length;
+
   const nothingToReview =
     hasSynced &&
+    // Clearing the last card is not "no new bookings found" — that reads as
+    // the sync having turned up nothing, moments after it turned up the ones
+    // the tally above is reporting on.
+    settledTotal === 0 &&
     emailSettled &&
     feedSettled &&
     emailItems.length === 0 &&
@@ -318,6 +429,16 @@ export function SyncBookingsSection({
               variant="outline"
               disabled={isFetching}
               onClick={() => {
+                // The tally reports on the run the User is looking at, so a
+                // fresh run starts it over rather than accumulating across
+                // syncs.
+                setSettled({
+                  added: 0,
+                  updated: 0,
+                  removed: 0,
+                  kept: 0,
+                  skipped: 0,
+                });
                 if (!hasSynced) {
                   setHasSynced(true);
                   return;
@@ -410,6 +531,22 @@ export function SyncBookingsSection({
             </p>
           </div>
         ))}
+
+        <SettledTally counts={settled} />
+
+        {reviewCount > 0 && (
+          <div>
+            <h3 className="bb-h text-sm">
+              {reviewCount === 1
+                ? "Review 1 reservation"
+                : `Review ${reviewCount} reservations`}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Nothing here is saved yet. Booking Buddy never changes your
+              reservation at the facility.
+            </p>
+          </div>
+        )}
 
         {feedCancellations.length > 0 && (
           <ul className="flex flex-col gap-4">

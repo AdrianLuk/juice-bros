@@ -82,7 +82,10 @@ export default async function BookingsPage() {
             </p>
           ) : (
             <div className="bb-sheet mt-8 flex flex-col gap-11 p-3.5 sm:p-8">
-              <section>
+              {/* Linked from the sync section's outcome tally (issue #464) —
+                  a confirmed booking lands here, above the section the User is
+                  looking at and off-screen on a phone. */}
+              <section id="booked" className="scroll-mt-6">
                 <h2 className="flex items-center gap-2 bb-h text-[1.05rem]">
                   Booked
                   {upcomingBookings.length > 0 && (
