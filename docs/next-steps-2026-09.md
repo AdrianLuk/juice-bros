@@ -55,7 +55,7 @@ not started.
 | 1 | ✅ | OD-6 Printed Club QR sign (slice 3 only) | Shipped 2026-09-08 (#463, PR #466). `/on-deck/home/qr` is now the sign itself, printing on Letter and A4, plus two open routes serving the bare code as a file for a print shop or a group chat. Nothing now stands between the booked night and its checklist except printing one |
 | 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
 | 3 |  | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
-| 4 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses |
+| 4 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses. Cheaper as of 2026-09-08: #469 shipped the reader, so the Summary's numbers come off a screen rather than out of a SQL client |
 | 5 |  | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
 | 6 |  | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can |
 | 7 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
@@ -102,6 +102,24 @@ Recorded 2026-09-07, updated the same evening after a heavy day, and again on
   `/on-deck/c/<clubId>/qr.svg` and `qr.png`, serve the bare code as a file — the
   thing an inline `<svg>` on a gated page could never be, and what a print shop or a
   group chat actually needs.
+- **The Session Summary reader, and a clock for the Club - shipped 2026-09-08**
+  (#469, PR #470). Not a row on this table, and the second-largest thing built since
+  it was written. `on_deck_session_summaries` had been populated since #255 and read
+  by nobody: the projection, the storage, the RLS and the index all existed, and
+  nothing selected from the table. Three surfaces now do, under
+  `/on-deck/home/summaries`. This is the deferred "Reporting UI" line in
+  `on-deck/PROGRESS.md`, which is now wrong and has been corrected there.
+
+  It pulled in a schema change nobody planned. A Summary is the first On Deck surface
+  that has to name a *day*, and TO Pickleball Club plays 18:00 to 20:00 - which in
+  Toronto closes on the next UTC day, so the server's own clock mislabels the normal
+  case rather than an edge one. So a Club now carries a time zone, adopted silently
+  from the Organizer's own browser rather than asked for, with a correction in
+  Settings behind its own save. Migration `20260908120000`; **not yet pushed to the
+  hosted DB**.
+
+  Worth noting against row 4 below: the retro no longer needs a SQL client.
+
 - **Booking Buddy import/sync hardening, none of it on this table** — a full day of it on
   2026-09-07: cross-source reservation identity (#432, #437), empty-vs-broken feed
   (#431), candidate provenance on every card (#438), readable candidate dates (#433),
@@ -127,6 +145,17 @@ OD-0, and OD-0 is a Saturday, a printed sheet of paper, and someone writing down
 happened. The way to get this table wrong now is to start row 5 or row 7 because they
 are specced and the night is not for a few days. Rows 5 onward stay guesses until the
 retro exists — that is the whole reason they were ordered after it.
+
+**And then more code shipped the same day** (#469, the Session Summary reader), so the
+paragraph above needs the distinction it was missing rather than a quiet edit. What it
+should have said: *don't start a specced row early*. Building something the night or
+its retro actually depends on is a different act, and #469 was that — row 4's
+deliverable was otherwise going to be written out of a SQL client, or out of memory.
+
+The test to apply, before anything else goes in before Saturday: **does the night or
+the retro fail without it?** The sign passed that test. The reader passed it. OD-1's
+venue resilience does not, because nobody yet knows which failure modes are real, which
+is precisely what the night is for.
 
 ---
 
@@ -360,9 +389,10 @@ override from their own phone. Undo covers mistaps.
    WhatsApp, decide who is the backup Organizer.
 2. During: one person only watches and writes down every question a Player asks and every
    place a Volunteer hesitates. Screenshot the board at three points in the night.
-3. After: pull the Session Summary (attendance, games, utilization, wait distribution,
-   longest wait, skill mix). Write the retro: what broke, what people asked, what the
-   volunteers would change.
+3. After: read the Session Summary at `/on-deck/home/summaries` (attendance, games,
+   utilization, wait distribution, longest wait, skill mix) - a screen as of #469,
+   where this used to mean a SQL query. Write the retro: what broke, what people
+   asked, what the volunteers would change.
 
 **Open questions.**
 1. Which mode for night one?
@@ -464,7 +494,9 @@ Orange is LIVE only, blue is on deck, everything waiting is graphite.
 
 ### OD-5 · Shareable recap image
 
-**Size:** S–M. **Blocked by:** OD-0 (need one real Summary to design against).
+**Size:** S–M. **Blocked by:** OD-0 (need one real Summary to design against). The reader
+shipped in #469 is what a recap image would be cropped out of, so this is now a
+design job on top of something that exists rather than a build from nothing.
 
 **Claim.** "Tonight: 58 players, 112 games, average wait 14 minutes" as an image the club
 posts to Instagram is free distribution for the club and for Juice Bros, generated from
