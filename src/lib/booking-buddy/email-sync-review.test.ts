@@ -383,7 +383,7 @@ test("a reservation update matched to a booking on file carries its id and the r
   const update = updatesOf(result)[0];
   assert.equal(update.kind, "update");
   assert.equal(update.matched, true);
-  assert.equal(update.matched && update.bookingId, "b3");
+  assert.equal(update.matched && update.booking.bookingId, "b3");
   assert.equal(update.endTime, "20:00");
   assert.equal(update.courtLabel, "9");
 });
@@ -469,7 +469,7 @@ test("confirmation, cancellation and update for three different slots each land 
   assert.equal(cancellationsOf(result).length, 1);
   assert.equal(updatesOf(result).length, 1);
   const [update] = updatesOf(result);
-  assert.equal(update.matched && update.bookingId, "bx");
+  assert.equal(update.matched && update.booking.bookingId, "bx");
 });
 
 // --- suggested update matches (issue #458) --------------------------------
@@ -521,7 +521,17 @@ test("an update that matched a Booking exactly offers no suggestions to second-g
 
   const update = updatesOf(result)[0];
   assert.equal(update.matched, true);
-  assert.equal(update.matched && update.bookingId, "b-exact");
+  // The whole Booking, not just its id: the card's before/after is drawn from
+  // it, and applying rewrites the slot and Players as well as format/court.
+  assert.deepEqual(update.matched ? update.booking : null, {
+    bookingId: "b-exact",
+    date: "2026-07-01",
+    startTime: "18:00",
+    endTime: "20:00",
+    courtLabel: "3",
+    format: "doubles",
+    players: [],
+  });
 });
 
 test("a Booking another update in the same batch matched exactly is not offered to a second one", () => {

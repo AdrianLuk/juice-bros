@@ -29,7 +29,7 @@ import {
   reviewCourtReserveEmails,
   type RawCourtReserveEmail,
   type ReviewItem,
-  type SuggestedUpdateMatch,
+  type UpdateTargetBooking,
 } from "../email-sync-review.ts";
 import { upsertFeedEventRow } from "../feed-events.ts";
 import {
@@ -53,7 +53,7 @@ import { trackEmailSyncEvent, trackFacilitySyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
 export type { ReviewItem };
-export type { SuggestedUpdateMatch };
+export type { UpdateTargetBooking };
 export type { MergedImportCandidate };
 
 export type { MailboxProvider };

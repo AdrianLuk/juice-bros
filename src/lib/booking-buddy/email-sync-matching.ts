@@ -11,6 +11,7 @@
  * review composition (#288).
  */
 
+import { crossesMidnight } from "./datetime.ts";
 import { courtNumber } from "./import-candidate-shaping.ts";
 
 export type OrgCandidate = { orgId: string; displayName: string };
@@ -122,11 +123,10 @@ function toMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-/** Minutes from midnight for a range's end, bumped a day when the range runs past midnight — the same "an End at or before the Start is tomorrow" rule the write path applies (`bookingInstants`). */
+/** Minutes from midnight for a range's end, bumped a day when the range runs past midnight — `crossesMidnight` is the one place that rule lives (`datetime.ts`), the same one `bookingInstants` reads it from. */
 function endMinutes(slot: { startTime: string; endTime: string }): number {
-  const start = toMinutes(slot.startTime);
   const end = toMinutes(slot.endTime);
-  return end <= start ? end + 24 * 60 : end;
+  return crossesMidnight(slot.startTime, slot.endTime) ? end + 24 * 60 : end;
 }
 
 function overlaps(a: UpdateSlot, b: UpdateSlot): boolean {

@@ -194,6 +194,15 @@ export function parseUpdateApplication(
     return { error: "Pick which booking this update is for." };
   }
 
+  // Refused outright, where a Booking form falls back to the common case for
+  // an odd value: on that form the fallback is what the User gets by leaving
+  // the field alone, but here it would silently rewrite a Booking's existing
+  // format to the default on the strength of a garbled hidden field nobody
+  // chose. The field is never a User's own input on this card.
+  if (!isBookingFormat(formData.get("format"))) {
+    return { error: "Couldn't update that booking. Try again." };
+  }
+
   const reservation = parseReservationFields(formData);
   if ("error" in reservation) {
     return reservation;

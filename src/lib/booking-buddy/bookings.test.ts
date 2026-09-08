@@ -369,3 +369,13 @@ test("an update's slot is validated the same way a Booking form's is", () => {
     error: "Pick a date for the booking.",
   });
 });
+
+test("an update with a garbled format is refused, not quietly defaulted", () => {
+  // A Booking form falls back to doubles here — on that form the fallback is
+  // what leaving the field alone gives you. On an update card the field is a
+  // hidden one nobody chose, so a fallback would rewrite the Booking's real
+  // format on the strength of a garbled value.
+  assert.deepEqual(parseUpdate({ format: "mixed-quadruples" }), {
+    error: "Couldn't update that booking. Try again.",
+  });
+});

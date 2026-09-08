@@ -409,7 +409,7 @@ export async function createBooking(
  * row. No new migration needed: `bookings_coherent` already fires `before
  * insert or update` (org-ownership + zone-validity), and RLS already turns
  * "isn't yours" into an empty result rather than an error — the same shape
- * `deleteOwnedBooking` and `updateOwnedBookingFormatAndCourt` already use, so
+ * `deleteOwnedBooking` and `applyUpdateToOwnedBooking` already use, so
  * `bookingId` isn't re-scoped by `owner_id` in the query itself.
  */
 export async function updateValidatedBooking(
@@ -512,6 +512,11 @@ export async function deleteOwnedBooking(bookingId: string): Promise<ActionResul
  * `matchUpdateToBooking`'s exact match or a suggestion the User confirmed —
  * so this is scoped by `id` alone, the same "RLS turns 'isn't yours' into an
  * empty result" shape `deleteOwnedBooking` already established.
+ *
+ * A past date is refused, the same way every other Booking write refuses one
+ * (`resolveValidatedOrg`) — an update for a slot that has already been and
+ * gone is dropped by the review long before this, so the guard only ever
+ * catches a stale review screen.
  *
  * The slot moves too. Until #458 only format and court label were written,
  * on the reasoning that matching keyed on Org + date + start time and so the

@@ -35,7 +35,7 @@ import {
   dismissReviewItem,
   type MergedImportCandidate,
   type ReviewItem,
-  type SuggestedUpdateMatch,
+  type UpdateTargetBooking,
 } from "@/lib/booking-buddy/actions/email-sync";
 
 const EMPTY: ActionResult = {};
@@ -357,7 +357,7 @@ function UpdateChanges({
   before,
   after,
 }: {
-  before: SuggestedUpdateMatch;
+  before: UpdateTargetBooking;
   after: Extract<ReviewItem, { kind: "update" }>;
 }) {
   const changes = describeUpdateChanges(before, {
@@ -406,7 +406,7 @@ function SuggestedMatch({
   buttonLabel,
 }: {
   item: Extract<ReviewItem, { kind: "update" }>;
-  suggestion: SuggestedUpdateMatch;
+  suggestion: UpdateTargetBooking;
   confirmAction: (payload: FormData) => void;
   confirmPending: boolean;
   busy: boolean;
@@ -460,8 +460,15 @@ function UpdateBody({
   if (item.matched) {
     return (
       <>
+        <div>
+          {/* The same before/after a suggested match shows. Matching on the
+              slot's start time says nothing about whether the End, the court,
+              the format or the Players are about to change — and since #458
+              applying rewrites all of them, the card has to say so. */}
+          <UpdateChanges before={item.booking} after={item} />
+        </div>
         <form action={confirmAction} className="self-start">
-          <UpdateFields item={item} bookingId={item.bookingId} />
+          <UpdateFields item={item} bookingId={item.booking.bookingId} />
           <Button type="submit" disabled={busy}>
             {confirmPending ? "Applying…" : "Apply update"}
           </Button>

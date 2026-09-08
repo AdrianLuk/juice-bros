@@ -54,13 +54,13 @@ import {
 type MatchUnion = { matched: true; bookingId: string } | { matched: false };
 
 /**
- * A Booking as it stands right now, offered as the one an unmatched update
+ * A Booking as it stands right now — the one an update matched, or one it
  * might be about (issue #458). Carries the whole before-side the card shows,
  * because the review screen has no other view of the User's Bookings: the
  * "12:00 PM–2:00 PM · Court #7 · Singles" half of the before/after the User
  * reads before confirming.
  */
-export type SuggestedUpdateMatch = {
+export type UpdateTargetBooking = {
   bookingId: string;
   date: string;
   startTime: string;
@@ -75,10 +75,16 @@ export type SuggestedUpdateMatch = {
  * didn't and offers whatever it might be about instead — empty when there's
  * nothing on that day at that facility, which is the "no matching booking
  * found" notice as it always was.
+ *
+ * Both branches carry the Booking itself, not just its id: applying an update
+ * now rewrites the slot and the Player(s) as well as format and court (#458),
+ * so a matched card owes the User the same before/after a suggested one shows
+ * — an exact match on the *start time* says nothing about whether the End, the
+ * court or the Players are about to change.
  */
 type UpdateMatchUnion =
-  | { matched: true; bookingId: string }
-  | { matched: false; suggestions: SuggestedUpdateMatch[] };
+  | { matched: true; booking: UpdateTargetBooking }
+  | { matched: false; suggestions: UpdateTargetBooking[] };
 
 /**
  * One parsed CourtReserve email — a confirmation, cancellation, or Reservation
@@ -203,6 +209,19 @@ export type ExistingBookingForReview = BookingIdentity & {
   format: BookingFormat;
   players: string[];
 };
+
+/** One of the caller's Bookings, as an update card reads it back (#458) — the same row, keyed the way the card and the confirm form name it. */
+function asUpdateTarget(booking: ExistingBookingForReview): UpdateTargetBooking {
+  return {
+    bookingId: booking.id,
+    date: booking.date,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    courtLabel: booking.courtLabel,
+    format: booking.format,
+    players: booking.players,
+  };
+}
 
 export type ReviewCourtReserveEmailsInput = {
   /** Unseen messages only — the caller has already filtered out anything in `processed_messages`. */
@@ -454,6 +473,9 @@ function shapeUpdateReviewItem(
         ctx.existingBookings,
       )
     : null;
+  const matchedBooking = bookingId
+    ? ctx.existingBookings.find((booking) => booking.id === bookingId)
+    : undefined;
 
   const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(update.courtLabel));
 
@@ -470,8 +492,8 @@ function shapeUpdateReviewItem(
     matchedPlayers: matchPlayerNamesToConnections(update.playerNames, ctx.connectionCandidates),
   };
 
-  const item: UpdateReviewItem = bookingId
-    ? { ...base, matched: true, bookingId }
+  const item: UpdateReviewItem = matchedBooking
+    ? { ...base, matched: true, booking: asUpdateTarget(matchedBooking) }
     : { ...base, matched: false, suggestions: [] };
 
   return { item, matchedOrgId };
@@ -491,7 +513,7 @@ function withSuggestedMatches(
   ctx: ReviewContext,
 ): UpdateReviewItem[] {
   const takenBookingIds = [
-    ...shaped.flatMap(({ item }) => (item.matched ? [item.bookingId] : [])),
+    ...shaped.flatMap(({ item }) => (item.matched ? [item.booking.bookingId] : [])),
     ...cancellations.flatMap((item) => (item.matched ? [item.bookingId] : [])),
   ];
 
@@ -510,15 +532,7 @@ function withSuggestedMatches(
       },
       ctx.existingBookings,
       takenBookingIds,
-    ).map((booking) => ({
-      bookingId: booking.id,
-      date: booking.date,
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      courtLabel: booking.courtLabel,
-      format: booking.format,
-      players: booking.players,
-    }));
+    ).map(asUpdateTarget);
 
     return { ...item, suggestions };
   });
