@@ -29,7 +29,13 @@ export const metadata: Metadata = pageMetadata({
     "Log the court reservations you've made, so your friends can be invited to them later.",
   path: "/booking-buddy/bookings",
 });
-export default async function BookingsPage() {
+export default async function BookingsPage({
+  searchParams,
+}: {
+  /** `?sync=1` starts "Sync bookings" on arrival — where onboarding's calendar-feed handoff lands (issue #471). */
+  searchParams: Promise<{ sync?: string }>;
+}) {
+  const { sync } = await searchParams;
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   const session = await verifySession();
@@ -137,6 +143,7 @@ export default async function BookingsPage() {
                   canSyncFromEmail={canSyncFromEmail}
                   mailboxProvider={mailboxLink?.provider ?? null}
                   hasConfiguredFeed={hasConfiguredFeed}
+                  autoSync={sync === "1"}
                 />
               )}
               <section>

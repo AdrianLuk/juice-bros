@@ -18,6 +18,14 @@ export const ORGS_PATH = `${BOOKING_BUDDY_ROOT}/orgs`;
 
 export const BOOKINGS_PATH = `${BOOKING_BUDDY_ROOT}/bookings`;
 
+/**
+ * The Bookings page with "Sync bookings" already running and scrolled to
+ * (issue #471) — where onboarding hands off after a calendar feed is
+ * connected. The review belongs on the Bookings page, so the handoff lands on
+ * the review itself rather than on another button to press.
+ */
+export const bookingsSyncHref = `${BOOKINGS_PATH}?sync=1#sync`;
+
 export const SLOTS_PATH = `${BOOKING_BUDDY_ROOT}/slots`;
 
 /**

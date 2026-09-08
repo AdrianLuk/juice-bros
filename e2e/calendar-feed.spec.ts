@@ -144,6 +144,39 @@ test("paste → Sync bookings → confirm → a Booking with facility / date / t
   await expect(section.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
 });
 
+test("?sync=1 runs the sync on arrival, with no button pressed", async ({ page, accounts }) => {
+  // The other half of onboarding's calendar-feed handoff (issue #471): the
+  // modal's "See what's on your feed" links here, and the candidates have to
+  // be on screen without the User pressing "Sync bookings" themselves.
+  const user = { email: accounts.amy.email, password: accounts.password };
+  const facility = `${PREFIX} Arrival`;
+  await seedFacility(user, facility);
+  mock.registerFeed("/feed/arrival", { kind: "ics", body: icsBody([FUTURE_EVENT]) });
+
+  await signIn(page, accounts.amy.email);
+  await setFeedUrlViaForm(page, facility, mock.urlFor("/feed/arrival"));
+
+  await page.goto("/booking-buddy/bookings?sync=1#sync");
+
+  const section = feedSection(page);
+  await expect(
+    section
+      .getByRole("listitem")
+      .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) }),
+  ).toBeVisible({ timeout: 15_000 });
+
+  // The flag is spent, so it comes off the URL — a reload must not silently
+  // re-run every feed fetch for someone who only pressed refresh.
+  await expect(page).toHaveURL(/\/booking-buddy\/bookings#sync$/);
+
+  // Without the flag the section waits to be asked.
+  await page.goto("/booking-buddy/bookings");
+  await expect(section.getByRole("button", { name: "Sync bookings" })).toBeVisible();
+  await expect(
+    section.getByRole("button", { name: "Add to my bookings" }),
+  ).toHaveCount(0);
+});
+
 test("a dismissed feed candidate does not reappear on the next sync", async ({ page, accounts }) => {
   const user = { email: accounts.amy.email, password: accounts.password };
   const facility = `${PREFIX} Dismiss`;
