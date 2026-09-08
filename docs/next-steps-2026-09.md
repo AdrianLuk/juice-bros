@@ -1,6 +1,6 @@
 # Next steps: Booking Buddy, On Deck, Round Robin Generator
 
-Status: planning input, not committed scope. Written 2026-09-04.
+Status: planning input, not committed scope. Written 2026-09-04. Progress updated 2026-09-07.
 
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
@@ -47,42 +47,70 @@ Two rules the order follows:
 - **After the night, the retro reorders this table.** Rows 5 onward in On Deck are guesses
   until it exists. Don't build them ahead of it just because they're specced.
 
-| Order | Initiative | Why here |
-|---|---|---|
-| 1 | OD-6 Printed Club QR sign (slice 3 only) | Deadline work. OD-0's checklist opens with "print the Club QR on a sign", and #413 shipped the on-screen QR explicitly as the fallback *for days without it* |
-| 2 | RR-1 remainder (#394 to #397) | Already specced and 1 of 5 shipped. Fills the run-up to the night without touching On Deck, and finishing beats parking it half-built |
-| 3 | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
-| 4 | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses |
-| 5 | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
-| 6 | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can |
-| 7 | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
-| 8 | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Now correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
-| 9 | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench |
-| 10 | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
-| 11 | RR-3 Share, roster memory, print | Completes v1 of the generator |
-| 12 | BB-4 Copy for group chat | Small, high-use |
-| 13 | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
-| 14 | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
-| 15 | RR-4 Constraint toggles | Fixed partners, singles, skill balance, mixed doubles |
-| 16 | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
+Progress column added 2026-09-07 (evening). ✅ means shipped to master; a blank cell means
+not started.
 
-If only one thing per app ships this month: RR-1, OD-0, BB-1. Unchanged, and OD-0 being
-booked is what makes it reachable.
+| Order | Done | Initiative | Why here |
+|---|---|---|---|
+| 1 |  | OD-6 Printed Club QR sign (slice 3 only) | Deadline work. OD-0's checklist opens with "print the Club QR on a sign", and #413 shipped the on-screen QR explicitly as the fallback *for days without it*. Still unbuilt, and now the only thing standing between the booked night and its checklist |
+| 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
+| 3 |  | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
+| 4 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses |
+| 5 |  | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
+| 6 |  | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can |
+| 7 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
+| 8 |  | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Now correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
+| 9 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked as of 2026-09-07 — RR-1 is done |
+| 10 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
+| 11 |  | RR-3 Share, roster memory, find-me, print | Partly overtaken: print (#397) and roster memory (#396) both shipped inside RR-1. What's left is the share URL and find-me |
+| 12 |  | BB-4 Copy for group chat | Small, high-use |
+| 13 |  | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
+| 14 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
+| 15 |  | RR-4 Constraint toggles (#391) | Fixed partners, singles, skill balance, mixed doubles. Filed and open, `needs-triage` |
+| 16 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
+| — |  | RR-6 Pools (#392) | Filed 2026-09-07 after the doc was written, `needs-triage`. Not in the original order; slot it against RR-2 and RR-4 at the next reorder |
+
+If only one thing per app ships this month: RR-1, OD-0, BB-1. RR-1 is now done, which
+leaves OD-0 (booked) and BB-1 (unstarted) as the month's remaining two.
 
 ### Shipped since this doc was written
 
-Recorded 2026-09-07 so the table above doesn't silently drift again.
+Recorded 2026-09-07, updated the same evening after a heavy day, so the table above
+doesn't silently drift again.
 
 - **BB-2 Visibility default on accept** — done (#376 and its four slices, #377 to #380).
   Dropped from the interleave.
-- **RR-1.1 Table cases** — #393, in review as PR #417. The other four RR-1 tickets
-  (#394 to #397) are open and specced.
-- **On-screen Club QR** — #413. Adjacent to OD-6 slice 3 but not a substitute: there is
-  still no print stylesheet anywhere in `src/`, so the printed sign is unbuilt.
+- **RR-1 Engine + plain output — complete.** All five tickets closed on 2026-09-07:
+  #393 table cases (PR #417), #394 any roster size / any court count (#423), #395 the
+  two-speed interaction — which landed as *draw on a button, not a keystroke*, a
+  correction to the recommended answer in RR-1 item 5 (#424), #396 roster persistence
+  (#440), #397 print stylesheet (#449). Plus #441 (RR-1.6, clear the roster with undo),
+  added while building. Row 2 of the interleave is closed out and RR-2 is unblocked.
+- **A print stylesheet now exists** — `@media print` in `src/app/globals.css`, scoped by
+  `body:has(.mm-sheet)` with a named `@page`. That erases the reason OD-6 slice 3 was
+  called unbuilt-from-zero: the sign is a second sheet next to the draw sheet, not the
+  first print work in the repo.
+- **On-screen Club QR** — #413. Still adjacent to OD-6 slice 3 rather than a substitute;
+  the printed sign is unbuilt.
+- **Booking Buddy import/sync hardening, none of it on this table** — a full day of it on
+  2026-09-07: cross-source reservation identity (#432, #437), empty-vs-broken feed
+  (#431), candidate provenance on every card (#438), readable candidate dates (#433),
+  dismissals made visible, undoable, and self-pruning (#444, #447), feed-event pruning
+  (#452), the CourtReserve feed-URL hint (#454), calendar chip legibility on a phone
+  (#455, #459), and six stale e2e specs (#446). The last follow-up, #458 (a Reservation
+  Update that moved the time now offers its booking instead of saying "no match"), closed
+  the same evening as #462. Nothing from this batch is left open.
 - **Marketing site work not on this table at all** — Broadcast Dark on Home and the six
-  other routes (#399, #406, #415), Tools surfaced on the homepage (#381), image weight
-  (#414). Worth noting the table only governs the three apps; marketing work has been
-  jumping it, which is fine, but it means "next in the table" has not been "next built".
+  other routes (#399, #406, #415) and its two regressions (#419, #421), the About page
+  rebuilt around episode one (#425), Appearances division ordering (#429), YouTube
+  subscribe CTAs (#427), Tools surfaced on the homepage (#381), image weight (#414).
+
+**The pattern is now unmistakable.** Of everything built since this doc was written, only
+row 2 came from the table; the rest was marketing polish and Booking Buddy sync work that
+the table doesn't govern. That's fine when the pulled-forward work is real, and two of
+those (the #415 regressions, the six stale specs) were self-inflicted. But the one row
+that is genuinely deadline-shaped — row 1, the printed sign — is the one row that hasn't
+moved. It should go next, ahead of anything else here.
 
 ---
 
@@ -462,7 +490,10 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
    defaults to the club name, group cap to 4, Floor Mode to hybrid, all editable in
    settings. Lands on home with Start ready.
 3. **Print-ready Club QR sign.** Letter and A4. Big QR, club name, "Scan to join the
-   queue," three lines for Players, Juice Bros mark. One click from home.
+   queue," three lines for Players, Juice Bros mark. One click from home. *Cheaper as of
+   2026-09-07:* #397 put a working `@media print` block in `src/app/globals.css`, scoped
+   by `body:has(.mm-sheet)` with a named `@page` and a "hide the site chrome without
+   naming each piece of it" rule. The sign is a second sheet on that pattern.
 4. **First-night kit on home.** A four-item checklist with state (print the sign, decide
    on a Kiosk tablet or skip it, share the Volunteer Link, tell your players) that
    disappears after the first closed Session, plus a "tell your players" paragraph to
@@ -529,11 +560,22 @@ playoff — is in scope; see RR-6.
 
 ### RR-1 · Engine + plain output
 
-**In progress.** Specced as #389, ticketed #393 to #397. #393 (Table cases) is PR #417;
-#394 to #397 are open. One correction from building it: the n=8 table published in the
-brief is not a valid whist tournament — partners are right, but players 0/1, 2/3, 4/5 and
-6/7 each face each other six times. It scores 20 under the Scorer, not 0, so it is not
-what shipped. See ADR 0002 and `scripts/build-match-mixer-tables.mts`.
+**Shipped 2026-09-07.** Specced as #389, ticketed #393 to #397, all closed, plus #441
+(RR-1.6, clear the roster with undo) added while building. Live at `/tools/match-mixer`.
+
+Two corrections from building it, both of which override recommended answers above:
+
+- The n=8 table published in the brief is not a valid whist tournament — partners are
+  right, but players 0/1, 2/3, 4/5 and 6/7 each face each other six times. It scores 20
+  under the Scorer, not 0, so it is not what shipped. See ADR 0002 and
+  `scripts/build-match-mixer-tables.mts`.
+- Item 5's "no generate button in the critical path" did not survive contact. #395
+  shipped as *draw on a button, not a keystroke*: the consequence line still updates
+  live, but the grid renders on an explicit press rather than on debounce/blur. Treat
+  item 5 as amended, not as the spec, if RR-2 or RR-6 reason from it.
+
+Two things the interleave assigned to RR-3 landed here instead: the print stylesheet
+(#397) and roster memory (#396). RR-3 is correspondingly smaller — share URL and find-me.
 
 **Size:** M (a weekend). **Blocked by:** nothing.
 
@@ -616,7 +658,12 @@ every other generator gets wrong and the reason organizers give up and freehand 
 
 ### RR-3 · Share, roster memory, find-me, print
 
-**Size:** M. **Blocked by:** RR-1 (RR-2 not required, but ship after it if close).
+**Size:** S–M now, was M. **Blocked by:** nothing — RR-1 is done.
+
+**Two of the four already shipped in RR-1**: roster memory (#396, last roster restored on
+return, plus clear-with-undo in #441) and print (#397). What's left is the share URL and
+find-me. Re-size and re-scope this before ticketing it; the claim below is stale in its
+back half.
 
 **Claim.** Completes v1. The share link puts the Juice Bros name in front of the whole
 group every week; roster memory is the second-biggest reason an organizer comes back;
@@ -642,7 +689,7 @@ print is how half of rec centres still run this.
    ➡️ Yes, as a print view and as the find-me state on a phone ("You're on Court 2 in
    rounds 1, 3, 4, 6. Sitting out round 5.").
 
-### RR-4 · Constraint toggles
+### RR-4 · Constraint toggles (#391, open)
 
 **Size:** M. **Blocked by:** RR-1. Independent of RR-2 and RR-3.
 
@@ -679,7 +726,7 @@ standings from their own phone.
 
 **Open questions.** Not yet. Grill this only when it's next.
 
-### RR-6 · Pools
+### RR-6 · Pools (#392, open)
 
 **Size:** M. **Blocked by:** RR-1. Independent of RR-2 and RR-3; orthogonal to RR-4's
 Format toggle (rotating, fixed-partner, and singles each run once per pool).
