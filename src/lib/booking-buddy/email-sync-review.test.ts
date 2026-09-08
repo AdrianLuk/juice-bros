@@ -1,7 +1,30 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { reviewCourtReserveEmails, type RawCourtReserveEmail } from "./email-sync-review.ts";
+import {
+  reviewCourtReserveEmails,
+  type ExistingBookingForReview,
+  type RawCourtReserveEmail,
+} from "./email-sync-review.ts";
+import { addHoursToTime } from "./datetime.ts";
+
+/**
+ * One of the caller's Bookings, as the review reads it. The fields only a
+ * suggested update match reads (#458) default to an ordinary two-hour doubles
+ * slot with nobody logged, so a test that isn't about suggestions says only
+ * what it cares about.
+ */
+function existing(
+  booking: Pick<ExistingBookingForReview, "id" | "orgId" | "courtLabel" | "date" | "startTime"> &
+    Partial<Pick<ExistingBookingForReview, "endTime" | "format" | "players">>,
+): ExistingBookingForReview {
+  return {
+    endTime: addHoursToTime(booking.startTime, 2) ?? "00:00",
+    format: "doubles",
+    players: [],
+    ...booking,
+  };
+}
 
 // --- synthetic CourtReserve email HTML ------------------------------------
 //
@@ -169,7 +192,7 @@ test("a confirmation that duplicates a booking already on file is dropped", () =
     [email(CONFIRM_SUBJECT, confirmationHtml({ date: "2026-07-01", start: "18:00", court: "Court 3" }))],
     {
       existingBookings: [
-        { id: "b1", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" },
+        existing({ id: "b1", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }),
       ],
     },
   );
@@ -189,7 +212,7 @@ test("a confirmation whose Booking came from the calendar feed is dropped, despi
     ],
     {
       existingBookings: [
-        { id: "from-feed", orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" },
+        existing({ id: "from-feed", orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" }),
       ],
     },
   );
@@ -253,7 +276,7 @@ test("a past or already-booked confirmation is dropped without being reported (#
     ],
     {
       existingBookings: [
-        { id: "b1", orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" },
+        existing({ id: "b1", orgId: "org-pp", courtLabel: "#9", date: "2026-07-01", startTime: "18:00" }),
       ],
     },
   );
@@ -283,7 +306,7 @@ test("a dismissed slot never suppresses a cancellation or update — only an imp
     { orgId: "org-pp", courtLabel: null, date: "2026-07-01", startTime: "18:00" },
   ];
   const existingBookings = [
-    { id: "b7", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" },
+    existing({ id: "b7", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }),
   ];
 
   const cancellation = review(
@@ -309,7 +332,7 @@ test("a confirmation for a different court at the same time is still offered", (
     ],
     {
       existingBookings: [
-        { id: "from-feed", orgId: "org-pp", courtLabel: "#8", date: "2026-07-01", startTime: "18:00" },
+        existing({ id: "from-feed", orgId: "org-pp", courtLabel: "#8", date: "2026-07-01", startTime: "18:00" }),
       ],
     },
   );
@@ -334,7 +357,7 @@ test("an email that looks like a confirmation but whose body doesn't parse is dr
 test("a cancellation matched to a booking on file carries that booking's id", () => {
   const result = review(
     [email(CANCEL_SUBJECT, cancellationHtml({ date: "2026-07-01", start: "18:00" }))],
-    { existingBookings: [{ id: "b7", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }] },
+    { existingBookings: [existing({ id: "b7", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" })] },
   );
 
   assert.equal(result.items.length, 1);
@@ -353,7 +376,7 @@ test("a cancellation with nothing on file to match is surfaced as an unmatched n
 test("a reservation update matched to a booking on file carries its id and the revised fields", () => {
   const result = review(
     [email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "18:00", end: "20:00", court: "Court 9" }))],
-    { existingBookings: [{ id: "b3", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }] },
+    { existingBookings: [existing({ id: "b3", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" })] },
   );
 
   assert.equal(result.items.length, 1);
@@ -439,7 +462,7 @@ test("confirmation, cancellation and update for three different slots each land 
       email(CANCEL_SUBJECT, cancellationHtml({ date: "2026-07-02", start: "09:00" })),
       email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-03", start: "10:00" })),
     ],
-    { existingBookings: [{ id: "bx", orgId: "org-pp", courtLabel: null, date: "2026-07-03", startTime: "10:00" }] },
+    { existingBookings: [existing({ id: "bx", orgId: "org-pp", courtLabel: null, date: "2026-07-03", startTime: "10:00" })] },
   );
 
   assert.equal(importsOf(result).length, 1);
@@ -447,4 +470,104 @@ test("confirmation, cancellation and update for three different slots each land 
   assert.equal(updatesOf(result).length, 1);
   const [update] = updatesOf(result);
   assert.equal(update.matched && update.bookingId, "bx");
+});
+
+// --- suggested update matches (issue #458) --------------------------------
+
+test("an update that moved its time offers the Booking it looks like, rather than the unmatched notice", () => {
+  const result = review(
+    [email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "19:00", end: "21:00", court: "Court #7 - Hard" }))],
+    {
+      existingBookings: [
+        existing({
+          id: "b-noon",
+          orgId: "org-pp",
+          courtLabel: "#7",
+          date: "2026-07-01",
+          startTime: "18:00",
+          endTime: "20:00",
+          format: "singles",
+          players: ["Amy Ace"],
+        }),
+      ],
+    },
+  );
+
+  const update = updatesOf(result)[0];
+  assert.equal(update.matched, false);
+  assert.deepEqual(update.matched === false ? update.suggestions : [], [
+    {
+      bookingId: "b-noon",
+      date: "2026-07-01",
+      startTime: "18:00",
+      endTime: "20:00",
+      courtLabel: "#7",
+      format: "singles",
+      players: ["Amy Ace"],
+    },
+  ]);
+});
+
+test("an update that matched a Booking exactly offers no suggestions to second-guess it", () => {
+  const result = review(
+    [email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "18:00", end: "20:00" }))],
+    {
+      existingBookings: [
+        existing({ id: "b-exact", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }),
+        existing({ id: "b-later", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "21:00" }),
+      ],
+    },
+  );
+
+  const update = updatesOf(result)[0];
+  assert.equal(update.matched, true);
+  assert.equal(update.matched && update.bookingId, "b-exact");
+});
+
+test("a Booking another update in the same batch matched exactly is not offered to a second one", () => {
+  const result = review(
+    [
+      email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "18:00", end: "20:00" }), { id: "m-exact" }),
+      email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "19:00", end: "21:00" }), { id: "m-moved" }),
+    ],
+    {
+      existingBookings: [
+        existing({ id: "b-exact", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }),
+      ],
+    },
+  );
+
+  const moved = updatesOf(result).find((item) => item.gmailMessageId === "m-moved");
+  assert.equal(moved?.matched, false);
+  assert.deepEqual(moved?.matched === false ? moved.suggestions : null, []);
+});
+
+test("an update with nothing on file that day keeps the unmatched notice's empty suggestion list", () => {
+  const result = review(
+    [email(UPDATE_SUBJECT, updateHtml({ date: "2026-07-01", start: "18:00", end: "20:00" }))],
+    {
+      existingBookings: [
+        existing({ id: "b-other-day", orgId: "org-pp", courtLabel: "3", date: "2026-07-08", startTime: "18:00" }),
+      ],
+    },
+  );
+
+  const update = updatesOf(result)[0];
+  assert.equal(update.matched, false);
+  assert.deepEqual(update.matched === false ? update.suggestions : null, []);
+});
+
+test("an update whose facility matched no Org offers nothing — there is no Org to look under", () => {
+  const result = review(
+    [email(UPDATE_SUBJECT, updateHtml({ facility: "Somewhere Else", date: "2026-07-01", start: "19:00", end: "21:00" }))],
+    {
+      existingBookings: [
+        existing({ id: "b-noon", orgId: "org-pp", courtLabel: "3", date: "2026-07-01", startTime: "18:00" }),
+      ],
+    },
+  );
+
+  const update = updatesOf(result)[0];
+  assert.equal(update.matched, false);
+  assert.deepEqual(update.matched === false ? update.suggestions : null, []);
 });

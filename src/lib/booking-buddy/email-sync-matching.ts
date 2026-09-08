@@ -11,6 +11,8 @@
  * review composition (#288).
  */
 
+import { courtNumber } from "./import-candidate-shaping.ts";
+
 export type OrgCandidate = { orgId: string; displayName: string };
 
 /**
@@ -86,6 +88,11 @@ export function matchCancellationToBooking(
  * change could never be matched at all, and the whole point of surfacing an
  * update candidate is to let the User apply exactly that kind of change to
  * the Booking already on file.
+ *
+ * An update that moved its *start time* can't be matched here at all, since
+ * the start time is the key — `suggestUpdateBookingMatches` below is the
+ * fallback for that, and it hands the choice to the User rather than making
+ * one here (issue #458).
  */
 export function matchUpdateToBooking(
   update: CancellationIdentity,
@@ -96,6 +103,95 @@ export function matchUpdateToBooking(
       booking.orgId === update.orgId && booking.date === update.date && booking.startTime === update.startTime,
   );
   return matches.length === 1 ? matches[0].id : null;
+}
+
+/** A reservation's whole span, not just the instant it starts — what a suggested match is scored on. */
+export type UpdateSlot = {
+  orgId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  courtLabel: string | null;
+};
+
+/** How many Bookings a single unmatched update offers at once — a facility-day with more plausible bookings than this is past the point where a picker helps. */
+const MAX_SUGGESTED_MATCHES = 3;
+
+function toMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+/** Minutes from midnight for a range's end, bumped a day when the range runs past midnight — the same "an End at or before the Start is tomorrow" rule the write path applies (`bookingInstants`). */
+function endMinutes(slot: { startTime: string; endTime: string }): number {
+  const start = toMinutes(slot.startTime);
+  const end = toMinutes(slot.endTime);
+  return end <= start ? end + 24 * 60 : end;
+}
+
+function overlaps(a: UpdateSlot, b: UpdateSlot): boolean {
+  return toMinutes(a.startTime) < endMinutes(b) && toMinutes(b.startTime) < endMinutes(a);
+}
+
+/**
+ * How strongly a Booking looks like the one an update refers to: the same
+ * court counts for more than an overlapping time, since a facility moving a
+ * reservation usually keeps one of the two, and the court is the harder of
+ * them to coincide by accident.
+ */
+function suggestionScore(update: UpdateSlot, booking: UpdateSlot): number {
+  const updateCourt = courtNumber(update.courtLabel);
+  const bookingCourt = courtNumber(booking.courtLabel);
+  const sameCourt = updateCourt !== null && updateCourt === bookingCourt;
+  return (sameCourt ? 2 : 0) + (overlaps(update, booking) ? 1 : 0);
+}
+
+/**
+ * The Bookings an unmatched Reservation Update might be about, best first
+ * (issue #458) — offered to the User to confirm, never applied on their
+ * behalf.
+ *
+ * `matchUpdateToBooking` above keys on Org + date + exact start time, which
+ * is what makes its "refuse to guess" rule cheap: either exactly one Booking
+ * is on that slot or nothing is applied. The gap it leaves is the update that
+ * *moved the time* — a reservation logged 12:00–14:00 and updated to
+ * 13:00–15:00 has no Booking at 13:00 to find, so the review screen could
+ * only say "no matching booking found" about the very Booking sitting right
+ * there on the same day and court.
+ *
+ * So: same Org and same calendar day is the whole filter, and the ordering
+ * carries the judgement — same court and an overlapping time first, then one
+ * or the other, then merely the same day, with the nearest start time
+ * breaking ties. Everything on that day is offered rather than only what
+ * scores, because a facility can move a reservation's court *and* its time at
+ * once, and the User reads the before/after on the card before confirming.
+ * The guess is theirs to make, which is exactly what the exact-match rule
+ * refuses to do on its own.
+ *
+ * `takenBookingIds` are Bookings another candidate in the same batch already
+ * resolved to exactly; offering one of those as a maybe would be inviting the
+ * User to point two emails at one Booking.
+ */
+export function suggestUpdateBookingMatches<T extends UpdateSlot & { id: string }>(
+  update: UpdateSlot,
+  existingBookings: readonly T[],
+  takenBookingIds: readonly string[] = [],
+): T[] {
+  const taken = new Set(takenBookingIds);
+
+  return existingBookings
+    .filter(
+      (booking) =>
+        booking.orgId === update.orgId && booking.date === update.date && !taken.has(booking.id),
+    )
+    .map((booking) => ({
+      booking,
+      score: suggestionScore(update, booking),
+      distance: Math.abs(toMinutes(booking.startTime) - toMinutes(update.startTime)),
+    }))
+    .sort((a, b) => b.score - a.score || a.distance - b.distance)
+    .slice(0, MAX_SUGGESTED_MATCHES)
+    .map((scored) => scored.booking);
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   formatCourtLabel,
   formatTimeLabel,
   parseNewBooking,
+  parseUpdateApplication,
 } from "./bookings.ts";
 
 const VALID = {
@@ -320,4 +321,51 @@ test("a string that isn't a real calendar date comes back verbatim, never as \"u
   for (const bad of ["2026-13-01", "not-a-date", ""]) {
     assert.equal(formatCandidateDate(bad), bad);
   }
+});
+
+// --- applying a Reservation Update Notice (issue #458) ---------------------
+
+const VALID_UPDATE = {
+  booking_id: "bbbb0000-0000-0000-0000-000000000001",
+  court_label: "#7 - Hard",
+  date: "2026-09-10",
+  start_time: "13:00",
+  end_time: "15:00",
+  format: "doubles",
+  players: "Cecilia Mui, Adrian Luk",
+};
+
+function parseUpdate(overrides: Partial<typeof VALID_UPDATE & { notes: string }> = {}) {
+  return parseUpdateApplication(form({ ...VALID_UPDATE, ...overrides }));
+}
+
+test("an update card's fields become the reservation to write onto a Booking", () => {
+  assert.deepEqual(parseUpdate(), {
+    bookingId: VALID_UPDATE.booking_id,
+    courtLabel: "#7 - Hard",
+    notes: null,
+    date: "2026-09-10",
+    startTime: "13:00",
+    endTime: "15:00",
+    format: "doubles",
+    players: ["Cecilia Mui", "Adrian Luk"],
+  });
+});
+
+test("an update with no Booking to land on is refused", () => {
+  assert.deepEqual(parseUpdate({ booking_id: "" }), {
+    error: "Pick which booking this update is for.",
+  });
+});
+
+test("an update's slot is validated the same way a Booking form's is", () => {
+  assert.deepEqual(parseUpdate({ start_time: "13:15" }), {
+    error: "Pick a start and end time.",
+  });
+  assert.deepEqual(parseUpdate({ end_time: "13:00" }), {
+    error: "The end time can't be the same as the start time.",
+  });
+  assert.deepEqual(parseUpdate({ date: "not-a-date" }), {
+    error: "Pick a date for the booking.",
+  });
 });

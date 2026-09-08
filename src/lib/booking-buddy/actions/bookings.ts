@@ -12,6 +12,7 @@ import {
   bookingWriteMessage,
   formatBookingWhen,
   parseNewBooking,
+  type BookingUpdateApplication,
   type NewBooking,
 } from "../bookings.ts";
 import { crossesMidnight, isPastDate, nextCalendarDate } from "../datetime.ts";
@@ -151,7 +152,10 @@ export async function getBookingsPageData(): Promise<BookingsPageData> {
  */
 async function resolveValidatedOrg(
   ownerId: string,
-  parsed: NewBooking,
+  // Only the Org and the date are read, so an update applying to a Booking
+  // that already has an Org (`applyUpdateToOwnedBooking`) passes the same
+  // check as a whole `NewBooking` does.
+  parsed: { orgId: string; date: string },
 ): Promise<{ timeZone: string } | { error: string }> {
   const supabase = await createClient();
 
@@ -188,7 +192,7 @@ async function resolveValidatedOrg(
  * `ends_at > starts_at` check is what that day-bump is there to satisfy.
  */
 function bookingInstants(
-  parsed: NewBooking,
+  parsed: { date: string; startTime: string; endTime: string },
   timeZone: string,
 ): { starts_at: string; ends_at: string } {
   const endDate = crossesMidnight(parsed.startTime, parsed.endTime)
@@ -502,36 +506,69 @@ export async function deleteOwnedBooking(bookingId: string): Promise<ActionResul
 }
 
 /**
- * Applying a matched Reservation Update Notice (issue #91) edits the format
- * and court label already on file for a Booking, rather than creating or
- * removing one — `matchUpdateToBooking` (`email-sync-matching.ts`) already
- * resolved `bookingId` against this same caller's own Bookings, so this is
- * scoped by `id` alone, the same "RLS turns 'isn't yours' into an empty
- * result" shape `deleteOwnedBooking` already established. `startsAt`/`endsAt`
- * are never touched: matching is deliberately Org + date/start-time only
- * (not court), so the slot the update refers to is already known to be
- * unchanged — only its format and court label can differ.
+ * Applying a Reservation Update Notice (issue #91, widened by #458) edits a
+ * Booking already on file rather than creating or removing one. The caller
+ * has resolved `bookingId` against this same caller's own Bookings — either
+ * `matchUpdateToBooking`'s exact match or a suggestion the User confirmed —
+ * so this is scoped by `id` alone, the same "RLS turns 'isn't yours' into an
+ * empty result" shape `deleteOwnedBooking` already established.
  *
- * `notes` is optional and, unlike `format`/`courtLabel`, left untouched
- * (omitted from the update) when not given — it's only ever passed when the
- * update's own court text overflowed `courtLabel`'s length limit
- * (`splitOverlongCourtLabel`) and needs somewhere to land, not a field this
- * update otherwise means to edit, so an ordinary apply can't clobber notes
- * the User already wrote on this Booking for something unrelated.
+ * The slot moves too. Until #458 only format and court label were written,
+ * on the reasoning that matching keyed on Org + date + start time and so the
+ * slot was already known to be unchanged. That is exactly what left an update
+ * that *moved the time* unappliable, and a suggested match is a Booking whose
+ * time the update is expected to differ from — so date/start/end are written
+ * here, through the same `bookingInstants` day-bump every other Booking write
+ * goes through, in the Org's own zone.
+ *
+ * Players are written only when the email listed some. A Reservation Update
+ * Notice carries the reservation's complete current state, so its Player(s)
+ * section is what the facility says is on that court now — but an email with
+ * no Player(s) section at all is the facility saying nothing, not "nobody",
+ * and clearing a Booking's Players on the strength of that would be a silent
+ * loss. `replaceBookingPlayers` handles the rest, including leaving an
+ * already-resolved Connection link untouched (ADR 0011).
+ *
+ * `notes` is optional and, unlike the rest, left untouched (omitted from the
+ * update) when not given — it's only ever passed when the update's own court
+ * text overflowed `courtLabel`'s length limit (`splitOverlongCourtLabel`) and
+ * needs somewhere to land, not a field this update otherwise means to edit,
+ * so an ordinary apply can't clobber notes the User already wrote on this
+ * Booking for something unrelated.
  */
-export async function updateOwnedBookingFormatAndCourt(
-  bookingId: string,
-  fields: { format: BookingFormat; courtLabel: string | null; notes?: string },
+export async function applyUpdateToOwnedBooking(
+  ownerId: string,
+  parsed: BookingUpdateApplication,
 ): Promise<ActionResult> {
   const supabase = await createClient();
+
+  // The Booking's own Org, not one the form named: an update edits a Booking
+  // whose facility is already settled, and the zone the new start/end are
+  // read in has to be that Org's.
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("org_id")
+    .eq("id", parsed.bookingId)
+    .maybeSingle();
+
+  if (!booking) {
+    return { error: "Couldn't update that booking. Try again." };
+  }
+
+  const org = await resolveValidatedOrg(ownerId, { orgId: booking.org_id, date: parsed.date });
+  if ("error" in org) {
+    return org;
+  }
+
   const { data, error } = await supabase
     .from("bookings")
     .update({
-      format: fields.format,
-      court_label: fields.courtLabel,
-      ...(fields.notes !== undefined ? { notes: fields.notes } : {}),
+      format: parsed.format,
+      court_label: parsed.courtLabel,
+      ...(parsed.notes !== null ? { notes: parsed.notes } : {}),
+      ...bookingInstants(parsed, org.timeZone),
     })
-    .eq("id", bookingId)
+    .eq("id", parsed.bookingId)
     .select("id");
 
   if (error) {
@@ -541,8 +578,18 @@ export async function updateOwnedBookingFormatAndCourt(
     return { error: "Couldn't update that booking. Try again." };
   }
 
+  const playersError =
+    parsed.players.length > 0 ? await replaceBookingPlayers(parsed.bookingId, parsed.players) : null;
+
   revalidatePath(BOOKINGS_PATH);
   revalidatePath(BOOKING_BUDDY_ROOT);
+
+  // The Booking itself already committed — same "still revalidate, but report
+  // the Players-only failure" posture the other two write paths take.
+  if (playersError) {
+    return { error: playersError };
+  }
+
   return { ok: true };
 }
 
