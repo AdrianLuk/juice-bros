@@ -54,7 +54,7 @@ export function useDateField(initialDate: string): DateFieldInput {
  * A calendar-popover date picker standing in for `<input type="date">`, whose
  * editing UI the browser renders in its own locale format (`dd/mm/yyyy` here).
  * The trigger reads the date the way the rest of Booking Buddy writes one —
- * `Sep 09, 2026` — and the picked value still posts as the `YYYY-MM-DD` string
+ * `Wed Sep 09, 2026` — and the picked value still posts as the `YYYY-MM-DD` string
  * the create / update actions already validate (`isRealDate`), through a hidden
  * input so nothing on the receiving end needs JavaScript.
  */

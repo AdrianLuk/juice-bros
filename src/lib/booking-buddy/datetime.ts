@@ -60,19 +60,28 @@ const MONTHS_SHORT = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 /**
- * `"2026-09-09"` → `"Sep 09, 2026"` — the readable form the Booking and Game
- * date pickers show on their trigger button, so a picked date reads the way
- * Booking Buddy writes one everywhere else rather than the browser's locale
- * `dd/mm/yyyy`. Same zoneless-string convention as `formatCandidateDate`
- * (bookings.ts) and `isRealDate`: the calendar date carries no zone, so the
- * day and year are resliced straight from the string and only the month name
- * is read off a `Date` (UTC midnight, `getUTCMonth`).
+ * `"2026-09-09"` → `"Wed Sep 09, 2026"` — the readable form the Booking and
+ * Game date pickers show on their trigger button, so a picked date reads the
+ * way Booking Buddy writes one everywhere else rather than the browser's
+ * locale `dd/mm/yyyy`. The weekday leads it (issue #474): the thing a player
+ * is checking when they pick a date is which day of the week it lands on, and
+ * `formatCandidateDate` (bookings.ts) already puts the weekday first on the
+ * sync review cards.
+ *
+ * Same zoneless-string convention as `formatCandidateDate` and `isRealDate`:
+ * the calendar date carries no zone, so the day and year are resliced straight
+ * from the string, and only the weekday and month name — neither of which the
+ * string spells out — are read off a `Date` at UTC midnight.
  */
 export function formatDateLabel(date: string): string {
+  const parsed = new Date(`${date}T00:00:00Z`);
   const [year, , day] = date.split("-");
-  const month = MONTHS_SHORT[new Date(`${date}T00:00:00Z`).getUTCMonth()];
-  return `${month} ${day}, ${year}`;
+  const weekday = WEEKDAYS_SHORT[parsed.getUTCDay()];
+  const month = MONTHS_SHORT[parsed.getUTCMonth()];
+  return `${weekday} ${month} ${day}, ${year}`;
 }
 
 /** "Today" as a `YYYY-MM-DD` string in `zone`, at instant `now` — `en-CA` happens to format that way natively. */
