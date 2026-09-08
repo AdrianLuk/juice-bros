@@ -323,3 +323,77 @@ test("the no-show swap: the Organizer swaps a called Player who didn't show for 
     organizer.getByRole("listitem").filter({ hasText: noShow }).first(),
   ).toBeVisible();
 });
+
+/**
+ * The Club QR sign (issue #463). The load-bearing part is the print
+ * stylesheet: it hides the site chrome and the paper control by structure
+ * rather than by naming them, so the thing worth guarding is that a print
+ * rendering contains the sheet and nothing else. `emulateMedia` is the only
+ * way to assert that without a human at a printer.
+ */
+test("the Club QR sign prints as a sheet, with the chrome and the controls off the page", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/on-deck/home/qr");
+
+  const sheet = page.locator(".od-sign");
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText("Scan to join the queue");
+  await expect(sheet).toContainText("TO Pickleball Club");
+  // The venue, so a club running two of these can tell the sheets apart.
+  await expect(sheet).toContainText("Ramsden Park");
+  // The stable Club link, never a per-Session one.
+  await expect(sheet).toContainText(`/on-deck/c/${clubId}`);
+
+  // On screen the paper choice and the print action are both offered.
+  await expect(page.getByRole("radio", { name: "Letter" })).toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "Print the sign" }),
+  ).toBeVisible();
+
+  await page.emulateMedia({ media: "print" });
+  // The sheet survives; everything around it does not.
+  await expect(sheet).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Print the sign" }),
+  ).toBeHidden();
+  await expect(page.locator("#main-content header")).toBeHidden();
+  await expect(page.locator("#main-content footer")).toBeHidden();
+  await expect(page.getByRole("heading", { name: "The club sign" })).toBeHidden();
+
+  // A4 re-targets the sheet at the other named page.
+  await page.emulateMedia({ media: "screen" });
+  await page.getByRole("radio", { name: "A4" }).check();
+  await expect(sheet).toHaveAttribute("data-paper", "a4");
+});
+
+/**
+ * The Club QR as a file (issue #463). The point of these two routes is that
+ * they need no account — a print shop has none, and the link the code carries
+ * is meant to be photographed off a wall by strangers. So the test that
+ * matters is a bare request with no session cookie at all.
+ */
+test("the Club QR is downloadable as SVG and PNG, with no account", async ({
+  request,
+}) => {
+  const svg = await request.get(`/on-deck/c/${clubId}/qr.svg`);
+  expect(svg.status()).toBe(200);
+  expect(svg.headers()["content-type"]).toContain("image/svg+xml");
+  const markup = await svg.text();
+  expect(markup).toContain("<svg");
+  // It encodes the stable Club link, not a per-Session one.
+  expect(markup).not.toContain("aria-hidden");
+
+  const png = await request.get(`/on-deck/c/${clubId}/qr.png`);
+  expect(png.status()).toBe(200);
+  expect(png.headers()["content-type"]).toContain("image/png");
+  const bytes = await png.body();
+  // PNG magic number, so this is a real image and not an error page.
+  expect(bytes.subarray(0, 4).toString("hex")).toBe("89504e47");
+  expect(bytes.byteLength).toBeGreaterThan(1000);
+
+  // Not a generator for arbitrary text: an id that isn't shaped like one 404s.
+  const junk = await request.get("/on-deck/c/not-a-club/qr.svg");
+  expect(junk.status()).toBe(404);
+});
