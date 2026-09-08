@@ -118,6 +118,8 @@ export function updateEmail(fields: {
   format?: string;
   court?: string;
   players?: string;
+  /** The reservation's own time line. Overridden by the test for an update that *moved* the slot (issue #458). */
+  time?: string;
   receivedAt?: number;
 }): SyncMailMessage {
   const {
@@ -126,6 +128,7 @@ export function updateEmail(fields: {
     format = "Doubles",
     court = "Court 3",
     players = "Amy Ace, Ben Backhand",
+    time = "6:00 PM - 7:00 PM",
     receivedAt,
   } = fields;
   return {
@@ -135,7 +138,7 @@ export function updateEmail(fields: {
     html:
       `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
       `<h1>Reservation Update</h1>` +
-      `<h4>Reservation Details</h4><h5>${format}<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM<br>${court}</h5>` +
+      `<h4>Reservation Details</h4><h5>${format}<br>Monday, 3-15-2027<br>${time}<br>${court}</h5>` +
       `<h4>Player(s)</h4><h5>${players}</h5>` +
       `</body></html>`,
   };
@@ -451,6 +454,60 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await expect(page.getByRole("listitem").filter({ hasText: facility })).toHaveCount(1);
       await expect(row(page, "Court 5")).toContainText("Doubles");
       await expect(row(page, "Court 3")).toHaveCount(0);
+
+      await removePlace(page, facility);
+    });
+
+    test("a Reservation Update Notice that moved the time offers the booking it looks like", async ({
+      page,
+      accounts,
+    }) => {
+      const facility = placeName();
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
+      await addPlace(page, facility);
+      await logBooking(page, {
+        place: facility,
+        court: "3",
+        date: "2027-03-15",
+        start: "18:00",
+        end: "19:00",
+        format: "Singles",
+      });
+
+      // Same day and court, an hour later and now Doubles — no Booking starts
+      // at 7:00 PM, so the exact match finds nothing and the card asks
+      // instead of reporting the Booking missing (issue #458).
+      await connectAndSeed(page, [
+        updateEmail({
+          id: messageId(),
+          facility,
+          format: "Doubles",
+          court: "Court 3",
+          time: "7:00 PM - 9:00 PM",
+          players: "Amy Ace, Ben Backhand",
+        }),
+      ]);
+
+      await page.goto("/booking-buddy/bookings");
+      await page.getByRole("button", { name: "Sync bookings" }).click();
+
+      const card = page
+        .getByRole("listitem")
+        .filter({ has: page.getByRole("button", { name: "Yes, update it" }) });
+      await expect(card).toBeVisible();
+      await expect(card).toContainText("Is this the same booking?");
+      await expect(card).not.toContainText("No matching booking found");
+      await expect(card).toContainText("6:00 PM–7:00 PM");
+
+      await card.getByRole("button", { name: "Yes, update it" }).click();
+      await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+      const booking = row(page, "Court 3");
+      await expect(booking).toHaveCount(1);
+      await expect(booking).toContainText("Doubles");
+      await expect(booking).toContainText("7:00 PM");
+      await expect(booking).toContainText("9:00 PM");
+      await expect(booking).toContainText("Amy Ace");
 
       await removePlace(page, facility);
     });

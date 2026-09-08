@@ -23,6 +23,7 @@ import {
   PLAYER_NAME_MAX_LENGTH,
 } from "@/lib/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
+import { describeUpdateChanges } from "@/lib/booking-buddy/update-diff";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -34,6 +35,7 @@ import {
   dismissReviewItem,
   type MergedImportCandidate,
   type ReviewItem,
+  type UpdateTargetBooking,
 } from "@/lib/booking-buddy/actions/email-sync";
 
 const EMPTY: ActionResult = {};
@@ -152,9 +154,11 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
           Updates a booking you logged.
         </p>
       ) : (
-        <p className="mt-1 text-xs text-destructive">
-          No matching booking found. Your records may be out of sync.
-        </p>
+        item.suggestions.length === 0 && (
+          <p className="mt-1 text-xs text-destructive">
+            No matching booking found. Your records may be out of sync.
+          </p>
+        )
       )}
       <CandidateSource from="mailbox" />
     </>
@@ -310,11 +314,141 @@ function CancellationBody({
 }
 
 /**
- * A parsed Reservation Update, matched or not (issue #91) — CourtReserve's own
- * resend after a logged reservation's details changed. Like a cancellation,
- * there's no Org picker: `matchUpdateToBooking` already resolved which Booking
- * this refers to (or didn't), so the only choice left is apply it or dismiss
- * it, and the Apply form renders only when it matched.
+ * The reservation an update describes, as the fields `parseUpdateApplication`
+ * re-validates it from — the same "post it back and re-parse rather than
+ * trust the candidate twice" shape the import card uses, now carrying the
+ * slot as well, since an update can move it (issue #458). `bookingId` is
+ * whichever Booking this particular form applies to: the exact match, or the
+ * suggestion the User is confirming.
+ */
+function UpdateFields({
+  item,
+  bookingId,
+}: {
+  item: Extract<ReviewItem, { kind: "update" }>;
+  bookingId: string;
+}) {
+  return (
+    <>
+      <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+      <input type="hidden" name="booking_id" value={bookingId} />
+      <input type="hidden" name="date" value={item.date} />
+      <input type="hidden" name="start_time" value={item.startTime} />
+      <input type="hidden" name="end_time" value={item.endTime} />
+      <input type="hidden" name="format" value={item.format} />
+      <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
+      <input type="hidden" name="notes" value={item.notes ?? ""} />
+      {/* Truncated defensively for the same reason the import card truncates
+          it: there's no field here to fix an over-long parsed name, and a
+          parsing quirk shouldn't block applying the update. */}
+      <input
+        type="hidden"
+        name="players"
+        value={item.matchedPlayers
+          .map((player) => player.name.slice(0, PLAYER_NAME_MAX_LENGTH))
+          .join(", ")}
+      />
+    </>
+  );
+}
+
+/** What applying this update would change about one Booking, line by line (issue #458). */
+function UpdateChanges({
+  before,
+  after,
+}: {
+  before: UpdateTargetBooking;
+  after: Extract<ReviewItem, { kind: "update" }>;
+}) {
+  const changes = describeUpdateChanges(before, {
+    startTime: after.startTime,
+    endTime: after.endTime,
+    courtLabel: after.courtLabel,
+    format: after.format,
+    players: after.matchedPlayers.map((player) => player.name),
+  });
+
+  if (changes.length === 0) {
+    return (
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        Nothing on it changes.
+      </p>
+    );
+  }
+
+  return (
+    <dl className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+      {changes.map((change) => (
+        <div key={change.label} className="flex flex-wrap gap-x-1.5">
+          <dt className="font-medium text-foreground">{change.label}</dt>
+          <dd>
+            <span className="line-through">{change.before}</span>{" "}
+            <span aria-hidden>→</span>
+            <span className="sr-only">changes to</span>{" "}
+            <span className="text-foreground">{change.after}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/**
+ * One Booking this update might be about, with what applying it would do
+ * (issue #458). The User confirms; nothing here is applied on their behalf.
+ */
+function SuggestedMatch({
+  item,
+  suggestion,
+  confirmAction,
+  confirmPending,
+  busy,
+  buttonLabel,
+}: {
+  item: Extract<ReviewItem, { kind: "update" }>;
+  suggestion: UpdateTargetBooking;
+  confirmAction: (payload: FormData) => void;
+  confirmPending: boolean;
+  busy: boolean;
+  buttonLabel: string;
+}) {
+  return (
+    // A plain <div>, not an <li> inside a nested list: every review card is
+    // itself an <li>, and a second listitem inside one makes "the card with
+    // this button" ambiguous to anything selecting by role — the e2e suite
+    // reads the review list that way throughout.
+    <div className="rounded-sm border border-[var(--bb-rule)] p-3">
+      <p className="text-sm font-medium">
+        {formatCandidateDate(suggestion.date)} ·{" "}
+        {formatTimeLabel(suggestion.startTime)}–
+        {formatTimeLabel(suggestion.endTime)} ·{" "}
+        {formatCourtLabel(suggestion.courtLabel)} ·{" "}
+        {BOOKING_FORMAT_LABEL[suggestion.format]}
+      </p>
+      <UpdateChanges before={suggestion} after={item} />
+      <form action={confirmAction} className="mt-2.5">
+        <UpdateFields item={item} bookingId={suggestion.bookingId} />
+        <Button type="submit" size="sm" disabled={busy}>
+          {confirmPending ? "Applying…" : buttonLabel}
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+/**
+ * A parsed Reservation Update (issue #91) — CourtReserve's own resend after a
+ * logged reservation's details changed. There's no Org picker, same as a
+ * cancellation: the Booking this refers to was resolved server-side, so the
+ * only choice left is apply it or dismiss it.
+ *
+ * Three states, not two (issue #458). `matchUpdateToBooking` keys on the
+ * slot's start time, so an update that *moved* the time matches nothing — and
+ * used to leave the User staring at "no matching booking found" about the
+ * Booking sitting right there on the same day. Now the ones it might be about
+ * are offered for the User to confirm, with what applying it would change to
+ * each. Only when there's genuinely nothing on that day does the card fall
+ * back to the unmatched notice alone.
  */
 function UpdateBody({
   item,
@@ -323,26 +457,57 @@ function UpdateBody({
   confirmPending,
   busy,
 }: BodyProps<"update">) {
-  if (!item.matched) {
+  if (item.matched) {
+    return (
+      <>
+        <div>
+          {/* The same before/after a suggested match shows. Matching on the
+              slot's start time says nothing about whether the End, the court,
+              the format or the Players are about to change — and since #458
+              applying rewrites all of them, the card has to say so. */}
+          <UpdateChanges before={item.booking} after={item} />
+        </div>
+        <form action={confirmAction} className="self-start">
+          <UpdateFields item={item} bookingId={item.booking.bookingId} />
+          <Button type="submit" disabled={busy}>
+            {confirmPending ? "Applying…" : "Apply update"}
+          </Button>
+        </form>
+        <ActionError state={confirmState} />
+      </>
+    );
+  }
+
+  if (item.suggestions.length === 0) {
     return null;
   }
 
   return (
     <>
-      <form action={confirmAction} className="self-start">
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        <input type="hidden" name="booking_id" value={item.bookingId} />
-        <input type="hidden" name="format" value={item.format} />
-        <input type="hidden" name="court_label" value={item.courtLabel ?? ""} />
-        <input type="hidden" name="notes" value={item.notes ?? ""} />
-        <Button type="submit" disabled={busy}>
-          {confirmPending ? "Applying…" : "Apply update"}
-        </Button>
-      </form>
+      <div>
+        <p className="text-sm">
+          {item.suggestions.length === 1
+            ? "Is this the same booking?"
+            : "Which booking does this update?"}
+        </p>
+        <div className="mt-2 flex flex-col gap-2">
+          {item.suggestions.map((suggestion) => (
+            <SuggestedMatch
+              key={suggestion.bookingId}
+              item={item}
+              suggestion={suggestion}
+              confirmAction={confirmAction}
+              confirmPending={confirmPending}
+              busy={busy}
+              buttonLabel={
+                item.suggestions.length === 1
+                  ? "Yes, update it"
+                  : "Update this one"
+              }
+            />
+          ))}
+        </div>
+      </div>
       <ActionError state={confirmState} />
     </>
   );

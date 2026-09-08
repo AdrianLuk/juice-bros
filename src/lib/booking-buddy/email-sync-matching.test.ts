@@ -8,6 +8,7 @@ import {
   matchPlayerNamesToConnections,
   matchUpdateToBooking,
   reconcileCourtReserveEvents,
+  suggestUpdateBookingMatches,
   type ReconciliationEvent,
 } from "./email-sync-matching.ts";
 
@@ -356,4 +357,128 @@ test("a different date/time is its own group, entirely unaffected by another slo
   assert.equal(result.confirmations.length, 1);
   assert.equal(result.confirmations[0].gmailMessageId, "confirm-2");
   assert.deepEqual(result.cancellations, []);
+});
+
+// --- suggested update matches (issue #458) --------------------------------
+
+/** The 12:00–14:00 Court #7 Booking from the report that opened #458, and the 13:00–15:00 update that couldn't find it. */
+const LOGGED = {
+  id: "booking-noon",
+  orgId: "org-1",
+  date: "2026-09-10",
+  startTime: "12:00",
+  endTime: "14:00",
+  courtLabel: "#7",
+};
+
+const MOVED_UPDATE = {
+  orgId: "org-1",
+  date: "2026-09-10",
+  startTime: "13:00",
+  endTime: "15:00",
+  courtLabel: "#7 - Hard",
+};
+
+test("an update that moved its start time still offers the Booking on that day and court", () => {
+  assert.deepEqual(suggestUpdateBookingMatches(MOVED_UPDATE, [LOGGED]), [LOGGED]);
+});
+
+test("a Booking on another day is never offered, however well it matches otherwise", () => {
+  const otherDay = { ...LOGGED, id: "b-other-day", date: "2026-09-17" };
+  assert.deepEqual(suggestUpdateBookingMatches(MOVED_UPDATE, [otherDay]), []);
+});
+
+test("a Booking at another facility is never offered", () => {
+  const otherOrg = { ...LOGGED, id: "b-other-org", orgId: "org-2" };
+  assert.deepEqual(suggestUpdateBookingMatches(MOVED_UPDATE, [otherOrg]), []);
+});
+
+test("same court and an overlapping time outranks a same-day Booking that shares neither", () => {
+  const elsewhere = {
+    id: "b-evening",
+    orgId: "org-1",
+    date: "2026-09-10",
+    startTime: "19:00",
+    endTime: "21:00",
+    courtLabel: "#2",
+  };
+
+  const suggested = suggestUpdateBookingMatches(MOVED_UPDATE, [elsewhere, LOGGED]);
+
+  assert.deepEqual(
+    suggested.map((booking) => booking.id),
+    ["booking-noon", "b-evening"],
+  );
+});
+
+test("the same court outranks a mere overlap — the harder of the two to coincide by accident", () => {
+  const sameTimeOtherCourt = {
+    id: "b-overlap",
+    orgId: "org-1",
+    date: "2026-09-10",
+    startTime: "13:00",
+    endTime: "15:00",
+    courtLabel: "#2",
+  };
+  const sameCourtLater = {
+    id: "b-same-court",
+    orgId: "org-1",
+    date: "2026-09-10",
+    startTime: "19:00",
+    endTime: "21:00",
+    courtLabel: "#7",
+  };
+
+  const suggested = suggestUpdateBookingMatches(MOVED_UPDATE, [sameTimeOtherCourt, sameCourtLater]);
+
+  assert.deepEqual(
+    suggested.map((booking) => booking.id),
+    ["b-same-court", "b-overlap"],
+  );
+});
+
+test("two equally-scoring Bookings order by whose start time is nearest the update's", () => {
+  const near = { id: "b-near", orgId: "org-1", date: "2026-09-10", startTime: "16:00", endTime: "18:00", courtLabel: null };
+  const far = { id: "b-far", orgId: "org-1", date: "2026-09-10", startTime: "21:00", endTime: "23:00", courtLabel: null };
+
+  const suggested = suggestUpdateBookingMatches(MOVED_UPDATE, [far, near]);
+
+  assert.deepEqual(
+    suggested.map((booking) => booking.id),
+    ["b-near", "b-far"],
+  );
+});
+
+test("a Booking another candidate in the batch already matched exactly is not offered as a maybe", () => {
+  assert.deepEqual(suggestUpdateBookingMatches(MOVED_UPDATE, [LOGGED], ["booking-noon"]), []);
+});
+
+test("a Booking that runs past midnight still reads as overlapping the evening it started", () => {
+  const lateNight = {
+    id: "b-late",
+    orgId: "org-1",
+    date: "2026-09-10",
+    startTime: "22:00",
+    endTime: "01:00",
+    courtLabel: "#2",
+  };
+  const eveningUpdate = { ...MOVED_UPDATE, startTime: "23:00", endTime: "23:30", courtLabel: "#3" };
+
+  // Same day, no shared court: the overlap is the whole of what puts it ahead
+  // of nothing at all, and it is only readable once the End is understood as
+  // tomorrow's.
+  assert.deepEqual(suggestUpdateBookingMatches(eveningUpdate, [lateNight]), [lateNight]);
+});
+
+test("a facility-day with more plausible Bookings than a picker can help with is capped", () => {
+  const bookings = ["09:00", "11:00", "13:00", "15:00", "17:00"].map((startTime, index) => ({
+    id: `b-${index}`,
+    orgId: "org-1",
+    date: "2026-09-10",
+    startTime,
+    endTime: "23:00",
+    courtLabel: null,
+  }));
+
+  assert.equal(suggestUpdateBookingMatches(MOVED_UPDATE, bookings).length, 3);
 });
