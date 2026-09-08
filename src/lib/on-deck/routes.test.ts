@@ -7,7 +7,9 @@ import {
   ON_DECK_HOME_PATH,
   ON_DECK_NEW_SESSION_PATH,
   ON_DECK_QR_DISPLAY_PATH,
+  ON_DECK_SUMMARIES_PATH,
   clubQrImagePath,
+  summaryPath,
   ON_DECK_SETTINGS_PATH,
   ON_DECK_SIGN_IN_PATH,
   clubQrPath,
@@ -27,6 +29,10 @@ test("only the Organizer subtree requires a session", () => {
   assert.equal(requiresOrganizerSession(ON_DECK_SETTINGS_PATH), true);
   assert.equal(requiresOrganizerSession(ON_DECK_NEW_SESSION_PATH), true);
   assert.equal(requiresOrganizerSession(ON_DECK_QR_DISPLAY_PATH), true);
+  // A Summary carries no personal data but is still the Club's own
+  // operational history — not world-readable the way an open Session is.
+  assert.equal(requiresOrganizerSession(ON_DECK_SUMMARIES_PATH), true);
+  assert.equal(requiresOrganizerSession(summaryPath("session-1")), true);
   assert.equal(
     requiresOrganizerSession(editSessionPath("session-1")),
     true,
@@ -108,6 +114,11 @@ test("path builders produce the stable shapes the proxy and pages share", () => 
   );
   assert.equal(ON_DECK_NEW_SESSION_PATH, "/on-deck/home/sessions/new");
   assert.equal(ON_DECK_QR_DISPLAY_PATH, "/on-deck/home/qr");
+  assert.equal(ON_DECK_SUMMARIES_PATH, "/on-deck/home/summaries");
+  assert.equal(
+    summaryPath("session-1"),
+    "/on-deck/home/summaries/session-1",
+  );
   assert.equal(
     clubQrImagePath("club-1", "svg"),
     "/on-deck/c/club-1/qr.svg",

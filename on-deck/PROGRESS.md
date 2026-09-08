@@ -18,7 +18,16 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
-`supabase db push` is done through **`20260902180000`** (#260 —
+**`20260908120000`** (#469 — the Club's clock: `on_deck_clubs.time_zone` and
+`on_deck_sessions.time_zone`, a `pg_timezone_names` validation trigger, an
+inherit-on-insert trigger, and the `on_deck_adopt_club_time_zone` /
+`on_deck_set_club_time_zone` RPCs) is **authored but not yet pushed** — push it
+when PR #470 merges, rebasing its timestamp past anything else that lands
+first. It deliberately leaves `on_deck_update_club_defaults` alone at three
+arguments: the clock has its own write paths so that saving a venue or a court
+count can never commit a zone nobody chose.
+
+`supabase db push` is otherwise done through **`20260902180000`** (#260 —
 turn-notification tables + `on_deck_subscribe_turn_notification` /
 `on_deck_unsubscribe_turn_notification` RPCs), pushed 2026-09-02 right after
 PR #342 merged. Its file was authored as `20260902160000` while #259's Kiosk
@@ -622,6 +631,31 @@ migration's timestamp past whatever else merged (the drift lesson
   404 an id that is not shaped like a Club's, and `routes.test.ts` for the
   two new path shapes and their ungated status.
 
+- [x] **The Session Summary reader, and the Club's clock (PR #470,
+  2026-09-08).** The Summary had been written since #255 and read by nobody:
+  the projection, the storage, the RLS and the `(club_id,
+  session_closed_at desc)` index all existed, and nothing selected from the
+  table. Three surfaces now do — past nights on home, the full list, and one
+  Session's own page under `/on-deck/home/summaries`.
+
+  Every distribution is five rows, or eight, or four, so each is a real
+  `<table>` with a bar in the value column rather than a chart plus a separate
+  table view: at that size the honest form puts the number where a mark can
+  never clip it, and there is no client JS on the page at all. One mark colour
+  throughout, because row labels carry identity and a per-row ramp would
+  double-encode bar length as colour. The wait tiles carry their own sample
+  size and print no number at all when nobody was seated — `projectSummary`
+  reports 0 there, and "Average wait 0 min" in headline type is the false
+  fact the whole section exists to avoid.
+
+  The Club gained a **clock** in the same PR, because a Summary is the first
+  On Deck surface that has to name a day and TO Pickleball Club plays 18:00 to
+  20:00 — which in Toronto closes on the next UTC day. Nobody is asked for it:
+  `AdoptTimeZone` reads the Organizer's own browser zone on their first visit
+  and posts it through an RPC whose `where time_zone is null` is the entire
+  safety property. Settings corrects a wrong guess through a *separate* action,
+  so a form opened to change a court count cannot commit a clock.
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its
@@ -634,8 +668,11 @@ Deferred, per the spec's "Out of Scope":
 - **Playing Style (casual / competitive), and the Queue Mode UI around it** —
   v2. The v1 skill-fit penalty is already per-Player (`match-me.ts`), so this
   is a weighting change, not a rewrite.
-- **Reporting UI** — `on_deck_session_summaries` is populated from day one
-  (#255); the reader on top is later work.
+- ~~**Reporting UI**~~ — shipped 2026-09-08 (PR #470). What is still later
+  work is anything *across* Sessions: the table carries denormalised
+  `attendance` / `games_played` for a trend view, and nothing reads them that
+  way yet. OD-0's retro is the first thing that will say whether it is worth
+  building.
 - **Self-serve Club creation / onboarding** — the first Club is seeded by hand.
 - **`/tools` Apps-shelf entry** — a one-line `apps.ts` add when the club wants
   to point people at it.

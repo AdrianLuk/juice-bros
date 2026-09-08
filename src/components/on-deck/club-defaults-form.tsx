@@ -20,6 +20,10 @@ type Props = {
  * The Club's saved Session defaults (issue #254, user story 44) — venue, court
  * count, group cap. Every one-tap Start reads from here, and an unedited
  * scheduled Session inherits them.
+ *
+ * The Club's clock is deliberately not one of these fields — see
+ * `ClubClockCard`. A form somebody opened to change a court count must not
+ * commit a time zone they never chose.
  */
 export function ClubDefaultsForm({ venueName, courtCount, groupCap }: Props) {
   const router = useRouter();

@@ -17,6 +17,16 @@ export type Club = {
   courtCount: number;
   groupCap: number;
   floorMode: FloorMode;
+  /**
+   * IANA zone the Club's nights are named on (issue #469). Display only:
+   * every timestamp is a `timestamptz`. A Session snapshots this at creation,
+   * so changing it here renames future nights, never past ones.
+   *
+   * `null` means nobody has said yet. The Organizer is never asked, because
+   * their own browser already knows — `adoptDetectedTimeZone` fills this in on
+   * their first visit and only while it is null.
+   */
+  timeZone: string | null;
 };
 
 type ClubRow = {
@@ -26,6 +36,7 @@ type ClubRow = {
   court_count: number;
   group_cap: number;
   floor_mode: FloorMode;
+  time_zone: string | null;
 };
 
 function toClub(row: ClubRow): Club {
@@ -36,6 +47,7 @@ function toClub(row: ClubRow): Club {
     courtCount: row.court_count,
     groupCap: row.group_cap,
     floorMode: row.floor_mode,
+    timeZone: row.time_zone,
   };
 }
 
@@ -49,7 +61,7 @@ export async function getOwnedClub(
 ): Promise<Club | null> {
   const { data, error } = await supabase
     .from("on_deck_clubs")
-    .select("id, name, venue_name, court_count, group_cap, floor_mode")
+    .select("id, name, venue_name, court_count, group_cap, floor_mode, time_zone")
     .maybeSingle();
 
   if (error) {
@@ -60,10 +72,54 @@ export async function getOwnedClub(
 }
 
 /**
+ * Adopts a zone for a Club that has none, and does nothing at all otherwise.
+ *
+ * The `is null` in the RPC is what makes this safe to fire on every visit: an
+ * Organizer who set their clock by hand, or who is reading the board from a
+ * hotel in another country, cannot have it silently rewritten by whatever
+ * device they happen to be holding.
+ */
+export async function adoptClubTimeZone(
+  supabase: SupabaseClient,
+  timeZone: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("on_deck_adopt_club_time_zone", {
+    p_time_zone: timeZone,
+  });
+
+  if (error) {
+    throw new Error(`adopting the Club's time zone failed: ${error.message}`);
+  }
+}
+
+/**
+ * Sets the Club's clock outright — the Organizer saying the adopted guess was
+ * wrong. The counterpart to `adoptClubTimeZone`, which can only ever fill a
+ * blank one.
+ */
+export async function setClubTimeZone(
+  supabase: SupabaseClient,
+  timeZone: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("on_deck_set_club_time_zone", {
+    p_time_zone: timeZone,
+  });
+
+  if (error) {
+    throw new Error(`saving the Club's time zone failed: ${error.message}`);
+  }
+}
+
+/**
  * Saves the Organizer's Club defaults — venue, court count, group cap (issue
  * #254). Goes through the `on_deck_update_club_defaults` RPC because
  * `on_deck_clubs` carries no UPDATE grant (the foundation's "seeded by hand"
  * posture); the RPC touches only those three columns and checks ownership.
+ *
+ * The Club's clock is deliberately *not* here. Folding it in would mean saving
+ * a court count also commits a zone — and for a Club that has none yet, the
+ * one the form happened to be pre-filled with. `setClubTimeZone` is its own
+ * path for that reason.
  */
 export async function updateClubDefaults(
   supabase: SupabaseClient,

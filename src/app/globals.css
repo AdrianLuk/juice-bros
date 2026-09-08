@@ -2459,6 +2459,87 @@ html:has(.bb-app-chrome) {
 }
 
 
+/* ── The Session Summary reader (issue #469) ────────────────────────────────
+
+   Charts for the morning after, on the Organizer's light shell, not the
+   arena's dark board. Read at a desk while writing the retro.
+
+   One mark colour for every bar on the page. Row labels carry identity, so
+   hue is a free channel here, and spending it on a per-row ramp would
+   double-encode bar length as colour. The colour is a deepened brand orange:
+   `#f26522` itself sits at 3.07:1 against this page, which is on the floor
+   for a discernible mark, and this step is 4.3:1. */
+
+.od-summary {
+  --od-mark: #d24a12;
+  --od-mark-track: oklch(0.94 0.008 60);
+}
+
+.od-stat-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.od-stat-value {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Label, bar, value — three columns, so a value can never be clipped by the
+   bar it belongs to, which is the failure mode of a number drawn inside a
+   mark. The bar column takes the slack. */
+.od-bars {
+  width: 100%;
+  border-collapse: collapse;
+}
+.od-bars th[scope="row"] {
+  text-align: left;
+  font-weight: 400;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  vertical-align: middle;
+}
+.od-bars td {
+  padding: 0.3rem 0;
+  vertical-align: middle;
+}
+/* The bar column takes the slack, so every row's bar starts at the same x —
+   which is the whole point of a baseline. */
+.od-bars td:nth-child(2) {
+  width: 100%;
+  padding-right: 0.75rem;
+}
+/* The track is drawn, not implied. Most of these distributions have empty
+   rows in them — five wait buckets where four are zero is the normal shape of
+   a good night — and an empty row needs to read as "the scale goes this far
+   and nothing reached it" rather than as a blank cell that might be a bug. */
+.od-bar-track {
+  display: block;
+  width: 100%;
+  height: 0.375rem;
+  border-radius: 999px;
+  background-color: var(--od-mark-track);
+}
+.od-bar {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: 999px;
+  background-color: var(--od-mark);
+}
+.od-bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
 /* ── The Club QR sign (issue #463) ──────────────────────────────────────────
 
    The one On Deck surface that is not a screen. Everything else in this file
