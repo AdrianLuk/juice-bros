@@ -29,10 +29,16 @@ test("a date that isn't a date is rejected", () => {
   }
 });
 
-test("a calendar date reads back as a month-name label", () => {
-  assert.equal(formatDateLabel("2026-09-09"), "Sep 09, 2026");
-  assert.equal(formatDateLabel("2026-01-01"), "Jan 01, 2026");
-  assert.equal(formatDateLabel("2026-12-31"), "Dec 31, 2026");
+test("a calendar date reads back as a weekday and a month-name label (issue #474)", () => {
+  assert.equal(formatDateLabel("2026-09-09"), "Wed Sep 09, 2026");
+  assert.equal(formatDateLabel("2026-01-01"), "Thu Jan 01, 2026");
+  assert.equal(formatDateLabel("2026-12-31"), "Thu Dec 31, 2026");
+  // Every weekday index is reachable: a full week off one month.
+  assert.equal(formatDateLabel("2026-03-01"), "Sun Mar 01, 2026");
+  assert.equal(formatDateLabel("2026-03-02"), "Mon Mar 02, 2026");
+  assert.equal(formatDateLabel("2026-03-03"), "Tue Mar 03, 2026");
+  assert.equal(formatDateLabel("2026-03-06"), "Fri Mar 06, 2026");
+  assert.equal(formatDateLabel("2026-03-07"), "Sat Mar 07, 2026");
 });
 
 test("only on-the-hour boundaries are accepted", () => {
