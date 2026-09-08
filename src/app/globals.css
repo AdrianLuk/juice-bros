@@ -3500,8 +3500,14 @@ html:has(.bb-app-chrome) {
   }
   /* The matrix follows the schedule down the page rather than being forced
      onto a sheet of its own: at eight players that would be a page holding
-     an 8x8 grid and nothing else. */
+     an 8x8 grid and nothing else. But it is never split when it does not
+     have to be - it is one square read across and down, and half of it on
+     each side of a page turn is most of its value gone. Even at 32 players
+     it is shorter than a page, so this only ever moves it, never squeezes
+     it; if a roster of long wrapped names ever does outgrow a sheet the
+     browser drops the request and the repeating header row carries it. */
   .mm-sheet section:has(> #mm-matrix-heading) {
     margin-top: 1.75rem;
+    break-inside: avoid;
   }
 }
