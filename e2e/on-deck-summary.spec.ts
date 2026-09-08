@@ -101,13 +101,23 @@ test("before any night has closed, past nights explains itself rather than sitti
   page,
 }) => {
   await signIn(page, OTHER);
-  await page.goto("/on-deck/home/summaries");
+
+  // Reachable from home from the very first visit: an empty state nobody can
+  // navigate to is not an empty state.
+  await page.goto("/on-deck/home");
+  await page.getByRole("link", { name: "Past nights" }).click();
+  await page.waitForURL(/\/on-deck\/home\/summaries$/);
 
   await expect(page.getByRole("heading", { name: "Past nights" })).toBeVisible();
   await expect(page.getByText("No nights have finished yet")).toBeVisible();
-  // And it does not advertise itself on home before there is anything to read.
+
+  // The three-most-recent card, though, stays off home until there is
+  // something in it -- it would otherwise explain an absence on the one
+  // screen that should be about tonight.
   await page.goto("/on-deck/home");
-  await expect(page.getByRole("heading", { name: "Past nights" })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Past nights" }),
+  ).toHaveCount(0);
 });
 
 test("closing a night puts its numbers on the Organizer's own screens, no SQL", async ({
@@ -145,6 +155,9 @@ test("closing a night puts its numbers on the Organizer's own screens, no SQL", 
   const played = page.locator("div", { has: page.getByText("Played", { exact: true }) });
   await expect(played.getByText("8", { exact: true }).first()).toBeVisible();
 
+  // The wait figures carry their sample rather than standing as bare facts.
+  await expect(page.getByText(/From \d+ wait/).first()).toBeVisible();
+
   // Every section of the projection is read, not just the headline counts.
   await expect(
     page.getByRole("heading", { name: "How long people waited" }),
@@ -163,9 +176,6 @@ test("closing a night puts its numbers on the Organizer's own screens, no SQL", 
     page.getByRole("rowheader", { name: "30 min or more" }),
   ).toBeVisible();
 
-  // The average is qualified by how many waits it came from, never printed bare.
-  await expect(page.getByText(/From \d+ wait/)).toBeVisible();
-
   // The roster is gone — a closed Session leaves numbers, not people.
   await expect(page.getByText("Ana")).toHaveCount(0);
   await expect(page.getByText("Bo", { exact: true })).toHaveCount(0);
@@ -180,22 +190,27 @@ test("an Organizer is never asked for a time zone -- their browser answers it", 
   await page.goto("/on-deck/home");
   await expect(page.getByRole("heading", { name: "Tonight" })).toBeVisible();
 
-  // Settings shows a clock without anyone having chosen one. Playwright's
-  // browser runs on UTC, so that is what it adopts here; the point is that a
-  // value is there at all, and that nobody was prompted for it.
+  // Settings states the clock as a fact, with no control in sight. Nobody was
+  // prompted; it was taken off the browser on the visit above.
   await page.goto("/on-deck/home/settings");
-  const picker = page.getByLabel("Time zone");
-  await expect(picker).toBeVisible();
-  await expect(picker).not.toHaveValue("");
+  await expect(page.getByText(/Nights are dated on/)).toBeVisible();
+  await expect(page.getByLabel("Time zone")).toHaveCount(0);
 
-  // And it is a correction, not a setup step: an Organizer can still say the
-  // guess was wrong.
-  await picker.selectOption("America/Toronto");
-  await page.getByRole("button", { name: "Save defaults" }).click();
-  await expect(page.getByText("Defaults saved.")).toBeVisible();
+  // Correcting it is deliberate, and saves on its own -- the defaults form
+  // must never be able to commit a clock nobody chose.
+  await page.getByRole("button", { name: "Change it" }).click();
+  await page.getByLabel("Time zone").selectOption("America/Toronto");
+  await page.getByRole("button", { name: "Save time zone" }).click();
+  await expect(page.getByText("Time zone saved.")).toBeVisible();
 
   await page.reload();
-  await expect(page.getByLabel("Time zone")).toHaveValue("America/Toronto");
+  await expect(page.getByText("America/Toronto")).toBeVisible();
+
+  // And saving the other defaults leaves it exactly where it was.
+  await page.getByRole("button", { name: "Save defaults" }).click();
+  await expect(page.getByText("Defaults saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("America/Toronto")).toBeVisible();
 });
 
 test("another Club's night is not readable", async ({ page }) => {

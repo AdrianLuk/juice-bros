@@ -9,7 +9,7 @@ import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSummariesForClub } from "@/lib/on-deck/summaries";
-import { nightLabel } from "@/lib/on-deck/night-label";
+import { sessionDate } from "@/lib/on-deck/session-date";
 import {
   getOpenSessionForClub,
   getScheduledSessionsForClub,
@@ -46,7 +46,7 @@ export default async function OnDeckHomePage() {
       : [];
   // The three most recent closed nights. The full list has its own page; this
   // is the way in, so the reader is not something you have to know the URL of.
-  const pastNights = club ? await getSummariesForClub(supabase, club.id, 3) : [];
+  const pastSessions = club ? await getSummariesForClub(supabase, club.id, 3) : [];
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -98,6 +98,12 @@ export default async function OnDeckHomePage() {
                     The club sign
                   </Link>
                   <Link
+                    href={ON_DECK_SUMMARIES_PATH}
+                    className="text-sm underline underline-offset-4"
+                  >
+                    Past nights
+                  </Link>
+                  <Link
                     href={ON_DECK_SETTINGS_PATH}
                     className="text-sm underline underline-offset-4"
                   >
@@ -139,24 +145,31 @@ export default async function OnDeckHomePage() {
                 <TonightControls scheduledSessions={scheduledSessions} />
               )}
 
-              {/* Past nights. Shown only once there are some — before the
-                  club's first closed Session this would be a card explaining
-                  an absence, on the one screen that should be about tonight. */}
-              {pastNights.length > 0 ? (
+              {/* The three most recent, shown only once there are some:
+                  before the club's first close this card would be explaining
+                  an absence on the one screen that should be about tonight.
+                  The way *in* is the "Past nights" link above, which is there
+                  from the start — the empty state has to be reachable. */}
+              {pastSessions.length > 0 ? (
                 <div className="rounded-2xl border bg-card p-6">
                   <h2 className="font-heading text-base font-semibold">
                     Past nights
                   </h2>
                   <ul className="mt-3 flex flex-col gap-2">
-                    {pastNights.map((night) => (
-                      <li key={night.sessionId}>
+                    {pastSessions.map((session) => (
+                      <li key={session.sessionId}>
                         <Link
-                          href={summaryPath(night.sessionId)}
+                          href={summaryPath(session.sessionId)}
                           className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm underline-offset-4 hover:underline"
                         >
-                          <span>{nightLabel(night.startedAt, night.timeZone)}</span>
+                          <span>
+                            {sessionDate({
+                              at: session.startedAt,
+                              timeZone: session.timeZone,
+                            })}
+                          </span>
                           <span className="tabular-nums text-muted-foreground">
-                            {night.attendance} played, {night.gamesPlayed} games
+                            {session.attendance} played, {session.gamesPlayed} games
                           </span>
                         </Link>
                       </li>

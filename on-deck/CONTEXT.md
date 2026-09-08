@@ -25,7 +25,9 @@ readable with no account, because everyone at the venue reads the same board
 ## Organizing
 
 **Club**:
-The tenant, and the owner of everything below it. Has a name, an owner, and saved session defaults (venue, court count, group cap, Floor Mode). One Club per real-world organization.
+The tenant, and the owner of everything below it. Has a name, an owner, saved session defaults (venue, court count, group cap, Floor Mode), and a **clock** - the IANA time zone its nights are dated on. One Club per real-world organization.
+
+The clock exists only because a Session Summary has to name a day, and an instant has no date until you say whose clock; nothing during a live Session needs it. It is never asked for: the app adopts the Organizer's own browser zone on their first visit, and Settings can correct a wrong guess. A Session snapshots it at creation the way it snapshots venue and court count, so changing it dates future nights and never re-dates past ones.
 _Avoid_: Org (means something different in Booking Buddy - a User's record of playing at a facility), Tenant, Venue.
 
 **Floor Mode**:
@@ -38,7 +40,7 @@ _Avoid_: Admin, Staff, Ref.
 
 **Session**:
 One event night, belonging to a Club - a date/time, a venue name, and a court count. Started with one tap from the Club's saved defaults, or created and edited ahead of time. Everything a Player does is scoped to a single Session and does not outlive it (see [adr/0001-no-cross-week-identity.md](docs/adr/0001-no-cross-week-identity.md)).
-_Avoid_: Event, Social, Night. "Social" is the club's own word for the real-world gathering and is fine in product copy; Session is the entity.
+_Avoid_: Event, Social, Night - as *entity* names. "Social" and "night" are both the club's own words for the real-world gathering and are fine in product copy ("Past nights", "what this night left behind"); Session is the entity, and every identifier in the code says Session.
 
 **Court**:
 One playable court in a Session, numbered 1..N from the Session's court count and renameable. Either empty or holding an in-progress Game. Courts are not skill-designated or reserved.
@@ -75,7 +77,8 @@ _Avoid_: Rollback, Revert (both suggest more than one step), Delete.
 
 **Session Summary**:
 The anonymous aggregate record kept permanently once a Session closes - attendance, Games played, court utilization, wait-time distribution, longest wait, skill mix. The Player roster is discarded at the same moment; a closed Session leaves numbers, not people.
-_Avoid_: Report (the reader built on top of Summaries later; the Summary is the stored record).
+The reader on top of it is the Organizer's **past nights** list and one Session's own page, under `/on-deck/home/summaries`. Organizer-only: a Summary carries no personal data but is still the Club's own operational history, not world-readable the way an open Session is.
+_Avoid_: Report (as the name of the record - the Summary is the stored record, and the pages above are "the reader"). "Report" is fine inside the reader's own component names.
 
 ## Playing
 

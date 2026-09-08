@@ -7,14 +7,15 @@
 --     path, because a trigger does it rather than each RPC remembering to;
 --   * a Session's zone is a *snapshot*: changing the Club's clock afterwards
 --     does not rewrite a night that already happened;
---   * `on_deck_update_club_defaults` carries the zone, and still only touches
---     the caller's own Club.
+--   * the clock has two write paths and each says what it means: adoption
+--     fills a blank one and can never overwrite, and the setter is somebody
+--     deciding. Saving venue or court count touches neither.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(20);
+select plan(22);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('11111111-0000-0000-0000-000000000469', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'vanessa-469@example.com'),
@@ -105,8 +106,8 @@ set local request.jwt.claim.sub = '11111111-0000-0000-0000-000000000469';
 set local request.jwt.claims = '{"sub":"11111111-0000-0000-0000-000000000469","role":"authenticated"}';
 
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Ramsden Park', 8, 4, 'America/Toronto')$$,
-  'an Organizer sets their own Club''s clock through the defaults RPC'
+  $$select public.on_deck_set_club_time_zone('America/Toronto')$$,
+  'an Organizer sets their own Club''s clock'
 );
 
 select is(
@@ -116,10 +117,23 @@ select is(
 );
 
 select throws_ok(
-  $$select public.on_deck_update_club_defaults('Ramsden Park', 8, 4, 'Mars/Olympus')$$,
+  $$select public.on_deck_set_club_time_zone('Mars/Olympus')$$,
   '22023',
   'unknown time zone Mars/Olympus',
-  'the RPC cannot smuggle an unknown zone past the table''s trigger'
+  'the setter cannot smuggle an unknown zone past the table''s trigger'
+);
+
+-- The defaults RPC keeps its original three arguments, so there is no path by
+-- which saving a venue or a court count writes a clock nobody chose.
+select lives_ok(
+  $$select public.on_deck_update_club_defaults('Trinity Bellwoods', 6, 4)$$,
+  'saving the other defaults still works, and still takes three arguments'
+);
+
+select is(
+  (select time_zone from public.on_deck_clubs where id = 'c9c9c9c9-0000-0000-0000-000000000469'),
+  'America/Toronto',
+  'and it leaves the clock exactly where it was'
 );
 
 -- ---- adoption: fills a blank clock, never overwrites one -----------------

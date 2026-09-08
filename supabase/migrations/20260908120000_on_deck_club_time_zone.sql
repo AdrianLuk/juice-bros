@@ -133,20 +133,25 @@ comment on column public.on_deck_sessions.time_zone is
   'The Club''s clock as it stood when this Session was created (issue #469). Snapshotted for the same reason venue and court count are: editing a default must not rewrite a night that already happened.';
 
 -- ---------------------------------------------------------------------------
--- on_deck_update_club_defaults gains the zone
+-- on_deck_set_club_time_zone -- the deliberate correction
 -- ---------------------------------------------------------------------------
 
--- Dropped and recreated rather than overloaded: two functions differing only
--- by an added argument is how a caller ends up silently invoking the old one
--- and wondering why its value never saved.
-drop function public.on_deck_update_club_defaults(text, integer, integer);
-
-create function public.on_deck_update_club_defaults(
-  p_venue_name text,
-  p_court_count integer,
-  p_group_cap integer,
-  p_time_zone text
-)
+/**
+ * Sets the caller's own Club's time zone, whatever it currently holds.
+ *
+ * Deliberately its own RPC rather than a fourth argument on
+ * `on_deck_update_club_defaults`. Folding it in there would mean that saving a
+ * venue name or a court count also writes a zone -- and for a Club that has
+ * none yet, what it would write is whatever the form's control happened to be
+ * pre-filled with, from a device that may not be the club's. A setting nobody
+ * touched should not be committed by a form they opened for something else.
+ *
+ * So the clock has exactly two write paths, and each says what it means:
+ * `on_deck_adopt_club_time_zone` fills a blank one and can never overwrite,
+ * and this one is somebody deciding. An unknown zone is refused by the table's
+ * own trigger either way.
+ */
+create function public.on_deck_set_club_time_zone(p_time_zone text)
 returns void
 language plpgsql
 security definer
@@ -160,10 +165,7 @@ begin
   end if;
 
   update public.on_deck_clubs
-    set venue_name = btrim(p_venue_name),
-        court_count = p_court_count,
-        group_cap = p_group_cap,
-        time_zone = p_time_zone
+    set time_zone = p_time_zone
     where owner_id = v_uid;
 
   if not found then
@@ -172,11 +174,11 @@ begin
 end;
 $$;
 
-comment on function public.on_deck_update_club_defaults(text, integer, integer, text) is
-  'Updates the caller''s own Club''s saved defaults (venue, court count, group cap, time zone). Only those four columns; owner and name are untouchable through this path. An unknown zone is refused by the on_deck_clubs trigger, not here.';
+comment on function public.on_deck_set_club_time_zone(text) is
+  'Sets the caller''s own Club''s time_zone (issue #469). Separate from on_deck_update_club_defaults on purpose: saving a venue or court count must never commit a clock nobody chose.';
 
-revoke all on function public.on_deck_update_club_defaults(text, integer, integer, text) from public;
-grant execute on function public.on_deck_update_club_defaults(text, integer, integer, text) to authenticated;
+revoke all on function public.on_deck_set_club_time_zone(text) from public;
+grant execute on function public.on_deck_set_club_time_zone(text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- on_deck_adopt_club_time_zone -- fill a blank clock, never overwrite one

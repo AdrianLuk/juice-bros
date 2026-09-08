@@ -8,8 +8,7 @@
  */
 
 import type { SessionSummary, WaitBucket } from "./summary.ts";
-import { SKILL_LEVELS } from "./types.ts";
-import type { SkillLevel } from "./types.ts";
+import { SKILL_LEVEL_LABEL, SKILL_LEVELS } from "./types.ts";
 
 /**
  * A wait bucket in the club's own words. The open-ended last bucket has to
@@ -37,7 +36,7 @@ export function barPercent(value: number, max: number): number {
 }
 
 /** The largest count in a set of rows, for `barPercent`'s denominator. */
-export function maxCount(values: number[]): number {
+function maxCount(values: number[]): number {
   return values.reduce((max, v) => Math.max(max, v), 0);
 }
 
@@ -79,18 +78,11 @@ export function skillRows(summary: SessionSummary): SummaryRow[] {
   const counts = SKILL_LEVELS.map((level) => summary.skillMix[level] ?? 0);
   const max = maxCount(counts);
   return SKILL_LEVELS.map((level, i) => ({
-    label: SKILL_LABEL[level],
+    label: SKILL_LEVEL_LABEL[level],
     count: counts[i],
     percent: barPercent(counts[i], max),
   }));
 }
-
-const SKILL_LABEL: Record<SkillLevel, string> = {
-  newbie: "Newbie",
-  beginner: "Beginner",
-  intermediate: "Intermediate",
-  advanced: "Advanced",
-};
 
 /**
  * How much to trust the average wait. A mean over three waits is not a

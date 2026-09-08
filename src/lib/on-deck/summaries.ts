@@ -18,36 +18,31 @@ import type { SessionSummary } from "./session/summary.ts";
  * same reason a mistyped id should.
  */
 
-/** One closed night, as the list needs it — no JSONB unpacked. */
+/** One closed Session, as the list needs it — no JSONB unpacked. */
 export type SummaryListing = {
   sessionId: string;
   venueName: string;
   attendance: number;
   gamesPlayed: number;
-  /** ISO timestamp play began. What names the night — see `night-label.ts`. */
+  /** ISO timestamp play began. What dates the Session — see `session-date.ts`. */
   startedAt: string;
   /** ISO timestamp the Session was closed. What orders the list. */
   closedAt: string;
   /**
    * The Club's clock as it stood when this Session was created, snapshotted
-   * onto the Session row. What `startedAt` is named on — a night running to
+   * onto the Session row. What `startedAt` is dated on — a Session running to
    * 20:00 in Toronto closes on the *next* UTC day, so the server's own clock
    * is the wrong one to ask.
    */
   timeZone: string;
 };
 
-/** One closed night in full, with the projection parsed. */
+/** One closed Session in full, with the projection parsed. */
 export type SummaryDetail = SummaryListing & {
-  courtCount: number;
   summary: SessionSummary;
 };
 
-type SessionEmbed = {
-  venue_name: string;
-  court_count: number;
-  time_zone: string;
-} | null;
+type SessionEmbed = { venue_name: string; time_zone: string } | null;
 
 type ListingRow = {
   session_id: string;
@@ -66,7 +61,7 @@ type DetailRow = ListingRow & {
 // kept when a Session closes — it is already numbers, not people. Embedding is
 // cheaper than a second round trip and the foreign key makes it one query.
 const LISTING_COLUMNS =
-  "session_id, attendance, games_played, session_started_at, session_closed_at, on_deck_sessions(venue_name, court_count, time_zone)";
+  "session_id, attendance, games_played, session_started_at, session_closed_at, on_deck_sessions(venue_name, time_zone)";
 const DETAIL_COLUMNS = `${LISTING_COLUMNS}, summary`;
 
 function toListing(row: ListingRow): SummaryListing {
@@ -121,7 +116,13 @@ export async function getSummariesForClub(
  * codebase, but it is still data crossing a boundary, and the column is
  * deliberately schemaless so the projection can grow without a migration. So
  * the shape is checked rather than asserted: an older row missing a field a
- * newer page reads would otherwise crash the page rather than skip a section.
+ * newer page reads would otherwise crash the page mid-render.
+ *
+ * A row that fails the check is reported as absent, and the page 404s. There
+ * is no half-rendered Summary and no error screen, because there is nothing
+ * useful to put on either — the numbers *are* the page. It is logged, since a
+ * Summary that cannot be read is a bug in the projection rather than
+ * something a reader can act on.
  */
 export async function getSessionSummary(
   supabase: SupabaseClient,
@@ -140,13 +141,14 @@ export async function getSessionSummary(
 
   const row = data as unknown as DetailRow;
   const summary = asSessionSummary(row.summary);
-  if (!summary) return null;
+  if (!summary) {
+    console.error(
+      `on-deck: Session Summary ${sessionId} is stored in a shape this page cannot read`,
+    );
+    return null;
+  }
 
-  return {
-    ...toListing(row),
-    courtCount: row.on_deck_sessions?.court_count ?? 0,
-    summary,
-  };
+  return { ...toListing(row), summary };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -155,9 +157,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * The stored JSONB, if it carries the pieces every section of the reader
- * needs. Anything short of that is treated as unreadable rather than
- * half-rendered — a Summary showing three of its five numbers with no
- * explanation is worse than one that says it cannot be read.
+ * needs. Anything short of that is unreadable rather than half-rendered: a
+ * Summary showing three of its five numbers with no explanation is worse than
+ * no Summary at all.
  */
 function asSessionSummary(value: unknown): SessionSummary | null {
   if (!isRecord(value)) return null;

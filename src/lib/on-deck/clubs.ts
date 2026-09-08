@@ -72,19 +72,12 @@ export async function getOwnedClub(
 }
 
 /**
- * Saves the Organizer's Club defaults — venue, court count, group cap (issue
- * #254) and the Club's clock (issue #469). Goes through the `on_deck_update_club_defaults` RPC because
- * `on_deck_clubs` carries no UPDATE grant (the foundation's "seeded by hand"
- * posture); the RPC touches only those four columns and checks ownership. An
- * unknown zone is refused by the table's own trigger, not by the RPC.
- */
-/**
  * Adopts a zone for a Club that has none, and does nothing at all otherwise.
  *
  * The `is null` in the RPC is what makes this safe to fire on every visit: an
- * Organizer who set their clock by hand in Settings, or who is reading the
- * board from a hotel in another country, cannot have it silently rewritten by
- * whatever device they happen to be holding.
+ * Organizer who set their clock by hand, or who is reading the board from a
+ * hotel in another country, cannot have it silently rewritten by whatever
+ * device they happen to be holding.
  */
 export async function adoptClubTimeZone(
   supabase: SupabaseClient,
@@ -99,20 +92,43 @@ export async function adoptClubTimeZone(
   }
 }
 
+/**
+ * Sets the Club's clock outright — the Organizer saying the adopted guess was
+ * wrong. The counterpart to `adoptClubTimeZone`, which can only ever fill a
+ * blank one.
+ */
+export async function setClubTimeZone(
+  supabase: SupabaseClient,
+  timeZone: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("on_deck_set_club_time_zone", {
+    p_time_zone: timeZone,
+  });
+
+  if (error) {
+    throw new Error(`saving the Club's time zone failed: ${error.message}`);
+  }
+}
+
+/**
+ * Saves the Organizer's Club defaults — venue, court count, group cap (issue
+ * #254). Goes through the `on_deck_update_club_defaults` RPC because
+ * `on_deck_clubs` carries no UPDATE grant (the foundation's "seeded by hand"
+ * posture); the RPC touches only those three columns and checks ownership.
+ *
+ * The Club's clock is deliberately *not* here. Folding it in would mean saving
+ * a court count also commits a zone — and for a Club that has none yet, the
+ * one the form happened to be pre-filled with. `setClubTimeZone` is its own
+ * path for that reason.
+ */
 export async function updateClubDefaults(
   supabase: SupabaseClient,
-  input: {
-    venueName: string;
-    courtCount: number;
-    groupCap: number;
-    timeZone: string;
-  },
+  input: { venueName: string; courtCount: number; groupCap: number },
 ): Promise<void> {
   const { error } = await supabase.rpc("on_deck_update_club_defaults", {
     p_venue_name: input.venueName,
     p_court_count: input.courtCount,
     p_group_cap: input.groupCap,
-    p_time_zone: input.timeZone,
   });
 
   if (error) {

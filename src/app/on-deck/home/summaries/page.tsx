@@ -12,7 +12,7 @@ import {
   ON_DECK_SUMMARIES_PATH,
   summaryPath,
 } from "@/lib/on-deck/routes";
-import { nightLabel } from "@/lib/on-deck/night-label";
+import { sessionDate } from "@/lib/on-deck/session-date";
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -24,7 +24,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Past nights (issue #469). One row per closed Session, most recent first —
+ * Past nights (issue #469) — the reader's word for closed Sessions, which the
+ * glossary permits in product copy the way it permits "Social". One row per
+ * closed Session, most recent first —
  * the order the `(club_id, session_closed_at desc)` index exists for.
  *
  * The headline numbers come from the denormalised columns rather than from
@@ -35,7 +37,7 @@ export default async function OnDeckSummariesPage() {
   await verifyOrganizer();
   const supabase = await createClient();
   const club = await getOwnedClub(supabase);
-  const summaries = club ? await getSummariesForClub(supabase, club.id) : [];
+  const sessions = club ? await getSummariesForClub(supabase, club.id) : [];
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -43,7 +45,7 @@ export default async function OnDeckSummariesPage() {
         <div className="mx-auto max-w-2xl">
           <PageHeading eyebrow={club?.name ?? "On Deck"} title="Past nights" />
 
-          {summaries.length === 0 ? (
+          {sessions.length === 0 ? (
             <div className="mt-8 rounded-2xl border bg-card p-6">
               <p className="text-sm text-muted-foreground">
                 No nights have finished yet. A session leaves its numbers here
@@ -61,22 +63,22 @@ export default async function OnDeckSummariesPage() {
           ) : (
             <>
               <ul className="mt-8 flex flex-col gap-3">
-                {summaries.map((night) => (
-                  <li key={night.sessionId}>
+                {sessions.map((session) => (
+                  <li key={session.sessionId}>
                     <Link
-                      href={summaryPath(night.sessionId)}
+                      href={summaryPath(session.sessionId)}
                       className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-2xl border bg-card p-5 transition-colors hover:bg-muted"
                     >
                       <span className="flex flex-col gap-0.5">
                         <span className="font-medium">
-                          {nightLabel(night.startedAt, night.timeZone)}
+                          {sessionDate({ at: session.startedAt, timeZone: session.timeZone })}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          {night.venueName}
+                          {session.venueName}
                         </span>
                       </span>
                       <span className="text-sm tabular-nums text-muted-foreground">
-                        {night.attendance} played, {night.gamesPlayed} games
+                        {session.attendance} played, {session.gamesPlayed} games
                       </span>
                     </Link>
                   </li>
