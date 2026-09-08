@@ -376,6 +376,15 @@ export function SyncBookingsSection({
     feedCandidatesToRender.length +
     feedCancellations.length;
 
+  // Of those, the ones carrying an "Add to my bookings" button. The framing
+  // names that button, and a review list holding only cancellations or updates
+  // has none — telling that User to add the ones they want to keep would be
+  // pointing at a control that isn't on screen.
+  const addableCount =
+    mergedCandidates.length +
+    feedCandidatesToRender.length +
+    emailItemsToRender.filter((item) => item.kind === "import").length;
+
   const nothingToReview =
     hasSynced &&
     // Clearing the last card is not "no new bookings found" — that reads as
@@ -542,8 +551,20 @@ export function SyncBookingsSection({
                 : `Review ${reviewCount} reservations`}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Nothing here is saved yet. Booking Buddy never changes your
-              reservation at the facility.
+              Nothing here is saved yet.{" "}
+              {addableCount > 0 && (
+                <>
+                  Choose{" "}
+                  {/* Held on one line: it is standing in for a button label,
+                      and a phrase broken across two lines stops reading as
+                      the name of the thing sitting below it. */}
+                  <span className="font-medium whitespace-nowrap text-foreground">
+                    Add to my bookings
+                  </span>{" "}
+                  on the ones you want to keep.{" "}
+                </>
+              )}
+              Booking Buddy never changes your reservation at the facility.
             </p>
           </div>
         )}
