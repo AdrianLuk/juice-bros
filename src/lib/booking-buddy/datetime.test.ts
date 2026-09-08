@@ -8,6 +8,7 @@ import {
   formatDateLabel,
   formatInstantDateAndTime,
   formatInstantRange,
+  formatCompactTimeRangeFromMs,
   formatTimeLabel,
   imminenceLabel,
   isHourTime,
@@ -50,6 +51,25 @@ test("every hour slot in a day is offered, and only those", () => {
 test("an hour slot renders as a 12-hour label", () => {
   assert.equal(formatTimeLabel("00:00"), "12:00 AM");
   assert.equal(formatTimeLabel("18:30"), "6:30 PM");
+});
+
+test("a calendar chip's range drops the :00, the meridiem's space, and the dash's", () => {
+  const at = (hours: number, minutes = 0) =>
+    new Date(2026, 8, 7, hours, minutes).getTime();
+  const range = (from: number, to: number) =>
+    formatCompactTimeRangeFromMs(at(from), at(to));
+
+  assert.equal(range(13, 15), "1PM–3PM");
+  assert.equal(range(9, 11), "9AM–11AM");
+  assert.equal(range(11, 13), "11AM–1PM");
+  // Midnight and noon still read as 12, not 0.
+  assert.equal(range(0, 2), "12AM–2AM");
+  assert.equal(range(12, 14), "12PM–2PM");
+  // Minutes are the one thing worth the extra characters.
+  assert.equal(
+    formatCompactTimeRangeFromMs(at(13, 30), at(15, 30)),
+    "1:30PM–3:30PM",
+  );
 });
 
 test("addHoursToTime lands on the hour a duration picker would show", () => {
