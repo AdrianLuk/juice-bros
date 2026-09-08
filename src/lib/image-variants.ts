@@ -88,6 +88,18 @@ export const IMAGE_MANIFEST = {
     widths: [384, 600],
     quality: { avif: 58, webp: 80 },
   },
+  // The annotated CourtReserve screenshot behind the Facilities page's feed
+  // help popover (issue #454). Flat UI with fine text rather than a
+  // photograph, so it needs a higher quality than the photos above - AVIF at
+  // 50 smears the row labels the red outline is pointing at. Its widest box
+  // is the popover's ~19rem image column, so 620 covers a 2x screen with a
+  // little room, and 320 is the 1x fallback.
+  "/booking-buddy/courtreserve-calendar-feed.jpg": {
+    width: 1440,
+    height: 2907,
+    widths: [320, 620],
+    quality: { avif: 62, webp: 80 },
+  },
 } as const satisfies Record<string, ImageSource>;
 
 export type ManagedImage = keyof typeof IMAGE_MANIFEST;
