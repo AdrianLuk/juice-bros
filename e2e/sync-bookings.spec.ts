@@ -435,3 +435,58 @@ test("dismissing a feed candidate settles the mailbox too — the email never re
   await expect(cards).toHaveCount(0);
   expect(await bookingsForOrg(user, orgId)).toHaveLength(0);
 });
+
+test("a rebooked slot is named as skipped, and offering it again brings it back (#444)", async ({
+  page,
+  accounts,
+}) => {
+  // Since #437 a dismissal suppresses the *slot*, from both sources. So a
+  // cancel and rebook of that slot — a genuinely new reservation, arriving
+  // under a message id no sync has ever seen — is dropped too. Before #444
+  // that happened in silence and could not be undone.
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+
+  await connectGmail(page);
+  gmail.registerMessages([
+    confirmationEmail({ id: messageId(), facility, court: "Court #9 - Hard" }),
+  ]);
+
+  // Sync #1 — dismiss the original reservation.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  const section = feedSection(page);
+  const cards = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+  await cards.getByRole("button", { name: "Dismiss" }).click();
+  await expect(page.getByText("No new bookings found.")).toBeVisible({ timeout: 15_000 });
+
+  // The rebook: same facility, same slot, same court, brand new confirmation.
+  gmail.registerMessages([
+    confirmationEmail({ id: messageId(), facility, court: "Court #9 - Hard" }),
+  ]);
+
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+
+  const skipped = section.getByText("1 booking was skipped because you dismissed it before");
+  await expect(skipped).toBeVisible({ timeout: 15_000 });
+  await expect(cards).toHaveCount(0);
+
+  // Take the dismissal back, and the line goes with it.
+  await skipped.click();
+  await section.getByRole("button", { name: "Offer this again" }).click();
+  await expect(skipped).toHaveCount(0);
+
+  // Sync #3 — the same confirmation is offered, and confirms into a Booking.
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+  await cards.getByRole("button", { name: "Confirm" }).click();
+  await expect(cards).toHaveCount(0, { timeout: 15_000 });
+  expect(await bookingsForOrg(user, orgId)).toHaveLength(1);
+});

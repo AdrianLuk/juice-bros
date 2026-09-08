@@ -158,6 +158,60 @@ test("an event whose reservation the User dismissed from the email side is not r
   assert.equal(autoLinked.length, 0);
 });
 
+test("a suppressed event is reported, so the review screen can offer it back (#444)", () => {
+  // The rebook case: a fresh VEVENT UID for a slot the User cancelled and
+  // booked again, dropped against the dismissal recorded for the reservation
+  // it replaced. Silently, before #444.
+  const { items, suppressed } = reviewCalendarFeed({
+    events: [feedEvent({ uid: "vevent-rebooked" })],
+    org: ORG,
+    existingBookings: [],
+    seenEvents: [],
+    dismissedSlots: [
+      { orgId: "org-1", courtLabel: "#6 - Hard", date: "2026-10-01", startTime: "18:00" },
+    ],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 0);
+  assert.deepEqual(suppressed, [
+    { orgId: "org-1", courtLabel: "#6", date: "2026-10-01", startTime: "18:00" },
+  ]);
+});
+
+test("an event this feed's own dismissal already settled is not reported (#444)", () => {
+  // Its `org_feed_events` row says `dismissed`: the User said no to this very
+  // card, from this very feed. Nothing was hidden from them.
+  const { items, suppressed } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: [],
+    seenEvents: [seen({ status: "dismissed" })],
+    now: NOW,
+  });
+
+  assert.equal(items.length, 0);
+  assert.deepEqual(suppressed, []);
+});
+
+test("a Booking made after the dismissal auto-links and is not reported as suppressed (#444)", () => {
+  const { autoLinked, suppressed } = reviewCalendarFeed({
+    events: [feedEvent()],
+    org: ORG,
+    existingBookings: [
+      { id: "booking-by-hand", orgId: "org-1", courtLabel: "#6", date: "2026-10-01", startTime: "18:00" },
+    ],
+    seenEvents: [],
+    dismissedSlots: [
+      { orgId: "org-1", courtLabel: "#6 - Hard", date: "2026-10-01", startTime: "18:00" },
+    ],
+    now: NOW,
+  });
+
+  assert.equal(autoLinked.length, 1);
+  assert.deepEqual(suppressed, []);
+});
+
 test("a dismissed slot at a different court leaves this event alone", () => {
   const { items } = reviewCalendarFeed({
     events: [feedEvent()],

@@ -117,6 +117,28 @@ type UpdateReviewItem = Extract<ReviewItem, { kind: "update" }>;
 export type ReviewedCourtReserveEmails = {
   /** One flat list across all three kinds, `byDateAndStartTime`-sorted; the review screen groups it back by `kind` for display. */
   items: ReviewItem[];
+  /**
+   * Confirmations this run dropped because their slot is in
+   * `dismissed_reservations` — what the review screen says out loud, and
+   * offers to take back (issue #444).
+   *
+   * Only that one drop reason. A past-dated confirmation and one that
+   * duplicates a Booking already on file are both dropped too, and neither is
+   * reported: nothing was suppressed there that the User can't already see
+   * for themselves on their own Bookings page.
+   *
+   * A message this mailbox has already settled never gets here — the caller
+   * filters `processed_messages` out before fetching. So what lands in this
+   * list is either a **rebook** (a fresh message id for a slot the User
+   * cancelled and booked again) or the **counterpart** of a feed-side
+   * dismissal (a confirmation this mailbox was never asked about, re-read and
+   * re-dropped every sync). Both are "a message with no decision on it, for a
+   * slot the User said no to", and the slot is the only key the two sources
+   * share — see `reviewCalendarFeed`'s own `suppressed` for why that means
+   * neither review can tell them apart, and why reporting both is the honest
+   * end of it.
+   */
+  suppressed: BookingIdentity[];
 };
 
 /** One raw Gmail message body, exactly what `fetchGmailMessage` returns plus its own id — the only thing the action has to fetch before this module can run. */
@@ -249,11 +271,26 @@ function zoneFor(matchedOrgId: string | null, ctx: ReviewContext): string {
 }
 
 /**
- * A reconciled confirmation → an `import` `ReviewItem`, or `null` when it
- * shouldn't reach the review queue at all: a date/time already passed, a
- * duplicate of a Booking already on file (same Org, court, date/time — the
- * fields a real second reservation would also share), or a reservation the
- * User already dismissed from the calendar feed's own card (#437).
+ * What became of one reconciled confirmation: a candidate for the review
+ * queue, a reservation suppressed because the User dismissed that slot before
+ * (#437, reported by #444), or dropped for a reason not worth reporting.
+ *
+ * Three outcomes rather than `ImportReviewItem | null` because the review
+ * screen now has to tell a suppressed reservation apart from a merely dropped
+ * one — it says how many were suppressed and offers each of them back.
+ */
+type ShapedConfirmation =
+  | { outcome: "candidate"; item: ImportReviewItem }
+  | { outcome: "suppressed"; reservation: BookingIdentity }
+  | { outcome: "dropped" };
+
+/**
+ * A reconciled confirmation → an `import` `ReviewItem`, or one of the two
+ * reasons it shouldn't reach the review queue at all: `dropped` for a
+ * date/time already passed or a duplicate of a Booking already on file (same
+ * Org, court, date/time — the fields a real second reservation would also
+ * share), `suppressed` for a reservation the User already dismissed from the
+ * calendar feed's own card (#437).
  *
  * Both of the latter two need a matched Org to compare against — an email
  * whose facility didn't resolve has no Org to key on, and is offered.
@@ -261,13 +298,13 @@ function zoneFor(matchedOrgId: string | null, ctx: ReviewContext): string {
 function shapeImportReviewItem(
   event: Extract<ReconciliationEvent<ConfirmedEmail>, { kind: "confirmation" }>,
   ctx: ReviewContext,
-): ImportReviewItem | null {
+): ShapedConfirmation {
   const { confirmation } = event;
 
   const matchedOrgId = matchOrgByName(confirmation.facilityName, ctx.orgCandidates);
 
   if (isPastConfirmation(confirmation, zoneFor(matchedOrgId, ctx), ctx.now)) {
-    return null;
+    return { outcome: "dropped" };
   }
 
   const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(confirmation.courtLabel));
@@ -279,27 +316,30 @@ function shapeImportReviewItem(
       date: confirmation.date,
       startTime: confirmation.startTime,
     };
-    if (
-      isDuplicateBooking(identity, ctx.existingBookings) ||
-      isDismissedReservation(identity, ctx.dismissedSlots)
-    ) {
-      return null;
+    if (isDuplicateBooking(identity, ctx.existingBookings)) {
+      return { outcome: "dropped" };
+    }
+    if (isDismissedReservation(identity, ctx.dismissedSlots)) {
+      return { outcome: "suppressed", reservation: identity };
     }
   }
 
   return {
-    kind: "import",
-    gmailMessageId: event.gmailMessageId,
-    facilityName: confirmation.facilityName,
-    matchedOrgId,
-    date: confirmation.date,
-    startTime: confirmation.startTime,
-    endTime: confirmation.endTime,
-    courtLabel,
-    notes,
-    format: confirmation.format,
-    name: confirmation.name,
-    matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, ctx.connectionCandidates),
+    outcome: "candidate",
+    item: {
+      kind: "import",
+      gmailMessageId: event.gmailMessageId,
+      facilityName: confirmation.facilityName,
+      matchedOrgId,
+      date: confirmation.date,
+      startTime: confirmation.startTime,
+      endTime: confirmation.endTime,
+      courtLabel,
+      notes,
+      format: confirmation.format,
+      name: confirmation.name,
+      matchedPlayers: matchPlayerNamesToConnections(confirmation.playerNames, ctx.connectionCandidates),
+    },
   };
 }
 
@@ -402,13 +442,25 @@ export function reviewCourtReserveEmails({
 
   const reconciled = reconcileCourtReserveEvents(toReconciliationEvents(emails));
 
+  const shapedConfirmations = reconciled.confirmations.map((event) =>
+    shapeImportReviewItem(event, ctx),
+  );
+
   const items: ReviewItem[] = [
-    ...reconciled.confirmations.map((event) => shapeImportReviewItem(event, ctx)),
+    ...shapedConfirmations.map((shaped) => (shaped.outcome === "candidate" ? shaped.item : null)),
     ...reconciled.cancellations.map((event) => shapeCancellationReviewItem(event, ctx)),
     ...reconciled.updates.map((event) => shapeUpdateReviewItem(event, ctx)),
   ]
     .filter((item): item is ReviewItem => item !== null)
     .sort(byDateAndStartTime);
 
-  return { items };
+  // Earliest slot first, the same order the candidates themselves take. Not
+  // deduped here: the run that needs it is the *other* source suppressing the
+  // same reservation, which only the review screen sees both halves of
+  // (`dedupeReservations`, called there over the two lists together).
+  const suppressed = shapedConfirmations
+    .flatMap((shaped) => (shaped.outcome === "suppressed" ? [shaped.reservation] : []))
+    .sort(byDateAndStartTime);
+
+  return { items, suppressed };
 }
