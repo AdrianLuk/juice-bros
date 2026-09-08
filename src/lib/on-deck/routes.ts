@@ -56,6 +56,19 @@ export function clubQrPath(clubId: string): string {
   return `${ON_DECK_ROOT}/c/${clubId}`;
 }
 
+/**
+ * The Club QR as a file (issue #463). Same stable link as `clubQrPath`, drawn
+ * as an image you can download, send, or hand to a print shop — the one thing
+ * an inline `<svg>` on a gated page cannot be. Open, like the path it
+ * encodes: the code is meant to be photographed off a wall.
+ */
+export function clubQrImagePath(
+  clubId: string,
+  format: "svg" | "png",
+): string {
+  return `${clubQrPath(clubId)}/qr.${format}`;
+}
+
 export function sessionPath(sessionId: string): string {
   return `${ON_DECK_ROOT}/session/${sessionId}`;
 }

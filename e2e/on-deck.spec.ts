@@ -367,3 +367,33 @@ test("the Club QR sign prints as a sheet, with the chrome and the controls off t
   await page.getByRole("radio", { name: "A4" }).check();
   await expect(sheet).toHaveAttribute("data-paper", "a4");
 });
+
+/**
+ * The Club QR as a file (issue #463). The point of these two routes is that
+ * they need no account — a print shop has none, and the link the code carries
+ * is meant to be photographed off a wall by strangers. So the test that
+ * matters is a bare request with no session cookie at all.
+ */
+test("the Club QR is downloadable as SVG and PNG, with no account", async ({
+  request,
+}) => {
+  const svg = await request.get(`/on-deck/c/${clubId}/qr.svg`);
+  expect(svg.status()).toBe(200);
+  expect(svg.headers()["content-type"]).toContain("image/svg+xml");
+  const markup = await svg.text();
+  expect(markup).toContain("<svg");
+  // It encodes the stable Club link, not a per-Session one.
+  expect(markup).not.toContain("aria-hidden");
+
+  const png = await request.get(`/on-deck/c/${clubId}/qr.png`);
+  expect(png.status()).toBe(200);
+  expect(png.headers()["content-type"]).toContain("image/png");
+  const bytes = await png.body();
+  // PNG magic number, so this is a real image and not an error page.
+  expect(bytes.subarray(0, 4).toString("hex")).toBe("89504e47");
+  expect(bytes.byteLength).toBeGreaterThan(1000);
+
+  // Not a generator for arbitrary text: an id that isn't shaped like one 404s.
+  const junk = await request.get("/on-deck/c/not-a-club/qr.svg");
+  expect(junk.status()).toBe(404);
+});
