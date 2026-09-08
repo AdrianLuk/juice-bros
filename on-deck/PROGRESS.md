@@ -585,10 +585,49 @@ migration's timestamp past whatever else merged (the drift lesson
   from asserting no Skill Level ever reaches the Display to asserting every
   name's `data-skill` matches what its Player declared at join.
 
+- [x] **The printed Club QR sign, and the code as a file (PR #466,
+  2026-09-08).** OD-6 slice 3, and the one build item the booked OD-0 night
+  depended on. `/on-deck/home/qr` — shipped by #413 as the on-screen stand-in
+  for a sign that did not exist — is now the sign, printing on Letter and A4
+  via two named `@page` rules on #397's `@media print` pattern.
+
+  The load-bearing idea is that the sheet is drawn *once*, at paper
+  proportions, and the screen shows that same drawing. Every size in it is an
+  `em` off a root that is a share of the sheet's own width (`2.4cqw`), so the
+  browser resolves one set of numbers to pixels in a preview and to
+  millimetres on paper. The print block restates no sizes at all, which is
+  the only way two renderings of one thing stay honest. It also gives the
+  Letter/A4 control something visible to do before a print dialog opens.
+
+  Below `48rem` the two jobs pull apart and the scan wins: a proportional
+  preview of a Letter page is a 200px code nobody scans from arm's length,
+  and a phone held up at the door is covering for a missing sign, not
+  printing. Scoped `@media screen and` deliberately — a print page box is
+  measured in the same CSS pixels and Letter inside a 12mm margin is 725px,
+  under the breakpoint.
+
+  Two open routes, `/on-deck/c/<clubId>/qr.svg` and `qr.png`, serve the bare
+  code as a file. `clubJoinQrImage` is not `clubJoinQr`: the latter injects
+  `aria-hidden` for the labelled wrapper its on-page callers supply, wrong in
+  a file that is the whole document, and a file has to carry its own quiet
+  zone (`margin: 4`) because it has no padded card around it. PNG comes from
+  `qrcode` rather than by rasterising the SVG, keeping it off `sharp` — a
+  devDependency here, so absent at runtime. Open on purpose: they encode
+  `clubQrPath(clubId)`, a link whose whole job is to be photographed by
+  strangers, and they read no database.
+
+  Tests: an e2e case asserting a print rendering under `emulateMedia`
+  contains the sheet and neither the chrome nor the paper control, one
+  asserting both file routes answer a cookie-less request with real bytes and
+  404 an id that is not shaped like a Club's, and `routes.test.ts` for the
+  two new path shapes and their ungated status.
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its
-migration pushed (#241–#260, closed 2026-09-02). Nothing outstanding.
+migration pushed (#241–#260, closed 2026-09-02). Nothing outstanding, and
+as of 2026-09-08 nothing in the repo is holding up OD-0 either: the sign
+is built. What the night needs now is a printer and a Saturday.
 
 Deferred, per the spec's "Out of Scope":
 

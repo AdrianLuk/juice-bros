@@ -54,7 +54,9 @@ A per-Session URL the Organizer shares (in practice, the club's volunteer WhatsA
 _Avoid_: Invite Link (means a personal friend-request link in Booking Buddy), Volunteer account.
 
 **Club QR**:
-A single stable QR code, printed once per Club and displayed on a sign at the venue, that Players scan to join. Always resolves to that Club's currently-open Session, or to a "nothing running right now" screen. Never reprinted or regenerated per Session.
+A single stable QR code, printed once per Club and displayed on a sign at the venue, that Players scan to join. Always resolves to that Club's currently-open Session, or to a "nothing running right now" screen. Never reprinted or regenerated per Session. The sign it goes on is generated at `/on-deck/home/qr` (Organizer-gated, prints on Letter or A4); the bare code is also served as a file at `/on-deck/c/<clubId>/qr.svg` and `qr.png`, which are open, like the link they encode.
+
+The link is `/on-deck/c/<clubId>` with the Club's raw uuid, and it stays that way deliberately rather than becoming a readable slug. Two reasons, both downstream of "printed once". A slug derived from the Club's name breaks the moment a club renames itself, and every sign already on a wall breaks with it - a uuid has no such failure. And an unguessable id is quietly the thing that scopes ADR 0006's "public to the venue" to the venue: an open Session is world-readable by design, so a guessable Club link would let anyone anywhere add themselves to tonight's Queue without being in the building. The costs are real but small - a typed-fallback URL nobody can type, and one extra QR version (37x37 modules rather than 33x33, so about 11% smaller modules at the same printed size). If the typed line ever matters more than these, the answer is a short random code, not a name: it keeps both properties and only costs a column.
 _Avoid_: Check-in code (there is no check-in - see Player).
 
 **Display**:

@@ -1,6 +1,6 @@
 # Next steps: Booking Buddy, On Deck, Round Robin Generator
 
-Status: planning input, not committed scope. Written 2026-09-04. Progress updated 2026-09-07.
+Status: planning input, not committed scope. Written 2026-09-04. Progress updated 2026-09-08.
 
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
@@ -52,7 +52,7 @@ not started.
 
 | Order | Done | Initiative | Why here |
 |---|---|---|---|
-| 1 |  | OD-6 Printed Club QR sign (slice 3 only) | Deadline work. OD-0's checklist opens with "print the Club QR on a sign", and #413 shipped the on-screen QR explicitly as the fallback *for days without it*. Still unbuilt, and now the only thing standing between the booked night and its checklist |
+| 1 | ✅ | OD-6 Printed Club QR sign (slice 3 only) | Shipped 2026-09-08 (#463, PR #466). `/on-deck/home/qr` is now the sign itself, printing on Letter and A4, plus two open routes serving the bare code as a file for a print shop or a group chat. Nothing now stands between the booked night and its checklist except printing one |
 | 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
 | 3 |  | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
 | 4 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses |
@@ -70,13 +70,14 @@ not started.
 | 16 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
 | — |  | RR-6 Pools (#392) | Filed 2026-09-07 after the doc was written, `needs-triage`. Not in the original order; slot it against RR-2 and RR-4 at the next reorder |
 
-If only one thing per app ships this month: RR-1, OD-0, BB-1. RR-1 is now done, which
-leaves OD-0 (booked) and BB-1 (unstarted) as the month's remaining two.
+If only one thing per app ships this month: RR-1, OD-0, BB-1. RR-1 is done and row 1
+cleared on 2026-09-08, which leaves OD-0 (booked, and now unblocked) and BB-1
+(unstarted) as the month's remaining two.
 
 ### Shipped since this doc was written
 
-Recorded 2026-09-07, updated the same evening after a heavy day, so the table above
-doesn't silently drift again.
+Recorded 2026-09-07, updated the same evening after a heavy day, and again on
+2026-09-08, so the table above doesn't silently drift again.
 
 - **BB-2 Visibility default on accept** — done (#376 and its four slices, #377 to #380).
   Dropped from the interleave.
@@ -90,8 +91,17 @@ doesn't silently drift again.
   `body:has(.mm-sheet)` with a named `@page`. That erases the reason OD-6 slice 3 was
   called unbuilt-from-zero: the sign is a second sheet next to the draw sheet, not the
   first print work in the repo.
-- **On-screen Club QR** — #413. Still adjacent to OD-6 slice 3 rather than a substitute;
-  the printed sign is unbuilt.
+- **OD-6 slice 3, the printed Club QR sign — shipped 2026-09-08** (#463, PR #466).
+  Row 1, and the one build item OD-0 was waiting on. `/on-deck/home/qr`, which #413
+  shipped as the on-screen stand-in, is now the sign itself: one sheet drawn at paper
+  proportions and previewed on screen at the same proportions, printing on Letter and
+  A4. The sheet's whole type scale is a share of its own width, so the print
+  stylesheet restates no sizes and the two renderings cannot drift. Below tablet
+  width it stops being paper-shaped and the code takes the full device, because a
+  phone at the door is scanning, not printing. Two open routes,
+  `/on-deck/c/<clubId>/qr.svg` and `qr.png`, serve the bare code as a file — the
+  thing an inline `<svg>` on a gated page could never be, and what a print shop or a
+  group chat actually needs.
 - **Booking Buddy import/sync hardening, none of it on this table** — a full day of it on
   2026-09-07: cross-source reservation identity (#432, #437), empty-vs-broken feed
   (#431), candidate provenance on every card (#438), readable candidate dates (#433),
@@ -105,12 +115,18 @@ doesn't silently drift again.
   rebuilt around episode one (#425), Appearances division ordering (#429), YouTube
   subscribe CTAs (#427), Tools surfaced on the homepage (#381), image weight (#414).
 
-**The pattern is now unmistakable.** Of everything built since this doc was written, only
-row 2 came from the table; the rest was marketing polish and Booking Buddy sync work that
-the table doesn't govern. That's fine when the pulled-forward work is real, and two of
-those (the #415 regressions, the six stale specs) were self-inflicted. But the one row
-that is genuinely deadline-shaped — row 1, the printed sign — is the one row that hasn't
-moved. It should go next, ahead of anything else here.
+**The pattern held until it was named.** Of everything built between this doc being
+written and 2026-09-07, only row 2 came from the table; the rest was marketing polish
+and Booking Buddy sync work the table doesn't govern. Writing that down is what moved
+row 1: it shipped the next day, and it was half a day's work, which is the more useful
+half of the lesson. The deadline-shaped row had been sitting behind work that felt more
+urgent because it was already in flight.
+
+**What's next is not code.** With row 1 closed, every remaining On Deck row is gated on
+OD-0, and OD-0 is a Saturday, a printed sheet of paper, and someone writing down what
+happened. The way to get this table wrong now is to start row 5 or row 7 because they
+are specced and the night is not for a few days. Rows 5 onward stay guesses until the
+retro exists — that is the whole reason they were ordered after it.
 
 ---
 
@@ -325,8 +341,10 @@ sign, which need no real session and de-risk our own first night.
 ### OD-0 · Run a real Saturday
 
 **Booked as of 2026-09-07**, which is what the interleave above is now sequenced around.
-The one build item it depends on is the printed Club QR sign (OD-6 slice 3), which is
-row 1 for that reason.
+The one build item it depended on, the printed Club QR sign (OD-6 slice 3), shipped
+2026-09-08 — so nothing in the repo is holding this up any more. What is left is
+physical: print the sheet, and check the code scans off paper at the distance a player
+will actually stand. Neither can be verified from a test suite.
 
 **Size:** not code. **Blocked by:** nothing. **Gates:** every other OD initiative.
 
@@ -464,8 +482,8 @@ the roster).
 
 ### OD-6 · Organizer adoption: demo night, self-serve Club, the sign
 
-**Size:** L across four slices (each M or smaller). **Blocked by:** nothing for the demo
-and the sign; OD-0 for the landing-page social proof. Don't onboard a *second* real club
+**Size:** L across four slices (each M or smaller), one of them now done. **Blocked by:**
+nothing for the demo; OD-0 for the landing-page social proof. Don't onboard a *second* real club
 until at least two sessions have run, but the path can be built now.
 
 **Claim.** Today an organizer can't evaluate On Deck, can't start it, and can't put it on
@@ -489,11 +507,14 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
 2. **Self-serve Club creation.** Two required fields: club name, court count. Venue
    defaults to the club name, group cap to 4, Floor Mode to hybrid, all editable in
    settings. Lands on home with Start ready.
-3. **Print-ready Club QR sign.** Letter and A4. Big QR, club name, "Scan to join the
-   queue," three lines for Players, Juice Bros mark. One click from home. *Cheaper as of
-   2026-09-07:* #397 put a working `@media print` block in `src/app/globals.css`, scoped
-   by `body:has(.mm-sheet)` with a named `@page` and a "hide the site chrome without
-   naming each piece of it" rule. The sign is a second sheet on that pattern.
+3. ~~**Print-ready Club QR sign.**~~ **Shipped 2026-09-08** (#463, PR #466). Landed as
+   specced — Letter and A4, big QR, club name, "Scan to join the queue", three lines for
+   Players, Juice Bros mark, one click from home — and did reuse #397's `@media print`
+   pattern as predicted. Two things the spec did not anticipate. The sheet is drawn once
+   at paper proportions and the screen shows that same drawing, so the print stylesheet
+   restates no sizes; and the code is also served as a file at
+   `/on-deck/c/<clubId>/qr.svg` and `qr.png`, open like the link it encodes, because
+   neither a print shop nor a group chat can use an inline `<svg>` on a gated page.
 4. **First-night kit on home.** A four-item checklist with state (print the sign, decide
    on a Kiosk tablet or skip it, share the Volunteer Link, tell your players) that
    disappears after the first closed Session, plus a "tell your players" paragraph to
@@ -512,8 +533,10 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
    Buddy carries the invite token. Otherwise the create screen is the first thing after
    sign-in and that's fine.
 3. Who generates the QR?
-   ➡️ Client-side, no external service, so the sign works offline and nothing leaks the
-   Club id to a third party.
+   ➡️ *Settled by what shipped:* server-side, via the `qrcode` package already in the
+   tree. The concern behind the recommended answer was "no external service", and a
+   local draw satisfies it — nothing leaks the Club id to a third party either way, and
+   server-side means no client JS has to run for the sheet to render or print.
 4. Co-organizer invite: by email, or a link?
    ➡️ Email. It's a standing role, not a night-of thing like the Volunteer Link.
 5. Where does the "tell your players" copy live long-term?
