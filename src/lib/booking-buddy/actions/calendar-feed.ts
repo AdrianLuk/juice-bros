@@ -435,6 +435,16 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
   const session = await verifySession();
   const supabase = await createClient();
 
+  // One "now" for the whole run, same as `syncFromEmail`.
+  const now = new Date();
+
+  // Housekeeping (issue #447). Once for the run, not once per Facility — the
+  // prune isn't scoped to an Org, so running it inside the loop below would
+  // repeat a delete that already found everything the first time. And ahead of
+  // every early return below, so that "you have no feeds configured" doesn't
+  // also mean "your expired dismissals stay forever".
+  await pruneExpiredDismissedReservations(supabase, session.userId, now);
+
   let query = supabase
     .from("orgs")
     .select("id, time_zone, calendar_feed_url")
@@ -464,14 +474,6 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
     console.error("booking-buddy: Mailbox Link encryption key isn't configured", keyError);
     return { status: "error", message: "Couldn't sync your facilities. Try again." };
   }
-
-  // One "now" for the whole run, same as `syncFromEmail`.
-  const now = new Date();
-
-  // Housekeeping (issue #447): once for the run, not once per Facility — the
-  // prune isn't scoped to an Org, and running it inside the loop below would
-  // repeat a delete that already found everything the first time.
-  await pruneExpiredDismissedReservations(supabase, session.userId, now);
 
   // Sequential rather than Promise.all: a hostile or slow feed shouldn't get
   // to run four outbound fetches in parallel off one click, and a real User

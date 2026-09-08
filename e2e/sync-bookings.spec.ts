@@ -7,7 +7,7 @@ import { CalendarFeedMock, icsBody } from "./support/calendar-feed-mock.ts";
 import { confirmationEmail, messageId } from "./support/sync-from-email-scenarios.ts";
 import {
   bookingsForOrg,
-  dismissedReservationsFor,
+  dismissedReservationsForOrg,
   feedEventsForOrg,
   feedSection,
   orgIdByName,
@@ -497,11 +497,12 @@ test("a sync prunes a dismissal whose slot has passed, and leaves a live one (#4
   page,
   accounts,
 }) => {
-  // Dead weight: both reviews drop a past-dated candidate before they ever
-  // reach the dismissal check, so a row for a slot that has been and gone can
-  // suppress nothing. Invisible either way — what this pins is that the delete
-  // actually clears RLS and the grant in a live stack, and that it stops at
-  // the cutoff instead of taking a still-live dismissal with it.
+  // Nothing here is visible on screen, and that is the point: a row for a slot
+  // that has been and gone can suppress nothing, because both reviews drop a
+  // past-dated candidate before they ever reach the dismissal check. The
+  // cutoff arithmetic is a unit test and the grant is pgTAP; what only this
+  // layer can show is that running a *sync* is what fires the prune, against a
+  // real database with RLS on.
   const user = { email: accounts.ben.email, password: accounts.password };
   const facility = placeName();
   const orgId = await seedFacility(user, facility);
@@ -537,13 +538,17 @@ test("a sync prunes a dismissal whose slot has passed, and leaves a live one (#4
 
   await page.goto("/booking-buddy/bookings");
   await page.getByRole("button", { name: "Sync bookings" }).click();
+
+  // Not an assertion about the prune — the barrier before one. The read below
+  // doesn't retry, so it has to wait until the sync has actually landed, and
+  // the feed's own candidate appearing is the signal that it has.
   const section = feedSection(page);
   const cards = section
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Confirm" }) });
   await expect(cards).toHaveCount(1, { timeout: 15_000 });
 
-  expect(await dismissedReservationsFor(user)).toEqual([
+  expect(await dismissedReservationsForOrg(user, orgId)).toEqual([
     expect.objectContaining({ slot_date: "2099-03-15", court_label: "#4" }),
   ]);
 });

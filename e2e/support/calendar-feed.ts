@@ -170,13 +170,14 @@ export async function seedDismissedReservation(
   });
 }
 
-/** Every dismissed reservation the caller holds, earliest slot first. */
-export async function dismissedReservationsFor(
+/** Every dismissed reservation the caller holds for one Org, earliest slot first. */
+export async function dismissedReservationsForOrg(
   user: FixtureUser,
+  orgId: string,
 ): Promise<{ slot_date: string; slot_start_time: string; court_label: string | null }[]> {
   return restAsUser(
     user,
-    "dismissed_reservations?select=slot_date,slot_start_time,court_label&order=slot_date",
+    `dismissed_reservations?org_id=eq.${orgId}&select=slot_date,slot_start_time,court_label&order=slot_date`,
     {},
   );
 }

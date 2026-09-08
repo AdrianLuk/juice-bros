@@ -261,32 +261,48 @@ export function dismissalPruneCutoff(now: Date): string {
  *
  * Where it runs, and why there rather than on a schedule: a sync is the only
  * thing that ever reads this table, so a row that is never read costs nothing
- * until one runs — and when one does, the prune is a single indexed delete
- * alongside reads the action is already making. A cron route would mean a new
- * schedule, a new auth surface and a new failure mode for a table that tidies
- * itself perfectly well at the moment of use.
+ * until one runs — and when one does, the prune is one more delete alongside
+ * reads the action is already making, seeking the same `owner_id` index they
+ * do (`slot_date` is a residual filter on that seek, not part of the key). A
+ * cron route would mean a new schedule, a new auth surface and a new failure
+ * mode for a table that tidies itself perfectly well at the moment of use.
  *
  * (`org_feed_events` describes itself as "pruned as events age past", which
  * reads like prior art for this and isn't: what that table actually has is the
  * cancellation diff's in-window *skip* of a past-dated event, which deletes
  * nothing. This is the first real prune of either.)
  *
- * Never fails the sync it runs inside: the sync is what the User asked for,
- * and a prune that didn't happen leaves the table exactly as tidy as it was
- * before — the next sync tries again.
+ * The corollary is that a User who stops syncing keeps whatever rows they had.
+ * The feed sync runs this ahead of its own early returns, so "no feeds
+ * configured" still prunes; the email sync rides in a `Promise.all` it was
+ * already making, which is free but sits behind the mailbox checks, so a
+ * lapsed Mailbox Link and no feed at all is the one state that stops pruning.
+ * Those rows still leave with the Facility, which every dismissal names, and a
+ * User who has stopped syncing entirely is not being charged for them. Not
+ * worth a schedule to close.
+ *
+ * Never fails the sync it runs inside, and the try/catch is what makes that
+ * true rather than merely likely: `syncFromEmail` runs this in the same
+ * `Promise.all` as reads it needs, where a rejection would take those down
+ * with it. The sync is what the User asked for, and a prune that didn't happen
+ * leaves the table exactly as tidy as it was before — the next sync retries.
  */
 export async function pruneExpiredDismissedReservations(
   supabase: SupabaseClient,
   ownerId: string,
   now: Date,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("dismissed_reservations")
-    .delete()
-    .eq("owner_id", ownerId)
-    .lt("slot_date", dismissalPruneCutoff(now));
+  try {
+    const { error } = await supabase
+      .from("dismissed_reservations")
+      .delete()
+      .eq("owner_id", ownerId)
+      .lt("slot_date", dismissalPruneCutoff(now));
 
-  if (error) {
-    console.error("booking-buddy: pruning expired dismissed reservations failed", error);
+    if (error) {
+      console.error("booking-buddy: pruning expired dismissed reservations failed", error);
+    }
+  } catch (thrown) {
+    console.error("booking-buddy: pruning expired dismissed reservations threw", thrown);
   }
 }
