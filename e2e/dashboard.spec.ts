@@ -223,7 +223,10 @@ test("the quick-add dialog logs a Booking without leaving the dashboard, and clo
 
   await page.goto("/booking-buddy");
 
-  await page.getByRole("button", { name: "Log a court" }).click();
+  // `exact` matters: #407 unified this action's label on "Log a booking", which
+  // is also the prefix of every Week/Month quick-create cell's own name ("Log a
+  // booking on <day> at <hour>"), and a substring match would find them too.
+  await page.getByRole("button", { name: "Log a booking", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });
@@ -253,7 +256,7 @@ test("the quick-add dialog logs a Booking that runs past midnight", async ({ pag
 
   await page.goto("/booking-buddy");
 
-  await page.getByRole("button", { name: "Log a court" }).click();
+  await page.getByRole("button", { name: "Log a booking", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Log a booking" })).toBeVisible();
 
   await page.getByLabel("Facility").selectOption({ label: place });

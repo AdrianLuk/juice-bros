@@ -102,16 +102,24 @@ test("a singles match can be played rally by rally through to the summary", asyn
   await amy.click();
   const gameOverSheet = page.locator("div.fixed.inset-0.z-40");
   await expect(gameOverSheet.getByText("Amy wins")).toBeVisible();
-  await expect(gameOverSheet.getByText("11-0", { exact: true })).toBeVisible();
+  // The sheet's score is the readout numeral, not text — two `SegNumber`s
+  // either side of a decorative separator (#372) — so it's read through the
+  // spoken label, the same way `scoreCall` reads the live one.
+  await expect(
+    gameOverSheet.getByRole("img", { name: "Final score 11-0" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Confirm match result" }).click();
 
   await expect(page.getByText("Match complete", { exact: true })).toBeVisible();
   // The per-game score row, not the match log entry underneath it that also
-  // mentions "Game 1" — scoped by the row's own layout class.
+  // mentions "Game 1" — scoped by the row's own layout class. An en dash, not
+  // a hyphen: #372 set the printed scoreline in one (`match-summary.tsx`),
+  // while the spoken forms — `recordScoreCall`, and the game-over sheet's own
+  // label above — stay on a hyphen.
   await expect(
     page.locator("li.flex.items-baseline.justify-between").filter({ hasText: "Game 1" })
-  ).toContainText("11-0");
+  ).toContainText("11–0");
   await expect(page.getByRole("button", { name: "Start a new match" })).toBeVisible();
 });
 
