@@ -1,7 +1,8 @@
 -- On Deck: Session pre-creation and Club defaults (issue #254). What this pins:
 --
 --   * an Organizer can edit their Club's saved defaults through
---     `on_deck_update_club_defaults` (the one write path onto a Club), and
+--     `on_deck_update_club_defaults` (the one write path onto a Club, which
+--     also carries the Club's clock since issue #469), and
 --     only their own Club moves;
 --   * an Organizer can create / edit / delete a `scheduled` Session for their
 --     own Club, at most one per date, and never for a Club that is not theirs;
@@ -60,7 +61,7 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub": "11111111-0000-0000-0000-000000000001", "role": "authenticated"}';
 
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Trinity Bellwoods', 10, 5)$$,
+  $$select public.on_deck_update_club_defaults('Trinity Bellwoods', 10, 5, 'UTC')$$,
   'an Organizer can edit their Club''s saved defaults'
 );
 
@@ -78,7 +79,7 @@ select is(
 );
 
 select throws_ok(
-  $$select public.on_deck_update_club_defaults('Ramsden Park', 50, 4)$$,
+  $$select public.on_deck_update_club_defaults('Ramsden Park', 50, 4, 'UTC')$$,
   '23514', null,
   'the table CHECK constraints backstop an out-of-range court count'
 );
@@ -146,7 +147,7 @@ select is(
 );
 
 select throws_ok(
-  $$select public.on_deck_update_club_defaults('Hacked', 1, 2)$$,
+  $$select public.on_deck_update_club_defaults('Hacked', 1, 2, 'UTC')$$,
   '42501', null,
   'the defaults RPC is not callable with no account'
 );
@@ -179,7 +180,7 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Cal Park', 4, 3)$$,
+  $$select public.on_deck_update_club_defaults('Cal Park', 4, 3, 'UTC')$$,
   'Cal edits his own defaults'
 );
 
@@ -223,7 +224,7 @@ set local request.jwt.claims = '{"sub": "11111111-0000-0000-0000-000000000001", 
 -- The scheduled Session was created while the Club group cap was 5. Change it
 -- now — the promote must pick up the *current* Club value (group cap and Floor
 -- Mode are Club settings, not frozen at schedule time).
-select public.on_deck_update_club_defaults('Trinity Bellwoods', 10, 6);
+select public.on_deck_update_club_defaults('Trinity Bellwoods', 10, 6, 'UTC');
 
 -- The scheduled Session's id, banked before Start so we can prove Start
 -- *promoted* that row rather than opening a fresh one.

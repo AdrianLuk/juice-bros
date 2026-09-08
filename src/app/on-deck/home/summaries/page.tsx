@@ -69,7 +69,7 @@ export default async function OnDeckSummariesPage() {
                     >
                       <span className="flex flex-col gap-0.5">
                         <span className="font-medium">
-                          {nightLabel(night.startedAt)}
+                          {nightLabel(night.startedAt, night.timeZone)}
                         </span>
                         <span className="text-sm text-muted-foreground">
                           {night.venueName}

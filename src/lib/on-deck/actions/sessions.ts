@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub, updateClubDefaults } from "../clubs.ts";
+import { isKnownTimeZone } from "../timezone.ts";
 import { getOpenSessionForClub } from "../sessions.ts";
 import {
   ON_DECK_HOME_PATH,
@@ -146,17 +147,26 @@ function validateFields(
 /**
  * Saves the Club's saved Session defaults (issue #254, user story 44). Only the
  * Club owner reaches this — `verifyOrganizer` plus the RPC's own ownership
- * check — and only venue / court count / group cap move.
+ * check — and only venue / court count / group cap / time zone move.
  */
 export async function saveClubDefaults(input: {
   venueName: string;
   courtCount: number;
   groupCap: number;
+  timeZone: string;
 }): Promise<SessionSettingsResult> {
   await verifyOrganizer();
 
   const valid = validateFields(input, { date: false, groupCap: true });
   if (!valid.ok) return valid;
+
+  // The `on_deck_clubs` trigger is the authority and would refuse this too;
+  // checking here is what turns a constraint violation into a sentence about
+  // the field the Organizer just changed.
+  const timeZone = input.timeZone.trim();
+  if (!isKnownTimeZone(timeZone)) {
+    return { ok: false, error: "Pick a time zone from the list." };
+  }
 
   const supabase = await createClient();
   const club = await getOwnedClub(supabase);
@@ -167,6 +177,7 @@ export async function saveClubDefaults(input: {
       venueName: valid.venueName,
       courtCount: valid.courtCount,
       groupCap: valid.groupCap,
+      timeZone,
     });
   } catch (error) {
     console.error("on-deck: saving Club defaults failed", error);

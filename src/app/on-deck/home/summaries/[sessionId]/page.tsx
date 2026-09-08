@@ -66,7 +66,7 @@ export default async function OnDeckSummaryPage({
           <div>
             <PageHeading
               eyebrow={night.venueName}
-              title={nightLabelWithYear(night.startedAt)}
+              title={nightLabelWithYear(night.startedAt, night.timeZone)}
             />
             <p className="mt-3 text-sm text-muted-foreground">
               What this night left behind. The players themselves were not

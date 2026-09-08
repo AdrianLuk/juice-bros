@@ -148,7 +148,7 @@ export default async function OnDeckHomePage() {
                           href={summaryPath(night.sessionId)}
                           className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm underline-offset-4 hover:underline"
                         >
-                          <span>{nightLabel(night.startedAt)}</span>
+                          <span>{nightLabel(night.startedAt, night.timeZone)}</span>
                           <span className="tabular-nums text-muted-foreground">
                             {night.attendance} played, {night.gamesPlayed} games
                           </span>

@@ -28,6 +28,13 @@ export type SummaryListing = {
   startedAt: string;
   /** ISO timestamp the Session was closed. What orders the list. */
   closedAt: string;
+  /**
+   * The Club's clock as it stood when this Session was created, snapshotted
+   * onto the Session row. What `startedAt` is named on — a night running to
+   * 20:00 in Toronto closes on the *next* UTC day, so the server's own clock
+   * is the wrong one to ask.
+   */
+  timeZone: string;
 };
 
 /** One closed night in full, with the projection parsed. */
@@ -36,7 +43,11 @@ export type SummaryDetail = SummaryListing & {
   summary: SessionSummary;
 };
 
-type SessionEmbed = { venue_name: string; court_count: number } | null;
+type SessionEmbed = {
+  venue_name: string;
+  court_count: number;
+  time_zone: string;
+} | null;
 
 type ListingRow = {
   session_id: string;
@@ -55,7 +66,7 @@ type DetailRow = ListingRow & {
 // kept when a Session closes — it is already numbers, not people. Embedding is
 // cheaper than a second round trip and the foreign key makes it one query.
 const LISTING_COLUMNS =
-  "session_id, attendance, games_played, session_started_at, session_closed_at, on_deck_sessions(venue_name, court_count)";
+  "session_id, attendance, games_played, session_started_at, session_closed_at, on_deck_sessions(venue_name, court_count, time_zone)";
 const DETAIL_COLUMNS = `${LISTING_COLUMNS}, summary`;
 
 function toListing(row: ListingRow): SummaryListing {
@@ -66,6 +77,10 @@ function toListing(row: ListingRow): SummaryListing {
     gamesPlayed: row.games_played,
     startedAt: row.session_started_at,
     closedAt: row.session_closed_at,
+    // UTC only if the Session row somehow has no zone, which the column's
+    // NOT NULL makes impossible — the fallback is here so a missing embed
+    // cannot make the whole listing throw.
+    timeZone: row.on_deck_sessions?.time_zone ?? "UTC",
   };
 }
 

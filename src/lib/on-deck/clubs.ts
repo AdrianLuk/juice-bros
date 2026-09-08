@@ -17,6 +17,12 @@ export type Club = {
   courtCount: number;
   groupCap: number;
   floorMode: FloorMode;
+  /**
+   * IANA zone the Club's nights are named on (issue #469). Display only —
+   * every timestamp is a `timestamptz`. A Session snapshots this at creation,
+   * so changing it here renames future nights, never past ones.
+   */
+  timeZone: string;
 };
 
 type ClubRow = {
@@ -26,6 +32,7 @@ type ClubRow = {
   court_count: number;
   group_cap: number;
   floor_mode: FloorMode;
+  time_zone: string;
 };
 
 function toClub(row: ClubRow): Club {
@@ -36,6 +43,7 @@ function toClub(row: ClubRow): Club {
     courtCount: row.court_count,
     groupCap: row.group_cap,
     floorMode: row.floor_mode,
+    timeZone: row.time_zone,
   };
 }
 
@@ -49,7 +57,7 @@ export async function getOwnedClub(
 ): Promise<Club | null> {
   const { data, error } = await supabase
     .from("on_deck_clubs")
-    .select("id, name, venue_name, court_count, group_cap, floor_mode")
+    .select("id, name, venue_name, court_count, group_cap, floor_mode, time_zone")
     .maybeSingle();
 
   if (error) {
@@ -61,18 +69,25 @@ export async function getOwnedClub(
 
 /**
  * Saves the Organizer's Club defaults — venue, court count, group cap (issue
- * #254). Goes through the `on_deck_update_club_defaults` RPC because
+ * #254) and the Club's clock (issue #469). Goes through the `on_deck_update_club_defaults` RPC because
  * `on_deck_clubs` carries no UPDATE grant (the foundation's "seeded by hand"
- * posture); the RPC touches only those three columns and checks ownership.
+ * posture); the RPC touches only those four columns and checks ownership. An
+ * unknown zone is refused by the table's own trigger, not by the RPC.
  */
 export async function updateClubDefaults(
   supabase: SupabaseClient,
-  input: { venueName: string; courtCount: number; groupCap: number },
+  input: {
+    venueName: string;
+    courtCount: number;
+    groupCap: number;
+    timeZone: string;
+  },
 ): Promise<void> {
   const { error } = await supabase.rpc("on_deck_update_club_defaults", {
     p_venue_name: input.venueName,
     p_court_count: input.courtCount,
     p_group_cap: input.groupCap,
+    p_time_zone: input.timeZone,
   });
 
   if (error) {
