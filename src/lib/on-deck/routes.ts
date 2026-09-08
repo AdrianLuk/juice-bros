@@ -42,6 +42,19 @@ export const ON_DECK_QR_DISPLAY_PATH = `${ON_DECK_ROOT}/home/qr`;
 /** Create a Session ahead of time (issue #254). */
 export const ON_DECK_NEW_SESSION_PATH = `${ON_DECK_ROOT}/home/sessions/new`;
 
+/**
+ * Past nights — the Club's closed Sessions and their Summaries (issue #469).
+ * Under `/home`, so Organizer-gated by `requiresOrganizerSession` with no
+ * extra rule: a Summary carries no personal data but is still the Club's own
+ * operational history, not world-readable the way an open Session is.
+ */
+export const ON_DECK_SUMMARIES_PATH = `${ON_DECK_ROOT}/home/summaries`;
+
+/** One closed night's Session Summary. */
+export function summaryPath(sessionId: string): string {
+  return `${ON_DECK_SUMMARIES_PATH}/${sessionId}`;
+}
+
 /** Edit a not-yet-open Session (issue #254). */
 export function editSessionPath(sessionId: string): string {
   return `${ON_DECK_ROOT}/home/sessions/${sessionId}`;

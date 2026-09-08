@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
+import { getSummariesForClub } from "@/lib/on-deck/summaries";
+import { nightLabel } from "@/lib/on-deck/night-label";
 import {
   getOpenSessionForClub,
   getScheduledSessionsForClub,
@@ -17,8 +19,10 @@ import { TonightControls } from "@/components/on-deck/tonight-controls";
 import {
   ON_DECK_QR_DISPLAY_PATH,
   ON_DECK_SETTINGS_PATH,
+  ON_DECK_SUMMARIES_PATH,
   floorPath,
   sessionPath,
+  summaryPath,
 } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 
@@ -39,6 +43,9 @@ export default async function OnDeckHomePage() {
     club && !openSession
       ? await getScheduledSessionsForClub(supabase, club.id)
       : [];
+  // The three most recent closed nights. The full list has its own page; this
+  // is the way in, so the reader is not something you have to know the URL of.
+  const pastNights = club ? await getSummariesForClub(supabase, club.id, 3) : [];
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -125,6 +132,38 @@ export default async function OnDeckHomePage() {
               ) : (
                 <TonightControls scheduledSessions={scheduledSessions} />
               )}
+
+              {/* Past nights. Shown only once there are some — before the
+                  club's first closed Session this would be a card explaining
+                  an absence, on the one screen that should be about tonight. */}
+              {pastNights.length > 0 ? (
+                <div className="rounded-2xl border bg-card p-6">
+                  <h2 className="font-heading text-base font-semibold">
+                    Past nights
+                  </h2>
+                  <ul className="mt-3 flex flex-col gap-2">
+                    {pastNights.map((night) => (
+                      <li key={night.sessionId}>
+                        <Link
+                          href={summaryPath(night.sessionId)}
+                          className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm underline-offset-4 hover:underline"
+                        >
+                          <span>{nightLabel(night.startedAt)}</span>
+                          <span className="tabular-nums text-muted-foreground">
+                            {night.attendance} played, {night.gamesPlayed} games
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={ON_DECK_SUMMARIES_PATH}
+                    className="mt-4 inline-block text-sm underline underline-offset-4"
+                  >
+                    All past nights
+                  </Link>
+                </div>
+              ) : null}
             </div>
           )}
 
