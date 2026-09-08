@@ -3069,8 +3069,13 @@ html:has(.bb-app-chrome) {
   }
 
   /* On a phone the same table becomes one round at a time. Restyling rather
-     than re-rendering keeps a single copy of the schedule in the DOM. */
-  @media (max-width: 639px) {
+     than re-rendering keeps a single copy of the schedule in the DOM.
+
+     `screen and` is load-bearing: a print sheet is narrower than 640px on some
+     paper sizes, and the stacked layout is the wrong shape for paper - the
+     printout wants the grid, which is what the print block at the foot of this
+     section then styles. */
+  @media screen and (max-width: 639px) {
     .mm-grid,
     .mm-grid tbody,
     .mm-grid tr,
@@ -3289,5 +3294,220 @@ html:has(.bb-app-chrome) {
     letter-spacing: 0.03em;
     text-transform: uppercase;
     color: var(--mm-ink);
+  }
+}
+
+/* ---- On paper ----------------------------------------------------------
+   The sheet was always the subject, so printing is not a second design: it
+   is the same grid with the screen's apparatus taken off. What goes is the
+   chrome, the roster box and the controls; what stays is the title, the
+   schedule and the matrix that proves it.
+
+   It is a stylesheet and nothing else. The whole Schedule is in the DOM at
+   every viewport - the phone layout above restyles the same table rather
+   than re-rendering it - so paging it is a media query's job and no part of
+   it reaches into the component.
+
+   Deliberately outside `@layer components`, unlike everything above it.
+   Almost every override here is against a Tailwind utility - `sm:flex` on the
+   nav, `px-4 py-14` on the wrapper, `grid` on the two columns - and the
+   utilities layer wins over the components layer at any specificity, so
+   inside the layer this block silently did nothing to the things it most
+   needed to reach. Unlayered beats every layer, which is the right rank for
+   a rule that only applies once the page is on its way to a printer.
+   ------------------------------------------------------------------------ */
+
+@media print {
+  /* Named so the margin belongs to this sheet rather than to every page on
+     the site. Browsers without named-page support just keep their default
+     margin; nothing else here depends on it. */
+  @page mm-sheet {
+    margin: 14mm;
+  }
+
+  /* Only <main> prints. Stated as "the shell, minus everything that isn't
+     the page" rather than by naming the header and footer, because the site
+     chrome is several sibling elements (mobile bar, desktop bar, the menu's
+     trigger) and a list of them would rot the next time one is added. */
+  body:has(.mm-sheet) > *,
+  body:has(.mm-sheet) > div > *:not(#main-content) {
+    display: none;
+  }
+  body:has(.mm-sheet) > div:has(> #main-content) {
+    display: block;
+  }
+
+  .mm-sheet {
+    page: mm-sheet;
+
+    /* Paper is not a screen: the greys that separate rank on a backlit
+       display come out as faint dither on a laser printer, so the ink goes
+       to black and only the quiet register keeps a grey. Rules stay two
+       weights - a full-black hairline under every one of 1,024 matrix cells
+       is more ink than the grid is worth. */
+    --mm-paper: #fff;
+    --mm-sink: #fff;
+    --mm-ink: #000;
+    --mm-ink-dim: oklch(0.4 0 0);
+    --mm-rule: oklch(0.55 0 0);
+    --mm-rule-strong: #000;
+  }
+  /* The two dimmed states set their own ink, so they are unaffected by the
+     block above and need lifting to where a printer can hold them. They stay
+     dimmed rather than being normalised: a stale sheet and a specimen sheet
+     are exactly the two things that must not come off the printer looking
+     like tonight's draw. Both carry a label saying so; this keeps the second
+     half of that signal. */
+  .mm-draw[data-stale] {
+    --mm-ink: oklch(0.42 0 0);
+    --mm-ink-dim: oklch(0.52 0 0);
+    --mm-rule: oklch(0.68 0 0);
+    --mm-rule-strong: oklch(0.5 0 0);
+  }
+  .mm-example {
+    --mm-ink: oklch(0.48 0 0);
+    --mm-ink-dim: oklch(0.56 0 0);
+    --mm-rule: oklch(0.7 0 0);
+    --mm-rule-strong: oklch(0.6 0 0);
+  }
+
+  /* The full width of the page, with the margin coming from `@page`. */
+  .mm-sheet > div {
+    max-width: none;
+    padding: 0;
+  }
+  /* Block, not grid: with the controls column gone the schedule would
+     otherwise be the first grid item and land in the 19rem column meant for
+     the roster box. */
+  .mm-sheet .grid {
+    display: block;
+    margin-top: 0;
+  }
+
+  /* Nobody types into a printout. The title stays because a sheet at a desk
+     needs to say what it is; the standfirst above it is about the browser
+     holding your roster, which paper cannot do. */
+  .mm-controls,
+  .mm-sheet header .mm-legend,
+  .mm-lede {
+    display: none;
+  }
+  .mm-sheet header h1 {
+    font-size: 1.5rem;
+  }
+  .mm-sheet header {
+    margin-bottom: 0.5rem;
+  }
+
+  /* The scroller exists so a 32-player matrix never scrolls the page
+     sideways. Paper has no sideways, and a clipped column is the failure
+     this criterion names. */
+  .mm-scroll {
+    overflow: visible;
+  }
+
+  /* A round is the unit that gets read out, so it is the unit that must not
+     be split. The header row repeats itself onto each new sheet, which is
+     what makes the second page readable at all. */
+  .mm-grid thead {
+    display: table-header-group;
+  }
+  .mm-grid tbody tr,
+  .mm-matrix tr {
+    break-inside: avoid;
+  }
+  .mm-matrix thead {
+    display: table-header-group;
+  }
+  /* A legend stranded at the foot of a page is a heading for nothing, and
+     neither is the line under it - which is `.mm-summary` beneath the
+     Schedule but `.mm-note` beneath the Partner Matrix. */
+  .mm-legend,
+  .mm-summary,
+  .mm-note,
+  .mm-flag {
+    break-after: avoid;
+  }
+  /* Tighter than the screen, which can afford the air. Being unlayered, this
+     outranks the two padding rules the layered block sets on top of its own
+     shorthand, so both are restated rather than quietly dropped: the header
+     row's flush top and the gutter after the round number. */
+  .mm-grid th,
+  .mm-grid td {
+    padding: 0.4rem 0.7rem 0.4rem 0;
+  }
+  .mm-grid thead th {
+    padding-top: 0;
+    border-bottom-width: 2px;
+  }
+  .mm-grid tbody th {
+    padding-right: 1rem;
+  }
+  .mm-side {
+    font-size: 0.875rem;
+  }
+  /* The same floor the matrix's names set, one table over: a name cannot be
+     broken, so eight courts of long ones give the grid a minimum width wider
+     than the paper and the last court falls off the edge. On screen the
+     scroller catches that; paper has no sideways. Breaking mid-name is ugly
+     and only happens when the alternative is not printing the court at all -
+     at any ordinary roster the column is already wider than its longest name
+     and nothing breaks. */
+  .mm-side,
+  .mm-byes {
+    overflow-wrap: anywhere;
+  }
+
+  /* Fixed cell sizes are a screen affordance - they keep the matrix square
+     at any player count. On paper the count decides: at 32 players a 1.75rem
+     grid is 56rem wide and the right-hand columns fall off the sheet. Sizing
+     to content instead lets the table fit whatever the roster is. */
+  .mm-matrix {
+    max-width: 100%;
+    font-size: 0.6875rem;
+
+    /* The diagonal through the inert cells is a background image, and
+       printing drops backgrounds unless a page says otherwise. Without this
+       a pair with itself prints as a blank cell - which is the one thing the
+       diagonal exists to deny. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .mm-matrix thead th,
+  .mm-matrix td {
+    width: auto;
+    min-width: 0;
+    height: 1.15rem;
+    padding: 0 0.15rem;
+  }
+  /* The name column is the only one on the sheet that can give, so it is the
+     one allowed to. Held at `nowrap` it sets a floor the table cannot get
+     under, and a roster with a "Maria Fernanda Rodriguez Villanueva" in it
+     pushes 32 columns past the edge of an A4 page - which is the cut-off this
+     whole block is here to prevent. A wrapped name costs one taller row. */
+  .mm-matrix tbody th {
+    padding-right: 0.5rem;
+    white-space: normal;
+  }
+  .mm-matrix-index {
+    width: 1.25rem;
+  }
+  /* A border rather than the screen's inset shadow, for the same reason the
+     diagonal needed help: borders print, shadows are background paint. */
+  .mm-matrix td[data-repeat] {
+    box-shadow: none;
+    border: 2px solid var(--mm-ink);
+  }
+  /* The matrix follows the schedule down the page rather than being forced
+     onto a sheet of its own: at eight players that would be a page holding
+     an 8x8 grid and nothing else. But it is never split when it does not
+     have to be - it is one square read across and down, and half of it on
+     each side of a page turn is most of its value gone. Even at 32 players
+     it is shorter than a page, so this only ever moves it, never squeezes
+     it; if a roster of long wrapped names ever does outgrow a sheet the
+     browser drops the request and the repeating header row carries it. */
+  .mm-sheet section:has(> #mm-matrix-heading) {
+    margin-top: 1.75rem;
+    break-inside: avoid;
   }
 }
