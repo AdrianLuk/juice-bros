@@ -2459,6 +2459,190 @@ html:has(.bb-app-chrome) {
 }
 
 
+/* ── The Club QR sign (issue #463) ──────────────────────────────────────────
+
+   The one On Deck surface that is not a screen. Everything else in this file
+   is lit from behind; this is ink on paper taped to a wall.
+
+   The sheet is drawn *once*, at paper proportions, and the screen shows that
+   same drawing scaled down. That is why every size below is in `em` off a
+   root that is a share of the sheet's own width: the browser resolves it to
+   pixels in a preview and to millimetres on paper, from one set of numbers,
+   so the two can never drift apart. It also makes the paper control mean
+   something on screen — switching to A4 visibly changes the shape of the
+   sheet, rather than silently arming a print dialog.
+
+   The scale is set so one step line lands at 4.6mm on a printed Letter page,
+   which is the smallest thing on the sheet a Player reads standing up.
+
+   Paper is always white here, in either site theme: a sign that went dark
+   mode on screen would be lying about its output. */
+
+.od-sign-mount {
+  container-type: inline-size;
+}
+
+.od-sign {
+  /* Its own ink, so nothing here rides a theme token that flips. */
+  --sign-paper: #ffffff;
+  --sign-ink: #000000;
+  --sign-ink-dim: oklch(0.44 0 0);
+  --sign-rule: oklch(0.82 0 0);
+
+  /* Letter and A4 differ by about 3% in usable width and 7% in height, once
+     the 12mm print margin is off. The width feeds nothing but the aspect
+     ratio — the type scale is a share of whatever width the sheet gets. */
+  --sign-ratio: 191.9 / 255.4;
+
+  font-size: 2.4cqw;
+  aspect-ratio: var(--sign-ratio);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.7em;
+  width: 100%;
+  padding: 1.7em;
+  background-color: var(--sign-paper);
+  color: var(--sign-ink);
+  text-align: center;
+
+  /* Screen only — a sheet of paper has no border or shadow, and the print
+     block takes both off along with the preview's rounded corner. */
+  border: 1px solid var(--sign-rule);
+  border-radius: 2px;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.06), 0 22px 44px -28px oklch(0 0 0 / 0.4);
+}
+.od-sign[data-paper="a4"] {
+  --sign-ratio: 186 / 273;
+}
+
+/* On a phone the two jobs pull apart, and the scan wins. A proportional
+   preview of a Letter page is a 200px QR code no one can scan from arm's
+   length, and nobody is standing at the door printing — they are holding the
+   screen up because the sign isn't on the wall yet (issue #413's whole
+   reason). So below tablet width the sheet stops being paper-shaped, the
+   scale goes up, and the code takes the full width of the device. The paper
+   control is still there for whenever they get to a laptop.
+
+   `screen and` is load-bearing, not decoration: a print page box is measured
+   in the same CSS pixels, and Letter inside a 12mm margin is 725px — under
+   this breakpoint. Without it every printed sheet would come out at the
+   phone's scale and overflow the page. */
+@media screen and (max-width: 48rem) {
+  .od-sign {
+    aspect-ratio: auto;
+    font-size: 4.2cqw;
+  }
+}
+
+/* Whose sign it is, kept quiet: a Player scanning it does not need the
+   platform's name, and a club putting this on their own wall should not feel
+   branded over. */
+.od-sign-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.72em;
+  color: var(--sign-ink-dim);
+}
+.od-sign-brand img {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+
+.od-sign-club {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 2.2em;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+
+/* The line read from across the room, so it outweighs the club name. */
+.od-sign-headline {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 800;
+  font-size: 3.7em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin-top: -0.2em;
+}
+
+/* 112mm on a printed Letter page, which a phone reads from about a metre.
+   The white around it is the scanner's quiet zone, which is why `clubJoinQr`
+   draws with a tight `margin: 1` — the sheet supplies the rest. */
+.od-sign-qr {
+  width: 24.3em;
+  max-width: 100%;
+  aspect-ratio: 1;
+  background-color: #ffffff;
+}
+.od-sign-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* For the phone whose camera will not focus, and for anyone typing it into a
+   laptop. The same stable Club link the code encodes. */
+.od-sign-url {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.78em;
+  line-height: 1.4;
+  color: var(--sign-ink-dim);
+  word-break: break-all;
+  margin-top: -0.9em;
+}
+
+/* Numbered because it is a real sequence — what happens to one Player, in the
+   order it happens to them — not three facts that wanted a decoration. */
+.od-sign-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65em;
+  width: 100%;
+  max-width: 32em;
+  padding-top: 1.3em;
+  border-top: 1px solid var(--sign-rule);
+  text-align: left;
+}
+.od-sign-steps li {
+  display: grid;
+  grid-template-columns: 1.5em 1fr;
+  gap: 0.6em;
+  align-items: baseline;
+  font-size: 1em;
+  line-height: 1.35;
+}
+.od-sign-step-n {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 1.17em;
+  line-height: 1;
+}
+
+.od-sign-note {
+  font-size: 0.83em;
+  line-height: 1.4;
+  color: var(--sign-ink-dim);
+  max-width: 28em;
+}
+
+.od-sign-venue {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.7em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sign-ink-dim);
+}
+
 /* Everything below sits in Tailwind's `components` layer on purpose. Plain CSS
    after `@import "tailwindcss"` is unlayered, and unlayered rules outrank every
    layered utility - so a `.bx-btn md:hidden` would stay visible and a
@@ -3323,6 +3507,78 @@ html:has(.bb-app-chrome) {
      margin; nothing else here depends on it. */
   @page mm-sheet {
     margin: 14mm;
+  }
+
+  /* Two named pages rather than one, because the Club QR sign is the only
+     thing on this site whose paper size is a choice the user makes — a club
+     in Toronto prints Letter, the same sheet mailed to a club anywhere else
+     prints A4. Switched by `data-paper` on the sheet, which the on-screen
+     control sets before anyone reaches the print dialog. */
+  @page od-sign-letter {
+    size: Letter portrait;
+    margin: 12mm;
+  }
+  @page od-sign-a4 {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  .od-sign[data-paper="letter"] {
+    page: od-sign-letter;
+  }
+  .od-sign[data-paper="a4"] {
+    page: od-sign-a4;
+  }
+
+  /* Same structural approach as `.mm-sheet` above: state what prints rather
+     than listing the chrome, so adding a fifth thing to the shell does not
+     silently put it on the sign. The one addition is the `<header>`/`<footer>`
+     pair — On Deck's own bare shell sits *inside* `<main>` (see
+     `app/on-deck/layout.tsx`), below where the rule above can reach, and this
+     route has no other header or footer to catch. */
+  body:has(.od-sign) > *,
+  body:has(.od-sign) > div > *:not(#main-content) {
+    display: none;
+  }
+  body:has(.od-sign) > div:has(> #main-content) {
+    display: block;
+  }
+  body:has(.od-sign) #main-content header,
+  body:has(.od-sign) #main-content footer,
+  .od-sign-controls {
+    display: none;
+  }
+
+  /* The page margin comes from `@page`, so the sheet's own screen padding and
+     every wrapper's would all be doubling it. The reading width goes too — on
+     paper the sheet is the page. */
+  body:has(.od-sign) #main-content section {
+    padding: 0;
+  }
+  .od-sign-slot {
+    max-width: none;
+  }
+  .od-sign-mount {
+    margin: 0;
+  }
+
+  /* Nothing here restates a size. The sheet's whole type scale is a share of
+     its own width (`2.4cqw`, see the block that defines it), and the width it
+     gets here is the page's content box — so the same numbers that drew a
+     preview draw the sheet at 191.9mm and the step lines land at 4.6mm. What
+     is left is what paper does not have: a border, a shadow, a rounded
+     corner, and a fixed proportion, since the page already has one. */
+  .od-sign {
+    aspect-ratio: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+
+    /* Paper is not a screen: the quiet grey that separates the supporting
+       lines on a backlit display comes off a laser printer as faint dither,
+       so the dim ink lifts to something a printer can actually hold. */
+    --sign-ink-dim: oklch(0.34 0 0);
+    --sign-rule: oklch(0.6 0 0);
   }
 
   /* Only <main> prints. Stated as "the shell, minus everything that isn't

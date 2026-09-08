@@ -82,7 +82,7 @@ export default async function OnDeckHomePage() {
                     href={ON_DECK_QR_DISPLAY_PATH}
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                   >
-                    Show the QR
+                    The club sign
                   </Link>
                   <Link
                     href={ON_DECK_SETTINGS_PATH}
@@ -92,14 +92,15 @@ export default async function OnDeckHomePage() {
                   </Link>
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  No sign on the wall today? Pull up{" "}
+                  Print it once and it works every week. No sign on the wall
+                  today? Open{" "}
                   <Link
                     href={ON_DECK_QR_DISPLAY_PATH}
                     className="underline underline-offset-4"
                   >
-                    the QR
+                    the same page
                   </Link>{" "}
-                  and hold your screen up instead. Same link, printed or not.
+                  and hold your screen up instead.
                 </p>
               </div>
 
