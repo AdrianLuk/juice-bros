@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -156,6 +156,23 @@ export function SyncBookingsSection({
   autoSync?: boolean;
 }) {
   const [hasSynced, setHasSynced] = useState(autoSync);
+
+  // `?sync=1` is spent the moment it seeds `hasSynced` above, so take it off
+  // the URL. Left on, a reload or a back-navigation onto this history entry
+  // would silently re-run the whole sync — every configured feed fetched and a
+  // mailbox round trip — for someone who only pressed refresh. The hash stays,
+  // so the page keeps landing on this section.
+  useEffect(() => {
+    if (!autoSync) {
+      return;
+    }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.hash,
+    );
+  }, [autoSync]);
+
   const [settled, setSettled] = useState<Record<ReviewOutcome, number>>({
     added: 0,
     updated: 0,

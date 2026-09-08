@@ -165,6 +165,10 @@ test("?sync=1 runs the sync on arrival, with no button pressed", async ({ page, 
       .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) }),
   ).toBeVisible({ timeout: 15_000 });
 
+  // The flag is spent, so it comes off the URL — a reload must not silently
+  // re-run every feed fetch for someone who only pressed refresh.
+  await expect(page).toHaveURL(/\/booking-buddy\/bookings#sync$/);
+
   // Without the flag the section waits to be asked.
   await page.goto("/booking-buddy/bookings");
   await expect(section.getByRole("button", { name: "Sync bookings" })).toBeVisible();

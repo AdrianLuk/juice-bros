@@ -135,10 +135,10 @@ export function OnboardingModal({
   const [intent, setIntent] = useState<Intent | null>(null);
   const [bookingLogged, setBookingLogged] = useState(false);
   const [postedSlotId, setPostedSlotId] = useState<string | null>(null);
-  // The track branch's two local choices: a feed just saved (the action
-  // revalidates Facilities and Bookings, not this route, so `orgs` here won't
-  // hear about it) and "I'll type it in instead".
-  const [feedConnected, setFeedConnected] = useState(false);
+  // The track branch's two local choices: which Facility a feed was just saved
+  // against (the action revalidates Facilities and Bookings, not this route, so
+  // `orgs` here won't hear about it) and "I'll type it in instead".
+  const [connectedOrgId, setConnectedOrgId] = useState<string | null>(null);
   const [byHand, setByHand] = useState(false);
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export function OnboardingModal({
     bookingLogged ? "logged" : "",
     postedSlotId ? "shared" : "",
     orgs.length === 0 ? "no-facility" : "",
-    feedConnected ? "feed" : "",
+    connectedOrgId ? "feed" : "",
     byHand ? "by-hand" : "",
   ].join(":");
 
@@ -187,8 +187,8 @@ export function OnboardingModal({
               bookingLogged={bookingLogged}
               onBookingLogged={() => setBookingLogged(true)}
               onDone={() => setOpen(false)}
-              feedConnected={feedConnected}
-              onFeedConnected={() => setFeedConnected(true)}
+              connectedOrgId={connectedOrgId}
+              onFeedConnected={setConnectedOrgId}
               byHand={byHand}
               onByHand={setByHand}
             />
@@ -278,7 +278,7 @@ function TrackBranch({
   bookingLogged,
   onBookingLogged,
   onDone,
-  feedConnected,
+  connectedOrgId,
   onFeedConnected,
   byHand,
   onByHand,
@@ -287,9 +287,9 @@ function TrackBranch({
   bookingLogged: boolean;
   onBookingLogged: () => void;
   onDone: () => void;
-  /** A feed saved during this run — `orgs` doesn't hear about it, so this does. */
-  feedConnected: boolean;
-  onFeedConnected: () => void;
+  /** The Org a feed was saved against this run — `orgs` doesn't hear about it, so this does. */
+  connectedOrgId: string | null;
+  onFeedConnected: (orgId: string) => void;
   byHand: boolean;
   onByHand: (next: boolean) => void;
 }) {
@@ -337,10 +337,23 @@ function TrackBranch({
     );
   }
 
-  // The facility this step is about: the one they just added (`listOrgs` comes
-  // back newest first), or their default if they arrived here with several.
-  const facility = orgs.find((org) => org.isDefault) ?? orgs[0];
-  const hasFeed = feedConnected || orgs.some((org) => org.hasCalendarFeed);
+  // Which facility each step is about. The modal is a live "no Booking and no
+  // Slot" check, so it resurfaces for long-standing accounts too — a User can
+  // reach here with several Facilities, only some of them feed-configured.
+  // Naming the default one regardless would say "your feed is connected" over
+  // the name of a Facility that hasn't got one, so the subject comes off the
+  // feed state instead: the feed-bearing Facility on the confirmation, one
+  // still missing a feed on the offer. `listOrgs` is newest first, so on the
+  // ordinary first run both resolve to the Facility just added.
+  const fedFacility =
+    orgs.find((org) => org.id === connectedOrgId) ??
+    orgs.find((org) => org.hasCalendarFeed) ??
+    orgs[0];
+  const unfedFacility =
+    orgs.find((org) => !org.hasCalendarFeed && org.id !== connectedOrgId) ??
+    orgs[0];
+  const hasFeed =
+    connectedOrgId !== null || orgs.some((org) => org.hasCalendarFeed);
 
   if (byHand) {
     return (
@@ -370,12 +383,17 @@ function TrackBranch({
   }
 
   if (hasFeed) {
-    return <FeedConnectedStep facility={facility} />;
+    return (
+      <FeedConnectedStep
+        facility={fedFacility}
+        onByHand={() => onByHand(true)}
+      />
+    );
   }
 
   return (
     <CalendarFeedStep
-      facility={facility}
+      facility={unfedFacility}
       onConnected={onFeedConnected}
       onByHand={() => onByHand(true)}
     />
@@ -398,24 +416,24 @@ function CalendarFeedStep({
   onByHand,
 }: {
   facility: Org | undefined;
-  onConnected: () => void;
+  onConnected: (orgId: string) => void;
   onByHand: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
     setCalendarFeedUrl,
     EMPTY_ACTION,
   );
+  const orgId = facility?.id;
 
-  // Advance on the action settling, compared mid-render rather than in an
-  // effect — the same pattern `CreateBookingForm` uses to notice its own save
-  // (https://react.dev/learn/you-might-not-need-an-effect).
-  const [settled, setSettled] = useState(state);
-  if (settled !== state) {
-    setSettled(state);
-    if (state.ok) {
-      onConnected();
+  // Advance the branch once the action settles. In an effect, not mid-render:
+  // this moves state that belongs to `OnboardingModal`, and React only allows
+  // a render-phase update to a component's *own* state. Same shape as
+  // `CreateBookingForm`'s `onLogged`.
+  useEffect(() => {
+    if (state.ok && orgId) {
+      onConnected(orgId);
     }
-  }
+  }, [state, orgId, onConnected]);
 
   return (
     <>
@@ -474,22 +492,35 @@ function CalendarFeedStep({
 }
 
 /**
- * The handoff. The feed is saved; the reservations on it are not Bookings yet
- * and mustn't read as if they were — "Sync bookings" is a review, not the
- * result (issue #464). So this says what happens next in the product's own
- * terms and sends them to the Bookings page with the sync already running,
- * rather than rebuilding the review list inside a modal or promising a number
- * it hasn't fetched.
+ * The handoff. What just happened is a link being stored: `setCalendarFeedUrl`
+ * checks the scheme and the host, and nothing has been fetched yet. So the
+ * heading claims only that — "saved", the same word the Facilities form uses —
+ * and the reading of it is the next click's job. The reservations on a feed
+ * aren't Bookings either until they're reviewed ("Sync bookings" is a review,
+ * not the result, issue #464), which is why this hands off to the Bookings
+ * page with the sync already running rather than rebuilding the review list in
+ * a modal or naming a count it hasn't got.
+ *
+ * Hand-logging stays reachable from here. Saving a feed creates no Booking, so
+ * without it a User whose feed carries nothing upcoming would meet this same
+ * one-link screen on every dashboard visit with no way to finish.
  */
-function FeedConnectedStep({ facility }: { facility: Org | undefined }) {
+function FeedConnectedStep({
+  facility,
+  onByHand,
+}: {
+  facility: Org | undefined;
+  onByHand: () => void;
+}) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Your feed is connected</DialogTitle>
+        <DialogTitle>Your feed is saved</DialogTitle>
         <DialogDescription>
-          {facility ? facility.displayName : "Your club"} will hand over the
-          court times you&apos;ve reserved. Nothing lands on your calendar until
-          you&apos;ve looked them over and said yes.
+          Booking Buddy reads{" "}
+          {facility ? facility.displayName : "your club"}&apos;s feed when you
+          sync, and shows you what it found. Nothing lands on your calendar
+          until you&apos;ve looked it over and said yes.
         </DialogDescription>
       </DialogHeader>
       <div>
@@ -498,6 +529,19 @@ function FeedConnectedStep({ facility }: { facility: Org | undefined }) {
         <Link href={bookingsSyncHref} className={cn(buttonVariants())}>
           See what&apos;s on your feed
         </Link>
+      </div>
+
+      <div className="border-t border-border pt-5">
+        <p className="text-sm text-muted-foreground">
+          Got one the feed won&apos;t know about?{" "}
+          <button
+            type="button"
+            onClick={onByHand}
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            Log a booking by hand
+          </button>
+        </p>
       </div>
     </>
   );

@@ -147,7 +147,7 @@ test("track branch: connecting a feed hands off to the Bookings review", async (
   await page.getByRole("button", { name: "Connect feed" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Your feed is connected" }),
+    page.getByRole("heading", { name: "Your feed is saved" }),
   ).toBeVisible();
   await expect(modal(page)).toContainText(facility);
 
@@ -164,8 +164,32 @@ test("track branch: connecting a feed hands off to the Bookings review", async (
   ).toBeVisible();
   await chooseTrack(page);
   await expect(
-    page.getByRole("heading", { name: "Your feed is connected" }),
+    page.getByRole("heading", { name: "Your feed is saved" }),
   ).toBeVisible();
+});
+
+test("track branch: the handoff step still offers hand-logging", async ({ page }) => {
+  // Saving a feed creates no Booking, so without this a User whose feed
+  // carries nothing upcoming would meet the handoff on every dashboard visit
+  // with no way to finish onboarding.
+  await signUp(page, uniqueEmail());
+  await chooseTrack(page);
+  await addFacilityByHand(page, uniqueName());
+
+  await page.getByLabel("Calendar feed link").fill(FEED_URL);
+  await page.getByRole("button", { name: "Connect feed" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your feed is saved" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Log a booking by hand" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Log your first booking" }),
+  ).toBeVisible();
+  // The feed is already saved, so the hand step doesn't offer it back.
+  await expect(
+    page.getByRole("button", { name: "Paste your calendar feed instead" }),
+  ).toHaveCount(0);
 });
 
 test("track branch: a bad feed URL is rejected inline and the step stays put", async ({
