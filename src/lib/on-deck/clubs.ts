@@ -18,11 +18,15 @@ export type Club = {
   groupCap: number;
   floorMode: FloorMode;
   /**
-   * IANA zone the Club's nights are named on (issue #469). Display only —
+   * IANA zone the Club's nights are named on (issue #469). Display only:
    * every timestamp is a `timestamptz`. A Session snapshots this at creation,
    * so changing it here renames future nights, never past ones.
+   *
+   * `null` means nobody has said yet. The Organizer is never asked, because
+   * their own browser already knows — `adoptDetectedTimeZone` fills this in on
+   * their first visit and only while it is null.
    */
-  timeZone: string;
+  timeZone: string | null;
 };
 
 type ClubRow = {
@@ -32,7 +36,7 @@ type ClubRow = {
   court_count: number;
   group_cap: number;
   floor_mode: FloorMode;
-  time_zone: string;
+  time_zone: string | null;
 };
 
 function toClub(row: ClubRow): Club {
@@ -74,6 +78,27 @@ export async function getOwnedClub(
  * posture); the RPC touches only those four columns and checks ownership. An
  * unknown zone is refused by the table's own trigger, not by the RPC.
  */
+/**
+ * Adopts a zone for a Club that has none, and does nothing at all otherwise.
+ *
+ * The `is null` in the RPC is what makes this safe to fire on every visit: an
+ * Organizer who set their clock by hand in Settings, or who is reading the
+ * board from a hotel in another country, cannot have it silently rewritten by
+ * whatever device they happen to be holding.
+ */
+export async function adoptClubTimeZone(
+  supabase: SupabaseClient,
+  timeZone: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("on_deck_adopt_club_time_zone", {
+    p_time_zone: timeZone,
+  });
+
+  if (error) {
+    throw new Error(`adopting the Club's time zone failed: ${error.message}`);
+  }
+}
+
 export async function updateClubDefaults(
   supabase: SupabaseClient,
   input: {

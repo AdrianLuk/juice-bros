@@ -14,7 +14,8 @@ type Props = {
   venueName: string;
   courtCount: number;
   groupCap: number;
-  timeZone: string;
+  /** The Club's clock, or null if it has not been established yet. */
+  timeZone: string | null;
   /** Every zone this runtime knows, resolved on the server (see below). */
   zones: string[];
 };
@@ -23,6 +24,11 @@ type Props = {
  * The Club's saved Session defaults (issue #254, user story 44) — venue, court
  * count, group cap, and the Club's clock (issue #469). Every one-tap Start
  * reads from here, and an unedited scheduled Session inherits them.
+ *
+ * The clock is a correction, not a setup step: `AdoptTimeZone` has already
+ * taken it off the Organizer's own browser by the time anyone opens this page.
+ * It stays visible because detection has exactly one failure mode it cannot
+ * fix by itself, which is being wrong.
  *
  * The zone list is resolved on the server and passed in, so both renders agree
  * on it: `Intl.supportedValuesOf` is free to differ between Node's ICU build
@@ -42,14 +48,19 @@ export function ClubDefaultsForm({
   const [venue, setVenue] = useState(venueName);
   const [courts, setCourts] = useState(String(courtCount));
   const [cap, setCap] = useState(String(groupCap));
-  const [zone, setZone] = useState(timeZone);
+  // Falls back to this browser's own zone, which is what the Club would have
+  // adopted anyway. An Organizer opening Settings should find their clock
+  // already right, not a blank they have to reason about.
+  const [zone, setZone] = useState(
+    timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
+  );
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   // The Club's own zone is always offered, even if this runtime's ICU build
-  // does not list it — a stored zone that vanished from the picker would be
+  // does not list it: a stored zone that vanished from the picker would be
   // silently replaced by whatever sorted first.
-  const options = Array.from(new Set([timeZone, ...zones])).sort();
+  const options = Array.from(new Set([zone, ...zones])).sort();
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -141,9 +152,9 @@ export function ClubDefaultsForm({
           ))}
         </select>
         <p className="text-sm text-muted-foreground">
-          Which clock a finished night is dated on. A session that runs to 8pm
-          is the next day in UTC, so this is what keeps last Saturday from
-          reading as Sunday.
+          Which clock a finished night is dated on. Already set from the device
+          you first signed in on, so this only needs touching if that was the
+          wrong one.
         </p>
       </div>
 

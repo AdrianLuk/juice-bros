@@ -16,6 +16,7 @@ import {
 } from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
 import { TonightControls } from "@/components/on-deck/tonight-controls";
+import { AdoptTimeZone } from "@/components/on-deck/adopt-time-zone";
 import {
   ON_DECK_QR_DISPLAY_PATH,
   ON_DECK_SETTINGS_PATH,
@@ -52,6 +53,11 @@ export default async function OnDeckHomePage() {
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-lg">
           <PageHeading eyebrow="On Deck" title="Tonight" />
+
+          {/* The Club's clock, established from the Organizer's own browser
+              rather than asked for. Mounted only while it is unset, so this is
+              one write on one visit and nothing thereafter. */}
+          {club && club.timeZone === null ? <AdoptTimeZone /> : null}
 
           {!club ? (
             <div className="mt-8 rounded-2xl border bg-card p-6 text-sm text-muted-foreground">

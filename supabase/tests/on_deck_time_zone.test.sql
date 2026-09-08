@@ -14,7 +14,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(20);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('11111111-0000-0000-0000-000000000469', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'vanessa-469@example.com'),
@@ -23,7 +23,9 @@ insert into auth.users (id, instance_id, aud, role, email) values
 -- ---- the column and its guard ---------------------------------------------
 
 select has_column('public', 'on_deck_clubs', 'time_zone', 'a Club carries a time zone');
-select col_not_null('public', 'on_deck_clubs', 'time_zone', 'and it is never null');
+-- Nullable on purpose: null means "nobody has said yet", which is what lets
+-- the app adopt the Organizer's browser zone instead of asking them.
+select col_is_null('public', 'on_deck_clubs', 'time_zone', 'and it may be unset');
 select has_column('public', 'on_deck_sessions', 'time_zone', 'a Session snapshots one');
 select col_not_null('public', 'on_deck_sessions', 'time_zone', 'and it is never null either');
 
@@ -36,14 +38,14 @@ select is(
   'a real IANA zone is stored as given'
 );
 
--- A Club seeded without one lands on UTC rather than on nothing.
+-- A Club seeded by hand from SQL has no browser to ask, so it starts blank.
 insert into public.on_deck_clubs (id, owner_id, name, venue_name, court_count, group_cap, floor_mode) values
   ('c8c8c8c8-0000-0000-0000-000000000469', '22222222-0000-0000-0000-000000000469', 'Cal''s Club', 'Some Other Park', 6, 3, 'hybrid');
 
 select is(
   (select time_zone from public.on_deck_clubs where id = 'c8c8c8c8-0000-0000-0000-000000000469'),
-  'UTC',
-  'a Club seeded without a zone defaults to UTC'
+  null,
+  'a Club seeded without a zone starts unset, not on a guess'
 );
 
 select throws_ok(
@@ -120,15 +122,50 @@ select throws_ok(
   'the RPC cannot smuggle an unknown zone past the table''s trigger'
 );
 
--- Cal's Club is untouched by any of it. Read back as the table owner: under
+-- ---- adoption: fills a blank clock, never overwrites one -----------------
+
+-- Vanessa's Club already has a zone by now, so adoption must leave it alone.
+select lives_ok(
+  $$select public.on_deck_adopt_club_time_zone('Australia/Sydney')$$,
+  'adopting is never an error, even when there is nothing to adopt'
+);
+
+select is(
+  (select time_zone from public.on_deck_clubs where id = 'c9c9c9c9-0000-0000-0000-000000000469'),
+  'America/Toronto',
+  'a Club that already has a clock keeps it -- this is the safety property'
+);
+
+-- Now as Cal, whose Club is still blank.
+set local request.jwt.claim.sub = '22222222-0000-0000-0000-000000000469';
+set local request.jwt.claims = '{"sub":"22222222-0000-0000-0000-000000000469","role":"authenticated"}';
+
+select lives_ok(
+  $$select public.on_deck_adopt_club_time_zone('Europe/Berlin')$$,
+  'an Organizer whose Club has no clock adopts one'
+);
+
+select is(
+  (select time_zone from public.on_deck_clubs where id = 'c8c8c8c8-0000-0000-0000-000000000469'),
+  'Europe/Berlin',
+  'and it lands'
+);
+
+-- A second visit from another device does not move it.
+select lives_ok(
+  $$select public.on_deck_adopt_club_time_zone('Asia/Tokyo')$$,
+  'a later visit from elsewhere is a no-op'
+);
+
+-- Cal's Club is untouched by Vanessa's edits. Read back as the table owner: under
 -- Vanessa's JWT, RLS makes his Club invisible rather than unchanged, and an
 -- invisible row would pass this assertion for the wrong reason.
 reset role;
 
 select is(
   (select time_zone from public.on_deck_clubs where id = 'c8c8c8c8-0000-0000-0000-000000000469'),
-  'UTC',
-  'another Organizer''s Club is never moved by this path'
+  'Europe/Berlin',
+  'an Organizer travelling with their laptop cannot rewrite their own clock'
 );
 
 select * from finish();

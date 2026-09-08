@@ -62,6 +62,9 @@ test.beforeAll(async ({ browser }) => {
     name: "TO Pickleball Club",
     venueName: "Ramsden Park",
     floorMode: "hybrid",
+    // Explicit here so this club's dates are deterministic. The other Club
+    // below is left unset on purpose, to exercise adoption.
+    timeZone: "America/Toronto",
   });
   await seedClubForOrganizer(OTHER, {
     name: "Some Other Club",
@@ -166,6 +169,33 @@ test("closing a night puts its numbers on the Organizer's own screens, no SQL", 
   // The roster is gone — a closed Session leaves numbers, not people.
   await expect(page.getByText("Ana")).toHaveCount(0);
   await expect(page.getByText("Bo", { exact: true })).toHaveCount(0);
+});
+
+test("an Organizer is never asked for a time zone -- their browser answers it", async ({
+  page,
+}) => {
+  // Cal's Club was seeded from SQL, where no browser exists to ask, so it
+  // starts with no clock at all. Loading home is what establishes one.
+  await signIn(page, OTHER);
+  await page.goto("/on-deck/home");
+  await expect(page.getByRole("heading", { name: "Tonight" })).toBeVisible();
+
+  // Settings shows a clock without anyone having chosen one. Playwright's
+  // browser runs on UTC, so that is what it adopts here; the point is that a
+  // value is there at all, and that nobody was prompted for it.
+  await page.goto("/on-deck/home/settings");
+  const picker = page.getByLabel("Time zone");
+  await expect(picker).toBeVisible();
+  await expect(picker).not.toHaveValue("");
+
+  // And it is a correction, not a setup step: an Organizer can still say the
+  // guess was wrong.
+  await picker.selectOption("America/Toronto");
+  await page.getByRole("button", { name: "Save defaults" }).click();
+  await expect(page.getByText("Defaults saved.")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByLabel("Time zone")).toHaveValue("America/Toronto");
 });
 
 test("another Club's night is not readable", async ({ page }) => {

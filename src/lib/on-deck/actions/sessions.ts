@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
-import { getOwnedClub, updateClubDefaults } from "../clubs.ts";
+import {
+  adoptClubTimeZone,
+  getOwnedClub,
+  updateClubDefaults,
+} from "../clubs.ts";
 import { isKnownTimeZone } from "../timezone.ts";
 import { getOpenSessionForClub } from "../sessions.ts";
 import {
@@ -142,6 +146,38 @@ function validateFields(
   }
 
   return { ok: true, venueName, courtCount, groupCap, scheduledFor };
+}
+
+/**
+ * Adopts the Organizer's own browser zone as the Club's clock, if the Club
+ * has none yet (issue #469).
+ *
+ * Fired from the Organizer's home screen rather than asked as a question. The
+ * browser is the only party that knows this, and an Organizer opening On Deck
+ * has no reason to care that a `timestamptz` needs a zone to become a date.
+ *
+ * Deliberately silent in both directions. It reports nothing on success,
+ * because there is nothing to tell; and it swallows failure, because a clock
+ * that stays unset costs a wrong-looking date on a page that is not even open
+ * yet, and that is not worth an error on the screen someone opened to start
+ * tonight's session. The RPC is a no-op once a zone exists, so calling it on
+ * every visit is free.
+ */
+export async function adoptDetectedTimeZone(timeZone: string): Promise<void> {
+  await verifyOrganizer();
+
+  if (!isKnownTimeZone(timeZone)) return;
+
+  try {
+    const supabase = await createClient();
+    await adoptClubTimeZone(supabase, timeZone);
+  } catch (error) {
+    console.error("on-deck: adopting the Club's time zone failed", error);
+    return;
+  }
+
+  revalidatePath(ON_DECK_HOME_PATH);
+  revalidatePath(ON_DECK_SETTINGS_PATH);
 }
 
 /**
