@@ -149,6 +149,38 @@ export async function feedEventsForOrg(
 }
 
 /**
+ * Records an `org_feed_events` row directly, so a spec can set up seen-event
+ * history no sync could produce — the age-out prune (issue #452) needs rows
+ * dated far enough back that a live feed would never still be showing them.
+ */
+export async function seedFeedEvent(
+  user: FixtureUser,
+  row: {
+    orgId: string;
+    uid: string;
+    /** Start instant, ISO 8601. */
+    startsAt: string;
+    /** Defaults to `startsAt` — the state an ordinary aged-out row is left in. */
+    lastSeenAt?: string;
+    status?: "pending" | "imported" | "dismissed";
+  },
+): Promise<void> {
+  const ownerId = await fixtureUserId(user);
+  await restAsUser(user, "org_feed_events", {
+    method: "POST",
+    body: JSON.stringify({
+      owner_id: ownerId,
+      org_id: row.orgId,
+      uid: row.uid,
+      sequence: 0,
+      starts_at: row.startsAt,
+      last_seen_at: row.lastSeenAt ?? row.startsAt,
+      status: row.status ?? "pending",
+    }),
+  });
+}
+
+/**
  * Records a dismissed reservation directly (issue #444's `dismissed_reservations`),
  * so a spec can set one up without walking a whole dismiss flow — the prune
  * test needs a slot dated in the past, which no sync would ever offer.

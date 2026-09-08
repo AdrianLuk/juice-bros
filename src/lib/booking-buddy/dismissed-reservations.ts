@@ -267,10 +267,12 @@ export function dismissalPruneCutoff(now: Date): string {
  * cron route would mean a new schedule, a new auth surface and a new failure
  * mode for a table that tidies itself perfectly well at the moment of use.
  *
- * (`org_feed_events` describes itself as "pruned as events age past", which
- * reads like prior art for this and isn't: what that table actually has is the
+ * (`org_feed_events` described itself as "pruned as events age past", which
+ * read like prior art for this and wasn't: what that table had was the
  * cancellation diff's in-window *skip* of a past-dated event, which deletes
- * nothing. This is the first real prune of either.)
+ * nothing. This was the first real prune of either. Issue #452 corrected the
+ * claim and then made it true — `pruneExpiredFeedEvents` (`feed-events.ts`)
+ * now runs from the same place in `runFeedSync` as this one.)
  *
  * The corollary is that a User who stops syncing keeps whatever rows they had.
  * The feed sync runs this ahead of its own early returns, so "no feeds

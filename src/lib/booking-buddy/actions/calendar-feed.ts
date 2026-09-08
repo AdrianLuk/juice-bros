@@ -23,7 +23,11 @@ import {
   type SeenFeedEvent,
 } from "../calendar-feed-review.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
-import { upsertFeedEventRow, type FeedEventUpsert } from "../feed-events.ts";
+import {
+  pruneExpiredFeedEvents,
+  upsertFeedEventRow,
+  type FeedEventUpsert,
+} from "../feed-events.ts";
 import {
   listDismissedReservations,
   pruneExpiredDismissedReservations,
@@ -438,12 +442,19 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
   // One "now" for the whole run, same as `syncFromEmail`.
   const now = new Date();
 
-  // Housekeeping (issue #447). Once for the run, not once per Facility — the
-  // prune isn't scoped to an Org, so running it inside the loop below would
-  // repeat a delete that already found everything the first time. And ahead of
-  // every early return below, so that "you have no feeds configured" doesn't
-  // also mean "your expired dismissals stay forever".
-  await pruneExpiredDismissedReservations(supabase, session.userId, now);
+  // Housekeeping (issues #447 and #452). Once for the run, not once per
+  // Facility — neither prune is scoped to an Org, so running them inside the
+  // loop below would repeat a delete that already found everything the first
+  // time. And ahead of every early return below, so that "you have no feeds
+  // configured" doesn't also mean "these tables stay as they are forever".
+  //
+  // Ahead of `syncOneFeed`'s own seen-set read too, so one sync run sees one
+  // state of `org_feed_events` — the review diffs against exactly the rows the
+  // prune left behind.
+  await Promise.all([
+    pruneExpiredDismissedReservations(supabase, session.userId, now),
+    pruneExpiredFeedEvents(supabase, session.userId, now),
+  ]);
 
   let query = supabase
     .from("orgs")
