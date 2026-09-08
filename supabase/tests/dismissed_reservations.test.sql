@@ -14,15 +14,16 @@
 --     by court *number* at read time, not by a database key;
 --   * the indexes the per-Org read and the orgs cascade need are present;
 --   * the coherence trigger stops a row being hung off someone else's Org;
---   * RLS is "mine and nobody else's", and there is no update or delete grant
---     — a dismissal is recorded once and never revisited;
+--   * RLS is "mine and nobody else's", there is no update grant — a dismissal
+--     is never rewritten in place — but there is a delete grant, so a User can
+--     take one back from the review screen (issue #444);
 --   * deleting the Org, or the User, cascades the dismissals away.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(23);
+select plan(24);
 
 -- Shape -----------------------------------------------------------------------
 
@@ -124,7 +125,7 @@ select throws_ok(
   'recording a dismissal under someone else''s owner_id is refused, not silently misattributed'
 );
 
--- Write-once, the same posture processed_messages takes: no un-dismiss.
+-- Never rewritten in place: a dismissal is either standing or gone.
 select throws_ok(
   $$ update public.dismissed_reservations set court_label = '#1' $$,
   '42501',
@@ -132,11 +133,20 @@ select throws_ok(
   'there is no update grant — a dismissal is never rewritten'
 );
 
-select throws_ok(
-  $$ delete from public.dismissed_reservations $$,
-  '42501',
-  null,
-  'and no delete grant — rows leave only when the Org or the User does'
+-- But it can be taken back (issue #444). The un-dismiss deletes *every* row
+-- matching the slot, because both sources record their own with their own
+-- court text and leaving one behind would leave the slot suppressed.
+select lives_ok(
+  $$ delete from public.dismissed_reservations
+     where slot_date = '2031-10-01' and slot_start_time = '18:00' $$,
+  'the owner can take their own dismissal back — both sources'' rows at once'
+);
+
+select is(
+  (select count(*)::int from public.dismissed_reservations
+   where slot_date = '2031-10-01'),
+  0,
+  'both rows for that slot are gone, so the next sync offers the reservation again'
 );
 
 reset role;
@@ -156,8 +166,8 @@ reset role;
 select is(
   (select count(*)::int from public.dismissed_reservations
    where owner_id = 'a0000000-d15d-0000-0000-000000000001'),
-  4,
-  'the owner''s dismissals are all still there — the stranger''s zero count above was RLS'
+  2,
+  'the owner''s remaining dismissals are still there — the stranger''s zero count above was RLS'
 );
 
 -- Removing the Facility takes its dismissals with it: there is no reservation

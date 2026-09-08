@@ -13,10 +13,15 @@ import {
   FeedCandidateCard,
   FeedCancellationCard,
 } from "@/components/booking-buddy/sync-facilities";
+import { SuppressedReservations } from "@/components/booking-buddy/suppressed-reservations";
 import {
   mergeImportCandidates,
   type MergedImportCandidate,
 } from "@/lib/booking-buddy/merge-import-candidates";
+import {
+  isSameReservation,
+  type BookingIdentity,
+} from "@/lib/booking-buddy/import-candidate-shaping";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -142,6 +147,42 @@ export function SyncBookingsSection({
     );
   }
 
+  // "Offer this again" (issue #444) deleted every `dismissed_reservations` row
+  // for this slot, so it is suppressed on neither side any more — drop it from
+  // both caches, the same way a resolved candidate is dropped, rather than
+  // re-running a whole sync (a mailbox round trip, every feed fetched) to
+  // learn what this already knows.
+  function handleSuppressedResolved(reservation: BookingIdentity) {
+    queryClient.setQueryData<SyncFromEmailResult>(EMAIL_QUERY_KEY, (previous) =>
+      previous?.status === "ok"
+        ? {
+            ...previous,
+            suppressed: previous.suppressed.filter(
+              (slot) => !isSameReservation(slot, reservation),
+            ),
+          }
+        : previous,
+    );
+    queryClient.setQueryData<SyncFacilityFeedsResult>(FEED_QUERY_KEY, (previous) => {
+      if (previous?.status !== "ok") {
+        return previous;
+      }
+      return {
+        ...previous,
+        feeds: previous.feeds.map((feed) =>
+          feed.status === "ok"
+            ? {
+                ...feed,
+                suppressed: feed.suppressed.filter(
+                  (slot) => !isSameReservation(slot, reservation),
+                ),
+              }
+            : feed,
+        ),
+      };
+    });
+  }
+
   function handleMergedResolved(item: MergedImportCandidate) {
     // A merged card is one reservation from both sources — clear it from both
     // query caches so it can't come back from either side.
@@ -177,6 +218,15 @@ export function SyncBookingsSection({
     (feed) => feed.cancellations,
   );
   const feedsLookingWrong = okFeeds.filter((feed) => feed.feedLooksWrong);
+
+  // Reservations both sources dropped against `dismissed_reservations` (issue
+  // #444). Concatenated raw — `SuppressedReservations` dedupes, because when
+  // both sources are configured for a facility the same reservation is
+  // suppressed once on each side and the User said no to it only once.
+  const suppressedReservations = [
+    ...(emailData?.status === "ok" ? emailData.suppressed : []),
+    ...okFeeds.flatMap((feed) => feed.suppressed),
+  ];
 
   // One reservation the User made can arrive from both sources at once (a
   // Mailbox Link and a calendar feed for the same facility) — consolidate the
@@ -410,6 +460,15 @@ export function SyncBookingsSection({
             No new bookings found.
           </p>
         )}
+
+        {/* Last, and after the empty state: "no new bookings found" plus "3
+            were skipped because you dismissed them before" is the pair that
+            actually answers "where is my booking?". */}
+        <SuppressedReservations
+          reservations={suppressedReservations}
+          orgs={orgs}
+          onOfferedAgain={handleSuppressedResolved}
+        />
       </div>
     </section>
   );

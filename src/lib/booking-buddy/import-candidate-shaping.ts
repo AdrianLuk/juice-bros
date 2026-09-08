@@ -173,3 +173,47 @@ export function isPastConfirmation(
 ): boolean {
   return isPastDate(confirmation.date, zone, now);
 }
+
+/**
+ * A reservation's stable string form — Org, calendar day, start time and
+ * court *number* — the React key for a row in the review screen's list of what
+ * a sync suppressed (issue #444).
+ *
+ * Not a substitute for `isSameReservation`, and not used as one: a side with
+ * no readable court number matches *any* court in that slot, which no string
+ * key can express. Two reservations that share a key are always the same
+ * reservation; two that don't may still be, and the places where that matters
+ * compare with `isSameReservation` instead.
+ */
+export function reservationKey(reservation: BookingIdentity): string {
+  return [
+    reservation.orgId,
+    reservation.date,
+    reservation.startTime,
+    courtNumber(reservation.courtLabel) ?? "",
+  ].join("|");
+}
+
+/**
+ * One entry per real reservation, keeping the first of any run that
+ * `isSameReservation` calls the same one (issue #444).
+ *
+ * The review screen lists what a sync suppressed against
+ * `dismissed_reservations`, and both import sources suppress the *same*
+ * reservation when both are configured for a facility — the email's
+ * `"#9 - Hard"` and the feed's `"#9"`, which are one slot and must read as one
+ * line. Compared with `isSameReservation` rather than by `reservationKey` so a
+ * source that named no court still collapses into the one that did.
+ *
+ * Quadratic, deliberately: this runs over what a single sync suppressed, which
+ * is a handful of rows at most.
+ */
+export function dedupeReservations<T extends BookingIdentity>(reservations: readonly T[]): T[] {
+  const kept: T[] = [];
+  for (const reservation of reservations) {
+    if (!kept.some((seen) => isSameReservation(seen, reservation))) {
+      kept.push(reservation);
+    }
+  }
+  return kept;
+}

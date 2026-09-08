@@ -4,11 +4,13 @@ import test from "node:test";
 import { COURT_LABEL_MAX_LENGTH, NOTES_MAX_LENGTH } from "./bookings.ts";
 import {
   courtNumber,
+  dedupeReservations,
   findSameReservation,
   isDismissedReservation,
   isDuplicateBooking,
   isPastConfirmation,
   isSameReservation,
+  reservationKey,
   splitOverlongCourtLabel,
   stripCourtLabelPrefix,
 } from "./import-candidate-shaping.ts";
@@ -166,4 +168,40 @@ test("a confirmation dated today or later is not past", () => {
   const now = new Date("2026-09-15T12:00:00Z");
   assert.equal(isPastConfirmation({ date: "2026-09-15" }, "America/Toronto", now), false);
   assert.equal(isPastConfirmation({ date: "2026-09-16" }, "America/Toronto", now), false);
+});
+
+test("two sources' court text for one slot reduces to the same reservation key (#444)", () => {
+  assert.equal(
+    reservationKey({ ...SAME_SLOT, courtLabel: "#9 - Hard" }),
+    reservationKey({ ...SAME_SLOT, courtLabel: "#9" }),
+  );
+});
+
+test("a reservation key separates court, date, time and Org", () => {
+  const base = reservationKey({ ...SAME_SLOT, courtLabel: "#9" });
+  assert.notEqual(base, reservationKey({ ...SAME_SLOT, courtLabel: "#10" }));
+  assert.notEqual(base, reservationKey({ ...SAME_SLOT, date: "2026-09-16" }));
+  assert.notEqual(base, reservationKey({ ...SAME_SLOT, startTime: "19:00" }));
+  assert.notEqual(base, reservationKey({ ...SAME_SLOT, orgId: "org-2" }));
+});
+
+test("a slot suppressed by both sources is listed once (#444)", () => {
+  const fromEmail = { ...SAME_SLOT, courtLabel: "#9 - Hard" };
+  const fromFeed = { ...SAME_SLOT, courtLabel: "#9" };
+  assert.deepEqual(dedupeReservations([fromEmail, fromFeed]), [fromEmail]);
+});
+
+test("a source that named no court collapses into the one that did", () => {
+  // `reservationKey` can't see this — only `isSameReservation`'s deliberate
+  // "no court matches any court" rule does, which is why the dedupe uses it.
+  const withCourt = { ...SAME_SLOT, courtLabel: "#9" };
+  const withoutCourt = { ...SAME_SLOT, courtLabel: null };
+  assert.deepEqual(dedupeReservations([withCourt, withoutCourt]), [withCourt]);
+  assert.notEqual(reservationKey(withCourt), reservationKey(withoutCourt));
+});
+
+test("two real reservations in the same slot at different courts both stay", () => {
+  const nine = { ...SAME_SLOT, courtLabel: "#9" };
+  const ten = { ...SAME_SLOT, courtLabel: "#10" };
+  assert.deepEqual(dedupeReservations([nine, ten]), [nine, ten]);
 });
