@@ -1,5 +1,6 @@
 /**
- * Direct-Postgres teardown for the parallel browser suite.
+ * Direct-Postgres teardown for the parallel browser suite, plus the one piece
+ * of setup that answers it (`pinFriendVisibility`).
  *
  * Under `workers > 1` the single Next server's Server-Action round trips
  * balloon, and `afterEach` cleanup that clicks through the UI (create a group,
@@ -15,6 +16,7 @@ import {
   LOCAL_SUPABASE_ANON_KEY,
   LOCAL_SUPABASE_API_URL,
   fixtureToken,
+  fixtureUserId,
   type FixtureUser,
 } from "./fixture-token.ts";
 
@@ -24,7 +26,7 @@ async function asUser(
   user: FixtureUser,
   path: string,
   init: RequestInit,
-): Promise<void> {
+): Promise<Response> {
   const token = await fixtureToken(user);
   const res = await fetch(`${LOCAL_SUPABASE_API_URL}/rest/v1/${path}`, {
     ...init,
@@ -38,6 +40,7 @@ async function asUser(
   if (!res.ok) {
     throw new Error(`db-reset: ${init.method} ${path} failed: ${res.status} ${await res.text()}`);
   }
+  return res;
 }
 
 /**
@@ -60,6 +63,57 @@ export async function deleteVisibilityOverrides(user: FixtureUser): Promise<void
   // RLS scopes this to the caller's own rows; the filter is only PostgREST's
   // "delete needs a where" requirement.
   await asUser(user, "visibility_overrides?owner_id=not.is.null", { method: "DELETE" });
+}
+
+/**
+ * Pins what `owner` lets `friend` see, whatever their default and Friend Groups
+ * would otherwise resolve to. The inverse of `deleteVisibilityOverrides`, which
+ * is how a spec puts the owner back on their default afterwards.
+ *
+ * Since ADR 0021 the resolver's floor is `profiles.default_friend_visibility`,
+ * seeded to `calendar`, so "these two are connected and nothing else has
+ * happened" already means they see each other's games and availability. A spec
+ * whose subject is what someone *can't* see has to say so, and an override is
+ * the sharpest way: it wins over the floor and over every Group grant, and it
+ * is scoped to the one pair rather than to every friend the owner has.
+ *
+ * The four levels are `visibility_level`'s own, mirrored from
+ * `src/lib/booking-buddy/visibility.ts` rather than imported — nothing under
+ * `e2e/` reaches into `src/`, and this suite drives the app from outside it.
+ */
+export async function pinFriendVisibility(
+  owner: FixtureUser,
+  friend: FixtureUser,
+  level: "none" | "slots" | "open_time" | "calendar",
+): Promise<void> {
+  const [ownerId, friendId] = await Promise.all([
+    fixtureUserId(owner),
+    fixtureUserId(friend),
+  ]);
+
+  // One row covers the pair whichever way round it was asked (what the
+  // `connections_unique_pair` index guarantees), so both orientations are
+  // tried.
+  const pair =
+    `or=(and(requester_id.eq.${ownerId},addressee_id.eq.${friendId}),` +
+    `and(requester_id.eq.${friendId},addressee_id.eq.${ownerId}))`;
+  const found = await asUser(owner, `connections?select=id&status=eq.accepted&${pair}`, {
+    method: "GET",
+  });
+  const rows = (await found.json()) as { id: string }[];
+  if (rows.length !== 1) {
+    throw new Error(
+      `db-reset: expected one accepted Connection between ${owner.email} and ${friend.email}, found ${rows.length}`,
+    );
+  }
+
+  // Upsert on the (owner_id, connection_id) primary key, so pinning the same
+  // pair twice in a run is not an error.
+  await asUser(owner, "visibility_overrides", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify({ owner_id: ownerId, connection_id: rows[0].id, level }),
+  });
 }
 
 /** Sweeps every Facility the caller owns — the safety net for specs that add them. */

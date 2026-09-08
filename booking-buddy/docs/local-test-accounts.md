@@ -58,13 +58,19 @@ Without this the friendships die with every `supabase db reset`, and five browse
 fail for reasons that have nothing to do with the code under test. That is how it got
 added.
 
-Accepting a Connection now auto-grants `calendar` Visibility on both sides (a real app
-behavior, pgTAP-covered in `connections.test.sql`) — but several specs (e.g.
-`slots.spec.ts`'s "no Visibility" test, `friend-groups.spec.ts`'s override tests) were
-written expecting these two seeded pairs to start with **no** Visibility at all: no group,
-no override. The script clears that auto-granted override right after accepting, every
-run, so a fresh `supabase db reset` + `npm run seed:users` always lands these two pairs
-back at the lattice's bottom.
+The seeded pairs carry **no** per-friend override: the script clears both sides' every
+run, so a fresh `supabase db reset` + `npm run seed:users` always lands them in the same
+state whatever a previous run set through the picker. (Friend Groups it leaves alone — a
+`db reset` drops them with everything else, and each spec sweeps its own.)
+
+That state is not "sees nothing". Since [ADR 0021](adr/0021-visibility-default-is-calendar.md)
+the floor is `profiles.default_friend_visibility`, seeded to `calendar`, so a seeded pair
+with no group and no override **sees each other's games and availability**. A spec whose
+subject is what someone can't see has to say so explicitly — `pinFriendVisibility`
+(`e2e/support/db-reset.ts`) writes the per-friend override that says it, cleared again
+with `deleteVisibilityOverrides`. Leaning on the floor instead is what left
+`slots.spec.ts`'s "no Visibility" test and `overlap.spec.ts`'s picker test red for four
+releases (#446).
 
 ## Two Amys and two Bens
 
