@@ -43,14 +43,48 @@ import {
   matchPlayerNamesToConnections,
   matchUpdateToBooking,
   reconcileCourtReserveEvents,
+  suggestUpdateBookingMatches,
   type ConnectionCandidate,
   type OrgCandidate,
   type PlayerMatch,
   type ReconciliationEvent,
 } from "./email-sync-matching.ts";
 
-/** A cancellation/update either resolved to a Booking already on file or it didn't — the branch the review card gates its confirm action on. */
+/** A cancellation either resolved to a Booking already on file or it didn't — the branch the review card gates its confirm action on. */
 type MatchUnion = { matched: true; bookingId: string } | { matched: false };
+
+/**
+ * A Booking as it stands right now — the one an update matched, or one it
+ * might be about (issue #458). Carries the whole before-side the card shows,
+ * because the review screen has no other view of the User's Bookings: the
+ * "12:00 PM–2:00 PM · Court #7 · Singles" half of the before/after the User
+ * reads before confirming.
+ */
+export type UpdateTargetBooking = {
+  bookingId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  courtLabel: string | null;
+  format: BookingFormat;
+  players: string[];
+};
+
+/**
+ * An update resolved to exactly one Booking (Org + date + start time), or it
+ * didn't and offers whatever it might be about instead — empty when there's
+ * nothing on that day at that facility, which is the "no matching booking
+ * found" notice as it always was.
+ *
+ * Both branches carry the Booking itself, not just its id: applying an update
+ * now rewrites the slot and the Player(s) as well as format and court (#458),
+ * so a matched card owes the User the same before/after a suggested one shows
+ * — an exact match on the *start time* says nothing about whether the End, the
+ * court or the Players are about to change.
+ */
+type UpdateMatchUnion =
+  | { matched: true; booking: UpdateTargetBooking }
+  | { matched: false; suggestions: UpdateTargetBooking[] };
 
 /**
  * One parsed CourtReserve email — a confirmation, cancellation, or Reservation
@@ -105,9 +139,20 @@ export type ReviewItem = {
       /** Set only when the email's own Court(s) text was too long for `courtLabel` — carries that full text through instead of silently dropping it. */
       notes: string | null;
       format: BookingFormat;
-      /** Reference-only — unlike an `import` item's `matchedPlayers` (wired through by issue #100), applying an update deliberately edits format/court only and never touches Players, since a Reservation Update Notice isn't a new Booking. */
+      /**
+       * The email's own Player(s), applied to the Booking along with the rest
+       * of the update (issue #458) — a Reservation Update Notice carries the
+       * complete current state of the reservation, so its Player(s) section
+       * is what the facility says is on that court now. Until #458 an update
+       * deliberately never touched Players; the case that overturned it was a
+       * Singles booking updated to Doubles, which used to leave a Doubles
+       * Booking with nobody on it. An email listing no Player(s) at all still
+       * changes nothing — that's the facility saying nothing, not "nobody".
+       * Re-matched to Connections at write time either way (ADR 0011); the
+       * match here is the review screen's own display.
+       */
       matchedPlayers: PlayerMatch[];
-    } & MatchUnion)
+    } & UpdateMatchUnion)
 );
 
 type ImportReviewItem = Extract<ReviewItem, { kind: "import" }>;
@@ -152,12 +197,38 @@ export type RawCourtReserveEmail = {
 /** An Org narrowed to what matching and time-zone resolution need — the action maps its own `Org[]` down to this. */
 export type OrgForReview = OrgCandidate & { timeZone: string };
 
+/**
+ * One of the caller's Bookings as this review reads it: the four identity
+ * fields every check compares a candidate against, the id the confirm actions
+ * act on, and — for a suggested update match alone (issue #458) — the rest of
+ * what the card shows as the Booking's current state.
+ */
+export type ExistingBookingForReview = BookingIdentity & {
+  id: string;
+  endTime: string;
+  format: BookingFormat;
+  players: string[];
+};
+
+/** One of the caller's Bookings, as an update card reads it back (#458) — the same row, keyed the way the card and the confirm form name it. */
+function asUpdateTarget(booking: ExistingBookingForReview): UpdateTargetBooking {
+  return {
+    bookingId: booking.id,
+    date: booking.date,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    courtLabel: booking.courtLabel,
+    format: booking.format,
+    players: booking.players,
+  };
+}
+
 export type ReviewCourtReserveEmailsInput = {
   /** Unseen messages only — the caller has already filtered out anything in `processed_messages`. */
   emails: readonly RawCourtReserveEmail[];
   orgs: readonly OrgForReview[];
   /** The caller's existing Bookings, each with the id `confirmCancellationCandidate`/`confirmUpdateCandidate` will act on. */
-  existingBookings: readonly (BookingIdentity & { id: string })[];
+  existingBookings: readonly ExistingBookingForReview[];
   /**
    * Reservations this User has already dismissed, from either import source
    * (`dismissed_reservations`, issue #437). A dismissal leaves no Booking
@@ -184,7 +255,7 @@ type ConfirmedEmail = CourtReserveConfirmation & { endTime: string };
 type ReviewContext = {
   orgCandidates: OrgCandidate[];
   orgTimeZoneById: Map<string, string>;
-  existingBookings: readonly (BookingIdentity & { id: string })[];
+  existingBookings: readonly ExistingBookingForReview[];
   dismissedSlots: readonly BookingIdentity[];
   connectionCandidates: readonly ConnectionCandidate[];
   now: Date;
@@ -372,6 +443,14 @@ function shapeCancellationReviewItem(
 }
 
 /**
+ * A reconciled update, matched but not yet given its suggestions — the
+ * `matchedOrgId` rides along because the second pass below needs it to look
+ * for the Bookings an unmatched one might be about, and re-deriving it there
+ * would be a second call to `matchOrgByName` for the same email.
+ */
+type ShapedUpdate = { item: UpdateReviewItem; matchedOrgId: string | null };
+
+/**
  * A reconciled update → an `update` `ReviewItem`, or `null` when its slot has
  * already passed (same reasoning as a confirmation's own past-date filter — a
  * Reservation Update for a slot that's already happened isn't worth review).
@@ -379,7 +458,7 @@ function shapeCancellationReviewItem(
 function shapeUpdateReviewItem(
   event: Extract<ReconciliationEvent<ConfirmedEmail>, { kind: "update" }>,
   ctx: ReviewContext,
-): UpdateReviewItem | null {
+): ShapedUpdate | null {
   const { update } = event;
 
   const matchedOrgId = matchOrgByName(update.facilityName, ctx.orgCandidates);
@@ -394,6 +473,9 @@ function shapeUpdateReviewItem(
         ctx.existingBookings,
       )
     : null;
+  const matchedBooking = bookingId
+    ? ctx.existingBookings.find((booking) => booking.id === bookingId)
+    : undefined;
 
   const { courtLabel, notes } = splitOverlongCourtLabel(stripCourtLabelPrefix(update.courtLabel));
 
@@ -410,7 +492,50 @@ function shapeUpdateReviewItem(
     matchedPlayers: matchPlayerNamesToConnections(update.playerNames, ctx.connectionCandidates),
   };
 
-  return bookingId ? { ...base, matched: true, bookingId } : { ...base, matched: false };
+  const item: UpdateReviewItem = matchedBooking
+    ? { ...base, matched: true, booking: asUpdateTarget(matchedBooking) }
+    : { ...base, matched: false, suggestions: [] };
+
+  return { item, matchedOrgId };
+}
+
+/**
+ * Fills in each unmatched update's suggested Bookings (issue #458) — a second
+ * pass over the batch rather than part of the shaping above, because what an
+ * unmatched update may offer depends on what the *other* candidates in the
+ * same batch already claimed: a Booking some cancellation or update matched
+ * exactly is spoken for, and offering it here would invite the User to point
+ * two emails at one Booking.
+ */
+function withSuggestedMatches(
+  shaped: readonly ShapedUpdate[],
+  cancellations: readonly CancellationReviewItem[],
+  ctx: ReviewContext,
+): UpdateReviewItem[] {
+  const takenBookingIds = [
+    ...shaped.flatMap(({ item }) => (item.matched ? [item.booking.bookingId] : [])),
+    ...cancellations.flatMap((item) => (item.matched ? [item.bookingId] : [])),
+  ];
+
+  return shaped.map(({ item, matchedOrgId }) => {
+    if (item.matched || !matchedOrgId) {
+      return item;
+    }
+
+    const suggestions = suggestUpdateBookingMatches(
+      {
+        orgId: matchedOrgId,
+        date: item.date,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        courtLabel: item.courtLabel,
+      },
+      ctx.existingBookings,
+      takenBookingIds,
+    ).map(asUpdateTarget);
+
+    return { ...item, suggestions };
+  });
 }
 
 /**
@@ -446,10 +571,18 @@ export function reviewCourtReserveEmails({
     shapeImportReviewItem(event, ctx),
   );
 
+  const cancellations = reconciled.cancellations.map((event) =>
+    shapeCancellationReviewItem(event, ctx),
+  );
+
+  const shapedUpdates = reconciled.updates
+    .map((event) => shapeUpdateReviewItem(event, ctx))
+    .filter((shaped): shaped is ShapedUpdate => shaped !== null);
+
   const items: ReviewItem[] = [
     ...shapedConfirmations.map((shaped) => (shaped.outcome === "candidate" ? shaped.item : null)),
-    ...reconciled.cancellations.map((event) => shapeCancellationReviewItem(event, ctx)),
-    ...reconciled.updates.map((event) => shapeUpdateReviewItem(event, ctx)),
+    ...cancellations,
+    ...withSuggestedMatches(shapedUpdates, cancellations, ctx),
   ]
     .filter((item): item is ReviewItem => item !== null)
     .sort(byDateAndStartTime);

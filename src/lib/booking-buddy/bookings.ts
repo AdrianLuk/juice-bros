@@ -79,21 +79,41 @@ export function parseNewBooking(
     return { error: "Pick which place this booking is at." };
   }
 
-  const rawCourtLabel = String(formData.get("court_label") ?? "").trim();
-  const courtLabel = rawCourtLabel === "" ? null : rawCourtLabel;
-
-  if (courtLabel && courtLabel.length > COURT_LABEL_MAX_LENGTH) {
-    return {
-      error: `That court name is too long. ${COURT_LABEL_MAX_LENGTH} characters at most.`,
-    };
-  }
-
   const rawName = String(formData.get("name") ?? "").trim();
   const name = rawName === "" ? null : rawName;
 
   if (name && name.length > NAME_MAX_LENGTH) {
     return {
       error: `That name is too long. ${NAME_MAX_LENGTH} characters at most.`,
+    };
+  }
+
+  const reservation = parseReservationFields(formData);
+  if ("error" in reservation) {
+    return reservation;
+  }
+
+  return { orgId, name, ...reservation };
+}
+
+/**
+ * The fields a reservation itself carries — everything on a Booking form
+ * except which place it's at and what the User called it. Split out of
+ * `parseNewBooking` so that applying a Reservation Update Notice
+ * (`parseUpdateApplication`) validates the same values the same way, with the
+ * same messages, rather than growing a second, drifting copy of them.
+ */
+function parseReservationFields(
+  formData: FormData,
+):
+  | Omit<NewBooking, "orgId" | "name">
+  | { error: string } {
+  const rawCourtLabel = String(formData.get("court_label") ?? "").trim();
+  const courtLabel = rawCourtLabel === "" ? null : rawCourtLabel;
+
+  if (courtLabel && courtLabel.length > COURT_LABEL_MAX_LENGTH) {
+    return {
+      error: `That court name is too long. ${COURT_LABEL_MAX_LENGTH} characters at most.`,
     };
   }
 
@@ -141,7 +161,54 @@ export function parseNewBooking(
     };
   }
 
-  return { orgId, courtLabel, name, notes, date, startTime, endTime, format, players };
+  return { courtLabel, notes, date, startTime, endTime, format, players };
+}
+
+/**
+ * What applying a Reservation Update Notice writes to a Booking already on
+ * file (issue #458): the reservation as the facility now describes it, plus
+ * the Booking it lands on.
+ *
+ * No `orgId`, unlike a `NewBooking`: an update edits a Booking whose facility
+ * is already settled, and the write path reads that Booking's own Org for the
+ * zone rather than letting a form name one. No `name` either — the Booking
+ * keeps whatever the User called it.
+ */
+export type BookingUpdateApplication = Omit<NewBooking, "orgId" | "name"> & {
+  bookingId: string;
+};
+
+/**
+ * The Confirm form on an `update` review card, parsed and validated the same
+ * way a Booking form is (issue #458).
+ *
+ * Every field is re-validated here rather than trusted from the already-parsed
+ * candidate, the same posture `confirmImportCandidate` takes with
+ * `parseNewBooking` — the values crossed a network boundary and came back.
+ */
+export function parseUpdateApplication(
+  formData: FormData,
+): BookingUpdateApplication | { error: string } {
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+  if (!bookingId) {
+    return { error: "Pick which booking this update is for." };
+  }
+
+  // Refused outright, where a Booking form falls back to the common case for
+  // an odd value: on that form the fallback is what the User gets by leaving
+  // the field alone, but here it would silently rewrite a Booking's existing
+  // format to the default on the strength of a garbled hidden field nobody
+  // chose. The field is never a User's own input on this card.
+  if (!isBookingFormat(formData.get("format"))) {
+    return { error: "Couldn't update that booking. Try again." };
+  }
+
+  const reservation = parseReservationFields(formData);
+  if ("error" in reservation) {
+    return reservation;
+  }
+
+  return { bookingId, ...reservation };
 }
 
 /** "Court 3" when the User noted one down, otherwise a plain fallback. */

@@ -29,6 +29,7 @@ import {
   reviewCourtReserveEmails,
   type RawCourtReserveEmail,
   type ReviewItem,
+  type UpdateTargetBooking,
 } from "../email-sync-review.ts";
 import { upsertFeedEventRow } from "../feed-events.ts";
 import {
@@ -38,21 +39,21 @@ import {
 } from "../dismissed-reservations.ts";
 import { findSameReservation, type BookingIdentity } from "../import-candidate-shaping.ts";
 import type { MergedImportCandidate } from "../merge-import-candidates.ts";
-import { parseNewBooking } from "../bookings.ts";
+import { parseNewBooking, parseUpdateApplication } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
-import { isBookingFormat } from "../capacity.ts";
 import { isKnownTimeZone } from "../timezone.ts";
 import {
+  applyUpdateToOwnedBooking,
   deleteOwnedBooking,
   getBookingsPageData,
   insertValidatedBooking,
-  updateOwnedBookingFormatAndCourt,
 } from "./bookings.ts";
 import { listConnections } from "./connections.ts";
 import { trackEmailSyncEvent, trackFacilitySyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
 export type { ReviewItem };
+export type { UpdateTargetBooking };
 export type { MergedImportCandidate };
 
 export type { MailboxProvider };
@@ -387,6 +388,14 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
       courtLabel: booking.courtLabel,
       date: todayInZone(booking.timeZone, new Date(booking.startsAt)),
       startTime: clockInZone(booking.timeZone, new Date(booking.startsAt)),
+      // The rest of the Booking as it stands, for the before-side of a
+      // suggested update match (issue #458). Its end clock reads in the same
+      // zone as its start, so a Booking that runs past midnight reads
+      // "22:00" to "01:00" here — exactly what the review's own overlap
+      // scoring and the card's before/after both expect.
+      endTime: clockInZone(booking.timeZone, new Date(booking.endsAt)),
+      format: booking.format,
+      players: booking.players,
     })),
     dismissedSlots,
     connectionCandidates: connectionCandidatesFromFriends(connections.friends),
@@ -831,15 +840,19 @@ export async function confirmCancellationCandidate(
 }
 
 /**
- * Applying a matched update candidate edits the Booking it refers to in
- * place (issue #91) — `booking_id`, `format`, and `court_label` all come
- * from the review screen's own hidden fields, which only ever hold what
- * `syncFromEmail`'s own `matchUpdateToBooking` resolved server-side, not
- * anything the User (or a tampered request) picks. `format`/`court_label`
- * still travel as plain form fields rather than being re-derived from
- * `bookingId` here, same reasoning `confirmCancellationCandidate` doesn't
- * re-parse `formData` through `parseNewBooking` either — the review screen
- * already showed the User exactly what they're about to apply.
+ * Applying an update candidate edits the Booking it refers to in place
+ * (issue #91, widened by #458) — the whole reservation as the email now
+ * describes it, re-validated through `parseUpdateApplication` the same way
+ * `confirmImportCandidate` re-runs `parseNewBooking` rather than trusting the
+ * already-parsed candidate a second time.
+ *
+ * `booking_id` is either the Booking `matchUpdateToBooking` resolved
+ * server-side or one of the suggestions the User picked from — both come from
+ * the review screen's own fields, both are re-scoped to this caller by RLS on
+ * the write, and the card showed the before/after either way. Everything else
+ * travels as a plain form field for the same reason it does on an import
+ * card: the review screen already showed the User exactly what they're about
+ * to apply.
  *
  * The `processed_messages` row records `booking_id` (issue #286), same as a
  * confirmed import: deleting that Booking later cascades the row away so a
@@ -857,26 +870,21 @@ export async function confirmUpdateCandidate(
   }
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
-  const bookingId = String(formData.get("booking_id") ?? "").trim();
-  const format = String(formData.get("format") ?? "");
-  const courtLabelRaw = String(formData.get("court_label") ?? "");
-  const notesRaw = String(formData.get("notes") ?? "");
-  if (!gmailMessageId || !bookingId || !isBookingFormat(format)) {
+  if (!gmailMessageId) {
     return { error: "Couldn't update that booking. Try again." };
   }
 
-  const updateResult = await updateOwnedBookingFormatAndCourt(bookingId, {
-    format,
-    courtLabel: courtLabelRaw || null,
-    // Only carried through when the review screen actually had a court
-    // label overflow to report (see `splitOverlongCourtLabel`) — omitted
-    // otherwise, so an ordinary update can't clobber notes the User already
-    // wrote on this Booking for something unrelated.
-    notes: notesRaw || undefined,
-  });
+  const parsed = parseUpdateApplication(formData);
+  if ("error" in parsed) {
+    return parsed;
+  }
+
+  const updateResult = await applyUpdateToOwnedBooking(session.userId, parsed);
   if (!updateResult.ok) {
     return updateResult;
   }
+
+  const bookingId = parsed.bookingId;
 
   const supabase = await createClient();
   const { error: recordError } = await supabase.from("processed_messages").insert({
