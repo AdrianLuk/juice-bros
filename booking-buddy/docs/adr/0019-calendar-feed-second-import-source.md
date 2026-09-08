@@ -62,17 +62,27 @@ mechanism below resolves.
 - **The feed-diff cancellation mechanism.** Each sync compares the feed against
   what it showed on the previous sync, tracked in a dedicated `org_feed_events`
   table (one mutable row per seen VEVENT UID, `last_seen_at` bumped each sync,
-  rows pruned as events age past). A reservation that was in the feed and has
-  since vanished, or now carries a cancelled status, and which maps to a logged
-  future Booking, becomes a **cancellation candidate**. This works whichever
+  rows pruned once both the reservation and the last sighting are 90 days past
+  — issue #452). A reservation that was in the feed and has since vanished, or
+  now carries a cancelled status, and which maps to a logged future Booking,
+  becomes a **cancellation candidate**. This works whichever
   way the Booking was created — feed import, email import, or hand entry —
   because every parsed event is auto-linked to a matching Booking on every sync.
 
 - **`org_feed_events` is its own table, not an extension of
-  `processed_messages`.** The processed-messages store is write-once by design
-  (insert/select grants only, "recorded once and never revisited"). The feed
-  diff needs the opposite: a mutable `last_seen_at` and active pruning. One
-  table cannot serve both models.
+  `processed_messages`.** The processed-messages store records a *decision*,
+  once, and is write-once by design to prove it (insert/select grants only,
+  "recorded once and never revisited"). The feed diff needs the opposite on
+  both counts: it records every event the feed has *shown*, decided or not, and
+  it rewrites the row in place as the answer changes — `pending` becomes
+  `imported` or `dismissed`, `booking_id` is set and nulled, `last_seen_at`
+  bumps every sync. A ledger keyed on an opaque message id also has nowhere to
+  put the `starts_at` and `sequence` the diff runs on. One table cannot serve
+  both models.
+
+  (This bullet used to give *pruning* as the reason, and pruning was not
+  happening — corrected in issue #452, which also made the prune real. The
+  separation was always right; the reason given for it was not.)
 
 - **Four safety rails on the cancellation diff**, so a narrowed, broken, or
   swapped feed cannot quietly gut a User's records:
@@ -84,8 +94,9 @@ mechanism below resolves.
   2. **In-window only** — a previously-seen UID counts as "vanished" only if
      its start is still in the future *and* at or after the earliest event
      still present in the feed. An event whose start has passed since the last
-     sync is pruned silently and never flagged — a Booking is a historical
-     record.
+     sync is skipped silently and never flagged — a Booking is a historical
+     record. (Skipped, not deleted: its row stays until the age-out prune above
+     reaches it. Calling this "pruning" is what issue #452 had to unpick.)
   3. **Explicit cancelled status is unconditional** — an event still in the
      feed carrying a cancelled status produces a cancellation candidate
      regardless of rail 2. CourtReserve telling us directly is always

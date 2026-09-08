@@ -481,7 +481,7 @@ test("the cancellation link works for a hand-entered / email-imported Booking (m
   assert.equal(cancellations[0].bookingId, "hand-booking");
 });
 
-test("a UID whose start has passed since the last sync is pruned, never flagged (rail 2)", () => {
+test("a UID whose start has passed since the last sync is skipped, never flagged (rail 2)", () => {
   const { cancellations } = reviewCalendarFeed({
     events: [anchorEvent()],
     org: ORG,
@@ -647,4 +647,73 @@ test("a re-synced event that now matches its Booking is left alone — no cancel
   });
 
   assert.equal(cancellations.length, 0);
+});
+
+/* -------------------------------------------------------------------------- */
+/* What the age-out prune of seen rows changes here, and what it doesn't (#452) */
+/* -------------------------------------------------------------------------- */
+
+/** Rows a sync's prune would have deleted — reservations 90+ days behind `NOW`. */
+const AGED_OUT: SeenFeedEvent[] = [
+  seen({ uid: "old-1", status: "imported", bookingId: "b-old-1", startsAt: "2026-01-04T22:00:00Z" }),
+  seen({ uid: "old-2", status: "imported", bookingId: "b-old-2", startsAt: "2026-02-11T22:00:00Z" }),
+  seen({ uid: "old-3", status: "dismissed", bookingId: null, startsAt: "2026-03-08T22:00:00Z" }),
+];
+
+test("aged-out seen rows contribute nothing to the review, so pruning them changes nothing (#452)", () => {
+  // The claim the prune rests on, run as a claim rather than argued: the same
+  // sync with and without the rows a prune would delete. Live rows here cover
+  // every way a seen row is read — a dismissed UID skipped, an imported UID
+  // re-affirmed as an auto-link, and a vanished one flagged.
+  const live: SeenFeedEvent[] = [
+    seen({ uid: "vevent-1", status: "dismissed", bookingId: null }),
+    seen({ uid: "anchor", status: "imported", bookingId: "b-anchor", startsAt: "2026-09-20T22:00:00Z" }),
+    seen({ uid: "gone", status: "imported", bookingId: "b-gone", startsAt: "2026-10-02T22:00:00Z" }),
+  ];
+  const input = {
+    events: [feedEvent(), anchorEvent()],
+    org: ORG,
+    existingBookings: [
+      { id: "b-anchor", orgId: "org-1", courtLabel: "#6", date: "2026-09-20", startTime: "18:00" },
+    ] satisfies ExistingBookingForFeedReview[],
+    now: NOW,
+  };
+
+  const withHistory = reviewCalendarFeed({ ...input, seenEvents: [...AGED_OUT, ...live] });
+  const pruned = reviewCalendarFeed({ ...input, seenEvents: live });
+
+  assert.deepEqual(pruned, withHistory);
+  // Not a vacuous pass — the run does something on both sides.
+  assert.equal(pruned.autoLinked.length, 1);
+  assert.equal(pruned.cancellations.length, 1);
+});
+
+test("rail 4's denominator is the one thing pruning moves, and it moves it safely (#452)", () => {
+  // Rail 4's proportional trigger measures a sync's cancellations against
+  // *every* imported, Booking-linked row on file, aged-out ones included. So
+  // an unpruned table is a growing denominator that eventually makes that half
+  // of the rail inert, and the prune is what stops it growing. The pruned
+  // reading is the one ADR-0019 specified — a reservation that has been and
+  // gone is not a "feed-tracked Booking" — and it has a cost the unpruned one
+  // hid: these two cancellations can no longer be confirmed from the review
+  // screen, so those Bookings come off by hand. Intended; the retention
+  // (`FEED_EVENT_RETENTION_DAYS`) is what keeps the shift gradual.
+  const live: SeenFeedEvent[] = [
+    seen({ uid: "anchor", status: "imported", bookingId: "b-anchor", startsAt: "2026-09-20T22:00:00Z" }),
+    seen({ uid: "g1", status: "imported", bookingId: "b1", startsAt: "2026-10-01T22:00:00Z" }),
+    seen({ uid: "g2", status: "imported", bookingId: "b2", startsAt: "2026-10-02T22:00:00Z" }),
+  ];
+  const input = { events: [anchorEvent()], org: ORG, existingBookings: [], now: NOW };
+
+  // 2 vanished of 3 tracked — over half, so the warning stands in for them.
+  const pruned = reviewCalendarFeed({ ...input, seenEvents: live });
+  assert.equal(pruned.feedLooksWrong, true);
+  assert.equal(pruned.cancellations.length, 0);
+
+  // The same two vanishings against a table that also remembers last winter —
+  // two more Booking-linked rows, since the dismissed one was never linked. 2
+  // of 5, under half, so they come through as candidates.
+  const withHistory = reviewCalendarFeed({ ...input, seenEvents: [...AGED_OUT, ...live] });
+  assert.equal(withHistory.feedLooksWrong, false);
+  assert.equal(withHistory.cancellations.length, 2);
 });

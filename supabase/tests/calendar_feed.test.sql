@@ -16,6 +16,8 @@
 --   * RLS is "mine and nobody else's" — a stranger reads nothing and a
 --     stranger's delete silently matches zero rows;
 --   * the coherence trigger stops a row being hung off someone else's Org;
+--   * a sync's age-out prune (issue #452) deletes only what is past the cutoff
+--     on *both* `starts_at` and `last_seen_at`;
 --   * deleting the Org cascades its feed events away; deleting the owner does
 --     too; deleting a linked Booking nulls `booking_id` but keeps the row.
 
@@ -23,7 +25,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(39);
+select plan(42);
 
 -- Shape -----------------------------------------------------------------------
 
@@ -197,6 +199,40 @@ select lives_ok(
              'VEVENT-UID-OWNED', '2031-10-05 18:00:00 America/Toronto', 'pending') $$,
   'the owner can insert their own feed event'
 );
+
+-- The shape a sync's own age-out prune takes (issue #452): everything below a
+-- cutoff on *both* time columns, in one statement, without naming a UID.
+-- `STALE` is long past and long untouched; `TOUCHED` is just as old but was
+-- seen a moment ago, standing in for the row whose `starts_at` never meant
+-- anything (a confirm or dismiss that recorded the epoch) and must not be
+-- forgotten on the next sync.
+insert into public.org_feed_events (owner_id, org_id, uid, starts_at, status, last_seen_at)
+values
+  ('a0000000-feed-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000feed',
+   'VEVENT-UID-STALE', '2020-01-01 18:00:00 America/Toronto', 'imported', '2020-01-02 06:00:00+00'),
+  ('a0000000-feed-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000feed',
+   'VEVENT-UID-TOUCHED', '2020-01-01 18:00:00 America/Toronto', 'dismissed', now());
+
+select lives_ok(
+  $$ delete from public.org_feed_events
+     where starts_at < '2021-01-01 00:00:00+00' and last_seen_at < '2021-01-01 00:00:00+00' $$,
+  'a sync can prune every feed event whose reservation and last sighting are both long past'
+);
+
+select is(
+  (select count(*)::int from public.org_feed_events where uid = 'VEVENT-UID-STALE'),
+  0,
+  'the aged-out row is gone'
+);
+
+select is(
+  (select count(*)::int from public.org_feed_events where uid = 'VEVENT-UID-TOUCHED'),
+  1,
+  'and the equally old row the feed still touches survives — the prune needs both columns past the cutoff'
+);
+
+-- Back to the two rows the RLS checks below count on.
+delete from public.org_feed_events where uid = 'VEVENT-UID-TOUCHED';
 
 -- Put a real feed URL back on the owner's Org (it was cleared earlier) so the
 -- stranger check below is an actual RLS assertion rather than a vacuous count

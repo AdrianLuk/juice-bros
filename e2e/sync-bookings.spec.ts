@@ -13,6 +13,7 @@ import {
   orgIdByName,
   seedDismissedReservation,
   seedFacility,
+  seedFeedEvent,
   setFeedUrlViaForm,
 } from "./support/calendar-feed.ts";
 import { deleteOrgs, disconnectMailbox } from "./support/db-reset.ts";
@@ -551,4 +552,78 @@ test("a sync prunes a dismissal whose slot has passed, and leaves a live one (#4
   expect(await dismissedReservationsForOrg(user, orgId)).toEqual([
     expect.objectContaining({ slot_date: "2099-03-15", court_label: "#4" }),
   ]);
+});
+
+test("a sync prunes a long-past feed event, and keeps one the feed still touches (#452)", async ({
+  page,
+  accounts,
+}) => {
+  // The table said it was pruned as its events aged past, in three places, and
+  // nothing pruned it. What only this layer can show is that running a *sync*
+  // is what fires the prune now, against a real database with RLS on — the
+  // cutoff arithmetic is a unit test and the grant is pgTAP.
+  const user = { email: accounts.ben.email, password: accounts.password };
+  const facility = placeName();
+  const orgId = await seedFacility(user, facility);
+
+  await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
+  await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/prune-events"));
+
+  // Seeded after the URL is saved, not before: pasting a *different* feed URL
+  // onto a Facility purges that Org's whole seen-set (user story 25), so a row
+  // written first would never survive to be pruned.
+  //
+  // Long past, and last seen when it was still live: the ordinary aged-out row.
+  await seedFeedEvent(user, {
+    orgId,
+    uid: "sync-prune-aged",
+    startsAt: "2020-03-15T22:00:00Z",
+    status: "imported",
+  });
+  // Just as old, but touched a moment ago — the row whose `starts_at` never
+  // described a reservation (a settle that recorded the epoch). Forgetting it
+  // would offer its event again.
+  await seedFeedEvent(user, {
+    orgId,
+    uid: "sync-prune-touched",
+    startsAt: "2020-03-15T22:00:00Z",
+    lastSeenAt: new Date().toISOString(),
+    status: "dismissed",
+  });
+  // Future, so nothing about it is near the cutoff.
+  await seedFeedEvent(user, {
+    orgId,
+    uid: "sync-prune-live",
+    startsAt: "2099-03-15T22:00:00Z",
+    status: "imported",
+  });
+
+  feed.registerFeed("/feed/prune-events", {
+    kind: "ics",
+    body: icsBody([
+      {
+        uid: "sync-prune-fresh",
+        summary: "Doubles",
+        description: "Court #1",
+        location: facility,
+        start: "2027-03-15T22:00:00Z",
+        end: "2027-03-15T23:00:00Z",
+      },
+    ]),
+  });
+
+  await page.goto("/booking-buddy/bookings");
+  await page.getByRole("button", { name: "Sync bookings" }).click();
+
+  // Not an assertion about the prune — the barrier before one. The read below
+  // doesn't retry, so it has to wait until the sync has actually landed, and
+  // the feed's own candidate appearing is the signal that it has.
+  const section = feedSection(page);
+  const cards = section
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Confirm" }) });
+  await expect(cards).toHaveCount(1, { timeout: 15_000 });
+
+  const uids = (await feedEventsForOrg(user, orgId)).map((row) => row.uid);
+  expect(uids.sort()).toEqual(["sync-prune-fresh", "sync-prune-live", "sync-prune-touched"]);
 });
