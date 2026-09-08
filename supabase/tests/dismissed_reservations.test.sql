@@ -16,14 +16,15 @@
 --   * the coherence trigger stops a row being hung off someone else's Org;
 --   * RLS is "mine and nobody else's", there is no update grant — a dismissal
 --     is never rewritten in place — but there is a delete grant, so a User can
---     take one back from the review screen (issue #444);
+--     take one back from the review screen (issue #444) and a sync can prune
+--     one whose slot has already passed (issue #447);
 --   * deleting the Org, or the User, cascades the dismissals away.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(24);
+select plan(27);
 
 -- Shape -----------------------------------------------------------------------
 
@@ -147,6 +148,29 @@ select is(
    where slot_date = '2031-10-01'),
   0,
   'both rows for that slot are gone, so the next sync offers the reservation again'
+);
+
+-- And the shape a sync's own prune takes (issue #447): everything below a
+-- cutoff date, in one statement, without naming a slot.
+insert into public.dismissed_reservations (owner_id, org_id, slot_date, slot_start_time)
+values ('a0000000-d15d-0000-0000-000000000001', 'a0000000-0000-0000-0000-0000000d15d0',
+        '2020-01-01', '18:00');
+
+select lives_ok(
+  $$ delete from public.dismissed_reservations where slot_date < '2031-01-01' $$,
+  'a sync can prune every dismissal for a slot that has already passed'
+);
+
+select is(
+  (select count(*)::int from public.dismissed_reservations where slot_date < '2031-01-01'),
+  0,
+  'the expired dismissal is gone'
+);
+
+select is(
+  (select count(*)::int from public.dismissed_reservations where slot_date >= '2031-01-01'),
+  2,
+  'and the still-live ones are untouched — the prune stops at the cutoff'
 );
 
 reset role;

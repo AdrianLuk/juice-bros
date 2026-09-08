@@ -33,6 +33,7 @@ import {
 import { upsertFeedEventRow } from "../feed-events.ts";
 import {
   listDismissedReservations,
+  pruneExpiredDismissedReservations,
   recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
 import { findSameReservation, type BookingIdentity } from "../import-candidate-shaping.ts";
@@ -333,6 +334,11 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   const processedIds = new Set((processedRows ?? []).map((row) => row.provider_message_id));
   const unseenIds = searchResult.messageIds.filter((id) => !processedIds.has(id));
 
+  // Captured once, ahead of every read and the per-message fetch, so every
+  // past-date decision in this sync shares one "now" regardless of how long
+  // the fetch loop runs.
+  const now = new Date();
+
   const [{ orgs, bookings }, connections, dismissedSlots] = await Promise.all([
     getBookingsPageData(),
     listConnections(),
@@ -341,11 +347,13 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     // recognise, so this list is what carries it across. Every Org, since an
     // email's facility is only matched to one further down.
     listDismissedReservations(supabase, session.userId),
+    // Housekeeping (issue #447), riding along in the same round trip so it
+    // costs no wall time. It races the read above on the same table, which is
+    // deliberate and harmless: the only rows it removes are for slots already
+    // past, and a candidate for one of those is dropped by the review's own
+    // past-date check whether the dismissal was still there or not.
+    pruneExpiredDismissedReservations(supabase, session.userId, now),
   ]);
-
-  // Captured once, ahead of the per-message fetch, so every past-date check
-  // in this sync shares one "now" regardless of how long the fetch loop runs.
-  const now = new Date();
 
   // The mailbox fetch is the only per-message I/O left here — one unreadable
   // message shouldn't sink the whole sync. Everything decidable from the
