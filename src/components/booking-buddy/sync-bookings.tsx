@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -137,6 +137,7 @@ export function SyncBookingsSection({
   canSyncFromEmail,
   mailboxProvider,
   hasConfiguredFeed,
+  autoSync = false,
 }: {
   orgs: Org[];
   /** Whether the User can sync email at all — Gmail allowlist entry or a Mailbox Link. */
@@ -145,8 +146,33 @@ export function SyncBookingsSection({
   mailboxProvider: MailboxProvider | null;
   /** Whether the User has at least one feed-configured Facility. */
   hasConfiguredFeed: boolean;
+  /**
+   * Start the sync on arrival instead of waiting for the button (issue #471).
+   * Set by `?sync=1`, which onboarding's calendar-feed handoff links to: that
+   * User has already asked for this by connecting a feed, and landing them on
+   * another button to press would be asking twice. Read once, as the initial
+   * value — the button below owns every run after it.
+   */
+  autoSync?: boolean;
 }) {
-  const [hasSynced, setHasSynced] = useState(false);
+  const [hasSynced, setHasSynced] = useState(autoSync);
+
+  // `?sync=1` is spent the moment it seeds `hasSynced` above, so take it off
+  // the URL. Left on, a reload or a back-navigation onto this history entry
+  // would silently re-run the whole sync — every configured feed fetched and a
+  // mailbox round trip — for someone who only pressed refresh. The hash stays,
+  // so the page keeps landing on this section.
+  useEffect(() => {
+    if (!autoSync) {
+      return;
+    }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.hash,
+    );
+  }, [autoSync]);
+
   const [settled, setSettled] = useState<Record<ReviewOutcome, number>>({
     added: 0,
     updated: 0,
@@ -403,7 +429,7 @@ export function SyncBookingsSection({
     !feedError;
 
   return (
-    <section>
+    <section id="sync" className="scroll-mt-6">
       <h2 className="bb-h text-[1.05rem]">Sync bookings</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Pull in the court reservations you&apos;ve made at CourtReserve-powered
