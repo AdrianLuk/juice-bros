@@ -33,6 +33,7 @@ import {
 } from "@/components/booking-buddy/bookings";
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import {
+  formatCompactTimeRangeFromMs,
   formatInstantDateAndTime,
   formatTimeLabelFromMs,
 } from "@/lib/booking-buddy/datetime";
@@ -217,8 +218,7 @@ export function OwnerDashboardCalendar({
             )}
             {showTimeLine && (
               <p className="truncate opacity-90">
-                {formatTimeLabelFromMs(startMs)} –{" "}
-                {formatTimeLabelFromMs(endMs)}
+                {formatCompactTimeRangeFromMs(startMs, endMs)}
                 {showCourtLine && ` · ${formatCourtLabel(booking.courtLabel)}`}
               </p>
             )}
@@ -237,9 +237,11 @@ export function OwnerDashboardCalendar({
           {booking.name && <p className="truncate">{booking.name}</p>}
           <p className="truncate">{booking.orgName}</p>
           <p className="truncate opacity-90">
-            {formatTimeLabelFromMs(new Date(booking.startsAt).getTime())} –{" "}
-            {formatTimeLabelFromMs(new Date(booking.endsAt).getTime())} ·{" "}
-            {formatCourtLabel(booking.courtLabel)}
+            {formatCompactTimeRangeFromMs(
+              new Date(booking.startsAt).getTime(),
+              new Date(booking.endsAt).getTime(),
+            )}{" "}
+            · {formatCourtLabel(booking.courtLabel)}
           </p>
         </CalendarEventPopover>
       )}

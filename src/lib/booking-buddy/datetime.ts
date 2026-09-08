@@ -188,6 +188,42 @@ export function formatTimeLabelFromMs(ms: number): string {
 }
 
 /**
+ * One end of a compact range: `"1PM"` on the hour, `"1:30PM"` when there are
+ * minutes to keep. Private — the range below is the whole public shape.
+ */
+function compactTimeLabelFromMs(ms: number): string {
+  const date = new Date(ms);
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours < 12 ? "AM" : "PM";
+  const twelveHour = hours % 12 === 0 ? 12 : hours % 12;
+  const clock =
+    minutes === 0
+      ? String(twelveHour)
+      : `${twelveHour}:${String(minutes).padStart(2, "0")}`;
+  return `${clock}${period}`;
+}
+
+/**
+ * A Booking's hours, written as tightly as they can still be read —
+ * `"1PM–3PM"`, `"9AM–11AM"`, `"1:30PM–3:30PM"`. Only the calendar's Week and
+ * Month event chips use this. Those chips are a few characters wide on a
+ * phone (a Month column is 6rem), and `truncate` was eating the end of a
+ * `"1:00 PM – 3:00 PM"` range, so the hours a Booking actually runs were the
+ * part that got clipped. An en dash takes no spaces around it in a range, and
+ * losing those two spaces is most of what buys the end time its room.
+ *
+ * Every other surface — the popover the chip opens, the Agenda row, the forms
+ * — has the space and keeps `formatTimeLabel`'s fuller `"1:00 PM"` reading.
+ */
+export function formatCompactTimeRangeFromMs(
+  startMs: number,
+  endMs: number,
+): string {
+  return `${compactTimeLabelFromMs(startMs)}–${compactTimeLabelFromMs(endMs)}`;
+}
+
+/**
  * A soft "when" cue for an upcoming instant, relative to `now`, read in the
  * viewer's own local clock: "Today", "Tonight" (a same-day start at or after
  * 5pm), "Tomorrow", or `null` for anything further out or already past. Not a

@@ -11,7 +11,10 @@ import {
   eventChipLineBudget,
   type EventRange,
 } from "@/components/booking-buddy/dashboard-week-view";
-import { formatTimeLabelFromMs } from "@/lib/booking-buddy/datetime";
+import {
+  formatCompactTimeRangeFromMs,
+  formatTimeLabelFromMs,
+} from "@/lib/booking-buddy/datetime";
 import type { FriendVisibleBooking } from "@/lib/booking-buddy/actions/friend-calendar";
 import type { AvailabilityWindow } from "@/lib/booking-buddy/availability";
 
@@ -94,8 +97,7 @@ export function FriendDashboardCalendar({
             <p className="truncate font-medium">{booking.facilityName}</p>
             {lines >= 2 && (
               <p className="truncate opacity-90">
-                {formatTimeLabelFromMs(startMs)} –{" "}
-                {formatTimeLabelFromMs(endMs)}
+                {formatCompactTimeRangeFromMs(startMs, endMs)}
               </p>
             )}
           </CalendarEventPopover>
@@ -110,8 +112,10 @@ export function FriendDashboardCalendar({
         >
           <p className="truncate">{booking.facilityName}</p>
           <p className="truncate opacity-90">
-            {formatTimeLabelFromMs(new Date(booking.startsAt).getTime())} –{" "}
-            {formatTimeLabelFromMs(new Date(booking.endsAt).getTime())}
+            {formatCompactTimeRangeFromMs(
+              new Date(booking.startsAt).getTime(),
+              new Date(booking.endsAt).getTime(),
+            )}
           </p>
         </CalendarEventPopover>
       )}
