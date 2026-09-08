@@ -191,16 +191,18 @@ export function OwnerDashboardCalendar({
         style: CSSProperties,
         { startMs, endMs }: EventRange,
       ) => {
-        // A short booking's chip is too short to hold all 3 lines without
+        // A short booking's chip is too short to hold every line without
         // clipping one under `overflow-hidden` — see `eventChipLineBudget`.
         // Drop the least essential line(s) first (court, then time) rather
         // than let the box clip whichever line happens to fall last; the
-        // popover this chip opens always has the full detail.
+        // popover this chip opens always has the full detail. An unnamed
+        // Booking has one fewer line to place, so each of its remaining ones
+        // arrives a tier earlier.
         const lines = eventChipLineBudget(Number(style.height) || 0);
         const title = booking.name || booking.orgName;
         const showOrgLine = booking.name && lines >= 2;
         const showTimeLine = lines >= (booking.name ? 3 : 2);
-        const showCourtLine = lines >= 3;
+        const showCourtLine = lines >= (booking.name ? 4 : 3);
 
         return (
           <CalendarEventPopover
@@ -219,7 +221,11 @@ export function OwnerDashboardCalendar({
             {showTimeLine && (
               <p className="truncate opacity-90">
                 {formatCompactTimeRangeFromMs(startMs, endMs)}
-                {showCourtLine && ` · ${formatCourtLabel(booking.courtLabel)}`}
+              </p>
+            )}
+            {showCourtLine && (
+              <p className="truncate opacity-90">
+                {formatCourtLabel(booking.courtLabel)}
               </p>
             )}
           </CalendarEventPopover>
@@ -240,8 +246,10 @@ export function OwnerDashboardCalendar({
             {formatCompactTimeRangeFromMs(
               new Date(booking.startsAt).getTime(),
               new Date(booking.endsAt).getTime(),
-            )}{" "}
-            · {formatCourtLabel(booking.courtLabel)}
+            )}
+          </p>
+          <p className="truncate opacity-90">
+            {formatCourtLabel(booking.courtLabel)}
           </p>
         </CalendarEventPopover>
       )}
