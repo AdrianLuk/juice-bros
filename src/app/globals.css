@@ -3320,6 +3320,11 @@ html:has(.bb-app-chrome) {
      coloured, because a schedule with a repeat in it is still the schedule
      being played off and the mark has to survive being photocopied. */
   .mm-side[data-repeat] {
+    /* Fitted to the names rather than the column: a full-width bar reads as
+       the cell's own border and stops looking like a mark on anything. The
+       negative margin keeps the names on the same left edge as the pairs
+       around them, so a boxed round doesn't shunt sideways. */
+    width: fit-content;
     box-shadow: inset 0 0 0 2px var(--mm-ink);
     padding: 0.15rem 0.35rem;
     margin: 0 -0.35rem;
