@@ -8,6 +8,6 @@ Every stored Table is a whist tournament — n−1 Rounds in which each Player p
 
 Everything else falls through to the randomised greedy generator: fewer courts than `n / 4`, a Roster size not divisible by four, or more Rounds than the Table holds. Where a Table exists but the requested Round count exceeds it, the generator continues from the Table's prefix and its accumulated partner and opponent counts rather than starting cold — the same "carry on from current counts" mechanism that regenerating around a late arrival will need.
 
-Because a Schedule may come from either source, no claim about balance may be derived from the Config. The summary line and the Partner Matrix both read the Scorer's output on the Schedule that was actually produced.
+Because a Schedule may come from either source, no claim about balance may be derived from the Config. Every surface that vouches for a Schedule — the summary line, and the repeat marks in the grid — reads the Scorer's output on the Schedule that was actually produced. (The Partner Matrix was one of those surfaces until #477 removed it; the rule is unchanged, and it binds whatever renders next.)
 
 Every Table is validated by the Scorer in tests before it is trusted. Published round robin schedules contain errors often enough that a Table is not evidence of its own correctness.
