@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import {
   Anton,
+  Archivo,
+  Archivo_Narrow,
   Bricolage_Grotesque,
   Caveat,
   Geist,
@@ -69,6 +71,25 @@ const caveat = Caveat({
   subsets: ["latin"],
 });
 
+// Match Mixer's world (direction seed 08f41571) — "the magnetic planning
+// board". Both faces are Trade Gothic descendants, which is the lettering
+// actually applied to enamelled sports signage. Archivo Narrow is the board's
+// permanent furniture: the club plate, the column rails, the round numerals,
+// always tracked caps. Archivo is what is printed on the name plates and read
+// off them. There is deliberately no hand face here — a webfont stamps the
+// identical glyph every time, so script reads as type imitating a person, and
+// the one thing this screen exists for is telling two similar names apart at a
+// glance. Scoped to `.mm-sheet` in globals.css.
+const archivo = Archivo({
+  variable: "--font-mm-plate",
+  subsets: ["latin"],
+});
+
+const archivoNarrow = Archivo_Narrow({
+  variable: "--font-mm-vinyl",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -111,7 +132,7 @@ export default function RootLayout({
       // Next to suspend it for the scroll-restoration jump on a route change
       // so it doesn't animate against the page/View Transition.
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} h-full antialiased`}
+      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>

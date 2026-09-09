@@ -44,7 +44,7 @@ import { ScheduleGrid } from "./schedule-grid";
  * big Roster, so it runs when the organizer asks for it rather than while they
  * are still typing a name. What that costs is the chance of reading a stale
  * grid as a current one, which is what the button's label, the note under it
- * and the flag over the sheet are all spent preventing.
+ * and the flag over the board are all spent preventing.
  *
  * Reseeding is the same button: pressing it with nothing changed writes a new
  * Seed, which is the whole of what a fresh draw is (ADR 0001). One control, so
@@ -71,7 +71,7 @@ const EXAMPLE_ROSTER = EXAMPLE_NAMES.join("\n");
 const SAVE_DEBOUNCE_MS = 400;
 
 /**
- * The zero state's draw sheet: a real Schedule, generated the way any other
+ * The zero state's board: a real Schedule, generated the way any other
  * one is, so what it shows is what the tool actually does. Fixed Seed and
  * built once at module scope, because it must not differ between the server's
  * render and the browser's, and it never changes after that.
@@ -89,19 +89,19 @@ interface Draw {
    * The whole Config it came from, held rather than just its outputs. The
    * names matter because the engine works in positions, so a Schedule only
    * means anything beside the Roster it was generated against; the Seed
-   * matters because it is what lets the same sheet be generated again after a
+   * matters because it is what lets the same board be generated again after a
    * reload instead of stored (ADR 0001).
    */
   readonly config: ResolvedConfig;
   /** The Roster and numbers it came from, for telling current from stale. */
   readonly key: string;
-  /** The numbers it was drawn from, for the flag over a stale sheet. */
+  /** The numbers it was drawn from, for the flag over a stale board. */
   readonly numbers: string;
   readonly schedule: Schedule;
   readonly score: ScorerResult;
 }
 
-/** Draws the sheet for a Config, whether it was just asked for or restored. */
+/** Draws the board for a Config, whether it was just asked for or restored. */
 function drawFrom(config: ResolvedConfig): Draw {
   const { roster, courts, rounds } = config;
   const schedule = generateSchedule(config);
@@ -117,12 +117,12 @@ function drawFrom(config: ResolvedConfig): Draw {
 /**
  * Everything generation depends on. Ids are deliberately absent: the engine
  * sees names and numbers only, so typing a name back to what it was is not a
- * change and should not leave the sheet flagged as stale.
+ * change and should not leave the board flagged as stale.
  */
 function drawKey(roster: Roster, courts: number, rounds: number): string {
   // Joined on a newline because that is the one character `parseRoster` will
   // not leave inside a name. On a space, "Mary Ann / Bo" and "Mary / Ann Bo"
-  // would key the same, and an edit between them would never flag the sheet.
+  // would key the same, and an edit between them would never flag the board.
   return `${courts}/${rounds}/${roster.map((player) => player.name).join("\n")}`;
 }
 
@@ -162,7 +162,7 @@ export function MatchMixer() {
   const [draw, setDraw] = useState<Draw | null>(null);
   // Whether the saved Config has been read yet, which is only ever asked so
   // that saving cannot start before loading has finished. The screen itself
-  // does not wait on it: the example sheet is server-rendered and stays until
+  // does not wait on it: the example board is server-rendered and stays until
   // there is something truer to put in its place.
   const [restored, setRestored] = useState(false);
   // What the box held before Clear emptied it, kept for as long as it stays
@@ -186,8 +186,8 @@ export function MatchMixer() {
       setRoster(saved.edited.roster);
       setCourtsChoice(saved.edited.courts);
       setRoundsChoice(saved.edited.rounds);
-      // The sheet is generated again rather than stored, so what comes back is
-      // the same sheet down to the seat every name sat in.
+      // The board is generated again rather than stored, so what comes back is
+      // the same board down to the seat every name sat in.
       setDraw(saved.drawn ? drawFrom(saved.drawn) : null);
     }
     setRestored(true);
@@ -236,7 +236,7 @@ export function MatchMixer() {
   const editRoster = (next: string) => {
     setText(next);
     setRoster((previous) => parseRoster(next, previous));
-    // Typing gives up the cleared list. By then the sheet may have been drawn
+    // Typing gives up the cleared list. By then the board may have been drawn
     // from different names, and putting the old ones back beside it would be
     // offering to undo something that is no longer what happened.
     setCleared(null);
@@ -302,27 +302,46 @@ export function MatchMixer() {
   };
 
   return (
+    // The board fills the frame — aluminium surround, enamel face, pen tray
+    // along the bottom. There is deliberately no page around it and no
+    // max-width: this is an object on a wall, not a document on a background.
     <div className="mm-sheet">
-      <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <header className="max-w-2xl">
-          <p className="mm-legend">Pickleball Tools</p>
-          <h1 className="mm-title mt-3 text-4xl sm:text-5xl">Match Mixer</h1>
-          <p className="mm-lede mt-4">
-            A pickleball round robin generator. Paste the names you have tonight
-            and get a doubles rotation where nobody partners the same person
-            twice. Your list stays in this browser and waits here for next
-            week. Nothing is sent anywhere.
+      <div className="mm-face">
+        {/* The head runs the full width of the board rather than stacking in
+            the left column: at desktop that column is 15.5rem, and a header
+            confined to it leaves the top third of the enamel empty. Plate and
+            particulars on the left, what this is on the right. */}
+        <header className="mm-head">
+          <div>
+            {/* The club plate: vinyl applied to the enamel, type knocked out
+                of it. `h1` because it is the page's name, however it is
+                made. */}
+            <h1 className="mm-title text-2xl sm:text-3xl">Match Mixer</h1>
+            {/* The board's own particulars: what is on it and what drew it,
+                not what is currently in the roster box. When the two disagree
+                the board is stale, and the flag over the field says so — this
+                line staying with the draw is what makes that reading
+                possible. */}
+            <p className="mm-meta mt-3">
+              Pickleball round robin
+              {draw ? ` · ${draw.numbers} · Seed ${draw.config.seed}` : null}
+            </p>
+          </div>
+          <p className="mm-lede">
+            Paste the names you have tonight and get a doubles rotation where
+            nobody partners the same person twice. Your list stays in this
+            browser and waits here for next week. Nothing is sent anywhere.
           </p>
         </header>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-14">
-          {/* Named only so the print stylesheet can take the whole column off
-              the page in one rule — everything in it is an edit, and nothing
-              you can edit belongs on paper. */}
+        <div className="mm-cols">
+          {/* Named so the print stylesheet can take the whole column off the
+              page in one rule — everything in it is an edit, and nothing you
+              can edit belongs on paper. */}
           <div className="mm-controls">
             <div className="mm-field-head">
               <label className="mm-legend" htmlFor="mm-roster">
-                Roster
+                Tonight
               </label>
               {/* One button rather than two swapped in and out, so pressing
                   Clear leaves the focus on the control that undoes it. */}
@@ -340,7 +359,7 @@ export function MatchMixer() {
             </div>
             <textarea
               id="mm-roster"
-              className="mm-input mt-3 h-64 w-full resize-y p-3"
+              className="mm-input h-64 w-full resize-y p-2.5"
               value={text}
               onChange={(event) => editRoster(event.target.value)}
               placeholder={EXAMPLE_ROSTER}
@@ -353,7 +372,7 @@ export function MatchMixer() {
             <DuplicateNotice names={repeated} />
 
             {supported ? (
-              <div className="mm-fields mt-8">
+              <div className="mm-fields mt-6">
                 <NumberField
                   id="mm-courts"
                   label="Courts"
@@ -385,21 +404,17 @@ export function MatchMixer() {
                 on every keystroke, and a screen reader reading them per
                 character is worse than silence. The note is tied to the button
                 instead, so it is read when the button is reached. */}
-            {size > 0 ? <p className="mm-summary mt-8">{consequence}</p> : null}
+            {size > 0 ? <p className="mm-note mt-6">{consequence}</p> : null}
 
             <button
               type="button"
-              className="mm-button mt-4"
+              className="mm-button mt-3"
               onClick={generate}
               disabled={!supported}
               data-stale={stale ? "true" : undefined}
               aria-describedby="mm-action-note"
             >
-              {!draw
-                ? "Make the schedule"
-                : stale
-                  ? "Update the schedule"
-                  : "Draw it again"}
+              {!draw ? "Make the board" : stale ? "Redraw the board" : "Wipe & redraw"}
             </button>
             <p className="mm-note mt-2" id="mm-action-note">
               <ActionNote draw={draw} stale={stale} size={size} />
@@ -409,15 +424,26 @@ export function MatchMixer() {
           <div className="min-w-0">
             {draw ? (
               <>
+                {/* What changed, not what it was drawn from: the head already
+                    carries the board's own particulars, so repeating them here
+                    would say the same thing twice and leave the organizer to
+                    work out the difference themselves. */}
                 {stale ? (
                   <p className="mm-flag">
-                    Out of date. Drawn from {draw.numbers}.
+                    Superseded · you now have{" "}
+                    {describeNumbers({ players: size, courts, rounds })}
                   </p>
                 ) : null}
+                {/* Keyed on the Seed so a new draw remounts the field: that is
+                    what starts the wipe and the settle, which are CSS
+                    animations and run on mount. Nothing in this component
+                    drives a frame of them. */}
                 <div
+                  key={draw.config.seed}
                   className="mm-draw"
                   data-stale={stale ? "true" : undefined}
                 >
+                  {stale ? null : <span className="mm-wipe" aria-hidden />}
                   <ScheduleGrid
                     roster={draw.config.roster}
                     schedule={draw.schedule}
@@ -432,6 +458,17 @@ export function MatchMixer() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* The tray. It carries no control and says nothing the screen needs —
+          it is here because a board without one is a rectangle, and this is
+          the edge that tells you which way up the object is. */}
+      <div className="mm-tray" aria-hidden>
+        <span className="mm-pen" data-ink="black" />
+        <span className="mm-pen" data-ink="red" />
+        <span className="mm-magnet" />
+        <span className="mm-magnet" />
+        <span className="mm-tray-mark">Juice Bros Pickleball</span>
       </div>
     </div>
   );
@@ -453,12 +490,12 @@ function ActionNote({
   stale: boolean;
   size: number;
 }) {
-  if (size === 0) return <>Paste your names above, then draw the schedule.</>;
+  if (size === 0) return <>Paste your names above, then make the board.</>;
   if (size < MIN_ROSTER_SIZE) return <>Nothing to draw until there are four.</>;
   if (size > MAX_ROSTER_SIZE)
     return <>Nothing to draw until the roster fits.</>;
   if (stale)
-    return <>The sheet on screen is the previous draw, not this one.</>;
+    return <>The board on screen is the previous draw, not this one.</>;
   if (draw) return <>Same names, same numbers, a different draw.</>;
   return <>Nothing is generated until you press it.</>;
 }
@@ -476,33 +513,43 @@ function DuplicateNotice({ names }: { names: string[] }) {
       {names.length === 1
         ? `More than one player named ${names[0]}.`
         : `These names are on the list more than once: ${names.join(", ")}.`}{" "}
-      The schedule still works. The sheet just won&rsquo;t tell them apart.
+      The schedule still works. The board just won&rsquo;t tell them apart.
     </p>
   );
 }
 
 /**
- * The zero state. A greyed, non-interactive draw sheet says what this page
- * produces better than a sentence about it does, and leaves the column holding
+ * The zero state: the board with somebody else's night still on it. A real
+ * schedule, generated the way any other one is, says what this page produces
+ * better than a sentence about it does — and leaves the field holding
  * something rather than nothing.
+ *
+ * Held back by moving the ink and flattening the plates against the enamel
+ * rather than by opacity, so the hairlines stay hairlines; the dashed rule and
+ * the caption say specimen.
  */
 function ExampleSheet({ supported }: { supported: boolean }) {
   return (
     <section aria-labelledby="mm-example-caption">
-      <p className="mm-legend" id="mm-example-caption">
-        Example draw sheet
+      <p className="mm-legend mm-rail" id="mm-example-caption">
+        Last week&rsquo;s board
       </p>
-      <p className="mm-note mt-2">
+      <p className="mm-note">
         {supported
           ? "Eight names, two courts, four rounds. Yours takes its place as soon as you draw it."
           : "Eight names, two courts, four rounds. This is the shape of what you get."}
       </p>
-      <div className="mm-example mt-5" aria-hidden="true" inert>
+      {/* The specimen stays out of the accessibility tree: a second full
+          schedule read out in order is noise, and the caption above already
+          says what it is. Its own rail is hidden with it, so the field runs
+          straight on from the caption rather than carrying two. */}
+      <div className="mm-example mt-4" aria-hidden="true" inert>
         <ScheduleGrid
           roster={EXAMPLE.roster}
           schedule={EXAMPLE.schedule}
           score={EXAMPLE.score}
           headingId="mm-example-heading"
+          headingHidden
         />
       </div>
     </section>
@@ -512,11 +559,11 @@ function ExampleSheet({ supported }: { supported: boolean }) {
 function TooManyPlayers({ size }: { size: number }) {
   return (
     <div className="mm-placeholder">
-      <p className="mm-placeholder-head">{size} names: too many to schedule</p>
+      <p className="mm-placeholder-head">{size} names: too many for one board</p>
       <p className="mm-note mt-2">
         Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Above that the
-        grid stops fitting a sheet and the search stops being quick, and a night
-        that size is better split into two rotations. Remove{" "}
+        field stops fitting a board and the search stops being quick, and a
+        night that size is better split into two rotations. Remove{" "}
         {size - MAX_ROSTER_SIZE}.
       </p>
     </div>
@@ -561,7 +608,7 @@ function NumberField({
         id={id}
         type="number"
         inputMode="numeric"
-        className="mm-input mm-number mt-2"
+        className="mm-input mm-number mt-1.5"
         value={emptied ? "" : value}
         min={min}
         max={max}
