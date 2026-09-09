@@ -2,7 +2,8 @@
 
 Status: planning input, not committed scope. Written 2026-09-04. Progress updated
 2026-09-08; interleave reordered the same day (second pass — RR-6 slotted, RR-3's
-remainder moved in front of the night).
+remainder moved in front of the night). RR-1 item 6 amended 2026-09-09 (#477, the partner
+matrix cut), which also settles RR-6 question 3.
 
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
@@ -610,7 +611,7 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
 ## Round Robin Generator
 
 The brief in `briefs/juice-bros-round-robin-brief.md` is adopted as the baseline: lookup
-tables plus randomized greedy with a cost function, the partner matrix as proof, print as a
+tables plus randomized greedy with a cost function, the Scorer's verdict as proof, print as a
 first-class output, "the grid is the interface" design direction, no database in v1. The
 initiatives below sequence it and add what the brief is missing.
 
@@ -696,12 +697,14 @@ below was resolved in `/grill-with-docs` (PR #386) and is settled, not open.
    Below n = 4, show a greyed example draw sheet, not empty space. No wizard, no
    "generate" button in the critical path (keep one for re-seeding, which just writes a
    new seed — see `match-mixer/CONTEXT.md`'s **Seed**).
-6. **The stats line and partner matrix.** Partner repeats, bye spread, max opponent
-   repeats — computed by the scorer, per (3). The partner matrix renders in RR-1: cells
-   carry a *count*, not a filled/empty mark, since a balanced prefix is sparse by design
-   and the failure mode is a cell above 1, not an empty one. No orange (reserved for "round
-   in progress"); the diagonal reads as dead, not as a missing pairing; own `overflow-x`
-   scroll container at n = 32 (1024 cells).
+6. **The stats line.** Partner repeats, bye spread, max opponent repeats, and pairing
+   coverage — computed by the scorer, per (3). **Amended 2026-09-09 (#477): the partner
+   matrix is cut.** It shipped in RR-1 and came out again: it named a failure it could not
+   locate (a cell above 1 says a pair repeated, not which rounds), and its verdict was
+   already in the summary line. What stands in its place is coverage ("18 of 66 possible
+   pairings") in that line, and a repeat boxed on the pair in the round it happens in — no
+   orange, which stays reserved for "round in progress". Reason from this, not from the
+   brief's §5 bullet or the original wording above.
 7. **Persistence.** `localStorage` only, debounced — no URL/share yet (that's RR-3). Cost
    of deferring it is near zero because `seed` is already a first-class config field, so
    RR-3's share link is serializing a value that already exists, not a refactor.
@@ -875,10 +878,11 @@ self-contained round robin that happens to share courts and a printout with the 
    byes. Validate against `players / poolCount`, not just total players — 15 players
    into 4 pools quietly produces a pool of 3.
 3. Print/on-screen layout with more than one grid?
-   ➡️ Leaning stacked sections (Pool A's grid, then Pool B's, each with its own partner
-   matrix) over one interleaved grid — keeps RR-1's grid markup and print stylesheet
-   almost unchanged. Worth a pass in Impeccable against the brief's direction before
-   locking it.
+   ➡️ Stacked sections (Pool A's grid, then Pool B's, each with its own summary line) over
+   one interleaved grid — keeps RR-1's grid markup and print stylesheet almost unchanged.
+   **Simplified 2026-09-09 (#477):** this used to have to decide one matrix per pool
+   against one combined, and with the matrix gone there is nothing to duplicate. Still
+   worth a pass in Impeccable against the brief's direction before locking it.
 4. Naming?
    ➡️ Pool A/B/C…, not editable in v1. A rename field is a cheap follow-up, not a blocker.
 

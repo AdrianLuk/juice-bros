@@ -80,7 +80,7 @@ export interface Config {
 
 /** A Roster below this can't fill a single court. */
 export const MIN_ROSTER_SIZE = 4;
-/** Above this the Partner Matrix stops being readable and the search stops being quick. */
+/** Above this the grid stops fitting a sheet and the search stops being quick. */
 export const MAX_ROSTER_SIZE = 32;
 
 /**
@@ -99,8 +99,8 @@ export interface Tally {
 
 /**
  * The Scorer's reading of one Schedule. `cost` is the number the generator
- * minimizes; everything else is what the summary line and the Partner Matrix
- * render. A perfectly balanced Schedule scores `cost === 0`.
+ * minimizes; everything else is what the summary line reports and what marks
+ * a repeat in the grid. A perfectly balanced Schedule scores `cost === 0`.
  */
 export interface ScorerResult extends Tally {
   readonly cost: number;
@@ -108,6 +108,14 @@ export interface ScorerResult extends Tally {
   readonly repeatedPartnerPairs: number;
   readonly maxPartnerCount: number;
   readonly maxOpponentCount: number;
+  /**
+   * How many distinct pairs have partnered at least once. Distinct is the
+   * whole point: a pair that played together twice is one pairing covered and
+   * one repeat, so this counts pairs rather than partnerships.
+   */
+  readonly pairingsPlayed: number;
+  /** Every pair the Roster contains, `n × (n − 1) / 2`. */
+  readonly pairingsPossible: number;
   /** Most games played by anyone minus fewest — 0 means Byes fell evenly. */
   readonly byeSpread: number;
   /**

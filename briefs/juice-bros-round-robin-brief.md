@@ -203,9 +203,14 @@ timetable.
   everywhere**, non-negotiable — the entire design depends on columns lining up.
 - Mostly black on white. Orange does exactly one job: highlighting the round in
   progress. A sitting-out player is set in a lighter grey, never in a "bye" badge.
-- Signature element: a partner matrix at the bottom — an `n × n` grid, one cell
+- Signature element: ~~a partner matrix at the bottom — an `n × n` grid, one cell
   filled per pairing, showing at a glance that the schedule is complete and balanced.
-  It's the proof, and it's genuinely nice to look at.
+  It's the proof, and it's genuinely nice to look at.~~ **Superseded 2026-09-09
+  (#477).** This assumed a full whist tournament, which fills every cell and does look
+  good. Clubs play five rounds, not seven, so a real schedule is sparse by design and
+  what shipped was a mostly-blank grid. The proof lives in the summary line instead —
+  the verdict plus a coverage figure — and a repeat is boxed in the round it happens
+  in. See `match-mixer/CONTEXT.md`.
 - Motion: none. This is a document. Elegance here is spacing and alignment.
 
 ---
