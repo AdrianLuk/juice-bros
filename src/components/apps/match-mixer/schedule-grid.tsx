@@ -18,6 +18,46 @@ function teamNames(roster: Roster, team: Team): string {
 }
 
 /**
+ * How much of the room has met. Distinct from the repeat verdict beside it:
+ * that one says nothing went wrong, this one says how far through the roster
+ * the evening got, which is what decides whether another round is worth
+ * playing. A schedule where every pair has partnered has nothing left to give
+ * and says so, rather than making the organizer compare two numbers to notice.
+ */
+function coverage(score: ScorerResult): string | null {
+  if (score.pairingsPossible === 0) return null;
+  if (score.pairingsPlayed === score.pairingsPossible)
+    return "every possible pairing has played";
+  return `${score.pairingsPlayed} of ${score.pairingsPossible} possible pairings`;
+}
+
+/**
+ * One side of a Game. A pair who partnered more than once is marked here, on
+ * the side it belongs to rather than on the Game or in a grid of its own,
+ * because naming the pair without showing which Rounds they are in leaves the
+ * organizer to find them by hand. The mark is spelled out for screen readers,
+ * which have no box to see.
+ */
+function Side({
+  roster,
+  score,
+  team,
+}: {
+  roster: Roster;
+  score: ScorerResult;
+  team: Team;
+}) {
+  const repeat = score.partnerMatrix[team[0]][team[1]] > 1;
+
+  return (
+    <span className="mm-side" data-repeat={repeat ? "true" : undefined}>
+      {teamNames(roster, team)}
+      {repeat ? <span className="sr-only"> (repeat partners)</span> : null}
+    </span>
+  );
+}
+
+/**
  * The summary line is a readout of the Scorer against the Schedule that was
  * actually produced, never a claim derived from the Config. Whether the Byes
  * rotate evenly is the Scorer's verdict too, not a second rule worked out
@@ -41,12 +81,15 @@ function summarise(score: ScorerResult, schedule: Schedule): string {
     `${rounds} ${rounds === 1 ? "round" : "rounds"}`,
     score.repeatedPartnerPairs === 0
       ? "no repeat partners"
-      : `${score.repeatedPartnerPairs} repeat partnerships`,
+      : `${score.repeatedPartnerPairs} repeat partnerships, boxed below`,
+    coverage(score),
     byes,
     score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
       ? "nobody faces the same person more than twice"
       : `some players face each other ${score.maxOpponentCount} times`,
-  ].join(", ");
+  ]
+    .filter((clause) => clause !== null)
+    .join(", ");
 }
 
 export function ScheduleGrid({
@@ -93,9 +136,9 @@ export function ScheduleGrid({
                 <th scope="row">{index + 1}</th>
                 {round.games.map((game) => (
                   <td key={game.court} data-court={`Court ${game.court + 1}`}>
-                    <span className="mm-side">{teamNames(roster, game.teams[0])}</span>
+                    <Side roster={roster} score={score} team={game.teams[0]} />
                     <span className="mm-versus">vs</span>
-                    <span className="mm-side">{teamNames(roster, game.teams[1])}</span>
+                    <Side roster={roster} score={score} team={game.teams[1]} />
                   </td>
                 ))}
                 {anyByes ? (

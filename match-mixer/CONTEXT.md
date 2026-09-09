@@ -54,9 +54,13 @@ _Avoid_: Preset, template, fixture list
 The measurement of a Schedule: partner repeats first, Bye imbalance second, opponent repeats third. It is this context's definition of "fair" — it validates the Tables in tests, it picks the winner among the generator's attempts, and it produces the summary line under the Schedule. Nothing claims a Schedule is balanced except the Scorer.
 _Avoid_: Cost function (fine as the function's name; the Scorer is the concept), validator. Unrelated to entering game scores, which is a separate future concern.
 
-**Partner Matrix**:
-The grid at the foot of the Schedule showing how many times each pair of Players partnered. It is the evidence, and what it proves is that no pair partnered more than once — an empty cell is expected and fine, a cell above one is the failure.
-_Avoid_: Heatmap, pairing chart
+**Pairing**:
+Two Players who have partnered at least once, counted as a pair and not as an occasion: a Pairing that happened twice is one Pairing and one repeat. **Coverage** is how many of the Roster's Pairings a Schedule has used, reported in the summary line as "18 of 66 possible pairings". It answers whether another Round is worth playing, which is the one question the Schedule grid cannot be read for.
+_Avoid_: Partner Matrix (removed 2026-09-09, see below), heatmap, pairing chart. Not a synonym for Team, which is a Pairing in one particular Game.
+
+**Repeat mark**:
+The box drawn round a Team in the Schedule grid when that pair partnered more than once. It is the Scorer's failure signal made visible in the Round it happened in.
+_Avoid_: Warning, error, conflict
 
 ### Not built yet
 
@@ -67,5 +71,10 @@ _Avoid_: Session (On Deck's word for one night at a club), event, tournament
 **Lock**:
 Marking a Round as played so it stops being rebuilt when the Roster changes. Locking is what makes a Mixer more than a Schedule: later Rounds may be regenerated around someone who arrived or left, and locked Rounds never move.
 _Avoid_: Commit, freeze, finalise
+
+### Retired
+
+**Partner Matrix** (removed 2026-09-09, #477):
+An `n × n` grid at the foot of the Schedule counting how many times each pair partnered. It was cut because it named a failure it could not locate — a cell reading 2 said a pair repeated but not which Rounds they were in, so acting on it meant searching the Schedule grid by hand. Its verdict was already in the summary line, and the coverage figure was the only thing in it that was not. What replaced it: **Coverage** in the summary line, and the **Repeat mark** in the grid. Do not reintroduce it under another name.
 
 See [docs/adr/0001-config-and-schedule-are-not-event-sourced.md](docs/adr/0001-config-and-schedule-are-not-event-sourced.md) and [docs/adr/0002-precomputed-tables-are-whist-prefixes.md](docs/adr/0002-precomputed-tables-are-whist-prefixes.md).
