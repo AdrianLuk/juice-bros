@@ -3791,11 +3791,11 @@ html:has(.bb-app-chrome) {
       display: none;
     }
     .mm-grid tbody tr {
-      padding-bottom: 0.65rem;
+      padding-bottom: 1.1rem;
     }
     .mm-grid tbody th {
       width: auto;
-      padding: 0.85rem 0 0.3rem;
+      padding: 1.15rem 0 0.45rem;
       border-bottom: 0;
       border-top: 2px solid var(--mm-vinyl);
       font-size: 0.5625rem;
@@ -3814,10 +3814,20 @@ html:has(.bb-app-chrome) {
       padding: 0.3rem 0 0;
       border-bottom: 0;
     }
+    /* Stacked, every court is its own block of names with nothing between it
+       and the next one, so two courts read as one long list of eight people.
+       Each court after the first gets its own hairline and real air above it.
+       The rule stays a hairline while a round's rule is 2px vinyl, so the
+       hierarchy a reader scans by — round, then court — survives the stack. */
+    .mm-grid td + td {
+      margin-top: 0.9rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--mm-rule);
+    }
     .mm-grid td::before {
       content: attr(data-court);
       display: block;
-      margin-bottom: 0.18rem;
+      margin-bottom: 0.32rem;
       font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
       font-weight: 700;
       font-size: 0.5rem;
