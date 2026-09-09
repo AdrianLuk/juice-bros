@@ -208,7 +208,7 @@ export function ScheduleGrid({
                 {round.games.map((game) => (
                   <td key={game.court} data-court={`Court ${game.court + 1}`}>
                     <Side roster={roster} score={score} team={game.teams[0]} />
-                    <span className="mm-versus">versus</span>
+                    <span className="mm-versus">vs.</span>
                     <Side roster={roster} score={score} team={game.teams[1]} />
                   </td>
                 ))}

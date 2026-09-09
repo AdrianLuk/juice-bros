@@ -41,8 +41,16 @@ export function SiteHeader() {
   // mobile the hero is a short banner rather than a full-viewport background,
   // so overlapping it hides content - mobile gets a plain in-flow identity
   // strip instead, plus a corner FAB for the menu.
+  // Match Mixer joins them for the same reason in a different material: the
+  // board is a manufactured object that fills the frame, so its aluminium
+  // surround has to run to the very top of the page. Reserving a row for the
+  // bar left the object sitting under a bare strip of page ground, which read
+  // as the nav floating on a grey bar rather than on the board.
   const hasOverlayHero =
-    pathname === "/" || pathname === "/on-deck" || pathname === "/booking-buddy";
+    pathname === "/" ||
+    pathname === "/on-deck" ||
+    pathname === "/booking-buddy" ||
+    pathname === "/tools/match-mixer";
 
   return (
     <>

@@ -3197,14 +3197,15 @@ html:has(.bb-app-chrome) {
        `100svh` rather than `vh` so a phone's collapsing browser chrome does
        not leave a strip of metal under the tray.
 
-       Less the strip the floating pill nav sits in: at a full viewport the
-       object's bottom edge — the tray, which is the thing that tells you which
-       way up this is — lands exactly that far below the fold, which is the one
-       place it cannot be. Measured, not guessed: the shell puts `.mm-sheet` at
-       70px. */
+       The desktop pill nav is `fixed` on this route (`hasOverlayHero` in
+       SiteHeader), so it reserves no row and the surround runs to the very top
+       of the page and behind it — the object begins where the page does. What
+       is subtracted here is the mobile identity strip, which is a plain in-flow
+       bar; without that the tray lands exactly its height below the fold, which
+       is the one place the object's bottom edge cannot be. */
     display: flex;
     flex-direction: column;
-    min-height: calc(100svh - 70px);
+    min-height: calc(100svh - 3.5rem);
     color-scheme: light;
     font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
   }
@@ -3236,6 +3237,19 @@ html:has(.bb-app-chrome) {
       inset 0 -1px 0 rgb(0 0 0 / 0.07);
     padding: clamp(1.1rem, 3.5vw, 2.25rem) clamp(1rem, 4vw, 2.5rem)
       clamp(1.5rem, 4vw, 2.75rem);
+  }
+  /* Once the floating bar appears it is over the enamel rather than above it,
+     so the club plate has to start below where it lands: 70px to clear the
+     pill (measured off the shell, not guessed), then the band's own air. Below
+     this width the bar is the in-flow identity strip instead, which reserves
+     its own row and needs nothing here. */
+  @media (min-width: 40rem) {
+    .mm-sheet {
+      min-height: 100svh;
+    }
+    .mm-face {
+      padding-top: calc(70px + 1.5rem);
+    }
   }
 
   /* ---- Applied furniture ------------------------------------------------- */
