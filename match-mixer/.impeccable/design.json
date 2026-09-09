@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-09T00:00:00.000Z",
+  "title": "Design System: Match Mixer",
+  "extensions": {
+    "colorMeta": {
+      "enamel": {
+        "role": "neutral",
+        "displayName": "Lit Enamel",
+        "canonical": "#eff3f3",
+        "tonalRamp": ["#22282a", "#384144", "#4f5b5f", "#6b787c", "#8e9b9e", "#b4c0c1", "#dde4e5", "#f6f9f9"]
+      },
+      "enamel-shade": {
+        "role": "neutral",
+        "displayName": "Enamel Shade",
+        "canonical": "#dde4e5",
+        "tonalRamp": ["#1f2426", "#343d40", "#4b5659", "#667376", "#8a9699", "#aeb9bb", "#dde4e5", "#f3f7f7"]
+      },
+      "vinyl": {
+        "role": "neutral",
+        "displayName": "Applied Vinyl",
+        "canonical": "#1b2023",
+        "tonalRamp": ["#0b0e10", "#1b2023", "#2e3539", "#454e53", "#616b70", "#8b9498", "#bcc3c6", "#e7eaeb"]
+      },
+      "vinyl-quiet": {
+        "role": "neutral",
+        "displayName": "Quiet Vinyl",
+        "canonical": "#545d62",
+        "tonalRamp": ["#12171a", "#232a2e", "#374045", "#4a545a", "#545d62", "#7e888d", "#adb5b9", "#dde1e3"]
+      },
+      "plate": {
+        "role": "neutral",
+        "displayName": "Plate White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1a1a1a", "#333333", "#4d4d4d", "#6b6b6b", "#909090", "#b8b8b8", "#e2e2e2", "#ffffff"]
+      },
+      "plate-edge": {
+        "role": "neutral",
+        "displayName": "Plate Edge",
+        "canonical": "#b7c0c2",
+        "tonalRamp": ["#191d1e", "#2c3234", "#41494b", "#5a6467", "#7b8688", "#9aa5a7", "#b7c0c2", "#e3e8e9"]
+      },
+      "mark-red": {
+        "role": "primary",
+        "displayName": "Marker Red",
+        "canonical": "#c0392f",
+        "tonalRamp": ["#2c0c09", "#4a1411", "#6b1e18", "#8d2920", "#c0392f", "#d76a60", "#e9a49d", "#f7dcd9"]
+      },
+      "mark-green": {
+        "role": "secondary",
+        "displayName": "Marker Green",
+        "canonical": "#1f6039",
+        "tonalRamp": ["#08170d", "#0e2a19", "#153f25", "#1f6039", "#2c7f4d", "#4ea274", "#8cc7a5", "#d3eade"]
+      },
+      "alu-hi": {
+        "role": "neutral",
+        "displayName": "Aluminium Highlight",
+        "canonical": "#ced3d7",
+        "tonalRamp": ["#1c1f22", "#2f3438", "#454b50", "#5e656b", "#828a90", "#a7aeb4", "#ced3d7", "#eef0f2"]
+      },
+      "alu": {
+        "role": "neutral",
+        "displayName": "Brushed Aluminium",
+        "canonical": "#b2b9bf",
+        "tonalRamp": ["#191c1f", "#2b3034", "#40464b", "#585f65", "#7b838a", "#9aa2a9", "#b2b9bf", "#e0e4e7"]
+      },
+      "alu-lo": {
+        "role": "neutral",
+        "displayName": "Aluminium Shadow",
+        "canonical": "#939aa1",
+        "tonalRamp": ["#16191c", "#272c30", "#3b4146", "#525960", "#727a81", "#939aa1", "#bcc2c7", "#e6e9eb"]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Row Hairline",
+        "canonical": "rgb(27 32 35 / 0.16)",
+        "tonalRamp": ["rgb(27 32 35 / 0.06)", "rgb(27 32 35 / 0.1)", "rgb(27 32 35 / 0.12)", "rgb(27 32 35 / 0.16)", "rgb(27 32 35 / 0.22)", "rgb(27 32 35 / 0.28)", "rgb(27 32 35 / 0.4)", "rgb(27 32 35 / 0.6)"]
+      },
+      "tray-stamp": {
+        "role": "neutral",
+        "displayName": "Tray Stamp",
+        "canonical": "#2b3134",
+        "tonalRamp": ["#0d1012", "#1b2023", "#2b3134", "#3f474b", "#5a646a", "#828c92", "#b3bbbf", "#e2e6e8"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Club Plate", "purpose": "The board's name, knocked out of an applied vinyl plate. One per screen." },
+      "title": { "displayName": "Round Numeral", "purpose": "Row headings down the left of the ruled field; applied to the board, not printed on a plate." },
+      "body": { "displayName": "Plate Print", "purpose": "Names on white magnet plates and text typed into insert cards. The only sentence-case, untracked voice." },
+      "label": { "displayName": "Cut Vinyl Label", "purpose": "Column rails, section legends, the tray stamp. Always tracked caps." },
+      "meta": { "displayName": "Particulars", "purpose": "The night's particulars beside the club plate and the scorer's verdict beneath it." },
+      "note": { "displayName": "Board Note", "purpose": "Explanatory lines under a control and the duplicate-name notice." },
+      "action": { "displayName": "Magnet Label", "purpose": "The draw magnet's label and the quiet underlined edit." }
+    },
+    "shadows": [
+      { "name": "plate-lift", "value": "inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 0 rgb(24 32 36 / 0.16), 0 3px 5px -1px rgb(24 32 36 / 0.18), 0 7px 12px -6px rgb(24 32 36 / 0.34)", "purpose": "Every name plate and the laminated notice: a magnet holds card stock a millimetre clear of the enamel, so the shadow is thrown down and away rather than hugging the outline." },
+      { "name": "insert-lift", "value": "0 1px 0 rgb(0 0 0 / 0.1), 0 4px 9px -5px rgb(0 0 0 / 0.4)", "purpose": "The roster insert card and the two dials — the same idea, shallower." },
+      { "name": "magnet-rest", "value": "0 2px 0 rgb(0 0 0 / 0.26), 0 8px 15px -8px rgb(0 0 0 / 0.55)", "purpose": "The draw magnet at rest." },
+      { "name": "magnet-hover", "value": "0 3px 0 rgb(0 0 0 / 0.26), 0 12px 20px -10px rgb(0 0 0 / 0.6)", "purpose": "The draw magnet lifted 1px under the cursor." },
+      { "name": "magnet-press", "value": "0 0 0 rgb(0 0 0 / 0.26), 0 4px 8px -6px rgb(0 0 0 / 0.5)", "purpose": "Pressed — the magnet going flat against the enamel." },
+      { "name": "magnet-stale-ring", "value": "0 0 0 2px #eff3f3, 0 0 0 4px #1b2023, 0 2px 0 rgb(0 0 0 / 0.26), 0 8px 15px -8px rgb(0 0 0 / 0.55)", "purpose": "The draw magnet while the board is superseded: 'update' carried at a glance as well as in words." },
+      { "name": "enamel-sheen", "value": "inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 -1px 0 rgb(0 0 0 / 0.07)", "purpose": "The board face only — a white top edge and a dark bottom one so the enamel reads as a lit surface." },
+      { "name": "tray-channel", "value": "inset 0 1px 0 rgb(255 255 255 / 0.75), inset 0 6px 9px -7px rgb(20 26 30 / 0.75), 0 -3px 7px -3px rgb(20 26 30 / 0.3)", "purpose": "The anodised tray: a bright lip, a dark turn into the channel, and a shadow cast up onto the enamel it is bolted to." }
+    ],
+    "motion": [
+      { "name": "sweep", "value": "mm-sweep 620ms cubic-bezier(0.4, 0, 0.2, 1) both", "purpose": "The wipe: a single translated overlay in the enamel's own colour travelling -115% to 115% behind a non-moving clipping window." },
+      { "name": "settle", "value": "mm-settle 340ms cubic-bezier(0.22, 0.9, 0.36, 1) both", "purpose": "Plates dropping back row by row behind the sweep, overshooting 1.5px in the keyframe with a plain decelerate curve." },
+      { "name": "settle-stagger", "value": "calc(160ms + min(var(--row, 0) * 62ms, 520ms))", "purpose": "The row cascade, capped at 520ms so a sixteen-round board does not land past 1.4s on every redraw." },
+      { "name": "magnet-press", "value": "transform 140ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 140ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "The draw magnet's hover lift and press." }
+    ],
+    "breakpoints": [
+      { "name": "tray-narrow", "value": "30rem" },
+      { "name": "field-stack", "value": "639px" },
+      { "name": "two-column", "value": "64rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Club Plate",
+      "kind": "custom",
+      "refersTo": "club-plate",
+      "description": "The board's name, cut in vinyl and applied flush to the enamel with the type knocked out of it. Flush means no shadow — a shadow here would make it a sticker.",
+      "html": "<h1 class=\"ds-mm-title\">Match Mixer</h1>",
+      "css": ".ds-mm-title { display: inline-block; background: #1b2023; color: #eff3f3; padding: 0.4rem 0.85rem 0.46rem; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 1.5rem; letter-spacing: 0.17em; text-transform: uppercase; line-height: 1; margin: 0; }"
+    },
+    {
+      "name": "Rail Label",
+      "kind": "custom",
+      "refersTo": "rail-label",
+      "description": "A tracked-caps legend sitting on the 2px vinyl rule a real board has ruled across the top of each column.",
+      "html": "<span class=\"ds-mm-rail\">Tonight</span>",
+      "css": ".ds-mm-rail { display: block; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.5625rem; letter-spacing: 0.2em; text-transform: uppercase; color: #545d62; line-height: 1.1; border-bottom: 2px solid #1b2023; padding-bottom: 0.22rem; margin-bottom: 0.55rem; }"
+    },
+    {
+      "name": "Name Plate",
+      "kind": "card",
+      "refersTo": "name-plate",
+      "description": "One side of a game on a white magnet plate: cut to the length of the names, never to the column, lifted a millimetre off the enamel and set a fraction off square.",
+      "html": "<span class=\"ds-mm-side\">Ben Johns / Anna Leigh Waters</span>",
+      "css": ".ds-mm-side { display: block; width: fit-content; max-width: 100%; position: relative; background: #ffffff; border: 1px solid #b7c0c2; border-radius: 2px; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 0 rgb(24 32 36 / 0.16), 0 3px 5px -1px rgb(24 32 36 / 0.18), 0 7px 12px -6px rgb(24 32 36 / 0.34); padding: 0.26rem 0.5rem; color: #1b2023; font-family: 'Archivo', system-ui, sans-serif; font-weight: 500; font-size: 0.875rem; line-height: 1.3; transform: rotate(-0.26deg); }"
+    },
+    {
+      "name": "Name Plate with Repeat Ring",
+      "kind": "custom",
+      "refersTo": "name-plate",
+      "description": "A pair who partnered more than once, ringed in marker red. The ring is a drawn SVG stroke and never a CSS border: every other line on the board is applied vinyl, so a tidy rectangle here would read as more furniture and stop registering as a mark.",
+      "html": "<span class=\"ds-mm-side-repeat\">Tyson McGuffin / Catherine Parenteau<svg class=\"ds-mm-ring\" viewBox=\"0 0 200 44\" preserveAspectRatio=\"none\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M195 19 C196 8 152 3 100 3 C46 3 5 8 5 20 C5 33 47 41 100 41 C155 41 197 34 194 20 C192 12 180 8 168 6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"></path></svg></span>",
+      "css": ".ds-mm-side-repeat { display: block; width: fit-content; max-width: 100%; position: relative; background: #ffffff; border: 1px solid #b7c0c2; border-radius: 2px; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 0 rgb(24 32 36 / 0.16), 0 3px 5px -1px rgb(24 32 36 / 0.18), 0 7px 12px -6px rgb(24 32 36 / 0.34); padding: 0.26rem 0.5rem; color: #1b2023; font-family: 'Archivo', system-ui, sans-serif; font-weight: 500; font-size: 0.875rem; line-height: 1.3; transform: rotate(0.22deg); } .ds-mm-ring { position: absolute; inset: -6px -9px; width: calc(100% + 18px); height: calc(100% + 12px); overflow: visible; pointer-events: none; color: #c0392f; }"
+    },
+    {
+      "name": "Draw Magnet",
+      "kind": "button",
+      "refersTo": "draw-magnet",
+      "description": "The one red fill on the board, so the one thing that reads as 'press this'. A magnetic card resting on the enamel: hard contact shadow, a hair off square, pressing flat when held.",
+      "html": "<button class=\"ds-mm-button\" type=\"button\">Wipe &amp; redraw</button>",
+      "css": ".ds-mm-button { display: block; width: 100%; border: 0; border-radius: 2px; background: #c0392f; color: #fff; padding: 0.62rem 0.75rem; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.2em; text-transform: uppercase; line-height: 1.15; cursor: pointer; transform: rotate(0.35deg); box-shadow: 0 2px 0 rgb(0 0 0 / 0.26), 0 8px 15px -8px rgb(0 0 0 / 0.55); transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 140ms cubic-bezier(0.32, 0.72, 0, 1); } .ds-mm-button:hover { transform: rotate(0.35deg) translateY(-1px); box-shadow: 0 3px 0 rgb(0 0 0 / 0.26), 0 12px 20px -10px rgb(0 0 0 / 0.6); } .ds-mm-button:active { transform: rotate(0.35deg) translateY(2px); box-shadow: 0 0 0 rgb(0 0 0 / 0.26), 0 4px 8px -6px rgb(0 0 0 / 0.5); } .ds-mm-button:focus-visible { outline: 2px solid #1b2023; outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-mm-button, .ds-mm-button:hover, .ds-mm-button:active { transition: none; transform: rotate(0.35deg); } }"
+    },
+    {
+      "name": "Draw Magnet — Disabled",
+      "kind": "button",
+      "refersTo": "draw-magnet-disabled",
+      "description": "Nothing to draw: the card is off the board, leaving the blank it sits in.",
+      "html": "<button class=\"ds-mm-button-off\" type=\"button\" disabled>Wipe &amp; redraw</button>",
+      "css": ".ds-mm-button-off { display: block; width: 100%; border: 0; border-radius: 2px; background: transparent; color: #8d979a; padding: 0.62rem 0.75rem; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.2em; text-transform: uppercase; line-height: 1.15; box-shadow: inset 0 0 0 1px rgb(27 32 35 / 0.22); cursor: not-allowed; }"
+    },
+    {
+      "name": "Roster Insert Card",
+      "kind": "input",
+      "refersTo": "insert-card",
+      "description": "A slotted card of stock lifted off the enamel the same way a plate is. Square corners at 2px: nothing on a board like this is rounded.",
+      "html": "<textarea class=\"ds-mm-input\" rows=\"4\" placeholder=\"One name per line\">Ben Johns\nAnna Leigh Waters\nTyson McGuffin</textarea>",
+      "css": ".ds-mm-input { display: block; width: 100%; resize: vertical; border: 1px solid #b7c0c2; border-radius: 2px; background: #ffffff; color: #1b2023; box-shadow: 0 1px 0 rgb(0 0 0 / 0.1), 0 4px 9px -5px rgb(0 0 0 / 0.4); font-family: 'Archivo', system-ui, sans-serif; font-size: 0.875rem; line-height: 1.75; padding: 0.625rem; } .ds-mm-input::placeholder { color: #9aa4a6; } .ds-mm-input:focus-visible { outline: 2px solid #1b2023; outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Edit",
+      "kind": "button",
+      "refersTo": "rail-label",
+      "description": "The one edit that belongs to the roster box, sat on its rail. Underlined text rather than a second framed control, which would ask to be read as a second way to draw the schedule.",
+      "html": "<button class=\"ds-mm-quiet\" type=\"button\">Use example names</button>",
+      "css": ".ds-mm-quiet { padding: 0.4rem 0.3rem; margin: -0.4rem -0.3rem; border: 0; background: none; color: #1b2023; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 0.625rem; letter-spacing: 0.14em; text-transform: uppercase; line-height: 1.2; text-decoration: underline; text-underline-offset: 0.25em; text-decoration-thickness: 1px; white-space: nowrap; cursor: pointer; } .ds-mm-quiet:hover { text-decoration-thickness: 2px; } .ds-mm-quiet:focus-visible { outline: 2px solid #1b2023; outline-offset: 2px; }"
+    },
+    {
+      "name": "Superseded Flag",
+      "kind": "custom",
+      "refersTo": "rail-label",
+      "description": "The board is out of date: struck through with a marker-red rail rather than greyed out, because greying alone reads as 'loading' and the old schedule is what is being played off right now.",
+      "html": "<p class=\"ds-mm-flag\">Superseded — press wipe &amp; redraw</p>",
+      "css": ".ds-mm-flag { margin: 0 0 1.25rem; padding: 0.4rem 0; border-top: 2px solid #c0392f; border-bottom: 1px solid #c0392f; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.6875rem; letter-spacing: 0.18em; text-transform: uppercase; color: #c0392f; }"
+    },
+    {
+      "name": "Pen Tray",
+      "kind": "custom",
+      "refersTo": "tray-stamp",
+      "description": "The anodised channel along the bottom of the board. It carries no control; it is the edge that tells you which way up the object is. Deep enough that the markers and magnets read as things lying in a channel rather than as carousel dots.",
+      "html": "<div class=\"ds-mm-tray\"><span class=\"ds-mm-pen ds-mm-pen-black\"></span><span class=\"ds-mm-pen ds-mm-pen-red\"></span><span class=\"ds-mm-magnet\"></span><span class=\"ds-mm-magnet\"></span><span class=\"ds-mm-tray-mark\">Juice Bros Pickleball</span></div>",
+      "css": ".ds-mm-tray { display: flex; align-items: center; gap: 0.7rem; padding: 0.85rem 2.5rem 0.95rem; background: linear-gradient(180deg, #ced3d7 0%, #b2b9bf 30%, #a4abb1 62%, #939aa1 100%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75), inset 0 6px 9px -7px rgb(20 26 30 / 0.75), 0 -3px 7px -3px rgb(20 26 30 / 0.3); } .ds-mm-pen { width: 88px; height: 13px; border-radius: 7px; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 3px rgb(20 26 30 / 0.45); } .ds-mm-pen-black { background: linear-gradient(180deg, #4a5155, #2b3134 55%, #191e21); } .ds-mm-pen-red { background: linear-gradient(180deg, #d75c50, #b03a30 55%, #8d2a22); } .ds-mm-magnet { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff, #cfd5d9 45%, #767e85); box-shadow: 0 2px 4px rgb(20 26 30 / 0.5), inset 0 -1px 2px rgb(20 26 30 / 0.25); } .ds-mm-tray-mark { margin-left: auto; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 0.5625rem; letter-spacing: 0.16em; text-transform: uppercase; color: #2b3134; white-space: nowrap; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Board By The Court Door",
+    "overview": "Match Mixer is not a page that contains a schedule. It is a manufactured object: a lit enamel planning board in an aluminium surround with a pen tray bolted along the bottom, of the kind screwed to the wall beside a sports-hall court. The board's permanent furniture — the club plate, the column rails, the round numerals — is dark vinyl applied flush to the enamel, cut and stuck down once. Tonight's names arrive on white magnet plates that sit a millimetre off the surface and, because a hand put them there, never quite square. Marker is colour and gesture only: a red ring round a repeat partnership, green for who is sitting out.\n\nThe world refuses two things by name. It refuses the SaaS form-and-table tool page — there are no cards, no radius language, no page margin, no panel headings, and the object fills the frame edge to edge. And it refuses the black-on-white printed sheet that governed this route until 2026-09-09, which banned colour, depth and motion by rule so a mono laser printer would survive it. Print is now a fallback, not the governing constraint: the audience is a rec organizer holding a phone in a gym. The printout still works, and it works by demotion — the material comes off and the ruled grid that was always underneath reaches the paper.\n\nDensity is high and unapologetic. The reading task is telling Anna Leigh Waters from Anna Bright across a folding table at a glance, so the type is plain, the numerals are tabular, and no letterform anywhere imitates a hand.",
+    "keyCharacteristics": [
+      "One object, full frame — aluminium surround, enamel face, pen tray, no page around it and no max-width.",
+      "Two type voices: cut vinyl applied to the board, and print on a plate.",
+      "Two saturated marks only — marker red and marker green. Brand orange unspent.",
+      "Depth is material, not UI: furniture is flush; plates are magnet-lifted.",
+      "Square by default; 2px only where the material is card stock.",
+      "The wipe is the signature interaction, and it is pure CSS."
+    ],
+    "rules": [
+      { "name": "The Two Marks Rule", "body": "Red and green are the only saturated colours on the board, and each carries exactly one meaning: red is the marker's mark on a problem or the action, green is who is out. A third saturated colour dilutes both. Everything else is enamel, vinyl, plate white or aluminium.", "section": "colors" },
+      { "name": "The Unspent Orange Rule", "body": "Brand orange (#f26522) does not appear in this world. It is held for the \"round in progress\" state a later milestone will compute, exactly as the retired sheet world held it. Do not spend it on a button, a highlight, or a brand flourish before that state exists.", "section": "colors" },
+      { "name": "The Applied-Ink Rule", "body": "Ink is either applied to the board (vinyl, dark, in the narrow voice) or printed on a plate (Archivo on white). There is no third surface for text to live on; a floating paragraph of body prose on the enamel is where the page shows through the object.", "section": "colors" },
+      { "name": "The Two Voices Rule", "body": "Archivo Narrow is what is applied to the board and is always tracked caps. Archivo is what is printed on a plate and is never tracked and never caps. A new element picks its face by asking which material it is made of, not by asking how important it is.", "section": "typography" },
+      { "name": "The No-Hand Rule", "body": "No handwriting, script or \"marker\" letterform anywhere. A webfont stamps the identical glyph every time, so script reads as type imitating a person — and the job of this screen is distinguishing two similar names at a glance. The marker exists here as colour and gesture only.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Every numeral that can be compared down a column — round numbers, court counts, the verdict's tallies — is tabular-nums.", "section": "typography" },
+      { "name": "The Object-Not-A-Page Rule", "body": "No page margin, no max-width, no centred container, no background showing around the board. If a surface on this route needs a container, it is a piece of the object (a plate, a card, a rail), not a box on a page.", "section": "layout" },
+      { "name": "The Flush-Or-Lifted Rule", "body": "Anything made of vinyl is flush and casts nothing. Anything made of card stock is lifted, with a hard contact line plus a soft cast thrown down and away. There is no third depth, and no ambient glow.", "section": "elevation" },
+      { "name": "The Held-Back-Never-Hidden Rule", "body": "Dimmed states (the superseded board, the example board) are dimmed by moving the ink and flattening the plates against the enamel — re-declaring --mm-vinyl, --mm-plate-edge, --mm-rule, --mm-mark-green on the container — never by opacity and never by a grey overlay. Opacity thins the hairlines into nothing and reads as \"loading\"; the superseded board is still the schedule being played off the wall right now and has to stay readable.", "section": "elevation" },
+      { "name": "The Cut-To-Fit Rule", "body": "A name plate is width: fit-content (capped at max-width: 100%), cut to the length of what is printed on it — never to the width of the column. A full-width plate stops reading as an object on the board and starts reading as the cell's own fill, and two courts of short names stretch into two banners.", "section": "shapes" },
+      { "name": "The Off-Square Rule", "body": "Every plate carries a rotation under half a degree, alternated so no two adjacent plates share one. A new plate type without a rotation reads as printed-on rather than placed.", "section": "shapes" },
+      { "name": "The Wipe-Is-CSS Rule", "body": "The signature motion is a keyed remount plus CSS animation. Nothing in the component may drive a frame of it, and no motion on this board may run longer than the 520ms cascade cap.", "section": "components" }
+    ],
+    "dos": [
+      "Do let the board fill the frame — min-height: calc(100svh - 70px), aluminium surround, tray at the bottom, no page around it.",
+      "Do pick a type voice by material: tracked-caps Archivo Narrow for anything applied to the board, plain Archivo for anything printed on a plate.",
+      "Do cut name plates to their contents (width: fit-content) and rotate each a fraction under half a degree, alternated by position.",
+      "Do keep marker red and marker green as the only saturated colours, one meaning each.",
+      "Do draw the repeat mark as an SVG stroke with non-scaling-stroke and preserveAspectRatio=\"none\".",
+      "Do dim held-back states by re-declaring the ink and flattening the plates on the container, so children inherit it without knowing what stale means.",
+      "Do keep one copy of the schedule in the DOM at every viewport and change layout by CSS only — it is what keeps the print sheet pure CSS.",
+      "Do demote the world on paper: material off, ruled grid on, the repeat ring replaced by a ruled box, the controls column gone, thead repeated as a table-header-group and rounds break-inside: avoid.",
+      "Do keep the print block unlayered. Almost every override there fights a Tailwind utility, and the utilities layer beats the components layer at any specificity.",
+      "Do re-measure the 70px shell offset if the site shell or pill nav changes."
+    ],
+    "donts": [
+      "Don't spend brand orange here. It is reserved for the future \"round in progress\" state.",
+      "Don't replace the repeat ring with a CSS border, outline or box on screen. The ruled box is the print form of that mark only.",
+      "Don't give applied vinyl (club plate, rails, numerals) a shadow — that turns it into a sticker.",
+      "Don't stretch a name plate to the column width, and don't leave a plate perfectly square.",
+      "Don't use opacity or a grey overlay to hold a state back; it thins the hairlines and reads as loading.",
+      "Don't introduce a handwriting, script or brush face anywhere, including for the marker marks.",
+      "Don't use a radius above 2px on a board element, or a pill/circle shape on anything that is not literally a pen or a magnet.",
+      "Don't add a max-width, page gutter, centred container, or generic card around any part of this route.",
+      "Don't let a motion flourish outrun the 520ms cascade cap, and don't drive the wipe from JavaScript."
+    ]
+  }
+}

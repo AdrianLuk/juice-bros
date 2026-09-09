@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import { FREE_OPPONENT_MEETINGS } from "@/components/apps/match-mixer/lib/engine/scorer";
 import type {
   Roster,
@@ -7,10 +9,12 @@ import type {
 } from "@/components/apps/match-mixer/lib/engine/types";
 
 /**
- * Rounds run down, courts run across, the way the desk reads it out. Below the
- * `sm` breakpoint the same table restyles into one round at a time, so there is
- * only ever one copy of the schedule in the DOM (which is what lets RR-1.5's
- * print stylesheet be pure CSS).
+ * The ruled field of the board: rounds run down, courts run across, the way
+ * the desk reads it out. Each pair is a name plate; the round numerals and the
+ * column rails are the board's own applied furniture. Below the `sm` breakpoint
+ * the same table restyles into one round at a time, so there is only ever one
+ * copy of the schedule in the DOM — which is what lets the print stylesheet be
+ * pure CSS.
  */
 
 function teamNames(roster: Roster, team: Team): string {
@@ -32,11 +36,47 @@ function coverage(score: ScorerResult): string | null {
 }
 
 /**
- * One side of a Game. A pair who partnered more than once is marked here, on
- * the side it belongs to rather than on the Game or in a grid of its own,
- * because naming the pair without showing which Rounds they are in leaves the
- * organizer to find them by hand. The mark is spelled out for screen readers,
- * which have no box to see.
+ * The repeat mark: a marker stroke drawn round a name plate, the way someone
+ * standing at the board would ring a pair they had already seen.
+ *
+ * Drawn rather than bordered because this is the one place a hand touches an
+ * otherwise manufactured object — every other line on the board is applied
+ * vinyl, so a tidy rectangle here would read as more furniture and stop
+ * registering as a mark. The path overshoots its own start, which is what a
+ * hand does coming back round to where it began.
+ *
+ * `preserveAspectRatio="none"` lets the ellipse stretch to whatever width the
+ * pair's names give it; `vector-effect` is what keeps the stroke an even
+ * weight while it does, instead of the sides going thin.
+ */
+function RepeatRing() {
+  return (
+    <svg
+      className="mm-ring"
+      viewBox="0 0 200 44"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M195 19 C196 8 152 3 100 3 C46 3 5 8 5 20 C5 33 47 41 100 41 C155 41 197 34 194 20 C192 12 180 8 168 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+/**
+ * One side of a Game, on its own name plate. A pair who partnered more than
+ * once is marked here, on the side it belongs to rather than on the Game or in
+ * a grid of its own, because naming the pair without showing which Rounds they
+ * are in leaves the organizer to find them by hand. The mark is spelled out for
+ * screen readers, which have no ring to see.
  */
 function Side({
   roster,
@@ -52,7 +92,12 @@ function Side({
   return (
     <span className="mm-side" data-repeat={repeat ? "true" : undefined}>
       {teamNames(roster, team)}
-      {repeat ? <span className="sr-only"> (repeat partners)</span> : null}
+      {repeat ? (
+        <>
+          <RepeatRing />
+          <span className="sr-only"> (repeat partners)</span>
+        </>
+      ) : null}
     </span>
   );
 }
@@ -63,7 +108,10 @@ function Side({
  * rotate evenly is the Scorer's verdict too, not a second rule worked out
  * here from the roster size.
  */
-function summarise(score: ScorerResult, schedule: Schedule): string {
+function summarise(
+  score: ScorerResult,
+  schedule: Schedule,
+): { verdict: string; failed: boolean; rest: string } {
   const rounds = schedule.rounds.length;
   const sitting = schedule.rounds[0]?.byes.length ?? 0;
   const sit = sitting === 1 ? "player sits" : "players sit";
@@ -77,19 +125,27 @@ function summarise(score: ScorerResult, schedule: Schedule): string {
     byes = `${sitting} ${sit} out each round, but some sit out ${score.byeSpread} more time${score.byeSpread === 1 ? "" : "s"} than others`;
   }
 
-  return [
-    `${rounds} ${rounds === 1 ? "round" : "rounds"}`,
-    score.repeatedPartnerPairs === 0
-      ? "no repeat partners"
-      : `${score.repeatedPartnerPairs} repeat partnerships, boxed below`,
-    coverage(score),
-    byes,
-    score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
-      ? "nobody faces the same person more than twice"
-      : `some players face each other ${score.maxOpponentCount} times`,
-  ]
-    .filter((clause) => clause !== null)
-    .join(", ");
+  // The repeat clause is pulled out of the run so the board can carry it in
+  // marker green or red. It is the one clause the organizer is scanning for,
+  // and the only one with a pass and a fail; the rest are figures.
+  const failed = score.repeatedPartnerPairs > 0;
+
+  return {
+    failed,
+    verdict: failed
+      ? `${score.repeatedPartnerPairs} repeat partnerships, ringed below`
+      : "no repeat partners",
+    rest: [
+      `${rounds} ${rounds === 1 ? "round" : "rounds"}`,
+      coverage(score),
+      byes,
+      score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
+        ? "nobody faces the same person more than twice"
+        : `some players face each other ${score.maxOpponentCount} times`,
+    ]
+      .filter((clause) => clause !== null)
+      .join(" · "),
+  };
 }
 
 export function ScheduleGrid({
@@ -97,42 +153,57 @@ export function ScheduleGrid({
   schedule,
   score,
   headingId = "mm-schedule-heading",
+  headingHidden = false,
 }: {
   roster: Roster;
   schedule: Schedule;
   score: ScorerResult;
   /** Overridden by the zero state, which shows a second grid of its own. */
   headingId?: string;
+  /**
+   * The zero state captions its specimen itself, so the field's own rail comes
+   * off rather than sitting under a second one saying the same thing.
+   */
+  headingHidden?: boolean;
 }) {
   const courts = schedule.rounds[0]?.games.length ?? 0;
   const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
+  const summary = summarise(score, schedule);
 
   return (
-    <section aria-labelledby={headingId}>
-      <h2 id={headingId} className="mm-legend">
-        Schedule
-      </h2>
-      <p className="mm-summary mt-2">{summarise(score, schedule)}</p>
+    <section aria-labelledby={headingHidden ? undefined : headingId}>
+      {headingHidden ? null : (
+        <h2 id={headingId} className="mm-legend mm-rail">
+          The board
+        </h2>
+      )}
+      <p className="mm-summary">
+        <b data-fail={summary.failed ? "true" : undefined}>{summary.verdict}</b>
+        {" · "}
+        {summary.rest}
+      </p>
 
-      <div className="mm-scroll mt-5">
+      <div className="mm-scroll mt-4">
         <table className="mm-grid">
           <caption className="sr-only">
             Every round of the rotation, with one column per court.
           </caption>
           <thead>
             <tr>
-              <th scope="col">Round</th>
+              <th scope="col">Rd</th>
               {Array.from({ length: courts }, (_, court) => (
                 <th key={court} scope="col">
                   Court {court + 1}
                 </th>
               ))}
-              {anyByes ? <th scope="col">Sitting out</th> : null}
+              {anyByes ? <th scope="col">Off</th> : null}
             </tr>
           </thead>
           <tbody>
             {schedule.rounds.map((round, index) => (
-              <tr key={index}>
+              // `--row` is what staggers the plates back onto the board after
+              // a wipe; the animation itself is entirely in CSS.
+              <tr key={index} style={{ "--row": index } as CSSProperties}>
                 <th scope="row">{index + 1}</th>
                 {round.games.map((game) => (
                   <td key={game.court} data-court={`Court ${game.court + 1}`}>

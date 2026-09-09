@@ -39,6 +39,12 @@
   --font-bb-sign: var(--font-bb-sign);
   --font-bb-body: var(--font-bb-body);
   --font-bb-hand: var(--font-bb-hand);
+  /* Match Mixer's magnetic-planning-board world (seed 08f41571). `mm-vinyl` is
+     the board's applied furniture — rails, plate, numerals, always tracked
+     caps; `mm-plate` is what is printed on a name plate. Only used inside
+     `.mm-sheet`. */
+  --font-mm-vinyl: var(--font-mm-vinyl);
+  --font-mm-plate: var(--font-mm-plate);
   --color-bb-cork: var(--bb-cork);
   --color-bb-pin-in: var(--bb-pin-in);
   --color-bb-pin-need: var(--bb-pin-need);
@@ -2980,12 +2986,12 @@ html:has(.bb-app-chrome) {
      opened them on a near-black strip above their own ground (#419). Every
      world that paints its own surface names its body ground here too, and wins
      by being the later rule at the same specificity. Literal values rather
-     than `var(--pp-ground)` / `var(--mm-paper)`: those are declared on the
+     than `var(--pp-ground)` / `var(--mm-alu-lo)`: those are declared on the
      surface elements, which are inside the body, so they do not resolve here -
      keep them in step with the surface blocks above. */
   body:has(.bx-dark) { background: #08090b; }
   body:has(.pp-surface) { background: oklch(0.935 0.005 92); }
-  body:has(.mm-sheet) { background: #fff; }
+  body:has(.mm-sheet) { background: #ced3d7; }
   /* The same vignetted rim `html:has(.bb-board)` paints into the scrollbar
      gutter, for the same reason one step down: the board sits on an inner div,
      so the strip the sticky pill nav floats in belonged to the body and came
@@ -3122,113 +3128,305 @@ html:has(.bb-app-chrome) {
     font-weight: 600;
     color: var(--bx-ink);
   }
-
-
   /* ==========================================================================
-     Match Mixer - the schedule sheet.
+     Match Mixer - the board (direction seed 08f41571).
 
-     CONCEPT - the grid is the interface. The subject is a sheet of paper
-     pinned up at the desk, so the page behaves like one: rounds down, courts
-     across, hairline rules and precise alignment rather than cards, shadows
-     or rounded corners. Elegance here is spacing, not decoration, which is
-     why there is no motion on this surface at all.
+     CONCEPT - the magnetic planning board bolted to the wall by the court
+     door. Not a page containing a schedule: a manufactured object that fills
+     the frame, aluminium surround and pen tray included. The board's
+     permanent furniture - the club plate, the column rails, the round
+     numerals - is dark vinyl applied flush to the enamel. Tonight's names
+     arrive on white magnet plates that sit a millimetre off the surface and,
+     because a hand put them there, never quite square.
 
-     COLOR - black on white, always. A schedule is a document; it is read in a
-     gym and printed on a mono printer, so there is no dark variant and no
-     status colour. Brand orange is deliberately unspent - it is reserved for
-     the "round in progress" state a later milestone computes, and using it for
-     anything else now would burn the one signal this design has.
+     This replaces "the schedule sheet", the black-on-white document world
+     that governed here until 2026-09-09. That design banned colour, depth and
+     motion by rule so the grid would survive a mono laser printer. Print is
+     now a fallback rather than the governing constraint (the audience is a rec
+     organizer holding a phone in a gym, not someone with a printer), so all
+     three are back - but the printout still works, and the class names below
+     are deliberately the ones the print block at the foot of this file already
+     reaches for.
 
-     TYPE - Saira Condensed (`--font-arena`) for names and legends, the way a
-     timetable sets its labels; Geist Mono for every figure. Tabular numerals
-     are non-negotiable: the whole design depends on columns lining up.
+     COLOR - one cool enamel field, one dark vinyl for everything applied to
+     it, white for the plates, aluminium for the surround. Marker is a colour
+     and a gesture, never a letterform: red rings a repeat partnership, green
+     says who is sitting out. Those two are the only saturated marks on the
+     board, which is why they register. Brand orange stays unspent, as it was
+     in the previous world, and for the same reason - it is being kept for the
+     "round in progress" state a later milestone computes.
+
+     TYPE - Archivo Narrow (`--font-mm-vinyl`) for everything applied to the
+     board, always tracked caps, because that is how lettering is cut for
+     signage. Archivo (`--font-mm-plate`) for what is printed on a plate and
+     read off it. No hand face anywhere: a webfont stamps the identical glyph
+     every time, so script reads as type imitating a person, and the whole job
+     of this screen is telling Anna Leigh Waters from Anna Bright at a glance.
+     Tabular numerals throughout - the columns have to line up.
      ========================================================================== */
   .mm-sheet {
-    /* The paper is repeated literally by `body:has(.mm-sheet)` above, which
-       paints the document behind this sheet - change both. */
-    --mm-paper: #fff;
-    --mm-sink: oklch(0.975 0 0);
-    --mm-ink: oklch(0.18 0 0);
-    --mm-ink-dim: oklch(0.46 0 0);
-    --mm-rule: oklch(0.87 0 0);
-    --mm-rule-strong: oklch(0.62 0 0);
+    /* The enamel face and the aluminium surround. `body:has(.mm-sheet)` near
+       the top of this file repeats the surround's low tone literally so an
+       elastic overscroll shows metal rather than white - change both. */
+    --mm-enamel: #eff3f3;
+    --mm-enamel-2: #dde4e5;
+    --mm-vinyl: #1b2023;
+    --mm-vinyl-2: #545d62;
+    --mm-plate: #ffffff;
+    --mm-plate-edge: #b7c0c2;
+    --mm-mark-red: #c0392f;
+    --mm-mark-green: #1f6039;
+    --mm-alu-hi: #ced3d7;
+    --mm-alu: #b2b9bf;
+    --mm-alu-lo: #939aa1;
 
-    background: var(--mm-paper);
-    color: var(--mm-ink);
+    /* The hairline between rows. A variable rather than a literal because the
+       three held-back states below and the print block all move it. */
+    --mm-rule: rgb(27 32 35 / 0.16);
+
+    /* The board fills the frame. No page around it, no max-width, no gutter -
+       an object, not a document on a background. */
+    background: linear-gradient(180deg, var(--mm-alu-hi), var(--mm-alu-lo));
+    padding: 6px 6px 0;
+    color: var(--mm-vinyl);
+
+    /* The board is the whole of what this route shows, so it has to own the
+       whole of the frame. Without a floor the object ends wherever the field
+       does and the site's near-black footer takes the bottom of the opening
+       viewport, which is a louder thing than the board and belongs below it.
+       `100svh` rather than `vh` so a phone's collapsing browser chrome does
+       not leave a strip of metal under the tray.
+
+       The desktop pill nav is `fixed` on this route (`hasOverlayHero` in
+       SiteHeader), so it reserves no row and the surround runs to the very top
+       of the page and behind it — the object begins where the page does. What
+       is subtracted here is the mobile identity strip, which is a plain in-flow
+       bar; without that the tray lands exactly its height below the fold, which
+       is the one place the object's bottom edge cannot be. */
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100svh - 3.5rem);
     color-scheme: light;
-    font-family: var(--font-sans), system-ui, sans-serif;
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
   }
   .mm-sheet ::selection {
-    background: var(--mm-ink);
-    color: var(--mm-paper);
+    background: var(--mm-vinyl);
+    color: var(--mm-enamel);
   }
   .mm-sheet *:focus-visible {
-    outline: 2px solid var(--mm-ink);
+    outline: 2px solid var(--mm-vinyl);
     outline-offset: 2px;
   }
 
-  /* ---- Type ------------------------------------------------------------- */
+  /* The enamel itself: lit from above, with a white top edge and a dark bottom
+     one so it reads as a surface with a sheen rather than a rectangle of grey.
+     The two soft diagonals are the ghost of the last wipe - the only evidence
+     the board has a history, and the thing that stops the ground reading as
+     flat fill. */
+  .mm-face {
+    position: relative;
+    flex: 1;
+    background:
+      linear-gradient(101deg, transparent 8%, rgb(88 106 116 / 0.14) 17%, transparent 29%),
+      linear-gradient(96deg, transparent 48%, rgb(88 106 116 / 0.115) 58%, transparent 70%),
+      linear-gradient(93deg, transparent 74%, rgb(88 106 116 / 0.075) 81%, transparent 89%),
+      radial-gradient(130% 80% at 50% -12%, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0) 60%),
+      linear-gradient(180deg, var(--mm-enamel), var(--mm-enamel-2));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.85),
+      inset 0 -1px 0 rgb(0 0 0 / 0.07);
+    padding: clamp(1.1rem, 3.5vw, 2.25rem) clamp(1rem, 4vw, 2.5rem)
+      clamp(1.5rem, 4vw, 2.75rem);
+  }
+  /* Once the floating bar appears it is over the enamel rather than above it,
+     so the club plate has to start below where it lands: 70px to clear the
+     pill (measured off the shell, not guessed), then the band's own air. Below
+     this width the bar is the in-flow identity strip instead, which reserves
+     its own row and needs nothing here. */
+  @media (min-width: 40rem) {
+    .mm-sheet {
+      min-height: 100svh;
+    }
+    .mm-face {
+      padding-top: calc(70px + 1.5rem);
+    }
+  }
 
-  .mm-legend {
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-    font-weight: 600;
-    font-size: 0.6875rem;
-    letter-spacing: 0.16em;
+  /* ---- Applied furniture ------------------------------------------------- */
+
+  /* The club plate: vinyl applied to the enamel, the type knocked out of it.
+     Flush, so no shadow - a shadow here would make it a sticker. */
+  .mm-title {
+    display: inline-block;
+    background: var(--mm-vinyl);
+    color: var(--mm-enamel);
+    padding: 0.4rem 0.85rem 0.46rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    /* The size belongs to the world, not to a utility on the element. Vinyl is
+       cut at a size; it does not have two of them because a breakpoint said
+       so. */
+    font-size: 1.5rem;
+    letter-spacing: 0.17em;
     text-transform: uppercase;
-    color: var(--mm-ink-dim);
+    line-height: 1;
+  }
+
+  /* Everything else applied to the board: rails, column heads, the round
+     numerals, the small notes. One voice, one register. */
+  .mm-legend {
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.5625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mm-vinyl-2);
     line-height: 1.1;
   }
-  .mm-title {
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    text-transform: uppercase;
-    line-height: 0.95;
+  /* A rail is a legend with the vinyl strip under it that a real board has
+     ruled across the top of each column. */
+  .mm-rail {
+    display: block;
+    border-bottom: 2px solid var(--mm-vinyl);
+    padding-bottom: 0.22rem;
+    margin-bottom: 0.55rem;
   }
+
+  .mm-meta {
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--mm-vinyl-2);
+  }
+
+  /* A laminated notice in a poly pocket, of the kind every sports hall has one
+     of. It was a floating paragraph of body prose top-right, which was the last
+     place on this route where the page showed through the object - and it had
+     displaced the particulars that belong beside the plate. As a card it is
+     board furniture, and it makes room for them again. */
   .mm-lede {
-    max-width: 46ch;
-    color: var(--mm-ink-dim);
+    max-width: 40ch;
+    background: var(--mm-plate);
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18),
+      0 7px 12px -6px rgb(24 32 36 / 0.34);
+    padding: 0.7rem 0.85rem;
+    color: var(--mm-vinyl-2);
+    font-size: 0.8125rem;
     line-height: 1.6;
+    transform: rotate(-0.3deg);
+  }
+
+  /* The plate and the night's particulars sit on one line, the way a board
+     carries its title and its date. */
+  .mm-headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
   }
   .mm-note {
-    max-width: 52ch;
-    font-size: 0.8125rem;
-    line-height: 1.55;
-    color: var(--mm-ink-dim);
-  }
-  .mm-summary {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
-    font-size: 0.8125rem;
+    max-width: 46ch;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
     line-height: 1.5;
-    color: var(--mm-ink);
+    color: var(--mm-vinyl-2);
   }
 
-  /* ---- Roster entry ----------------------------------------------------- */
+  /* The scorer's verdict, printed on the board under the plate. Set in the
+     vinyl voice because it is the board's own statement about the draw, not a
+     caption on it. The one clause that carries a colour is the pass/fail. */
+  .mm-summary {
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    font-size: 0.6875rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.6;
+    color: var(--mm-vinyl-2);
+  }
+  .mm-summary b {
+    font-weight: 700;
+    color: var(--mm-mark-green);
+  }
+  .mm-summary b[data-fail] {
+    color: var(--mm-mark-red);
+  }
 
-  /* A field's label and the one edit that belongs to it, on one line. The
-     edit sits with the field it acts on rather than under the button below,
-     which is the screen's action and the only thing that should read as one. */
+  /* The head band. Stacked on a phone; across the board's full width at
+     desktop, because the left column is 15.5rem and a header confined to it
+     leaves the top third of the enamel with nothing on it. */
+  .mm-head {
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 64rem) {
+    .mm-head {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 3rem;
+      align-items: start;
+    }
+    /* Only once there is a second column to sit at the end of. Stacked, the
+       cell is the whole board and the card has to keep the left edge every
+       other thing on the board is aligned to. */
+    .mm-lede {
+      justify-self: end;
+    }
+  }
+
+  /* ---- The two columns --------------------------------------------------- */
+
+  /* Named so the print block can take the whole left column off the page in
+     one rule - everything in it is an edit, and nothing you can edit belongs
+     on paper. */
+  .mm-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+    margin-top: 1.5rem;
+  }
+  @media (min-width: 64rem) {
+    .mm-cols {
+      grid-template-columns: 15.5rem minmax(0, 1fr);
+      gap: 2.25rem;
+    }
+  }
+
+  /* ---- Entering the roster ----------------------------------------------- */
+
   .mm-field-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
+    border-bottom: 2px solid var(--mm-vinyl);
+    padding-bottom: 0.22rem;
+    margin-bottom: 0.55rem;
   }
 
-  /* Underlined text rather than anything with a border: this is an edit to the
-     box above it, and a second framed control beside the stamp would ask to be
-     read as a second way to draw the schedule. */
+  /* The one edit that belongs to the roster box, sat on its rail. Underlined
+     text rather than a second framed control: a bordered button here would ask
+     to be read as a second way to draw the schedule. */
   .mm-quiet {
-    /* Padded out to a thumb's worth of target and pulled back by the same
-       amount, so the hit area clears 24px without the label moving off the
-       label row's baseline. */
     padding: 0.4rem 0.3rem;
     margin: -0.4rem -0.3rem;
     border: 0;
     background: none;
-    color: var(--mm-ink);
-    font-size: 0.8125rem;
+    color: var(--mm-vinyl);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     line-height: 1.2;
     text-decoration: underline;
     text-underline-offset: 0.25em;
@@ -3240,41 +3438,105 @@ html:has(.bb-app-chrome) {
     text-decoration-thickness: 2px;
   }
 
+  /* A slotted insert card. Card stock, so it is lifted off the enamel the
+     same way a plate is - one crisp contact line plus a soft drop. Square
+     corners: nothing on a board like this is rounded. */
   .mm-input {
-    border: 1px solid var(--mm-rule-strong);
-    border-radius: 0;
-    background: var(--mm-paper);
-    color: var(--mm-ink);
-    font-family: var(--font-mono), ui-monospace, monospace;
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    background: var(--mm-plate);
+    color: var(--mm-vinyl);
+    box-shadow:
+      0 1px 0 rgb(0 0 0 / 0.1),
+      0 4px 9px -5px rgb(0 0 0 / 0.4);
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
     font-size: 0.875rem;
     line-height: 1.75;
   }
   .mm-input::placeholder {
-    color: oklch(0.74 0 0);
+    color: #9aa4a6;
   }
 
-  /* Courts and rounds sit side by side under the roster: two small numbers on
-     a form the organizer barely touches, not a settings panel. */
+  /* Courts and rounds: two dials on the board, not a settings panel. */
   .mm-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.5rem;
+    gap: 1rem;
   }
   .mm-number {
     width: 100%;
-    padding: 0.5rem 0.6rem;
-    font-size: 1.125rem;
-    line-height: 1.2;
+    padding: 0.22rem 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.35;
     font-variant-numeric: tabular-nums;
   }
 
-  /* A wide table gets its own scroller so the page itself never scrolls
-     sideways - at eight courts the grid outruns a laptop. */
+  /* ---- Asking for a draw -------------------------------------------------- */
+
+  /* The action is a magnetic card resting on the board, which is why it has a
+     hard contact shadow under it and sits a hair off square. It is the only
+     red fill on the surface, so it is the only thing that reads as "press
+     this". White on it measures 5.4:1. */
+  .mm-button {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 2px;
+    background: var(--mm-mark-red);
+    color: #fff;
+    padding: 0.62rem 0.75rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    line-height: 1.15;
+    cursor: pointer;
+    transform: rotate(0.35deg);
+    box-shadow:
+      0 2px 0 rgb(0 0 0 / 0.26),
+      0 8px 15px -8px rgb(0 0 0 / 0.55);
+    transition:
+      transform 140ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 140ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .mm-button:hover:not(:disabled) {
+    transform: rotate(0.35deg) translateY(-1px);
+    box-shadow:
+      0 3px 0 rgb(0 0 0 / 0.26),
+      0 12px 20px -10px rgb(0 0 0 / 0.6);
+  }
+  /* Pressed is the magnet going flat against the enamel. */
+  .mm-button:active:not(:disabled) {
+    transform: rotate(0.35deg) translateY(2px);
+    box-shadow: 0 0 0 rgb(0 0 0 / 0.26), 0 4px 8px -6px rgb(0 0 0 / 0.5);
+  }
+  /* Nothing to draw: the card is off the board, leaving the blank it sits in. */
+  .mm-button:disabled {
+    background: transparent;
+    color: #8d979a;
+    box-shadow: inset 0 0 0 1px rgb(27 32 35 / 0.22);
+    transform: none;
+    cursor: not-allowed;
+  }
+  /* While the board is out of date the card is ringed, so the label's "update"
+     is carried at a glance as well as in words. */
+  .mm-button[data-stale] {
+    box-shadow:
+      0 0 0 2px var(--mm-enamel),
+      0 0 0 4px var(--mm-vinyl),
+      0 2px 0 rgb(0 0 0 / 0.26),
+      0 8px 15px -8px rgb(0 0 0 / 0.55);
+  }
+
+  /* ---- The ruled field ---------------------------------------------------- */
+
+  /* A wide board gets its own scroller so the page itself never scrolls
+     sideways - at eight courts the field outruns a laptop. */
   .mm-scroll {
     overflow-x: auto;
   }
-
-  /* ---- The schedule ----------------------------------------------------- */
 
   .mm-grid {
     width: 100%;
@@ -3283,77 +3545,134 @@ html:has(.bb-app-chrome) {
   }
   .mm-grid th,
   .mm-grid td {
-    padding: 0.6rem 0.85rem 0.6rem 0;
+    padding: 0.42rem 0.7rem 0.5rem 0;
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid var(--mm-rule);
   }
+  /* Column rails, applied across the top of the field. */
   .mm-grid thead th {
     padding-top: 0;
-    border-bottom: 1px solid var(--mm-rule-strong);
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-    font-weight: 600;
-    font-size: 0.6875rem;
-    letter-spacing: 0.14em;
+    padding-bottom: 0.22rem;
+    border-bottom: 2px solid var(--mm-vinyl);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.5625rem;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--mm-ink-dim);
+    color: var(--mm-vinyl-2);
   }
+  /* The round numeral: applied to the board, not printed on a plate. */
   .mm-grid tbody th {
     width: 1%;
-    padding-right: 1.25rem;
+    padding-right: 1rem;
+    padding-top: 0.55rem;
     white-space: nowrap;
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-weight: 400;
-    font-size: 0.8125rem;
-    color: var(--mm-ink-dim);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    color: var(--mm-vinyl);
   }
+
+  /* ---- Name plates -------------------------------------------------------- */
+
+  /* A printed plate, magnet-lifted off the enamel: one crisp contact line and
+     a short soft drop. The tiny rotations are the point - a hand put these on
+     the board, and nobody consciously sees a quarter of a degree but everybody
+     feels a column of perfectly square ones. Alternated by position so the
+     pattern never repeats down a column. */
   .mm-side {
+    /* Fitted to the names, never to the column: a plate is cut to the length
+       of what is printed on it, so a full-width one stops reading as an object
+       on the board and starts reading as the cell's own fill. This is also
+       what keeps two courts of short names from stretching into two banners. */
     display: block;
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.01em;
-    line-height: 1.25;
-  }
-  /* The failure signal, drawn on the pair it belongs to and in the round it
-     happens in. In ink, because orange is spoken for; boxed rather than
-     coloured, because a schedule with a repeat in it is still the schedule
-     being played off and the mark has to survive being photocopied. */
-  .mm-side[data-repeat] {
-    /* Fitted to the names rather than the column: a full-width bar reads as
-       the cell's own border and stops looking like a mark on anything. The
-       negative margin keeps the names on the same left edge as the pairs
-       around them, so a boxed round doesn't shunt sideways. */
     width: fit-content;
-    box-shadow: inset 0 0 0 2px var(--mm-ink);
-    padding: 0.15rem 0.35rem;
-    margin: 0 -0.35rem;
-  }
-  .mm-versus {
-    display: block;
-    margin: 0.1rem 0;
-    font-size: 0.625rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--mm-ink-dim);
-  }
-  /* Who is off this round is part of the schedule, so it reads as a column
-     rather than a footnote, set quieter than the courts beside it. */
-  .mm-byes {
-    max-width: 16rem;
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+    max-width: 100%;
+    position: relative;
+    background: var(--mm-plate);
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    /* A magnet holds the plate a millimetre clear of the enamel, so the shadow
+       is thrown down and away rather than hugging the outline: a light top
+       edge, a hard contact line under it, then a soft cast with almost no
+       negative spread. At 14px an outline-plus-hairline reads as a table cell
+       with a border, which is the one thing this plate must not be. */
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18),
+      0 7px 12px -6px rgb(24 32 36 / 0.34);
+    padding: 0.26rem 0.5rem;
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-weight: 500;
     font-size: 0.875rem;
     line-height: 1.3;
-    color: var(--mm-ink-dim);
+    transform: rotate(-0.26deg);
+  }
+  .mm-side + .mm-side,
+  .mm-versus + .mm-side {
+    transform: rotate(0.22deg);
+  }
+  .mm-grid tr:nth-child(even) .mm-side {
+    transform: rotate(0.19deg);
+  }
+  .mm-grid tr:nth-child(even) .mm-versus + .mm-side {
+    transform: rotate(-0.24deg);
+  }
+
+  /* The failure signal, drawn on the pair it belongs to and in the round it
+     happens in. A marker stroke rather than a border: this is the one place a
+     hand touches the board, and a tidy rectangle would read as more furniture.
+     `non-scaling-stroke` keeps the line an even weight however wide the plate
+     it is drawn round. */
+  .mm-ring {
+    position: absolute;
+    inset: -6px -9px;
+    width: calc(100% + 18px);
+    height: calc(100% + 12px);
+    overflow: visible;
+    pointer-events: none;
+    color: var(--mm-mark-red);
+  }
+
+  .mm-versus {
+    display: block;
+    padding: 0.14rem 0 0.14rem 0.45rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.5rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mm-vinyl-2);
+  }
+
+  /* Who is off this round is part of the schedule, so it reads as a column
+     rather than a footnote - applied in marker green, the board's other
+     saturated mark, because sitting out is a status and not a name plate. */
+  .mm-byes {
+    max-width: 14rem;
+    padding-top: 0.5rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 600;
+    /* Who is off is read off the board at the same distance as who is on, so
+       it is sized to be read, not to be a footnote. The green is dark enough
+       to clear 4.5:1 against the bottom of the enamel, which is where the
+       last round of a long board actually sits. */
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    line-height: 1.45;
+    color: var(--mm-mark-green);
   }
 
   /* On a phone the same table becomes one round at a time. Restyling rather
-     than re-rendering keeps a single copy of the schedule in the DOM.
+     than re-rendering keeps a single copy of the schedule in the DOM, which is
+     what lets the print stylesheet stay pure CSS.
 
      `screen and` is load-bearing: a print sheet is narrower than 640px on some
      paper sizes, and the stacked layout is the wrong shape for paper - the
-     printout wants the grid, which is what the print block at the foot of this
-     section then styles. */
+     printout wants the field, which the print block then styles. */
   @media screen and (max-width: 639px) {
     .mm-grid,
     .mm-grid tbody,
@@ -3366,148 +3685,325 @@ html:has(.bb-app-chrome) {
       display: none;
     }
     .mm-grid tbody tr {
-      padding-bottom: 0.75rem;
-      border-top: 1px solid var(--mm-rule-strong);
-    }
-    .mm-grid tbody tr:first-child {
-      border-top: 0;
+      padding-bottom: 0.65rem;
     }
     .mm-grid tbody th {
       width: auto;
-      padding: 0.85rem 0 0.35rem;
+      padding: 0.85rem 0 0.3rem;
       border-bottom: 0;
-      font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-      font-size: 0.6875rem;
-      letter-spacing: 0.16em;
+      border-top: 2px solid var(--mm-vinyl);
+      font-size: 0.5625rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
     }
+    .mm-grid tbody tr:first-child th {
+      padding-top: 0;
+    }
+    /* The column rail is gone with the header row, so the numeral has to say
+       what it is counting. */
     .mm-grid tbody th::before {
       content: "Round ";
     }
     .mm-grid td {
-      padding: 0.5rem 0;
+      padding: 0.3rem 0 0;
       border-bottom: 0;
-    }
-    .mm-grid td + td {
-      border-top: 1px solid var(--mm-rule);
     }
     .mm-grid td::before {
       content: attr(data-court);
       display: block;
-      margin-bottom: 0.2rem;
-      font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-      font-weight: 600;
-      font-size: 0.625rem;
-      letter-spacing: 0.16em;
+      margin-bottom: 0.18rem;
+      font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+      font-weight: 700;
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--mm-ink-dim);
+      color: var(--mm-vinyl-2);
+    }
+    .mm-byes {
+      max-width: none;
+      padding-top: 0;
     }
   }
 
-  /* ---- Asking for a draw ------------------------------------------------ */
+  /* ---- The wipe ----------------------------------------------------------- */
 
-  /* The one control on the page, so it is the one solid black mark on it: a
-     stamp on a document rather than a button on a form. Pressing it is the
-     only moment the grid changes, which is why nothing else here competes. */
-  .mm-button {
-    display: block;
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border: 1px solid var(--mm-ink);
-    border-radius: 0;
-    background: var(--mm-ink);
-    color: var(--mm-paper);
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
-    font-weight: 700;
-    font-size: 0.9375rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    line-height: 1;
-    cursor: pointer;
+  /* The signature move. Redrawing is not a table re-render: the field is swept
+     clear left to right and the plates are set back on it row by row, each
+     landing with the short bounce a magnet has against enamel. The component
+     keys this container on the seed, so the animations run on mount and no
+     JavaScript drives a frame of it.
+
+     The sweep is a single translated overlay in the enamel's own colour, which
+     is why it reads as wiping rather than as a highlight passing over. */
+  .mm-draw {
+    position: relative;
   }
-  .mm-button:hover:not(:disabled) {
-    background: var(--mm-paper);
-    color: var(--mm-ink);
+  /* Two elements, not one: the outer is the window the sweep travels behind
+     and it never moves, the inner is what travels. A single translated
+     element ends its animation parked a full width to the right of the field,
+     and with nothing clipping it that is a page a thousand pixels wider than
+     the viewport - which is exactly what it did on the first build. */
+  .mm-wipe {
+    position: absolute;
+    inset: -0.5rem 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
   }
-  .mm-button:disabled {
-    border-color: var(--mm-rule);
-    background: var(--mm-sink);
-    color: oklch(0.66 0 0);
-    cursor: not-allowed;
+  .mm-wipe::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      rgb(239 243 243 / 0) 0%,
+      rgb(239 243 243 / 0.96) 18%,
+      rgb(239 243 243 / 0.96) 42%,
+      rgb(150 168 175 / 0.28) 52%,
+      rgb(239 243 243 / 0) 62%
+    );
+    animation: mm-sweep 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
   }
-  /* A second rule around the stamp while the sheet is out of date: the label
-     already says "update", this is what carries it at a glance. */
-  .mm-button[data-stale] {
-    box-shadow:
-      0 0 0 2px var(--mm-paper),
-      0 0 0 3px var(--mm-ink);
+  @keyframes mm-sweep {
+    from {
+      transform: translateX(-115%);
+    }
+    to {
+      transform: translateX(115%);
+    }
+  }
+  /* Rows are set back behind the sweep, staggered by `--row`, each overshooting
+     a couple of pixels and settling. */
+  /* The overshoot is in the keyframe, where it can be a measured pixel and a
+     half, and the easing is a plain decelerate. An overshooting curve on top
+     of an overshooting keyframe compounds the two and gives the plates a
+     rubber bounce that no magnet has. */
+  .mm-draw .mm-grid tbody tr {
+    animation: mm-settle 340ms cubic-bezier(0.22, 0.9, 0.36, 1) both;
+    /* Capped, because the stagger is a flourish and the schedule is the point:
+       uncapped, the last row of a sixteen-round board lands past 1.4s on every
+       single redraw. `min()` keeps the cascade legible on a short board and
+       compresses it on a long one. */
+    animation-delay: calc(160ms + min(var(--row, 0) * 62ms, 520ms));
+  }
+  @keyframes mm-settle {
+    from {
+      opacity: 0;
+      transform: translateY(-7px);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(1.5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  /* A board being read is worth more than a board being animated. */
+  @media (prefers-reduced-motion: reduce) {
+    .mm-wipe::after {
+      display: none;
+    }
+    .mm-draw .mm-grid tbody tr {
+      animation: none;
+    }
+    .mm-button,
+    .mm-button:hover:not(:disabled),
+    .mm-button:active:not(:disabled) {
+      transition: none;
+      transform: rotate(0.35deg);
+    }
   }
 
-  /* Ruled top and bottom like a stamp across a filed document, because that is
-     its whole job: stop the sheet under it being read as the current one. */
+  /* ---- Out of date --------------------------------------------------------- */
+
+  /* The wipe has started but the board has not been redrawn: the old schedule
+     is still readable - it is what is being played off right now - but it can
+     never be mistaken for the current one. Struck through with a vinyl rail
+     rather than greyed out, because greying alone reads as "loading". */
   .mm-flag {
-    margin-bottom: 1.75rem;
-    padding: 0.5rem 0;
-    border-top: 2px solid var(--mm-ink);
-    border-bottom: 1px solid var(--mm-ink);
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0;
+    border-top: 2px solid var(--mm-mark-red);
+    border-bottom: 1px solid var(--mm-mark-red);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
     font-weight: 700;
     font-size: 0.6875rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--mm-ink);
+    color: var(--mm-mark-red);
   }
-  /* Dimmed by moving the ink itself, so everything inside goes with it
-     without any of it knowing what stale means. */
+  /* Dimmed by moving the ink and lifting the plates off their shadows, so
+     everything inside goes with it without any of it knowing what stale
+     means. */
+  /* Held back, never unreadable: this is still the schedule being played off
+     the wall right now, and an organizer reads names off it while the next
+     draw is being decided. The ink drops one step and the plates go flat; the
+     red rail above is what says it is superseded, not illegibility. */
   .mm-draw[data-stale] {
-    --mm-ink: oklch(0.56 0 0);
-    --mm-ink-dim: oklch(0.66 0 0);
-    --mm-rule: oklch(0.91 0 0);
-    --mm-rule-strong: oklch(0.8 0 0);
-    color: var(--mm-ink);
+    --mm-vinyl: #4a5257;
+    --mm-vinyl-2: #5a6367;
+    --mm-plate-edge: #c6cdcf;
+    --mm-rule: rgb(27 32 35 / 0.12);
+    --mm-mark-green: #4d6b5b;
+    color: var(--mm-vinyl);
+  }
+  .mm-draw[data-stale] .mm-side {
+    background: #f7fafa;
+    box-shadow: none;
+  }
+  /* The residue of the sweep that was started and not finished. */
+  .mm-draw[data-stale]::before {
+    content: "";
+    position: absolute;
+    inset: -0.5rem 0;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      rgb(239 243 243 / 0.85) 0%,
+      rgb(239 243 243 / 0.6) 22%,
+      rgb(150 168 175 / 0.26) 31%,
+      rgb(239 243 243 / 0.12) 40%,
+      transparent 52%
+    );
   }
 
-  /* A repeated name is a printing problem, not an error, so it is a marginal
-     note against the roster rather than anything louder. */
+  /* ---- A repeated name ------------------------------------------------------ */
+
+  /* A repeated name is a printing problem, not an error - the engine tells two
+     Mikes apart by id and the schedule comes out the same - so it is a note
+     written on the board beside the roster, not a warning. */
   .mm-notice {
-    max-width: 52ch;
-    padding-left: 0.75rem;
-    border-left: 2px solid var(--mm-ink);
-    font-size: 0.8125rem;
-    line-height: 1.55;
-    color: var(--mm-ink);
+    max-width: 46ch;
+    padding-left: 0.7rem;
+    border-left: 2px solid var(--mm-mark-red);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+    color: var(--mm-vinyl);
   }
 
-  /* ---- The example draw sheet -------------------------------------------- */
+  /* ---- The example board ----------------------------------------------------- */
 
-  /* The same grid the tool produces, greyed the same way: by moving the ink,
-     not by opacity, so the hairlines stay hairlines. Dashed frame and no
-     selection say it is a specimen and not tonight's sheet. */
+  /* The same board the tool produces, with somebody else's night on it. Held
+     back by moving the ink and flattening the plates against the enamel rather
+     than by opacity, so the rules stay hairlines; the dashed rule under it says
+     specimen without a word. */
   .mm-example {
-    --mm-ink: oklch(0.62 0 0);
-    --mm-ink-dim: oklch(0.7 0 0);
-    --mm-rule: oklch(0.9 0 0);
-    --mm-rule-strong: oklch(0.82 0 0);
+    --mm-vinyl: #767f84;
+    --mm-vinyl-2: #929a9e;
+    --mm-plate-edge: #ced5d6;
+    --mm-rule: rgb(27 32 35 / 0.1);
+    --mm-mark-green: #86a494;
 
-    padding: 1.25rem;
-    border: 1px dashed var(--mm-rule-strong);
-    color: var(--mm-ink);
+    padding-top: 0.9rem;
+    border-top: 1px dashed rgb(27 32 35 / 0.28);
+    color: var(--mm-vinyl);
     user-select: none;
   }
+  .mm-example .mm-side {
+    background: #f8fafa;
+    box-shadow: none;
+    transform: none;
+  }
 
-  /* ---- Nothing to show yet ---------------------------------------------- */
+  /* ---- Nothing to show yet --------------------------------------------------- */
 
+  /* A blank on the board where the field would be, ruled the way an empty
+     column is ruled. */
   .mm-placeholder {
-    padding: 2rem 1.75rem;
-    border: 1px dashed var(--mm-rule-strong);
+    padding: 1.75rem 1.5rem;
+    border: 1px dashed rgb(27 32 35 / 0.3);
+    border-radius: 2px;
   }
   .mm-placeholder-head {
-    font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
     font-weight: 700;
-    font-size: 1.0625rem;
-    letter-spacing: 0.03em;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--mm-ink);
+    color: var(--mm-vinyl);
+  }
+
+  /* ---- The tray ------------------------------------------------------------- */
+
+  /* The anodised tray along the bottom of the board, with the markers and a
+     couple of spare magnets in it. It carries no control and says nothing the
+     screen needs - it is here because a board without one is a rectangle, and
+     this is the edge that tells you which way up the object is. */
+  /* Deep enough to be a channel with things lying in it. At the old height a
+     couple of small marks in a row at the bottom-left corner of a wide page
+     read as carousel dots - stock UI furniture, inside a world whose whole
+     argument is that it has none. The lip is what sells it: a bright top edge,
+     a dark inner shadow where the channel turns, and a shadow cast up onto the
+     enamel the tray is bolted to. */
+  .mm-tray {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.85rem clamp(1rem, 4vw, 2.5rem) 0.95rem;
+    background: linear-gradient(
+      180deg,
+      var(--mm-alu-hi) 0%,
+      var(--mm-alu) 30%,
+      #a4abb1 62%,
+      var(--mm-alu-lo) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.75),
+      inset 0 6px 9px -7px rgb(20 26 30 / 0.75),
+      0 -3px 7px -3px rgb(20 26 30 / 0.3);
+  }
+  .mm-pen {
+    width: 88px;
+    height: 13px;
+    border-radius: 7px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      0 2px 3px rgb(20 26 30 / 0.45);
+  }
+  .mm-pen[data-ink="black"] {
+    background: linear-gradient(180deg, #4a5155, #2b3134 55%, #191e21);
+  }
+  .mm-pen[data-ink="red"] {
+    background: linear-gradient(180deg, #d75c50, #b03a30 55%, #8d2a22);
+  }
+  .mm-magnet {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #fff, #cfd5d9 45%, #767e85);
+    box-shadow:
+      0 2px 4px rgb(20 26 30 / 0.5),
+      inset 0 -1px 2px rgb(20 26 30 / 0.25);
+  }
+  .mm-tray-mark {
+    margin-left: auto;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.5625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    /* Stamped into the tray, so it is quiet — but a maker's mark that cannot
+       be read is a smudge. Opaque rather than a half-alpha vinyl. */
+    color: #2b3134;
+    white-space: nowrap;
+  }
+
+  /* A narrow tray holds fewer things. At 390 the full kit leaves the stamp
+     about 90px, which wraps it into the magnets; a real tray that size would
+     have one marker and one magnet in it. */
+  @media (max-width: 30rem) {
+    .mm-tray {
+      gap: 0.55rem;
+    }
+    .mm-tray [data-tray-extra] {
+      display: none;
+    }
   }
 }
 
@@ -3623,6 +4119,19 @@ html:has(.bb-app-chrome) {
     display: block;
   }
 
+  /* The board is an object made of enamel, aluminium and lifted plates, and
+     none of that is printable: a laser printer has no sheen, and every raised
+     edge on the screen is a background paint it will simply drop. So the
+     material comes off and what is left is the thing that was always underneath
+     - a ruled grid of names. This is a demotion of the world, on purpose, not a
+     second design of it. */
+  /* The document behind the board is painted aluminium for the overscroll;
+     on paper that is a full-bleed grey fill on any printer with backgrounds
+     turned on. */
+  body:has(.mm-sheet) {
+    background: #fff;
+  }
+
   .mm-sheet {
     page: mm-sheet;
 
@@ -3631,12 +4140,47 @@ html:has(.bb-app-chrome) {
        to black and only the quiet register keeps a grey. Rules stay two
        weights - a full-black hairline around every cell is more ink than the
        grid is worth. */
-    --mm-paper: #fff;
-    --mm-sink: #fff;
-    --mm-ink: #000;
-    --mm-ink-dim: oklch(0.4 0 0);
+    --mm-vinyl: #000;
+    --mm-vinyl-2: oklch(0.4 0 0);
     --mm-rule: oklch(0.55 0 0);
-    --mm-rule-strong: #000;
+    --mm-mark-red: #000;
+    --mm-mark-green: oklch(0.4 0 0);
+
+    background: none;
+    padding: 0;
+  }
+  /* The enamel and the tray are the two parts of the board that are only
+     material. Nothing is lost by taking them off; the tray holds no control. */
+  .mm-face {
+    background: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  .mm-tray,
+  .mm-wipe {
+    display: none;
+  }
+  .mm-draw[data-stale]::before {
+    display: none;
+  }
+  /* The plate stops being an object and goes back to being a name. Its lift
+     was a shadow, which does not print, so leaving the border behind would
+     put a box round every pair on the sheet. */
+  .mm-side {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    transform: none;
+    font-size: 0.875rem;
+  }
+  /* The club plate prints as the sheet's title, not as a black bar with
+     white type knocked out of it - which is a solid fill the width of the
+     word, and a waste of toner besides. */
+  .mm-title {
+    background: none;
+    color: #000;
+    padding: 0;
   }
   /* The two dimmed states set their own ink, so they are unaffected by the
      block above and need lifting to where a printer can hold them. They stay
@@ -3645,16 +4189,20 @@ html:has(.bb-app-chrome) {
      like tonight's draw. Both carry a label saying so; this keeps the second
      half of that signal. */
   .mm-draw[data-stale] {
-    --mm-ink: oklch(0.42 0 0);
-    --mm-ink-dim: oklch(0.52 0 0);
+    --mm-vinyl: oklch(0.42 0 0);
+    --mm-vinyl-2: oklch(0.52 0 0);
     --mm-rule: oklch(0.68 0 0);
-    --mm-rule-strong: oklch(0.5 0 0);
+    --mm-mark-green: oklch(0.52 0 0);
   }
   .mm-example {
-    --mm-ink: oklch(0.48 0 0);
-    --mm-ink-dim: oklch(0.56 0 0);
+    --mm-vinyl: oklch(0.48 0 0);
+    --mm-vinyl-2: oklch(0.56 0 0);
     --mm-rule: oklch(0.7 0 0);
-    --mm-rule-strong: oklch(0.6 0 0);
+    --mm-mark-green: oklch(0.56 0 0);
+    /* Both held-back states flatten their plates on screen; on paper the
+       plate is already flat, so only the specimen's dashed rule needs
+       restating. */
+    border-top-color: oklch(0.6 0 0);
   }
 
   /* The full width of the page, with the margin coming from `@page`. */
@@ -3663,9 +4211,9 @@ html:has(.bb-app-chrome) {
     padding: 0;
   }
   /* Block, not grid: with the controls column gone the schedule would
-     otherwise be the first grid item and land in the 19rem column meant for
+     otherwise be the first grid item and land in the 15.5rem column meant for
      the roster box. */
-  .mm-sheet .grid {
+  .mm-cols {
     display: block;
     margin-top: 0;
   }
@@ -3677,6 +4225,14 @@ html:has(.bb-app-chrome) {
   .mm-sheet header .mm-legend,
   .mm-lede {
     display: none;
+  }
+  /* With the standfirst gone the head is one column, and a grid holding one
+     child would still reserve the track the other one was in. */
+  .mm-head {
+    display: block;
+  }
+  .mm-headline {
+    display: block;
   }
   .mm-sheet header h1 {
     font-size: 1.5rem;
@@ -3739,12 +4295,17 @@ html:has(.bb-app-chrome) {
     overflow-wrap: anywhere;
   }
 
-  /* A border rather than the screen's inset shadow: borders print, shadows
-     are background paint and the sheet on the desk would lose the mark
-     entirely. */
+  /* The screen draws this mark as a marker stroke round the plate. An inline
+     SVG does print, but it is absolutely positioned against a plate that no
+     longer has a box, so it would land on nothing; and a hand-drawn ellipse is
+     the wrong register for a document anyway. Paper gets the same information
+     as a ruled box, which is the mark this sheet carried for its whole life
+     before the board existed. */
+  .mm-ring {
+    display: none;
+  }
   .mm-side[data-repeat] {
-    box-shadow: none;
-    border: 2px solid var(--mm-ink);
+    border: 2px solid var(--mm-vinyl);
     padding: 0.1rem 0.25rem;
     margin: 0 -0.25rem;
   }
