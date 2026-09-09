@@ -32,7 +32,6 @@ import {
   type ScorerResult,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
-import { PartnerMatrix } from "./partner-matrix";
 import { ScheduleGrid } from "./schedule-grid";
 
 /**
@@ -424,7 +423,6 @@ export function MatchMixer() {
                     schedule={draw.schedule}
                     score={draw.score}
                   />
-                  <PartnerMatrix roster={draw.config.roster} score={draw.score} />
                 </div>
               </>
             ) : size > MAX_ROSTER_SIZE ? (
@@ -517,8 +515,9 @@ function TooManyPlayers({ size }: { size: number }) {
       <p className="mm-placeholder-head">{size} names: too many to schedule</p>
       <p className="mm-note mt-2">
         Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Above that the
-        partner matrix stops being readable on one sheet, and a night that size
-        is better split into two rotations. Remove {size - MAX_ROSTER_SIZE}.
+        grid stops fitting a sheet and the search stops being quick, and a night
+        that size is better split into two rotations. Remove{" "}
+        {size - MAX_ROSTER_SIZE}.
       </p>
     </div>
   );

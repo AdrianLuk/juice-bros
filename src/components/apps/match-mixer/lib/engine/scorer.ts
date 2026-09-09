@@ -3,8 +3,8 @@ import type { Config, PlayerIndex, Round, Schedule, ScorerResult, Tally } from "
 /**
  * The Scorer: this context's definition of "fair". Partner repeats first, Bye
  * imbalance second, opponent repeats third. Nothing else in the app may claim
- * a Schedule is balanced — the summary line and the Partner Matrix both read
- * what this returns for the Schedule that was actually produced.
+ * a Schedule is balanced — the summary line and the repeat marks in the grid
+ * both read what this returns for the Schedule that was actually produced.
  */
 
 /** A pair partnering more than once is the most visible failure, so it dominates. */
