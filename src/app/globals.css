@@ -3249,6 +3249,10 @@ html:has(.bb-app-chrome) {
     padding: 0.4rem 0.85rem 0.46rem;
     font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
     font-weight: 700;
+    /* The size belongs to the world, not to a utility on the element. Vinyl is
+       cut at a size; it does not have two of them because a breakpoint said
+       so. */
+    font-size: 1.5rem;
     letter-spacing: 0.17em;
     text-transform: uppercase;
     line-height: 1;

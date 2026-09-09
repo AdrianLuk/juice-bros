@@ -318,7 +318,7 @@ export function MatchMixer() {
             {/* The club plate: vinyl applied to the enamel, type knocked out
                 of it. `h1` because it is the page's name, however it is
                 made. */}
-            <h1 className="mm-title text-2xl sm:text-3xl">Match Mixer</h1>
+            <h1 className="mm-title">Match Mixer</h1>
             {/* The board's own particulars: what is on it and what drew it,
                 not what is currently in the roster box. When the two disagree
                 the board is stale, and the flag over the field says so — this
