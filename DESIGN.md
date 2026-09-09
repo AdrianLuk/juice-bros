@@ -161,6 +161,9 @@ look rolls out — Podcast, Gear, About, Contact, Tools, Appearances). Booking
 Buddy, On Deck, and Pickle Point Pal are separate worlds with their own
 documentation, indexed by `CONTEXT-MAP.md`. Nothing here governs those three
 surfaces, and nothing in their worlds should be imported into this one.
+Match Mixer (`/tools/match-mixer`) is a fourth such world as of 2026-09-09 and
+is documented at `match-mixer/DESIGN.md`; the Tools index and the other
+`/tools/[slug]` pages remain in scope here.
 
 **Current adoption state.** The whole marketing site ships this system: Home,
 Podcast (index and `/podcast/[slug]`), Tools (index and `/tools/[slug]`), Gear,
