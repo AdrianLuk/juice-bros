@@ -1,20 +1,27 @@
-/*
- * DORMANT — not imported, and not a stylesheet this project loads. Deliberately
- * a second file rather than a comment inside `partner-matrix.tsx`: CSS block
- * comments end at their first star-slash, which would have closed the JS
- * comment wrapping them and broken the parse.
- *
- * These are the Partner Matrix's rules exactly as they left `src/app/globals.css`
- * when #477 removed the component. Match Mixer has one stylesheet, so reviving
- * them means moving these blocks into `globals.css` at the marked homes and
- * deleting this file — never importing it. `partner-matrix.tsx` has the full
- * revival checklist, including two rules that were folded into neighbouring
- * print rules and so are not reproduced here.
- */
+# Retired: the Partner Matrix stylesheet
 
-/* == Screen. Belongs inside `@layer components`. ========================== */
+The Partner Matrix's CSS, exactly as it left `src/app/globals.css` when
+[#477](https://github.com/AdrianLuk/juice-bros/issues/477) removed the component. Its
+component source is kept dormant beside the live code at
+`src/components/apps/match-mixer/partner-matrix.tsx`, which carries the full revival
+checklist and the reasoning for the removal.
 
-  /* ---- The Partner Matrix ----------------------------------------------- */
+**Why this is a Markdown file and not a `.css` one.** It was a `.css` file for one commit
+([#479](https://github.com/AdrianLuk/juice-bros/pull/479)) and Tailwind v4 compiled it into the
+shared stylesheet on sight — nothing had to import it, and about 5KB of dead rules shipped to
+every page on the site until [#480](https://github.com/AdrianLuk/juice-bros/issues/480). A file
+that is not a stylesheet cannot be picked up by a stylesheet pipeline, which is the only
+version of "dormant" that does not depend on a build tool continuing to agree.
+
+Match Mixer has one stylesheet. Reviving these means pasting them into `globals.css` at the
+homes marked below, not importing anything from here.
+
+## Screen
+
+Belongs inside `@layer components`.
+
+```css
+/* ---- The Partner Matrix ----------------------------------------------- */
 
   .mm-matrix {
     border-collapse: collapse;
@@ -78,10 +85,14 @@
     box-shadow: inset 0 0 0 2px var(--mm-ink);
     font-weight: 700;
   }
+```
 
-/* == Paper. Belongs inside the `@media print` block. ====================== */
+## Paper
 
-  /* Fixed cell sizes are a screen affordance - they keep the matrix square
+Belongs inside the `@media print` block.
+
+```css
+/* Fixed cell sizes are a screen affordance - they keep the matrix square
      at any player count. On paper the count decides: at 32 players a 1.75rem
      grid is 56rem wide and the right-hand columns fall off the sheet. Sizing
      to content instead lets the table fit whatever the roster is. */
@@ -133,3 +144,22 @@
     margin-top: 1.75rem;
     break-inside: avoid;
   }
+```
+
+## Not reproduced here
+
+Two rules were folded into neighbouring print rules rather than removed whole, so they have no
+block of their own. Both go in `@media print`:
+
+```css
+/* `.mm-matrix tr` joins `.mm-grid tbody tr` in the existing rule: */
+.mm-grid tbody tr,
+.mm-matrix tr {
+  break-inside: avoid;
+}
+
+/* And this one stands alone: */
+.mm-matrix thead {
+  display: table-header-group;
+}
+```

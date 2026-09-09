@@ -10,8 +10,9 @@
  *
  * It is kept here rather than left to `git` because PR #478 was squash-merged
  * and both branches were deleted, so the commits holding it are not ancestors
- * of master and are eventually prunable. This file and its sibling
- * `partner-matrix.retired.css` are the only copies in the tree.
+ * of master and are eventually prunable. This file and
+ * `match-mixer/docs/retired-partner-matrix.css.md` are the only copies in the
+ * tree.
  *
  * Being under `src` it is typechecked, which is the point of keeping the
  * source rather than a snapshot: if `ScorerResult` changes shape, the build
@@ -23,14 +24,12 @@
  *
  * 1. Render it after `<ScheduleGrid>` in `match-mixer.tsx`, passing
  *    `roster={draw.config.roster}` and `score={draw.score}`.
- * 2. Move the two blocks in `partner-matrix.retired.css` into
- *    `src/app/globals.css` — the screen block inside `@layer components`, the
- *    print block inside `@media print` — and delete that file. Do not import
- *    it: this project has one stylesheet.
+ * 2. Paste the blocks in `match-mixer/docs/retired-partner-matrix.css.md`
+ *    into `src/app/globals.css` at the homes that file marks. It is Markdown
+ *    rather than a `.css` file on purpose: as a stylesheet Tailwind compiled it
+ *    into every page without anything importing it (#480).
  * 3. Re-add the two rules that were folded into neighbours rather than removed
- *    whole, both in the `@media print` block: `.mm-matrix tr` alongside
- *    `.mm-grid tbody tr` in the `break-inside: avoid` rule, and
- *    `.mm-matrix thead` set to `display: table-header-group`.
+ *    whole. That file lists them; both go in the `@media print` block.
  *
  * Reviving it as-is also reopens what #477 closed. If it comes back it should
  * come back answering "which rounds", which is the thing it could never do.
