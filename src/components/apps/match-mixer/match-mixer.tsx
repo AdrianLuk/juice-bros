@@ -466,8 +466,11 @@ export function MatchMixer() {
           it is here because a board without one is a rectangle, and this is
           the edge that tells you which way up the object is. */}
       <div className="mm-tray" aria-hidden>
-        <span className="mm-pen" data-ink="black" />
-        <span className="mm-pen" data-ink="red" data-tray-extra />
+        {/* Red is the one kept on a narrow tray: it is the colour the repeat
+            rings and the draw magnet are drawn in, so it is the marker that
+            explains the board. */}
+        <span className="mm-pen" data-ink="black" data-tray-extra />
+        <span className="mm-pen" data-ink="red" />
         <span className="mm-magnet" />
         <span className="mm-magnet" data-tray-extra />
         <span className="mm-tray-mark">Juice Bros Pickleball</span>
