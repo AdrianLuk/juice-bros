@@ -312,7 +312,9 @@ export function MatchMixer() {
             confined to it leaves the top third of the enamel empty. Plate and
             particulars on the left, what this is on the right. */}
         <header className="mm-head">
-          <div>
+          {/* Plate and particulars on one line, the way a board carries its
+              title and its date. */}
+          <div className="mm-headline">
             {/* The club plate: vinyl applied to the enamel, type knocked out
                 of it. `h1` because it is the page's name, however it is
                 made. */}
@@ -322,7 +324,7 @@ export function MatchMixer() {
                 the board is stale, and the flag over the field says so — this
                 line staying with the draw is what makes that reading
                 possible. */}
-            <p className="mm-meta mt-3">
+            <p className="mm-meta">
               Pickleball round robin
               {draw ? ` · ${draw.numbers} · Seed ${draw.config.seed}` : null}
             </p>

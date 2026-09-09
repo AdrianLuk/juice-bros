@@ -3175,7 +3175,7 @@ html:has(.bb-app-chrome) {
     --mm-plate: #ffffff;
     --mm-plate-edge: #b7c0c2;
     --mm-mark-red: #c0392f;
-    --mm-mark-green: #2b7a4a;
+    --mm-mark-green: #1f6039;
     --mm-alu-hi: #ced3d7;
     --mm-alu: #b2b9bf;
     --mm-alu-lo: #939aa1;
@@ -3189,6 +3189,22 @@ html:has(.bb-app-chrome) {
     background: linear-gradient(180deg, var(--mm-alu-hi), var(--mm-alu-lo));
     padding: 6px 6px 0;
     color: var(--mm-vinyl);
+
+    /* The board is the whole of what this route shows, so it has to own the
+       whole of the frame. Without a floor the object ends wherever the field
+       does and the site's near-black footer takes the bottom of the opening
+       viewport, which is a louder thing than the board and belongs below it.
+       `100svh` rather than `vh` so a phone's collapsing browser chrome does
+       not leave a strip of metal under the tray.
+
+       Less the strip the floating pill nav sits in: at a full viewport the
+       object's bottom edge — the tray, which is the thing that tells you which
+       way up this is — lands exactly that far below the fold, which is the one
+       place it cannot be. Measured, not guessed: the shell puts `.mm-sheet` at
+       70px. */
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100svh - 70px);
     color-scheme: light;
     font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
   }
@@ -3208,9 +3224,11 @@ html:has(.bb-app-chrome) {
      flat fill. */
   .mm-face {
     position: relative;
+    flex: 1;
     background:
-      linear-gradient(101deg, transparent 10%, rgb(96 112 120 / 0.055) 17%, transparent 27%),
-      linear-gradient(96deg, transparent 50%, rgb(96 112 120 / 0.045) 58%, transparent 68%),
+      linear-gradient(101deg, transparent 8%, rgb(88 106 116 / 0.14) 17%, transparent 29%),
+      linear-gradient(96deg, transparent 48%, rgb(88 106 116 / 0.115) 58%, transparent 70%),
+      linear-gradient(93deg, transparent 74%, rgb(88 106 116 / 0.075) 81%, transparent 89%),
       radial-gradient(130% 80% at 50% -12%, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0) 60%),
       linear-gradient(180deg, var(--mm-enamel), var(--mm-enamel-2));
     box-shadow:
@@ -3266,11 +3284,36 @@ html:has(.bb-app-chrome) {
     color: var(--mm-vinyl-2);
   }
 
+  /* A laminated notice in a poly pocket, of the kind every sports hall has one
+     of. It was a floating paragraph of body prose top-right, which was the last
+     place on this route where the page showed through the object - and it had
+     displaced the particulars that belong beside the plate. As a card it is
+     board furniture, and it makes room for them again. */
   .mm-lede {
-    max-width: 48ch;
+    max-width: 40ch;
+    justify-self: end;
+    background: var(--mm-plate);
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18),
+      0 7px 12px -6px rgb(24 32 36 / 0.34);
+    padding: 0.7rem 0.85rem;
     color: var(--mm-vinyl-2);
-    font-size: 0.9375rem;
+    font-size: 0.8125rem;
     line-height: 1.6;
+    transform: rotate(-0.3deg);
+  }
+
+  /* The plate and the night's particulars sit on one line, the way a board
+     carries its title and its date. */
+  .mm-headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
   }
   .mm-note {
     max-width: 46ch;
@@ -3311,9 +3354,9 @@ html:has(.bb-app-chrome) {
   }
   @media (min-width: 64rem) {
     .mm-head {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 30rem);
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 3rem;
-      align-items: end;
+      align-items: start;
     }
   }
 
@@ -3528,10 +3571,17 @@ html:has(.bb-app-chrome) {
     background: var(--mm-plate);
     border: 1px solid var(--mm-plate-edge);
     border-radius: 2px;
+    /* A magnet holds the plate a millimetre clear of the enamel, so the shadow
+       is thrown down and away rather than hugging the outline: a light top
+       edge, a hard contact line under it, then a soft cast with almost no
+       negative spread. At 14px an outline-plus-hairline reads as a table cell
+       with a border, which is the one thing this plate must not be. */
     box-shadow:
-      0 1px 0 rgb(0 0 0 / 0.09),
-      0 3px 6px -4px rgb(0 0 0 / 0.45);
-    padding: 0.22rem 0.45rem;
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18),
+      0 7px 12px -6px rgb(24 32 36 / 0.34);
+    padding: 0.26rem 0.5rem;
     font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
     font-weight: 500;
     font-size: 0.875rem;
@@ -3583,8 +3633,12 @@ html:has(.bb-app-chrome) {
     padding-top: 0.5rem;
     font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
     font-weight: 600;
-    font-size: 0.6875rem;
-    letter-spacing: 0.05em;
+    /* Who is off is read off the board at the same distance as who is on, so
+       it is sized to be read, not to be a footnote. The green is dark enough
+       to clear 4.5:1 against the bottom of the enamel, which is where the
+       last round of a long board actually sits. */
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
     line-height: 1.45;
     color: var(--mm-mark-green);
   }
@@ -3703,7 +3757,11 @@ html:has(.bb-app-chrome) {
      rubber bounce that no magnet has. */
   .mm-draw .mm-grid tbody tr {
     animation: mm-settle 340ms cubic-bezier(0.22, 0.9, 0.36, 1) both;
-    animation-delay: calc(160ms + var(--row, 0) * 62ms);
+    /* Capped, because the stagger is a flourish and the schedule is the point:
+       uncapped, the last row of a sixteen-round board lands past 1.4s on every
+       single redraw. `min()` keeps the cascade legible on a short board and
+       compresses it on a long one. */
+    animation-delay: calc(160ms + min(var(--row, 0) * 62ms, 520ms));
   }
   @keyframes mm-settle {
     from {
@@ -3758,12 +3816,16 @@ html:has(.bb-app-chrome) {
   /* Dimmed by moving the ink and lifting the plates off their shadows, so
      everything inside goes with it without any of it knowing what stale
      means. */
+  /* Held back, never unreadable: this is still the schedule being played off
+     the wall right now, and an organizer reads names off it while the next
+     draw is being decided. The ink drops one step and the plates go flat; the
+     red rail above is what says it is superseded, not illegibility. */
   .mm-draw[data-stale] {
-    --mm-vinyl: #6b7479;
-    --mm-vinyl-2: #8a9296;
-    --mm-plate-edge: #cdd4d5;
-    --mm-rule: rgb(27 32 35 / 0.1);
-    --mm-mark-green: #7c9a89;
+    --mm-vinyl: #4a5257;
+    --mm-vinyl-2: #5a6367;
+    --mm-plate-edge: #c6cdcf;
+    --mm-rule: rgb(27 32 35 / 0.12);
+    --mm-mark-green: #4d6b5b;
     color: var(--mm-vinyl);
   }
   .mm-draw[data-stale] .mm-side {
@@ -3850,32 +3912,51 @@ html:has(.bb-app-chrome) {
      couple of spare magnets in it. It carries no control and says nothing the
      screen needs - it is here because a board without one is a rectangle, and
      this is the edge that tells you which way up the object is. */
+  /* Deep enough to be a channel with things lying in it. At the old height a
+     couple of small marks in a row at the bottom-left corner of a wide page
+     read as carousel dots - stock UI furniture, inside a world whose whole
+     argument is that it has none. The lip is what sells it: a bright top edge,
+     a dark inner shadow where the channel turns, and a shadow cast up onto the
+     enamel the tray is bolted to. */
   .mm-tray {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.55rem clamp(1rem, 4vw, 2.5rem) 0.6rem;
-    background: linear-gradient(180deg, var(--mm-alu-hi), var(--mm-alu) 42%, var(--mm-alu-lo));
-    border-top: 1px solid rgb(255 255 255 / 0.65);
+    gap: 0.7rem;
+    padding: 0.85rem clamp(1rem, 4vw, 2.5rem) 0.95rem;
+    background: linear-gradient(
+      180deg,
+      var(--mm-alu-hi) 0%,
+      var(--mm-alu) 30%,
+      #a4abb1 62%,
+      var(--mm-alu-lo) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.75),
+      inset 0 6px 9px -7px rgb(20 26 30 / 0.75),
+      0 -3px 7px -3px rgb(20 26 30 / 0.3);
   }
   .mm-pen {
-    width: 54px;
-    height: 9px;
-    border-radius: 5px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+    width: 88px;
+    height: 13px;
+    border-radius: 7px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      0 2px 3px rgb(20 26 30 / 0.45);
   }
   .mm-pen[data-ink="black"] {
-    background: linear-gradient(180deg, #3b4145, #22282b);
+    background: linear-gradient(180deg, #4a5155, #2b3134 55%, #191e21);
   }
   .mm-pen[data-ink="red"] {
-    background: linear-gradient(180deg, #cf5045, #a4322a);
+    background: linear-gradient(180deg, #d75c50, #b03a30 55%, #8d2a22);
   }
   .mm-magnet {
-    width: 15px;
-    height: 15px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: radial-gradient(circle at 34% 30%, #fff, #7c848a);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+    background: radial-gradient(circle at 34% 28%, #fff, #cfd5d9 45%, #767e85);
+    box-shadow:
+      0 2px 4px rgb(20 26 30 / 0.5),
+      inset 0 -1px 2px rgb(20 26 30 / 0.25);
   }
   .mm-tray-mark {
     margin-left: auto;
@@ -3884,7 +3965,9 @@ html:has(.bb-app-chrome) {
     font-size: 0.5625rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: rgb(27 32 35 / 0.5);
+    /* Stamped into the tray, so it is quiet — but a maker's mark that cannot
+       be read is a smudge. Opaque rather than a half-alpha vinyl. */
+    color: #2b3134;
   }
 }
 
@@ -4080,10 +4163,9 @@ html:has(.bb-app-chrome) {
     --mm-vinyl-2: oklch(0.56 0 0);
     --mm-rule: oklch(0.7 0 0);
     --mm-mark-green: oklch(0.56 0 0);
-  }
-  /* Both held-back states flatten their plates on screen; on paper the plate
-     is already flat, so only the specimen's dashed rule needs restating. */
-  .mm-example {
+    /* Both held-back states flatten their plates on screen; on paper the
+       plate is already flat, so only the specimen's dashed rule needs
+       restating. */
     border-top-color: oklch(0.6 0 0);
   }
 
@@ -4111,6 +4193,9 @@ html:has(.bb-app-chrome) {
   /* With the standfirst gone the head is one column, and a grid holding one
      child would still reserve the track the other one was in. */
   .mm-head {
+    display: block;
+  }
+  .mm-headline {
     display: block;
   }
   .mm-sheet header h1 {
