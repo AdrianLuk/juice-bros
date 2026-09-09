@@ -1,6 +1,8 @@
 # Next steps: Booking Buddy, On Deck, Round Robin Generator
 
-Status: planning input, not committed scope. Written 2026-09-04. Progress updated 2026-09-08.
+Status: planning input, not committed scope. Written 2026-09-04. Progress updated
+2026-09-08; interleave reordered the same day (second pass — RR-6 slotted, RR-3's
+remainder moved in front of the night).
 
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
@@ -33,19 +35,25 @@ more. All assume a solo dev with agent help.
 
 ### Suggested interleave across the three apps
 
-Reordered 2026-09-07. The original order assumed nothing external had a date on it and
-alternated across the apps purely to keep momentum. **OD-0 is now booked**, which makes it
-the one fixed point in the list: it is not code, it gates six other On Deck rows, and the
-things the night itself needs are now deadline work rather than roadmap work. Everything
-else sequences around that date.
+Reordered 2026-09-08 (second pass). The 2026-09-07 pass sequenced everything around the
+booked Saturday and that still holds: **OD-0 is the one fixed point**, it is not code, and
+it gates six other On Deck rows. This pass does three things the first one left open —
+closes out the two rows that shipped, gives RR-6 a real position instead of a dangling
+row at the bottom, and picks something for the four days between now and the night.
 
-Two rules the order follows:
+Three rules the order follows:
 
-- **Before the night, only build what the night needs.** That is the printed sign and
-  nothing else. The demo night and self-serve Club are for acquiring the *second* club,
-  and OD-6 says not to onboard one until two sessions have run.
-- **After the night, the retro reorders this table.** Rows 5 onward in On Deck are guesses
-  until it exists. Don't build them ahead of it just because they're specced.
+- **Before the night, build only what the night needs, or what finishes before it.** The
+  first half shipped the sign. The second half is new, and is what row 3 now is. In the
+  last few days the test that matters is not "is this On Deck work" but *will this still
+  be in flight on Saturday* — because the doc's own diagnosis of why row 1 sat unbuilt is
+  that the deadline-shaped row was stuck behind work already in flight. A specced On Deck
+  row started now fails both halves; a half-day item in another app fails neither.
+- **Nothing specced-but-unrun goes in early.** Rows 6 onward in On Deck are guesses until
+  the retro exists. Building something the night or the retro actually depends on is a
+  different act — that was the sign, and that was #469 — but building OD-1 because it is
+  written down is not.
+- **After the night, the retro reorders this table.**
 
 Progress column added 2026-09-07 (evening). ✅ means shipped to master; a blank cell means
 not started.
@@ -54,25 +62,29 @@ not started.
 |---|---|---|---|
 | 1 | ✅ | OD-6 Printed Club QR sign (slice 3 only) | Shipped 2026-09-08 (#463, PR #466). `/on-deck/home/qr` is now the sign itself, printing on Letter and A4, plus two open routes serving the bare code as a file for a print shop or a group chat. Nothing now stands between the booked night and its checklist except printing one |
 | 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
-| 3 |  | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
-| 4 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and rows 5 to 9 stay guesses. Cheaper as of 2026-09-08: #469 shipped the reader, so the Summary's numbers come off a screen rather than out of a SQL client |
-| 5 |  | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
-| 6 |  | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can |
-| 7 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
-| 8 |  | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Now correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
-| 9 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked as of 2026-09-07 — RR-1 is done |
-| 10 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
-| 11 |  | RR-3 Share, roster memory, find-me, print | Partly overtaken: print (#397) and roster memory (#396) both shipped inside RR-1. What's left is the share URL and find-me |
-| 12 |  | BB-4 Copy for group chat | Small, high-use |
-| 13 |  | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
-| 14 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
-| 15 |  | RR-4 Constraint toggles (#391) | Fixed partners, singles, skill balance, mixed doubles. Filed and open, `needs-triage` |
-| 16 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
-| — |  | RR-6 Pools (#392) | Filed 2026-09-07 after the doc was written, `needs-triage`. Not in the original order; slot it against RR-2 and RR-4 at the next reorder |
+| 3 |  | RR-3 remainder — share URL and find-me | **Moved up from row 11.** The only row left that is both fully decided and half a day's work: print (#397) and roster memory (#396) already shipped inside RR-1, so what remains is small enough to land before Saturday rather than sit open across it. Nothing in On Deck can take this slot — the sign is built, and every other OD row is gated on a retro that does not exist yet. Its one ordering interaction is in its favour: the share URL encodes Config, RR-6 adds a field to Config, and a link minted now stays valid because an absent Pool Count reads as `1` |
+| 4 |  | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
+| 5 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and every On Deck row below it — 6, 8, 9 and 15 — stays a guess. Cheaper as of 2026-09-08: #469 shipped the reader, so the Summary's numbers come off a screen rather than out of a SQL client |
+| 6 |  | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
+| 7 |  | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can — and because it is the one L on the table, which makes it the exact shape of work rule one says not to have in flight on Saturday. It starts after the retro is written, not before |
+| 8 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
+| 9 |  | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
+| 10 |  | RR-6 Pools (#392) | **New position, and deliberately ahead of RR-2.** Pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock, and standings *on top of* a Schedule. In the other order, courtside mode gets built twice, or pools arrive as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-grid layout. That thinking costs no branch, so it can happen any time, Saturday included |
+| 11 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked since 2026-09-07, but now sits above the Schedule shape RR-6 settles rather than underneath it |
+| 12 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
+| 13 |  | BB-4 Copy for group chat | Small, high-use |
+| 14 |  | RR-4 Constraint toggles (#391) | Fixed partners, singles, skill balance, mixed doubles. Filed and open, `needs-triage`. Genuinely orthogonal to RR-6 — each pool runs whichever Format is picked — so the order between the two is free, and it stays behind because a club night that needs two pools is more common than one that needs fixed partners |
+| 15 |  | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
+| 16 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
+| 17 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
+
+No row now sits outside the order. RR-6 was the last one, and slotting it is the reorder
+the 2026-09-07 pass deferred.
 
 If only one thing per app ships this month: RR-1, OD-0, BB-1. RR-1 is done and row 1
-cleared on 2026-09-08, which leaves OD-0 (booked, and now unblocked) and BB-1
-(unstarted) as the month's remaining two.
+cleared on 2026-09-08, which leaves OD-0 (booked, unblocked, and four days out) and BB-1
+(unstarted, and now explicitly sequenced after the retro) as the month's remaining two.
+Row 3 is not a third goal; it is what the gap in front of the night is the right size for.
 
 ### Shipped since this doc was written
 
@@ -115,10 +127,15 @@ Recorded 2026-09-07, updated the same evening after a heavy day, and again on
   Toronto closes on the next UTC day, so the server's own clock mislabels the normal
   case rather than an edge one. So a Club now carries a time zone, adopted silently
   from the Organizer's own browser rather than asked for, with a correction in
-  Settings behind its own save. Migration `20260908120000`; **not yet pushed to the
-  hosted DB**.
+  Settings behind its own save. Migration `20260908120000`, which the first version of
+  this note recorded as unpushed — **it is on the hosted project**, confirmed by
+  `supabase migration list` on 2026-09-08 (local and remote in sync through
+  `20260908120000`). Worth having checked rather than assumed: `getOwnedClub` selects
+  `time_zone`, so an unpushed column would not have degraded a Summary, it would have
+  thrown on the Organizer's home screen — four days before the night that screen exists
+  to run.
 
-  Worth noting against row 4 below: the retro no longer needs a SQL client.
+  Worth noting against row 5 below: the retro no longer needs a SQL client.
 
 - **Booking Buddy import/sync hardening, none of it on this table** — a full day of it on
   2026-09-07: cross-source reservation identity (#432, #437), empty-vs-broken feed
@@ -132,6 +149,9 @@ Recorded 2026-09-07, updated the same evening after a heavy day, and again on
   other routes (#399, #406, #415) and its two regressions (#419, #421), the About page
   rebuilt around episode one (#425), Appearances division ordering (#429), YouTube
   subscribe CTAs (#427), Tools surfaced on the homepage (#381), image weight (#414).
+- **The weekday named in Booking Buddy's date pickers** — #474 (PR #475), 2026-09-08.
+  Not on this table either, and listed here only so the count stays honest: off-table
+  work has now outnumbered table work on every day this doc has been open.
 
 **The pattern held until it was named.** Of everything built between this doc being
 written and 2026-09-07, only row 2 came from the table; the rest was marketing polish
@@ -142,20 +162,30 @@ urgent because it was already in flight.
 
 **What's next is not code.** With row 1 closed, every remaining On Deck row is gated on
 OD-0, and OD-0 is a Saturday, a printed sheet of paper, and someone writing down what
-happened. The way to get this table wrong now is to start row 5 or row 7 because they
-are specced and the night is not for a few days. Rows 5 onward stay guesses until the
-retro exists — that is the whole reason they were ordered after it.
+happened. The way to get this table wrong now is to start row 6 or row 8 because they
+are specced and the night is not for a few days. The On Deck rows from 6 down stay
+guesses until the retro exists — that is the whole reason they were ordered after it.
 
 **And then more code shipped the same day** (#469, the Session Summary reader), so the
 paragraph above needs the distinction it was missing rather than a quiet edit. What it
-should have said: *don't start a specced row early*. Building something the night or
-its retro actually depends on is a different act, and #469 was that — row 4's
+should have said: *don't start a specced On Deck row early*. Building something the night
+or its retro actually depends on is a different act, and #469 was that — row 5's
 deliverable was otherwise going to be written out of a SQL client, or out of memory.
 
 The test to apply, before anything else goes in before Saturday: **does the night or
 the retro fail without it?** The sign passed that test. The reader passed it. OD-1's
 venue resilience does not, because nobody yet knows which failure modes are real, which
 is precisely what the night is for.
+
+**That test governs On Deck, and it is not the whole rule** — which the 2026-09-08
+reorder had to settle in order to fill the four days in front of the night. Read as
+written it forbids everything, including a half-day of Match Mixer, and a rule that
+forbids everything gets ignored rather than followed. The rest of it, which the row-1
+diagnosis already implies: **nothing may be in flight across Saturday.** Both halves are
+about the same failure — the deadline row sitting behind work already started — and
+between them they say what row 3 is allowed to be. An On Deck row fails the first test.
+An L in any app fails the second. RR-3's remaining half fails neither: it is decided, it
+is small, and the retro cannot inform it, because the retro is about a different app.
 
 ---
 
@@ -682,7 +712,9 @@ below was resolved in `/grill-with-docs` (PR #386) and is settled, not open.
 
 ### RR-2 · Courtside mode
 
-**Size:** L. **Blocked by:** RR-1.
+**Size:** L. **Blocked by:** RR-1 (done). **Ordered behind RR-6** as of 2026-09-08 —
+not blocked by it in the dependency sense, but built once against the per-pool Schedule
+shape instead of twice. See RR-6 for the reasoning.
 
 **Claim.** This is what separates best from good: the round timer keeps the phone open on
 the bench, scores and standings make people come back, and late arrivals are the thing
@@ -713,12 +745,21 @@ every other generator gets wrong and the reason organizers give up and freehand 
 
 ### RR-3 · Share, roster memory, find-me, print
 
-**Size:** S–M now, was M. **Blocked by:** nothing — RR-1 is done.
+**Size:** S now, was M. **Blocked by:** nothing — RR-1 is done. **Row 3**, moved up from
+row 11 on 2026-09-08.
 
 **Two of the four already shipped in RR-1**: roster memory (#396, last roster restored on
 return, plus clear-with-undo in #441) and print (#397). What's left is the share URL and
 find-me. Re-size and re-scope this before ticketing it; the claim below is stale in its
-back half.
+back half — and it has no issue yet, so it needs a `/to-spec` pass first, which is cheap
+because every open question below already has a settled answer.
+
+**Why it's now row 3.** Not because it grew in importance; because it shrank. It is the
+only remaining row that is both fully decided and half a day, which makes it the only
+thing that fits in front of Saturday without being in flight across it. One ordering
+note in its favour: the URL encodes Config, and RR-6 later adds Pool Count to Config, so
+ship the encoder with a missing field reading as its default (`poolCount = 1`) and links
+minted this week keep working after pools land.
 
 **Claim.** Completes v1. The share link puts the Juice Bros name in front of the whole
 group every week; roster memory is the second-biggest reason an organizer comes back;
@@ -783,8 +824,24 @@ standings from their own phone.
 
 ### RR-6 · Pools (#392, open)
 
-**Size:** M. **Blocked by:** RR-1. Independent of RR-2 and RR-3; orthogonal to RR-4's
-Format toggle (rotating, fixed-partner, and singles each run once per pool).
+**Size:** M. **Blocked by:** RR-1. Independent of RR-3; orthogonal to RR-4's Format
+toggle (rotating, fixed-partner, and singles each run once per pool). **Row 10**, and
+**ahead of RR-2** — the one non-obvious edge in this section, settled 2026-09-08.
+
+**Why ahead of RR-2.** Pools are not a feature layered on a Schedule, they change what a
+Schedule *is*: one Schedule per Round becomes one per pool per Round, each with its own
+Scorer and Bye accounting. RR-2 then builds an event log, a round lock, and standings on
+top of a Schedule. Ordered RR-2 first, either courtside mode gets built once against a
+single-pool shape and again after, or pools land as a second-class thing the lock does
+not understand — a locked Round would have to mean "locked in Pool A," which is a
+migration of the event log, not a new field. Ordered this way, RR-2 is built once against
+the final shape. The cost of the swap is that courtside mode waits; the thing that makes
+that affordable is that RR-2 is gated on nothing but attention, and no organizer is
+waiting on it because nobody has used the tool on a Saturday yet.
+
+Against RR-4 the order is genuinely free — each pool runs whichever Format is selected —
+so RR-4 stays where it was, behind this, on the plainer argument that a club night
+splitting into a 4.0 and a 3.0 group is more common than one wanting fixed partners.
 
 **Claim.** A club night is often several simultaneous mini round robins sharing one set of
 courts (a 4.0 group and a 3.0 group, or just too many people for one shared rotation) —
