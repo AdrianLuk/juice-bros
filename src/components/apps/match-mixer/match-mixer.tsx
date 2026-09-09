@@ -306,7 +306,7 @@ export function MatchMixer() {
     // along the bottom. There is deliberately no page around it and no
     // max-width: this is an object on a wall, not a document on a background.
     <div className="mm-sheet">
-      <div className="mm-face">
+      <div className="mm-face mm-fixings">
         {/* The head runs the full width of the board rather than stacking in
             the left column: at desktop that column is 15.5rem, and a header
             confined to it leaves the top third of the enamel empty. Plate and
@@ -326,7 +326,10 @@ export function MatchMixer() {
                 possible. */}
             <p className="mm-meta">
               Pickleball round robin
-              {draw ? ` · ${draw.numbers} · Seed ${draw.config.seed}` : null}
+              {draw ? ` · ${draw.numbers}` : null}
+              {draw ? (
+                <span className="mm-seed"> · Seed {draw.config.seed}</span>
+              ) : null}
             </p>
           </div>
           <p className="mm-lede">
@@ -361,7 +364,7 @@ export function MatchMixer() {
             </div>
             <textarea
               id="mm-roster"
-              className="mm-input h-64 w-full resize-y p-2.5"
+              className="mm-input h-48 w-full resize-y p-2.5 sm:h-64"
               value={text}
               onChange={(event) => editRoster(event.target.value)}
               placeholder={EXAMPLE_ROSTER}

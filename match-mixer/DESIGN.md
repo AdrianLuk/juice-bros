@@ -330,6 +330,40 @@ a dark bottom one plus a top-lit radial sheen, and two faint diagonal
 wipe-ghost bands: the only evidence the board has a history, and what stops the
 ground reading as flat fill.
 
+### The frame is an extrusion (#484)
+
+The aluminium is brushed, not a gradient. Three layers on `.mm-sheet` and the
+same grain on `.mm-tray`, so the surround and the tray read as one piece of
+metal rather than two grey bands:
+
+1. a 1px `repeating-linear-gradient` at `90deg` — the grain;
+2. a wide soft `90deg` sheen peaking around 42% — the anisotropic highlight,
+   which is the layer that actually makes the eye call it metal. Grain without
+   it still reads as texture on grey;
+3. the base `180deg` alu ramp.
+
+The surround is `10px`, not `6px`, with `inset 1px 1px 0 rgb(255 255 255 / .55)`
+and `inset -1px -1px 0 rgb(20 26 30 / .3)` — a lit top-left edge and a shaded
+bottom-right one. Below about 8px any frame reads as a border rather than a
+thickness.
+
+`.mm-face` is **seated in a rebate**, not laid on the frame: a `0 0 0 1px`
+dark ring plus a short `inset 0 2px 4px -2px` cast from the frame onto the
+enamel.
+
+**Corner fixings** are four domed slotted heads, drawn as `::before` / `::after`
+on `.mm-face` plus a second pair from the `.mm-fixings` class on the same
+element — one element only yields two pseudo-elements, hence the pair. They are
+**scoped to `min-width: 40rem`**: at 390px the face's own padding puts the club
+plate 16px from the edge, which is exactly where the top-left fixing lands, and
+a screw through the lettering is worse than no screw. A small board is a plain
+frame.
+
+**Don't** push any of this further. The bar is that nobody notices it and simply
+stops reading the frame as grey; visible screws, heavy grain and a strong bevel
+turn a quiet Operate surface into a skeuomorphic novelty. None of it reaches
+paper — the print block strips the surround and the tray.
+
 ### Shadow Vocabulary
 - **Plate lift** (`box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 0 rgb(24 32 36 / 0.16), 0 3px 5px -1px rgb(24 32 36 / 0.18), 0 7px 12px -6px rgb(24 32 36 / 0.34)`):
   every name plate and the laminated notice. A light top edge, a hard contact
