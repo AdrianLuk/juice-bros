@@ -2,6 +2,8 @@
 
 A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. No account, no database, no network — the whole thing runs in the browser so it works on rec-centre wifi.
 
+Since #482 the surface is **the board**: a magnetic planning board of the kind bolted up by a court door, and its visual world is documented with the rest of the app's design system. Printing still works and is deliberately a demotion of that world rather than a second design of it — the material comes off and the ruled grid underneath is what reaches the paper. Read "the desk reads it out" below as someone standing at that board with a phone, not holding a printout.
+
 ## Language
 
 ### The input
@@ -59,7 +61,7 @@ Two Players who have partnered at least once, counted as a pair and not as an oc
 _Avoid_: Partner Matrix (removed 2026-09-09, see below), heatmap, pairing chart. Not a synonym for Team, which is a Pairing in one particular Game.
 
 **Repeat mark**:
-The box drawn round a Team in the Schedule grid when that pair partnered more than once. It is the Scorer's failure signal made visible in the Round it happened in.
+The marker ring drawn round a Team in the Schedule grid when that pair partnered more than once. It is the Scorer's failure signal made visible in the Round it happened in. On screen it is a drawn stroke — the one hand-made mark on an otherwise manufactured board (#482); on paper it falls back to a ruled box, because an ellipse positioned against a name plate has nothing to sit on once the plate is gone.
 _Avoid_: Warning, error, conflict
 
 ### Not built yet
