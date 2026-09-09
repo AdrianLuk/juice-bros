@@ -467,9 +467,9 @@ export function MatchMixer() {
           the edge that tells you which way up the object is. */}
       <div className="mm-tray" aria-hidden>
         <span className="mm-pen" data-ink="black" />
-        <span className="mm-pen" data-ink="red" />
+        <span className="mm-pen" data-ink="red" data-tray-extra />
         <span className="mm-magnet" />
-        <span className="mm-magnet" />
+        <span className="mm-magnet" data-tray-extra />
         <span className="mm-tray-mark">Juice Bros Pickleball</span>
       </div>
     </div>

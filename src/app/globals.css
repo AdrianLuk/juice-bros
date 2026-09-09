@@ -3291,7 +3291,6 @@ html:has(.bb-app-chrome) {
      board furniture, and it makes room for them again. */
   .mm-lede {
     max-width: 40ch;
-    justify-self: end;
     background: var(--mm-plate);
     border: 1px solid var(--mm-plate-edge);
     border-radius: 2px;
@@ -3357,6 +3356,12 @@ html:has(.bb-app-chrome) {
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 3rem;
       align-items: start;
+    }
+    /* Only once there is a second column to sit at the end of. Stacked, the
+       cell is the whole board and the card has to keep the left edge every
+       other thing on the board is aligned to. */
+    .mm-lede {
+      justify-self: end;
     }
   }
 
@@ -3968,6 +3973,19 @@ html:has(.bb-app-chrome) {
     /* Stamped into the tray, so it is quiet — but a maker's mark that cannot
        be read is a smudge. Opaque rather than a half-alpha vinyl. */
     color: #2b3134;
+    white-space: nowrap;
+  }
+
+  /* A narrow tray holds fewer things. At 390 the full kit leaves the stamp
+     about 90px, which wraps it into the magnets; a real tray that size would
+     have one marker and one magnet in it. */
+  @media (max-width: 30rem) {
+    .mm-tray {
+      gap: 0.55rem;
+    }
+    .mm-tray [data-tray-extra] {
+      display: none;
+    }
   }
 }
 
