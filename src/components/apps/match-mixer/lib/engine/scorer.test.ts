@@ -199,3 +199,46 @@ test("recordRound adds to a tally exactly as tallying from scratch would", () =>
 
   assert.deepEqual(incremental, tallyRounds([first, second], 8));
 });
+
+test("coverage counts the distinct pairings played, out of every pairing there is", () => {
+  // One round of eight seats four partnerships, out of the 28 pairs that exist.
+  const single = scoreSchedule(
+    schedule(round([[0, 1], [2, 3]], [[4, 5], [6, 7]])),
+    config(8),
+  );
+  assert.equal(single.pairingsPlayed, 4);
+  assert.equal(single.pairingsPossible, 28);
+
+  // Four players over three rounds is a whole whist tournament, so every pair
+  // there is has played: this is the case the summary line calls complete.
+  const whole = scoreSchedule(
+    schedule(
+      round([[0, 1], [2, 3]]),
+      round([[0, 2], [1, 3]]),
+      round([[0, 3], [1, 2]]),
+    ),
+    config(4),
+  );
+  assert.equal(whole.pairingsPlayed, 6);
+  assert.equal(whole.pairingsPossible, 6);
+});
+
+test("a pair that repeats is still one pairing covered, not two", () => {
+  // Coverage answers "who has met", so it counts pairs and not partnerships.
+  // Reading it off the games played instead would say this schedule covered
+  // five pairings when 0 and 1 have only met each other.
+  const built = schedule(
+    round([[0, 1], [2, 3]], [[4, 5], [6, 7]]),
+    round([[0, 1], [4, 6]], [[2, 5], [3, 7]]),
+  );
+  const score = scoreSchedule(built, config(8));
+
+  assert.equal(score.repeatedPartnerPairs, 1);
+  assert.equal(score.pairingsPlayed, 7);
+});
+
+test("a roster too small to pair has no possible pairings rather than a crash", () => {
+  const score = scoreRounds([], 0);
+  assert.equal(score.pairingsPlayed, 0);
+  assert.equal(score.pairingsPossible, 0);
+});

@@ -77,6 +77,7 @@ export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
   let repeatedPartnerPairs = 0;
   let maxPartnerCount = 0;
   let maxOpponentCount = 0;
+  let pairingsPlayed = 0;
 
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
@@ -84,6 +85,9 @@ export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
       const opposed = opponentMatrix[i][j];
       maxPartnerCount = Math.max(maxPartnerCount, partnered);
       maxOpponentCount = Math.max(maxOpponentCount, opposed);
+      // Counted per pair rather than per partnership, so a repeat adds to the
+      // failure above without also inflating how much of the room has met.
+      if (partnered > 0) pairingsPlayed += 1;
       if (partnered > 1) {
         repeatedPartnerPairs += 1;
         cost += (partnered - 1) * PARTNER_REPEAT_WEIGHT;
@@ -117,6 +121,10 @@ export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
     repeatedPartnerPairs,
     maxPartnerCount,
     maxOpponentCount,
+    pairingsPlayed,
+    // Floored at zero because an empty Roster works out at -0, which prints as
+    // "-0" the moment the summary line interpolates it.
+    pairingsPossible: Math.max(0, (n * (n - 1)) / 2),
     byeSpread,
     byesRotateEvenly,
   };

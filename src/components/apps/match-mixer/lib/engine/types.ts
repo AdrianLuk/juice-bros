@@ -108,6 +108,14 @@ export interface ScorerResult extends Tally {
   readonly repeatedPartnerPairs: number;
   readonly maxPartnerCount: number;
   readonly maxOpponentCount: number;
+  /**
+   * How many distinct pairs have partnered at least once. Distinct is the
+   * whole point: a pair that played together twice is one pairing covered and
+   * one repeat, so this counts pairs rather than partnerships.
+   */
+  readonly pairingsPlayed: number;
+  /** Every pair the Roster contains, `n × (n − 1) / 2`. */
+  readonly pairingsPossible: number;
   /** Most games played by anyone minus fewest — 0 means Byes fell evenly. */
   readonly byeSpread: number;
   /**
