@@ -665,19 +665,22 @@ migration pushed (#241–#260, closed 2026-09-02). Nothing outstanding, and
 as of 2026-09-08 nothing in the repo is holding up OD-0 either: the sign
 is built. What the night needs now is a printer and a Saturday.
 
-What is left is one row of production data. The first Club is seeded by hand —
-RLS gives even the owner no INSERT on `on_deck_clubs`, and
-`scripts/seed-on-deck.mts` refuses any host that is not `127.0.0.1` — so the
-real one goes in through the SQL editor as an `insert … select` against
-`auth.users`. **Vanessa owns it** (decided 2026-09-09): she is the club's actual
-Organizer, and the alternative of owning it from the Juice Bros account and
-handing over after the retro bought a Summary this side could read at the price
-of the wrong name on the row. Her email is in hand as of 2026-09-09, which is
-not yet enough — the insert joins on an `auth.users` row, and a first sign-in is
-what creates one, so she signs in before the Club can exist. Set `time_zone` to
-`America/Toronto` in that insert or leave it null and let `AdoptTimeZone` take
-it off her browser; both land in the same place, the column just removes the
-guess.
+What stood between here and OD-0 was one row of production data, and it went in
+on 2026-09-09. The first Club is seeded by hand — RLS gives even the owner no
+INSERT on `on_deck_clubs`, and `scripts/seed-on-deck.mts` refuses any host that
+is not `127.0.0.1` — so it went through the SQL editor as an `insert … select`
+against `auth.users`. **Vanessa owns it** (decided the same day): she is the
+club's actual Organizer, and the alternative of owning it from the Juice Bros
+account and handing over after the retro bought a Summary this side could read,
+at the price of the wrong name on the row.
+
+The ordering is the part worth keeping. Having her email was not enough: the
+insert joins on an `auth.users` row and a first sign-in is what creates one, so
+she signed in before the Club could exist, and an insert run any earlier would
+have matched nothing and reported success. `time_zone` either goes in that
+insert as `America/Toronto` or is left null for `AdoptTimeZone` to take off the
+Organizer's own browser; both land in the same place, the column just removes
+the guess.
 
 The consequence to carry into the retro: `on_deck_clubs_one_per_owner` is a
 plain unique index and a Volunteer Link deliberately cannot start a Session, so
