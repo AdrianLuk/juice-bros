@@ -8,4 +8,6 @@ The line is drawn at commitment: **events exist only above a Schedule that has b
 
 This is only safe because generation is deterministic. `generate` takes an explicit Seed that lives in the Config, so a Schedule can always be rebuilt from what produced it and never needs to be stored. The first event, when there is one, is the Schedule this milestone already produces; the reducer folds forward from there rather than replacing anything underneath it.
 
+The Share Link (#492) is the first thing to pay this decision back rather than merely be constrained by it. Handing a board to eleven other phones meant carrying four values in a query string and generating the Schedule again in each of their browsers — around 250 characters for a twelve-player night. Serialising the grid instead would have been a payload no URL could hold, and it would have needed a server the moment it grew, which is the design this app does not have. Determinism was chosen to avoid storing a Schedule; it turned out to be what made a Schedule shareable.
+
 Do not "fix" this into an event log for consistency with the sibling apps. If a future feature genuinely needs history over Roster edits, that is a reason to reopen this deliberately — not a defect to be tidied up.

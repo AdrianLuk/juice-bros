@@ -2,6 +2,8 @@
 
 A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. No account, no database, no network — the whole thing runs in the browser so it works on rec-centre wifi.
 
+A board can be handed round: a Share Link carries the Config in its query string and the reader's browser generates the same Schedule again from it (#492). That is still no server and still no account, but it is no longer true that nothing leaves the browser, and the page's own copy says so.
+
 Since #482 the surface is **the board**: a magnetic planning board of the kind bolted up by a court door, and its visual world is documented with the rest of the app's design system. Printing still works and is deliberately a demotion of that world rather than a second design of it — the material comes off and the ruled grid underneath is what reaches the paper. Read "the desk reads it out" below as someone standing at that board with a phone, not holding a printout.
 
 ## Language
@@ -45,6 +47,20 @@ _Avoid_: Match (Pickle Point Pal's word for a scored contest between two sides),
 **Bye**:
 A Player sitting out a Round because there are more Players than seats. A Bye is arithmetic, not a status: everyone left over once `courts × 4` seats are filled takes one, and spreading them evenly is the second thing the Scorer cares about.
 _Avoid_: Sit-out as a noun, rest, bench
+
+### Handing it round
+
+**Share Link**:
+A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, a checksum over the names, and then the names. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
+_Avoid_: Invite Link (Booking Buddy's word, and an account-bound one), permalink, share code, export
+
+**Generator Version**:
+The marker in a Share Link saying which generator minted it. A Seed only reproduces a board if the thing consuming it has not moved, so this is bumped whenever a change alters what an existing Config generates: a new or amended Table, a change to the search, a change to the Scorer's weights. The decoder reports whether it matched; what to say about a mismatch is #494.
+_Avoid_: Schema version (`config-storage`'s, and a different number about a different thing), API version
+
+**Borrowed board**:
+A board on screen that arrived by Share Link and belongs to somebody else. It is displayed and not written to this browser's storage, because most people who open a link are players rather than organizers and some of them keep their own club Roster in the same browser. The first edit of any kind claims it, and from then on it saves like any other visit.
+_Avoid_: Read-only, guest mode, preview. Nothing is locked — the board is fully editable, it just is not yours until you touch it.
 
 ### The proof
 
