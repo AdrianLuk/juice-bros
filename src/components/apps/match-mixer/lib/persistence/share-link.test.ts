@@ -11,6 +11,7 @@ import {
   GENERATOR_VERSION,
   MAX_LINK_LENGTH,
   SHARE_PARAM,
+  stripShareParam,
 } from "./share-link.ts";
 
 /**
@@ -267,4 +268,21 @@ test("encoding onto a link-opened board gives the board on screen", () => {
 
 test("a base that is not a URL is not a link", () => {
   assert.equal(encodeShareLink(config, "not a url"), null);
+});
+
+test("strips the share parameter and nothing else", () => {
+  const payload = encoded();
+  const address = `${BASE}?ref=chat&${SHARE_PARAM}=${encodeURIComponent(payload)}#top`;
+  const stripped = stripShareParam(address);
+  assert.equal(new URL(stripped).searchParams.has(SHARE_PARAM), false);
+  assert.equal(new URL(stripped).searchParams.get("ref"), "chat");
+  assert.equal(new URL(stripped).hash, "#top");
+});
+
+test("a URL with no share parameter is handed back unchanged", () => {
+  assert.equal(stripShareParam(`${BASE}?ref=chat`), `${BASE}?ref=chat`);
+});
+
+test("a value that is not a URL is handed back unchanged", () => {
+  assert.equal(stripShareParam("not a url"), "not a url");
 });
