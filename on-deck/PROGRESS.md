@@ -21,9 +21,11 @@ event array plus assertions about the resulting state.
 **`20260908120000`** (#469 — the Club's clock: `on_deck_clubs.time_zone` and
 `on_deck_sessions.time_zone`, a `pg_timezone_names` validation trigger, an
 inherit-on-insert trigger, and the `on_deck_adopt_club_time_zone` /
-`on_deck_set_club_time_zone` RPCs) is **authored but not yet pushed** — push it
-when PR #470 merges, rebasing its timestamp past anything else that lands
-first. It deliberately leaves `on_deck_update_club_defaults` alone at three
+`on_deck_set_club_time_zone` RPCs) went up after PR #470 merged, keeping its
+authored timestamp — nothing else landed in between, so there was no rebase to
+do. `supabase migration list --linked` re-checked 2026-09-09: local and remote
+in sync through this migration, which is the whole of On Deck's schema. It
+deliberately leaves `on_deck_update_club_defaults` alone at three
 arguments: the clock has its own write paths so that saving a venue or a court
 count can never commit a zone nobody chose.
 
@@ -662,6 +664,26 @@ migration's timestamp past whatever else merged (the drift lesson
 migration pushed (#241–#260, closed 2026-09-02). Nothing outstanding, and
 as of 2026-09-08 nothing in the repo is holding up OD-0 either: the sign
 is built. What the night needs now is a printer and a Saturday.
+
+What is left is one row of production data. The first Club is seeded by hand —
+RLS gives even the owner no INSERT on `on_deck_clubs`, and
+`scripts/seed-on-deck.mts` refuses any host that is not `127.0.0.1` — so the
+real one goes in through the SQL editor as an `insert … select` against
+`auth.users`. **Vanessa owns it** (decided 2026-09-09): she is the club's actual
+Organizer, and the alternative of owning it from the Juice Bros account and
+handing over after the retro bought a Summary this side could read at the price
+of the wrong name on the row. Her email is in hand as of 2026-09-09, which is
+not yet enough — the insert joins on an `auth.users` row, and a first sign-in is
+what creates one, so she signs in before the Club can exist. Set `time_zone` to
+`America/Toronto` in that insert or leave it null and let `AdoptTimeZone` take
+it off her browser; both land in the same place, the column just removes the
+guess.
+
+The consequence to carry into the retro: `on_deck_clubs_one_per_owner` is a
+plain unique index and a Volunteer Link deliberately cannot start a Session, so
+her login is the only thing in the world that can open a night. That is the
+sharpest argument the repo has for the co-organizer question parked under OD-6
+in `docs/next-steps-2026-09.md`, and OD-0 is where it either bites or does not.
 
 Deferred, per the spec's "Out of Scope":
 
