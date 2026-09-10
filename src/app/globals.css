@@ -3818,6 +3818,113 @@ html:has(.bb-app-chrome) {
     color: var(--mm-mark-green);
   }
 
+  /* ---- Find me ------------------------------------------------------------ */
+
+  /* Every name on the board is its own thing to point at, which is what lets
+     find-me key on a Roster index and keep two players called Mike apart. It
+     is a control that is not a control to look at: the plate it sits on is
+     already the object, and a second framed thing inside it would turn the
+     field into a form. */
+  .mm-name {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: left;
+  }
+  /* Only where there is something to press. On a board nobody is meant to find
+     themselves on — the zero state's specimen — the same names render as text,
+     and text does not offer a thumb. */
+  button.mm-name {
+    cursor: pointer;
+  }
+  button.mm-name:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+
+  /* Whose night is being read. The same vinyl label the found line carries, so
+     the name in the sentence and the name on the board are visibly one thing —
+     and marked rather than merely left undimmed, because a reader who cannot
+     see the dimming still needs to be told which of these is them.
+
+     `screen` throughout this section is load-bearing: a printout is the
+     organizer's whole board, and one person's selection must never reach the
+     paper. */
+  @media screen {
+    .mm-name[data-me] {
+      padding: 0.06rem 0.3rem;
+      margin: 0 -0.06rem;
+      background: var(--mm-vinyl);
+      color: var(--mm-enamel);
+    }
+    button.mm-name[data-me]:hover {
+      text-decoration: none;
+    }
+
+    /* The rest of the board held back the way the stale and specimen boards
+       are held back — by moving the ink and flattening the plates, never by
+       opacity, so the hairlines stay hairlines. Held back, never unreadable:
+       the person beside you is still reading the whole board over your
+       shoulder, and the dimmed ink clears 4.5:1 on the enamel. Nobody's
+       evening is hidden here; one is left standing. */
+    .mm-grid td[data-dim] {
+      --mm-vinyl: #616a6f;
+      --mm-vinyl-2: #616a6f;
+      --mm-plate-edge: #d2d9da;
+      --mm-mark-red: #9d7a74;
+      --mm-mark-green: #55705f;
+      color: var(--mm-vinyl);
+    }
+    .mm-grid td[data-dim] .mm-side {
+      background: #f7fafa;
+      box-shadow: none;
+      transform: none;
+    }
+  }
+
+  /* The answer to "what is my night", above the board it was read off. A plate
+     like the ones in the field, because the answer belongs to a person and a
+     person on this board is a printed plate lifted off the enamel. Square to
+     the grid rather than tilted with the rest: this one is read, not scanned.
+
+     The slot stays in the DOM with nothing in it, so the line arriving is
+     announced rather than appearing unremarked. */
+  .mm-found {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.9rem;
+  }
+  .mm-found[data-found] {
+    margin-top: 0.9rem;
+    padding: 0.5rem 0.7rem;
+    background: var(--mm-plate);
+    border: 1px solid var(--mm-plate-edge);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18),
+      0 7px 12px -6px rgb(24 32 36 / 0.34);
+  }
+  .mm-found-line {
+    flex: 1 1 16rem;
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--mm-vinyl);
+  }
+  .mm-found-name {
+    margin-right: 0.4rem;
+    padding: 0.06rem 0.3rem;
+    background: var(--mm-vinyl);
+    color: var(--mm-enamel);
+    font-weight: 600;
+  }
+
   /* On a phone the same table becomes one round at a time. Restyling rather
      than re-rendering keeps a single copy of the schedule in the DOM, which is
      what lets the print stylesheet stay pure CSS.
@@ -4401,6 +4508,13 @@ html:has(.bb-app-chrome) {
   .mm-controls,
   .mm-sheet header .mm-legend,
   .mm-lede {
+    display: none;
+  }
+  /* Find-me is one person's reading of the board, on the device they read it
+     on. What goes to paper is the board itself, whole — so the line comes off
+     here, and the dimming and the mark it explains never applied to print at
+     all: both are inside `@media screen` where they are declared. */
+  .mm-found {
     display: none;
   }
   /* With the standfirst gone the head is one column, and a grid holding one
