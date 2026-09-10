@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties } from "react";
+import { Fragment, useRef, type CSSProperties } from "react";
 
 import {
   describeItinerary,
@@ -195,6 +195,9 @@ function FoundLine({
         {selected !== null && evening !== null ? (
           <>
             <b className="mm-found-name">{roster[selected].name}</b>
+            {/* A real space, not the margin under the label: this is one
+                string to a screen reader and to anyone who copies the line. */}
+            {" "}
             {describeItinerary(evening)}
           </>
         ) : null}
@@ -283,16 +286,42 @@ export function ScheduleGrid({
    */
   onSelect?: (player: PlayerIndex) => void;
 }) {
+  const field = useRef<HTMLElement>(null);
   const courts = schedule.rounds[0]?.games.length ?? 0;
   const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
   const summary = summarise(score, schedule);
+  // An index this Roster does not have is nobody, checked here as well as at
+  // the caller so that the grid is total for whatever it is handed: a board
+  // and a selection are two props and nothing makes them arrive together.
+  const picked =
+    selected !== null && selected >= 0 && selected < roster.length
+      ? selected
+      : null;
   // One reading of the Schedule for both the sentence and the dimming, so the
   // board cannot end up holding back a cell the line says you are in.
-  const evening =
-    onSelect && selected !== null ? itinerary(schedule, selected) : null;
+  const evening = onSelect && picked !== null ? itinerary(schedule, picked) : null;
+
+  /**
+   * Putting the board back leaves the button that did it with nothing to say,
+   * so it unmounts — and an unmounted control takes the keyboard's place in
+   * the document with it, dropping focus to `body` and putting every name on
+   * the board between the reader and where they were. So focus goes back to
+   * their own name first, which is both where they were and the thing that
+   * would select them again. The node survives the re-render; only its mark
+   * comes off, so focusing it before React commits is enough.
+   */
+  const clearAndReturn = () => {
+    if (picked === null) return;
+    const mark = field.current?.querySelector<HTMLElement>(".mm-name[data-me]");
+    onSelect?.(picked);
+    mark?.focus();
+  };
 
   return (
-    <section aria-labelledby={headingHidden ? undefined : headingId}>
+    <section
+      ref={field}
+      aria-labelledby={headingHidden ? undefined : headingId}
+    >
       {headingHidden ? null : (
         <h2 id={headingId} className="mm-legend mm-rail">
           The board
@@ -307,9 +336,9 @@ export function ScheduleGrid({
       {onSelect ? (
         <FoundLine
           roster={roster}
-          selected={selected}
+          selected={picked}
           evening={evening}
-          onClear={() => selected !== null && onSelect(selected)}
+          onClear={clearAndReturn}
         />
       ) : null}
 
@@ -357,7 +386,7 @@ export function ScheduleGrid({
                         roster={roster}
                         score={score}
                         team={game.teams[0]}
-                        selected={selected}
+                        selected={picked}
                         onSelect={onSelect}
                       />
                       <span className="mm-versus">vs</span>
@@ -365,7 +394,7 @@ export function ScheduleGrid({
                         roster={roster}
                         score={score}
                         team={game.teams[1]}
-                        selected={selected}
+                        selected={picked}
                         onSelect={onSelect}
                       />
                     </td>
@@ -386,7 +415,7 @@ export function ScheduleGrid({
                           <PlayerName
                             roster={roster}
                             index={player}
-                            selected={selected}
+                            selected={picked}
                             onSelect={onSelect}
                           />
                         </Fragment>

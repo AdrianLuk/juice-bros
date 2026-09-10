@@ -169,6 +169,16 @@ interface ClearedRoster {
   readonly roster: Roster;
 }
 
+/**
+ * Whose evening is being read, and off which board. Kept as one value rather
+ * than a bare index so the pair can be checked against the board on screen in
+ * the same render it changes, instead of a frame later.
+ */
+interface Found {
+  readonly board: string;
+  readonly player: PlayerIndex;
+}
+
 /** "12 names", "1 name" — what pressing the button puts back. */
 function countNames(count: number): string {
   return `${count} ${count === 1 ? "name" : "names"}`;
@@ -215,8 +225,10 @@ export function MatchMixer() {
   // know it exists.
   const borrowed = useRef<string | null>(null);
   // Whose evening is being read off the board. A Roster index and never a
-  // name, so two Players called Mike are two selections.
-  const [selected, setSelected] = useState<PlayerIndex | null>(null);
+  // name, so two Players called Mike are two selections — and always carrying
+  // the board it was picked on, for the reason `selection-storage` gives: an
+  // index means nothing on its own.
+  const [found, setFound] = useState<Found | null>(null);
   // Whether this tab has ever had a Roster in it, which decides whether its
   // empty box means anything. A tab left open on the zero state has nothing to
   // say about the save, and must not be the one that deletes it.
@@ -343,20 +355,32 @@ export function MatchMixer() {
     };
   }, [restored, cleared, roster, courtsChoice, roundsChoice, draw]);
 
-  // Which board is on screen, for the find-me selection to be stored against.
+  // Which board is on screen, for the find-me selection to be held against.
   // Never the Roster index alone: an index only means anything against one
   // particular board, so a selection that does not name this one is not a
   // selection at all.
   const board = draw ? boardIdentity(draw.key, draw.config.seed) : null;
   const drawnSize = draw?.config.roster.length ?? 0;
 
-  // Read on the board rather than on mount, because the board is what the
-  // selection belongs to: a restored one brings its selection back with it, a
-  // redraw is a different board and reads as nobody selected. Storage is read
-  // in an effect and never during render — it does not exist on the server.
+  // Resolved here rather than reconciled in an effect, so that a redraw is
+  // nobody selected in the very same render the new board arrives in. An
+  // effect would run a frame late, which is a frame of the previous board's
+  // index read against the new board's Roster — a stranger's evening at best,
+  // and an index off the end of a shorter Roster at worst.
+  const selected =
+    found && found.board === board && found.player < drawnSize
+      ? found.player
+      : null;
+
+  // Storage is read in an effect and never during render: it does not exist on
+  // the server, and reading it while rendering hydrates a different tree than
+  // the server sent. Keyed on the board because that is what a selection
+  // belongs to — a restored board brings its selection back with it.
   useEffect(() => {
+    if (!board) return;
+    const player = loadSelection(board, drawnSize);
     /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of an external store when the board changes */
-    setSelected(board ? loadSelection(board, drawnSize) : null);
+    setFound(player === null ? null : { board, player });
   }, [board, drawnSize]);
 
   /**
@@ -369,10 +393,11 @@ export function MatchMixer() {
    * pocket.
    */
   const selectPlayer = (player: PlayerIndex) => {
+    if (!board) return;
     const next = selected === player ? null : player;
-    setSelected(next);
-    if (next === null) clearSelection();
-    else if (board) saveSelection(board, next);
+    setFound(next === null ? null : { board, player: next });
+    if (next === null) clearSelection(board);
+    else saveSelection(board, next);
   };
 
   const editRoster = (next: string) => {

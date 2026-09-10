@@ -84,11 +84,35 @@ export function load(board: string, rosterSize: number): PlayerIndex | null {
   }
 }
 
-export function clear(): void {
+/**
+ * Puts the whole board back, and removes the stored value rather than leaving
+ * a tombstone behind.
+ *
+ * Scoped to a board like `save` is, because the key is one slot shared by
+ * every tab: a second tab reading a different board must not delete the
+ * selection the first one is still showing. A value that cannot be read at all
+ * is nobody's, and goes.
+ */
+export function clear(board: string): void {
   if (typeof window === "undefined") return;
   try {
+    if (belongsElsewhere(board)) return;
     window.localStorage.removeItem(KEY);
   } catch {
     // Same reasoning as save().
+  }
+}
+
+/** Whether what is stored is some other board's selection. */
+function belongsElsewhere(board: string): boolean {
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return false;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return false;
+    const saved = (parsed as Record<string, unknown>).board;
+    return typeof saved === "string" && saved !== board;
+  } catch {
+    return false;
   }
 }
