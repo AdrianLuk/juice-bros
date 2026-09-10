@@ -24,6 +24,11 @@ import type { Game, PlayerIndex, Round, Tally, Team } from "./types.ts";
  * order. The Scorer picks the winner. Nothing here decides what "fair" means;
  * it only searches for what the Scorer already rewards, in the Scorer's own
  * weights and off the Scorer's own Tally.
+ *
+ * A change to the search changes what an existing Config generates, so it
+ * requires bumping `GENERATOR_VERSION` in `persistence/share-link.ts`: a Share
+ * Link only reproduces the board it named if the search it drew from has not
+ * moved under it (#494).
  */
 
 /** What the search needs: a Config with the names taken off. */

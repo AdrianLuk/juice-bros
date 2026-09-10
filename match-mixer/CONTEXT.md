@@ -55,7 +55,7 @@ A URL carrying a whole Config in one query parameter — the Generator Version, 
 _Avoid_: Invite Link (Booking Buddy's word, and an account-bound one), permalink, share code, export
 
 **Generator Version**:
-The marker in a Share Link saying which generator minted it. A Seed only reproduces a board if the thing consuming it has not moved, so this is bumped whenever a change alters what an existing Config generates: a new or amended Table, a change to the search, a change to the Scorer's weights. The decoder reports whether it matched; what to say about a mismatch is #494.
+The marker in a Share Link saying which generator minted it. A Seed only reproduces a board if the thing consuming it has not moved, so this is bumped whenever a change alters what an existing Config generates: a new or amended Table, a change to the search, a change to the Scorer's weights. **Whoever makes that kind of change bumps `GENERATOR_VERSION` in `share-link.ts` as part of it** — the rule is also written at the top of `tables.ts`, `generator.ts` and `scorer.ts`, wherever the change actually lands. A link minted under an older version still opens and still draws with the current generator; the board just carries a plain notice that it may differ from the one that was shared (#494). Bumping the version never invalidates a link — old links keep opening, they just pick up the notice.
 _Avoid_: Schema version (`config-storage`'s, and a different number about a different thing), API version
 
 **Borrowed board**:
