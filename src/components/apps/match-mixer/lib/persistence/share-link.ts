@@ -124,6 +124,33 @@ export function encodeShareLink(
 }
 
 /**
+ * The address bar, with the share parameter gone.
+ *
+ * The one thing a link-opened board can do that a saved one cannot is lie: the
+ * moment the board on screen stops matching what the parameter describes —
+ * redrawn, edited, a different court or Round count — the address bar is
+ * still offering the old one to anyone who copies it. This is the fix, and it
+ * is only ever handed to `history.replaceState`, never to a navigation: the
+ * caller decides how it lands, this function only says what the address bar
+ * should say.
+ *
+ * `href` unchanged for anything that is not a URL or does not carry the
+ * parameter — this runs beside code that cannot always be sure which is
+ * true, and echoing the input back is the right answer for both.
+ */
+export function stripShareParam(href: string): string {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return href;
+  }
+  if (!url.searchParams.has(SHARE_PARAM)) return href;
+  url.searchParams.delete(SHARE_PARAM);
+  return url.toString();
+}
+
+/**
  * The board a link describes, or `null` for anything this cannot vouch for.
  *
  * Never throws, and `null` is the ordinary empty tool rather than an error

@@ -59,7 +59,7 @@ The marker in a Share Link saying which generator minted it. A Seed only reprodu
 _Avoid_: Schema version (`config-storage`'s, and a different number about a different thing), API version
 
 **Borrowed board**:
-A board on screen that arrived by Share Link and belongs to somebody else. It is displayed and not written to this browser's storage, because most people who open a link are players rather than organizers and some of them keep their own club Roster in the same browser. The first edit of any kind claims it, and from then on it saves like any other visit.
+A board on screen that arrived by Share Link and belongs to somebody else. It is displayed and not written to this browser's storage, because most people who open a link are players rather than organizers and some of them keep their own club Roster in the same browser. The first edit of any kind claims it, and from then on it saves like any other visit. The same edit strips the Share Link's parameter from the address bar (#493) — a history replace, not a navigation — because the moment a claim happens the address bar's link stops describing the board on screen and would otherwise go on offering a stale one to whoever copies it.
 _Avoid_: Read-only, guest mode, preview. Nothing is locked — the board is fully editable, it just is not yours until you touch it.
 
 ### The proof
