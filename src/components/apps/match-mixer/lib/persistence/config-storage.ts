@@ -4,6 +4,7 @@ import {
   type ResolvedConfig,
 } from "../engine/config.ts";
 import type { Roster } from "../engine/types.ts";
+import { isFiniteNumber, isRecord, readChoice, readRoster } from "./read-config.ts";
 
 /**
  * The organizer's last visit, kept in this browser.
@@ -121,27 +122,6 @@ export function clear(): void {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function readRoster(value: unknown): Roster | null {
-  if (!Array.isArray(value)) return null;
-  const roster: { id: string; name: string }[] = [];
-  for (const entry of value) {
-    if (!isRecord(entry)) return null;
-    if (typeof entry.id !== "string" || typeof entry.name !== "string") return null;
-    roster.push({ id: entry.id, name: entry.name });
-  }
-  return roster;
-}
-
-/** A number the organizer chose, or null for the field following the Roster. */
-function readChoice(value: unknown): number | null | undefined {
-  if (value == null) return null;
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
 function readEdited(value: unknown): EditedConfig | null {
   if (!isRecord(value)) return null;
   const roster = readRoster(value.roster);
@@ -166,8 +146,4 @@ function readDrawn(value: unknown): ResolvedConfig | null {
   // restored numbers are read again for the stale key and for the line naming
   // what the sheet was drawn from, and both have to be the numbers used.
   return { roster, seed, ...resolveNumbers(roster.length, courts, rounds) };
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
 }
