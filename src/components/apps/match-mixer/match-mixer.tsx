@@ -28,6 +28,7 @@ import {
   decodeShareLink,
   encodeShareLink,
   SHARE_PARAM,
+  stripShareParam,
 } from "@/components/apps/match-mixer/lib/persistence/share-link";
 import {
   boardIdentity,
@@ -321,6 +322,19 @@ export function MatchMixer() {
       );
       if (borrowed.current === onScreen) return;
       borrowed.current = null;
+      // The address bar was only ever describing the board that arrived, and
+      // that board is gone. A history replace, not a navigation: no new
+      // entry, no reload, and no `popstate` to send the mount effect's
+      // `seed()` back after a board the reader has already moved on from.
+      window.history.replaceState(
+        null,
+        "",
+        stripShareParam(window.location.href),
+      );
+      // The address bar no longer carries what `seededFrom` remembers seeding
+      // from, so a later `popstate` landing on a plain, param-less URL must
+      // not read as a change worth reseeding over.
+      seededFrom.current = null;
     }
     // While the undo is standing, the save is what backs it. Writing the empty
     // box over it would make Clear irreversible the moment the tab went away,
