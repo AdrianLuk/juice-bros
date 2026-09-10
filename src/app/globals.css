@@ -3433,6 +3433,19 @@ html:has(.bb-app-chrome) {
     line-height: 1.5;
     color: var(--mm-vinyl-2);
   }
+  /* A note that is answering for something that just happened rather than
+     describing the field it sits under. The board already reads green for a
+     pass and red for a fail in the summary line, so an outcome borrows the
+     same two and needs no icon of its own. An empty live region has no tone
+     and stays out of the way. */
+  .mm-note[data-tone="done"] {
+    color: var(--mm-mark-green);
+    font-weight: 600;
+  }
+  .mm-note[data-tone="refused"] {
+    color: var(--mm-mark-red);
+    font-weight: 600;
+  }
 
   /* The scorer's verdict, printed on the board under the plate. Set in the
      vinyl voice because it is the board's own statement about the draw, not a
@@ -3622,6 +3635,51 @@ html:has(.bb-app-chrome) {
       0 0 0 4px var(--mm-vinyl),
       0 2px 0 rgb(0 0 0 / 0.26),
       0 8px 15px -8px rgb(0 0 0 / 0.55);
+  }
+
+  /* ---- Handing the board round -------------------------------------------- */
+
+  /* The link is a plate you take off the board and pass over, so it is cut
+     from the same card stock as the roster box: one crisp contact line and a
+     soft drop, square corners, sitting flat rather than at the magnet's
+     angle. Deliberately not a second red fill - the draw is the one thing on
+     this screen that reads as "press this", and a second one beside it would
+     be competing for that reading with an action that is not the point of the
+     tool. */
+  .mm-share {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    background: var(--mm-plate);
+    color: var(--mm-vinyl);
+    padding: 0.5rem 0.7rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+    box-shadow:
+      0 1px 0 rgb(0 0 0 / 0.1),
+      0 4px 9px -5px rgb(0 0 0 / 0.4);
+    transition:
+      transform 140ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 140ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .mm-share:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 0 rgb(0 0 0 / 0.1),
+      0 8px 14px -8px rgb(0 0 0 / 0.45);
+  }
+  /* Pressed is the plate going flat against the enamel, the same gesture the
+     draw magnet makes. */
+  .mm-share:active {
+    transform: translateY(1px);
+    box-shadow: 0 0 0 rgb(0 0 0 / 0.1), 0 3px 7px -6px rgb(0 0 0 / 0.4);
   }
 
   /* ---- The ruled field ---------------------------------------------------- */

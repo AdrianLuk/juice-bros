@@ -25,6 +25,11 @@ import {
   save,
 } from "@/components/apps/match-mixer/lib/persistence/config-storage";
 import {
+  decodeShareLink,
+  encodeShareLink,
+  SHARE_PARAM,
+} from "@/components/apps/match-mixer/lib/persistence/share-link";
+import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
   type Roster,
@@ -169,29 +174,80 @@ export function MatchMixer() {
   // empty rather than for a few seconds: an organizer who looks up from the
   // court a minute later should still find the way back.
   const [cleared, setCleared] = useState<ClearedRoster | null>(null);
+  // Whether the board on screen arrived by link and therefore belongs to
+  // somebody else. It is displayed and not saved: most people who open a link
+  // are players rather than organizers, and some of them keep their own club
+  // list in this same browser. The first edit makes it theirs.
+  const [borrowed, setBorrowed] = useState(false);
   // Whether this tab has ever had a Roster in it, which decides whether its
   // empty box means anything. A tab left open on the zero state has nothing to
   // say about the save, and must not be the one that deletes it.
   const held = useRef(false);
+  // The share parameter this screen was last seeded from, so a history move
+  // that did not touch it is not mistaken for a different board.
+  const seededFrom = useRef<string | null | undefined>(undefined);
 
-  // Reading storage happens in an effect and never during render, because
-  // localStorage does not exist on the server and rendering from it would
+  // Both the address bar and storage are read in an effect and never during
+  // render: neither exists on the server, and rendering from them would
   // hydrate a different tree than the server sent.
+  //
+  // The parameter is read from `window.location` rather than through the
+  // page's `searchParams` or `useSearchParams`. `/tools/match-mixer` is
+  // statically rendered, and both of those give that up — the first by making
+  // the whole route dynamic for a value only the browser needs, the second by
+  // pushing this tree past the prerender and taking the server-rendered
+  // example board with it.
+  //
+  // Re-read on `popstate`, because two links pasted into one chat are the same
+  // route: a component seeded once on mount goes on showing the first board
+  // when the reader comes back to the second. Booking Buddy has been bitten by
+  // exactly this.
   useEffect(() => {
-    const saved = load();
-    /* eslint-disable react-hooks/set-state-in-effect -- one-shot read of an external store on mount */
-    if (saved) {
-      const names = saved.edited.roster.map((player) => player.name).join("\n");
-      setText(names);
-      setRoster(saved.edited.roster);
-      setCourtsChoice(saved.edited.courts);
-      setRoundsChoice(saved.edited.rounds);
+    const seed = () => {
+      const param = new URLSearchParams(window.location.search).get(SHARE_PARAM);
+      if (seededFrom.current !== undefined && seededFrom.current === param) {
+        return;
+      }
+      seededFrom.current = param;
+
+      setCleared(null);
+
+      // A link beats storage, and beats it without reading it at all.
+      const shared = decodeShareLink(param);
+      if (shared) {
+        const { roster: shown, courts, rounds } = shared.config;
+        setText(shown.map((player) => player.name).join("\n"));
+        setRoster(shown);
+        setCourtsChoice(courts);
+        setRoundsChoice(rounds);
+        // Generated again from the four values the link carried rather than
+        // sent as a grid, which is what ADR 0001's determinism was for.
+        setDraw(drawFrom(shared.config));
+        setBorrowed(true);
+        setRestored(true);
+        return;
+      }
+
+      // Written out even when there is nothing saved, because this also runs
+      // on the way back off a link: leaving the borrowed board on screen while
+      // calling it this browser's own is how it would end up in this
+      // browser's storage.
+      const saved = load();
+      const edited = saved?.edited ?? { roster: [], courts: null, rounds: null };
+      setText(edited.roster.map((player) => player.name).join("\n"));
+      setRoster(edited.roster);
+      setCourtsChoice(edited.courts);
+      setRoundsChoice(edited.rounds);
       // The board is generated again rather than stored, so what comes back is
       // the same board down to the seat every name sat in.
-      setDraw(saved.drawn ? drawFrom(saved.drawn) : null);
-    }
-    setRestored(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
+      setDraw(saved?.drawn ? drawFrom(saved.drawn) : null);
+      setBorrowed(false);
+      setRestored(true);
+    };
+
+    seed();
+    window.addEventListener("popstate", seed);
+    return () => window.removeEventListener("popstate", seed);
   }, []);
 
   // Debounced because the Roster arrives a keystroke at a time and a write per
@@ -200,6 +256,11 @@ export function MatchMixer() {
   // is in the middle of restoring.
   useEffect(() => {
     if (!restored) return;
+    // Somebody else's board is read, not kept. A player who opens a link and
+    // happens to keep their own club list in this browser must find it exactly
+    // where they left it, so nothing at all is written until they make the
+    // board theirs by editing it.
+    if (borrowed) return;
     // While the undo is standing, the save is what backs it. Writing the empty
     // box over it would make Clear irreversible the moment the tab went away,
     // which is the mistake the undo is there for.
@@ -231,9 +292,17 @@ export function MatchMixer() {
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flush);
     };
-  }, [restored, cleared, roster, courtsChoice, roundsChoice, draw]);
+  }, [restored, borrowed, cleared, roster, courtsChoice, roundsChoice, draw]);
+
+  /**
+   * The first edit to a borrowed board. Reading somebody else's link leaves
+   * this browser's own list alone; changing anything is how a reader says they
+   * are working on it now, and from that point it saves like any other visit.
+   */
+  const claim = () => setBorrowed(false);
 
   const editRoster = (next: string) => {
+    claim();
     setText(next);
     setRoster((previous) => parseRoster(next, previous));
     // Typing gives up the cleared list. By then the board may have been drawn
@@ -255,6 +324,7 @@ export function MatchMixer() {
    * once the organizer types and the list is genuinely finished with.
    */
   const clearRoster = () => {
+    claim();
     setCleared({ text, roster });
     setText("");
     setRoster([]);
@@ -262,6 +332,7 @@ export function MatchMixer() {
 
   const restoreRoster = () => {
     if (!cleared) return;
+    claim();
     setText(cleared.text);
     setRoster(cleared.roster);
     setCleared(null);
@@ -296,6 +367,7 @@ export function MatchMixer() {
   const stale = draw !== null && draw.key !== key;
 
   const generate = () => {
+    claim();
     setDraw(
       drawFrom({ roster, courts, rounds, seed: nextSeed(draw?.config.seed) }),
     );
@@ -324,20 +396,27 @@ export function MatchMixer() {
                 stale, and the flag over the field says so — this line staying
                 with the draw is what makes that reading possible.
 
-                The Seed that produced the draw is deliberately not here. It is
-                load-bearing in the Config, but on the board it is an
-                unexplained number the organizer can do nothing with: there is
-                no way to type one back in, and no link that carries one. It
-                belongs on the board the day a draw becomes shareable. */}
+                The Seed that produced the draw is deliberately not here, and
+                the link is why it stays away: it is load-bearing in the
+                Config, but on the board it is an unexplained number the
+                organizer can do nothing with. The reachable use for it turned
+                out to be the link that carries it, not the number. */}
             <p className="mm-meta">
               Pickleball round robin
               {draw ? ` · ${draw.numbers}` : null}
             </p>
           </div>
+          {/* The old standfirst ended "Nothing is sent anywhere", which a link
+              carrying twelve names makes untrue in the way a reader would take
+              it: a chat client fetches a pasted URL to build its preview, so
+              posting one puts the names in a request log without anyone
+              clicking it. What is still true is the part worth promising, and
+              the share control says the rest where it is relevant. */}
           <p className="mm-lede">
             Paste the names you have tonight and get a doubles rotation where
             nobody partners the same person twice. Your list stays in this
-            browser and waits here for next week. Nothing is sent anywhere.
+            browser and waits here for next week. There is no account to make
+            and no database behind this: nothing you type is kept on a server.
           </p>
         </header>
 
@@ -386,7 +465,10 @@ export function MatchMixer() {
                   value={courts}
                   min={1}
                   max={courtCeiling}
-                  onChange={setCourtsChoice}
+                  onChange={(next) => {
+                    claim();
+                    setCourtsChoice(next);
+                  }}
                   note={
                     courtCeiling === 1
                       ? `${size} players fill one court.`
@@ -399,7 +481,10 @@ export function MatchMixer() {
                   value={rounds}
                   min={1}
                   max={MAX_ROUNDS}
-                  onChange={setRoundsChoice}
+                  onChange={(next) => {
+                    claim();
+                    setRoundsChoice(next);
+                  }}
                   note="How many you have court time for."
                 />
               </div>
@@ -426,6 +511,14 @@ export function MatchMixer() {
             <p className="mm-note mt-2" id="mm-action-note">
               <ActionNote draw={draw} stale={stale} size={size} />
             </p>
+
+            {/* Keyed on the Seed so a redraw starts a fresh confirmation: the
+                board underneath it has changed, and "copied" left standing
+                over a different board is the one thing this control must not
+                say. */}
+            {draw ? (
+              <ShareBoard key={draw.config.seed} config={draw.config} />
+            ) : null}
           </div>
 
           <div className="min-w-0">
@@ -508,6 +601,104 @@ function ActionNote({
     return <>The board on screen is the previous draw, not this one.</>;
   if (draw) return <>Same names, same numbers, a different draw.</>;
   return <>Nothing is generated until you press it.</>;
+}
+
+/** How the copy went, which is the whole reason this control has a voice. */
+type CopyOutcome = "waiting" | "copied" | "refused" | "byhand";
+
+/**
+ * Handing the board round.
+ *
+ * The link carries the Config and nothing else; the board is generated again
+ * in whoever's browser opens it (ADR 0001). So this is a plate you take off
+ * the board and pass over, not an upload — card stock rather than the red
+ * magnet, which stays the one control on the screen that draws.
+ *
+ * It confirms. An organizer who copies, walks to the chat and pastes an empty
+ * clipboard finds out from twelve confused replies, so silence is not an
+ * option here even though the copy almost always works. When it does not —
+ * an insecure origin, a browser that will not hand the page the clipboard —
+ * the link is put on screen to be copied by hand rather than lost.
+ */
+function ShareBoard({ config }: { config: ResolvedConfig }) {
+  const [outcome, setOutcome] = useState<CopyOutcome>("waiting");
+  const [link, setLink] = useState<string | null>(null);
+
+  // The confirmation stands for a few seconds and then goes, because what it
+  // is confirming is an action and not a state: a permanent "copied" would go
+  // on saying it long after the organizer had pasted, edited and come back.
+  useEffect(() => {
+    if (outcome !== "copied") return;
+    const timer = setTimeout(() => setOutcome("waiting"), 5000);
+    return () => clearTimeout(timer);
+  }, [outcome]);
+
+  const copy = async () => {
+    const href = encodeShareLink(config, window.location.href);
+    if (!href) {
+      setLink(null);
+      setOutcome("refused");
+      return;
+    }
+    setLink(href);
+    try {
+      await navigator.clipboard.writeText(href);
+      setOutcome("copied");
+    } catch {
+      setOutcome("byhand");
+    }
+  };
+
+  return (
+    <div className="mt-6">
+      <button
+        type="button"
+        className="mm-share"
+        onClick={copy}
+        aria-describedby="mm-share-note"
+      >
+        Copy the link to this board
+      </button>
+      <p className="mm-note mt-2" id="mm-share-note">
+        The names travel inside the link, so whoever opens it reads them.
+      </p>
+      {/* Live rather than a label swap on the button, so the confirmation is
+          announced without the label under the finger changing as it is
+          pressed. Empty while there is nothing to say. */}
+      <p className="mm-note mt-2" role="status" data-tone={toneOf(outcome)}>
+        <CopyNote outcome={outcome} />
+      </p>
+      {outcome === "byhand" && link ? (
+        <input
+          className="mm-input mt-2 w-full px-2 py-1 text-xs"
+          readOnly
+          value={link}
+          onFocus={(event) => event.currentTarget.select()}
+          aria-label="Link to this board"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function toneOf(outcome: CopyOutcome): string | undefined {
+  if (outcome === "copied") return "done";
+  if (outcome === "refused" || outcome === "byhand") return "refused";
+  return undefined;
+}
+
+function CopyNote({ outcome }: { outcome: CopyOutcome }) {
+  if (outcome === "copied") return <>Copied. Paste it into the group chat.</>;
+  if (outcome === "refused")
+    return (
+      <>
+        This roster is too long to fit in a link. Shorten the names, or print
+        the board and pin it up.
+      </>
+    );
+  if (outcome === "byhand")
+    return <>This browser kept the clipboard to itself. Copy it from here:</>;
+  return null;
 }
 
 /**
