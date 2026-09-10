@@ -17,10 +17,9 @@ import { isFiniteNumber, isRecord, readChoice, readRoster } from "./read-config.
  *
  * It is no longer the only module in Match Mixer that touches
  * `window.localStorage`: find-me's selection has a key and a module of its own
- * (`selection-storage.ts`, #495). It had to, and deliberately so — a board
- * arrived at by link is never written here, which is exactly the visit whose
- * selection most needs to survive a pocket. See that module for the rest of
- * the reasoning.
+ * (`selection-storage.ts`, #495). It had to, and deliberately so — a Borrowed
+ * board is never written here, which is exactly the visit whose selection most
+ * needs to survive a pocket. See that module for the rest of the reasoning.
  *
  * Two Configs, because the screen can hold two. The edited one is what is in
  * the fields; the drawn one is what produced the sheet on screen. They are

@@ -6,12 +6,16 @@ import type { PlayerIndex } from "../engine/types.ts";
  *
  * Its own key and its own module rather than a field on `SavedVisit`, because
  * the case find-me exists for is the case nothing is written to `SavedVisit`:
- * a board arrived at by link is deliberately not saved, so that reading
- * somebody else's link cannot wipe the Roster a player keeps for their own
- * club night. Put the selection in there and the player who opens a link, taps
- * themselves and pockets the phone is the one person it never comes back for.
- * It would also ride that module's 400ms save debounce and be deleted by its
- * `clear()`, and the selection wants neither.
+ * a Borrowed board is deliberately not saved (#492), so that reading somebody
+ * else's link cannot wipe the Roster a player keeps for their own club night.
+ * Put the selection in there and the player who opens a link, taps themselves
+ * and pockets the phone is the one person it never comes back for. It would
+ * also ride that module's 400ms save debounce and be deleted by its `clear()`,
+ * and the selection wants neither.
+ *
+ * Finding yourself is a reading of the board and not an edit to it, so it does
+ * not claim a Borrowed board either: nothing here touches the Roster, the
+ * numbers or the Seed, which are what the claim is measured over.
  *
  * It holds to the same discipline all the same: a key of its own, a schema
  * marker, an SSR guard, try/catch on both sides, and anything it cannot vouch
