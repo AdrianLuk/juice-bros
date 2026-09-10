@@ -112,10 +112,17 @@ interface Draw {
   readonly numbers: string;
   readonly schedule: Schedule;
   readonly score: ScorerResult;
+  /**
+   * Whether this board came off a Share Link minted under an older Generator
+   * Version. It sticks to this particular draw rather than to the screen, so
+   * it clears the moment the board is actually redrawn — pressing the button
+   * makes a current board, whatever it was opened from.
+   */
+  readonly outdated: boolean;
 }
 
 /** Draws the board for a Config, whether it was just asked for or restored. */
-function drawFrom(config: ResolvedConfig): Draw {
+function drawFrom(config: ResolvedConfig, outdated = false): Draw {
   const { roster, courts, rounds } = config;
   const schedule = generateSchedule(config);
   return {
@@ -124,6 +131,7 @@ function drawFrom(config: ResolvedConfig): Draw {
     numbers: describeNumbers({ players: roster.length, courts, rounds }),
     schedule,
     score: scoreSchedule(schedule, config),
+    outdated,
   };
 }
 
@@ -272,8 +280,10 @@ export function MatchMixer() {
         setCourtsChoice(courts);
         setRoundsChoice(rounds);
         // Generated again from the values the link carried rather than sent as
-        // a grid, which is what ADR 0001's determinism was for.
-        setDraw(drawFrom(shared.config));
+        // a grid, which is what ADR 0001's determinism was for. `!current` is
+        // never a decode failure (#494): an unrecognised or future version
+        // still draws, it just carries the notice below.
+        setDraw(drawFrom(shared.config, !shared.current));
         borrowed.current = borrowKey(shown, courts, rounds, shared.config.seed);
         setRestored(true);
         return;
@@ -627,6 +637,22 @@ export function MatchMixer() {
           <div className="min-w-0">
             {draw ? (
               <>
+                {/* Provenance, not staleness: this board was drawn just now,
+                    with the current generator — it says the link that brought
+                    it here predates a change that may have moved what that
+                    link's numbers produce (#494). Plain text in the flow
+                    rather than a badge, so a screen reader meets it too, and
+                    it says so regardless of `stale`: editing further doesn't
+                    make the mismatch any less true of the board still on
+                    screen. */}
+                {draw.outdated ? (
+                  <p className="mm-notice mb-4">
+                    This link was made before a change to how boards are
+                    generated, so the board below may not match the one that
+                    was shared. This is today&rsquo;s board for the same
+                    names and numbers.
+                  </p>
+                ) : null}
                 {/* What changed, not what it was drawn from: the head already
                     carries the board's own particulars, so repeating them here
                     would say the same thing twice and leave the organizer to

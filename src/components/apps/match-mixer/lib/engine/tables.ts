@@ -23,6 +23,11 @@ import type { Table } from "./types.ts";
  * Players 0 and 1 facing each other six times.
  *
  * Numbers are Roster indices; `[[a, b], [c, d]]` is a and b against c and d.
+ *
+ * Adding or amending a Table changes what an existing Config generates, so it
+ * requires bumping `GENERATOR_VERSION` in `persistence/share-link.ts`: a Share
+ * Link only reproduces the board it named if the Table it drew from has not
+ * moved under it (#494).
  */
 export const TABLES: readonly Table[] = [
   {
