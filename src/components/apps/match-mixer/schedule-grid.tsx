@@ -1,7 +1,13 @@
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 
+import {
+  describeItinerary,
+  itinerary,
+  type ItineraryEntry,
+} from "@/components/apps/match-mixer/lib/engine/itinerary";
 import { FREE_OPPONENT_MEETINGS } from "@/components/apps/match-mixer/lib/engine/scorer";
 import type {
+  PlayerIndex,
   Roster,
   Schedule,
   ScorerResult,
@@ -15,10 +21,51 @@ import type {
  * the same table restyles into one round at a time, so there is only ever one
  * copy of the schedule in the DOM — which is what lets the print stylesheet be
  * pure CSS.
+ *
+ * The field answers "what is the whole night". Find-me is the other question
+ * asked of the same grid: every name is its own control carrying its Roster
+ * index, and picking one holds the rest of the board back so one Player's
+ * evening is left standing in it. The dimming is decoration on top of the
+ * itinerary line above, which says the same thing in words.
  */
 
-function teamNames(roster: Roster, team: Team): string {
-  return `${roster[team[0]].name} / ${roster[team[1]].name}`;
+/**
+ * One name, addressable on its own. Selection keys on the Roster index and
+ * never on the name, so two Players called Mike stay distinct and each get
+ * their own evening.
+ *
+ * A `button` when the board is selectable and a plain `span` when it is not —
+ * the zero state's specimen has no business being tabbed through, and this is
+ * what keeps it out rather than an `inert` that has to be remembered.
+ */
+function PlayerName({
+  roster,
+  index,
+  selected,
+  onSelect,
+}: {
+  roster: Roster;
+  index: PlayerIndex;
+  selected: PlayerIndex | null;
+  onSelect?: (player: PlayerIndex) => void;
+}) {
+  const name = roster[index].name;
+  if (!onSelect) return <span className="mm-name">{name}</span>;
+
+  return (
+    <button
+      type="button"
+      className="mm-name"
+      // Marked, not merely left undimmed: a reader who cannot perceive the
+      // dimming still has the label, and so does one looking at the board from
+      // across a court.
+      data-me={selected === index ? "true" : undefined}
+      aria-pressed={selected === index}
+      onClick={() => onSelect(index)}
+    >
+      {name}
+    </button>
+  );
 }
 
 /**
@@ -82,16 +129,35 @@ function Side({
   roster,
   score,
   team,
+  selected,
+  onSelect,
 }: {
   roster: Roster;
   score: ScorerResult;
   team: Team;
+  selected: PlayerIndex | null;
+  onSelect?: (player: PlayerIndex) => void;
 }) {
   const repeat = score.partnerMatrix[team[0]][team[1]] > 1;
 
   return (
     <span className="mm-side" data-repeat={repeat ? "true" : undefined}>
-      {teamNames(roster, team)}
+      <PlayerName
+        roster={roster}
+        index={team[0]}
+        selected={selected}
+        onSelect={onSelect}
+      />
+      {/* The stroke between two partners is furniture, not a word. */}
+      <span className="mm-join" aria-hidden="true">
+        {" / "}
+      </span>
+      <PlayerName
+        roster={roster}
+        index={team[1]}
+        selected={selected}
+        onSelect={onSelect}
+      />
       {repeat ? (
         <>
           <RepeatRing />
@@ -99,6 +165,46 @@ function Side({
         </>
       ) : null}
     </span>
+  );
+}
+
+/**
+ * The answer to "what is *my* night", in words, above the board it was read
+ * off. The sentence comes from the engine rather than being assembled here:
+ * the dimming below is decoration on top of text that already says it, which
+ * is what makes find-me work with no pointer and no sight of the board.
+ *
+ * The slot is always in the DOM so that the line arriving in it is announced,
+ * and it carries the way out — one action, reachable without hunting for the
+ * name that was tapped.
+ */
+function FoundLine({
+  roster,
+  selected,
+  evening,
+  onClear,
+}: {
+  roster: Roster;
+  selected: PlayerIndex | null;
+  evening: readonly ItineraryEntry[] | null;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mm-found" data-found={evening ? "true" : undefined}>
+      <p className="mm-found-line" role="status">
+        {selected !== null && evening !== null ? (
+          <>
+            <b className="mm-found-name">{roster[selected].name}</b>
+            {describeItinerary(evening)}
+          </>
+        ) : null}
+      </p>
+      {evening ? (
+        <button type="button" className="mm-quiet" onClick={onClear}>
+          Show everyone
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -154,6 +260,8 @@ export function ScheduleGrid({
   score,
   headingId = "mm-schedule-heading",
   headingHidden = false,
+  selected = null,
+  onSelect,
 }: {
   roster: Roster;
   schedule: Schedule;
@@ -165,10 +273,23 @@ export function ScheduleGrid({
    * off rather than sitting under a second one saying the same thing.
    */
   headingHidden?: boolean;
+  /** The Roster index whose evening is being read, if any. */
+  selected?: PlayerIndex | null;
+  /**
+   * Omitted on a board nobody is meant to find themselves on. Without it the
+   * names render as text and there is no find-me at all, which is what keeps
+   * the zero state's specimen out of the way rather than an `inert` somebody
+   * has to remember.
+   */
+  onSelect?: (player: PlayerIndex) => void;
 }) {
   const courts = schedule.rounds[0]?.games.length ?? 0;
   const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
   const summary = summarise(score, schedule);
+  // One reading of the Schedule for both the sentence and the dimming, so the
+  // board cannot end up holding back a cell the line says you are in.
+  const evening =
+    onSelect && selected !== null ? itinerary(schedule, selected) : null;
 
   return (
     <section aria-labelledby={headingHidden ? undefined : headingId}>
@@ -183,10 +304,22 @@ export function ScheduleGrid({
         {summary.rest}
       </p>
 
+      {onSelect ? (
+        <FoundLine
+          roster={roster}
+          selected={selected}
+          evening={evening}
+          onClear={() => selected !== null && onSelect(selected)}
+        />
+      ) : null}
+
       <div className="mm-scroll mt-4">
         <table className="mm-grid">
           <caption className="sr-only">
             Every round of the rotation, with one column per court.
+            {onSelect
+              ? " Choose a name to read just that player's evening; choose it again to show everyone."
+              : null}
           </caption>
           <thead>
             <tr>
@@ -200,25 +333,69 @@ export function ScheduleGrid({
             </tr>
           </thead>
           <tbody>
-            {schedule.rounds.map((round, index) => (
-              // `--row` is what staggers the plates back onto the board after
-              // a wipe; the animation itself is entirely in CSS.
-              <tr key={index} style={{ "--row": index } as CSSProperties}>
-                <th scope="row">{index + 1}</th>
-                {round.games.map((game) => (
-                  <td key={game.court} data-court={`Court ${game.court + 1}`}>
-                    <Side roster={roster} score={score} team={game.teams[0]} />
-                    <span className="mm-versus">vs</span>
-                    <Side roster={roster} score={score} team={game.teams[1]} />
-                  </td>
-                ))}
-                {anyByes ? (
-                  <td className="mm-byes" data-court="Sitting out">
-                    {round.byes.map((player) => roster[player].name).join(", ")}
-                  </td>
-                ) : null}
-              </tr>
-            ))}
+            {schedule.rounds.map((round, index) => {
+              // What the selected Player is doing this round, which is the
+              // whole of what decides where the board is held back.
+              const here = evening?.[index] ?? null;
+
+              return (
+                // `--row` is what staggers the plates back onto the board after
+                // a wipe; the animation itself is entirely in CSS.
+                <tr key={index} style={{ "--row": index } as CSSProperties}>
+                  <th scope="row">{index + 1}</th>
+                  {round.games.map((game) => (
+                    <td
+                      key={game.court}
+                      data-court={`Court ${game.court + 1}`}
+                      data-dim={
+                        here && !(here.kind === "game" && here.court === game.court)
+                          ? "true"
+                          : undefined
+                      }
+                    >
+                      <Side
+                        roster={roster}
+                        score={score}
+                        team={game.teams[0]}
+                        selected={selected}
+                        onSelect={onSelect}
+                      />
+                      <span className="mm-versus">vs</span>
+                      <Side
+                        roster={roster}
+                        score={score}
+                        team={game.teams[1]}
+                        selected={selected}
+                        onSelect={onSelect}
+                      />
+                    </td>
+                  ))}
+                  {anyByes ? (
+                    <td
+                      className="mm-byes"
+                      data-court="Sitting out"
+                      data-dim={here && here.kind !== "bye" ? "true" : undefined}
+                    >
+                      {round.byes.map((player, position) => (
+                        <Fragment key={player}>
+                          {position > 0 ? (
+                            <span className="mm-join" aria-hidden="true">
+                              {", "}
+                            </span>
+                          ) : null}
+                          <PlayerName
+                            roster={roster}
+                            index={player}
+                            selected={selected}
+                            onSelect={onSelect}
+                          />
+                        </Fragment>
+                      ))}
+                    </td>
+                  ) : null}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

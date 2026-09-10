@@ -80,6 +80,22 @@ _Avoid_: Partner Matrix (removed 2026-09-09, see below), heatmap, pairing chart.
 The marker ring drawn round a Team in the Schedule grid when that pair partnered more than once. It is the Scorer's failure signal made visible in the Round it happened in. On screen it is a drawn stroke — the one hand-made mark on an otherwise manufactured board (#482); on paper it falls back to a ruled box, because an ellipse positioned against a name plate has nothing to sit on once the plate is gone.
 _Avoid_: Warning, error, conflict
 
+### Reading your own night
+
+**Itinerary**:
+One Player's evening pulled out of the Schedule: for every Round, either the court, the partner and the opponents, or a Bye. It is a second reading of the same Schedule and never a second Schedule — a pure function in the engine, asked for by Roster index, which is what keeps two Players called Mike apart. The line above the board is derived from it rather than assembled in the component, for the same reason the summary line's figures come off the Scorer.
+_Avoid_: Card, personal schedule, my games. Not a Mixer, which is a plan being run rather than a plan being read.
+
+**Find-me**:
+Tapping a name to see that Player's Itinerary. The board holds everything not in their evening back, their own name is marked, and the Itinerary says the same thing in words above the grid — the words are the answer and the dimming is decoration on top of them, so it works with no pointer and no sight of the board. Tapping the marked name again puts the whole board back. Available on any board, including one the organizer drew themselves.
+_Avoid_: Filter, highlight, focus mode, my view
+
+**Selection**:
+Which Roster index find-me is showing, kept in this browser. Always stored against a **board identity** — the Roster, the courts, the Rounds and the Seed together — because an index only means anything against one particular board: index 3 on a board you were sent is a stranger's evening. A stored Selection whose identity does not match the board on screen reads as no Selection, silently, which is also what makes "the organizer sent a second link" behave.
+_Avoid_: Active player, current user (there are no accounts here), pinned name
+
+Selection has a key and a module of its own in the persistence layer (`selection-storage.ts`) rather than a field on the saved Config, so `config-storage.ts` is no longer the only thing in Match Mixer touching `localStorage`. A board arrived at by link is deliberately never written to the saved Config — reading somebody else's link must not wipe the Roster you keep for your own club night — and that is precisely the visit whose Selection most needs to come back after a pocket.
+
 ### Not built yet
 
 **Mixer**:

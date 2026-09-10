@@ -12,7 +12,15 @@ import { isFiniteNumber, isRecord, readChoice, readRoster } from "./read-config.
  * A Schedule is a pure function of a Config and its Seed (ADR 0001), so there
  * is nothing here but the Config: the sheet comes back by being generated
  * again, not by being stored. That is what keeps this module small enough to
- * be the only thing in Match Mixer that touches `window.localStorage`.
+ * be the one place that knows the Config's storage shape — everything the
+ * organizer chose is here and nowhere else.
+ *
+ * It is no longer the only module in Match Mixer that touches
+ * `window.localStorage`: find-me's selection has a key and a module of its own
+ * (`selection-storage.ts`, #495). It had to, and deliberately so — a board
+ * arrived at by link is never written here, which is exactly the visit whose
+ * selection most needs to survive a pocket. See that module for the rest of
+ * the reasoning.
  *
  * Two Configs, because the screen can hold two. The edited one is what is in
  * the fields; the drawn one is what produced the sheet on screen. They are

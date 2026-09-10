@@ -30,8 +30,15 @@ import {
   SHARE_PARAM,
 } from "@/components/apps/match-mixer/lib/persistence/share-link";
 import {
+  boardIdentity,
+  clear as clearSelection,
+  load as loadSelection,
+  save as saveSelection,
+} from "@/components/apps/match-mixer/lib/persistence/selection-storage";
+import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
+  type PlayerIndex,
   type Roster,
   type Schedule,
   type ScorerResult,
@@ -207,6 +214,9 @@ export function MatchMixer() {
   // comparing what is on screen cannot be forgotten by a handler that does not
   // know it exists.
   const borrowed = useRef<string | null>(null);
+  // Whose evening is being read off the board. A Roster index and never a
+  // name, so two Players called Mike are two selections.
+  const [selected, setSelected] = useState<PlayerIndex | null>(null);
   // Whether this tab has ever had a Roster in it, which decides whether its
   // empty box means anything. A tab left open on the zero state has nothing to
   // say about the save, and must not be the one that deletes it.
@@ -332,6 +342,38 @@ export function MatchMixer() {
       document.removeEventListener("visibilitychange", flush);
     };
   }, [restored, cleared, roster, courtsChoice, roundsChoice, draw]);
+
+  // Which board is on screen, for the find-me selection to be stored against.
+  // Never the Roster index alone: an index only means anything against one
+  // particular board, so a selection that does not name this one is not a
+  // selection at all.
+  const board = draw ? boardIdentity(draw.key, draw.config.seed) : null;
+  const drawnSize = draw?.config.roster.length ?? 0;
+
+  // Read on the board rather than on mount, because the board is what the
+  // selection belongs to: a restored one brings its selection back with it, a
+  // redraw is a different board and reads as nobody selected. Storage is read
+  // in an effect and never during render — it does not exist on the server.
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of an external store when the board changes */
+    setSelected(board ? loadSelection(board, drawnSize) : null);
+  }, [board, drawnSize]);
+
+  /**
+   * Tapping a name pulls that Player's evening out of the grid; tapping the
+   * same name again puts the whole board back, which is the one action that
+   * clears it and the reason the phone can be handed to the next person.
+   *
+   * Written through on the tap rather than debounced: this is one small value
+   * and the moment it is worth keeping is the moment the phone goes back in a
+   * pocket.
+   */
+  const selectPlayer = (player: PlayerIndex) => {
+    const next = selected === player ? null : player;
+    setSelected(next);
+    if (next === null) clearSelection();
+    else if (board) saveSelection(board, next);
+  };
 
   const editRoster = (next: string) => {
     setText(next);
@@ -570,6 +612,8 @@ export function MatchMixer() {
                     roster={draw.config.roster}
                     schedule={draw.schedule}
                     score={draw.score}
+                    selected={selected}
+                    onSelect={selectPlayer}
                   />
                 </div>
               </>
