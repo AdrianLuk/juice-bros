@@ -5,6 +5,12 @@ import type { Config, PlayerIndex, Round, Schedule, ScorerResult, Tally } from "
  * imbalance second, opponent repeats third. Nothing else in the app may claim
  * a Schedule is balanced — the summary line and the repeat marks in the grid
  * both read what this returns for the Schedule that was actually produced.
+ *
+ * A change to the weights below changes what an existing Config generates —
+ * the generator's search picks its winner by them — so it requires bumping
+ * `GENERATOR_VERSION` in `persistence/share-link.ts`: a Share Link only
+ * reproduces the board it named if the Scorer it drew from has not moved
+ * under it (#494).
  */
 
 /** A pair partnering more than once is the most visible failure, so it dominates. */
