@@ -3425,18 +3425,6 @@ html:has(.bb-app-chrome) {
     gap: 0.4rem 1rem;
   }
 
-  /* The Seed is what makes a board reproducible, and it is the least useful
-     thing on the screen to the person reading it: an unexplained nine-digit
-     number that wraps the header onto a second line. It stays where there is
-     room for it and steps off where there is not. */
-  .mm-seed {
-    display: none;
-  }
-  @media (min-width: 40rem) {
-    .mm-seed {
-      display: inline;
-    }
-  }
   .mm-note {
     max-width: 46ch;
     font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
