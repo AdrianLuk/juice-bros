@@ -427,6 +427,13 @@ stretch into two banners.
 alternated so no two adjacent plates share one. A new plate type without a
 rotation reads as printed-on rather than placed.
 
+The rule governs what is *placed on* the board — name plates, the draw magnet,
+the lede's poly pocket. What is *slotted into* it sits square: the insert card,
+the dials and the share plate (#492) are all held in the surface rather than
+resting on it, and a rotated control that the eye reads as fitted looks
+crooked rather than placed. If a new control is card stock and full width,
+it is slotted; if it is an object you could pick up, it is placed and rotates.
+
 ## Components
 
 ### Club plate
@@ -480,6 +487,25 @@ The roster textarea is a slotted white insert card (1px plate edge, 2px radius,
 insert lift, Archivo body at 0.875rem/1.75). Courts and rounds are two dials in
 a 2-up grid on the same stock, 1.25rem tabular numerals. Placeholder text is
 `#9aa4a6`.
+
+### Share plate (#492)
+`.mm-share` — the control that copies a link to the board. Card stock on the
+insert card's shadow (1px plate edge, 2px radius, one crisp contact line plus
+a soft drop), full width, tracked caps in the narrow voice at 0.75rem, left
+aligned, square by the Off-Square Rule's slotted clause. Hover lifts 1px and
+deepens; active drops 1px and flattens, the same gesture the draw magnet makes.
+Deliberately not a second red fill: the draw is the one thing on this screen
+that reads as "press this", and a second one beside it would compete for that
+reading with an action that is not the point of the tool. Both transforms are
+neutralised under `prefers-reduced-motion: reduce`.
+
+### Outcome note
+`.mm-note[data-tone="done"|"refused"]` — a note answering for something that
+just happened rather than captioning the field it sits under, weighted to 600
+and coloured in the board's existing pass/fail pair (marker green, marker red).
+The summary line already reads green for a pass and red for a fail, so an
+outcome borrows that and needs no icon of its own. Carried on a live region, so
+an empty one has no tone and takes no space.
 
 ### Laminated notice
 `.mm-lede` — a poly-pocket notice card, max 40ch, white stock, plate lift,

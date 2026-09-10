@@ -15,9 +15,11 @@ import {
 
 /**
  * The tests assert what a caller passes in and what comes back, never the
- * link's byte format — the encoding has to stay free to improve. The one
- * exception is the version marker, which is a contract, and the two tests that
- * hand-write a payload say so where they do it.
+ * link's byte format — the encoding has to stay free to improve. Every
+ * negative case is made by corrupting a real encoded payload rather than by
+ * hand-writing one, so the suite carries no second copy of the format.
+ *
+ * `withField` below is the single exception and says what it knows.
  */
 
 const BASE = "https://juicebrospickleball.com/tools/match-mixer";
@@ -47,6 +49,25 @@ function encoded(from: ResolvedConfig = config): string {
   assert.ok(link, "expected a link");
   return payloadOf(link);
 }
+
+/**
+ * The one thing these tests know about the format: the payload's first line is
+ * a dot-separated list of fields, the version first. That much is a contract —
+ * a link has to be able to say which generator minted it — and it is the
+ * minimum needed to corrupt one field and prove the decoder refuses a payload
+ * for that reason rather than some other one.
+ */
+function withField(payload: string, index: number, value: string): string {
+  const cut = payload.indexOf("\n");
+  const fields = payload.slice(0, cut).split(".");
+  fields[index] = value;
+  return fields.join(".") + payload.slice(cut);
+}
+
+const VERSION_FIELD = 0;
+const COURTS_FIELD = 1;
+const ROUNDS_FIELD = 2;
+const SEED_FIELD = 3;
 
 test("the board a link opens is the board that was shared", () => {
   // The load-bearing test. Everything else here is a detail of it: what a
@@ -115,11 +136,13 @@ test("reports the generator version the link was minted under", () => {
 });
 
 test("a link from another generator still opens, and says it is not ours", () => {
-  // The version marker is the one part of the format the tests are allowed to
-  // know: it is a contract, and it is the first field of the payload. Acting
-  // on the mismatch is #494; carrying and reporting it is this module's whole
-  // responsibility for it.
-  const future = encoded().replace(/^\d+/, String(GENERATOR_VERSION + 41));
+  // Acting on the mismatch is #494; carrying and reporting it is this
+  // module's whole responsibility for it.
+  const future = withField(
+    encoded(),
+    VERSION_FIELD,
+    String(GENERATOR_VERSION + 41),
+  );
   const shared = decodeShareLink(future);
   assert.ok(shared, "a link from a later generator must still open");
   assert.equal(shared.version, GENERATOR_VERSION + 41);
@@ -128,14 +151,18 @@ test("a link from another generator still opens, and says it is not ours", () =>
 });
 
 test("a payload with no version marker at all is not a link", () => {
-  assert.equal(decodeShareLink(encoded().replace(/^\d+/, "")), null);
+  assert.equal(decodeShareLink(withField(encoded(), VERSION_FIELD, "")), null);
 });
 
 test("an absent optional field reads as its default", () => {
   // What keeps a link minted today valid once RR-6 adds Pool Count: a field
   // the payload does not carry is the Roster's default rather than a refusal.
   // Court and round counts are the two that already work that way.
-  const blanked = encoded().replace(/^(\d+)\.\d+\.\d+\./, "$1...");
+  const blanked = withField(
+    withField(encoded(), COURTS_FIELD, ""),
+    ROUNDS_FIELD,
+    "",
+  );
   const shared = decodeShareLink(blanked);
   assert.equal(shared?.config.courts, maxCourts(roster.length));
   assert.equal(
@@ -153,24 +180,29 @@ test("brings numbers this roster cannot support inside what it can", () => {
   assert.equal(shared?.config.rounds, 40, "the round count outran MAX_ROUNDS");
 });
 
-test("a link truncated in transit is not a shorter board", () => {
+test("a link truncated in transit is not a board at all", () => {
   // A chat client that autolinks half a URL is the failure this transport
-  // actually has, and a link cut after the sixth of eight names would
-  // otherwise decode cleanly into a six-player board nobody drew.
+  // actually has. Cut after the sixth of eight names, a bare payload would
+  // decode into a six-player board; cut mid-name it would seat "Gabriel Tar".
+  // Neither is a board anybody drew, and a reader cannot tell either from the
+  // real thing, so every prefix has to be refused outright.
   const payload = encoded();
   for (let cut = 1; cut < payload.length; cut++) {
-    const shared = decodeShareLink(payload.slice(0, cut));
-    if (shared) {
-      assert.equal(
-        shared.config.roster.length,
-        roster.length,
-        `a link cut at ${cut} opened a board of ${shared.config.roster.length}`,
-      );
-    }
+    assert.equal(
+      decodeShareLink(payload.slice(0, cut)),
+      null,
+      `a link cut at ${cut} of ${payload.length} still opened a board`,
+    );
   }
 });
 
 test("a mangled, empty or absent parameter is not a board", () => {
+  const payload = encoded();
+  const tooMany = parseRoster(
+    Array.from({ length: MAX_ROSTER_SIZE + 1 }, (_, i) => `Player ${i}`).join(
+      "\n",
+    ),
+  );
   const rubbish: unknown[] = [
     null,
     undefined,
@@ -179,18 +211,21 @@ test("a mangled, empty or absent parameter is not a board", () => {
     42,
     {},
     [],
-    ["1.2.5.12345.8"],
+    [payload],
     "not a payload at all",
-    "1.2.5.12345.8",
-    "1.2.5.12345.8\nBen\nAnna\nFed",
-    "1.2.5.abc.8\nBen\nAnna\nFed\nCath",
-    "1.2.5.12345\nBen\nAnna\nFed\nCath",
-    `1.2.5.12345.${MAX_ROSTER_SIZE + 1}\n${Array.from(
-      { length: MAX_ROSTER_SIZE + 1 },
-      (_, i) => `Player ${i}`,
-    ).join("\n")}`,
     "\n\n\n",
-    "%%%",
+    // A field the decoder cannot read as the thing it has to be.
+    withField(payload, SEED_FIELD, "abc"),
+    withField(payload, VERSION_FIELD, ""),
+    withField(payload, COURTS_FIELD, "two"),
+    // A roster edited after the link was minted, in either direction.
+    `${payload}\nGatecrasher`,
+    payload.split("\n").slice(0, -1).join("\n"),
+    // The numbers alone, with the roster gone.
+    payload.split("\n")[0],
+    // A roster the engine will not schedule at either end.
+    encoded({ ...config, roster: parseRoster("Ben\nAnna\nFed") }),
+    encoded({ ...config, roster: tooMany }),
   ];
   for (const value of rubbish) {
     assert.doesNotThrow(() => decodeShareLink(value), `threw on ${String(value)}`);

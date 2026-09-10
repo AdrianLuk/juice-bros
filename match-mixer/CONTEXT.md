@@ -51,7 +51,7 @@ _Avoid_: Sit-out as a noun, rest, bench
 ### Handing it round
 
 **Share Link**:
-A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, the Roster size and then the names. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
+A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, a checksum over the names, and then the names. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
 _Avoid_: Invite Link (Booking Buddy's word, and an account-bound one), permalink, share code, export
 
 **Generator Version**:

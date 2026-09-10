@@ -3976,6 +3976,12 @@ html:has(.bb-app-chrome) {
       transition: none;
       transform: rotate(0.35deg);
     }
+    .mm-share,
+    .mm-share:hover,
+    .mm-share:active {
+      transition: none;
+      transform: none;
+    }
   }
 
   /* ---- Out of date --------------------------------------------------------- */

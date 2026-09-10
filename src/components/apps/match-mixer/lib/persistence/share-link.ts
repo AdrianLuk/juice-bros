@@ -64,13 +64,20 @@ export interface SharedBoard {
  * one reads as its default. That is what keeps a link minted today valid once
  * RR-6 adds Pool Count.
  *
- * The number line ends with the Roster size, which is the one thing in the
- * payload that is already implied by the rest of it. It is there because a
+ * The number line ends with a checksum over the Roster block, which is the one
+ * thing in the payload not implied by the rest of it. It is there because a
  * truncated link is the failure this transport actually has — a chat client
  * that autolinks half a URL, an address bar that loses the tail — and without
  * it a link cut after the sixth of twelve names decodes cleanly into a
- * six-player board that a reader has no way to tell from the real one. A count
- * is a weak checksum, and the weakest one that catches that.
+ * six-player board that a reader has no way to tell from the real one, and one
+ * cut mid-name into a board with "Gabriel Tar" playing court 3. Neither is a
+ * board anybody drew. A count would catch the first; only a checksum catches
+ * both.
+ *
+ * It covers the Roster and not the numbers, which is what leaves the number
+ * line free to grow: RR-6 can append Pool Count without invalidating a link
+ * minted today. A truncation inside the number line takes the whole Roster
+ * with it, and is refused for having no Roster at all.
  */
 const LINE = "\n";
 const FIELD = ".";
@@ -99,16 +106,15 @@ export function encodeShareLink(
     return null;
   }
 
+  const names = config.roster.map((player) => player.name).join(LINE);
   const numbers = [
     GENERATOR_VERSION,
     config.courts,
     config.rounds,
     config.seed,
-    config.roster.length,
+    checksum(names),
   ].join(FIELD);
-  const payload = [numbers, ...config.roster.map((player) => player.name)].join(
-    LINE,
-  );
+  const payload = [numbers, names].join(LINE);
 
   url.hash = "";
   url.searchParams.set(SHARE_PARAM, payload);
@@ -134,18 +140,23 @@ export function encodeShareLink(
 export function decodeShareLink(value: unknown): SharedBoard | null {
   if (typeof value !== "string" || value.length === 0) return null;
 
-  const [numbers = "", ...names] = value.split(LINE);
-  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSize] =
+  const cut = value.indexOf(LINE);
+  const numbers = cut === -1 ? value : value.slice(0, cut);
+  const names = cut === -1 ? "" : value.slice(cut + LINE.length);
+  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSum] =
     numbers.split(FIELD);
 
-  // Required. A payload that cannot say which generator drew it, with what
-  // Seed, or over how many people does not describe a board — it describes
-  // some other board.
+  // Required. A payload that cannot say which generator drew it, or with what
+  // Seed, does not describe a board — it describes some other board.
   const version = toNumber(rawVersion);
   const seed = toNumber(rawSeed);
-  const size = toNumber(rawSize);
   if (!isFiniteNumber(version) || !isFiniteNumber(seed)) return null;
-  if (!isFiniteNumber(size)) return null;
+
+  // Not what the payload says it carries: the link lost its tail on the way
+  // through a chat client, or was edited by hand. Either way the board it
+  // would draw is not the board that was shared, and a reader has no way of
+  // telling — a name cut to "Gabriel Tar" reads as a board, not as damage.
+  if (rawSum !== checksum(names)) return null;
 
   // Optional. Absent reads as the default for this Roster; present but not a
   // number is corruption, and the whole read is refused.
@@ -153,11 +164,7 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const rounds = readChoice(toNumber(rawRounds));
   if (courts === undefined || rounds === undefined) return null;
 
-  const roster = parseRoster(names.join("\n"));
-  // Short of what the payload says it carries: the link lost its tail on the
-  // way through a chat client, and the board it would draw is not the board
-  // that was shared.
-  if (roster.length !== size) return null;
+  const roster = parseRoster(names);
   // Anything the engine would refuse is corruption here too, so a link with
   // three names in it opens the empty tool rather than throwing on mount.
   if (!isSupportedRosterSize(roster.length)) return null;
@@ -189,4 +196,22 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
 function toNumber(field: string | undefined): number | undefined {
   if (field === undefined || field.trim() === "") return undefined;
   return Number(field);
+}
+
+/**
+ * FNV-1a over the Roster block, in base 36 — six or seven characters to make
+ * a truncated or hand-edited link unopenable.
+ *
+ * Not a security measure and nothing here pretends otherwise: anybody can mint
+ * a link, which is the whole feature. This is only here to tell damage from a
+ * board, and it is written out rather than imported because everything under
+ * `lib/` has to resolve under plain `node --test` with no dependencies.
+ */
+function checksum(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
 }
