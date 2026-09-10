@@ -319,17 +319,19 @@ export function MatchMixer() {
                 of it. `h1` because it is the page's name, however it is
                 made. */}
             <h1 className="mm-title">Match Mixer</h1>
-            {/* The board's own particulars: what is on it and what drew it,
-                not what is currently in the roster box. When the two disagree
-                the board is stale, and the flag over the field says so — this
-                line staying with the draw is what makes that reading
-                possible. */}
+            {/* The board's own particulars: what is on it, not what is
+                currently in the roster box. When the two disagree the board is
+                stale, and the flag over the field says so — this line staying
+                with the draw is what makes that reading possible.
+
+                The Seed that produced the draw is deliberately not here. It is
+                load-bearing in the Config, but on the board it is an
+                unexplained number the organizer can do nothing with: there is
+                no way to type one back in, and no link that carries one. It
+                belongs on the board the day a draw becomes shareable. */}
             <p className="mm-meta">
               Pickleball round robin
               {draw ? ` · ${draw.numbers}` : null}
-              {draw ? (
-                <span className="mm-seed"> · Seed {draw.config.seed}</span>
-              ) : null}
             </p>
           </div>
           <p className="mm-lede">
