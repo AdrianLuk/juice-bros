@@ -1,9 +1,11 @@
 # Next steps: Booking Buddy, On Deck, Round Robin Generator
 
-Status: planning input, not committed scope. Written 2026-09-04. Progress updated
-2026-09-08; interleave reordered the same day (second pass — RR-6 slotted, RR-3's
-remainder moved in front of the night). RR-1 item 6 amended 2026-09-09 (#477, the partner
-matrix cut), which also settles RR-6 question 3.
+Status: planning input, not committed scope. Written 2026-09-04. **Third pass 2026-09-12,
+the morning of the night itself.** Rows 1 to 3 are all shipped, OD-0 is tonight, and the
+pre-night ordering rules the last two passes spent most of their length arguing toward
+expire when it starts. Shipped initiatives are pointers now rather than copies: their
+decisions live in ADRs, CONTEXT files and code comments, and this doc says where instead
+of restating them. See **Shipped, and where it went** below.
 
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
@@ -36,41 +38,35 @@ more. All assume a solo dev with agent help.
 
 ### Suggested interleave across the three apps
 
-Reordered 2026-09-08 (second pass). The 2026-09-07 pass sequenced everything around the
-booked Saturday and that still holds: **OD-0 is the one fixed point**, it is not code, and
-it gates six other On Deck rows. This pass does three things the first one left open —
-closes out the two rows that shipped, gives RR-6 a real position instead of a dangling
-row at the bottom, and picks something for the four days between now and the night.
+Third pass, 2026-09-12. The two previous passes both sequenced around the booked Saturday,
+and the whole point of that sequencing is that it is now spent: **OD-0 is tonight.**
 
-Three rules the order follows:
+The pre-night rules did their job and are recorded once, in the past tense, so this
+section stops growing a new layer every time it is touched. They were: build only what the
+night needs; let nothing be in flight across Saturday. Together they picked rows 1 and 3
+and kept rows 6 onward out. What they leave behind is the one rule that has not expired:
 
-- **Before the night, build only what the night needs, or what finishes before it.** The
-  first half shipped the sign. The second half is new, and is what row 3 now is. In the
-  last few days the test that matters is not "is this On Deck work" but *will this still
-  be in flight on Saturday* — because the doc's own diagnosis of why row 1 sat unbuilt is
-  that the deadline-shaped row was stuck behind work already in flight. A specced On Deck
-  row started now fails both halves; a half-day item in another app fails neither.
-- **Nothing specced-but-unrun goes in early.** Rows 6 onward in On Deck are guesses until
-  the retro exists. Building something the night or the retro actually depends on is a
-  different act — that was the sign, and that was #469 — but building OD-1 because it is
-  written down is not.
-- **After the night, the retro reorders this table.**
+- **The retro reorders everything below row 5.** Rows 6 onward are guesses until it
+  exists. They were ordered *after* it on purpose, and the way to get this table wrong now
+  is to start one because it is specced and the night is over but the retro isn't written.
 
-Progress column added 2026-09-07 (evening). ✅ means shipped to master; a blank cell means
-not started.
+For today specifically: nothing new starts. Print the sign, run the night, write the
+retro. Rows 4 and 5 are the whole day.
+
+✅ means shipped to master; a blank cell means not started.
 
 | Order | Done | Initiative | Why here |
 |---|---|---|---|
 | 1 | ✅ | OD-6 Printed Club QR sign (slice 3 only) | Shipped 2026-09-08 (#463, PR #466). `/on-deck/home/qr` is now the sign itself, printing on Letter and A4, plus two open routes serving the bare code as a file for a print shop or a group chat. Nothing now stands between the booked night and its checklist except printing one |
 | 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
-| 3 |  | RR-3 remainder — share URL and find-me | **Moved up from row 11.** The only row left that is both fully decided and half a day's work: print (#397) and roster memory (#396) already shipped inside RR-1, so what remains is small enough to land before Saturday rather than sit open across it. Nothing in On Deck can take this slot — the sign is built, and every other OD row is gated on a retro that does not exist yet. Its one ordering interaction is in its favour: the share URL encodes Config, RR-6 adds a field to Config, and a link minted now stays valid because an absent Pool Count reads as `1` |
-| 4 |  | OD-0 Run a real Saturday | Not code. The fixed point everything above is timed against and everything below is informed by |
-| 5 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night. Until it's written the night's value decays to anecdote, and every On Deck row below it — 6, 8, 9 and 15 — stays a guess. Cheaper as of 2026-09-08: #469 shipped the reader, so the Summary's numbers come off a screen rather than out of a SQL client |
+| 3 | ✅ | RR-3 remainder — share URL and find-me | Shipped 2026-09-10. Specced as #490 and ticketed #491 to #495, all closed inside one day. RR-3 is now complete on all four counts: print and roster memory landed early inside RR-1, the share link and find-me landed here. It cleared the gap in front of the night exactly as the slot intended, and nothing was left in flight across Saturday |
+| 4 |  | **OD-0 Run a real Saturday — tonight** | Not code. The fixed point everything above was timed against and everything below is informed by. The last blocker was a row, not a commit: the first Club is seeded by hand and only the owner's own login can open a night, which #487 recorded and closed out on 2026-09-09 |
+| 5 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night, and the only thing that should be written tomorrow. Until it exists the night's value decays to anecdote and rows 6, 8, 9 and 15 stay guesses. #469 shipped the reader, so the Summary's numbers come off `/on-deck/home/summaries` rather than out of a SQL client |
 | 6 |  | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
 | 7 |  | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can — and because it is the one L on the table, which makes it the exact shape of work rule one says not to have in flight on Saturday. It starts after the retro is written, not before |
 | 8 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
 | 9 |  | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
-| 10 |  | RR-6 Pools (#392) | **New position, and deliberately ahead of RR-2.** Pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock, and standings *on top of* a Schedule. In the other order, courtside mode gets built twice, or pools arrive as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-grid layout. That thinking costs no branch, so it can happen any time, Saturday included |
+| 10 |  | RR-6 Pools (#392) | **Deliberately ahead of RR-2.** Pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock, and standings *on top of* a Schedule. In the other order, courtside mode gets built twice, or pools arrive as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-board layout against `match-mixer/DESIGN.md`. That thinking costs no branch, so it can happen any time |
 | 11 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked since 2026-09-07, but now sits above the Schedule shape RR-6 settles rather than underneath it |
 | 12 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
 | 13 |  | BB-4 Copy for group chat | Small, high-use |
@@ -79,114 +75,80 @@ not started.
 | 16 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
 | 17 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
 
-No row now sits outside the order. RR-6 was the last one, and slotting it is the reorder
-the 2026-09-07 pass deferred.
+No row sits outside the order.
 
-If only one thing per app ships this month: RR-1, OD-0, BB-1. RR-1 is done and row 1
-cleared on 2026-09-08, which leaves OD-0 (booked, unblocked, and four days out) and BB-1
-(unstarted, and now explicitly sequenced after the retro) as the month's remaining two.
-Row 3 is not a third goal; it is what the gap in front of the night is the right size for.
+If only one thing per app ships this month: RR-1, OD-0, BB-1. Two of the three are now
+settled — RR-1 on 2026-09-07, and OD-0 tonight, whatever it turns up. That leaves **BB-1
+as the month's only remaining goal**, and it is deliberately the first non-On-Deck row
+after the retro. It is also the one L on the table, which is why it never fit in front of
+the night and does fit after it.
 
-### Shipped since this doc was written
+Worth naming while the table is this clean: rows 1, 2 and 3 are the first stretch where
+what got built and what this table said to build are the same list. The earlier passes
+diagnosed the opposite, and the diagnosis is what fixed it.
 
-Recorded 2026-09-07, updated the same evening after a heavy day, and again on
-2026-09-08, so the table above doesn't silently drift again.
+### Shipped, and where it went
 
-- **BB-2 Visibility default on accept** — done (#376 and its four slices, #377 to #380).
-  Dropped from the interleave.
-- **RR-1 Engine + plain output — complete.** All five tickets closed on 2026-09-07:
-  #393 table cases (PR #417), #394 any roster size / any court count (#423), #395 the
-  two-speed interaction — which landed as *draw on a button, not a keystroke*, a
-  correction to the recommended answer in RR-1 item 5 (#424), #396 roster persistence
-  (#440), #397 print stylesheet (#449). Plus #441 (RR-1.6, clear the roster with undo),
-  added while building. Row 2 of the interleave is closed out and RR-2 is unblocked.
-- **A print stylesheet now exists** — `@media print` in `src/app/globals.css`, scoped by
-  `body:has(.mm-sheet)` with a named `@page`. That erases the reason OD-6 slice 3 was
-  called unbuilt-from-zero: the sign is a second sheet next to the draw sheet, not the
-  first print work in the repo.
-- **OD-6 slice 3, the printed Club QR sign — shipped 2026-09-08** (#463, PR #466).
-  Row 1, and the one build item OD-0 was waiting on. `/on-deck/home/qr`, which #413
-  shipped as the on-screen stand-in, is now the sign itself: one sheet drawn at paper
-  proportions and previewed on screen at the same proportions, printing on Letter and
-  A4. The sheet's whole type scale is a share of its own width, so the print
-  stylesheet restates no sizes and the two renderings cannot drift. Below tablet
-  width it stops being paper-shaped and the code takes the full device, because a
-  phone at the door is scanning, not printing. Two open routes,
-  `/on-deck/c/<clubId>/qr.svg` and `qr.png`, serve the bare code as a file — the
-  thing an inline `<svg>` on a gated page could never be, and what a print shop or a
-  group chat actually needs.
-- **The Session Summary reader, and a clock for the Club - shipped 2026-09-08**
-  (#469, PR #470). Not a row on this table, and the second-largest thing built since
-  it was written. `on_deck_session_summaries` had been populated since #255 and read
-  by nobody: the projection, the storage, the RLS and the index all existed, and
-  nothing selected from the table. Three surfaces now do, under
-  `/on-deck/home/summaries`. This is the deferred "Reporting UI" line in
-  `on-deck/PROGRESS.md`, which is now wrong and has been corrected there.
+Kept as a log so the table above can't silently drift again. Compressed on 2026-09-12:
+the per-PR inventories that used to live here were making the point that off-table work
+outnumbered table work, and that point is made below once rather than re-evidenced every
+pass. Anything shipped is now a line and a pointer, because its reasoning has a durable
+home and this doc is not it.
 
-  It pulled in a schema change nobody planned. A Summary is the first On Deck surface
-  that has to name a *day*, and TO Pickleball Club plays 18:00 to 20:00 - which in
-  Toronto closes on the next UTC day, so the server's own clock mislabels the normal
-  case rather than an edge one. So a Club now carries a time zone, adopted silently
-  from the Organizer's own browser rather than asked for, with a correction in
-  Settings behind its own save. Migration `20260908120000`, which the first version of
-  this note recorded as unpushed — **it is on the hosted project**, confirmed by
-  `supabase migration list` on 2026-09-08 (local and remote in sync through
-  `20260908120000`). Worth having checked rather than assumed: `getOwnedClub` selects
-  `time_zone`, so an unpushed column would not have degraded a Summary, it would have
-  thrown on the Organizer's home screen — four days before the night that screen exists
-  to run.
+**On the table.**
 
-  Worth noting against row 5 below: the retro no longer needs a SQL client.
+- **RR-1 Engine + plain output — complete 2026-09-07** (#389; #393 to #397, plus #441
+  added while building). Live at `/tools/match-mixer`. Row 2.
+- **OD-6 slice 3, the printed Club QR sign — 2026-09-08** (#463, PR #466). Row 1, and the
+  one build item OD-0 was waiting on. `/on-deck/home/qr` is the sign itself, printing on
+  Letter and A4, plus `/on-deck/c/<clubId>/qr.svg` and `qr.png` serving the bare code as a
+  file — the thing an inline `<svg>` on a gated page could never be, and what a print shop
+  or a group chat actually needs.
+- **RR-3 Share link and find-me — complete 2026-09-10** (#490; #491 to #495). Row 3, and
+  the last thing built before the night. The share URL encodes Config and not the
+  Schedule, so a link regenerates deterministically; #494 added the part the plan did not
+  have, which is that a link minted before a generator change says so rather than quietly
+  drawing a different board. RR-3's other two halves had already shipped inside RR-1.
 
-- **Booking Buddy import/sync hardening, none of it on this table** — a full day of it on
-  2026-09-07: cross-source reservation identity (#432, #437), empty-vs-broken feed
-  (#431), candidate provenance on every card (#438), readable candidate dates (#433),
-  dismissals made visible, undoable, and self-pruning (#444, #447), feed-event pruning
-  (#452), the CourtReserve feed-URL hint (#454), calendar chip legibility on a phone
-  (#455, #459), and six stale e2e specs (#446). The last follow-up, #458 (a Reservation
-  Update that moved the time now offers its booking instead of saying "no match"), closed
-  the same evening as #462. Nothing from this batch is left open.
-- **Marketing site work not on this table at all** — Broadcast Dark on Home and the six
-  other routes (#399, #406, #415) and its two regressions (#419, #421), the About page
-  rebuilt around episode one (#425), Appearances division ordering (#429), YouTube
-  subscribe CTAs (#427), Tools surfaced on the homepage (#381), image weight (#414).
-- **The weekday named in Booking Buddy's date pickers** — #474 (PR #475), 2026-09-08.
-  Not on this table either, and listed here only so the count stays honest: off-table
-  work has now outnumbered table work on every day this doc has been open.
+**Off the table, and larger than it.**
 
-**The pattern held until it was named.** Of everything built between this doc being
-written and 2026-09-07, only row 2 came from the table; the rest was marketing polish
-and Booking Buddy sync work the table doesn't govern. Writing that down is what moved
-row 1: it shipped the next day, and it was half a day's work, which is the more useful
-half of the lesson. The deadline-shaped row had been sitting behind work that felt more
-urgent because it was already in flight.
+- **The Session Summary reader, and a clock for the Club — 2026-09-08** (#469, PR #470).
+  `on_deck_session_summaries` had been populated since #255 and read by nobody. Three
+  surfaces now do, under `/on-deck/home/summaries`. It pulled in an unplanned schema
+  change: a Summary is the first On Deck surface that has to name a *day*, and TO
+  Pickleball Club plays 18:00 to 20:00, which in Toronto closes on the next UTC day — so a
+  Club now carries a time zone, adopted silently from the Organizer's browser. Migration
+  `20260908120000` is on the hosted project (#487 re-confirmed it, and corrected
+  `on-deck/PROGRESS.md`, which had it as unpushed).
+- **Match Mixer became The Board — 2026-09-09** (#477 to #489). The largest single day of
+  off-table work this doc has seen, and it changed what governs the tool: `match-mixer/
+  DESIGN.md` is now the visual authority and the brief's direction is superseded. Two
+  consequences that reach rows below — the Partner Matrix is cut (#477, with Coverage and
+  the Repeat mark standing in its place), and **print is now a demotion of the board
+  rather than the constraint that shapes it.**
+- **OD-0's Club is seeded — 2026-09-09** (#487). Not code, and the actual last blocker.
+  Vanessa owns it. The durable lesson is the ordering: the insert joins on an `auth.users`
+  row that only her first sign-in creates, so an insert run any earlier would have matched
+  nothing and reported success. One owner per Club plus a Volunteer Link that cannot start
+  a Session means her login is the only thing in the world that can open tonight — which
+  is the sharpest argument the repo has for the co-organizer question parked under OD-6.
+- **Booking Buddy import/sync hardening, and marketing-site work** — roughly two full days
+  across 2026-09-07 and 2026-09-08, none of it on this table, all of it closed. Itemised
+  in git and in the issue list; not re-listed here.
 
-**What's next is not code.** With row 1 closed, every remaining On Deck row is gated on
-OD-0, and OD-0 is a Saturday, a printed sheet of paper, and someone writing down what
-happened. The way to get this table wrong now is to start row 6 or row 8 because they
-are specced and the night is not for a few days. The On Deck rows from 6 down stay
-guesses until the retro exists — that is the whole reason they were ordered after it.
+**The lesson the log actually produced.** Of everything built between this doc being
+written and 2026-09-07, only row 2 came from the table — the rest was marketing polish and
+Booking Buddy sync work the table doesn't govern. Writing that down is what moved row 1:
+it shipped the next day, and it was half a day's work, which is the more useful half. The
+deadline-shaped row had been sitting behind work that felt more urgent because it was
+already in flight.
 
-**And then more code shipped the same day** (#469, the Session Summary reader), so the
-paragraph above needs the distinction it was missing rather than a quiet edit. What it
-should have said: *don't start a specced On Deck row early*. Building something the night
-or its retro actually depends on is a different act, and #469 was that — row 5's
-deliverable was otherwise going to be written out of a SQL client, or out of memory.
-
-The test to apply, before anything else goes in before Saturday: **does the night or
-the retro fail without it?** The sign passed that test. The reader passed it. OD-1's
-venue resilience does not, because nobody yet knows which failure modes are real, which
-is precisely what the night is for.
-
-**That test governs On Deck, and it is not the whole rule** — which the 2026-09-08
-reorder had to settle in order to fill the four days in front of the night. Read as
-written it forbids everything, including a half-day of Match Mixer, and a rule that
-forbids everything gets ignored rather than followed. The rest of it, which the row-1
-diagnosis already implies: **nothing may be in flight across Saturday.** Both halves are
-about the same failure — the deadline row sitting behind work already started — and
-between them they say what row 3 is allowed to be. An On Deck row fails the first test.
-An L in any app fails the second. RR-3's remaining half fails neither: it is decided, it
-is small, and the retro cannot inform it, because the retro is about a different app.
+The test that came out of it, and the one thing here worth carrying past tonight:
+**does the night or the retro fail without it?** The sign passed. The reader passed. OD-1's
+venue resilience did not, because nobody yet knows which failure modes are real, which is
+precisely what tonight is for. After the retro the test retires with the night, and the
+rule in its place is the plainer one already in the interleave: rows 6 onward are the
+retro's to order.
 
 ---
 
@@ -254,36 +216,16 @@ unbuilt. Until it exists every Slot is a one-off and the app is a poll tool.
 Booking Reminder semantics unchanged. `bb_first_slot` analytics: decide whether a minted
 instance counts.
 
-### BB-2 · Visibility defaults to `calendar` on accept
+### BB-2 · Visibility defaults to `calendar` on accept — shipped
 
-**Shipped 2026-09-06** (#376, slices #377 to #380). Kept below for the reasoning; dropped
-from the interleave.
+**Shipped 2026-09-06** (#376, slices #377 to #380). Dropped from the interleave.
 
-**Size:** S–M. **Blocked by:** nothing. **Needs:** `/grill-with-docs` (an ADR; this
-changes the default of ADR 0007's lattice, not the lattice).
-
-**Claim.** Two people accept a Connection and then see nothing until someone sets up a
-Friend Group or an override. For a friend-group app, that is the biggest onboarding cliff
-in the product. The lattice is correct for privacy and wrong as a default.
-
-**Already decided.**
-- The lattice (ADR 0007) stays. This is the default, not the model.
-- Per-friend overrides and Groups keep working exactly as they do.
-
-**Open questions.**
-1. What does accept grant?
-   ➡️ `calendar` (Slots and Availability Windows), symmetric, on accept. Stated in one
-   line on the accept screen and in the Connection Request Email: "you'll both see each
-   other's games and availability, change any time."
-2. Retroactively widen existing Connections?
-   ➡️ No. Offer a one-time dismissible banner on the Friends page: "share your calendar
-   with all your current friends" as a single action.
-3. What happens to the Groups page and the Visibility picker?
-   ➡️ Keep both. Drop Groups from the primary nav, link it from Friends under an
-   "advanced" affordance. The picker moves from "set up to see anything" to "restrict
-   someone."
-4. Does the Onboarding modal change?
-   ➡️ Yes, remove any step that exists only because the default was `none`.
+The reasoning used to be restated here and is not any more: it was written up properly as
+[ADR 0021](../booking-buddy/docs/adr/0021-visibility-default-is-calendar.md), which is
+longer, current, and the thing a future grill should actually read. The one-line version,
+because BB-3 leans on it: accept now grants `calendar` symmetrically, the ADR 0007 lattice
+is untouched, existing Connections were not widened retroactively, and Groups moved off
+the primary nav behind an "advanced" affordance on Friends.
 
 ### BB-3 · The Slot Link page is the growth surface
 
@@ -400,11 +342,17 @@ sign, which need no real session and de-risk our own first night.
 
 ### OD-0 · Run a real Saturday
 
-**Booked as of 2026-09-07**, which is what the interleave above is now sequenced around.
-The one build item it depended on, the printed Club QR sign (OD-6 slice 3), shipped
-2026-09-08 — so nothing in the repo is holding this up any more. What is left is
-physical: print the sheet, and check the code scans off paper at the distance a player
-will actually stand. Neither can be verified from a test suite.
+**Tonight, 2026-09-12.** Both blockers are closed: the printed Club QR sign shipped
+2026-09-08 (#463), and the Club row — the one that was never a commit — was seeded
+2026-09-09 (#487), owned by Vanessa. Nothing in the repo or the database is holding this
+up. What is left is physical: print the sheet, and check the code scans off paper at the
+distance a player will actually stand. Neither can be verified from a test suite.
+
+One operational fact worth having in hand before doors open, from #487: `on_deck_clubs`
+enforces one owner per Club and a Volunteer Link deliberately cannot start a Session, so
+**Vanessa's login is the only thing that can open tonight.** If that is awkward in
+practice, it is the single most useful thing the retro can say, because it is the live
+argument for the co-organizer question parked under OD-6 and OD-1 Q3.
 
 **Size:** not code. **Blocked by:** nothing. **Gates:** every other OD initiative.
 
@@ -571,13 +519,10 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
    defaults to the club name, group cap to 4, Floor Mode to hybrid, all editable in
    settings. Lands on home with Start ready.
 3. ~~**Print-ready Club QR sign.**~~ **Shipped 2026-09-08** (#463, PR #466). Landed as
-   specced — Letter and A4, big QR, club name, "Scan to join the queue", three lines for
-   Players, Juice Bros mark, one click from home — and did reuse #397's `@media print`
-   pattern as predicted. Two things the spec did not anticipate. The sheet is drawn once
-   at paper proportions and the screen shows that same drawing, so the print stylesheet
-   restates no sizes; and the code is also served as a file at
-   `/on-deck/c/<clubId>/qr.svg` and `qr.png`, open like the link it encodes, because
-   neither a print shop nor a group chat can use an inline `<svg>` on a gated page.
+   specced, plus two things the spec did not anticipate: the sheet is drawn once at paper
+   proportions so the print stylesheet restates no sizes, and the code is served as a file
+   at `/on-deck/c/<clubId>/qr.svg` and `qr.png` for a print shop or a group chat. Written
+   up in `on-deck/PROGRESS.md`; not restated here.
 4. **First-night kit on home.** A four-item checklist with state (print the sign, decide
    on a Kiosk tablet or skip it, share the Volunteer Link, tell your players) that
    disappears after the first closed Session, plus a "tell your players" paragraph to
@@ -641,77 +586,60 @@ playoff — is in scope; see RR-6.
   0002 has the proof sketch.
 - Engine lives in a relative-imports-only module so `node --test` can run it (see the
   node-test-no-path-aliases note in memory and Pickle Point Pal's `lib/scoring/` rule).
-- Tools are dev-led (Booking Buddy precedent). Design via Impeccable against the brief's
-  direction; don't gate on Figma.
+- Tools are dev-led (Booking Buddy precedent). Design via Impeccable; don't gate on Figma.
+  **The target is `match-mixer/DESIGN.md`, not the brief** (changed 2026-09-12). The brief's
+  "the grid is the interface" direction was superseded on 2026-09-09 when the tool became
+  The Board (#482 to #489): the surface is a physical board with material, print is a
+  demotion of it, and a new surface extends that world rather than proposing another.
 
-### RR-1 · Engine + plain output
+### RR-1 · Engine + plain output — shipped
 
 **Shipped 2026-09-07.** Specced as #389, ticketed #393 to #397, all closed, plus #441
 (RR-1.6, clear the roster with undo) added while building. Live at `/tools/match-mixer`.
 
-Two corrections from building it, both of which override recommended answers above:
+The eight settled items that used to be restated here are gone, because every one of them
+now has a home that is enforced rather than described: the glossary and the cut-surface
+record in [match-mixer/CONTEXT.md](../match-mixer/CONTEXT.md), the visual world in
+[match-mixer/DESIGN.md](../match-mixer/DESIGN.md), the table keying in
+[ADR 0002](../match-mixer/docs/adr/0002-precomputed-tables-are-whist-prefixes.md), the
+non-event-sourced Config in
+[ADR 0001](../match-mixer/docs/adr/0001-config-and-schedule-are-not-event-sourced.md), and
+the rest in the engine itself. Read those before RR-2, RR-4 or RR-6; they supersede both
+this section and the brief.
 
-- The n=8 table published in the brief is not a valid whist tournament — partners are
-  right, but players 0/1, 2/3, 4/5 and 6/7 each face each other six times. It scores 20
-  under the Scorer, not 0, so it is not what shipped. See ADR 0002 and
-  `scripts/build-match-mixer-tables.mts`.
-- Item 5's "no generate button in the critical path" did not survive contact. #395
-  shipped as *draw on a button, not a keystroke*: the consequence line still updates
-  live, but the grid renders on an explicit press rather than on debounce/blur. Treat
-  item 5 as amended, not as the spec, if RR-2 or RR-6 reason from it.
+**Four facts the rows below still reason from**, kept here because they are cross-referenced:
 
-Two things the interleave assigned to RR-3 landed here instead: the print stylesheet
-(#397) and roster memory (#396). RR-3 is correspondingly smaller — share URL and find-me.
+1. **Tables are keyed on `(n, courts)`, not `n`**, and exist only where `courts === n / 4`.
+   Anything else — fewer courts, `n` not divisible by 4, more rounds than a table holds —
+   falls through to the greedy generator, seeded from the table's prefix counts when one
+   exists. This is the fallback rule RR-6 inherits per pool.
+2. **The roster floor is 4 and the ceiling is 32.** Above 32 the greedy search gets slow;
+   below 4 there is no game. RR-6 validates against `players / poolCount` for the same
+   reason.
+3. **Do not paste a schedule in from the brief.** Its published n=8 table partners
+   correctly but has players 0 and 1 facing each other six times — it scores 20 under the
+   Scorer, not 0. Every table is validated by `schedule.test.ts` at full length and at
+   every prefix. The warning is on the data in
+   `src/components/apps/match-mixer/lib/engine/tables.ts`, which is where it will actually
+   be read.
+4. **Adding or amending a Table requires bumping `GENERATOR_VERSION`** in
+   `lib/persistence/share-link.ts`, or a Share Link stops reproducing the board it named
+   (#494).
 
-**Size:** M (a weekend). **Blocked by:** nothing.
+**Three recommended answers above that did not survive building**, recorded so nothing
+reasons from the superseded version:
 
-**Claim.** Steps 1 through 4 of the brief. If the algorithm is right, a plain table is
-already useful to a club. Ship that before polishing. Starts the SEO clock.
-
-**Already decided.** Brief sections 1, 2, 3 (options), 6 (build order). Rotating partners
-is the default and the v1 algorithm. Paste-a-list entry, one name per line. Everything
-below was resolved in `/grill-with-docs` (PR #386) and is settled, not open.
-
-1. **Roster identity.** `{ id, name }[]` with a stable id per entry — the engine stays
-   index-based, but positions in the array are never the identity a locked round in RR-2
-   points at. Duplicate names get a quiet inline notice ("two players named Mike — the
-   schedule will work, the printout won't be clear"), never a block.
-2. **Tables.** n = 8, 12, 16 at `courts == n/4`, per the cross-cutting decision above.
-   Validate every table with the scorer before trusting it — published schedules are
-   often wrong. Anything else (fewer courts, `n` not divisible by 4, more rounds than a
-   table holds) falls through to the greedy generator, seeded from the table's prefix
-   counts when one exists.
-3. **Defaults.** Courts = `floor(n/4)`, and the field's max clamps live as `n` changes —
-   it cannot be set higher. Rounds = `min(naturalLength, 8)`, editable; a 15-round n=16
-   tournament is correct math and a bad Tuesday, so the default is a capped prefix, not
-   the full table. The live line under the textarea is always a readout of the scorer
-   against the schedule actually generated, never an assertion from the config — for a
-   clean prefix that reads "no repeat partners, nobody sits out"; when `n mod 4 != 0` or
-   courts is short of `n/4`, it reads "N players sit out each round, rotating evenly."
-4. **Min and max players.** 4 to 32. Above 32 the greedy search gets slow and nobody runs
-   a 40-person rotating round robin on one schedule.
-5. **Entry and zero-state.** The textarea is the first screen. Two-speed rendering: the
-   consequence line updates on every keystroke (cheap, and knowable up front for the
-   table cases); the schedule table itself renders on debounce, paste, or blur, so the
-   grid doesn't hard-reshuffle mid-keystroke against a "motion: none" design direction.
-   Below n = 4, show a greyed example draw sheet, not empty space. No wizard, no
-   "generate" button in the critical path (keep one for re-seeding, which just writes a
-   new seed — see `match-mixer/CONTEXT.md`'s **Seed**).
-6. **The stats line.** Partner repeats, bye spread, max opponent repeats, and pairing
-   coverage — computed by the scorer, per (3). **Amended 2026-09-09 (#477): the partner
-   matrix is cut.** It shipped in RR-1 and came out again: it named a failure it could not
-   locate (a cell above 1 says a pair repeated, not which rounds), and its verdict was
-   already in the summary line. What stands in its place is coverage ("18 of 66 possible
-   pairings") in that line, and a repeat boxed on the pair in the round it happens in — no
-   orange, which stays reserved for "round in progress". Reason from this, not from the
-   brief's §5 bullet or the original wording above.
-7. **Persistence.** `localStorage` only, debounced — no URL/share yet (that's RR-3). Cost
-   of deferring it is near zero because `seed` is already a first-class config field, so
-   RR-3's share link is serializing a value that already exists, not a refactor.
-8. **Output.** Print stylesheet ships in RR-1, not RR-3 — cheap given the grid markup the
-   design direction already requires, and it's the only way a club actually uses this on
-   a Saturday. The brief's "one round at a time on a phone" is a CSS concern (full grid
-   always in the DOM); implementing it in JS would make print RR-3's problem to undo.
+- Item 5's "no generate button in the critical path" is wrong. #395 shipped as *draw on a
+  button, not a keystroke*: the consequence line still updates live, the grid renders on
+  an explicit press. It is now the Draw magnet, the only red fill on the surface
+  (DESIGN.md).
+- The partner matrix is **cut** (#477). Coverage in the summary line and a repeat boxed on
+  the pair in the round it happens in stand in its place. CONTEXT.md says why, and says
+  not to reintroduce it under another name.
+- **Print is a demotion of the board, not the constraint that shapes it** (#482 to #489).
+  The brief's "the grid is the interface" direction is superseded by DESIGN.md. Item 8's
+  framing — print as the way a club actually uses this — is the half that stayed true; the
+  part where print drives the markup is the half that did not.
 
 ### RR-2 · Courtside mode
 
@@ -746,47 +674,29 @@ every other generator gets wrong and the reason organizers give up and freehand 
 5. When does a round lock?
    ➡️ Explicit "next round" tap by the organizer. Entering all scores does not lock.
 
-### RR-3 · Share, roster memory, find-me, print
+### RR-3 · Share, roster memory, find-me, print — shipped
 
-**Size:** S now, was M. **Blocked by:** nothing — RR-1 is done. **Row 3**, moved up from
-row 11 on 2026-09-08.
+**Complete 2026-09-10**, across two initiatives. Roster memory (#396, plus clear-with-undo
+in #441) and print (#397) landed early inside RR-1. The share link and find-me were specced
+as #490 and ticketed #491 to #495: one reader for untrusted Config (#491), a link that
+carries the board (#492), an address bar that never claims to be a board it isn't (#493), a
+link minted before a generator change saying so (#494), and find-me (#495).
 
-**Two of the four already shipped in RR-1**: roster memory (#396, last roster restored on
-return, plus clear-with-undo in #441) and print (#397). What's left is the share URL and
-find-me. Re-size and re-scope this before ticketing it; the claim below is stale in its
-back half — and it has no issue yet, so it needs a `/to-spec` pass first, which is cheap
-because every open question below already has a settled answer.
+This was row 3, taken deliberately because it was the only remaining row both fully decided
+and half a day. It did what the slot was for: it closed before the night rather than
+sitting open across it.
 
-**Why it's now row 3.** Not because it grew in importance; because it shrank. It is the
-only remaining row that is both fully decided and half a day, which makes it the only
-thing that fits in front of Saturday without being in flight across it. One ordering
-note in its favour: the URL encodes Config, and RR-6 later adds Pool Count to Config, so
-ship the encoder with a missing field reading as its default (`poolCount = 1`) and links
-minted this week keep working after pools land.
+**Three things that still govern rows below.**
 
-**Claim.** Completes v1. The share link puts the Juice Bros name in front of the whole
-group every week; roster memory is the second-biggest reason an organizer comes back;
-print is how half of rec centres still run this.
-
-**Already decided.**
-- The URL encodes the seed and config (players, courts, rounds, toggles), not the
-  schedule. Regenerate deterministically. Scores are not in the URL in v1.
-- Print stylesheet: black on white, hairlines, page breaks per round and per scorecard,
-  no orange (brief section 4).
-
-**Open questions.**
-1. URL encoding?
-   ➡️ Compressed JSON in one query param. Cap the name list so the link stays under
-   2,000 characters; beyond that, fall back to a "names too long to share" message.
-2. Roster memory?
-   ➡️ Last five rosters in localStorage, "load last time" as the first affordance on a
-   return visit, with a tap to remove the absent. No account, ever.
-3. Find-me?
-   ➡️ Tap any name and everything else dims; the name sticks in localStorage on that
-   device. One tap to clear.
-4. Per-player cards?
-   ➡️ Yes, as a print view and as the find-me state on a phone ("You're on Court 2 in
-   rounds 1, 3, 4, 6. Sitting out round 5.").
+1. **The URL encodes Config, not the Schedule** — seed, roster, courts, rounds, toggles —
+   and regenerates deterministically. Scores stay out of the URL; RR-5 is where they get a
+   backend, if ever.
+2. **An absent field reads as its default**, which is what makes RR-6 cheap: a link minted
+   today has no Pool Count, reads as `1`, and keeps working after pools land. The
+   encoder was built with that in mind rather than retrofitted.
+3. **A link that can no longer reproduce its board says so** (#494, via
+   `GENERATOR_VERSION`). Any table change is therefore a visible event, not a silent one.
+   RR-4 and RR-6 both change what a Config generates, so both owe this a bump.
 
 ### RR-4 · Constraint toggles (#391, open)
 
@@ -872,7 +782,8 @@ self-contained round robin that happens to share courts and a printout with the 
    ➡️ Rounds stays one global Config field (a time slot across every court, per the
    existing Round definition) — organizers running pools side by side expect to call
    "next round" once for everyone. Each pool's own generator fills its slice of that
-   Round from its own table/greedy search, same fallback rule as RR-1 item 2.
+   Round from its own table/greedy search, same fallback rule RR-1 shipped (tables keyed
+   on `(n, courts)`, greedy seeded from the table prefix otherwise).
 2. Minimum players per pool?
    ➡️ 4, same floor as the whole-roster minimum today. Below that a pool is nothing but
    byes. Validate against `players / poolCount`, not just total players — 15 players
@@ -881,8 +792,12 @@ self-contained round robin that happens to share courts and a printout with the 
    ➡️ Stacked sections (Pool A's grid, then Pool B's, each with its own summary line) over
    one interleaved grid — keeps RR-1's grid markup and print stylesheet almost unchanged.
    **Simplified 2026-09-09 (#477):** this used to have to decide one matrix per pool
-   against one combined, and with the matrix gone there is nothing to duplicate. Still
-   worth a pass in Impeccable against the brief's direction before locking it.
+   against one combined, and with the matrix gone there is nothing to duplicate.
+   **Re-aimed 2026-09-12:** the surface is no longer a grid on a sheet, it is The Board
+   (#482 to #489), so the open question is what a second pool *is* on that board — a second
+   framed board, or a divided one — and print follows from the answer rather than setting
+   it. Still wants an Impeccable pass, now against `match-mixer/DESIGN.md` and not the
+   brief.
 4. Naming?
    ➡️ Pool A/B/C…, not editable in v1. A rename field is a cheap follow-up, not a blocker.
 
