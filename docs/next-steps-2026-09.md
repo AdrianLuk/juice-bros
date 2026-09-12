@@ -421,14 +421,20 @@ OD-6, and after 20:00 tonight none of it is obtainable:
    running a social, nothing to do with On Deck. **The pitch survives its only data
    point.** Recorded as closed rather than deleted, because the answer is what makes item 7
    the interesting question instead of this one.
-7. **Is anyone taking the club over?** The question to ask tonight, and worth asking
-   directly rather than waiting to overhear. A club whose only problem is that its
-   organizer is leaving the country is exactly the kind someone else in the room might
-   pick up — and if they do, **On Deck's second club is already in the building tonight.**
-   Those players have scanned the sign, stood in the queue and watched the board; whoever
-   inherits them is the warmest first self-serve organizer this project could ask for, and
-   a great deal better than a stranger off a search result. A no is worth knowing too: it
-   means a healthy club died with a single `owner_id`, which is OD-6 question 10.
+7. ~~**Is anyone taking the club over?**~~ **Answered 2026-09-12, also before the night:
+   no.** There is no successor and no warm second club. On Deck ships into a cold market,
+   which is what OD-6 has to be built for.
+
+7b. **Why will nobody take it over — which part of the work is the part nobody wants?**
+   This is the question that replaces item 7, and it is the most valuable one left in the
+   night. "Nobody wants the job" is the finding; *which* job is the actionable half, and
+   only the people in that room can say. On Deck reduces the night-of work — the queue,
+   the calling, the board. It does nothing about booking the venue, collecting money, or
+   chasing forty people in a group chat. **If the part nobody wants is the night-of
+   chaos, On Deck is aimed correctly and this club is evidence for it. If the part nobody
+   wants is the admin around it, On Deck is solving the half that was never the
+   bottleneck**, and that is worth learning from one conversation tonight rather than from
+   a year of building. Ask two or three regulars, not just the organizer.
 8. **Permission, explicitly.** To use the club's name, the numbers, and the photographs on
    a public landing page (OD-6 slice 5). Worth getting tonight while everyone is in the
    room and goodwill is high; a club that no longer exists is much harder to get consent
@@ -618,11 +624,13 @@ feature-complete and shipped every issue from #238 to #351.
   second. A person still runs at most one Club. A Club needs more than one person able to
   open its night, which is a schema change (an owners join table, or a second column) and
   wants an ADR.
-- Co-organizers are additional owners per Club, invited by email. **No longer settled that
-  this is instead of a handoff** (reopened 2026-09-12 — see question 10). It was decided
-  against "the Organizer's phone died," where a co-owner plausibly already exists. It is
-  weaker against "the Organizer has left the country," where nobody thought to add one in
-  advance and the founder is no longer around to add anyone.
+- Co-organizers are additional owners per Club, invited by email. **Whether that is
+  instead of a handoff is reopened, mildly** (2026-09-12 — see question 10). It was decided
+  against "the Organizer's phone died," where a co-owner plausibly already exists; it is
+  weaker against "the Organizer is gone for good," where nobody thought to add one in
+  advance. Note the limit, because the first draft of question 10 overstated it: neither
+  feature would have saved our own club, which ended for want of anyone willing to run it
+  rather than for want of a second `owner_id`.
 
 **Slices, all in one release.** Ticket them as vertical slices with blocking edges as
 usual; the release is what ships, not each slice.
@@ -687,11 +695,15 @@ usual; the release is what ships, not each slice.
 above were written when this was a nicety, and none of them is the hard part any more):
 
 6. Who is the first outside club, concretely?
-   ➡️ Not answered, and it is the one that matters. Self-serve is worth building either
-   way, but the release is aimed differently depending on whether the first few clubs are
-   people we can phone or strangers off a search result. The old "don't onboard a second
-   club until two sessions have run" caution collapses to this: the first outside club
-   should be reachable, and the landing page can be live before that is true.
+   ➡️ **Nobody, as of 2026-09-12.** Asked and answered the hard way: our own club is
+   ending and no one is taking it over, so there is no successor, no warm hand-off, and no
+   second club in the building. **OD-6 ships into a cold market**, and that settles the
+   shape of the release rather than leaving it to taste — with no warm lead there is no
+   version of this where an organizer is walked through signup by us, so the demo is not
+   an optional nicety on top of self-serve, it is the only thing standing where a
+   conversation used to. This is the strongest argument for the one-release call above.
+   The old "don't onboard a second club until two sessions have run" caution is not just
+   self-locking, it is moot: there is nobody to withhold.
 7. Does a Club created by a stranger need anything our hand-seeded one didn't?
    ➡️ Tonight is the study. Vanessa is the nearest thing to a stranger organizer this
    project will ever observe, and OD-0's capture list item 5 exists to answer this.
@@ -710,28 +722,35 @@ above were written when this was a nicety, and none of them is the hard part any
     which would have made this a question about retention. It is not that. She has visa
     trouble and is going home. The club is not unhealthy and the app did not fail her.
 
-    That makes the failure mode *worse*, not better, and much more clearly ours. An
-    organizer who burns out takes a fading club with them, and losing it costs little. An
-    organizer who has to leave the country takes a **working** club with them — players who
-    turn up, a room that runs, a queue that works — and it dies anyway, because
-    `on_deck_clubs_one_per_owner` is a unique index on `owner_id` and a Club is therefore
-    welded to exactly one person who can open its nights. Nothing about the club needed to
-    end. One person's paperwork ended it.
+    **Corrected again, same day, and this one is a retraction.** The draft above this
+    argued that a working club was about to be killed by a schema — that
+    `on_deck_clubs_one_per_owner` welds a Club to one person, so a healthy room dies when
+    that person leaves. It read well and it is not true of this club. **Nobody is taking
+    the club over** (capture item 7). Co-ownership would have had nobody to be, and a
+    transfer path would have had nowhere to transfer to. The schema is not what ended this
+    club, and claiming it was would be flattering the product at the cost of the actual
+    lesson.
 
-    So the question is not "do organizers stick around" but **"can a Club survive losing
-    the person who made it?"** Today the answer is no, and the first club On Deck ever had
-    is the proof. It is the strongest argument in this document for slice 2b, which was
-    justified until now only as night-of resilience.
+    The actual lesson is harder. **At this club, exactly one person was willing to do the
+    work, and when she left there was no second.** That is not a database constraint, it is
+    the shape of the market: the scarce thing is not clubs, venues or players, it is people
+    willing to organize. On Deck's addressable unit is that person, and they are rarer than
+    "rec clubs in Toronto" makes them sound.
 
-    It also reopens something the doc had settled. "Co-organizers are additional owners per
-    Club, not a handoff" was decided against the phone-dies scenario, where a co-owner
-    plausibly already exists. Against this one it is weaker: nobody adds a co-owner before
-    they need one, and by the time they need one the founder has already gone. A real
-    **transfer** path — hand a Club to someone who is not yet an owner — may be needed as
-    well, and onboarding may need to ask for a second owner rather than offering it. Grill
-    both; do not assume the earlier call still holds. OD-0 capture item 7 is the live test:
-    if someone in the room tonight wants to take the club over, this stops being
-    hypothetical immediately.
+    Which cuts both ways, and the doc should hold both. Against: a funnel aimed at
+    organizers is narrower than one aimed at clubs, and OD-6's demo-to-signup numbers will
+    show it. For: if the binding constraint on a club existing is that organizing is too
+    much work for anyone to volunteer for, then a tool that removes some of that work is
+    aimed at exactly the right problem — and a club folding for want of a willing organizer
+    is the strongest possible statement of the problem. **Capture item 7b decides which
+    reading is right**, because it asks which part of the work is the part nobody wanted.
+
+    Slice 2b survives all of this, on its original and more modest grounds: a phone dies, a
+    volunteer is sick, an organizer is away for a weekend. That is worth building. It is
+    not a rescue for a club nobody wants to run, and it should not be sold to this grill as
+    one. The reopened handoff-versus-co-owner question stays open on the same modest
+    footing — nobody adds a co-owner before they need one — and not on the strength of a
+    club this feature could not have saved.
 
 ---
 
