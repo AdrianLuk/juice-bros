@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ClipboardList, Grid3x3 } from "lucide-react";
+import { CalendarCheck, ClipboardList, Grid3x3, Ticket } from "lucide-react";
 
 export type AppStatus = "coming-soon" | "live";
 
@@ -68,6 +68,21 @@ export const apps: AppItem[] = [
       "Paste your list of names and get every round back at once",
       "Any roster from 4 to 32, on however many courts you have free",
       "Nobody partners the same person twice, and byes rotate evenly",
+    ],
+    terms: ["Free", "No sign-up", "Open now"],
+  },
+  {
+    slug: "drum-roll",
+    title: "Drum Roll",
+    href: "/tools/drum-roll",
+    description:
+      "Run a prize raffle without paper tickets. Names and tickets in, a winner out, and the room can check the draw.",
+    icon: Ticket,
+    status: "live",
+    highlights: [
+      "Put names in from your own phone, or let people sign themselves in",
+      "Buying more tickets really does improve your odds",
+      "The seed shows before each draw, so nobody has to take it on trust",
     ],
     terms: ["Free", "No sign-up", "Open now"],
   },
