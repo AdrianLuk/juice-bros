@@ -1,11 +1,20 @@
 # Next steps: Booking Buddy, On Deck, Round Robin Generator
 
-Status: planning input, not committed scope. Written 2026-09-04. **Third pass 2026-09-12,
-the morning of the night itself.** Rows 1 to 3 are all shipped, OD-0 is tonight, and the
-pre-night ordering rules the last two passes spent most of their length arguing toward
-expire when it starts. Shipped initiatives are pointers now rather than copies: their
-decisions live in ADRs, CONTEXT files and code comments, and this doc says where instead
-of restating them. See **Shipped, and where it went** below.
+Status: planning input, not committed scope. Written 2026-09-04. Third pass 2026-09-12
+(shipped rows became pointers; their decisions live in ADRs, CONTEXT files and code
+comments, and this doc says where instead of restating them — see **Shipped, and where it
+went**).
+
+**Fourth and fifth passes, 2026-09-12.** The fourth recorded that tonight is TO Pickleball
+Club's last night, which removed the premise the On Deck half of this doc rested on — "the
+retro, then two or three more real sessions" — and moved the gate from OD-0 to OD-6.
+
+**The fifth goes further, and it is the one to read.** The club is not using the app
+tonight. There is no first session, no retro, no real event log, no Session Summary, and
+no photographs of On Deck in a room. **OD-0 does not happen, and cannot be made to happen
+by us.** On Deck is a feature-complete v1 that has never been used by anyone and has no
+path to a first user except a stranger. Every consequence below follows from that, and
+the doc no longer pretends otherwise.
 
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
@@ -38,20 +47,43 @@ more. All assume a solo dev with agent help.
 
 ### Suggested interleave across the three apps
 
-Third pass, 2026-09-12. The two previous passes both sequenced around the booked Saturday,
-and the whole point of that sequencing is that it is now spent: **OD-0 is tonight.**
+Fifth pass, 2026-09-12. The pre-night rules are spent — they were build only what the
+night needs, and let nothing be in flight across Saturday, and between them they picked
+rows 1 and 3. What replaces them is one fact and its consequences.
 
-The pre-night rules did their job and are recorded once, in the past tense, so this
-section stops growing a new layer every time it is touched. They were: build only what the
-night needs; let nothing be in flight across Saturday. Together they picked rows 1 and 3
-and kept rows 6 onward out. What they leave behind is the one rule that has not expired:
+**There is no first session.** The club is not running On Deck tonight and is finishing
+afterwards. OD-0 does not happen, and no rearrangement of this table makes it happen: it
+needed a venue, an organizer and fifty players, and the only set of those this project
+had access to is gone. So the ordering question is no longer "what does the retro teach
+us first" — there is no retro — it is **"what gets a complete stranger to run a night on
+software nobody has ever run a night on."**
 
-- **The retro reorders everything below row 5.** Rows 6 onward are guesses until it
-  exists. They were ordered *after* it on purpose, and the way to get this table wrong now
-  is to start one because it is specced and the night is over but the retro isn't written.
+That splits the On Deck rows in two, and the split is harsher than the fourth pass's:
 
-For today specifically: nothing new starts. Print the sign, run the night, write the
-retro. Rows 4 and 5 are the whole day.
+- **Rows that need a real session** — OD-1's offline behaviour, OD-2, OD-3, OD-4, and now
+  OD-5 again. These are not retro-gated, or second-club-gated. They are gated on the
+  **first** session, by someone we have not met, on a club that does not exist yet. That
+  is two steps away, and pretending otherwise is how they get built on guesses.
+- **Rows that make that possible** — OD-6, and the two non-code rows that feed it. It is
+  the entire On Deck plan now, not the first item of one.
+
+Four rules:
+
+- **Correct the record before shipping anything new.** The live landing page says, in the
+  present tense, that we are building On Deck with a club that is finishing and never ran
+  it. That is a copy fix, it is half an hour, and it comes before the release rather than
+  inside it.
+- **A row that needs a real session cannot be started to make one appear.** Unchanged from
+  the fourth pass and truer now. Building OD-2 gets nobody to use On Deck. OD-6 might.
+- **The demo is no longer marketing.** It is the only end-to-end exercise of the Floor,
+  Display and Kiosk that will ever have existed, including for us. See OD-6 slice 1.
+- **Separate what buys artifacts from what buys evidence**, because the two cheap non-code
+  moves available do different jobs and are easy to confuse. A Juice Bros night (row 6)
+  buys artifacts: a real event log, real numbers, real photographs, a real load. It buys no
+  evidence about onboarding, because the person running it built it, and a test that cannot
+  fail measures nothing. A proxy stranger (row 5) buys the evidence and none of the
+  artifacts, for the price of an afternoon. **Do both, and do not let the first one answer
+  the second one's question.**
 
 ✅ means shipped to master; a blank cell means not started.
 
@@ -60,28 +92,38 @@ retro. Rows 4 and 5 are the whole day.
 | 1 | ✅ | OD-6 Printed Club QR sign (slice 3 only) | Shipped 2026-09-08 (#463, PR #466). `/on-deck/home/qr` is now the sign itself, printing on Letter and A4, plus two open routes serving the bare code as a file for a print shop or a group chat. Nothing now stands between the booked night and its checklist except printing one |
 | 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
 | 3 | ✅ | RR-3 remainder — share URL and find-me | Shipped 2026-09-10. Specced as #490 and ticketed #491 to #495, all closed inside one day. RR-3 is now complete on all four counts: print and roster memory landed early inside RR-1, the share link and find-me landed here. It cleared the gap in front of the night exactly as the slot intended, and nothing was left in flight across Saturday |
-| 4 |  | **OD-0 Run a real Saturday — tonight** | Not code. The fixed point everything above was timed against and everything below is informed by. The last blocker was a row, not a commit: the first Club is seeded by hand and only the owner's own login can open a night, which #487 recorded and closed out on 2026-09-09 |
-| 5 |  | OD-0 retro in `on-deck/docs/` | The actual deliverable of the night, and the only thing that should be written tomorrow. Until it exists the night's value decays to anecdote and rows 6, 8, 9 and 15 stay guesses. #469 shipped the reader, so the Summary's numbers come off `/on-deck/home/summaries` rather than out of a SQL client |
-| 6 |  | OD-1 Venue resilience | The first thing the retro can aim. Do not pre-empt it |
-| 7 |  | BB-1 Recurring games | Unchanged in importance, the retention lever for two docs running. It waits only because it can't be rushed by a date and On Deck can — and because it is the one L on the table, which makes it the exact shape of work rule one says not to have in flight on Saturday. It starts after the retro is written, not before |
-| 8 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session, and the retro will say whether it's the right one |
-| 9 |  | OD-6 Demo night, self-serve Club, first-night kit, landing flip (slices 1, 2, 4, 5) | Correctly *after* the night: slice 5 needs real Session Summary numbers, and the rest is second-club work |
-| 10 |  | RR-6 Pools (#392) | **Deliberately ahead of RR-2.** Pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock, and standings *on top of* a Schedule. In the other order, courtside mode gets built twice, or pools arrive as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-board layout against `match-mixer/DESIGN.md`. That thinking costs no branch, so it can happen any time |
-| 11 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked since 2026-09-07, but now sits above the Schedule shape RR-6 settles rather than underneath it |
-| 12 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
-| 13 |  | BB-4 Copy for group chat | Small, high-use |
-| 14 |  | RR-4 Constraint toggles (#391) | Fixed partners, singles, skill balance, mixed doubles. Filed and open, `needs-triage`. Genuinely orthogonal to RR-6 — each pool runs whichever Format is picked — so the order between the two is free, and it stays behind because a club night that needs two pools is more common than one that needs fixed partners |
-| 15 |  | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by two or three real sessions |
-| 16 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
-| 17 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
+| 4 |  | **Correct the landing page** | **New, and first, 2026-09-12.** `sections/stays-social.tsx` says "We're building On Deck with TO Pickleball Club for their Saturday socials" in the present tense, on a live public page, about a club that is finishing and never ran the app. `sections/at-the-venue.tsx` and `courtside-board.tsx` also render the club's name as the illustrated example. S, and it blocks nothing — but shipping an adoption release off a page making a claim that stopped being true is worse than the day it costs |
+| 5 |  | **Proxy-stranger walkthrough** | **New, 2026-09-12, and before OD-6 is specced.** What the club's withdrawal actually cost is not a session, it is *a non-author using the software* — and that part is replaceable in an afternoon. Hand On Deck to someone who plays pickleball, has never seen it and did not build it; ask them to create a Club and run a night off the dev console's simulated players (#351); say nothing. No venue, no fifty people. Every question they ask aloud is a line of copy slice 2 or slice 4 is missing. The only cheap correction available for the blind spot in OD-0′ question 3 |
+| 6 |  | **A Juice Bros social night** — book it now, lands whenever | **New, 2026-09-12.** Not code, long lead, runs in parallel with everything below. It buys back four things the doc had written off as permanently lost: a genuine event log for the demo instead of an authored one, real Summary numbers and photographs for the landing page, and a first real load of the Floor, Display and Kiosk with fifty people in a room. It buys **no onboarding evidence** — the person running it wrote it, so the test cannot fail and therefore proves nothing about the part that is uncertain. Book it for the artifacts; row 5 is what answers the questions |
+| 7 |  | **OD-6 The adoption release** (demo night, self-serve Club, co-owners, first-night kit, landing flip) | **The whole of On Deck's plan, not the first item of one.** With no first session and no club, every other OD row is two steps away: it needs a stranger to sign up, and then that stranger to run a night. This is the only row that reaches the first of those. Shipped as one release — with no warm lead there is no version where somebody is walked through signup by us, so demo and self-serve are halves of one door rather than two deliverables |
+| 8 |  | BB-1 Recurring games | The month's other goal and now the nearer one, because it needs no user we do not have. Booking Buddy has people using it; On Deck does not. The one L on the table, unchanged in importance, and no longer waiting on anything at all |
+| 9 |  | **OD-0′ A real session, run by somebody else** | **Inverted 2026-09-12.** OD-0 was the gate this whole doc was sequenced against, and it is now downstream of OD-6 rather than upstream of everything: a real night can only happen after a stranger has a Club and chooses to run one. Still not code, still the thing that turns every row below from a guess into a decision, but it is now an outcome to be earned rather than a date to build toward |
+| 10 |  | OD-1 Venue resilience (offline behaviour only) | Its two self-serve pieces moved into row 7. What is left needs a real room on real gym wifi, which is row 7, which is row 5 first |
+| 11 |  | OD-2 Announce turnovers | Cheapest big win for a self-serve session. Unchanged, and now two steps back rather than one |
+| 12 |  | RR-6 Pools (#392) | **Deliberately ahead of RR-2.** Pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock, and standings *on top of* a Schedule. In the other order, courtside mode gets built twice, or pools arrive as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-board layout against `match-mixer/DESIGN.md`. That thinking costs no branch, so it can happen any time |
+| 13 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked since 2026-09-07, but now sits above the Schedule shape RR-6 settles rather than underneath it |
+| 14 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
+| 15 |  | BB-4 Copy for group chat | Small, high-use |
+| 16 |  | RR-4 Constraint toggles (#391) | Fixed partners, singles, skill balance, mixed doubles. Filed and open, `needs-triage`. Genuinely orthogonal to RR-6 — each pool runs whichever Format is picked — so the order between the two is free, and it stays behind because a club night that needs two pools is more common than one that needs fixed partners |
+| 17 |  | OD-3 Wait bands, OD-4 TV Display, OD-5 Recap image | Polish informed by real sessions, all three of them back here as of 2026-09-12. OD-5 was briefly promoted on the strength of tonight producing one real Summary; tonight produces none, so a recap image again has nothing to be designed against |
+| 18 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
+| 19 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
 
 No row sits outside the order.
 
-If only one thing per app ships this month: RR-1, OD-0, BB-1. Two of the three are now
-settled — RR-1 on 2026-09-07, and OD-0 tonight, whatever it turns up. That leaves **BB-1
-as the month's only remaining goal**, and it is deliberately the first non-On-Deck row
-after the retro. It is also the one L on the table, which is why it never fit in front of
-the night and does fit after it.
+If only one thing per app ships this month: RR-1, OD-0, BB-1. RR-1 landed 2026-09-07.
+OD-0 will not happen. That leaves BB-1, and **OD-6 in OD-0's place** as the On Deck goal.
+
+The uncomfortable version, worth writing down plainly rather than discovering later: **On
+Deck is a feature-complete v1 that nobody has ever used.** Not "has not run at scale" —
+has never run a real night at all, and after tonight has no prospect of one that does not
+begin with a stranger signing up. Every issue from #238 to #351 shipped, the queue works,
+the board works, the sign prints, and the entire thing has been exercised by its authors
+and a dev console. That is not a failure of execution; it is what happens when the one
+venue in reach disappears for reasons that have nothing to do with the software. But it
+does mean the next decision is a product one and not an engineering one, and the honest
+question under OD-6 is not "what should we build next" but **"is anyone going to run
+this, and what would it take to find out cheaply."**
 
 Worth naming while the table is this clean: rows 1, 2 and 3 are the first stretch where
 what got built and what this table said to build are the same list. The earlier passes
@@ -130,8 +172,9 @@ home and this doc is not it.
   Vanessa owns it. The durable lesson is the ordering: the insert joins on an `auth.users`
   row that only her first sign-in creates, so an insert run any earlier would have matched
   nothing and reported success. One owner per Club plus a Volunteer Link that cannot start
-  a Session means her login is the only thing in the world that can open tonight — which
-  is the sharpest argument the repo has for the co-organizer question parked under OD-6.
+  a Session means her login was the only thing in the world that could have opened a night.
+  Moot in the event — no night was opened — but the constraint is real and carries into
+  self-serve, where it is slice 2b of OD-6.
 - **Booking Buddy import/sync hardening, and marketing-site work** — roughly two full days
   across 2026-09-07 and 2026-09-08, none of it on this table, all of it closed. Itemised
   in git and in the issue list; not re-listed here.
@@ -143,12 +186,12 @@ it shipped the next day, and it was half a day's work, which is the more useful 
 deadline-shaped row had been sitting behind work that felt more urgent because it was
 already in flight.
 
-The test that came out of it, and the one thing here worth carrying past tonight:
-**does the night or the retro fail without it?** The sign passed. The reader passed. OD-1's
-venue resilience did not, because nobody yet knows which failure modes are real, which is
-precisely what tonight is for. After the retro the test retires with the night, and the
-rule in its place is the plainer one already in the interleave: rows 6 onward are the
-retro's to order.
+The test that came out of it — *does the night or the retro fail without it?* — sorted
+the last two weeks well and **retired unused on 2026-09-12**, when the night and the retro
+both stopped existing. Recorded because the shape of it was right and the replacement in
+the interleave is the same instrument pointed at a different target: *does this get anyone
+to run On Deck?* The sign and the reader passed the old test. Only OD-6 passes the new
+one.
 
 ---
 
@@ -329,10 +372,14 @@ nudge in the roadmap needs to buzz. Pickle Point Pal already has the PWA plumbin
 
 ## On Deck
 
-Diagnosis: every issue in the spec shipped (#238 through #351, all closed). It is
-feature-complete for v1 and has never run a real Saturday. That's the only gap that
-matters. Every code initiative below is gated on OD-0, except OD-6's demo night and
-sign, which need no real session and de-risk our own first night.
+Diagnosis, rewritten 2026-09-12: every issue in the spec shipped (#238 through #351, all
+closed). It is feature-complete for v1 and **has never run a real night, and no longer
+has one booked**: TO Pickleball Club is not using it tonight and is finishing afterwards.
+The gap that used to matter — "has never run a real Saturday" — did not close, it widened
+into the one that matters now:
+**On Deck has no way to acquire the next club.** An organizer cannot evaluate it, cannot
+start it, and until #463 could not put it on a wall. Every code initiative below is
+therefore gated on OD-6 rather than OD-0, and OD-6 is gated on nothing.
 
 **Frozen for now:**
 - Playing Style (deferred in the spec; Session Summaries decide whether the mismatch
@@ -340,50 +387,109 @@ sign, which need no real session and de-risk our own first night.
 - Scoring, results, anything cross-week (ADR 0001, ADR 0002).
 - Team assignment inside a Foursome (ADR 0003).
 
-### OD-0 · Run a real Saturday
+### OD-0′ · A real session, run by somebody else
 
-**Tonight, 2026-09-12.** Both blockers are closed: the printed Club QR sign shipped
-2026-09-08 (#463), and the Club row — the one that was never a commit — was seeded
-2026-09-09 (#487), owned by Vanessa. Nothing in the repo or the database is holding this
-up. What is left is physical: print the sheet, and check the code scans off paper at the
-distance a player will actually stand. Neither can be verified from a test suite.
+**Rewritten 2026-09-12, and inverted.** This was the fixed point the entire doc was
+sequenced around: a booked Saturday with TO Pickleball Club, gating every other On Deck
+row. It will not happen. The club is not running On Deck tonight, and it is finishing
+afterwards. Everything the original section planned for — the runbook, the observer, the
+retro, the capture list — needed an organizer running the app in a room, and there is no
+longer one to run it.
 
-One operational fact worth having in hand before doors open, from #487: `on_deck_clubs`
-enforces one owner per Club and a Volunteer Link deliberately cannot start a Session, so
-**Vanessa's login is the only thing that can open tonight.** If that is awkward in
-practice, it is the single most useful thing the retro can say, because it is the live
-argument for the co-organizer question parked under OD-6 and OD-1 Q3.
+**What that cost, stated plainly**, so no row below quietly assumes otherwise:
 
-**Size:** not code. **Blocked by:** nothing. **Gates:** every other OD initiative.
+- **No event log.** OD-6 slice 1's demo goes back to a synthetic night, as originally
+  specced. Reverted below.
+- **No Session Summary.** OD-5's recap image has nothing to design against and returns to
+  row 17. The landing page has no real numbers to show and will not get any until somebody
+  else runs a night.
+- **No photographs of the app in a room**, which is what a landing page for a live-events
+  product wants most and can fake least.
+- **No retro**, and therefore no calibration for OD-1 through OD-5. They are guesses, and
+  the doc should keep calling them guesses rather than letting the word wear off.
+- **No observed organizer.** Vanessa was the nearest thing to a stranger this project was
+  ever going to watch use the software, which was worth more than any of the above.
 
-**Claim.** One live session with TO Pickleball Club will produce a better next-steps list
-than anything written here. Session Summary already captures the numbers.
+**What survives.** One thing, and only if you are in that room tonight anyway as a person
+rather than as a developer: **which part of running the social is the part nobody wants?**
+The club is ending because exactly one person was willing to do the work and nobody will
+take it on. On Deck reduces the night-of work — the queue, the calling, the board — and
+does nothing about booking the venue, collecting money, or chasing forty people in a group
+chat. If the unwanted part is the night-of chaos, On Deck is aimed correctly. If it is the
+admin around it, On Deck is solving the half that was never the bottleneck. That is a
+conversation with two or three regulars, it needs no software running, and it is the last
+first-hand evidence this project will get for a while. It is worth more than the rest of
+the list combined now that the rest of the list is unavailable.
 
-**Already decided.** Hybrid Floor Mode (volunteer links plus Kiosk). The Organizer keeps
-override from their own phone. Undo covers mistaps.
+**Size:** not code. **Blocked by:** OD-6, and then a stranger's choice. **Gates:** OD-1
+through OD-5.
 
-**Checklist to grill into a runbook** (output: a short retro in `on-deck/docs/`):
-1. Before: print the Club QR on a sign, charge a tablet for the Display or Kiosk, create
-   the Session ahead of time from Club defaults, share the Volunteer Link in the volunteer
-   WhatsApp, decide who is the backup Organizer.
-2. During: one person only watches and writes down every question a Player asks and every
-   place a Volunteer hesitates. Screenshot the board at three points in the night.
-3. After: read the Session Summary at `/on-deck/home/summaries` (attendance, games,
-   utilization, wait distribution, longest wait, skill mix) - a screen as of #469,
-   where this used to mean a SQL query. Write the retro: what broke, what people
-   asked, what the volunteers would change.
+**Claim, unchanged and now unreachable on our own.** One live session produces a better
+next-steps list than anything written here. The Session Summary already captures the
+numbers, the reader shipped in #469, and none of it has ever had a real night to read.
 
-**Open questions.**
-1. Which mode for night one?
-   ➡️ Hybrid, with the Kiosk on a tablet by the courts and the Display on the snack table.
-   Volunteers as the safety net, not the plan.
-2. Do you tell players it's new?
-   ➡️ Yes, one sentence on the QR sign. Lowers the bar for feedback.
+**Open questions — this is a fresh frontier, and the old checklist is void.**
+
+1. Is waiting for a stranger the only path to a first session?
+   ➡️ No — **Juice Bros can run its own social night, and should.** A pickleball podcast
+   with an audience, in the city, running a social under the brand: it costs a venue
+   booking and an evening, it is ordinary podcast content besides, and the app gets used in
+   a real room.
+
+   **But it is worth being exact about what that buys, because it is only half.** A night
+   we run ourselves produces *artifacts* and no *evidence*:
+
+   - **Artifacts, all of them real and all of them currently missing:** a genuine event
+     log for slice 1's demo instead of an authored one, real Session Summary numbers for
+     slice 5, photographs of the board in a room, and a first genuine load of the Floor,
+     Display and Kiosk with fifty people and no author-shaped usage pattern. Every one of
+     these is a thing the doc above records as permanently lost. They are not lost.
+   - **Evidence about onboarding: none.** The person running it built it. He knows what a
+     Club needs, what the Volunteer Link is for, when to hit Last Call, and what the board
+     means, because he decided all of it. Watching him succeed measures nothing that is
+     actually uncertain. **The test is guaranteed to pass, which is exactly why it proves
+     nothing**, and the trap is that a smooth night reads as "onboarding is fine."
+
+   So run it for the artifacts, and do not let it answer question 2 below.
+2. Then what *does* produce onboarding evidence, short of a stranger?
+   ➡️ **A proxy stranger, and this is the cheap one nobody has scheduled.** What was
+   lost when the club dropped out was not "a session" — it was *a non-author using the
+   software*. That part is replaceable for the price of an afternoon: hand On Deck to
+   someone who plays pickleball, has never seen it, and did not build it, and ask them to
+   create a Club and run a night. No venue, no fifty players, no booking — a laptop, a
+   phone and the dev console's simulated players (#351). **Say nothing while they do it.**
+   Every question they ask out loud is a line of copy slice 2 or slice 4 is missing.
+
+   This is worth doing *before* OD-6 is specced rather than after, because it is the only
+   input that can correct the section's central blind spot, named in the next question.
+3. What is the blind spot?
+   ➡️ **That the author knows how to run it.** Every judgement in OD-6 about what a
+   create-a-Club form needs, what the first-night kit should say, and what the landing page
+   has to explain is being made by the one person on earth for whom none of it is
+   necessary. That is not a reason to stop — it is the normal condition of building a
+   product — but it is a reason to prefer convention over intuition in slice 2, to write
+   slice 4's checklist for someone who has never seen a queue app, and to treat "obviously
+   they'll understand X" as the exact sentence to go and check. Question 2 is how to check
+   it cheaply.
+4. If a stranger does run one, how do we hear about it?
+   ➡️ Open. Today nothing tells us a Session happened. The Summary row exists; nobody is
+   notified. OD-6 question 9's analytics is the cheap version.
+5. Does the first outside session need us in the room?
+   ➡️ Open, and worth deciding before offering. Being there produces far better evidence
+   and makes the product look like it needs a founder present, which is exactly the thing
+   ADR 0005 says it must not.
 
 ### OD-1 · Venue resilience
 
-**Size:** M. **Blocked by:** OD-0 (the retro decides which failure modes are real).
-**Needs:** possibly an ADR if Club gains multiple owners.
+**Size:** S now, was M. **Blocked by:** a second club existing (re-gated 2026-09-12 — the
+retro alone can no longer decide which failure modes are real, because one night at one
+venue is one sample and there is no second one coming from us).
+
+**Split 2026-09-12.** Questions 3 and 4 below left this initiative for OD-6. They were
+filed here as venue resilience, but multiple owners per Club and auto-closing a forgotten
+Session are not things a venue teaches you — they are the conditions under which it is
+safe to hand the app to a club we do not control. Questions 1 and 2, what the surfaces do
+when the connection drops, stay here and stay genuinely usage-gated.
 
 **Claim.** Gym wifi drops, the Organizer's phone dies, someone leaves early. The fold over
 an append-only log already makes recovery cheap; the surfaces need to say what's happening
@@ -402,18 +508,18 @@ instead of going blank.
    ➡️ No. Buttons disabled with "back online in a moment." Queuing Kiosk events locally
    and replaying risks conflicting with a Volunteer's phone on cellular. Volunteer phones
    keep working.
-3. Organizer's phone dies: handoff token, or multiple Organizers per Club?
-   ➡️ Multiple owners per Club. Simpler than a handoff, and a backup Organizer is a
-   standing role at a real club anyway. Glossary: Organizer becomes "a person who owns a
-   Club," plural allowed.
-4. Session left open overnight?
-   ➡️ Auto-close after N hours of no events with the Summary computed as if Last Call had
-   fired at the last event. Currently "one open per Club" is enforced, so a forgotten
-   Session blocks next week.
+3. ~~Organizer's phone dies: handoff token, or multiple Organizers per Club?~~ **Moved to
+   OD-6** (2026-09-12). The answer is unchanged — multiple owners per Club — but it is a
+   precondition of self-serve, not a finding from a venue.
+4. ~~Session left open overnight?~~ **Moved to OD-6** (2026-09-12). Same answer:
+   auto-close after N hours of no events, Summary computed as if Last Call fired at the
+   last event. Same reason: `on_deck_clubs_one_per_owner` plus one open Session per Club
+   means a forgotten Session silently blocks a club's next night, and a club we do not
+   run has nobody to notice.
 
 ### OD-2 · Announce turnovers out loud
 
-**Size:** S–M. **Blocked by:** OD-0.
+**Size:** S–M. **Blocked by:** a second club running (re-gated 2026-09-12). Tonight can show whether players miss their call; it cannot show whether speech synthesis survives somebody else's gym.
 
 **Claim.** A Display in a loud gym with names in a list still means people miss their call.
 A chime plus browser speech synthesis replaces the volunteer's voice at zero cost and fits
@@ -435,7 +541,7 @@ is a courtesy on top. Announce is another courtesy, not a replacement.
 
 ### OD-3 · Player wait bands
 
-**Size:** M. **Blocked by:** OD-0 (the Summary's wait distribution calibrates the bands).
+**Size:** M. **Blocked by:** a second club running (re-gated 2026-09-12). Tonight's Summary gives one wait distribution, which is a sample rather than a calibration — bands tuned to one club's court count and turnout would be fitted to noise.
 
 **Claim.** "How long until I'm up?" is the question every Player asks a Volunteer. Match Me
 is windowed (ADR 0004) so there is no strict position, but bands are honest and reduce the
@@ -454,7 +560,7 @@ because the window makes it a lie.
 
 ### OD-4 · TV layout for the Display
 
-**Size:** M. **Blocked by:** OD-0.
+**Size:** M. **Blocked by:** a second club running (re-gated 2026-09-12), and specifically one with a TV or projector. Ours does not settle that.
 
 **Claim.** Most gyms have a TV or projector. The current Display is a dense
 walk-up-and-read tablet list (DESIGN.md). A ten-feet-away screen needs a different layout,
@@ -473,7 +579,7 @@ Orange is LIVE only, blue is on deck, everything waiting is graphite.
 
 ### OD-5 · Shareable recap image
 
-**Size:** S–M. **Blocked by:** OD-0 (need one real Summary to design against). The reader
+**Size:** S–M. **Blocked by:** a real session (OD-0′). **Re-blocked 2026-09-12** — it was briefly the one row tonight unblocked, on the strength of tonight producing one real Summary. Tonight produces none. The argument for it survives intact for whenever a first session does happen: a recap the club posts itself is the cheapest distribution On Deck has, and it renders the same numbers the landing page wants. The reader
 shipped in #469 is what a recap image would be cropped out of, so this is now a
 design job on top of something that exists rather than a build from nothing.
 
@@ -491,16 +597,46 @@ the roster).
 2. Who can generate it?
    ➡️ The Organizer, from the closed Session's page.
 
-### OD-6 · Organizer adoption: demo night, self-serve Club, the sign
+### OD-6 · The adoption release
 
-**Size:** L across four slices (each M or smaller), one of them now done. **Blocked by:**
-nothing for the demo; OD-0 for the landing-page social proof. Don't onboard a *second* real club
-until at least two sessions have run, but the path can be built now.
+**Promoted to row 7 and rescoped on 2026-09-12**, when TO Pickleball Club's last night
+made this the gate. It was organizer adoption as an eventual nicety; it is now the only
+initiative that can produce a second On Deck session anywhere.
+
+**Size:** L, shipped as one release. **Blocked by:** nothing. **Gates:** every remaining
+On Deck initiative.
+
+**The rule that had to go.** This section used to say *"Don't onboard a second real club
+until at least two sessions have run."* That was written assuming our own club kept
+running, so the two sessions would arrive on their own. They will not. Left in place the
+rule is self-locking — no second club until two sessions, and no second session without a
+second club — so it is deleted rather than amended. The caution behind it was real and
+survives in a smaller form: the first outside club should be one we can reach by phone,
+not an anonymous signup we never hear from.
+
+**Why one release rather than the old slice trickle.** The slices were ordered demo →
+self-serve → kit → landing, each shippable alone. That ordering assumed time to iterate
+against a running club. What it produces instead is a half-open front door: demo without
+self-serve lets an organizer get interested and then hit "created by hand, contact us";
+self-serve without the demo asks someone to sign up for a thing they have never seen run.
+Either half alone converts nobody, so the release is the unit.
+
+**Who this is for, stated once because every slice depends on it** (2026-09-12):
+**a stranger running their own social night.** Not us, not a club we know, not a warm
+intro — there are none. That is a positioning decision and it has a sharp consequence for
+how the release is designed: the author's own fluency with On Deck is a liability here
+rather than an asset. He knows what a Club needs, what the Volunteer Link is for, when to
+hit Last Call and what the board means, because he decided all of it, and none of that
+knowledge transfers to the person this release is aimed at. Prefer convention over
+intuition in slice 2, write slice 4 for someone who has never seen a queue app, and treat
+"obviously they'll understand X" as the sentence that sends you to row 5.
 
 **Claim.** Today an organizer can't evaluate On Deck, can't start it, and can't put it on
-the wall without emailing us. The landing page's only real CTA is "Talk to us," a signed-in
-organizer with no Club hits "created by hand, contact us," the Club QR is a raw URL, and
-there is no way to see it work without a venue and 50 people. The gap is not features.
+the wall without emailing us. The landing page's only real CTA is "Talk to us"
+(`sections/hero.tsx`, `sections/stays-social.tsx`), a signed-in organizer with no Club
+hits "On Deck clubs are created by hand for now" (`home/page.tsx`), and there is no way to
+see it work without a venue and 50 people. The gap is not features — the app is
+feature-complete and shipped every issue from #238 to #351.
 
 **Already decided.**
 - Free, and say so plainly on the landing page.
@@ -509,15 +645,46 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
   surface. The dev console (#351) is the precedent for simulated players; the demo does
   not touch it or the DB.
 - `on_deck_clubs` keeps no direct write grants; creation goes through an RPC mirroring
-  `on_deck_update_club_defaults`. One Club per owner stays.
-- Co-organizers are additional owners per Club (same call as OD-1 Q3), not a handoff.
+  `on_deck_update_club_defaults`.
+- **One Club per owner stays; one owner per Club does not** (clarified 2026-09-12, when
+  slice 2b arrived). These were conflated because `on_deck_clubs_one_per_owner` enforces
+  the first and, as a plain unique index on the owner column, accidentally enforces the
+  second. A person still runs at most one Club. A Club needs more than one person able to
+  open its night, which is a schema change (an owners join table, or a second column) and
+  wants an ADR.
+- Co-organizers are additional owners per Club, invited by email. **Whether that is
+  instead of a handoff is reopened, mildly** (2026-09-12 — see question 10). It was decided
+  against "the Organizer's phone died," where a co-owner plausibly already exists; it is
+  weaker against "the Organizer is gone for good," where nobody thought to add one in
+  advance. Note the limit, because the first draft of question 10 overstated it: neither
+  feature would have saved our own club, which ended for want of anyone willing to run it
+  rather than for want of a second `owner_id`.
 
-**Slices, in order.**
+**Slices, all in one release.** Ticket them as vertical slices with blocking edges as
+usual; the release is what ships, not each slice.
+
 1. **Demo night.** Public route, no auth. Organizer taps "Game done" and watches the
    board move; can switch between Floor, Display, and Kiosk views of the same demo state.
+   ~~Seed it from tonight's real event log.~~ **Reverted 2026-09-12** — there is no real
+   log, so this is the canned 40-player night as originally specced. Two things follow.
+   The log has to be *authored*, which means someone deciding what a plausible night looks
+   like without ever having watched one; build it from the Match Me selection rules rather
+   than from intuition, so it is at least internally honest. And this slice stops being
+   marketing: **it is the only end-to-end exercise of the Floor, Display and Kiosk folding
+   a full night that will ever have existed, including for us.** Whatever it turns up is
+   the closest thing to a first session this project has. Treat a bug found here as a real
+   bug, not a demo bug.
 2. **Self-serve Club creation.** Two required fields: club name, court count. Venue
    defaults to the club name, group cap to 4, Floor Mode to hybrid, all editable in
-   settings. Lands on home with Start ready.
+   settings. Lands on home with Start ready. Replaces the "created by hand" panel in
+   `src/app/on-deck/home/page.tsx`.
+2b. **Co-owners, and the forgotten-Session auto-close** — both moved here from OD-1
+   (questions 3 and 4) on 2026-09-12. Not polish: `on_deck_clubs_one_per_owner` plus a
+   Volunteer Link that cannot start a Session means a self-serve club has exactly one
+   person on earth who can open its night, and one open Session per Club means a night
+   nobody closed silently blocks the next one. Tonight demonstrates the first half at our
+   own club, where we can walk over and fix it. At someone else's club it is a dead
+   evening and a support email. Ships with self-serve or self-serve ships a trap.
 3. ~~**Print-ready Club QR sign.**~~ **Shipped 2026-09-08** (#463, PR #466). Landed as
    specced, plus two things the spec did not anticipate: the sheet is drawn once at paper
    proportions so the print stylesheet restates no sizes, and the code is served as a file
@@ -529,8 +696,17 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
    copy for the club chat.
 5. **Landing page flip.** Primary CTA "Try a demo night," secondary "Set up your club."
    A short "when things go wrong" section (board stays up offline, volunteers can add or
-   pause anyone by hand, undo). Replace the hardcoded TO Pickleball Club section with real
-   Session Summary numbers after OD-0.
+   pause anyone by hand, undo). Replace the hardcoded TO Pickleball Club section with the
+   ~~real Session Summary numbers and photographs from tonight.~~ **There are none**
+   (2026-09-12) and there will be none until a stranger runs a night, so this slice has to
+   solve a harder problem than it was written for: **an adoption page for a product with no
+   users, that does not lie about having any.** The club section cannot be updated, it has
+   to go — see row 4, which does that part immediately and separately. What stands in its
+   place is an open question rather than a decided answer: probably the demo itself as the
+   evidence ("here is a night, play with it"), plus the honest version of where this came
+   from, which is that it was built for a real club that ran real socials and the app was
+   ready a few weeks after the club ended. Said plainly that is a better story than a
+   fabricated testimonial, and it is the only true one available.
 
 **Open questions.**
 1. Does the demo play itself, or wait for taps?
@@ -550,6 +726,71 @@ there is no way to see it work without a venue and 50 people. The gap is not fea
 5. Where does the "tell your players" copy live long-term?
    ➡️ On home under the checklist, and again on the closed-Session page for the next
    week's post.
+
+**New questions, and the real frontier for this grill** (added 2026-09-12 — the five
+above were written when this was a nicety, and none of them is the hard part any more):
+
+6. Who is the first outside club, concretely?
+   ➡️ **Nobody, as of 2026-09-12.** Asked and answered the hard way: our own club is
+   ending and no one is taking it over, so there is no successor, no warm hand-off, and no
+   second club in the building. **OD-6 ships into a cold market**, and that settles the
+   shape of the release rather than leaving it to taste — with no warm lead there is no
+   version of this where an organizer is walked through signup by us, so the demo is not
+   an optional nicety on top of self-serve, it is the only thing standing where a
+   conversation used to. This is the strongest argument for the one-release call above.
+   The old "don't onboard a second club until two sessions have run" caution is not just
+   self-locking, it is moot: there is nobody to withhold.
+7. Does a Club created by a stranger need anything our hand-seeded one didn't?
+   ➡️ **Nobody knows, and now nobody will until one exists** (2026-09-12). This was to be
+   answered by watching Vanessa, the nearest thing to a stranger organizer this project
+   was going to observe; she is not using the app. The hand-seeded Club is therefore the
+   only Club that has ever existed and it was created by a SQL insert, which tells us
+   nothing about what a create form needs. Design slice 2 from the Club defaults the
+   schema already requires and expect to be wrong about at least one field.
+8. What stops a public create-a-Club RPC from being an abuse surface?
+   ➡️ Open. One Club per owner is already a natural rate limit of one, sign-in is
+   required, and a Club with no Session costs nothing but a row. Probably sufficient;
+   worth five minutes rather than zero, since this is the first write path in either app
+   that an unvouched account can reach.
+9. Does the demo need its own retro loop?
+   ➡️ Open, and cheap to defer. If the demo is the top of the funnel, knowing how many
+   people open it and how many then create a Club is the only adoption number that will
+   exist. `bb_first_slot`-style analytics is the precedent.
+10. **Does a Club outlive the organizer who created it?** Added 2026-09-12, and the
+    sharpest question here. **Corrected the same day**, once the reason was known: the
+    first draft read the club's ending as evidence that organizers burn out of organizing,
+    which would have made this a question about retention. It is not that. She has visa
+    trouble and is going home. The club is not unhealthy and the app did not fail her.
+
+    **Corrected again, same day, and this one is a retraction.** The draft above this
+    argued that a working club was about to be killed by a schema — that
+    `on_deck_clubs_one_per_owner` welds a Club to one person, so a healthy room dies when
+    that person leaves. It read well and it is not true of this club. **Nobody is taking
+    the club over** (capture item 7). Co-ownership would have had nobody to be, and a
+    transfer path would have had nowhere to transfer to. The schema is not what ended this
+    club, and claiming it was would be flattering the product at the cost of the actual
+    lesson.
+
+    The actual lesson is harder. **At this club, exactly one person was willing to do the
+    work, and when she left there was no second.** That is not a database constraint, it is
+    the shape of the market: the scarce thing is not clubs, venues or players, it is people
+    willing to organize. On Deck's addressable unit is that person, and they are rarer than
+    "rec clubs in Toronto" makes them sound.
+
+    Which cuts both ways, and the doc should hold both. Against: a funnel aimed at
+    organizers is narrower than one aimed at clubs, and OD-6's demo-to-signup numbers will
+    show it. For: if the binding constraint on a club existing is that organizing is too
+    much work for anyone to volunteer for, then a tool that removes some of that work is
+    aimed at exactly the right problem — and a club folding for want of a willing organizer
+    is the strongest possible statement of the problem. **Capture item 7b decides which
+    reading is right**, because it asks which part of the work is the part nobody wanted.
+
+    Slice 2b survives all of this, on its original and more modest grounds: a phone dies, a
+    volunteer is sick, an organizer is away for a weekend. That is worth building. It is
+    not a rescue for a club nobody wants to run, and it should not be sold to this grill as
+    one. The reopened handoff-versus-co-owner question stays open on the same modest
+    footing — nobody adds a co-owner before they need one — and not on the strength of a
+    club this feature could not have saved.
 
 ---
 
@@ -738,7 +979,7 @@ standings from their own phone.
 ### RR-6 · Pools (#392, open)
 
 **Size:** M. **Blocked by:** RR-1. Independent of RR-3; orthogonal to RR-4's Format
-toggle (rotating, fixed-partner, and singles each run once per pool). **Row 10**, and
+toggle (rotating, fixed-partner, and singles each run once per pool). **Row 12**, and
 **ahead of RR-2** — the one non-obvious edge in this section, settled 2026-09-08.
 
 **Why ahead of RR-2.** Pools are not a feature layered on a Schedule, they change what a
