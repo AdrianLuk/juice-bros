@@ -11,6 +11,10 @@ import {
   ticketsIn,
 } from "@/components/apps/drum-roll/lib/engine/fold";
 import { freshSeed } from "@/components/apps/drum-roll/lib/engine/random";
+import {
+  formatRoster,
+  parseRoster,
+} from "@/components/apps/drum-roll/lib/engine/roster";
 import type {
   RaffleEvent,
   RedrawReason,
@@ -155,6 +159,15 @@ function Setup({
   const [tickets, setTickets] = useState(1);
   const [bulk, setBulk] = useState("");
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [copied, setCopied] = useState<"idle" | "copied" | "manual">("idle");
+
+  // The "Copied" note is a confirmation, not a state worth keeping. The manual
+  // fallback stays put, because it is the only way to reach the names.
+  useEffect(() => {
+    if (copied !== "copied") return;
+    const timer = setTimeout(() => setCopied("idle"), 2500);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const addPrize = () => {
     const name = prizeName.trim();
@@ -172,23 +185,38 @@ function Setup({
   };
 
   const addBulk = () => {
-    const names = bulk
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-    if (names.length === 0) return;
+    const parsed = parseRoster(bulk);
+    if (parsed.length === 0) return;
 
     append(
-      ...names.map(
-        (name): RaffleEvent => ({
+      ...parsed.map(
+        ({ name, tickets: count }): RaffleEvent => ({
           type: "ENTRANT_ADDED",
           id: newId(),
           name,
-          tickets: 1,
+          tickets: count,
         }),
       ),
     );
     setBulk("");
+  };
+
+  /**
+   * Hand the roster to the next person. The clipboard is the fast path and the
+   * textarea is what happens when it is refused — an insecure origin, or a
+   * browser that wants a gesture it did not see — because "copy failed" with
+   * no way to get at the names is useless to someone mid-handover.
+   */
+  const copyRoster = async () => {
+    const text = formatRoster(state.entrants);
+    if (!text) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied("copied");
+    } catch {
+      setCopied("manual");
+    }
   };
 
   return (
@@ -257,12 +285,49 @@ function Setup({
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-[var(--bx-ink)]">
-          Entrants{" "}
-          <span className="font-normal text-[var(--bx-muted)]">
-            ({state.entrants.length}, {ticketsIn(state.entrants)} tickets)
-          </span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold text-[var(--bx-ink)]">
+            Entrants{" "}
+            <span className="font-normal text-[var(--bx-muted)]">
+              ({state.entrants.length}, {ticketsIn(state.entrants)} tickets)
+            </span>
+          </h2>
+          {state.entrants.length > 0 ? (
+            <button type="button" className={BUTTON} onClick={copyRoster}>
+              {copied === "copied" ? "Copied" : "Copy list"}
+            </button>
+          ) : null}
+        </div>
+
+        <p aria-live="polite" className="sr-only">
+          {copied === "copied" ? "Entrant list copied to the clipboard" : ""}
+        </p>
+
+        {copied === "manual" ? (
+          <div className="flex flex-col gap-2 rounded border border-[var(--bx-line)] p-3">
+            <label
+              className="text-sm text-[var(--bx-ink)]"
+              htmlFor="drum-roll-manual-copy"
+            >
+              This browser would not take the clipboard. Select all of this and
+              copy it by hand.
+            </label>
+            <textarea
+              id="drum-roll-manual-copy"
+              readOnly
+              className={`${FIELD} h-32 font-mono text-sm`}
+              value={formatRoster(state.entrants)}
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <button
+              type="button"
+              className={`${BUTTON} self-start`}
+              onClick={() => setCopied("idle")}
+            >
+              Done
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[12rem]">
@@ -307,8 +372,9 @@ function Setup({
             Paste a list
           </summary>
           <p className="mt-2 text-sm text-[var(--bx-muted)]">
-            One name per line. Everyone lands with a single ticket, which you
-            can change below.
+            One name per line. Put <code className="font-mono">x3</code> after a
+            name to give them that many tickets, or leave it off for one. A list
+            copied from another phone pastes straight in here.
           </p>
           <textarea
             className={`${FIELD} mt-2 h-32 font-mono text-sm`}
