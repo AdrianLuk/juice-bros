@@ -415,6 +415,23 @@ OD-6, and after 20:00 tonight none of it is obtainable:
 5. **What Vanessa had to be told.** She is the closest thing to a stranger organizer that
    will ever be observed using this. Anything she asked, guessed at, or got wrong is
    directly a self-serve onboarding requirement.
+6. **Why she is ending the club.** Confirmed 2026-09-12: the club is finishing, not
+   pausing for a season, and the decision is hers. This is the most valuable question of
+   the night and the last chance to ask it. On Deck's entire pitch is that running a club
+   social is a burden worth tooling away; if the only organizer this project has ever had
+   stopped organizing, the reason either has nothing to do with that burden — a venue, a
+   move, money, time — or it has everything to do with it, in which case On Deck arrived
+   too late for her and the pitch needs to know that. No amount of self-serve UI discovers
+   this, and there is no second organizer to ask.
+7. **Permission, explicitly.** To use the club's name, the numbers, and the photographs on
+   a public landing page (OD-6 slice 5). Worth getting tonight while everyone is in the
+   room and goodwill is high; a club that no longer exists is much harder to get consent
+   from in a month.
+8. **The data, out of the database.** Not just "don't clean up the rows" — export them.
+   The Club belongs to her account, she is the only person who can open a Session on it,
+   and the club is ending. Anything still living only in the hosted project is one account
+   deletion or one lost contact away from gone, and slice 1's demo is specced to replay
+   this exact log.
 
 **Before:** print the Club QR sign, charge a tablet for the Display or Kiosk, create the
 Session ahead of time from Club defaults, share the Volunteer Link in the volunteer
@@ -629,10 +646,13 @@ usual; the release is what ships, not each slice.
    A short "when things go wrong" section (board stays up offline, volunteers can add or
    pause anyone by hand, undo). Replace the hardcoded TO Pickleball Club section with the
    real Session Summary numbers and photographs from tonight — the only ones there will
-   ever be. **Check the tense** (2026-09-12): the club is finishing, so it is "a real club
-   ran a real night on this, here are the numbers," not a claim of an ongoing
-   relationship. The honest past tense is also the stronger proof, and the dishonest
-   present tense is the kind of thing an organizer finds out about.
+   ever be. **Check the tense** (confirmed 2026-09-12): the club is finishing rather than
+   pausing, so it is "a real club ran a real night on this, here are the numbers," not a
+   claim of an ongoing relationship. The honest past tense is also the stronger proof, and
+   the dishonest present tense is the kind of thing an organizer finds out about.
+   Depends on OD-0 capture item 7 — the name, numbers and photographs need her permission,
+   and that is easier to get in the room tonight than from a club that has stopped
+   existing.
 
 **Open questions.**
 1. Does the demo play itself, or wait for taps?
@@ -674,6 +694,16 @@ above were written when this was a nicety, and none of them is the hard part any
    ➡️ Open, and cheap to defer. If the demo is the top of the funnel, knowing how many
    people open it and how many then create a Club is the only adoption number that will
    exist. `bb_first_slot`-style analytics is the precedent.
+10. **Does a Club outlive the organizer who created it?** Added 2026-09-12, and the
+    sharpest question here. The sample size is one and it is not encouraging: the only
+    club On Deck ever had is ending because the person running it stopped wanting to run
+    it. If that is the normal shape of a rec club rather than bad luck, then self-serve
+    acquisition has a leaky bucket — every club signed up eventually loses its organizer,
+    and a Club welded to one `owner_id` dies with them. That is a second and stronger
+    argument for slice 2b, which was justified above only as night-of resilience: co-owners
+    are not just "the phone died," they are how a club survives its founder. OD-0 capture
+    item 6 is what turns this from speculation into a fact. Do not answer it before the
+    retro.
 
 ---
 
