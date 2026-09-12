@@ -415,19 +415,25 @@ OD-6, and after 20:00 tonight none of it is obtainable:
 5. **What Vanessa had to be told.** She is the closest thing to a stranger organizer that
    will ever be observed using this. Anything she asked, guessed at, or got wrong is
    directly a self-serve onboarding requirement.
-6. **Why she is ending the club.** Confirmed 2026-09-12: the club is finishing, not
-   pausing for a season, and the decision is hers. This is the most valuable question of
-   the night and the last chance to ask it. On Deck's entire pitch is that running a club
-   social is a burden worth tooling away; if the only organizer this project has ever had
-   stopped organizing, the reason either has nothing to do with that burden — a venue, a
-   move, money, time — or it has everything to do with it, in which case On Deck arrived
-   too late for her and the pitch needs to know that. No amount of self-serve UI discovers
-   this, and there is no second organizer to ask.
-7. **Permission, explicitly.** To use the club's name, the numbers, and the photographs on
+6. ~~**Why she is ending the club.**~~ **Answered 2026-09-12, before the night.** Visa
+   trouble; she is going home. The club is ending because its organizer has to leave the
+   country, which is about as exogenous as a reason gets — not burnout, not the burden of
+   running a social, nothing to do with On Deck. **The pitch survives its only data
+   point.** Recorded as closed rather than deleted, because the answer is what makes item 7
+   the interesting question instead of this one.
+7. **Is anyone taking the club over?** The question to ask tonight, and worth asking
+   directly rather than waiting to overhear. A club whose only problem is that its
+   organizer is leaving the country is exactly the kind someone else in the room might
+   pick up — and if they do, **On Deck's second club is already in the building tonight.**
+   Those players have scanned the sign, stood in the queue and watched the board; whoever
+   inherits them is the warmest first self-serve organizer this project could ask for, and
+   a great deal better than a stranger off a search result. A no is worth knowing too: it
+   means a healthy club died with a single `owner_id`, which is OD-6 question 10.
+8. **Permission, explicitly.** To use the club's name, the numbers, and the photographs on
    a public landing page (OD-6 slice 5). Worth getting tonight while everyone is in the
    room and goodwill is high; a club that no longer exists is much harder to get consent
    from in a month.
-8. **The data, out of the database.** Not just "don't clean up the rows" — export them.
+9. **The data, out of the database.** Not just "don't clean up the rows" — export them.
    The Club belongs to her account, she is the only person who can open a Session on it,
    and the club is ending. Anything still living only in the hosted project is one account
    deletion or one lost contact away from gone, and slice 1's demo is specced to replay
@@ -612,7 +618,11 @@ feature-complete and shipped every issue from #238 to #351.
   second. A person still runs at most one Club. A Club needs more than one person able to
   open its night, which is a schema change (an owners join table, or a second column) and
   wants an ADR.
-- Co-organizers are additional owners per Club, not a handoff. Invited by email.
+- Co-organizers are additional owners per Club, invited by email. **No longer settled that
+  this is instead of a handoff** (reopened 2026-09-12 — see question 10). It was decided
+  against "the Organizer's phone died," where a co-owner plausibly already exists. It is
+  weaker against "the Organizer has left the country," where nobody thought to add one in
+  advance and the founder is no longer around to add anyone.
 
 **Slices, all in one release.** Ticket them as vertical slices with blocking edges as
 usual; the release is what ships, not each slice.
@@ -650,7 +660,7 @@ usual; the release is what ships, not each slice.
    pausing, so it is "a real club ran a real night on this, here are the numbers," not a
    claim of an ongoing relationship. The honest past tense is also the stronger proof, and
    the dishonest present tense is the kind of thing an organizer finds out about.
-   Depends on OD-0 capture item 7 — the name, numbers and photographs need her permission,
+   Depends on OD-0 capture item 8 — the name, numbers and photographs need her permission,
    and that is easier to get in the room tonight than from a club that has stopped
    existing.
 
@@ -695,15 +705,33 @@ above were written when this was a nicety, and none of them is the hard part any
    people open it and how many then create a Club is the only adoption number that will
    exist. `bb_first_slot`-style analytics is the precedent.
 10. **Does a Club outlive the organizer who created it?** Added 2026-09-12, and the
-    sharpest question here. The sample size is one and it is not encouraging: the only
-    club On Deck ever had is ending because the person running it stopped wanting to run
-    it. If that is the normal shape of a rec club rather than bad luck, then self-serve
-    acquisition has a leaky bucket — every club signed up eventually loses its organizer,
-    and a Club welded to one `owner_id` dies with them. That is a second and stronger
-    argument for slice 2b, which was justified above only as night-of resilience: co-owners
-    are not just "the phone died," they are how a club survives its founder. OD-0 capture
-    item 6 is what turns this from speculation into a fact. Do not answer it before the
-    retro.
+    sharpest question here. **Corrected the same day**, once the reason was known: the
+    first draft read the club's ending as evidence that organizers burn out of organizing,
+    which would have made this a question about retention. It is not that. She has visa
+    trouble and is going home. The club is not unhealthy and the app did not fail her.
+
+    That makes the failure mode *worse*, not better, and much more clearly ours. An
+    organizer who burns out takes a fading club with them, and losing it costs little. An
+    organizer who has to leave the country takes a **working** club with them — players who
+    turn up, a room that runs, a queue that works — and it dies anyway, because
+    `on_deck_clubs_one_per_owner` is a unique index on `owner_id` and a Club is therefore
+    welded to exactly one person who can open its nights. Nothing about the club needed to
+    end. One person's paperwork ended it.
+
+    So the question is not "do organizers stick around" but **"can a Club survive losing
+    the person who made it?"** Today the answer is no, and the first club On Deck ever had
+    is the proof. It is the strongest argument in this document for slice 2b, which was
+    justified until now only as night-of resilience.
+
+    It also reopens something the doc had settled. "Co-organizers are additional owners per
+    Club, not a handoff" was decided against the phone-dies scenario, where a co-owner
+    plausibly already exists. Against this one it is weaker: nobody adds a co-owner before
+    they need one, and by the time they need one the founder has already gone. A real
+    **transfer** path — hand a Club to someone who is not yet an owner — may be needed as
+    well, and onboarding may need to ask for a second owner rather than offering it. Grill
+    both; do not assume the earlier call still holds. OD-0 capture item 7 is the live test:
+    if someone in the room tonight wants to take the club over, this stops being
+    hypothetical immediately.
 
 ---
 
