@@ -93,7 +93,7 @@ Four rules:
 | 1 | ✅ | OD-6 Printed Club QR sign (slice 3 only) | Shipped 2026-09-08 (#463, PR #466). `/on-deck/home/qr` is now the sign itself, printing on Letter and A4, plus two open routes serving the bare code as a file for a print shop or a group chat. Nothing now stands between the booked night and its checklist except printing one |
 | 2 | ✅ | RR-1 remainder (#394 to #397, plus #441) | Shipped 2026-09-07. All five tickets closed, plus an unplanned sixth (RR-1.6, clear-the-roster with undo). Match Mixer is live at `/tools/match-mixer` |
 | 3 | ✅ | RR-3 remainder — share URL and find-me | Shipped 2026-09-10. Specced as #490 and ticketed #491 to #495, all closed inside one day. RR-3 is now complete on all four counts: print and roster memory landed early inside RR-1, the share link and find-me landed here. It cleared the gap in front of the night exactly as the slot intended, and nothing was left in flight across Saturday |
-| 4 |  | **Correct the landing page** | **New, and first, 2026-09-12.** `sections/stays-social.tsx` says "We're building On Deck with TO Pickleball Club for their Saturday socials" in the present tense, on a live public page, about a club that is finishing and never ran the app. `sections/at-the-venue.tsx` and `courtside-board.tsx` also render the club's name as the illustrated example. S, and it blocks nothing — but shipping an adoption release off a page making a claim that stopped being true is worse than the day it costs |
+| 4 | ✅ | **Correct the landing page** | Shipped 2026-09-13 (#504, PR #505). The page no longer names the club anywhere in its copy — naming it was the part that implied the relationship — and the two illustrations use a stand-in the way the PPA pro names beside them already do. "Talk to us about your club" stays, because self-serve is row 5 and not yet real. Half a day, blocking nothing, taken first because shipping an adoption release off a page making a claim that stopped being true is worse than the day it costs |
 | 5 |  | **OD-6 The adoption release** (demo night, self-serve Club, co-owners, first-night kit, landing flip) | **The whole of On Deck's plan, not the first item of one.** With no first session and no club, every other OD row is two steps away: it needs a stranger to sign up, and then that stranger to run a night. This is the only row that reaches the first of those. Shipped as one release — with no warm lead there is no version where somebody is walked through signup by us, so demo and self-serve are halves of one door rather than two deliverables |
 | 6 |  | RR-6 Pools (#392) | **Moved up from row 10 on 2026-09-12**, to sit directly behind the adoption release. Match Mixer is the only one of the three with a live public surface anyone can use today without an account, which makes it the one place shipping something is felt immediately rather than after a stranger signs up. It is also an M where BB-1 below is an L, and it unblocks RR-2. The original reason for its position holds and is the reason it stays ahead of RR-2: pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, each with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock and standings *on top of* a Schedule. Built the other way round, courtside mode gets built twice, or pools land as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-board layout against `match-mixer/DESIGN.md` |
 | 7 |  | BB-1 Recurring games | The month's other goal and now the nearer one, because it needs no user we do not have. Booking Buddy has people using it; On Deck does not. The one L on the table, unchanged in importance, and no longer waiting on anything at all |
@@ -150,6 +150,13 @@ home and this doc is not it.
   Schedule, so a link regenerates deterministically; #494 added the part the plan did not
   have, which is that a link minted before a generator change says so rather than quietly
   drawing a different board. RR-3's other two halves had already shipped inside RR-1.
+- **The landing page correction — 2026-09-13** (#504, PR #505). Row 4, written into the
+  table and shipped the next day. It does the part of OD-6 slice 5 that could not wait for
+  the release: the club section is gone rather than updated, because there were no real
+  numbers to update it with and there will be none until a stranger runs a night. What is
+  left for slice 5 is the harder half — what stands in its place — not the removal.
+  `src/lib/on-deck/session-date.ts` still names the club in a code comment explaining why a
+  Club carries a time zone, deliberately: that is history, not a public claim.
 
 **Off the table, and larger than it.**
 
@@ -723,7 +730,7 @@ usual; the release is what ships, not each slice.
    (2026-09-12) and there will be none until a stranger runs a night, so this slice has to
    solve a harder problem than it was written for: **an adoption page for a product with no
    users, that does not lie about having any.** The club section cannot be updated, it has
-   to go — see row 4, which does that part immediately and separately. What stands in its
+   to go — row 4 did that part on 2026-09-13, immediately and separately. What stands in its
    place is an open question rather than a decided answer: probably the demo itself as the
    evidence ("here is a night, play with it"), plus the honest version of where this came
    from, which is that it was built for a real club that ran real socials and the app was
