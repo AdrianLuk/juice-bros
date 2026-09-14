@@ -73,7 +73,7 @@ export function AtTheVenue() {
                 <p className="odv-sign-instruction">
                   Point your camera here. No app, no sign-up.
                 </p>
-                <p className="odv-mono odv-sign-venue">TO Pickleball Club</p>
+                <p className="odv-mono odv-sign-venue">Riverside Pickleball Club</p>
               </div>
               <figcaption className="odv-caption">
                 Printed once. The link behind it always points at whatever
@@ -86,7 +86,7 @@ export function AtTheVenue() {
                 <span className="odv-phone-notch" aria-hidden />
                 <div className="odv-phone-screen">
                   <div className="odv-phone-head">
-                    <span className="odv-phone-venue">TO Pickleball</span>
+                    <span className="odv-phone-venue">Riverside Pickleball</span>
                     <span className="odv-mono odv-phone-status">
                       Session running
                     </span>

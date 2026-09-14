@@ -20,9 +20,10 @@ export function StaysSocial() {
           matched with next.
         </p>
         <p className="odl-body max-w-md text-white/70">
-          We&apos;re building On Deck with TO Pickleball Club for their
-          Saturday socials, and making it work for any club that runs one. If
-          that sounds like yours, we&apos;d love to hear how your night goes.
+          On Deck was built for one club&apos;s Saturday social, the kind where
+          sixty people turn up and one person ends up deciding who plays next.
+          Nothing about it is specific to that club, and if yours runs a night
+          like it, we&apos;d like to hear how it goes.
         </p>
         <div className="odl-cta-glow mt-5">
           <Button
