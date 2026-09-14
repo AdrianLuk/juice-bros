@@ -83,7 +83,7 @@ export function CourtsideBoard() {
               <div className="odm-boardhead">
                 <span className="odm-mono odm-boardhead-label">On Deck</span>
                 <span className="odm-mono odm-boardhead-venue">
-                  TO Pickleball · Saturday Social
+                  Riverside · Saturday Social
                 </span>
               </div>
 
