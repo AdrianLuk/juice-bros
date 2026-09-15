@@ -111,12 +111,15 @@ test("before any night has closed, past nights explains itself rather than sitti
   await expect(page.getByRole("heading", { name: "Past nights" })).toBeVisible();
   await expect(page.getByText("No nights have finished yet")).toBeVisible();
 
-  // The three-most-recent card, though, stays off home until there is
-  // something in it -- it would otherwise explain an absence on the one
-  // screen that should be about tonight.
+  // Home itself lists no nights until there are some -- it would otherwise
+  // explain an absence on the one screen that should be about tonight. The
+  // row above is the way *in*, and carries nothing but the destination.
   await page.goto("/on-deck/home");
   await expect(
-    page.getByRole("heading", { name: "Past nights" }),
+    page.getByRole("link", { name: /played/i }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "All past nights" }),
   ).toHaveCount(0);
 });
 
@@ -138,10 +141,11 @@ test("closing a night puts its numbers on the Organizer's own screens, no SQL", 
   await wrapUp.getByTestId("close-session-confirm").click();
   await expect(page.getByText("Session closed")).toBeVisible({ timeout: 10_000 });
 
-  // Home now offers the way in, which it did not before.
+  // Home now lists the night itself, which it did not before.
   await page.goto("/on-deck/home");
-  const pastNights = page.getByRole("heading", { name: "Past nights" });
-  await expect(pastNights).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /played/i }).first(),
+  ).toBeVisible();
 
   await page.getByRole("link", { name: "All past nights" }).click();
   await page.waitForURL(/\/on-deck\/home\/summaries$/);
@@ -188,7 +192,9 @@ test("an Organizer is never asked for a time zone -- their browser answers it", 
   // starts with no clock at all. Loading home is what establishes one.
   await signIn(page, OTHER);
   await page.goto("/on-deck/home");
-  await expect(page.getByRole("heading", { name: "Tonight" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Some Other Club" }),
+  ).toBeVisible();
 
   // Settings states the clock as a fact, with no control in sight. Nobody was
   // prompted; it was taken off the browser on the visit above.

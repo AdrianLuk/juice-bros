@@ -47,11 +47,41 @@ test.afterAll(async () => {
   await deleteClubForOrganizer(ORGANIZER_EMAIL);
 });
 
+/**
+ * Fills a controlled field and keeps filling until the value sticks.
+ *
+ * A `fill` that lands before React has hydrated this form is silently thrown
+ * away when it takes over the input, leaving an empty `required` field and a
+ * submit that never fires. Under two workers on a loaded local backend that
+ * window is wide enough to lose, so the fill retries rather than asserting
+ * once and failing the run on a race that has nothing to do with the feature.
+ */
+async function fillUntilSet(
+  page: import("@playwright/test").Page,
+  label: string,
+  value: string,
+) {
+  const field = page.getByLabel(label);
+  await expect(async () => {
+    await field.fill(value);
+    await expect(field).toHaveValue(value, { timeout: 500 });
+  }).toPass({ timeout: 15_000 });
+}
+
 /** Fills the two fields and waits for home to come back as the Club. */
 async function createTheClub(page: import("@playwright/test").Page) {
-  await page.getByLabel("Club name").fill("Riverside Pickleball");
-  await page.getByLabel("Courts").fill("6");
+  await fillUntilSet(page, "Club name", "Riverside Pickleball");
+  // The heading echo is client-rendered, so it is also proof of hydration.
+  await expect(
+    page.getByRole("heading", { name: "Riverside Pickleball", exact: true }),
+  ).toBeVisible();
+  await fillUntilSet(page, "Courts", "6");
   await page.getByRole("button", { name: "Create the club" }).click();
+  // The form is gone and the heading is now the Club's, not the live echo of
+  // what was being typed into it.
+  await expect(
+    page.getByRole("button", { name: "Create the club" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Riverside Pickleball", exact: true }),
   ).toBeVisible();
@@ -74,28 +104,38 @@ test("an Organizer with no Club creates one in two fields and lands on home with
 
   // The form, where the "get in touch" wall used to be.
   await expect(
-    page.getByRole("heading", { name: "Set up your club" }),
+    page.getByRole("button", { name: "Create the club" }),
   ).toBeVisible();
-  await expect(page.getByText(ORGANIZER_EMAIL)).toBeVisible();
+  await expect(page.getByText(ORGANIZER_EMAIL).first()).toBeVisible();
 
-  // Home, as their Club. The heading is the marker that the server re-rendered
-  // past the create form rather than the form merely clearing itself.
-  await createTheClub(page);
+  // The page's heading is the Club's name, and with no Club it is the live
+  // echo of the field: an Organizer sees their club on the board before they
+  // commit to a name they can never change the owner of.
+  await expect(page.getByRole("heading", { name: "Your club" })).toBeVisible();
+  await fillUntilSet(page, "Club name", "Riverside");
   await expect(
-    page.getByRole("heading", { name: "Set up your club" }),
-  ).toHaveCount(0);
+    page.getByRole("heading", { name: "Riverside", exact: true }),
+  ).toBeVisible();
 
-  // The Club card's definition list, in its rendered order: venue, courts,
-  // group cap, floor mode. The venue nobody was asked for came off the club's
-  // own name, and the two nobody was asked for took the schema's defaults.
-  const details = page.getByRole("definition");
-  await expect(details.nth(0)).toHaveText("Riverside Pickleball");
-  await expect(details.nth(1)).toHaveText("6");
-  await expect(details.nth(2)).toHaveText("4");
-  await expect(details.nth(3)).toHaveText("Hybrid");
+  // Home, as their Club.
+  await createTheClub(page);
+
+  // The spec line under the Club's name, carrying what the two-field form
+  // guessed. The venue is deliberately absent: it defaults to the club's own
+  // name, which is already the heading, and printing it twice reads as a bug.
+  // That it was set at all is asserted in settings below.
+  const spec = page.locator(".od-bo-spec");
+  await expect(spec).not.toContainText("Riverside Pickleball", {
+    ignoreCase: true,
+  });
+  await expect(spec).toContainText("6 courts", { ignoreCase: true });
+  await expect(spec).toContainText("Cap 4", { ignoreCase: true });
+  await expect(spec).toContainText("Hybrid", { ignoreCase: true });
 
   // Start, ready. The point of the whole ticket.
-  await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Start tonight" }),
+  ).toBeVisible();
 });
 
 test("a second visit offers no second Club", async ({ page }) => {
@@ -107,9 +147,6 @@ test("a second visit offers no second Club", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Riverside Pickleball", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Set up your club" }),
-  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Create the club" }),
   ).toHaveCount(0);
@@ -142,6 +179,11 @@ test("everything the create form asked for or guessed is editable in settings", 
   await expect(
     page.getByRole("heading", { name: "Riverside Pickleball Club" }),
   ).toBeVisible();
-  await expect(page.getByText("Riverside Community Centre")).toBeVisible();
-  await expect(page.getByText("Self-serve")).toBeVisible();
+  await expect(page.locator(".od-bo-spec")).toContainText(
+    "Riverside Community Centre",
+    { ignoreCase: true },
+  );
+  await expect(page.locator(".od-bo-spec")).toContainText("Self-serve", {
+    ignoreCase: true,
+  });
 });

@@ -21,12 +21,25 @@ import { ON_DECK_ROOT } from "@/lib/on-deck/routes";
  * The live-event surfaces (`/session/*`, `/c/*`) are the dark substitution
  * board (direction seed 92ec9d54); the header/footer switch to the arena
  * palette on those so the chrome doesn't sit as a light strip above a dark
- * board. The Organizer's home/settings pages keep the plain light shell.
+ * board. The Organizer's own home and settings joined that world in the back
+ * office redesign (seed 7323f5fb) and switch with them.
+ *
+ * The remaining `/home/*` pages — the printable sign, past nights, the
+ * scheduled-night forms — are still on the light shell. They are a stated
+ * follow-up, not an oversight: each is internally consistent, so the seam is
+ * between pages rather than inside one.
  */
+
+const ARENA_SUBPATHS = ["/home", "/home/settings"];
 
 function isArenaPath(pathname: string): boolean {
   const sub = pathname.slice(ON_DECK_ROOT.length);
-  return sub.startsWith("/session/") || sub.startsWith("/c/");
+  return (
+    sub.startsWith("/session/") ||
+    sub.startsWith("/c/") ||
+    ARENA_SUBPATHS.includes(sub) ||
+    ARENA_SUBPATHS.some((p) => sub === `${p}/`)
+  );
 }
 
 export function OnDeckShellHeader() {

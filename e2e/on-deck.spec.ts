@@ -76,7 +76,7 @@ test("an Organizer signs in, sees their Club, and Start opens a Session the QR t
   ).toBeVisible();
   await expect(page.getByText("Ramsden Park")).toBeVisible();
 
-  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start tonight" }).click();
 
   // Lands on the live Session view.
   await page.waitForURL(/\/on-deck\/session\/[0-9a-f-]+$/);
@@ -88,12 +88,16 @@ test("an Organizer signs in, sees their Club, and Start opens a Session the QR t
   await page.waitForURL(sessionUrl);
   await expect(page.getByText("Session running")).toBeVisible();
 
-  // Back on the home screen, Start is replaced by a link to the running one.
+  // Back on the home screen, the lit panel has gone orange and Start is
+  // replaced by the way onto the floor (the back office redesign, #515).
   await page.goto("/on-deck/home");
-  await expect(page.getByText("A session is running.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start", exact: true })).toHaveCount(
-    0,
-  );
+  await expect(page.getByText("A session is running right now")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open the floor" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Start tonight" }),
+  ).toHaveCount(0);
 });
 
 test("a Player scans the Club QR, does the two-tap setup, and is recognized on return", async ({
