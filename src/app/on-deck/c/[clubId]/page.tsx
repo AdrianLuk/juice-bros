@@ -73,7 +73,8 @@ export default async function ClubQrPage({
           Whose page this is, before what it says. A Player gets here by
           scanning their own club's sign or by tapping a link in their own
           club's chat, and either way the name they are looking for is the
-          club's. On Deck stays credited in the shell above and nowhere here.
+          club's. The shell above carries no On Deck wordmark here either
+          (issue #518, `isRoomFacingPath`) — the room sees the Club, full stop.
         */}
         <p className="od-readout text-[0.78rem] text-arena-dim">
           {name ?? "On Deck"}

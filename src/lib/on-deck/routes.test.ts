@@ -17,6 +17,7 @@ import {
   displayPath,
   editSessionPath,
   floorPath,
+  isRoomFacingPath,
   kioskPath,
   requiresOrganizerSession,
   safeRedirectTarget,
@@ -146,6 +147,27 @@ test("safeRedirectTarget only ever returns an On Deck path", () => {
   assert.equal(safeRedirectTarget("/booking-buddy/friends"), ON_DECK_HOME_PATH);
   assert.equal(safeRedirectTarget("\\\\evil.example"), ON_DECK_HOME_PATH);
   assert.equal(safeRedirectTarget(ON_DECK_SIGN_IN_PATH), ON_DECK_HOME_PATH);
+});
+
+test("isRoomFacingPath covers the join screen, Display, Kiosk, the Volunteer Link, and the Club QR resolver", () => {
+  assert.equal(isRoomFacingPath("/on-deck/session/abc"), true);
+  assert.equal(isRoomFacingPath("/on-deck/session/abc/display"), true);
+  assert.equal(isRoomFacingPath("/on-deck/session/abc/kiosk"), true);
+  assert.equal(
+    isRoomFacingPath("/on-deck/session/abc/volunteer/tok123"),
+    true,
+  );
+  assert.equal(isRoomFacingPath(clubQrPath("club-1")), true);
+});
+
+test("isRoomFacingPath excludes the Organizer's floor screen and every Organizer surface", () => {
+  assert.equal(isRoomFacingPath("/on-deck/session/abc/floor"), false);
+  assert.equal(isRoomFacingPath("/on-deck/session/abc/floor/"), false);
+  assert.equal(isRoomFacingPath(ON_DECK_HOME_PATH), false);
+  assert.equal(isRoomFacingPath(ON_DECK_SETTINGS_PATH), false);
+  assert.equal(isRoomFacingPath(ON_DECK_SIGN_IN_PATH), false);
+  assert.equal(isRoomFacingPath("/on-deck"), false);
+  assert.equal(isRoomFacingPath("/on-deck-press-kit"), false);
 });
 
 test("safeRedirectTarget won't bounce back to an auth page dressed up with a query or slash", () => {

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { loadKioskSession } from "@/lib/on-deck/kiosk";
+import { venueNameOf } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { kioskPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
@@ -14,9 +15,14 @@ export async function generateMetadata({
   params: Promise<{ sessionId: string }>;
 }): Promise<Metadata> {
   const { sessionId } = await params;
+  const loaded = await loadKioskSession(sessionId).catch(() => null);
+  const venueName = venueNameOf(loaded);
+
   return {
     ...pageMetadata({
-      title: "On Deck kiosk",
+      // Named for the venue, not the platform (issue #518) — this is the tab
+      // title on a tablet stood courtside in the Club's own room.
+      title: venueName ? `${venueName} kiosk` : "On Deck kiosk",
       description: "Tonight's courts, queue, and the buttons a turnover needs.",
       path: kioskPath(sessionId),
     }),

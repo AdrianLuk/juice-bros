@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { createClient } from "@/lib/on-deck/supabase/server";
-import { getSession } from "@/lib/on-deck/sessions";
+import { getSession, venueNameOf } from "@/lib/on-deck/sessions";
 import { sessionPath } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
@@ -15,10 +15,19 @@ export async function generateMetadata({
   params: Promise<{ sessionId: string }>;
 }): Promise<Metadata> {
   const { sessionId } = await params;
+  const supabase = await createClient();
+  const loaded = await getSession(supabase, sessionId).catch(() => null);
+  const venueName = venueNameOf(loaded);
+
   return {
     ...pageMetadata({
-      title: "On Deck session",
-      description: "Tonight's live court rotation.",
+      // Named for the venue (issue #518), the same reasoning as the Club QR
+      // resolver this redirects from: a Player's link unfurls as the room
+      // they're walking into, not as us.
+      title: venueName ?? "On Deck",
+      description: venueName
+        ? `Join tonight's session at ${venueName}.`
+        : "Tonight's live court rotation.",
       path: sessionPath(sessionId),
     }),
     robots: { index: false, follow: false },

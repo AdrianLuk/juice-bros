@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { loadVolunteerSession } from "@/lib/on-deck/volunteer";
+import { venueNameOf } from "@/lib/on-deck/sessions";
 import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
 import { volunteerPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
@@ -15,9 +16,16 @@ export async function generateMetadata({
   params: Promise<{ sessionId: string; token: string }>;
 }): Promise<Metadata> {
   const { sessionId, token } = await params;
+  const loaded = await loadVolunteerSession(sessionId, token).catch(
+    () => null,
+  );
+  const venueName = venueNameOf(loaded);
+
   return {
     ...pageMetadata({
-      title: "On Deck volunteer floor",
+      // Named for the venue, not the platform (issue #518) — a Volunteer Link
+      // pasted into the Club's own group chat unfurls as the Club's night.
+      title: venueName ? `${venueName} volunteer floor` : "On Deck volunteer floor",
       description: "Run tonight's court rotation.",
       path: volunteerPath(sessionId, token),
     }),
