@@ -11,8 +11,8 @@ import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSummariesForClub } from "@/lib/on-deck/summaries";
 import { sessionDate } from "@/lib/on-deck/session-date";
 import {
-  getOpenSessionForClub,
   getScheduledSessionsForClub,
+  resolveOpenSessionForClub,
 } from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
 import { TonightControls } from "@/components/on-deck/tonight-controls";
@@ -38,7 +38,7 @@ export default async function OnDeckHomePage() {
   const supabase = await createClient();
   const club = await getOwnedClub(supabase);
   const openSession = club
-    ? await getOpenSessionForClub(supabase, club.id)
+    ? await resolveOpenSessionForClub(supabase, club.id)
     : null;
   const scheduledSessions =
     club && !openSession
@@ -167,6 +167,12 @@ export default async function OnDeckHomePage() {
                               at: session.startedAt,
                               timeZone: session.timeZone,
                             })}
+                            {session.autoClosed ? (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · closed automatically
+                              </span>
+                            ) : null}
                           </span>
                           <span className="tabular-nums text-muted-foreground">
                             {session.attendance} played, {session.gamesPlayed} games

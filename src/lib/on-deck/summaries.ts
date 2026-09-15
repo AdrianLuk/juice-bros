@@ -35,6 +35,13 @@ export type SummaryListing = {
    * is the wrong one to ask.
    */
   timeZone: string;
+  /**
+   * True when this Session closed itself after its log went quiet (issue
+   * #516), rather than the Organizer tapping Close. Lets the reader tell a
+   * forgotten night ("closed for you") from a deliberate one ("closed by
+   * you").
+   */
+  autoClosed: boolean;
 };
 
 /** One closed Session in full, with the projection parsed. */
@@ -50,6 +57,7 @@ type ListingRow = {
   games_played: number;
   session_started_at: string;
   session_closed_at: string;
+  auto_closed: boolean;
   on_deck_sessions: SessionEmbed;
 };
 
@@ -61,7 +69,7 @@ type DetailRow = ListingRow & {
 // kept when a Session closes — it is already numbers, not people. Embedding is
 // cheaper than a second round trip and the foreign key makes it one query.
 const LISTING_COLUMNS =
-  "session_id, attendance, games_played, session_started_at, session_closed_at, on_deck_sessions(venue_name, time_zone)";
+  "session_id, attendance, games_played, session_started_at, session_closed_at, auto_closed, on_deck_sessions(venue_name, time_zone)";
 const DETAIL_COLUMNS = `${LISTING_COLUMNS}, summary`;
 
 function toListing(row: ListingRow): SummaryListing {
@@ -76,6 +84,7 @@ function toListing(row: ListingRow): SummaryListing {
     // NOT NULL makes impossible — the fallback is here so a missing embed
     // cannot make the whole listing throw.
     timeZone: row.on_deck_sessions?.time_zone ?? "UTC",
+    autoClosed: row.auto_closed,
   };
 }
 

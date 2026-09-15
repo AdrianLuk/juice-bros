@@ -658,6 +658,62 @@ migration's timestamp past whatever else merged (the drift lesson
   safety property. Settings corrects a wrong guess through a *separate* action,
   so a form opened to change a court count cannot commit a clock.
 
+- [x] **A forgotten Session closes itself (issue #516, parent #512, OD-6).**
+  One open Session per Club is enforced, so an Organizer who never taps Close
+  silently blocks their own next night — and at a Club we don't run, with
+  co-owners deferred, there is nobody else to notice.
+
+  `on_deck_auto_close_stale_session` authorizes on **staleness** (no event for
+  `on_deck_stale_after()`, six hours) rather than an Organizer's tap, and
+  marks the Summary `auto_closed`. Once authorized it does the exact same
+  thing a deliberate `on_deck_close_session` (#255) does — store the Summary,
+  flip to closed, purge the log — so that tail is now a shared, ungranted
+  helper, `on_deck_finalize_session_close`, called by both; `on_deck_close_session`
+  itself is `create or replace`'d to delegate to it, behaviour otherwise
+  unchanged. Staleness is measured from the log's *last event*, never from
+  `started_at`, so a Session open ten hours with a `COURT_FINISHED` a minute
+  ago is exactly as live as one two minutes old and is never closed — and that
+  check runs as plain SQL against the whole `on_deck_session_events` table
+  inside the function, not through a PostgREST read (capped at `max_rows`), so
+  it can't be fooled into closing something still live.
+
+  There is no scheduler in this project (no pg_cron, no timed edge function),
+  so the close can't fire on its own clock — it's checked lazily, the same
+  way the idle-Court nudge (#259) is a render-time question rather than a
+  timer. `resolveOpenSessionForClub` (`sessions.ts`) wraps the existing
+  `getOpenSessionForClub`: when the Club's open Session reads as stale, it
+  projects the Summary (the same `projectSummary` fold #255's close uses) and
+  calls the RPC before returning — so by the time the home screen or Start
+  looks at "is one open", a forgotten night has already closed. Home
+  (`/on-deck/home`) and `startSession` both switched to it. The public Club QR
+  page kept the plain read (it has no Organizer session, so it couldn't close
+  anything if it tried); the dev harness (`actions/dev.ts`) also kept it, but
+  for a narrower reason — it *does* run with a full Organizer session, so a
+  dev session idle 6h+ would hit the same lockout this ticket fixes elsewhere,
+  it's just judged out of scope for a local debugging tool rather than
+  something the auto-close itself can't reach. A failed RPC call — not
+  actually stale by the database's own clock, a race, not signed in as the
+  owner — just falls back to "still open" rather than surfacing an error to a
+  page that only wanted a yes/no; only a code other than the expected `55000`
+  refusal is logged, so the common "not stale yet" case doesn't spam the log.
+
+  `auto_closed` on `on_deck_session_summaries` is what lets the Organizer
+  tell a night that closed itself from one they closed — surfaced as "closed
+  automatically" on both past-nights lists and as a line on the Summary's own
+  page, so it's discoverable whenever they look, not just the moment it
+  happens.
+
+  Tests: `on_deck_auto_close.test.sql` (18 pgTAP cases — refuses a stranger,
+  refuses a session with a recent event however long it's been open, closes a
+  genuinely stale one with the Summary flagged, idempotent on a second call,
+  a deliberate close is unaffected and leaves `auto_closed` false, the shared
+  finalize helper carries no execute grant of its own, closing frees the
+  one-open-per-Club index); `stale.test.ts` (the pure staleness boundary —
+  node --test). Full suites verified: 666/666 pgTAP (the pre-existing
+  `on_deck_last_call_close.test.sql` unaffected by `on_deck_close_session`
+  being re-pointed at the shared tail), 1262/1262 `node --test`, `tsc --noEmit`
+  and `eslint` clean.
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its
