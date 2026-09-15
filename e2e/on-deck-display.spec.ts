@@ -80,10 +80,16 @@ test("the Display renders courts, the ordered queue with wait times, and the On 
   const board = page.getByTestId("display-board");
   await expect(board).toBeVisible();
 
-  // The whole app runs in On Deck's bare shell — its brand bar, none of the
-  // main Juice Bros site nav.
-  await expect(page.getByRole("link", { name: "On Deck" }).first()).toBeVisible();
+  // The room sees the Club, not the platform (issue #518): the Display is
+  // room-facing, so On Deck's own shell renders no header or footer at all
+  // here — no wordmark, no logo, and (same as ever) none of the main Juice
+  // Bros site nav either. The identity on screen is the venue's own name,
+  // headlining the board itself.
+  await expect(page.getByRole("link", { name: "On Deck" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Podcast" })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Ramsden Park" }),
+  ).toBeVisible();
 
   // The join QR leads the board — the tablet doubles as the printed sign, so
   // someone not yet in the queue can get in without finding a person first.

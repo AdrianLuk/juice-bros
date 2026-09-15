@@ -339,6 +339,19 @@ export async function getSession(
   return loadSession(supabase, data as SessionRow);
 }
 
+/**
+ * A loaded Session's venue name, or null for one that couldn't be loaded —
+ * a bad id, a bad Volunteer token, a Kiosk closed by Floor Mode, or a
+ * database having a bad night. Shared by every room-facing page's
+ * `generateMetadata` (the join screen, Display, Kiosk, the Volunteer Link)
+ * so a lookup failure falls back to the same "On Deck" title everywhere
+ * (issue #518, same null-safe shape as the Club QR resolver's `clubNameFor`
+ * from issue #510).
+ */
+export function venueNameOf(loaded: LoadedSession | null): string | null {
+  return loaded?.config.venueName ?? null;
+}
+
 async function loadSession(
   supabase: SupabaseClient,
   row: SessionRow,

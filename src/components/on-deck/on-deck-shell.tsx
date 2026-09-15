@@ -4,7 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { siteConfig } from "@/config/site";
-import { ON_DECK_QR_HOLD_UP_PATH, ON_DECK_ROOT } from "@/lib/on-deck/routes";
+import {
+  ON_DECK_QR_HOLD_UP_PATH,
+  ON_DECK_ROOT,
+  isRoomFacingPath,
+} from "@/lib/on-deck/routes";
 
 /**
  * On Deck's standalone chrome. Every surface under `/on-deck/` — the live
@@ -23,10 +27,19 @@ import { ON_DECK_QR_HOLD_UP_PATH, ON_DECK_ROOT } from "@/lib/on-deck/routes";
  * palette on those so the chrome doesn't sit as a light strip above a dark
  * board. The Organizer's home/settings pages keep the plain light shell.
  *
- * The Club QR hold-up (`ON_DECK_QR_HOLD_UP_PATH`, issue #517) renders neither
- * header nor footer: its whole point is nothing on the screen competing with
- * a code sized to be scanned off a held-up phone, and even this minimal brand
- * bar is something. It carries its own way back to Tonight instead.
+ * Room-facing paths (`isRoomFacingPath`, issue #518) render neither header
+ * nor footer at all, rather than a re-skinned one: the room a Club's Players
+ * and volunteers stand in should carry the Club's name, not ours, and every
+ * one of those pages already headlines the venue name itself, so there is
+ * nothing this bar would add. That set is the dark board *minus* the
+ * Organizer's own floor screen (`/session/:id/floor`), which keeps On Deck's
+ * identity exactly like `/home` does — an Organizer running their own night
+ * is not "the room".
+ *
+ * The Club QR hold-up (`ON_DECK_QR_HOLD_UP_PATH`, issue #517) is chromeless
+ * for the same no-header-or-footer reason, for a narrower cause: nothing on
+ * the screen should compete with a code sized to be scanned off a held-up
+ * phone. It carries its own way back to Tonight instead.
  */
 
 function isArenaPath(pathname: string): boolean {
@@ -35,7 +48,7 @@ function isArenaPath(pathname: string): boolean {
 }
 
 function isChromelessPath(pathname: string): boolean {
-  return pathname === ON_DECK_QR_HOLD_UP_PATH;
+  return pathname === ON_DECK_QR_HOLD_UP_PATH || isRoomFacingPath(pathname);
 }
 
 export function OnDeckShellHeader() {
