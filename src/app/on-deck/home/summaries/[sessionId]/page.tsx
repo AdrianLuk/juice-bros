@@ -79,6 +79,12 @@ export default async function OnDeckSummaryPage({
               What this night left behind. The players themselves were not
               kept, because a closed session leaves numbers, not people.
             </p>
+            {session.autoClosed ? (
+              <p className="mt-3 rounded-xl border border-dashed bg-muted/50 p-3 text-sm text-muted-foreground">
+                Nobody tapped Close. This session sat open with nothing
+                happening long enough that On Deck closed it for you.
+              </p>
+            ) : null}
           </div>
 
           {/* The wait tiles carry their own sample size rather than leaving it

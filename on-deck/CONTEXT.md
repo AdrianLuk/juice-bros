@@ -78,6 +78,7 @@ _Avoid_: Rollback, Revert (both suggest more than one step), Delete.
 **Session Summary**:
 The anonymous aggregate record kept permanently once a Session closes - attendance, Games played, court utilization, wait-time distribution, longest wait, skill mix. The Player roster is discarded at the same moment; a closed Session leaves numbers, not people.
 The reader on top of it is the Organizer's **past nights** list and one Session's own page, under `/on-deck/home/summaries`. Organizer-only: a Summary carries no personal data but is still the Club's own operational history, not world-readable the way an open Session is.
+A Session whose log has gone quiet for `on_deck_stale_after()` closes itself and produces this exactly like a deliberate close - the only difference is `auto_closed`, which the reader surfaces as "closed automatically" so a forgotten night reads as closed *for* the Organizer rather than *by* them. Checked lazily (there is no scheduler in this project) the next time the Organizer's own home screen or Start tap looks at their Club's open Session; never on a Session a Player alone has touched, since only the owning Organizer can trigger it.
 _Avoid_: Report (as the name of the record - the Summary is the stored record, and the pages above are "the reader"). "Report" is fine inside the reader's own component names.
 
 ## Playing

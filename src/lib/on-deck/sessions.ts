@@ -3,6 +3,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { reduceSession } from "./session/reduce.ts";
+import { projectSummary } from "./session/summary.ts";
+import { isSessionStale } from "./session/stale.ts";
 import { isPauseReason, isSkillLevel } from "./session/types.ts";
 import type {
   Operator,
@@ -268,6 +270,67 @@ export async function getOpenSessionForClub(
   }
 
   return loadSession(supabase, data as SessionRow);
+}
+
+/**
+ * The Club's open Session, auto-closing it first if its log has gone quiet
+ * (issue #516) — an Organizer who forgot Last Call last week must never be
+ * shown that night's stale board when they come back to start tonight's, and
+ * starting tonight's must never be blocked by it either.
+ *
+ * Only ever able to succeed for the calling Organizer's own Club: the RPC
+ * re-checks both ownership and staleness itself against the full event log in
+ * plain SQL — unlike the read above, which goes through PostgREST and so is
+ * capped at `max_rows` — so a failed attempt (not actually stale by the
+ * database's own clock, a race with another close, not signed in as the
+ * owner) just falls back to returning the Session as still open. This never
+ * surfaces an error to a caller that only wanted to know "is one running", and
+ * it never *incorrectly* closes one either: whatever this function's own
+ * (possibly capped) idea of the last event is, the database is the one that
+ * actually decides.
+ *
+ * This does write during what is, for the home screen, a page render — fine
+ * here specifically because that page is already dynamic (reads cookies for
+ * auth) so nothing caches it, the RPC is idempotent, and every call site of
+ * this function is the Organizer's own authenticated request for their own
+ * Club, never a shared/public path.
+ *
+ * Callers that don't need this — the public Club QR page, which can't close
+ * anything anyway since it has no Organizer session — use the plain
+ * `getOpenSessionForClub` above instead.
+ */
+export async function resolveOpenSessionForClub(
+  supabase: SupabaseClient,
+  clubId: string,
+): Promise<LoadedSession | null> {
+  const openSession = await getOpenSessionForClub(supabase, clubId);
+  if (!openSession) return null;
+
+  const lastAt = openSession.lastEvent?.at ?? null;
+  if (lastAt === null || !isSessionStale(lastAt, Date.now())) {
+    return openSession;
+  }
+
+  const summary = projectSummary(openSession.config, openSession.events);
+  const { error } = await supabase.rpc("on_deck_auto_close_stale_session", {
+    p_session_id: openSession.config.sessionId,
+    p_summary: summary,
+  });
+
+  if (error) {
+    // 55000 is the database's own, expected "not actually stale" refusal
+    // (a clock-skew disagreement with the check above, or a race) — not worth
+    // logging. Anything else is a real failure and worth knowing about, even
+    // though the safe fallback here is the same either way: the Session
+    // stays open rather than the page erroring over an auto-close attempt it
+    // never asked for.
+    if (error.code !== "55000") {
+      console.error("on-deck: auto-close failed", error);
+    }
+    return openSession;
+  }
+
+  return null;
 }
 
 /**
