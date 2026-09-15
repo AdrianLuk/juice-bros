@@ -4,13 +4,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { reduceSession } from "./session/reduce.ts";
 import { isPauseReason, isSkillLevel } from "./session/types.ts";
-import type {
-  Operator,
-  SessionConfig,
-  SessionEvent,
-  SessionState,
-} from "./session/types.ts";
+import type { Operator, SessionConfig, SessionEvent } from "./session/types.ts";
 import type { LastEvent } from "./floor-ops.ts";
+import type { LoadedSession } from "./session/rotation-view.ts";
+
+export type { LoadedSession } from "./session/rotation-view.ts";
 
 type SessionRow = {
   id: string;
@@ -225,24 +223,6 @@ function toEvent(row: EventRow): SessionEvent | null {
       return null;
   }
 }
-
-export type LoadedSession = {
-  config: SessionConfig;
-  status: "open" | "closed";
-  state: SessionState;
-  /**
-   * The Session's full event log, in append order — the input the fold and the
-   * Session Summary projection (#255) both take. Empty for a Session whose log
-   * has been purged at close.
-   */
-  events: SessionEvent[];
-  /**
-   * The raw most recent event row, or null for an eventless Session. What
-   * operator Undo (#247) needs that the fold discards: the seq to target, and
-   * enough to decide whether it is an Operator's to undo and whose tap it was.
-   */
-  lastEvent: LastEvent | null;
-};
 
 /**
  * The Club's currently-open Session, or null. This is what the stable Club QR

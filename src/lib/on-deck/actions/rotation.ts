@@ -5,15 +5,8 @@ import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
 import { loadVolunteerSession } from "../volunteer.ts";
-import {
-  floorRosterFrom,
-  loadRotationView,
-  type FloorRoster,
-  type RotationView,
-} from "../rotation.ts";
-
-export type { RotationCourt, RotationView } from "../rotation.ts";
-export type { FloorRoster } from "../rotation.ts";
+import { floorRosterFrom, loadRotationView } from "../rotation.ts";
+import type { FloorRoster, RotationView } from "../session/rotation-view.ts";
 
 /**
  * The Server Action the live surfaces poll (issue #243). Thin wrapper over
