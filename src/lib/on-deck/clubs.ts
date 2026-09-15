@@ -135,3 +135,26 @@ export async function updateClubDefaults(
     throw new Error(`saving the Club defaults failed: ${error.message}`);
   }
 }
+
+/**
+ * A Club's display name for somebody holding its link and nothing else.
+ *
+ * Goes through the `on_deck_club_name` RPC rather than a select, because
+ * `on_deck_clubs` is owner-only under RLS and the reader here is a Player
+ * with no account (issue #510). Null for a link that matches no Club, which
+ * the caller renders the same as any other unknown link.
+ */
+export async function getPublicClubName(
+  supabase: SupabaseClient,
+  clubId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc("on_deck_club_name", {
+    p_club_id: clubId,
+  });
+
+  if (error) {
+    throw new Error(`loading the Club's name failed: ${error.message}`);
+  }
+
+  return (data as string | null) ?? null;
+}
