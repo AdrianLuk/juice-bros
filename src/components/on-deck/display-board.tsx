@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
-import type { RotationView } from "@/lib/on-deck/actions/rotation";
+import type { RotationView } from "@/lib/on-deck/session/rotation-view";
 import { QUEUE_TOGETHER_EXPLAINER } from "@/lib/on-deck/session/types";
 import type { ClubJoinQr } from "@/lib/on-deck/qr";
 import {

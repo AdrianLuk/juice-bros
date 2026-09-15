@@ -42,12 +42,11 @@ import {
   volunteerSwapNoShow,
   volunteerUndoLastAction,
 } from "@/lib/on-deck/actions/volunteer";
-import {
-  getFloorRoster,
-  getRotationView,
-  type FloorRoster,
-  type RotationView,
-} from "@/lib/on-deck/actions/rotation";
+import { getFloorRoster, getRotationView } from "@/lib/on-deck/actions/rotation";
+import type {
+  FloorRoster,
+  RotationView,
+} from "@/lib/on-deck/session/rotation-view";
 import {
   QUEUE_TOGETHER_EXPLAINER,
   SKILL_LEVELS,

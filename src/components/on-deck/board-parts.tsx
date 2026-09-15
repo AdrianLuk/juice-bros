@@ -8,7 +8,10 @@ import {
   SKILL_LEVEL_LABEL,
   type SkillLevel,
 } from "@/lib/on-deck/session/types";
-import type { QueueEntryView, RotationCourt } from "@/lib/on-deck/rotation";
+import type {
+  QueueEntryView,
+  RotationCourt,
+} from "@/lib/on-deck/session/rotation-view";
 
 /*
  * Shared pieces of the On Deck substitution board (direction seed 92ec9d54).
