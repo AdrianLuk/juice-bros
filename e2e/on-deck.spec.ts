@@ -369,6 +369,68 @@ test("the Club QR sign prints as a sheet, with the chrome and the controls off t
 });
 
 /**
+ * The Club QR hold-up (issue #517) — the full-bleed stand-in for a club with
+ * no printed sign yet. The load-bearing parts are that nothing else competes
+ * with the code on the screen, that the copy control puts the join link *and*
+ * its group-chat message on the clipboard in one tap, and that at phone width
+ * the code is neither cropped nor shrunk into something a camera can't read.
+ */
+test("the Club QR hold-up is full-bleed, copies a ready-written message, and holds its size at phone width", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await signIn(page);
+  await page.goto("/on-deck/home/qr");
+
+  await page.getByRole("link", { name: "Hold up your own phone" }).click();
+  await expect(page).toHaveURL(/\/on-deck\/home\/qr\/hold-up$/);
+
+  // Nothing else on the screen: no shell header/footer, no page heading.
+  await expect(page.locator("header")).toHaveCount(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+
+  const qr = page.getByRole("img", { name: `Scan to join at` });
+  await expect(qr).toBeVisible();
+  // Scoped to the heading, not a loose text match: Next's route announcer
+  // (`#__next-route-announcer__`) echoes an `<h1>`'s text into its own
+  // aria-live element on navigation, which a bare `getByText` also matches.
+  await expect(
+    page.getByRole("heading", { level: 1, name: "TO Pickleball Club" }),
+  ).toBeVisible();
+
+  const copyButton = page.getByRole("button", { name: "Copy the join message" });
+  await copyButton.click();
+  await expect(
+    page.getByRole("button", { name: "Copied. Paste it in your group chat." }),
+  ).toBeVisible();
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+  expect(clipboard).toContain("TO Pickleball Club");
+  expect(clipboard).toContain(`/on-deck/c/${clubId}`);
+  expect(clipboard).toContain("No app, no sign-up");
+
+  await page.screenshot({
+    path: "test-results/517-hold-up-desktop.png",
+    fullPage: true,
+  });
+
+  // Phone width: the code fills most of the screen rather than shrinking
+  // inside a paper-shaped sheet, and nothing forces the page to scroll wider
+  // than the viewport (a crop, not a resize).
+  await page.setViewportSize({ width: 390, height: 844 });
+  const box = await page.locator(".od-holdup-qr").boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.width).toBeGreaterThan(300);
+  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(scrollWidth).toBeLessThanOrEqual(390);
+  await page.screenshot({
+    path: "test-results/517-hold-up-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 720 });
+});
+
+/**
  * The Club QR as a file (issue #463). The point of these two routes is that
  * they need no account — a print shop has none, and the link the code carries
  * is meant to be photographed off a wall by strangers. So the test that

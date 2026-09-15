@@ -16,6 +16,7 @@ import {
   clubQrImagePath,
   ON_DECK_HOME_PATH,
   ON_DECK_QR_DISPLAY_PATH,
+  ON_DECK_QR_HOLD_UP_PATH,
 } from "@/lib/on-deck/routes";
 
 export const metadata: Metadata = {
@@ -59,8 +60,18 @@ export default async function OnDeckQrDisplayPage() {
             <p className="mt-3 max-w-md text-sm text-muted-foreground">
               Print this once and put it on the wall. The link behind the code
               never changes, so it works every week whether or not a session is
-              running yet. On a night without the printed sign, hold this screen
-              up instead and turn the brightness up.
+              running yet.
+            </p>
+            <p className="mt-3 max-w-md text-sm text-muted-foreground">
+              No wall yet?{" "}
+              <Link
+                href={ON_DECK_QR_HOLD_UP_PATH}
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Hold up your own phone
+              </Link>{" "}
+              at the door instead, full screen, with a message you can paste
+              into your group chat too.
             </p>
           </div>
 
