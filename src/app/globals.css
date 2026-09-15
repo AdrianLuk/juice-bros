@@ -2741,6 +2741,11 @@ html:has(.bb-app-chrome) {
    portrait phone edge to edge without ever growing past the screen in
    landscape. */
 .od-holdup {
+  /* Its own ink, same as `.od-sign` above and for the same reason: never
+     rides a theme token that flips. */
+  --holdup-paper: #ffffff;
+  --holdup-ink: #000000;
+
   position: relative;
   display: flex;
   min-height: 100dvh;
@@ -2749,12 +2754,13 @@ html:has(.bb-app-chrome) {
   justify-content: center;
   gap: 1.75rem;
   padding: 1.5rem;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--holdup-paper);
+  color: var(--holdup-ink);
   text-align: center;
 }
 
 .od-holdup-club {
+  max-width: min(84vw, 30rem);
   font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
   font-weight: 700;
   font-size: 1.5rem;
@@ -2762,13 +2768,14 @@ html:has(.bb-app-chrome) {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 .od-holdup-qr {
   width: min(84vw, 58dvh);
   max-width: 30rem;
   aspect-ratio: 1;
-  background-color: #ffffff;
+  background-color: var(--holdup-paper);
 }
 .od-holdup-qr svg {
   display: block;

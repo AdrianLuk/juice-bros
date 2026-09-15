@@ -27,3 +27,10 @@ test("says what tapping it does, without claiming a session is running", () => {
   // The link is stable and gets pinned/reused; it must not promise "tonight".
   assert.doesNotMatch(message, /tonight/i);
 });
+
+test("never doubles up an s for a club name that already ends in one", () => {
+  const message = buildJoinMessage("Ramsden Park Socials", "https://example.com/x");
+
+  assert.doesNotMatch(message, /Socials's/);
+  assert.doesNotMatch(message, /Socialss/);
+});

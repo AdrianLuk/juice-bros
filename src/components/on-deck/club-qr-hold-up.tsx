@@ -40,14 +40,16 @@ export function ClubQrHoldUp({
 
   return (
     <div className="od-holdup">
+      {/* Top right, not top left: the site's skip-to-content link claims
+          `top-4 left-4` on focus, and this stays clear of it. */}
       <Link
         href={ON_DECK_HOME_PATH}
-        className="absolute top-4 left-4 text-xs text-neutral-500 underline underline-offset-4"
+        className="absolute top-4 right-4 text-xs text-neutral-500 underline underline-offset-4"
       >
         Back to Tonight
       </Link>
 
-      <p className="od-holdup-club">{clubName}</p>
+      <h1 className="od-holdup-club">{clubName}</h1>
 
       <div
         role="img"
@@ -63,6 +65,10 @@ export function ClubQrHoldUp({
       >
         {copied ? "Copied. Paste it in your group chat." : "Copy the join message"}
       </button>
+
+      <p className="text-xs text-neutral-500">
+        Turn your phone&apos;s brightness up so the code scans.
+      </p>
     </div>
   );
 }

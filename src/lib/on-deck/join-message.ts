@@ -11,7 +11,9 @@
  */
 export function buildJoinMessage(clubName: string, url: string): string {
   return [
-    `Join ${clubName}'s queue here: ${url}`,
+    // No possessive here on purpose: an apostrophe-s reads wrong for any
+    // Club name already ending in "s" (e.g. "Ramsden Park Socials").
+    `Join the ${clubName} queue here: ${url}`,
     "No app, no sign-up. Just your name and how you play, then watch for your court.",
   ].join("\n");
 }

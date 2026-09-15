@@ -392,7 +392,12 @@ test("the Club QR hold-up is full-bleed, copies a ready-written message, and hol
 
   const qr = page.getByRole("img", { name: `Scan to join at` });
   await expect(qr).toBeVisible();
-  await expect(page.getByText("TO Pickleball Club")).toBeVisible();
+  // Scoped to the heading, not a loose text match: Next's route announcer
+  // (`#__next-route-announcer__`) echoes an `<h1>`'s text into its own
+  // aria-live element on navigation, which a bare `getByText` also matches.
+  await expect(
+    page.getByRole("heading", { level: 1, name: "TO Pickleball Club" }),
+  ).toBeVisible();
 
   const copyButton = page.getByRole("button", { name: "Copy the join message" });
   await copyButton.click();
