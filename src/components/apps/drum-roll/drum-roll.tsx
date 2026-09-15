@@ -247,7 +247,7 @@ function Draw({
               <span className="dr-seed">
                 {seed === null ? "…" : spellSeed(spin?.seed ?? seed)}
               </span>
-              {landed ? " produced this name" : " · committed before the spin"}
+              {landed ? " produced this name" : null}
             </p>
           ) : null}
 
