@@ -12,7 +12,7 @@ import {
   updateClubDefaults,
 } from "../clubs.ts";
 import { isKnownTimeZone } from "../timezone.ts";
-import { getOpenSessionForClub } from "../sessions.ts";
+import { getOpenSessionForClub, resolveOpenSessionForClub } from "../sessions.ts";
 import {
   ON_DECK_HOME_PATH,
   ON_DECK_SETTINGS_PATH,
@@ -27,6 +27,10 @@ import {
  * eventless open Session behind. "Only one open Session per Club" is enforced
  * by a partial unique index; a race-loser's `unique_violation` is turned here
  * into landing on the Session that already opened.
+ *
+ * `existing` is resolved through `resolveOpenSessionForClub` rather than the
+ * plain read (issue #516): a Session left open past last week auto-closes
+ * right here, so a forgotten Close never blocks tonight's Start.
  */
 export async function startSession(input?: {
   /** The Organizer's local calendar date (`YYYY-MM-DD`), from the browser, so
@@ -44,7 +48,7 @@ export async function startSession(input?: {
     redirect(ON_DECK_HOME_PATH);
   }
 
-  const existing = await getOpenSessionForClub(supabase, club.id);
+  const existing = await resolveOpenSessionForClub(supabase, club.id);
   if (existing) {
     redirect(sessionPath(existing.config.sessionId));
   }
@@ -61,6 +65,8 @@ export async function startSession(input?: {
 
   if (error) {
     // 23505 = unique_violation: another tab won the one-open-Session race.
+    // The plain getter is deliberate here, not `resolveOpenSessionForClub` — a
+    // Session that just won this race is milliseconds old and can't be stale.
     if (error.code === "23505") {
       const raced = await getOpenSessionForClub(supabase, club.id);
       if (raced) {

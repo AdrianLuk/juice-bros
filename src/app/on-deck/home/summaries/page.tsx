@@ -75,6 +75,7 @@ export default async function OnDeckSummariesPage() {
                         </span>
                         <span className="text-sm text-muted-foreground">
                           {session.venueName}
+                          {session.autoClosed ? " · closed automatically" : ""}
                         </span>
                       </span>
                       <span className="text-sm tabular-nums text-muted-foreground">
