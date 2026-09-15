@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
-import { PageHeading } from "@/components/typography/page-heading";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSummariesForClub } from "@/lib/on-deck/summaries";
-import {
-  ON_DECK_HOME_PATH,
-  ON_DECK_SUMMARIES_PATH,
-  summaryPath,
-} from "@/lib/on-deck/routes";
+import { ON_DECK_SUMMARIES_PATH, summaryPath } from "@/lib/on-deck/routes";
 import { sessionDate } from "@/lib/on-deck/session-date";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
+import {
+  BackToTonight,
+  BoardHead,
+  Row,
+  RowList,
+  Stage,
+} from "@/components/on-deck/back-office";
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -24,10 +26,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * Past nights (issue #469) — the reader's word for closed Sessions, which the
- * glossary permits in product copy the way it permits "Social". One row per
- * closed Session, most recent first —
- * the order the `(club_id, session_closed_at desc)` index exists for.
+ * Past nights (issue #469; on the board since #515) — the reader's word for
+ * closed Sessions, which the glossary permits in product copy the way it
+ * permits "Social". One row per closed Session, most recent first, the order
+ * the `(club_id, session_closed_at desc)` index exists for.
+ *
+ * The same row the home screen shows its three most recent in, so a night
+ * looks the same wherever it is listed.
  *
  * The headline numbers come from the denormalised columns rather than from
  * unpacking every Summary's JSONB, which is what those columns were put there
@@ -40,61 +45,47 @@ export default async function OnDeckSummariesPage() {
   const sessions = club ? await getSummariesForClub(supabase, club.id) : [];
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl">
-          <PageHeading eyebrow={club?.name ?? "On Deck"} title="Past nights" />
+    <ArenaShell>
+      <section className="w-full flex-1 px-5 py-12 sm:px-6 sm:py-16">
+        <div className="mx-auto w-full max-w-xl">
+          <BoardHead
+            name="Past nights"
+            spec={
+              sessions.length > 0
+                ? [`${sessions.length} ${sessions.length === 1 ? "night" : "nights"}`]
+                : []
+            }
+          />
 
           {sessions.length === 0 ? (
-            <div className="mt-8 rounded-2xl border bg-card p-6">
-              <p className="text-sm text-muted-foreground">
+            <Stage tone="flat">
+              <p className="od-bo-note">
                 No nights have finished yet. A session leaves its numbers here
                 the moment you close it: how many played, how many games, how
                 long people waited, and the mix of levels in the room. The
                 players themselves are not kept.
               </p>
-              <Link
-                href={ON_DECK_HOME_PATH}
-                className="mt-4 inline-block text-sm underline underline-offset-4"
-              >
-                Back to Tonight
-              </Link>
-            </div>
+            </Stage>
           ) : (
-            <>
-              <ul className="mt-8 flex flex-col gap-3">
-                {sessions.map((session) => (
-                  <li key={session.sessionId}>
-                    <Link
-                      href={summaryPath(session.sessionId)}
-                      className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-2xl border bg-card p-5 transition-colors hover:bg-muted"
-                    >
-                      <span className="flex flex-col gap-0.5">
-                        <span className="font-medium">
-                          {sessionDate({ at: session.startedAt, timeZone: session.timeZone })}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {session.venueName}
-                        </span>
-                      </span>
-                      <span className="text-sm tabular-nums text-muted-foreground">
-                        {session.attendance} played, {session.gamesPlayed} games
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={ON_DECK_HOME_PATH}
-                className="mt-8 inline-block text-sm underline underline-offset-4"
-              >
-                Back to Tonight
-              </Link>
-            </>
+            <RowList>
+              {sessions.map((session) => (
+                <Row
+                  key={session.sessionId}
+                  href={summaryPath(session.sessionId)}
+                  label={sessionDate({
+                    at: session.startedAt,
+                    timeZone: session.timeZone,
+                  })}
+                  sub={session.venueName}
+                  value={`${session.attendance} played · ${session.gamesPlayed} games`}
+                />
+              ))}
+            </RowList>
           )}
+
+          <BackToTonight />
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

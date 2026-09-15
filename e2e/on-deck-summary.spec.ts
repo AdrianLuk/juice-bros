@@ -151,8 +151,9 @@ test("closing a night puts its numbers on the Organizer's own screens, no SQL", 
   await page.waitForURL(/\/on-deck\/home\/summaries$/);
   await expect(page.getByText("Ramsden Park")).toBeVisible();
 
-  // Into the night itself.
-  await page.getByRole("link", { name: /played, .* games/ }).first().click();
+  // Into the night itself. Past nights uses the same row as home now, so the
+  // count reads "8 played · 2 games" in the readout voice rather than prose.
+  await page.getByRole("link", { name: /played .* games/i }).first().click();
   await page.waitForURL(/\/on-deck\/home\/summaries\/[0-9a-f-]+$/);
 
   // Eight players joined; four turnovers happened on two Courts.

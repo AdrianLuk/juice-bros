@@ -85,6 +85,11 @@ async function createTheClub(page: import("@playwright/test").Page) {
   await expect(
     page.getByRole("heading", { name: "Riverside Pickleball", exact: true }),
   ).toBeVisible();
+  // Start is the marker that home has finished settling. The heading alone is
+  // not: the create form renders the same string while it is still mounted.
+  await expect(
+    page.getByRole("button", { name: "Start tonight" }),
+  ).toBeVisible();
 }
 
 async function signIn(page: import("@playwright/test").Page) {
@@ -160,6 +165,10 @@ test("everything the create form asked for or guessed is editable in settings", 
   await createTheClub(page);
 
   await page.goto("/on-deck/home/settings");
+  // Settings bounces to home when the account has no Club, so pin that we are
+  // actually on it — otherwise a missing field reads as a markup change when
+  // it was really a redirect.
+  await page.waitForURL(/\/on-deck\/home\/settings$/);
 
   await expect(page.getByLabel("Club name")).toHaveValue("Riverside Pickleball");
   await expect(page.getByLabel("Venue name")).toHaveValue("Riverside Pickleball");

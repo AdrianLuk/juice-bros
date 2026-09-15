@@ -88,21 +88,27 @@ export function ClubQrSign({
 
       {/* Named as one block so the print stylesheet takes the whole thing off
           the page in a single rule. Nothing you can change belongs on paper. */}
+      {/* The controls belong to the board, not to the sheet: the sheet is ink
+          on paper and keeps its own ink, while everything you can press around
+          it is a key like every other key in this app. */}
       <div className="od-sign-controls mt-8 flex flex-col items-center gap-4">
-        <fieldset className="flex items-center gap-3">
+        <fieldset className="flex items-center gap-4">
           <legend className="sr-only">Paper size</legend>
           {PAPERS.map((option) => (
             <label
               key={option.value}
-              className="flex cursor-pointer items-center gap-2 text-sm"
+              className="od-readout flex cursor-pointer items-center gap-2 text-arena-dim"
             >
+              {/* A real radio, themed rather than replaced. Swapping it for a
+                  styled span would cost the native control every keyboard and
+                  assistive behaviour it already has, to gain a shape. */}
               <input
                 type="radio"
                 name="paper"
                 value={option.value}
                 checked={paper === option.value}
                 onChange={() => setPaper(option.value)}
-                className="accent-brand-orange"
+                className="size-4 accent-[var(--arena-next)]"
               />
               <span>{option.label}</span>
               <span className="sr-only">{option.hint}</span>
@@ -113,7 +119,7 @@ export function ClubQrSign({
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-full bg-brand-orange px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          className="od-key od-key--go"
         >
           Print the sign
         </button>

@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
-import { PageHeading } from "@/components/typography/page-heading";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getScheduledSession } from "@/lib/on-deck/sessions";
 import { editSessionPath } from "@/lib/on-deck/routes";
 import { SessionForm } from "@/components/on-deck/session-form";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
+import { BoardHead } from "@/components/on-deck/back-office";
+import { sessionDate } from "@/lib/on-deck/session-date";
 
 export async function generateMetadata({
   params,
@@ -50,10 +52,18 @@ export default async function OnDeckEditSessionPage({
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-lg">
-          <PageHeading eyebrow={club.name} title="Edit session" />
+    <ArenaShell>
+      <section className="w-full flex-1 px-5 py-12 sm:px-6 sm:py-16">
+        <div className="mx-auto w-full max-w-xl">
+          {/* The night being edited names the page — a scheduled Session has
+              no identity but its date, and "Edit session" named the verb. */}
+          <BoardHead
+            name={sessionDate({
+              at: `${session.scheduledFor}T00:00:00Z`,
+              timeZone: "UTC",
+            })}
+            spec={[session.venueName, `${session.courtCount} courts`]}
+          />
 
           <SessionForm
             sessionId={session.id}
@@ -63,6 +73,6 @@ export default async function OnDeckEditSessionPage({
           />
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

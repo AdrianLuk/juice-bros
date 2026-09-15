@@ -21,24 +21,23 @@ import { ON_DECK_ROOT } from "@/lib/on-deck/routes";
  * The live-event surfaces (`/session/*`, `/c/*`) are the dark substitution
  * board (direction seed 92ec9d54); the header/footer switch to the arena
  * palette on those so the chrome doesn't sit as a light strip above a dark
- * board. The Organizer's own home and settings joined that world in the back
- * office redesign (seed 7323f5fb) and switch with them.
+ * board. The Organizer's whole back office joined that world in the redesign
+ * (seed 7323f5fb) and switches with them: `/home` and everything under it,
+ * which is every screen an Organizer ever sees. No light On Deck surface is
+ * left.
  *
- * The remaining `/home/*` pages — the printable sign, past nights, the
- * scheduled-night forms — are still on the light shell. They are a stated
- * follow-up, not an oversight: each is internally consistent, so the seam is
- * between pages rather than inside one.
+ * The one thing that stays white is the printed club sign itself, and that is
+ * not a theme decision — `.od-sign` carries its own ink because it ends up as
+ * toner on paper. The page around it is dark like everything else.
  */
-
-const ARENA_SUBPATHS = ["/home", "/home/settings"];
 
 function isArenaPath(pathname: string): boolean {
   const sub = pathname.slice(ON_DECK_ROOT.length);
   return (
     sub.startsWith("/session/") ||
     sub.startsWith("/c/") ||
-    ARENA_SUBPATHS.includes(sub) ||
-    ARENA_SUBPATHS.some((p) => sub === `${p}/`)
+    sub === "/home" ||
+    sub.startsWith("/home/")
   );
 }
 

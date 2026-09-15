@@ -2702,28 +2702,50 @@ html:has(.bb-app-chrome) {
   }
 }
 
-/* ── The Session Summary reader (issue #469) ────────────────────────────────
+/* ── The Session Summary reader (issue #469, on the board since #515) ────────
 
-   Charts for the morning after, on the Organizer's light shell, not the
-   arena's dark board. Read at a desk while writing the retro.
+   Charts for the morning after. This used to be the argument for keeping the
+   Organizer's screens light — read at a desk while writing the retro, not
+   across a gym — but a desk is where the rest of the back office is read too,
+   and one light report inside a dark app is a seam, not a considerate choice.
 
-   One mark colour for every bar on the page. Row labels carry identity, so
-   hue is a free channel here, and spending it on a per-row ramp would
-   double-encode bar length as colour. The colour is a deepened brand orange:
-   `#f26522` itself sits at 3.07:1 against this page, which is on the floor
-   for a discernible mark, and this step is 4.3:1. */
+   **The mark is not orange, and that is the point.** On this board orange means
+   LIVE: the foursome being called, the court that just opened. A night that
+   closed has no live anything, so spending the accent on its bars would teach
+   the eye that orange is just "a mark", which is exactly what the live screens
+   rely on it not meaning. The mark is the board's own cool-white instead —
+   14.9:1 on the panel, brighter than the labels beside it, so the bar still
+   leads its row without borrowing a state colour it has no right to.
+
+   One mark colour for every bar on the page. Row labels carry identity, so hue
+   is a free channel here, and spending it on a per-row ramp would double-encode
+   bar length as colour. */
 
 .od-summary {
-  --od-mark: #d24a12;
-  --od-mark-track: oklch(0.94 0.008 60);
+  --od-mark: var(--arena-fg);
+  /* Most of these distributions have empty rows — five wait buckets where four
+     are zero is the shape of a good night — so the track has to be visible or
+     an empty row reads as a missing cell rather than as a scale nothing
+     reached. A recess was the wrong instinct here: at 6px on a dark panel it
+     vanished. `--arena-line` on `--arena-panel` is 1.81:1, the same register
+     the board gives a resting ring, which is what this is. */
+  --od-mark-track: var(--arena-line);
 }
 
+/* Four numbers, and on this page the numbers are the point. Board type for the
+   figure, readout voice for what it counts. */
+.od-bo-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.875rem 1rem;
+}
 .od-stat-label {
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted-foreground);
+  color: var(--arena-dim);
 }
 .od-stat-value {
   font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
@@ -2731,6 +2753,12 @@ html:has(.bb-app-chrome) {
   font-size: 2rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  color: var(--arena-fg);
+}
+.od-stat-note {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--arena-faint);
 }
 
 /* Label, bar, value — three columns, so a value can never be clipped by the
@@ -2747,6 +2775,7 @@ html:has(.bb-app-chrome) {
   white-space: nowrap;
   padding: 0.3rem 0.75rem 0.3rem 0;
   vertical-align: middle;
+  color: var(--arena-dim);
 }
 .od-bars td {
   padding: 0.3rem 0;
@@ -2781,6 +2810,7 @@ html:has(.bb-app-chrome) {
   font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
   white-space: nowrap;
+  color: var(--arena-fg);
 }
 
 /* ── The Club QR sign (issue #463) ──────────────────────────────────────────

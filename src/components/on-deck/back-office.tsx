@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { ON_DECK_HOME_PATH } from "@/lib/on-deck/routes";
+
 /**
  * The Organizer's back office, in the board's own materials (issue #515
  * redesign, surface seed 7323f5fb).
@@ -106,6 +108,21 @@ export function Stage({
     >
       {children}
     </section>
+  );
+}
+
+/**
+ * The way back to the one screen this whole section hangs off.
+ *
+ * Every page under `/on-deck/home` is reached from the lit panel's list and
+ * returns to it, so the way back is the same control everywhere rather than a
+ * different underlined phrase per page.
+ */
+export function BackToTonight() {
+  return (
+    <Link href={ON_DECK_HOME_PATH} className="od-key od-key--ghost mt-8">
+      Back to tonight
+    </Link>
   );
 }
 

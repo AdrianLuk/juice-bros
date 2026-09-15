@@ -2,23 +2,26 @@
 version: 1
 slug: "src-app-on-deck-home"
 primary_target: "src/app/on-deck/home"
-related_targets: ["src/components/on-deck/create-club-form.tsx","src/app/on-deck/home/settings","on-deck/DESIGN.md"]
+related_targets: ["src/components/on-deck/back-office.tsx","src/app/on-deck/home/settings","src/app/on-deck/home/summaries","src/app/on-deck/home/qr","src/app/on-deck/home/sessions","on-deck/DESIGN.md"]
 ---
 
 # On Deck Organizer home (`/on-deck/home`)
 
-Scope: the signed-in Organizer's own screens — `/on-deck/home` (both states) and
-`/on-deck/home/settings`. Mode: Operate — one person completing a task on a phone.
+Scope: the signed-in Organizer's own screens — `/on-deck/home` and everything under it:
+both states of home, club settings, the club-sign page, past nights, a night's summary,
+and the scheduled-night forms. Mode: Operate — one person completing a task on a phone.
 
 Audience/job: the Organizer who owns the Club, opening this in a car park before a
 social or on a weeknight. On most visits the job is Start tonight; on the first visit it
 is get a Club at all (#515). Never read across a room, always read at arm's length.
 
-This joins the Arena Board world documented in `on-deck/DESIGN.md`, which currently lists
-these pages as out of scope on the default shadcn light theme. That line is corrected when
-this ships: the Organizer's own screens were the last On Deck surface wearing a theme
-nothing else uses. It runs `.od-arena` directly rather than a quoted local scope — unlike
-the marketing landing, this *is* the app, and sharing the live board's tokens is the point.
+This joins the Arena Board world documented in `on-deck/DESIGN.md`, which used to list
+these pages as out of scope on the default shadcn light theme. That line is corrected:
+the Organizer's own screens were the last On Deck surface wearing a theme nothing else
+uses, and there is no light On Deck surface left. It runs `.od-arena` directly rather
+than a quoted local scope — unlike the marketing landing, this *is* the app, and sharing
+the live board's tokens is the point. The printed club sign keeps its own paper ink,
+because it ends up as toner rather than as pixels.
 
 ## Direction contract
 

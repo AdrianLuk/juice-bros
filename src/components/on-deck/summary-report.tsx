@@ -12,9 +12,10 @@ import type { SummaryRow } from "@/lib/on-deck/session/summary-format";
  *
  * One mark colour throughout. The row label carries identity, so hue is free,
  * and spending it on a per-row ramp would double-encode bar length as colour —
- * the classic value-ramp-on-categories mistake. The one colour is a deepened
- * brand orange, at 4.3:1 against the page, so a bar is a mark rather than a
- * suggestion.
+ * the classic value-ramp-on-categories mistake. On the board that colour is
+ * cool-white and deliberately *not* the brand orange: orange means LIVE on
+ * every other On Deck screen, and a closed night has no live anything. See the
+ * `.od-summary` block in globals.css.
  */
 
 /** A headline number. Used where the number *is* the chart. */
@@ -28,10 +29,10 @@ export function StatTile({
   note?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-xl border bg-card p-4">
+    <div className="od-panel od-bo-tile">
       <dt className="od-stat-label">{label}</dt>
       <dd className="od-stat-value">{value}</dd>
-      {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
+      {note ? <p className="od-stat-note">{note}</p> : null}
     </div>
   );
 }
@@ -56,18 +57,16 @@ export function BarTable({
   const empty = rows.every((row) => row.count === 0);
 
   return (
-    <section className="rounded-2xl border bg-card p-5">
-      <h3 className="font-heading text-base font-semibold">{caption}</h3>
-      {note ? (
-        <p className="mt-1 text-sm text-muted-foreground">{note}</p>
-      ) : null}
+    <section className="od-panel od-bo-stage">
+      <div className="flex flex-col gap-1.5">
+        <h3 className="od-display text-lg text-arena-fg">{caption}</h3>
+        {note ? <p className="od-bo-note">{note}</p> : null}
+      </div>
 
       {empty ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          Nothing to show. No {unit} were recorded.
-        </p>
+        <p className="od-bo-note">Nothing to show. No {unit} were recorded.</p>
       ) : (
-        <table className="od-bars mt-4">
+        <table className="od-bars">
           <caption className="sr-only">
             {caption}, by {unit}
           </caption>

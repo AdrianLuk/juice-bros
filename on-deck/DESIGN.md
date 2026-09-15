@@ -114,22 +114,26 @@ persuasive page (a hero, a scrollable narrative, marketing CTAs) rather than the
 own single-panel Operate layout — see `.impeccable/surfaces/src-app-on-deck-page-tsx.md` for that
 surface's own direction contract.
 
-The Organizer's own **back office** — `/on-deck/home` and `/on-deck/home/settings` — joined
-this world on 2026-09-15 (surface seed `7323f5fb`; see
-`.impeccable/surfaces/src-app-on-deck-home.md`). This file used to list those two pages as out
-of scope on the default shadcn light theme, which had stopped being true of anything else in
-the product: every surface a Player or a Volunteer sees already ran the board, and so did the
-marketing landing, leaving the Organizer's own screens as the only ones wearing a theme nothing
-else used. They run `.od-arena` directly rather than a quoted local scope — unlike the landing
-page, this *is* the app, and sharing the live board's tokens is the point. Their own
-composition rules are the Back Office section below.
+The Organizer's own **back office** — `/on-deck/home` and everything under it — joined this
+world on 2026-09-15 (surface seed `7323f5fb`; see
+`.impeccable/surfaces/src-app-on-deck-home.md`). That is the home screen, club settings, the
+club-sign page, past nights, a night's summary, and the scheduled-night forms. This file used
+to list those pages as out of scope on the default shadcn light theme, which had stopped being
+true of anything else in the product: every surface a Player or a Volunteer sees already ran
+the board, and so did the marketing landing, leaving the Organizer's own screens as the only
+ones wearing a theme nothing else used. **There is no light On Deck surface left.** They run
+`.od-arena` directly rather than a quoted local scope — unlike the landing page, this *is* the
+app, and sharing the live board's tokens is the point. Their own composition rules are the Back
+Office section below.
 
-**Out of scope:** the remaining `/on-deck/home/*` pages — the printable club sign, past nights
-and the session summaries, and the scheduled-night forms. Those keep the light shell for now,
-which is a stated follow-up rather than a judgement: each is internally consistent, so the seam
-is between pages and not inside one. (The Session Summary charts are already written for a
-light page on purpose — they are read at a desk the morning after, not across a gym.) The rest
-of the Juice Bros site keeps its own separate light marketing identity.
+**The one thing that stays white is the printed club sign**, and it is not a theme decision.
+`.od-sign` declares its own ink (`--sign-paper`, `--sign-ink`) precisely so it never rides a
+token that flips, because it is the one On Deck surface that ends up as toner on paper. The
+page around it is dark like every other, which leaves the right picture anyway: a white sheet
+held up against a dark wall, which is what the Organizer is about to do with it.
+
+**Out of scope:** the rest of the Juice Bros site, which keeps its own separate light marketing
+identity.
 
 ## Overview
 
@@ -439,6 +443,27 @@ On `--arena-panel` both are comfortable (7.64:1 and 5.24:1).
 **This screen's one authored moment** is `.od-bo-stage.od-live` landing once with
 `.od-call-land`, the same pop the player's "you're up" verdict uses, and only on the one state
 that has news: arriving to find a Session already running. Nothing else on the page moves.
+
+**A night's numbers are cool-white, never orange.** The Session Summary's bars used to be a
+deepened brand orange chosen against a white page. On the board that would be the worst
+possible spend of the accent: orange means LIVE everywhere else in this app, and a night that
+closed has no live anything, so a page of orange bars would teach the eye that orange is
+merely "a mark" — which is exactly what the live screens rely on it not meaning. The mark is
+`--arena-fg` (14.9:1 on the panel, brighter than its own row label so the bar still leads),
+and the track is `--arena-line` (1.81:1, the board's resting-ring register). The track has to
+stay visible: four of five wait buckets reading zero is the shape of a good night, and an
+empty row must read as a scale nothing reached rather than as a missing cell. A recessed
+track was tried and failed that test at 6px.
+
+**Every back-office page names itself in the h1 and puts facts under it.** Home and settings
+carry the club's name, past nights carries "Past nights", a summary carries the night's date,
+a scheduled night carries its own date. The `.od-readout` line under it takes real values and
+is simply absent when there are none; a phrase naming the page in that slot is the readout
+voice used as a caption, and one line under an h1 it reads as the eyebrow this system bans.
+
+**A night looks the same wherever it is listed.** The row on home's list, the row on past
+nights, and the row at the foot of a summary are one component, so a closed night reads
+identically in all three places.
 
 ## Do's and Don'ts
 
