@@ -13,7 +13,7 @@ import {
   setClubTimeZone,
   updateClubDefaults,
 } from "../clubs.ts";
-import { FLOOR_MODES, type FloorMode } from "../session/types.ts";
+import { FLOOR_MODES, type ClubDefaults } from "../session/types.ts";
 import { isKnownTimeZone } from "../timezone.ts";
 import { getOpenSessionForClub } from "../sessions.ts";
 import {
@@ -84,11 +84,45 @@ const GROUP_CAP = { min: 2, max: 8 };
 const VENUE_MAX = 120;
 const CLUB_NAME_MAX = 120;
 
-/** What the Club-name column holds, trimmed and with its runs of space
- * collapsed — the same normalisation `on_deck_create_club` applies, done here
- * so the error is about the field rather than about a constraint. */
-function cleanClubName(raw: string | undefined): string {
+/** Trimmed, with runs of space collapsed — the same normalisation the RPCs
+ * apply, done here so a bad value comes back as a sentence about the field
+ * somebody typed rather than as the name of a CHECK constraint. */
+function collapseSpaces(raw: string | undefined): string {
   return raw?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+/** The Club's name, as both the create and the settings form need it checked. */
+function validateClubName(
+  raw: string | undefined,
+): { ok: true; name: string } | { ok: false; error: string } {
+  const name = collapseSpaces(raw);
+  if (!name) return { ok: false, error: "Enter your club's name." };
+  if (name.length > CLUB_NAME_MAX) {
+    return {
+      ok: false,
+      error: `Keep the club name under ${CLUB_NAME_MAX} characters.`,
+    };
+  }
+  return { ok: true, name };
+}
+
+/** How many courts, as the create form, the settings form and a scheduled
+ * Session all need it checked. */
+function validateCourtCount(
+  raw: number | undefined,
+): { ok: true; courtCount: number } | { ok: false; error: string } {
+  const courtCount = Number(raw);
+  if (
+    !Number.isInteger(courtCount) ||
+    courtCount < COURT_COUNT.min ||
+    courtCount > COURT_COUNT.max
+  ) {
+    return {
+      ok: false,
+      error: `Court count has to be a whole number from ${COURT_COUNT.min} to ${COURT_COUNT.max}.`,
+    };
+  }
+  return { ok: true, courtCount };
 }
 
 /** `YYYY-MM-DD`, and a real calendar date. */
@@ -124,17 +158,9 @@ function validateFields(
     return { ok: false, error: `Keep the venue name under ${VENUE_MAX} characters.` };
   }
 
-  const courtCount = Number(input.courtCount);
-  if (
-    !Number.isInteger(courtCount) ||
-    courtCount < COURT_COUNT.min ||
-    courtCount > COURT_COUNT.max
-  ) {
-    return {
-      ok: false,
-      error: `Court count has to be a whole number from ${COURT_COUNT.min} to ${COURT_COUNT.max}.`,
-    };
-  }
+  const courts = validateCourtCount(input.courtCount);
+  if (!courts.ok) return courts;
+  const courtCount = courts.courtCount;
 
   let groupCap = GROUP_CAP.min;
   if (need.groupCap) {
@@ -245,27 +271,19 @@ export async function createClub(input: {
 }): Promise<SessionSettingsResult> {
   await verifyOrganizer();
 
-  const name = cleanClubName(input.name);
-  if (!name) return { error: "Enter your club's name." };
-  if (name.length > CLUB_NAME_MAX) {
-    return { error: `Keep the club name under ${CLUB_NAME_MAX} characters.` };
-  }
+  const named = validateClubName(input.name);
+  if (!named.ok) return named;
 
-  const courtCount = Number(input.courtCount);
-  if (
-    !Number.isInteger(courtCount) ||
-    courtCount < COURT_COUNT.min ||
-    courtCount > COURT_COUNT.max
-  ) {
-    return {
-      error: `Court count has to be a whole number from ${COURT_COUNT.min} to ${COURT_COUNT.max}.`,
-    };
-  }
+  const courts = validateCourtCount(input.courtCount);
+  if (!courts.ok) return courts;
 
   const supabase = await createClient();
 
   try {
-    await createClubRow(supabase, { name, courtCount });
+    await createClubRow(supabase, {
+      name: named.name,
+      courtCount: courts.courtCount,
+    });
   } catch (error) {
     // The Organizer already has one — a stale form, or the losing half of a
     // double submit. Not a failure to report as one: the home screen they are
@@ -293,21 +311,17 @@ export async function createClub(input: {
  * Floor Mode nobody was asked about. The clock is the one exception and has its
  * own action, so a form opened to change a court count cannot commit one.
  */
-export async function saveClubDefaults(input: {
-  name: string;
-  venueName: string;
-  courtCount: number;
-  groupCap: number;
-  floorMode: FloorMode;
-}): Promise<SessionSettingsResult> {
+export async function saveClubDefaults(
+  input: ClubDefaults,
+): Promise<SessionSettingsResult> {
   await verifyOrganizer();
 
-  const name = cleanClubName(input.name);
-  if (!name) return { error: "Enter your club's name." };
-  if (name.length > CLUB_NAME_MAX) {
-    return { error: `Keep the club name under ${CLUB_NAME_MAX} characters.` };
-  }
+  const named = validateClubName(input.name);
+  if (!named.ok) return named;
 
+  // The only one of these values the RPC does not check for itself — the
+  // table's own CHECK is the backstop, and it names a constraint rather than
+  // a floor mode.
   if (!FLOOR_MODES.includes(input.floorMode)) {
     return { error: "Pick one of the floor modes." };
   }
@@ -321,7 +335,7 @@ export async function saveClubDefaults(input: {
 
   try {
     await updateClubDefaults(supabase, {
-      name,
+      name: named.name,
       venueName: valid.venueName,
       courtCount: valid.courtCount,
       groupCap: valid.groupCap,

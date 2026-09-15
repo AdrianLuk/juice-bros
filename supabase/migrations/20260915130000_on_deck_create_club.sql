@@ -19,8 +19,10 @@
 -- explicit row-count cap checked in the function, with the unique index behind
 -- it as the actual guarantee against a racer. There the cap is 500 Players per
 -- Session; here it is one Club per owner, which the
--- `on_deck_clubs_one_per_owner` index has enforced since the foundation. This
--- function only has to say so in a sentence rather than in a 23505.
+-- `on_deck_clubs_one_per_owner` index has enforced since the foundation. What
+-- the function adds is the sentence: the index's own message names a
+-- constraint, and the app has to distinguish "you already have one" from every
+-- other refusal to know it should show the Club rather than an error.
 --
 -- Two inputs and no more, because an Organizer creating a Club has not run a
 -- night yet and has nothing to base a group cap on. Venue name starts as the
@@ -163,9 +165,12 @@ begin
     raise exception 'not signed in' using errcode = '42501';
   end if;
 
+  -- Both names normalised the same way. The venue used to be `btrim` alone,
+  -- which differed from what the app sends (it collapses runs of space before
+  -- it gets here), so a direct caller could store a venue the form could not.
   update public.on_deck_clubs
     set name = btrim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g')),
-        venue_name = btrim(p_venue_name),
+        venue_name = btrim(regexp_replace(coalesce(p_venue_name, ''), '\s+', ' ', 'g')),
         court_count = p_court_count,
         group_cap = p_group_cap,
         floor_mode = p_floor_mode

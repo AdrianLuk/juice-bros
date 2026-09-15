@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { FloorMode } from "./session/types.ts";
+import type { ClubDefaults, FloorMode } from "./session/types.ts";
 
 /**
  * A Club: the tenant and the owner of everything below it. Created by the
@@ -11,13 +11,8 @@ import type { FloorMode } from "./session/types.ts";
  * ever reads one — the signed-in Organizer's own, enforced by the
  * one-per-owner unique index and by RLS.
  */
-export type Club = {
+export type Club = ClubDefaults & {
   id: string;
-  name: string;
-  venueName: string;
-  courtCount: number;
-  groupCap: number;
-  floorMode: FloorMode;
   /**
    * IANA zone the Club's nights are named on (issue #469). Display only:
    * every timestamp is a `timestamptz`. A Session snapshots this at creation,
@@ -179,13 +174,7 @@ export async function createClub(
  */
 export async function updateClubDefaults(
   supabase: SupabaseClient,
-  input: {
-    name: string;
-    venueName: string;
-    courtCount: number;
-    groupCap: number;
-    floorMode: FloorMode;
-  },
+  input: ClubDefaults,
 ): Promise<void> {
   const { error } = await supabase.rpc("on_deck_update_club_defaults", {
     p_name: input.name,

@@ -23,7 +23,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(30);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('11111111-0000-0000-0000-000000000515', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'organizer-515@example.com'),
@@ -253,13 +253,32 @@ select throws_ok(
   'and a blank name'
 );
 
+-- Floor Mode is the one value neither RPC checks for itself, so the table is
+-- the only thing standing between a typo and a Club nobody can open a Session
+-- for. It is not reachable through create at all -- create never sets it --
+-- which is exactly why it is worth pinning here rather than assuming.
+select throws_ok(
+  $$insert into public.on_deck_clubs (owner_id, name, venue_name, court_count, floor_mode)
+    values ('22222222-0000-0000-0000-000000000515', 'Bad Mode', 'Bad Mode', 4, 'free-for-all')$$,
+  '23514',
+  null,
+  'and a Floor Mode that is not one of the three'
+);
+
 -- ---- everything create guessed is editable afterwards ----------------------
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "11111111-0000-0000-0000-000000000515", "role": "authenticated"}';
 
+select throws_ok(
+  $$select public.on_deck_update_club_defaults('Riverside', 'Riverside', 6, 4, 'free-for-all')$$,
+  '23514',
+  null,
+  'the same CHECK backstops a bad Floor Mode arriving through Settings'
+);
+
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Riverside Pickleball Club', 'Riverside Community Centre', 10, 6, 'self-serve')$$,
+  $$select public.on_deck_update_club_defaults('Riverside Pickleball Club', '  Riverside   Community Centre ', 10, 6, 'self-serve')$$,
   'Settings reaches the name and the Floor Mode as well as the Session defaults'
 );
 

@@ -12,16 +12,11 @@ import { ON_DECK_HOME_PATH } from "@/lib/on-deck/routes";
 import {
   FLOOR_MODES,
   FLOOR_MODE_LABEL,
+  type ClubDefaults,
   type FloorMode,
 } from "@/lib/on-deck/session/types";
 
-type Props = {
-  name: string;
-  venueName: string;
-  courtCount: number;
-  groupCap: number;
-  floorMode: FloorMode;
-};
+type Props = ClubDefaults;
 
 /** What each Floor Mode means for the night, in one line. */
 const FLOOR_MODE_BLURB: Record<FloorMode, string> = {
@@ -152,7 +147,7 @@ export function ClubDefaultsForm({
       </p>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="on-deck-floor-mode">Floor mode</Label>
+        <Label htmlFor="on-deck-floor-mode">Floor Mode</Label>
         <select
           id="on-deck-floor-mode"
           name="floorMode"

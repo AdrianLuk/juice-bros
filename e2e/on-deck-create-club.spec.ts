@@ -35,9 +35,27 @@ test.beforeAll(async ({ browser }) => {
   await page.close();
 });
 
+// Every test starts from "this account has no Club", because that is the state
+// the thing under test needs and because a retry of a test that created one
+// would otherwise find no form. Each test then makes its own through the form
+// rather than seeding one, so none of them depends on another having run.
+test.beforeEach(async () => {
+  await deleteClubForOrganizer(ORGANIZER_EMAIL);
+});
+
 test.afterAll(async () => {
   await deleteClubForOrganizer(ORGANIZER_EMAIL);
 });
+
+/** Fills the two fields and waits for home to come back as the Club. */
+async function createTheClub(page: import("@playwright/test").Page) {
+  await page.getByLabel("Club name").fill("Riverside Pickleball");
+  await page.getByLabel("Courts").fill("6");
+  await page.getByRole("button", { name: "Create the club" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Riverside Pickleball", exact: true }),
+  ).toBeVisible();
+}
 
 async function signIn(page: import("@playwright/test").Page) {
   await page.goto("/on-deck/sign-in?next=/on-deck/home");
@@ -60,15 +78,9 @@ test("an Organizer with no Club creates one in two fields and lands on home with
   ).toBeVisible();
   await expect(page.getByText(ORGANIZER_EMAIL)).toBeVisible();
 
-  await page.getByLabel("Club name").fill("Riverside Pickleball");
-  await page.getByLabel("Courts").fill("6");
-  await page.getByRole("button", { name: "Create the club" }).click();
-
   // Home, as their Club. The heading is the marker that the server re-rendered
   // past the create form rather than the form merely clearing itself.
-  await expect(
-    page.getByRole("heading", { name: "Riverside Pickleball" }),
-  ).toBeVisible();
+  await createTheClub(page);
   await expect(
     page.getByRole("heading", { name: "Set up your club" }),
   ).toHaveCount(0);
@@ -89,9 +101,11 @@ test("an Organizer with no Club creates one in two fields and lands on home with
 test("a second visit offers no second Club", async ({ page }) => {
   await signIn(page);
   await page.goto("/on-deck/home");
+  await createTheClub(page);
 
+  await page.goto("/on-deck/home");
   await expect(
-    page.getByRole("heading", { name: "Riverside Pickleball" }),
+    page.getByRole("heading", { name: "Riverside Pickleball", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Set up your club" }),
@@ -105,19 +119,22 @@ test("everything the create form asked for or guessed is editable in settings", 
   page,
 }) => {
   await signIn(page);
+  await page.goto("/on-deck/home");
+  await createTheClub(page);
+
   await page.goto("/on-deck/home/settings");
 
   await expect(page.getByLabel("Club name")).toHaveValue("Riverside Pickleball");
   await expect(page.getByLabel("Venue name")).toHaveValue("Riverside Pickleball");
   await expect(page.getByLabel("Courts")).toHaveValue("6");
   await expect(page.getByLabel("Group cap")).toHaveValue("4");
-  await expect(page.getByLabel("Floor mode")).toHaveValue("hybrid");
+  await expect(page.getByLabel("Floor Mode")).toHaveValue("hybrid");
 
   await page.getByLabel("Club name").fill("Riverside Pickleball Club");
   await page.getByLabel("Venue name").fill("Riverside Community Centre");
   await page.getByLabel("Courts").fill("10");
   await page.getByLabel("Group cap").fill("6");
-  await page.getByLabel("Floor mode").selectOption("self-serve");
+  await page.getByLabel("Floor Mode").selectOption("self-serve");
   await page.getByRole("button", { name: "Save defaults" }).click();
   await expect(page.getByText("Defaults saved.")).toBeVisible();
 
