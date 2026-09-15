@@ -341,11 +341,14 @@ function Draw({
  * The whole of getting started. A paste box, because the names already exist
  * in a group chat, and nothing else on screen competing with it.
  */
+/**
+ * Exactly the lines the placeholder below shows, so the wheel above the box is
+ * a picture of what that paste becomes rather than an unrelated example.
+ */
 const GHOST: Entrant[] = [
-  { id: "g1", name: "Anna Leigh Waters", tickets: 3 },
+  { id: "g1", name: "Anna Leigh Waters", tickets: 1 },
   { id: "g2", name: "Ben Johns", tickets: 1 },
-  { id: "g3", name: "Catherine Parenteau", tickets: 2 },
-  { id: "g4", name: "Tyson McGuffin", tickets: 1 },
+  { id: "g3", name: "Catherine Parenteau", tickets: 3 },
 ];
 
 function Empty({ append }: { append: (...events: RaffleEvent[]) => void }) {

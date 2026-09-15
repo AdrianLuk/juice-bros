@@ -41,7 +41,7 @@ const SPIN_TURNS = 5;
 const RIM = 96;
 /** Where a label starts, and where it must stop before fouling the hub. */
 const LABEL_OUTER = RIM - 9;
-const LABEL_INNER = 19;
+const LABEL_INNER = 23;
 /** Matches `.dr-wedge-name` in globals.css. */
 const LABEL_SIZE = 8.4;
 
@@ -129,8 +129,16 @@ function labelFor(name: string, spanDeg: number): string | null {
     // Shorten the way a person would rather than cutting mid-word: "Catherine
     // Parenteau" becomes "Catherine P.", which anyone in the room can still
     // match to a face. "Catherine Pare…" is the version nobody can read.
+    // Drop middle names before touching the surname: "Anna Leigh Waters" is
+    // one character over budget, and "Anna Waters" is a far better answer than
+    // collapsing straight to an initial.
+    const last = parts[parts.length - 1];
+    if (parts.length > 2) {
+      const trimmed = `${first} ${last}`;
+      if (trimmed.length <= budget) return trimmed;
+    }
     if (parts.length > 1) {
-      const abbreviated = `${first} ${parts[parts.length - 1][0]?.toUpperCase() ?? ""}.`;
+      const abbreviated = `${first} ${last[0]?.toUpperCase() ?? ""}.`;
       if (abbreviated.length <= budget) return abbreviated;
     }
     return cut(first, budget);
