@@ -90,30 +90,26 @@ export function DrumRoll() {
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-7 px-4 py-8 sm:px-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="m-0 text-2xl font-extrabold tracking-tight">Drum Roll</h1>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="dr-key--quiet dr-key"
-              onClick={() => setPassing((on) => !on)}
-            >
-              {passing ? "Back to the draw" : "Pass the phone"}
-            </button>
-            <button
-              type="button"
-              className="dr-key dr-key--quiet"
-              onClick={() => setEvents((previous) => previous.slice(0, -1))}
-              disabled={events.length === 0}
-            >
-              <Undo2 size={16} aria-hidden="true" />
-              Undo
-            </button>
-          </div>
+          <button
+            type="button"
+            className="dr-key dr-key--quiet"
+            onClick={() => setEvents((previous) => previous.slice(0, -1))}
+            disabled={events.length === 0}
+          >
+            <Undo2 size={16} aria-hidden="true" />
+            Undo
+          </button>
         </header>
 
         {passing ? (
-          <SignIn state={state} append={append} />
+          <SignIn state={state} append={append} onDone={() => setPassing(false)} />
         ) : (
-          <Draw state={state} append={append} onClearAll={() => setEvents([])} />
+          <Draw
+            state={state}
+            append={append}
+            onClearAll={() => setEvents([])}
+            onPassItRound={() => setPassing(true)}
+          />
         )}
       </div>
     </div>
@@ -134,10 +130,12 @@ function Draw({
   state,
   append,
   onClearAll,
+  onPassItRound,
 }: {
   state: State;
   append: (...events: RaffleEvent[]) => void;
   onClearAll: () => void;
+  onPassItRound: () => void;
 }) {
   const [seed, setSeed] = useState<number | null>(null);
   const [spin, setSpin] = useState<Spin | null>(null);
@@ -219,7 +217,7 @@ function Draw({
   return (
     <>
       {state.entrants.length === 0 ? (
-        <Empty append={append} />
+        <Empty append={append} onPassItRound={onPassItRound} />
       ) : (
         <section className="dr-stage">
           {allGone ? (
@@ -325,7 +323,7 @@ function Draw({
       <Results state={state} />
 
       {state.entrants.length > 0 ? (
-        <Roster state={state} append={append} />
+        <Roster state={state} append={append} onPassItRound={onPassItRound} />
       ) : null}
 
       <Prizes state={state} append={append} />
@@ -351,7 +349,13 @@ const GHOST: Entrant[] = [
   { id: "g3", name: "Catherine Parenteau", tickets: 3 },
 ];
 
-function Empty({ append }: { append: (...events: RaffleEvent[]) => void }) {
+function Empty({
+  append,
+  onPassItRound,
+}: {
+  append: (...events: RaffleEvent[]) => void;
+  onPassItRound: () => void;
+}) {
   const [bulk, setBulk] = useState("");
 
   const add = () => {
@@ -394,9 +398,14 @@ function Empty({ append }: { append: (...events: RaffleEvent[]) => void }) {
         onChange={(event) => setBulk(event.target.value)}
         placeholder={"Anna Leigh Waters\nBen Johns\nCatherine Parenteau x3"}
       />
-      <button type="button" className="dr-key self-start" onClick={add} disabled={!bulk.trim()}>
-        Put them on the wheel
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="dr-key" onClick={add} disabled={!bulk.trim()}>
+          Put them on the wheel
+        </button>
+        <button type="button" className="dr-key dr-key--quiet" onClick={onPassItRound}>
+          Pass it round instead
+        </button>
+      </div>
     </section>
   );
 }
@@ -406,9 +415,11 @@ function Empty({ append }: { append: (...events: RaffleEvent[]) => void }) {
 function Roster({
   state,
   append,
+  onPassItRound,
 }: {
   state: State;
   append: (...events: RaffleEvent[]) => void;
+  onPassItRound: () => void;
 }) {
   const [name, setName] = useState("");
   const [bulk, setBulk] = useState("");
@@ -564,6 +575,9 @@ function Roster({
         </button>
         <button type="button" className="dr-key dr-key--quiet" onClick={() => setOpen((on) => !on)}>
           Paste a list
+        </button>
+        <button type="button" className="dr-key dr-key--quiet" onClick={onPassItRound}>
+          Pass it round
         </button>
       </div>
 
@@ -800,14 +814,30 @@ function HouseRule({
 function SignIn({
   state,
   append,
+  onDone,
 }: {
   state: State;
   append: (...events: RaffleEvent[]) => void;
+  onDone: () => void;
 }) {
   const [name, setName] = useState("");
   const [tickets, setTickets] = useState(1);
   const [justAdded, setJustAdded] = useState<{ name: string; tickets: number } | null>(null);
   const field = useRef<HTMLInputElement>(null);
+
+  /**
+   * The trigger for this screen sits down in the roster, so arriving here
+   * without scrolling back up hands the next person a view of the footer. Not
+   * auto-focused: on a phone that opens the keyboard over half the screen
+   * before they have even seen what they are being asked for.
+   */
+  useEffect(() => {
+    // Deferred past paint on purpose: this screen is much shorter than the one
+    // it replaces, so the browser re-clamps scroll position after layout and
+    // would undo a scroll issued during the commit.
+    const frame = requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!justAdded) return;
@@ -880,6 +910,12 @@ function SignIn({
       <p className="dr-readout">
         {state.entrants.length} on the wheel, {ticketsIn(state.entrants)} tickets between them.
       </p>
+
+      <div className="dr-section pt-5">
+        <button type="button" className="dr-key dr-key--quiet" onClick={onDone}>
+          Everyone is in, back to the draw
+        </button>
+      </div>
     </section>
   );
 }
