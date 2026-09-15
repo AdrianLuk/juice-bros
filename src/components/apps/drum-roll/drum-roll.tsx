@@ -226,10 +226,7 @@ function Draw({
             <p className="dr-drawing-for">Every prize has gone.</p>
           ) : prize ? (
             <p className="dr-drawing-for">
-              <span className="block text-[0.9375rem] font-normal tracking-normal text-[var(--dr-ink-dim)]">
-                Drawing for
-              </span>
-              {prize.name}
+              <span className="dr-drawing-lede">Drawing for</span> {prize.name}
             </p>
           ) : null}
 
@@ -344,6 +341,13 @@ function Draw({
  * The whole of getting started. A paste box, because the names already exist
  * in a group chat, and nothing else on screen competing with it.
  */
+const GHOST: Entrant[] = [
+  { id: "g1", name: "Anna Leigh Waters", tickets: 3 },
+  { id: "g2", name: "Ben Johns", tickets: 1 },
+  { id: "g3", name: "Catherine Parenteau", tickets: 2 },
+  { id: "g4", name: "Tyson McGuffin", tickets: 1 },
+];
+
 function Empty({ append }: { append: (...events: RaffleEvent[]) => void }) {
   const [bulk, setBulk] = useState("");
 
@@ -365,6 +369,12 @@ function Empty({ append }: { append: (...events: RaffleEvent[]) => void }) {
 
   return (
     <section className="flex flex-col gap-3">
+      {/* What the names become, shown rather than described. Inert and dimmed:
+          it is an illustration of the tool, not a wheel anybody can spin. */}
+      <div aria-hidden="true" className="pointer-events-none select-none">
+        <Wheel pool={GHOST} landedId={null} ghost />
+      </div>
+
       <h2 className="dr-h">Who is in?</h2>
       <p className="dr-note">
         One name per line. Paste straight from a group chat if you have it there.
@@ -450,7 +460,7 @@ function Roster({
 
   return (
     <section className="dr-section flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="dr-section-head">
         <h2 className="dr-h">
           On the wheel{" "}
           <span className="font-normal text-[var(--dr-ink-dim)]">

@@ -4689,11 +4689,18 @@ body:has(.dr-surface) {
 
 .dr-wheel {
   position: relative;
-  width: min(86vw, 30rem);
+  /* Sized off the viewport in both axes: height matters as much as width, or
+     the wheel overflows the fold on a short laptop while looking small. */
+  width: min(92vw, 62vh, 40rem);
   aspect-ratio: 1;
   margin-inline: auto;
   display: grid;
   place-items: center;
+}
+.dr-wheel--ghost {
+  width: min(70vw, 34vh, 17rem);
+  opacity: 0.45;
+  filter: saturate(0.4);
 }
 
 .dr-wheel-face {
@@ -4715,13 +4722,34 @@ body:has(.dr-surface) {
 .dr-wheel-rim {
   fill: none;
   stroke: var(--dr-hub);
-  stroke-width: 5;
+  stroke-width: 11;
+}
+/* The turned inner edge, so the rim reads as a band with a lip rather than a
+   drawn circle. */
+.dr-wheel-bevel {
+  fill: none;
+  stroke: oklch(0.52 0.012 70);
+  stroke-width: 1.6;
 }
 
 .dr-wedge {
   stroke: var(--dr-hub);
   stroke-width: 0.6;
   transition: fill 260ms ease-out;
+}
+
+/* The landing: the winning wedge comes up proud and stays there. Scaled about
+   the viewBox centre so it grows out of the wheel rather than about itself. */
+.dr-slice--won {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: dr-land 460ms cubic-bezier(0.18, 0.9, 0.28, 1) both;
+  filter: drop-shadow(0 3px 7px oklch(0.42 0.14 40 / 0.45));
+}
+@keyframes dr-land {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.04); }
+  100% { transform: scale(1.022); }
 }
 .dr-wedge[data-tone="0"] { fill: var(--dr-wedge-0); }
 .dr-wedge[data-tone="1"] { fill: var(--dr-wedge-1); }
@@ -4733,7 +4761,7 @@ body:has(.dr-surface) {
 .dr-wedge-name {
   fill: var(--dr-ink);
   font-family: var(--font-dr), ui-sans-serif, system-ui, sans-serif;
-  font-size: 7.4px;
+  font-size: 8.4px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -4744,10 +4772,9 @@ body:has(.dr-surface) {
 
 /* The pegs the flapper rides over — short marks at the rim, not spokes. */
 .dr-wheel-peg {
-  stroke: var(--dr-hub);
-  stroke-width: 1.6;
+  stroke: oklch(0.63 0.012 75);
+  stroke-width: 2.6;
   stroke-linecap: round;
-  opacity: 0.5;
 }
 
 .dr-wheel-hub {
@@ -4775,6 +4802,12 @@ body:has(.dr-surface) {
   transform-origin: 50% 8%;
   filter: drop-shadow(0 2px 3px oklch(0.24 0.02 70 / 0.4));
 }
+.dr-flapper-mount {
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  translate: -50% 0;
+}
 
 /* ---- the stage around it ----------------------------------------------- */
 
@@ -4784,6 +4817,12 @@ body:has(.dr-surface) {
   align-items: center;
   gap: 1.15rem;
   text-align: center;
+}
+
+.dr-drawing-lede {
+  font-weight: 400;
+  color: var(--dr-ink-dim);
+  letter-spacing: -0.01em;
 }
 
 .dr-drawing-for {
@@ -4801,12 +4840,12 @@ body:has(.dr-surface) {
   font-size: 0.9375rem;
   line-height: 1.5;
   color: var(--dr-ink-dim);
-  font-variant-numeric: tabular-nums;
   margin: 0;
 }
 .dr-readout b {
   color: var(--dr-ink);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* The one place monospace earns its keep: a number read out loud and checked
@@ -4990,10 +5029,43 @@ body:has(.dr-surface) {
   font-weight: 600;
 }
 
+/* The site's fixed mobile menu button sits bottom-right. Below its breakpoint
+   the row's controls move off that gutter entirely rather than being covered
+   by it, which also gives a long name the full width. */
+.dr-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+@media (max-width: 30rem) {
+  /* Nothing this route owns sits in the bottom-right gutter, because the
+     site's fixed menu button is parked there. */
+  .dr-section-head {
+    justify-content: flex-start;
+    gap: 0.35rem 1rem;
+  }
+
+  .dr-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+  .dr-row > span:last-child {
+    justify-content: flex-start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dr-wheel-face,
   .dr-wedge,
   .dr-key {
     transition-duration: 1ms;
+  }
+  .dr-slice--won {
+    animation: none;
+    transform: scale(1.022);
   }
 }

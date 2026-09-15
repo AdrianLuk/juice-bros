@@ -27,11 +27,10 @@ export interface WheelHandle {
 interface WheelProps {
   readonly pool: readonly Entrant[];
   readonly landedId: string | null;
+  /** A still wheel with nothing riding on it, for the empty state. */
+  readonly ghost?: boolean;
   readonly ref?: React.Ref<WheelHandle>;
 }
-
-/** Wedges thinner than this cannot hold a name without it turning to soup. */
-const LABEL_FLOOR_DEG = 11;
 
 /** How far ahead of a peg the flapper starts riding up, in degrees. */
 const FLAPPER_REACH = 7;
@@ -40,6 +39,11 @@ const SPIN_MS = 4600;
 const SPIN_TURNS = 5;
 
 const RIM = 96;
+/** Where a label starts, and where it must stop before fouling the hub. */
+const LABEL_OUTER = RIM - 9;
+const LABEL_INNER = 19;
+/** Matches `.dr-wedge-name` in globals.css. */
+const LABEL_SIZE = 8.4;
 
 interface Slice {
   readonly entrant: Entrant;
@@ -52,10 +56,10 @@ interface Slice {
 /**
  * Wedges laid out clockwise from twelve o'clock, sized by tickets.
  *
- * Tones cycle through three warm neutrals rather than a colour per name: the
- * accent is reserved for the wedge that wins, so the landing is the only
- * saturated thing that ever happens on the wheel. The cycle is nudged where it
- * would otherwise put two matching wedges side by side at the seam.
+ * Tones cycle three warm neutrals rather than a colour per name: the accent is
+ * reserved for the wedge that wins, so the landing is the only saturated thing
+ * that ever happens on the wheel. The cycle is nudged where it would otherwise
+ * put two matching wedges side by side at the seam.
  */
 function slice(pool: readonly Entrant[]): Slice[] {
   const total = pool.reduce((sum, entrant) => sum + entrant.tickets, 0);
@@ -67,8 +71,6 @@ function slice(pool: readonly Entrant[]): Slice[] {
   pool.forEach((entrant, index) => {
     const span = (entrant.tickets / total) * 360;
     const last = index === pool.length - 1;
-    // Three tones cycle without adjacent repeats except where the last wedge
-    // meets the first, which the shift fixes.
     const tone = last && pool.length > 1 && pool.length % 3 === 1 ? 1 : index % 3;
 
     slices.push({
@@ -103,10 +105,48 @@ function wedgePath(start: number, end: number, r: number): string {
   ].join(" ");
 }
 
-/** Long names get cut rather than allowed to run under the hub. */
-function fit(name: string, spanDeg: number): string {
-  const budget = Math.max(6, Math.round(spanDeg * 0.85));
-  return name.length <= budget ? name : `${name.slice(0, budget - 1).trimEnd()}…`;
+/**
+ * What a wedge can actually hold.
+ *
+ * Two different limits, and the old code only respected one of them. The
+ * radial run between rim and hub caps the character count, so a long name
+ * cannot march through the middle of the wheel; the wedge's angle caps how
+ * much of the name is worth attempting at all. A thin wedge therefore drops to
+ * a first name and then to initials rather than vanishing, because a bucket
+ * where one person's ticket is unlabelled is a bucket the room cannot audit.
+ */
+function labelFor(name: string, spanDeg: number): string | null {
+  // A grotesk at this size averages a little under half its size per glyph.
+  const budget = Math.floor((LABEL_OUTER - LABEL_INNER) / (LABEL_SIZE * 0.47));
+  const parts = name.split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? name;
+
+  const cut = (text: string, max: number) =>
+    text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+
+  if (spanDeg >= 11) {
+    if (name.length <= budget) return name;
+    // Shorten the way a person would rather than cutting mid-word: "Catherine
+    // Parenteau" becomes "Catherine P.", which anyone in the room can still
+    // match to a face. "Catherine Pare…" is the version nobody can read.
+    if (parts.length > 1) {
+      const abbreviated = `${first} ${parts[parts.length - 1][0]?.toUpperCase() ?? ""}.`;
+      if (abbreviated.length <= budget) return abbreviated;
+    }
+    return cut(first, budget);
+  }
+
+  if (spanDeg >= 6) return cut(first, Math.min(budget, 12));
+
+  if (spanDeg >= 3.2) {
+    const initials = parts
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("");
+    return initials || null;
+  }
+
+  return null;
 }
 
 /**
@@ -120,16 +160,16 @@ function fit(name: string, spanDeg: number): string {
  * half turn and anchors from the other end, so both halves read left to right
  * and both start at the rim.
  */
-function label(mid: number, radius: number) {
+function labelPlacement(mid: number) {
   const flipped = mid >= 180;
 
   return {
-    transform: `rotate(${(mid - 90).toFixed(3)}) translate(${radius} 0)${flipped ? " rotate(180)" : ""}`,
+    transform: `rotate(${(mid - 90).toFixed(3)}) translate(${LABEL_OUTER} 0)${flipped ? " rotate(180)" : ""}`,
     anchor: flipped ? ("start" as const) : ("end" as const),
   };
 }
 
-export function Wheel({ pool, landedId, ref }: WheelProps) {
+export function Wheel({ pool, landedId, ghost = false, ref }: WheelProps) {
   const face = useRef<HTMLDivElement>(null);
   const flapper = useRef<HTMLDivElement>(null);
   const frame = useRef<number | null>(null);
@@ -237,12 +277,19 @@ export function Wheel({ pool, landedId, ref }: WheelProps) {
           .join("; ")}.`;
 
   return (
-    <div className="dr-wheel">
+    <div className={ghost ? "dr-wheel dr-wheel--ghost" : "dr-wheel"}>
       <div className="dr-wheel-pointer" aria-hidden="true">
+        {/* The mount the flapper is sprung from. Without it the pointer reads
+            as a triangle floating over the rim rather than a part. */}
+        <svg className="dr-flapper-mount" viewBox="0 0 26 14" width="26" height="14">
+          <rect x="4" y="0" width="18" height="9" rx="2.5" fill="var(--dr-hub)" />
+          <circle cx="13" cy="9.5" r="3.2" fill="var(--dr-hub)" />
+          <circle cx="13" cy="9.5" r="1.3" fill="var(--dr-ground)" />
+        </svg>
         <div className="dr-flapper" ref={flapper}>
-          <svg viewBox="0 0 24 34" width="24" height="34" aria-hidden="true">
+          <svg viewBox="0 0 24 36" width="24" height="36" aria-hidden="true">
             <path
-              d="M12 33 L3.5 6 Q12 0.5 20.5 6 Z"
+              d="M12 35 L4 7 Q12 1.5 20 7 Z"
               fill="var(--dr-accent)"
               stroke="var(--dr-hub)"
               strokeWidth="1.6"
@@ -254,46 +301,55 @@ export function Wheel({ pool, landedId, ref }: WheelProps) {
 
       <div className="dr-wheel-face" ref={face}>
         <svg viewBox="-104 -104 208 208" role="img" aria-label={summary}>
-          <circle cx="0" cy="0" r="100.5" className="dr-wheel-rim" />
-
           {slices.map((s) => {
             const won = s.entrant.id === landedId;
-            // The rotation has to sit on the text element: a transform on a
-            // tspan is ignored by every browser.
-            const { transform, anchor } = label(s.mid, RIM - 8);
+            const { transform, anchor } = labelPlacement(s.mid);
+            const text = labelFor(s.entrant.name, s.end - s.start);
 
             return (
-              <g key={s.entrant.id}>
+              <g key={s.entrant.id} className={won ? "dr-slice dr-slice--won" : "dr-slice"}>
                 <path
-                  d={wedgePath(s.start, s.end, RIM)}
+                  // The winning wedge is drawn proud of the rim, so the landing
+                  // is a part moving rather than a colour changing.
+                  d={wedgePath(s.start, s.end, won ? RIM + 3 : RIM)}
                   className={won ? "dr-wedge dr-wedge--won" : "dr-wedge"}
                   data-tone={s.tone}
                 />
-                {s.end - s.start >= LABEL_FLOOR_DEG ? (
+                {text ? (
                   <text
                     className={won ? "dr-wedge-name dr-wedge-name--won" : "dr-wedge-name"}
+                    // The rotation has to sit on the text element: a transform
+                    // on a tspan is ignored by every browser.
                     transform={transform}
                     textAnchor={anchor}
                     dominantBaseline="middle"
                   >
-                    {fit(s.entrant.name, s.end - s.start)}
+                    {text}
                   </text>
                 ) : null}
               </g>
             );
           })}
 
+          {/* The pegs the flapper ticks against. Drawn at full strength and
+              standing proud of the rim: the mechanism the spin depends on has
+              to be visible or the flapper has no cause. */}
           {slices.map((s) => (
             <line
               key={`peg-${s.entrant.id}`}
               className="dr-wheel-peg"
               x1="0"
-              y1={-(RIM - 9)}
+              y1={-(RIM - 5)}
               x2="0"
-              y2={-RIM}
+              y2={-(RIM + 4)}
               transform={`rotate(${s.start})`}
             />
           ))}
+
+          {/* Rim last, over the wedge edges. Two strokes: the band, and a
+              turned inner edge that catches light the way the hub does. */}
+          <circle cx="0" cy="0" r={RIM + 5.5} className="dr-wheel-rim" />
+          <circle cx="0" cy="0" r={RIM + 1} className="dr-wheel-bevel" />
         </svg>
       </div>
 
