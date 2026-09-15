@@ -16,6 +16,7 @@ import {
 } from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
 import { TonightControls } from "@/components/on-deck/tonight-controls";
+import { CreateClubForm } from "@/components/on-deck/create-club-form";
 import { AdoptTimeZone } from "@/components/on-deck/adopt-time-zone";
 import {
   ON_DECK_QR_DISPLAY_PATH,
@@ -60,20 +61,7 @@ export default async function OnDeckHomePage() {
           {club && club.timeZone === null ? <AdoptTimeZone /> : null}
 
           {!club ? (
-            <div className="mt-8 rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
-              <p>
-                No club is set up for{" "}
-                <span className="text-foreground">{organizer.email}</span> yet.
-                On Deck clubs are created by hand for now. Get in touch and
-                we&apos;ll set yours up.
-              </p>
-              <Link
-                href="/contact"
-                className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
-              >
-                Contact us
-              </Link>
-            </div>
+            <CreateClubForm email={organizer.email} />
           ) : (
             <div className="mt-8 space-y-6">
               <div className="rounded-2xl border bg-card p-6">

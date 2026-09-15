@@ -60,7 +60,7 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub": "11111111-0000-0000-0000-000000000001", "role": "authenticated"}';
 
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Trinity Bellwoods', 10, 5)$$,
+  $$select public.on_deck_update_club_defaults('TO Pickleball Club', 'Trinity Bellwoods', 10, 5, 'hybrid')$$,
   'an Organizer can edit their Club''s saved defaults'
 );
 
@@ -78,7 +78,7 @@ select is(
 );
 
 select throws_ok(
-  $$select public.on_deck_update_club_defaults('Ramsden Park', 50, 4)$$,
+  $$select public.on_deck_update_club_defaults('TO Pickleball Club', 'Ramsden Park', 50, 4, 'hybrid')$$,
   '23514', null,
   'the table CHECK constraints backstop an out-of-range court count'
 );
@@ -146,7 +146,7 @@ select is(
 );
 
 select throws_ok(
-  $$select public.on_deck_update_club_defaults('Hacked', 1, 2)$$,
+  $$select public.on_deck_update_club_defaults('Hacked', 'Hacked', 1, 2, 'hybrid')$$,
   '42501', null,
   'the defaults RPC is not callable with no account'
 );
@@ -179,7 +179,7 @@ select throws_ok(
 );
 
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Cal Park', 4, 3)$$,
+  $$select public.on_deck_update_club_defaults('Cal''s Club', 'Cal Park', 4, 3, 'self-serve')$$,
   'Cal edits his own defaults'
 );
 
@@ -223,7 +223,7 @@ set local request.jwt.claims = '{"sub": "11111111-0000-0000-0000-000000000001", 
 -- The scheduled Session was created while the Club group cap was 5. Change it
 -- now — the promote must pick up the *current* Club value (group cap and Floor
 -- Mode are Club settings, not frozen at schedule time).
-select public.on_deck_update_club_defaults('Trinity Bellwoods', 10, 6);
+select public.on_deck_update_club_defaults('TO Pickleball Club', 'Trinity Bellwoods', 10, 6, 'hybrid');
 
 -- The scheduled Session's id, banked before Start so we can prove Start
 -- *promoted* that row rather than opening a fresh one.

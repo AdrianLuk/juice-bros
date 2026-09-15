@@ -6,7 +6,6 @@ import { PageHeading } from "@/components/typography/page-heading";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
-import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
 import { ON_DECK_HOME_PATH, ON_DECK_SETTINGS_PATH } from "@/lib/on-deck/routes";
 import { ClubDefaultsForm } from "@/components/on-deck/club-defaults-form";
 import { ClubClockCard } from "@/components/on-deck/club-clock-card";
@@ -40,14 +39,12 @@ export default async function OnDeckClubSettingsPage() {
         <div className="mx-auto max-w-lg">
           <PageHeading eyebrow={club.name} title="Club settings" />
 
-          <p className="mt-4 text-sm text-muted-foreground">
-            Floor mode is <span className="text-foreground">{FLOOR_MODE_LABEL[club.floorMode]}</span>.
-          </p>
-
           <ClubDefaultsForm
+            name={club.name}
             venueName={club.venueName}
             courtCount={club.courtCount}
             groupCap={club.groupCap}
+            floorMode={club.floorMode}
           />
 
           <ClubClockCard timeZone={club.timeZone} zones={knownTimeZones()} />

@@ -37,11 +37,15 @@ async function userIdForEmail(email: string): Promise<string> {
 }
 
 /**
- * On Deck Clubs are seeded by hand (self-serve creation is out of scope, #238)
- * — there is no app path that writes `on_deck_clubs`, and RLS gives even the
- * owner no insert. So the e2e fixture writes it straight against PostgREST
- * with the service-role key, the same posture `guest-rsvp-log.ts` takes for a
- * `service_role`-only table.
+ * Writes a Club straight against PostgREST with the service-role key, the same
+ * posture `guest-rsvp-log.ts` takes for a `service_role`-only table.
+ *
+ * There *is* an app path now (`on_deck_create_club`, issue #515), and
+ * `on-deck-create-club.spec.ts` is the spec that drives it. Every other spec
+ * wants a Club with particular values and particular defaults, sometimes
+ * several times over in one file, and going through the form to get one would
+ * make each of them a test of the form. `on_deck_clubs` still carries no INSERT
+ * grant for `authenticated`, so this stays the only way to seed one.
  *
  * Idempotent on the owner (the one-Club-per-owner unique index): clears any
  * existing Club for the account first, so a re-run starts clean.

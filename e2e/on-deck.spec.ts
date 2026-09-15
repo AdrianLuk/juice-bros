@@ -12,10 +12,11 @@ import {
  * Club, taps Start to open a Session from the saved defaults, and the stable
  * Club QR path resolves to that open Session.
  *
- * The Club is seeded straight against PostgREST — self-serve club creation is
- * out of scope (#238) and there is no app path that writes `on_deck_clubs`.
- * A throwaway account per run (never deleted — there is no delete-account
- * feature), following `onboarding.spec.ts`'s posture.
+ * The Club is seeded straight against PostgREST, because this spec is about
+ * what an Organizer does with a Club rather than about getting one
+ * (`on-deck-create-club.spec.ts` covers that path, #515). A throwaway account
+ * per run (never deleted — there is no delete-account feature), following
+ * `onboarding.spec.ts`'s posture.
  */
 const ORGANIZER_EMAIL = `on-deck-organizer-${Date.now()}@example.com`;
 const ORGANIZER_PASSWORD = "pickleball123";
