@@ -10,7 +10,7 @@ const app = apps.find((item) => item.slug === "drum-roll")!;
 export const metadata: Metadata = pageMetadata({
   title: "Drum Roll: Raffle Ticket Draw",
   description:
-    "Free raffle draw for club events. Put names and tickets in, draw a winner for each prize, and show the seed so the room can check the result. No account, works offline.",
+    "Free draw and raffle wheel. Paste your names and spin for a winner, or add prizes and run a full ticketed raffle. No account, works offline.",
   path: app.href,
 });
 

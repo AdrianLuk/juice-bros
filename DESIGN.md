@@ -162,7 +162,10 @@ Buddy, On Deck, and Pickle Point Pal are separate worlds with their own
 documentation, indexed by `CONTEXT-MAP.md`. Nothing here governs those three
 surfaces, and nothing in their worlds should be imported into this one.
 Match Mixer (`/tools/match-mixer`) is a fourth such world as of 2026-09-09 and
-is documented at `match-mixer/DESIGN.md`; the Tools index and the other
+is documented at `match-mixer/DESIGN.md`. Drum Roll (`/tools/drum-roll`) is a
+fifth as of 2026-09-14 — "the wheel", scoped to `.dr-surface`, committed light,
+and documented at `src/components/apps/drum-roll/DESIGN.md` beside its code (the
+same placement Pickle Point Pal uses). The Tools index and the other
 `/tools/[slug]` pages remain in scope here.
 
 **Current adoption state.** The whole marketing site ships this system: Home,
@@ -175,10 +178,12 @@ per-page ground left a bare light band across the top of every dark route.
 `body:has(.bx-dark)` paints the document behind it, which is what shows on an
 elastic overscroll.
 
-Routes deliberately **outside** the scope: Booking Buddy, On Deck and Pickle
-Point Pal (their own worlds), and `/s/[token]` and `/connect/[token]`, which are
-Booking Buddy flows wearing the global chrome and stay on the incumbent light
-ground until Booking Buddy's world reaches them. `SiteFooter` carries `bx-dark`
+Routes deliberately **outside** the scope: Booking Buddy, On Deck, Pickle
+Point Pal, Match Mixer and Drum Roll (their own worlds; the last three sit in
+`DARK_EXCEPTIONS` in `site-shell.tsx` so `.bx-dark` never reaches them), and
+`/s/[token]` and `/connect/[token]`, which are Booking Buddy flows wearing the
+global chrome and stay on the incumbent light ground until Booking Buddy's
+world reaches them. `SiteFooter` carries `bx-dark`
 on its own root so it paints correctly on those pages too.
 
 ## Overview
@@ -703,8 +708,9 @@ strongest asset that route owns, not from a rotation.
 - **Don't** stack a mono metadata line above the heading it belongs to; that is
   an eyebrow regardless of how real the data is.
 - **Don't** carry Broadcast Dark's `.bx-dark` scope, tokens, or components onto
-  Booking Buddy, On Deck, or Pickle Point Pal, or vice versa — the four visual
-  worlds are deliberately separate and none of them imports another's tokens.
+  Booking Buddy, On Deck, Pickle Point Pal, Match Mixer, or Drum Roll, or vice
+  versa — the six visual worlds are deliberately separate and none of them
+  imports another's tokens.
 - **Don't** demote a removed eyebrow into a `.bx-meta` line under the heading.
   Dropping the eyebrow is right; keeping its words and setting them in tracked
   mono is the same decorative label one line lower, and it breaks the

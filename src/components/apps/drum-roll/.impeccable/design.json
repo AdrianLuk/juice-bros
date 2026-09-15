@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-14T00:00:00.000Z",
+  "title": "Design System: Drum Roll",
+  "extensions": {
+    "scope": {
+      "class": "dr-surface",
+      "route": "/tools/drum-roll",
+      "stylesheet": "src/app/globals.css (Drum Roll block, direction seed ffed24ea)",
+      "note": "Committed light. The route sits in DARK_EXCEPTIONS in src/components/layout/site-shell.tsx so it never inherits Broadcast Dark's .bx-dark ground."
+    },
+    "colorMeta": {
+      "dr-accent": {
+        "role": "primary",
+        "displayName": "Brand Orange",
+        "canonical": "#f26522",
+        "tonalRamp": [
+          "oklch(0.22 0.14 40)",
+          "oklch(0.31 0.17 40)",
+          "oklch(0.4 0.19 40)",
+          "oklch(0.5 0.2 40)",
+          "oklch(0.62 0.2 40)",
+          "oklch(0.72 0.17 45)",
+          "oklch(0.83 0.11 50)",
+          "oklch(0.93 0.05 55)"
+        ]
+      },
+      "dr-accent-wash": {
+        "role": "primary",
+        "displayName": "Accent Wash",
+        "canonical": "oklch(0.66 0.2 40 / 0.12)"
+      },
+      "dr-ground": {
+        "role": "neutral",
+        "displayName": "Hall White",
+        "canonical": "oklch(0.957 0.007 85)",
+        "tonalRamp": [
+          "oklch(0.2 0.007 85)",
+          "oklch(0.32 0.007 85)",
+          "oklch(0.45 0.007 85)",
+          "oklch(0.58 0.007 85)",
+          "oklch(0.7 0.007 85)",
+          "oklch(0.81 0.007 85)",
+          "oklch(0.9 0.007 85)",
+          "oklch(0.957 0.007 85)"
+        ]
+      },
+      "dr-ground-sink": {
+        "role": "neutral",
+        "displayName": "Sink",
+        "canonical": "oklch(0.929 0.009 84)"
+      },
+      "dr-field-ground": {
+        "role": "neutral",
+        "displayName": "Field White",
+        "canonical": "oklch(0.99 0.003 90)"
+      },
+      "dr-ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.22 0.008 70)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 70)",
+          "oklch(0.22 0.008 70)",
+          "oklch(0.32 0.009 70)",
+          "oklch(0.45 0.012 70)",
+          "oklch(0.58 0.011 75)",
+          "oklch(0.72 0.01 78)",
+          "oklch(0.86 0.009 82)",
+          "oklch(0.95 0.007 85)"
+        ]
+      },
+      "dr-ink-dim": {
+        "role": "neutral",
+        "displayName": "Dim Ink",
+        "canonical": "oklch(0.45 0.012 70)",
+        "note": "Tinted from the ground's own warmth, never a flat gray. ~7:1 on the ground."
+      },
+      "dr-ink-placeholder": {
+        "role": "neutral",
+        "displayName": "Placeholder Warm Gray",
+        "canonical": "oklch(0.58 0.01 75)"
+      },
+      "dr-hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(0.872 0.008 82)"
+      },
+      "dr-line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "oklch(0.78 0.011 82)"
+      },
+      "dr-hub": {
+        "role": "neutral",
+        "displayName": "Hub Graphite",
+        "canonical": "oklch(0.26 0.01 70)"
+      },
+      "dr-bevel": {
+        "role": "neutral",
+        "displayName": "Turned Bevel",
+        "canonical": "oklch(0.52 0.012 70)"
+      },
+      "dr-peg": {
+        "role": "neutral",
+        "displayName": "Peg Steel",
+        "canonical": "oklch(0.63 0.012 75)"
+      },
+      "dr-wedge-0": {
+        "role": "secondary",
+        "displayName": "Wedge Tone 0 (near-white)",
+        "canonical": "oklch(0.988 0.004 92)"
+      },
+      "dr-wedge-1": {
+        "role": "secondary",
+        "displayName": "Wedge Tone 1 (warm mid)",
+        "canonical": "oklch(0.928 0.019 84)"
+      },
+      "dr-wedge-2": {
+        "role": "secondary",
+        "displayName": "Wedge Tone 2 (deep warm)",
+        "canonical": "oklch(0.858 0.029 76)"
+      }
+    },
+    "typographyMeta": {
+      "result": { "displayName": "Result", "purpose": "The drawn name, in brand orange, under the wheel. Nothing else uses this step." },
+      "headline": { "displayName": "Drawing For", "purpose": "The prize line above the wheel; its lede words drop to 400 in Dim Ink inside the same line." },
+      "title": { "displayName": "Tool Title", "purpose": "The page's own name in the header row. A label, not a hero." },
+      "section": { "displayName": "Section Heading", "purpose": "Shelf headings (Who is in?, Prizes). One step above body, never a display step." },
+      "body": { "displayName": "Body / Note / Readout", "purpose": "All prose and reported lines in Dim Ink; bold figures return to Ink with tabular numerals." },
+      "wedge": { "displayName": "Wedge Name", "purpose": "8.4px inside a 208-unit viewBox, set at the rim running inward, half-turned past six o'clock." },
+      "readout": { "displayName": "Data Readout", "purpose": "Geist Mono, tabular: the committed seed and ticket counts only. Never a costume for labels." }
+    },
+    "shadows": [
+      { "name": "wheel-drop", "value": "drop-shadow(0 16px 26px oklch(0.24 0.02 70 / 0.26))", "purpose": "The whole wheel face resting on the ground as one object." },
+      { "name": "hub", "value": "inset 0 0 0 2px oklch(0.6 0.01 70 / 0.5), 0 2px 5px oklch(0.2 0.01 70 / 0.5)", "purpose": "The machined hub boss over its radial graphite gradient." },
+      { "name": "flapper", "value": "drop-shadow(0 2px 3px oklch(0.24 0.02 70 / 0.4))", "purpose": "The sprung pointer reading as above the wheel it rides." },
+      { "name": "landing", "value": "drop-shadow(0 3px 7px oklch(0.42 0.14 40 / 0.45))", "purpose": "Warm shadow on the winning wedge only, which is also drawn 3 units proud of the rim." },
+      { "name": "key-rest", "value": "inset 0 -2px 3px oklch(0.44 0.15 40 / 0.55), 0 2px 4px oklch(0.24 0.02 70 / 0.24)", "purpose": "The moulded spin key at rest: inner bottom bevel plus short contact shadow." },
+      { "name": "key-hover", "value": "inset 0 -2px 3px oklch(0.44 0.15 40 / 0.55), 0 4px 9px oklch(0.24 0.02 70 / 0.3)", "purpose": "Contact shadow deepening under the pointer." },
+      { "name": "key-press", "value": "inset 0 -1px 0 oklch(0.48 0.16 40)", "purpose": "Struck key: translate 2px down and collapse to a single inset line." },
+      { "name": "quiet-ring", "value": "inset 0 0 0 1px oklch(0.78 0.011 82)", "purpose": "The inset ring that stands in for a border on quiet keys." }
+    ],
+    "motion": [
+      { "name": "spin", "value": "4600ms, 5 turns + distance to target, eased 1 - (1 - t)^4", "purpose": "The one authored moment: quick to speed, then a long honest tail where a wedge boundary can still change the answer. Driven by direct style writes, so React never renders a frame." },
+      { "name": "land", "value": "460ms cubic-bezier(0.18, 0.9, 0.28, 1) — scale 1 → 1.04 → 1.022", "purpose": "The winning wedge coming up proud and staying there." },
+      { "name": "flapper-ride", "value": "up to 17deg, engaged within 7deg of a peg", "purpose": "Each peg pushes the flapper and drops it the instant it passes, so deflection rides up and snaps rather than oscillating." },
+      { "name": "key-press", "value": "90ms ease-out on translate and box-shadow", "purpose": "A control that feels struck rather than faded." },
+      { "name": "wedge-fill", "value": "260ms ease-out", "purpose": "A wedge taking or losing the accent fill." },
+      { "name": "reduced-motion", "value": "transitions 1ms; spin resolves straight to the landed state; landing holds scale(1.022) with no animation", "purpose": "Reduced motion gets the answer, not a shortened show." }
+    ],
+    "breakpoints": [
+      { "name": "row-stack", "value": "30rem", "purpose": "Below this, rows stack and left-align and section heads pack left, keeping controls out of the site's fixed mobile menu gutter." },
+      { "name": "page-gutter", "value": "40rem (sm)", "purpose": "Page padding steps from 1rem to 1.5rem." }
+    ],
+    "rhythm": {
+      "column": "max-width 42rem, centred, px 1rem → 1.5rem, py 2rem",
+      "blockGap": "1.75rem between major blocks, 0.75rem inside them",
+      "wheel": "min(92vw, 54vh, 40rem); ghost min(70vw, 34vh, 17rem) at 45% opacity",
+      "section": "1px top hairline + 1.5rem padding-top",
+      "row": "0.6rem vertical padding, 1px bottom hairline"
+    }
+  },
+  "components": [
+    {
+      "name": "Spin Key",
+      "kind": "button",
+      "refersTo": "key",
+      "description": "The only filled control in the world: solid brand orange, moulded by an inner bottom bevel, struck rather than faded on press.",
+      "html": "<button class=\"ds-key\">Spin</button>",
+      "css": ".ds-key{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:3.25rem;padding:.8rem 2.4rem;border:0;border-radius:3px;background:#f26522;color:#fff;font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:1.0625rem;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:inset 0 -2px 3px oklch(0.44 0.15 40/.55),0 2px 4px oklch(0.24 0.02 70/.24);transition:translate 90ms ease-out,box-shadow 90ms ease-out}.ds-key:hover{box-shadow:inset 0 -2px 3px oklch(0.44 0.15 40/.55),0 4px 9px oklch(0.24 0.02 70/.3)}.ds-key:active{translate:0 2px;box-shadow:inset 0 -1px 0 oklch(0.48 0.16 40)}.ds-key:focus-visible{outline:2px solid #f26522;outline-offset:2px;border-radius:2px}"
+    },
+    {
+      "name": "Quiet Key",
+      "kind": "button",
+      "refersTo": "key-quiet",
+      "description": "Every secondary action: transparent with a 1px inset ring, filling with Sink on hover.",
+      "html": "<button class=\"ds-key-quiet\">Reset</button>",
+      "css": ".ds-key-quiet{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.5rem;padding:.45rem 1rem;border:0;border-radius:3px;background:transparent;color:oklch(0.22 0.008 70);font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:.9375rem;font-weight:600;cursor:pointer;box-shadow:inset 0 0 0 1px oklch(0.78 0.011 82);transition:translate 90ms ease-out,background 90ms ease-out}.ds-key-quiet:hover{background:oklch(0.929 0.009 84)}.ds-key-quiet:active{translate:0 1px}.ds-key-quiet:focus-visible{outline:2px solid #f26522;outline-offset:2px}"
+    },
+    {
+      "name": "Link Button",
+      "kind": "button",
+      "refersTo": "link",
+      "description": "Incidental and destructive row actions: underlined Dim Ink that goes to full Ink on hover.",
+      "html": "<button class=\"ds-link\">Remove</button>",
+      "css": ".ds-link{background:none;border:0;padding:0;font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:.875rem;color:oklch(0.45 0.012 70);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}.ds-link:hover{color:oklch(0.22 0.008 70)}.ds-link:focus-visible{outline:2px solid #f26522;outline-offset:2px;border-radius:2px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "A Field White interior with a 1px Line border and machined 3px corners — a hole in the ground, not a card.",
+      "html": "<label class=\"ds-label\" for=\"ds-add\">Name</label><input class=\"ds-field\" id=\"ds-add\" placeholder=\"Ben Johns\">",
+      "css": ".ds-label{display:block;font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:.8125rem;font-weight:600;color:oklch(0.45 0.012 70);margin-bottom:.3rem}.ds-field{width:100%;padding:.7rem .8rem;border:1px solid oklch(0.78 0.011 82);border-radius:3px;background:oklch(0.99 0.003 90);color:oklch(0.22 0.008 70);font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:1rem;line-height:1.5}.ds-field::placeholder{color:oklch(0.58 0.01 75)}.ds-field:focus-visible{outline:2px solid #f26522;outline-offset:2px;border-radius:2px}"
+    },
+    {
+      "name": "Ticket Stepper",
+      "kind": "custom",
+      "refersTo": "step",
+      "description": "A 2.25rem square pair around a mono tabular count: the control that changes a wedge's width.",
+      "html": "<span class=\"ds-stepwrap\"><button class=\"ds-step\" aria-label=\"One fewer ticket\">−</button><span class=\"ds-count\">3</span><button class=\"ds-step\" aria-label=\"One more ticket\">+</button></span>",
+      "css": ".ds-stepwrap{display:inline-flex;align-items:center;gap:.375rem}.ds-step{display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border:1px solid oklch(0.78 0.011 82);border-radius:3px;background:transparent;color:oklch(0.22 0.008 70);font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:1rem;cursor:pointer}.ds-step:hover{background:oklch(0.929 0.009 84)}.ds-step:disabled{opacity:.35;cursor:not-allowed}.ds-step:focus-visible{outline:2px solid #f26522;outline-offset:2px}.ds-count{min-width:2.25rem;text-align:center;font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:.9375rem;font-weight:600;color:oklch(0.22 0.008 70)}"
+    },
+    {
+      "name": "Entrant Row",
+      "kind": "card",
+      "refersTo": "row",
+      "description": "The list unit: hairline-ruled, never boxed, with a sub-line that turns brand orange when it reports a winner.",
+      "html": "<ul class=\"ds-rows\"><li class=\"ds-row\"><span class=\"ds-row-name\">Anna Leigh Waters<span class=\"ds-row-sub ds-row-sub-won\">Won: Paddle</span></span><span class=\"ds-count\">3</span></li><li class=\"ds-row\"><span class=\"ds-row-name\">Ben Johns<span class=\"ds-row-sub\">1 ticket</span></span><span class=\"ds-count\">1</span></li></ul>",
+      "css": ".ds-rows{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;color:oklch(0.22 0.008 70)}.ds-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem;padding:.6rem 0;border-bottom:1px solid oklch(0.872 0.008 82)}.ds-row-name{font-size:1rem;font-weight:600;overflow-wrap:anywhere}.ds-row-sub{display:block;font-size:.8125rem;font-weight:400;color:oklch(0.45 0.012 70);margin-top:.1rem}.ds-row-sub-won{color:#f26522;font-weight:600}.ds-count{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:.9375rem;font-weight:600}"
+    },
+    {
+      "name": "Stage (result + seed readout)",
+      "kind": "custom",
+      "refersTo": "result",
+      "description": "What sits under the wheel: the prize line, the drawn name in brand orange, and the committed seed set in mono so it can be read aloud and checked afterwards.",
+      "html": "<div class=\"ds-stage\"><p class=\"ds-drawing-for\"><span class=\"ds-lede\">Drawing for</span> Grand Prize</p><p class=\"ds-result\">Anna Leigh Waters</p><p class=\"ds-readout\">12 names, <b>19</b> tickets · seed <span class=\"ds-seed\">ffed24ea</span></p></div>",
+      "css": ".ds-stage{display:flex;flex-direction:column;align-items:center;gap:.85rem;text-align:center;font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;color:oklch(0.22 0.008 70)}.ds-drawing-for{font-size:clamp(1.35rem,5.2vw,1.9rem);font-weight:700;letter-spacing:-.022em;line-height:1.12;margin:0;text-wrap:balance}.ds-lede{font-weight:400;color:oklch(0.45 0.012 70);letter-spacing:-.01em}.ds-result{font-size:clamp(2rem,10vw,3.4rem);font-weight:800;letter-spacing:-.035em;line-height:1.02;margin:0;color:#f26522;overflow-wrap:anywhere;text-wrap:balance}.ds-readout{font-size:.9375rem;line-height:1.5;color:oklch(0.45 0.012 70);margin:0}.ds-readout b{color:oklch(0.22 0.008 70);font-weight:700;font-variant-numeric:tabular-nums}.ds-seed{font-family:'Geist Mono',ui-monospace,monospace;font-size:.875em;font-variant-numeric:tabular-nums;color:oklch(0.22 0.008 70);font-weight:500}"
+    },
+    {
+      "name": "The Wheel",
+      "kind": "custom",
+      "refersTo": "wedge",
+      "description": "The signature device: wedge widths are ticket counts, three cycling warm tones, labels at the rim running inward, pegs, rim, bevel and hub, with the pointer flapper on top. Shown here landed.",
+      "html": "<div class=\"ds-wheel\"><svg class=\"ds-wheel-face\" viewBox=\"-104 -104 208 208\"><path class=\"ds-wedge ds-wedge-won\" d=\"M 0 0 L 0 -99 A 99 99 0 0 1 69.99 -69.99 Z\"></path><path class=\"ds-wedge ds-t1\" d=\"M 0 0 L 67.88 -67.88 A 96 96 0 0 1 67.88 67.88 Z\"></path><path class=\"ds-wedge ds-t2\" d=\"M 0 0 L 67.88 67.88 A 96 96 0 0 1 -67.88 67.88 Z\"></path><path class=\"ds-wedge ds-t0\" d=\"M 0 0 L -67.88 67.88 A 96 96 0 0 1 -67.88 -67.88 Z\"></path><path class=\"ds-wedge ds-t1\" d=\"M 0 0 L -67.88 -67.88 A 96 96 0 0 1 0 -96 Z\"></path><text class=\"ds-wedge-name ds-wedge-name-won\" transform=\"rotate(-45) translate(87 0)\" text-anchor=\"end\" dominant-baseline=\"middle\">Waters</text><text class=\"ds-wedge-name\" transform=\"rotate(45) translate(87 0)\" text-anchor=\"end\" dominant-baseline=\"middle\">Johns</text><line class=\"ds-peg\" x1=\"0\" y1=\"-91\" x2=\"0\" y2=\"-100\"></line><line class=\"ds-peg\" x1=\"0\" y1=\"-91\" x2=\"0\" y2=\"-100\" transform=\"rotate(90)\"></line><line class=\"ds-peg\" x1=\"0\" y1=\"-91\" x2=\"0\" y2=\"-100\" transform=\"rotate(180)\"></line><line class=\"ds-peg\" x1=\"0\" y1=\"-91\" x2=\"0\" y2=\"-100\" transform=\"rotate(270)\"></line><circle r=\"101.5\" class=\"ds-rim\"></circle><circle r=\"97\" class=\"ds-bevel\"></circle></svg><span class=\"ds-hub\"></span><span class=\"ds-pointer\"><svg viewBox=\"0 0 24 36\" width=\"24\" height=\"36\"><path d=\"M12 35 L4 7 Q12 1.5 20 7 Z\" fill=\"#f26522\" stroke=\"oklch(0.26 0.01 70)\" stroke-width=\"1.6\" stroke-linejoin=\"round\"></path></svg></span></div>",
+      "css": ".ds-wheel{position:relative;width:min(80vw,18rem);aspect-ratio:1;margin-inline:auto;display:grid;place-items:center}.ds-wheel-face{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 16px 26px oklch(0.24 0.02 70/.26))}.ds-wedge{stroke:oklch(0.26 0.01 70);stroke-width:.6;transition:fill 260ms ease-out}.ds-t0{fill:oklch(0.988 0.004 92)}.ds-t1{fill:oklch(0.928 0.019 84)}.ds-t2{fill:oklch(0.858 0.029 76)}.ds-wedge-won{fill:#f26522;filter:drop-shadow(0 3px 7px oklch(0.42 0.14 40/.45))}.ds-wedge-name{fill:oklch(0.22 0.008 70);font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,sans-serif;font-size:8.4px;font-weight:600;letter-spacing:-.01em}.ds-wedge-name-won{fill:#fff;font-weight:700}.ds-peg{stroke:oklch(0.63 0.012 75);stroke-width:2.6;stroke-linecap:round}.ds-rim{fill:none;stroke:oklch(0.26 0.01 70);stroke-width:11}.ds-bevel{fill:none;stroke:oklch(0.52 0.012 70);stroke-width:1.6}.ds-hub{position:absolute;width:13%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 38% 32%,oklch(0.46 0.01 70),oklch(0.24 0.01 70) 62%);box-shadow:inset 0 0 0 2px oklch(0.6 0.01 70/.5),0 2px 5px oklch(0.2 0.01 70/.5)}.ds-pointer{position:absolute;top:-.35rem;left:50%;translate:-50% 0;z-index:2;filter:drop-shadow(0 2px 3px oklch(0.24 0.02 70/.4))}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Wheel",
+    "overview": "The wheel, built like equipment instead of a widget. A quiet warm hall white carries one heavy object with real geometry: a machined hub, a turned rim with a bevelled inner edge, pegs standing proud of the band, and a sprung flapper that each peg pushes up and drops as it passes. Everything else on the page — roster, prizes, seed, controls — is flat type on the ground, separated by hairlines, with no cards anywhere.\n\nThe wheel earns its place on one argument, and the argument is visual: wedge widths are ticket counts, so five tickets is a wedge five times wider and the odds are the picture rather than a number somebody has to be told. The world refuses two predictable alternatives — the flat conic-gradient wheel with a result modal, and the SaaS tool page that buries the odds behind a ticket count — and it refuses the rainbow wheel specifically, because a colour per name is why everybody else's labels are unreadable. The governing constraint is legibility: one name read fast off a phone held up in a room.\n\nDepth here is contact, not float. Shadows are short and dark-warm, sitting a part against the ground; the wheel's own drop shadow and the winning wedge's proud scale are the only places the surface lifts at all. Motion is one authored moment — the spin — and nothing else animates for decoration.",
+    "keyCharacteristics": [
+      "Warm hall-white ground, ink and hairlines, no cards and no panels",
+      "Wedges cycle three warm neutrals, never a colour per name",
+      "Brand orange spends itself on exactly two things: the pointer and the wedge that wins",
+      "Wedge angle equals ticket share; the odds are drawn, never stated",
+      "Schibsted Grotesk carries every word a person reads; Geist Mono only where the surface reports data back",
+      "3px corners on every control — machined, not rounded",
+      "One spin: 4.6s, five turns, exponential ease-out, resolved instantly under reduced motion"
+    ],
+    "rules": [
+      { "name": "The One Saturated Event Rule", "body": "Brand orange belongs to the pointer and the landed wedge. A saturated colour anywhere else — a chip, a heading, a filled secondary button — competes with the only moment the page exists for.", "section": "colors" },
+      { "name": "The No Colour Per Name Rule", "body": "Wedges cycle exactly three warm neutrals by index. Naming-by-hue is the failure mode of every draw wheel on the internet: it destroys the label contrast that the whole surface is built to protect.", "section": "colors" },
+      { "name": "The Two Ink Steps Rule", "body": "Ink and Dim Ink. There is no third, fainter tone; if something needs to recede further it is not on this page.", "section": "colors" },
+      { "name": "The Brand Orange Is Fixed Rule", "body": "#f26522 is never darkened or retinted to improve a contrast ratio — a standing brand commitment in PRODUCT.md. Here it is moot for reading anyway: orange never carries body text. It is a wedge fill under 700-weight white, a solid key fill, and a 2px focus ring.", "section": "colors" },
+      { "name": "The Mono Reports Data Rule", "body": "Geist Mono appears only where the surface is reporting a value back that someone will read aloud and check afterwards — the seed, ticket counts, the manual-paste field. It is never a costume for a label or a heading.", "section": "typography" },
+      { "name": "The Every Ticket Is Labelled Rule", "body": "A wedge degrades its label rather than dropping it: full name, then first name plus surname initial, then first name truncated, then two initials, and only under 3.2° does it go blank. A bucket where somebody's ticket is unlabelled is a bucket the room cannot audit.", "section": "typography" },
+      { "name": "The Wheel Owns The Fold Rule", "body": "The wheel, the drawing line, the seed readout and the spin key fit one viewport together. Anything that would push the key below the fold gets a smaller wheel, not a scroll.", "section": "layout" },
+      { "name": "The Contact-Not-Float Rule", "body": "Every shadow in this world is short, warm-dark and tied to an object that is physically resting on or above the ground. There is no ambient glow, no coloured halo, and no elevation used to signal hierarchy.", "section": "elevation" },
+      { "name": "The Wheel Decides Nothing Rule", "body": "The winner is chosen against a seed the room has already seen and logged before the wheel is told anything; the spin is presentation of a result that already exists. No randomness lives in the wheel.", "section": "components" }
+    ],
+    "dos": [
+      "Do size wedges by ticket share and let the widths carry the odds. If a number has to be stated to explain the chances, the drawing has failed.",
+      "Do keep brand orange to the flapper, the landed wedge, the focus ring and the caret.",
+      "Do separate blocks with a hairline and space. Rules and rhythm group this page; boxes never do.",
+      "Do degrade a wedge label down the ladder (full name → first + initial → truncated first → initials) before dropping it.",
+      "Do set anything the surface reports back — the seed, ticket counts — in Geist Mono with tabular numerals.",
+      "Do drive the spin through direct style writes on the wheel face, and give reduced-motion users the landed state immediately.",
+      "Do keep the wheel, the drawing line, the readout and the spin key inside one viewport by shrinking the wheel, including on a short laptop.",
+      "Do keep this route in DARK_EXCEPTIONS — the world is committed light and must never inherit .bx-dark."
+    ],
+    "donts": [
+      "Don't give a wedge a colour per name. Three cycling warm neutrals, always.",
+      "Don't put the result in a modal or an overlay. The landing happens on the wheel, in place, with the name printed under it.",
+      "Don't introduce a card, panel, or raised container. Nothing rests above the ground here except the wheel's own parts and a pressed key.",
+      "Don't add a second filled control. One orange key per screen; every other action is quiet or a link.",
+      "Don't darken or retint #f26522 to chase a contrast number — a standing PRODUCT.md brand commitment, and it carries no body text on this surface.",
+      "Don't add a third ink tone below Dim Ink, or a hairline between every pair of rows and sections at once.",
+      "Don't use a pill or a large corner radius. Controls are 3px.",
+      "Don't put anything interactive in the bottom-right gutter below 30rem; the site's fixed mobile menu button is parked there.",
+      "Don't animate anything for decoration. The spin, the flapper, the landing and the key press are the complete motion vocabulary.",
+      "Don't carry .dr-* tokens or classes onto Broadcast Dark, Match Mixer, Pickle Point Pal, Booking Buddy or On Deck, or theirs onto this route."
+    ]
+  }
+}

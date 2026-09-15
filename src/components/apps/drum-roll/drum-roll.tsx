@@ -1,10 +1,12 @@
 "use client";
 
+import { Minus, Plus, RotateCcw, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { pickWinner, reelNames } from "@/components/apps/drum-roll/lib/engine/draw";
+import { pickWinner } from "@/components/apps/drum-roll/lib/engine/draw";
 import {
   eligibleFor,
+  eligibleForQuick,
   entrantById,
   nextPrize,
   reduceRaffle,
@@ -16,6 +18,7 @@ import {
   parseRoster,
 } from "@/components/apps/drum-roll/lib/engine/roster";
 import type {
+  Entrant,
   RaffleEvent,
   RedrawReason,
 } from "@/components/apps/drum-roll/lib/engine/types";
@@ -24,19 +27,9 @@ import {
   load as loadLog,
   save as saveLog,
 } from "@/components/apps/drum-roll/lib/persistence/log-storage";
+import { Wheel, type WheelHandle } from "@/components/apps/drum-roll/wheel";
 
-type Mode = "setup" | "signin" | "draw";
-
-const BUTTON =
-  "inline-flex items-center justify-center gap-2 rounded border border-[var(--bx-line)] bg-[var(--bx-raised)] px-3 py-2 text-sm font-medium text-[var(--bx-ink)] transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-orange)] disabled:cursor-not-allowed disabled:opacity-40";
-
-const PRIMARY =
-  "inline-flex items-center justify-center rounded bg-[var(--brand-orange)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-orange)] disabled:cursor-not-allowed disabled:opacity-40";
-
-const FIELD =
-  "w-full rounded border border-[var(--bx-line)] bg-[var(--bx-raised)] px-3 py-2 text-base text-[var(--bx-ink)] placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-orange)]";
-
-const LABEL = "block text-xs font-medium uppercase tracking-wider text-[var(--bx-muted)]";
+type State = ReturnType<typeof reduceRaffle>;
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -44,22 +37,27 @@ const newId = () =>
     : `id-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 
 /**
- * Drum Roll: the raffle bucket, the draw, and the record of what came out.
+ * Drum Roll: names in, one out, and a draw the room can check.
  *
  * Everything on screen is a fold over an append-only log (`reduceRaffle`), so
- * Undo is dropping the last event, and the log is what gets written to storage
- * after every single tap. The night has to survive a pocketed phone.
+ * Undo is dropping the last event, and the log is written to storage after
+ * every tap. The night has to survive a pocketed phone.
  *
- * The draw itself is deliberately not a surprise to the machine: the seed is
- * generated and shown *before* the button is pressed, the winner is
- * `pickWinner(pool, seed)`, and the reel that follows is presentation of a
- * decision already recorded. That ordering is the whole reason a room can
- * check the result instead of taking it on trust.
+ * The draw is deliberately not a surprise to the machine: a seed is rolled, the
+ * winner is `pickWinner(pool, seed)`, and the wheel that follows is presentation
+ * of a decision already recorded. The seed is no longer shown to anyone — a ten
+ * digit number is not something a room can check, so displaying it bought the
+ * look of verifiability and none of the substance. It stays in the log, where it
+ * is what makes a draw reproducible and Undo exact.
+ *
+ * Two shapes of draw share this screen. With no prizes added it is "pick one of
+ * us", which needs no setup at all. Add a prize and the same bucket becomes a
+ * raffle, drawn in the order the prizes were added.
  */
 export function DrumRoll() {
   const [events, setEvents] = useState<readonly RaffleEvent[]>([]);
   const [restored, setRestored] = useState(false);
-  const [mode, setMode] = useState<Mode>("setup");
+  const [passing, setPassing] = useState(false);
 
   const state = useMemo(() => reduceRaffle(events), [events]);
 
@@ -85,132 +83,374 @@ export function DrumRoll() {
     setEvents((previous) => [...previous, ...added]);
   }, []);
 
-  const undo = useCallback(() => {
-    setEvents((previous) => previous.slice(0, -1));
-  }, []);
-
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--bx-line-soft)] pb-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--bx-ink)]">Drum Roll</h1>
-          <p className="mt-1 text-sm text-[var(--bx-muted)]">
-            Names in, prizes out, and a draw the room can check.
-          </p>
-        </div>
-        <button
-          type="button"
-          className={BUTTON}
-          onClick={undo}
-          disabled={events.length === 0}
-        >
-          Undo last
-        </button>
-      </header>
-
-      <nav className="mt-4 flex flex-wrap gap-2" aria-label="Screens">
-        {(
-          [
-            ["setup", "Set up"],
-            ["signin", "Sign-in"],
-            ["draw", "Draw"],
-          ] as const
-        ).map(([value, label]) => (
+    <div className="dr-surface flex w-full flex-1 flex-col">
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-7 px-4 py-8 sm:px-6">
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="m-0 text-2xl font-extrabold tracking-tight">Drum Roll</h1>
           <button
-            key={value}
             type="button"
-            aria-current={mode === value ? "page" : undefined}
-            onClick={() => setMode(value)}
-            className={
-              mode === value
-                ? "rounded border border-[var(--bx-line-2)] bg-[var(--bx-raised-2)] px-3 py-2 text-sm font-semibold text-[var(--bx-ink)]"
-                : BUTTON
-            }
+            className="dr-key dr-key--quiet"
+            onClick={() => setEvents((previous) => previous.slice(0, -1))}
+            disabled={events.length === 0}
           >
-            {label}
+            <Undo2 size={16} aria-hidden="true" />
+            Undo
           </button>
-        ))}
-      </nav>
+        </header>
 
-      <main className="mt-6">
-        {mode === "setup" ? (
-          <Setup state={state} append={append} onClearAll={() => setEvents([])} />
-        ) : null}
-        {mode === "signin" ? <SignIn state={state} append={append} /> : null}
-        {mode === "draw" ? <Draw state={state} append={append} /> : null}
-      </main>
+        {passing ? (
+          <SignIn state={state} append={append} onDone={() => setPassing(false)} />
+        ) : (
+          <Draw
+            state={state}
+            append={append}
+            onClearAll={() => setEvents([])}
+            onPassItRound={() => setPassing(true)}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ set up */
+/* -------------------------------------------------------------------- draw */
 
-function Setup({
+interface Spin {
+  /** Frozen at the moment of the draw: recording the result changes who is
+   *  eligible, and a wheel that re-slices itself mid-spin is a broken wheel. */
+  readonly pool: readonly Entrant[];
+  readonly winnerId: string;
+  readonly seed: number;
+}
+
+function Draw({
   state,
   append,
   onClearAll,
+  onPassItRound,
 }: {
-  state: ReturnType<typeof reduceRaffle>;
+  state: State;
   append: (...events: RaffleEvent[]) => void;
   onClearAll: () => void;
+  onPassItRound: () => void;
 }) {
-  const [prizeName, setPrizeName] = useState("");
-  const [entrantName, setEntrantName] = useState("");
-  const [tickets, setTickets] = useState(1);
-  const [bulk, setBulk] = useState("");
-  const [confirmingClear, setConfirmingClear] = useState(false);
-  const [copied, setCopied] = useState<"idle" | "copied" | "manual">("idle");
+  const [seed, setSeed] = useState<number | null>(null);
+  const [spin, setSpin] = useState<Spin | null>(null);
+  const [landed, setLanded] = useState(false);
+  const wheel = useRef<WheelHandle>(null);
 
-  // The "Copied" note is a confirmation, not a state worth keeping. The manual
-  // fallback stays put, because it is the only way to reach the names.
+  const raffle = state.prizes.length > 0;
+  const prize = raffle ? nextPrize(state) : null;
+
+  const live = useMemo(
+    () => (prize ? eligibleFor(state, prize.id) : raffle ? [] : eligibleForQuick(state)),
+    [state, prize, raffle],
+  );
+
+  // What the wheel shows: the live bucket normally, the frozen one while a
+  // result is up.
+  const shown = spin?.pool ?? live;
+
+  /**
+   * A fresh seed whenever the thing being drawn for changes, and never while a
+   * result is on screen, so the recorded seed still matches the name showing.
+   * Deferred a frame for the same reason the log is: a seed rolled during render
+   * would differ between the server's paint and the client's.
+   */
+  const commitKey = prize
+    ? `prize:${prize.id}:${prize.skipped.length}`
+    : `quick:${state.quickDraws.length}`;
+
   useEffect(() => {
-    if (copied !== "copied") return;
-    const timer = setTimeout(() => setCopied("idle"), 2500);
-    return () => clearTimeout(timer);
-  }, [copied]);
+    if (spin) return;
+    const frame = requestAnimationFrame(() => setSeed(freshSeed()));
+    return () => cancelAnimationFrame(frame);
+  }, [commitKey, spin]);
 
-  const addPrize = () => {
-    const name = prizeName.trim();
-    if (!name) return;
-    append({ type: "PRIZE_ADDED", id: newId(), name });
-    setPrizeName("");
+  const winner = spin ? entrantById(state, spin.winnerId) : null;
+
+  const draw = () => {
+    if (seed === null || live.length === 0) return;
+
+    const picked = pickWinner(live, seed);
+    if (!picked) return;
+
+    // Recorded first, shown second. If the tab dies mid-spin the draw still
+    // happened, which is the truth and is recoverable.
+    append(
+      prize
+        ? { type: "DRAWN", prizeId: prize.id, entrantId: picked.id, seed }
+        : { type: "QUICK_DRAWN", entrantId: picked.id, seed },
+    );
+
+    setSpin({ pool: live, winnerId: picked.id, seed });
+    setLanded(false);
+    wheel.current?.spinTo(picked.id, () => setLanded(true));
   };
 
-  const addEntrant = () => {
-    const name = entrantName.trim();
-    if (!name) return;
-    append({ type: "ENTRANT_ADDED", id: newId(), name, tickets });
-    setEntrantName("");
-    setTickets(1);
+  const clearSpin = () => {
+    setSpin(null);
+    setLanded(false);
+    wheel.current?.reset();
   };
 
-  const addBulk = () => {
+  const sendBack = (reason: RedrawReason) => {
+    if (!prize?.winnerId) return;
+    append({ type: "REDRAWN", prizeId: prize.id, entrantId: prize.winnerId, reason });
+    clearSpin();
+  };
+
+  const rule = state.onePrizePerPerson
+    ? raffle
+      ? "one prize each"
+      : "nobody twice"
+    : raffle
+      ? "winners stay in"
+      : "everyone stays in";
+
+  const allGone = raffle && !prize;
+
+  return (
+    <>
+      {state.entrants.length === 0 ? (
+        <Empty append={append} onPassItRound={onPassItRound} />
+      ) : (
+        <section className="dr-stage">
+          {allGone ? (
+            <p className="dr-drawing-for">Every prize has gone.</p>
+          ) : prize ? (
+            <p className="dr-drawing-for">
+              <span className="dr-drawing-lede">Drawing for</span> {prize.name}
+            </p>
+          ) : null}
+
+          <Wheel ref={wheel} pool={shown} landedId={landed ? (spin?.winnerId ?? null) : null} />
+
+          <p aria-live="polite" className="min-h-[2.75rem] w-full">
+            {landed && winner ? (
+              <span className="dr-result block text-[var(--dr-accent)]">{winner.name}</span>
+            ) : (
+              <span className="dr-readout block">
+                <b>{ticketsIn(shown)}</b> {ticketsIn(shown) === 1 ? "ticket" : "tickets"} from{" "}
+                <b>{shown.length}</b> {shown.length === 1 ? "person" : "people"}, {rule}
+              </span>
+            )}
+          </p>
+
+          {landed && winner ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              {prize ? (
+                <>
+                  <button type="button" className="dr-key" onClick={clearSpin}>
+                    They took it
+                  </button>
+                  <button
+                    type="button"
+                    className="dr-key dr-key--quiet"
+                    onClick={() => sendBack("not-present")}
+                  >
+                    Not here, spin again
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="dr-key"
+                    onClick={clearSpin}
+                    disabled={live.length === 0}
+                  >
+                    Spin again
+                  </button>
+                  <button
+                    type="button"
+                    className="dr-key dr-key--quiet"
+                    onClick={() => {
+                      append({ type: "QUICK_CLEARED" });
+                      clearSpin();
+                    }}
+                  >
+                    <RotateCcw size={16} aria-hidden="true" />
+                    Clear results
+                  </button>
+                </>
+              )}
+            </div>
+          ) : allGone ? null : (
+            <button
+              type="button"
+              className="dr-key"
+              onClick={draw}
+              disabled={spin !== null || live.length === 0 || seed === null}
+            >
+              Spin
+            </button>
+          )}
+
+          {!landed && live.length === 0 && !allGone ? (
+            <p className="dr-note">
+              {state.onePrizePerPerson
+                ? "Everyone has already come out. Turn the house rule off below, or clear the results."
+                : "Nobody in the bucket has a ticket."}
+            </p>
+          ) : null}
+
+          {prize && prize.skipped.length > 0 ? (
+            <p className="dr-readout">
+              Sent back:{" "}
+              {prize.skipped
+                .map((id) => entrantById(state, id)?.name ?? "a removed name")
+                .join(", ")}
+            </p>
+          ) : null}
+        </section>
+      )}
+
+      <Results state={state} />
+
+      {state.entrants.length > 0 ? (
+        <Roster state={state} append={append} onPassItRound={onPassItRound} />
+      ) : null}
+
+      <Prizes state={state} append={append} />
+
+      <HouseRule state={state} append={append} onClearAll={onClearAll} />
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------- empty */
+
+/**
+ * The whole of getting started. A paste box, because the names already exist
+ * in a group chat, and nothing else on screen competing with it.
+ */
+/**
+ * Exactly the lines the placeholder below shows, so the wheel above the box is
+ * a picture of what that paste becomes rather than an unrelated example.
+ */
+const GHOST: Entrant[] = [
+  { id: "g1", name: "Anna Leigh Waters", tickets: 1 },
+  { id: "g2", name: "Ben Johns", tickets: 1 },
+  { id: "g3", name: "Catherine Parenteau", tickets: 3 },
+];
+
+function Empty({
+  append,
+  onPassItRound,
+}: {
+  append: (...events: RaffleEvent[]) => void;
+  onPassItRound: () => void;
+}) {
+  const [bulk, setBulk] = useState("");
+
+  const add = () => {
     const parsed = parseRoster(bulk);
     if (parsed.length === 0) return;
-
     append(
       ...parsed.map(
-        ({ name, tickets: count }): RaffleEvent => ({
+        ({ name, tickets }): RaffleEvent => ({
           type: "ENTRANT_ADDED",
           id: newId(),
           name,
-          tickets: count,
+          tickets,
         }),
       ),
     );
     setBulk("");
   };
 
+  return (
+    <section className="flex flex-col gap-3">
+      {/* What the names become, shown rather than described. Inert and dimmed:
+          it is an illustration of the tool, not a wheel anybody can spin. */}
+      <div aria-hidden="true" className="pointer-events-none select-none">
+        <Wheel pool={GHOST} landedId={null} ghost />
+      </div>
+
+      <h2 className="dr-h">Who is in?</h2>
+      <p className="dr-note">
+        One name per line. Paste straight from a group chat if you have it there.
+        Add <code className="font-[family-name:var(--font-geist-mono)]">x3</code> after
+        a name to give them three tickets, or leave it off for one.
+      </p>
+      <label className="sr-only" htmlFor="dr-bulk">
+        Names, one per line
+      </label>
+      <textarea
+        id="dr-bulk"
+        className="dr-field h-40"
+        value={bulk}
+        onChange={(event) => setBulk(event.target.value)}
+        placeholder={"Anna Leigh Waters\nBen Johns\nCatherine Parenteau x3"}
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="dr-key" onClick={add} disabled={!bulk.trim()}>
+          Put them on the wheel
+        </button>
+        <button type="button" className="dr-key dr-key--quiet" onClick={onPassItRound}>
+          Pass it round instead
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ roster */
+
+function Roster({
+  state,
+  append,
+  onPassItRound,
+}: {
+  state: State;
+  append: (...events: RaffleEvent[]) => void;
+  onPassItRound: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [bulk, setBulk] = useState("");
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState<"idle" | "copied" | "manual">("idle");
+
+  useEffect(() => {
+    if (copied !== "copied") return;
+    const timer = setTimeout(() => setCopied("idle"), 2500);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  const addOne = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    append({ type: "ENTRANT_ADDED", id: newId(), name: trimmed, tickets: 1 });
+    setName("");
+  };
+
+  const addMany = () => {
+    const parsed = parseRoster(bulk);
+    if (parsed.length === 0) return;
+    append(
+      ...parsed.map(
+        ({ name: parsedName, tickets }): RaffleEvent => ({
+          type: "ENTRANT_ADDED",
+          id: newId(),
+          name: parsedName,
+          tickets,
+        }),
+      ),
+    );
+    setBulk("");
+    setOpen(false);
+  };
+
   /**
    * Hand the roster to the next person. The clipboard is the fast path and the
-   * textarea is what happens when it is refused — an insecure origin, or a
-   * browser that wants a gesture it did not see — because "copy failed" with
-   * no way to get at the names is useless to someone mid-handover.
+   * textarea is what happens when it is refused, because "copy failed" with no
+   * way to reach the names is useless to somebody mid-handover.
    */
-  const copyRoster = async () => {
+  const copy = async () => {
     const text = formatRoster(state.entrants);
     if (!text) return;
-
     try {
       await navigator.clipboard.writeText(text);
       setCopied("copied");
@@ -220,313 +460,362 @@ function Setup({
   };
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-[var(--bx-ink)]">Prizes</h2>
-        <div className="flex flex-wrap gap-2">
-          <label className="sr-only" htmlFor="drum-roll-prize">
-            Prize name
+    <section className="dr-section flex flex-col gap-3">
+      <div className="dr-section-head">
+        <h2 className="dr-h">
+          On the wheel{" "}
+          <span className="font-normal text-[var(--dr-ink-dim)]">
+            ({state.entrants.length}, {ticketsIn(state.entrants)} tickets)
+          </span>
+        </h2>
+        <button type="button" className="dr-link" onClick={copy}>
+          {copied === "copied" ? "Copied" : "Copy list"}
+        </button>
+      </div>
+
+      <p aria-live="polite" className="sr-only">
+        {copied === "copied" ? "Name list copied to the clipboard" : ""}
+      </p>
+
+      {copied === "manual" ? (
+        <div className="flex flex-col gap-2">
+          <label className="dr-label" htmlFor="dr-manual">
+            This browser would not take the clipboard. Select all of this and copy it by hand.
+          </label>
+          <textarea
+            id="dr-manual"
+            readOnly
+            className="dr-field h-28 font-[family-name:var(--font-geist-mono)] text-sm"
+            value={formatRoster(state.entrants)}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+          <button
+            type="button"
+            className="dr-key dr-key--quiet self-start"
+            onClick={() => setCopied("idle")}
+          >
+            Done
+          </button>
+        </div>
+      ) : null}
+
+      <ul className="m-0 flex list-none flex-col p-0">
+        {state.entrants.map((entrant) => (
+          <li key={entrant.id} className="dr-row">
+            <span className="dr-row-name">{entrant.name}</span>
+            <span className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className="dr-step"
+                aria-label={`One fewer ticket for ${entrant.name}`}
+                disabled={entrant.tickets === 0}
+                onClick={() =>
+                  append({ type: "TICKETS_SET", id: entrant.id, tickets: entrant.tickets - 1 })
+                }
+              >
+                <Minus size={15} aria-hidden="true" />
+              </button>
+              <span className="dr-count">{entrant.tickets}</span>
+              <button
+                type="button"
+                className="dr-step"
+                aria-label={`One more ticket for ${entrant.name}`}
+                onClick={() =>
+                  append({ type: "TICKETS_SET", id: entrant.id, tickets: entrant.tickets + 1 })
+                }
+              >
+                <Plus size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="dr-link ml-2"
+                onClick={() => append({ type: "ENTRANT_REMOVED", id: entrant.id })}
+              >
+                Remove
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-[12rem] flex-1">
+          <label className="dr-label" htmlFor="dr-add">
+            Add someone
           </label>
           <input
-            id="drum-roll-prize"
-            className={`${FIELD} flex-1 min-w-[12rem]`}
-            placeholder="Paddle, gift card, hoodie"
-            value={prizeName}
-            onChange={(event) => setPrizeName(event.target.value)}
+            id="dr-add"
+            className="dr-field"
+            placeholder="Tyson McGuffin"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                addPrize();
+                addOne();
               }
             }}
           />
-          <button type="button" className={PRIMARY} onClick={addPrize}>
-            Add prize
-          </button>
         </div>
+        <button type="button" className="dr-key dr-key--quiet" onClick={addOne}>
+          Add
+        </button>
+        <button type="button" className="dr-key dr-key--quiet" onClick={() => setOpen((on) => !on)}>
+          Paste a list
+        </button>
+        <button type="button" className="dr-key dr-key--quiet" onClick={onPassItRound}>
+          Pass it round
+        </button>
+      </div>
 
-        {state.prizes.length === 0 ? (
-          <p className="text-sm text-[var(--bx-muted)]">
-            Prizes are drawn in the order you add them.
-          </p>
-        ) : (
-          <ol className="flex flex-col border-t border-[var(--bx-line-soft)]">
-            {state.prizes.map((prize) => {
-              const winner = entrantById(state, prize.winnerId);
-              return (
-                <li
-                  key={prize.id}
-                  className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bx-line-soft)] py-2"
-                >
-                  <span className="text-sm text-[var(--bx-ink)]">{prize.name}</span>
-                  <span className="flex items-center gap-3">
-                    {winner ? (
-                      <span className="text-sm font-medium text-[var(--brand-orange)]">
-                        {winner.name}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-[var(--bx-muted)]">Not drawn</span>
-                    )}
-                    <button
-                      type="button"
-                      className="text-xs text-[var(--bx-muted)] underline hover:text-white"
-                      onClick={() =>
-                        append({ type: "PRIZE_REMOVED", id: prize.id })
-                      }
-                    >
-                      Remove
-                    </button>
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-[var(--bx-ink)]">
-            Entrants{" "}
-            <span className="font-normal text-[var(--bx-muted)]">
-              ({state.entrants.length}, {ticketsIn(state.entrants)} tickets)
-            </span>
-          </h2>
-          {state.entrants.length > 0 ? (
-            <button type="button" className={BUTTON} onClick={copyRoster}>
-              {copied === "copied" ? "Copied" : "Copy list"}
-            </button>
-          ) : null}
-        </div>
-
-        <p aria-live="polite" className="sr-only">
-          {copied === "copied" ? "Entrant list copied to the clipboard" : ""}
-        </p>
-
-        {copied === "manual" ? (
-          <div className="flex flex-col gap-2 rounded border border-[var(--bx-line)] p-3">
-            <label
-              className="text-sm text-[var(--bx-ink)]"
-              htmlFor="drum-roll-manual-copy"
-            >
-              This browser would not take the clipboard. Select all of this and
-              copy it by hand.
-            </label>
-            <textarea
-              id="drum-roll-manual-copy"
-              readOnly
-              className={`${FIELD} h-32 font-mono text-sm`}
-              value={formatRoster(state.entrants)}
-              onFocus={(event) => event.currentTarget.select()}
-            />
-            <button
-              type="button"
-              className={`${BUTTON} self-start`}
-              onClick={() => setCopied("idle")}
-            >
-              Done
-            </button>
-          </div>
-        ) : null}
-
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="flex-1 min-w-[12rem]">
-            <label className={LABEL} htmlFor="drum-roll-entrant">
-              Name
-            </label>
-            <input
-              id="drum-roll-entrant"
-              className={`${FIELD} mt-1`}
-              placeholder="Ben Johns"
-              value={entrantName}
-              onChange={(event) => setEntrantName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  addEntrant();
-                }
-              }}
-            />
-          </div>
-          <div className="w-24">
-            <label className={LABEL} htmlFor="drum-roll-tickets">
-              Tickets
-            </label>
-            <input
-              id="drum-roll-tickets"
-              type="number"
-              min={0}
-              max={999}
-              className={`${FIELD} mt-1`}
-              value={tickets}
-              onChange={(event) => setTickets(Number(event.target.value))}
-            />
-          </div>
-          <button type="button" className={PRIMARY} onClick={addEntrant}>
-            Add
-          </button>
-        </div>
-
-        <details className="rounded border border-[var(--bx-line-soft)] p-3">
-          <summary className="cursor-pointer text-sm font-medium text-[var(--bx-ink)]">
-            Paste a list
-          </summary>
-          <p className="mt-2 text-sm text-[var(--bx-muted)]">
-            One name per line. Put <code className="font-mono">x3</code> after a
-            name to give them that many tickets, or leave it off for one. A list
-            copied from another phone pastes straight in here.
-          </p>
+      {open ? (
+        <div className="flex flex-col gap-2">
+          <label className="dr-label" htmlFor="dr-bulk-more">
+            One name per line, <code className="font-[family-name:var(--font-geist-mono)]">x3</code>{" "}
+            after a name for three tickets
+          </label>
           <textarea
-            className={`${FIELD} mt-2 h-32 font-mono text-sm`}
+            id="dr-bulk-more"
+            className="dr-field h-32"
             value={bulk}
             onChange={(event) => setBulk(event.target.value)}
-            placeholder={"Anna Leigh Waters\nBen Johns\nCatherine Parenteau"}
           />
-          <button type="button" className={`${BUTTON} mt-2`} onClick={addBulk}>
+          <button
+            type="button"
+            className="dr-key self-start"
+            onClick={addMany}
+            disabled={!bulk.trim()}
+          >
             Add everyone
           </button>
-        </details>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
-        {state.entrants.length === 0 ? (
-          <p className="text-sm text-[var(--bx-muted)]">Nobody in the bucket yet.</p>
-        ) : (
-          <ul className="flex flex-col border-t border-[var(--bx-line-soft)]">
-            {state.entrants.map((entrant) => (
-              <li
-                key={entrant.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--bx-line-soft)] py-2"
-              >
-                <span className="text-sm text-[var(--bx-ink)]">{entrant.name}</span>
-                <span className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={`${BUTTON} h-8 w-8 p-0 text-base`}
-                    aria-label={`One fewer ticket for ${entrant.name}`}
-                    onClick={() =>
-                      append({
-                        type: "TICKETS_SET",
-                        id: entrant.id,
-                        tickets: entrant.tickets - 1,
-                      })
-                    }
-                  >
-                    &minus;
-                  </button>
-                  <span className="w-8 text-center text-sm tabular-nums text-[var(--bx-ink)]">
-                    {entrant.tickets}
+/* ------------------------------------------------------------------ prizes */
+
+/**
+ * Prizes are an upgrade, not a precondition. The old build refused to open the
+ * draw until one existed, which made "pick one of us" impossible.
+ */
+function Prizes({
+  state,
+  append,
+}: {
+  state: State;
+  append: (...events: RaffleEvent[]) => void;
+}) {
+  const [name, setName] = useState("");
+
+  const add = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    append({ type: "PRIZE_ADDED", id: newId(), name: trimmed });
+    setName("");
+  };
+
+  return (
+    <section className="dr-section flex flex-col gap-3">
+      <h2 className="dr-h">Prizes</h2>
+      <p className="dr-note">
+        {state.prizes.length === 0
+          ? "Add one and this becomes a raffle, drawn in the order you add them. Leave it empty and the wheel just picks a name."
+          : "Drawn in the order you added them."}
+      </p>
+
+      {state.prizes.length > 0 ? (
+        <ol className="m-0 flex list-none flex-col p-0">
+          {state.prizes.map((prize) => {
+            const winner = entrantById(state, prize.winnerId);
+            return (
+              <li key={prize.id} className="dr-row">
+                <span className="dr-row-name">
+                  {prize.name}
+                  <span className={winner ? "dr-row-sub dr-row-sub--won" : "dr-row-sub"}>
+                    {winner ? `Taken by ${winner.name}` : "Not drawn yet"}
                   </span>
-                  <button
-                    type="button"
-                    className={`${BUTTON} h-8 w-8 p-0 text-base`}
-                    aria-label={`One more ticket for ${entrant.name}`}
-                    onClick={() =>
-                      append({
-                        type: "TICKETS_SET",
-                        id: entrant.id,
-                        tickets: entrant.tickets + 1,
-                      })
-                    }
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="ml-1 text-xs text-[var(--bx-muted)] underline hover:text-white"
-                    onClick={() =>
-                      append({ type: "ENTRANT_REMOVED", id: entrant.id })
-                    }
-                  >
-                    Remove
-                  </button>
                 </span>
+                <button
+                  type="button"
+                  className="dr-link"
+                  onClick={() => append({ type: "PRIZE_REMOVED", id: prize.id })}
+                >
+                  Remove
+                </button>
               </li>
-            ))}
-          </ul>
-        )}
-      </section>
+            );
+          })}
+        </ol>
+      ) : null}
 
-      <section className="flex flex-col gap-3 border-t border-[var(--bx-line-soft)] pt-6">
-        <h2 className="text-lg font-semibold text-[var(--bx-ink)]">House rule</h2>
-        <label className="flex items-start gap-3 text-sm text-[var(--bx-ink)]">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-[12rem] flex-1">
+          <label className="dr-label" htmlFor="dr-prize">
+            Prize
+          </label>
           <input
-            type="checkbox"
-            id="drum-roll-one-per-person"
-            className="mt-1 size-4 accent-[var(--brand-orange)]"
-            checked={state.onePrizePerPerson}
-            onChange={(event) =>
-              append({
-                type: "ONE_PRIZE_PER_PERSON_SET",
-                value: event.target.checked,
-              })
-            }
+            id="dr-prize"
+            className="dr-field"
+            placeholder="The good paddle"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                add();
+              }
+            }}
           />
-          <span>
-            One prize per person. Turn this off to match a physical bucket,
-            where your other tickets stay in and you can win twice. Whichever
-            is set shows on the draw screen.
-          </span>
-        </label>
+        </div>
+        <button type="button" className="dr-key dr-key--quiet" onClick={add}>
+          Add prize
+        </button>
+      </div>
+    </section>
+  );
+}
 
-        <div className="mt-2">
-          {confirmingClear ? (
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-[var(--bx-ink)]">
-                Clear every name, prize and result?
-              </span>
-              <button
-                type="button"
-                className={PRIMARY}
-                onClick={() => {
-                  clearLog();
-                  onClearAll();
-                  setConfirmingClear(false);
-                }}
-              >
-                Yes, start over
-              </button>
-              <button
-                type="button"
-                className={BUTTON}
-                onClick={() => setConfirmingClear(false)}
-              >
-                Keep it
-              </button>
+/* ----------------------------------------------------------------- results */
+
+function Results({ state }: { state: State }) {
+  const drawn = state.prizes.filter((prize) => prize.winnerId !== null);
+  const quick = state.quickDraws;
+
+  if (drawn.length === 0 && quick.length === 0) return null;
+
+  return (
+    <section className="dr-section flex flex-col gap-2">
+      <h2 className="dr-h">Out so far</h2>
+      <ol className="m-0 flex list-none flex-col p-0">
+        {quick.map((draw, index) => (
+          <li key={`${draw.entrantId}-${index}`} className="dr-row">
+            <span className="dr-row-name">
+              {entrantById(state, draw.entrantId)?.name ?? "a removed name"}
+              <span className="dr-row-sub">{index + 1} of {quick.length}</span>
             </span>
-          ) : (
+          </li>
+        ))}
+        {drawn.map((prize) => (
+          <li key={prize.id} className="dr-row">
+            <span className="dr-row-name">
+              {entrantById(state, prize.winnerId)?.name ?? "a removed name"}
+              <span className="dr-row-sub">{prize.name}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------- house rule */
+
+function HouseRule({
+  state,
+  append,
+  onClearAll,
+}: {
+  state: State;
+  append: (...events: RaffleEvent[]) => void;
+  onClearAll: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const raffle = state.prizes.length > 0;
+
+  return (
+    <section className="dr-section flex flex-col gap-4">
+      <h2 className="dr-h">House rule</h2>
+      <label className="flex items-start gap-3 text-[0.9375rem] leading-relaxed">
+        <input
+          type="checkbox"
+          id="dr-one-each"
+          className="mt-1 size-4 accent-[var(--dr-accent)]"
+          checked={state.onePrizePerPerson}
+          onChange={(event) =>
+            append({ type: "ONE_PRIZE_PER_PERSON_SET", value: event.target.checked })
+          }
+        />
+        <span>
+          {raffle
+            ? "One prize each. Turn it off to match a physical bucket, where your other tickets stay in and you can win twice."
+            : "Nobody comes out twice. Turn it off and every name stays on the wheel after it is drawn."}{" "}
+          Whichever is set shows above the wheel.
+        </span>
+      </label>
+
+      <div>
+        {confirming ? (
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[0.9375rem]">Clear every name, prize and result?</span>
             <button
               type="button"
-              className={BUTTON}
-              onClick={() => setConfirmingClear(true)}
+              className="dr-key"
+              onClick={() => {
+                clearLog();
+                onClearAll();
+                setConfirming(false);
+              }}
             >
-              Start over
+              Yes, start over
             </button>
-          )}
-        </div>
-      </section>
-    </div>
+            <button
+              type="button"
+              className="dr-key dr-key--quiet"
+              onClick={() => setConfirming(false)}
+            >
+              Keep it
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="dr-key dr-key--quiet"
+            onClick={() => setConfirming(true)}
+          >
+            Start over
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 
 /* ----------------------------------------------------------------- sign-in */
 
 /**
- * The shared-device screen: one tablet or phone on the prize table, and people
- * put themselves in. This is the part that stands in for the QR nobody could
- * print, and it needs nothing but the device it is already running on.
+ * The shared-device screen: one phone on the table and people put themselves
+ * in. This is what stands in for the QR nobody could print, and it needs
+ * nothing but the device it is already running on.
  */
 function SignIn({
   state,
   append,
+  onDone,
 }: {
-  state: ReturnType<typeof reduceRaffle>;
+  state: State;
   append: (...events: RaffleEvent[]) => void;
+  onDone: () => void;
 }) {
   const [name, setName] = useState("");
   const [tickets, setTickets] = useState(1);
-  const [justAdded, setJustAdded] = useState<{ name: string; tickets: number } | null>(
-    null,
-  );
+  const [justAdded, setJustAdded] = useState<{ name: string; tickets: number } | null>(null);
   const field = useRef<HTMLInputElement>(null);
+
+  /**
+   * The trigger for this screen sits down in the roster, so arriving here
+   * without scrolling back up hands the next person a view of the footer. Not
+   * auto-focused: on a phone that opens the keyboard over half the screen
+   * before they have even seen what they are being asked for.
+   */
+  useEffect(() => {
+    // Deferred past paint on purpose: this screen is much shorter than the one
+    // it replaces, so the browser re-clamps scroll position after layout and
+    // would undo a scroll issued during the commit.
+    const frame = requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!justAdded) return;
@@ -537,7 +826,6 @@ function SignIn({
   const add = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-
     append({ type: "ENTRANT_ADDED", id: newId(), name: trimmed, tickets });
     setJustAdded({ name: trimmed, tickets });
     setName("");
@@ -546,18 +834,15 @@ function SignIn({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded border border-[var(--bx-line-soft)] p-6">
-        <label
-          className="block text-lg font-semibold text-[var(--bx-ink)]"
-          htmlFor="drum-roll-signin-name"
-        >
+    <section className="flex flex-col gap-5">
+      <div>
+        <label className="dr-h mb-3 block" htmlFor="dr-signin">
           Your name
         </label>
         <input
-          id="drum-roll-signin-name"
+          id="dr-signin"
           ref={field}
-          className="mt-3 w-full rounded border border-[var(--bx-line)] bg-[var(--bx-raised)] px-4 py-4 text-2xl text-[var(--bx-ink)] placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-orange)]"
+          className="dr-field text-xl"
           placeholder="First and last"
           autoComplete="off"
           value={name}
@@ -569,311 +854,46 @@ function SignIn({
             }
           }}
         />
-
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="w-28">
-            <label className={LABEL} htmlFor="drum-roll-signin-tickets">
-              Tickets
-            </label>
-            <input
-              id="drum-roll-signin-tickets"
-              type="number"
-              min={1}
-              max={999}
-              className={`${FIELD} mt-1 text-xl`}
-              value={tickets}
-              onChange={(event) => setTickets(Number(event.target.value))}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={add}
-            className="flex-1 rounded bg-[var(--brand-orange)] px-6 py-4 text-xl font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-orange)]"
-          >
-            Put me in
-          </button>
-        </div>
       </div>
 
-      <p aria-live="polite" className="min-h-8 text-lg text-[var(--bx-ink)]">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="w-28">
+          <label className="dr-label" htmlFor="dr-signin-tickets">
+            Tickets
+          </label>
+          <input
+            id="dr-signin-tickets"
+            type="number"
+            min={1}
+            max={999}
+            className="dr-field"
+            value={tickets}
+            onChange={(event) => setTickets(Number(event.target.value))}
+          />
+        </div>
+        <button type="button" className="dr-key flex-1" onClick={add}>
+          Put me in
+        </button>
+      </div>
+
+      <p aria-live="polite" className="min-h-8 text-lg">
         {justAdded ? (
           <span>
-            <strong>{justAdded.name}</strong>, you&apos;re in with{" "}
-            {justAdded.tickets} {justAdded.tickets === 1 ? "ticket" : "tickets"}.
+            <strong>{justAdded.name}</strong>, you are in with {justAdded.tickets}{" "}
+            {justAdded.tickets === 1 ? "ticket" : "tickets"}.
           </span>
         ) : null}
       </p>
 
-      <p className="text-sm text-[var(--bx-muted)]">
-        {state.entrants.length} in the bucket, {ticketsIn(state.entrants)} tickets
-        between them.
+      <p className="dr-readout">
+        {state.entrants.length} on the wheel, {ticketsIn(state.entrants)} tickets between them.
       </p>
-    </div>
-  );
-}
 
-/* -------------------------------------------------------------------- draw */
-
-interface Reel {
-  readonly names: readonly string[];
-  readonly winnerId: string;
-  readonly prizeId: string;
-}
-
-function Draw({
-  state,
-  append,
-}: {
-  state: ReturnType<typeof reduceRaffle>;
-  append: (...events: RaffleEvent[]) => void;
-}) {
-  const [seed, setSeed] = useState<number | null>(null);
-  const [reel, setReel] = useState<Reel | null>(null);
-  const [at, setAt] = useState(0);
-
-  /**
-   * The prize in hand. Normally the first one nobody holds, but while a reveal
-   * is up it stays pinned to the prize that reveal belongs to.
-   *
-   * Without the pin the screen races itself: recording the draw gives the
-   * prize a winner, `nextPrize` immediately moves on to the following one, and
-   * the winner the room is waiting to hear is replaced before anyone has read
-   * it. The reveal, and the choice between "they took it" and "not here", has
-   * to outlive the event that produced it.
-   */
-  const pending = nextPrize(state);
-  const prize =
-    (reel ? state.prizes.find((candidate) => candidate.id === reel.prizeId) : null) ??
-    pending;
-
-  const pool = useMemo(
-    () => (prize ? eligibleFor(state, prize.id) : []),
-    [state, prize],
-  );
-
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // A fresh seed whenever the prize in hand changes, and again after a name is
-  // sent back, so nothing is ever drawn against a seed the room has not seen.
-  // Deferred a frame for the same reason the log is: a seed rolled during
-  // render would differ between the server's paint and the client's.
-  const commitKey = prize ? `${prize.id}:${prize.skipped.length}` : "none";
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      setSeed(freshSeed());
-      setReel(null);
-      setAt(0);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [commitKey]);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  /**
-   * The reel, driven straight from the tap that started it rather than from an
-   * effect watching the result. Nothing here decides anything: the winner is
-   * already picked and already in the log by the time a single name has
-   * flicked past, and this only spends a few seconds showing the room a bucket
-   * being turned over.
-   */
-  const runReel = useCallback((names: readonly string[]) => {
-    if (timer.current) clearTimeout(timer.current);
-
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduced) {
-      setAt(names.length - 1);
-      return;
-    }
-
-    let index = 0;
-    const step = () => {
-      setAt(index);
-      index += 1;
-      if (index >= names.length) return;
-      // Slows as it lands, the way a drum does.
-      const progress = index / names.length;
-      timer.current = setTimeout(step, 40 + 340 * progress * progress);
-    };
-    step();
-  }, []);
-
-  const landed = reel !== null && at >= reel.names.length - 1;
-  const winner = entrantById(state, prize?.winnerId ?? null);
-
-  const draw = () => {
-    if (!prize || seed === null) return;
-
-    const picked = pickWinner(pool, seed);
-    if (!picked) return;
-
-    // Recorded first, shown second. If the tab dies mid-spin the draw still
-    // happened, which is the truth and is recoverable.
-    append({
-      type: "DRAWN",
-      prizeId: prize.id,
-      entrantId: picked.id,
-      seed,
-    });
-    const names = reelNames(pool, picked, seed);
-    setReel({ names, winnerId: picked.id, prizeId: prize.id });
-    setAt(0);
-    runReel(names);
-  };
-
-  const sendBack = (reason: RedrawReason) => {
-    if (!prize || !prize.winnerId) return;
-    append({
-      type: "REDRAWN",
-      prizeId: prize.id,
-      entrantId: prize.winnerId,
-      reason,
-    });
-    // Cleared here as well as by the commit effect, so the name comes off the
-    // screen on the tap rather than a frame later.
-    setReel(null);
-    setAt(0);
-  };
-
-  if (state.prizes.length === 0 || state.entrants.length === 0) {
-    return (
-      <p className="rounded border border-[var(--bx-line-soft)] p-6 text-[var(--bx-ink)]">
-        Add {state.prizes.length === 0 ? "a prize" : "some names"} on the set-up
-        screen and the draw opens up.
-      </p>
-    );
-  }
-
-  if (!prize) {
-    return (
-      <div className="flex flex-col gap-4">
-        <p className="text-lg text-[var(--bx-ink)]">Every prize has gone.</p>
-        <Results state={state} />
+      <div className="dr-section pt-5">
+        <button type="button" className="dr-key dr-key--quiet" onClick={onDone}>
+          Everyone is in, back to the draw
+        </button>
       </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded border border-[var(--bx-line-soft)] p-6 text-center">
-        <p className="text-xs font-medium uppercase tracking-wider text-[var(--bx-muted)]">
-          Drawing for
-        </p>
-        <h2 className="mt-1 text-2xl font-bold text-[var(--bx-ink)]">{prize.name}</h2>
-
-        <p className="mt-4 text-sm text-[var(--bx-muted)]">
-          <strong className="tabular-nums">{ticketsIn(pool)}</strong> tickets
-          from <strong className="tabular-nums">{pool.length}</strong>{" "}
-          {pool.length === 1 ? "person" : "people"}
-          {state.onePrizePerPerson ? ", one prize per person" : ", winners stay in"}
-        </p>
-        <p className="mt-1 font-mono text-xs text-[var(--bx-muted)]">
-          Seed {seed ?? "…"} &middot; committed before the draw
-        </p>
-
-        <div
-          aria-live="polite"
-          className="mt-6 flex min-h-32 items-center justify-center"
-        >
-          {reel ? (
-            <p
-              className={
-                landed
-                  ? "text-[clamp(2.25rem,11vw,5.5rem)] leading-none font-bold tracking-tight text-[var(--brand-orange)]"
-                  : "text-[clamp(1.75rem,8vw,4rem)] leading-none font-bold tracking-tight text-[var(--bx-muted)]"
-              }
-            >
-              {reel.names[Math.min(at, reel.names.length - 1)]}
-            </p>
-          ) : (
-            <p className="text-sm text-[var(--bx-muted)]">
-              {pool.length === 0
-                ? "Nobody is left in the bucket for this prize."
-                : "Ready when you are."}
-            </p>
-          )}
-        </div>
-
-        {landed && winner ? (
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              className={PRIMARY}
-              onClick={() => {
-                setReel(null);
-                setAt(0);
-              }}
-            >
-              They took it
-            </button>
-            <button
-              type="button"
-              className={BUTTON}
-              onClick={() => sendBack("not-present")}
-            >
-              Not here, draw again
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className={`${PRIMARY} mt-4 px-8 py-3 text-lg`}
-            onClick={draw}
-            disabled={reel !== null || pool.length === 0 || seed === null}
-          >
-            Draw
-          </button>
-        )}
-
-        {prize.skipped.length > 0 ? (
-          <p className="mt-4 text-xs text-[var(--bx-muted)]">
-            Sent back:{" "}
-            {prize.skipped
-              .map((id) => entrantById(state, id)?.name ?? "a removed name")
-              .join(", ")}
-          </p>
-        ) : null}
-      </section>
-
-      <Results state={state} />
-    </div>
-  );
-}
-
-function Results({ state }: { state: ReturnType<typeof reduceRaffle> }) {
-  const drawn = state.prizes.filter((prize) => prize.winnerId !== null);
-  if (drawn.length === 0) return null;
-
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-xs font-medium uppercase tracking-wider text-[var(--bx-muted)]">
-        Gone so far
-      </h3>
-      <ol className="flex flex-col border-t border-[var(--bx-line-soft)]">
-        {drawn.map((prize) => (
-          <li
-            key={prize.id}
-            className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--bx-line-soft)] py-2"
-          >
-            <span className="text-sm text-[var(--bx-muted)]">{prize.name}</span>
-            <span className="flex items-baseline gap-3">
-              <span className="text-sm font-semibold text-[var(--bx-ink)]">
-                {entrantById(state, prize.winnerId)?.name ?? "a removed name"}
-              </span>
-              <span className="font-mono text-[0.65rem] text-[var(--bx-muted)]">
-                seed {prize.seed}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

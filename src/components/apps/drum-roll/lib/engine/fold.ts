@@ -12,6 +12,7 @@ export const EMPTY: RaffleState = {
   entrants: [],
   prizes: [],
   onePrizePerPerson: true,
+  quickDraws: [],
 };
 
 /**
@@ -98,6 +99,23 @@ function applyEvent(state: RaffleState, event: RaffleEvent): RaffleState {
 
     case "ONE_PRIZE_PER_PERSON_SET":
       return { ...state, onePrizePerPerson: event.value };
+
+    case "QUICK_DRAWN":
+      return {
+        ...state,
+        quickDraws: [
+          ...state.quickDraws,
+          { entrantId: event.entrantId, seed: event.seed },
+        ],
+      };
+
+    /**
+     * Clears the prizeless results and nothing else. The names, their tickets
+     * and every Prize already drawn for stay put: this is "go again", not
+     * "start over", and the two are different buttons on screen.
+     */
+    case "QUICK_CLEARED":
+      return { ...state, quickDraws: [] };
   }
 }
 
@@ -139,6 +157,25 @@ export function eligibleFor(state: RaffleState, prizeId: PrizeId): Entrant[] {
   return state.entrants.filter(
     (entrant) =>
       entrant.tickets > 0 && !skipped.has(entrant.id) && !holders.has(entrant.id),
+  );
+}
+
+/**
+ * Who is in the bucket when no Prize is attached. Two things take someone out:
+ * no tickets, and — while the house rule is on — already having come out.
+ *
+ * Kept separate from `eligibleFor` rather than folded into it with a nullable
+ * prize: the Prize path has to reason about `skipped` and about holders of
+ * *other* Prizes, and neither exists here. One branch each is shorter than one
+ * function apologising for both.
+ */
+export function eligibleForQuick(state: RaffleState): Entrant[] {
+  const alreadyOut = new Set<EntrantId>(
+    state.onePrizePerPerson ? state.quickDraws.map((draw) => draw.entrantId) : [],
+  );
+
+  return state.entrants.filter(
+    (entrant) => entrant.tickets > 0 && !alreadyOut.has(entrant.id),
   );
 }
 
