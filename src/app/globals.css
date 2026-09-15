@@ -4655,10 +4655,6 @@ html:has(.bb-app-chrome) {
   --dr-wedge-1: oklch(0.928 0.019 84);
   --dr-wedge-2: oklch(0.858 0.029 76);
 
-  --dr-contact:
-    0 1px 2px oklch(0.24 0.01 70 / 0.14),
-    0 18px 34px -20px oklch(0.24 0.02 70 / 0.38);
-
   background-color: var(--dr-ground);
   color: var(--dr-ink);
   font-family: var(--font-dr), ui-sans-serif, system-ui, sans-serif;
