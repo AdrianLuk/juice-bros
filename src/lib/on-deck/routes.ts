@@ -39,6 +39,14 @@ export const ON_DECK_DEV_ENTER_PATH = `${ON_DECK_ROOT}/dev/enter`;
  */
 export const ON_DECK_QR_DISPLAY_PATH = `${ON_DECK_ROOT}/home/qr`;
 
+/**
+ * The Club QR full-bleed, sized to be scanned off a held-up phone (issue
+ * #517). `ON_DECK_QR_DISPLAY_PATH` draws the same stable link at paper
+ * proportions, which is the right shape to print and the wrong shape to
+ * carry to the door — this is the shape for that.
+ */
+export const ON_DECK_QR_HOLD_UP_PATH = `${ON_DECK_QR_DISPLAY_PATH}/hold-up`;
+
 /** Create a Session ahead of time (issue #254). */
 export const ON_DECK_NEW_SESSION_PATH = `${ON_DECK_ROOT}/home/sessions/new`;
 

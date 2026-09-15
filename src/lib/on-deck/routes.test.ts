@@ -7,6 +7,7 @@ import {
   ON_DECK_HOME_PATH,
   ON_DECK_NEW_SESSION_PATH,
   ON_DECK_QR_DISPLAY_PATH,
+  ON_DECK_QR_HOLD_UP_PATH,
   ON_DECK_SUMMARIES_PATH,
   clubQrImagePath,
   summaryPath,
@@ -29,6 +30,7 @@ test("only the Organizer subtree requires a session", () => {
   assert.equal(requiresOrganizerSession(ON_DECK_SETTINGS_PATH), true);
   assert.equal(requiresOrganizerSession(ON_DECK_NEW_SESSION_PATH), true);
   assert.equal(requiresOrganizerSession(ON_DECK_QR_DISPLAY_PATH), true);
+  assert.equal(requiresOrganizerSession(ON_DECK_QR_HOLD_UP_PATH), true);
   // A Summary carries no personal data but is still the Club's own
   // operational history — not world-readable the way an open Session is.
   assert.equal(requiresOrganizerSession(ON_DECK_SUMMARIES_PATH), true);
