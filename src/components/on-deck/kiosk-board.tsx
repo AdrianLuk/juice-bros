@@ -12,10 +12,8 @@ import {
   kioskSwapNoShow,
   kioskUndoLastAction,
 } from "@/lib/on-deck/actions/kiosk";
-import {
-  getRotationView,
-  type RotationView,
-} from "@/lib/on-deck/actions/rotation";
+import { getRotationView } from "@/lib/on-deck/actions/rotation";
+import type { RotationView } from "@/lib/on-deck/session/rotation-view";
 import { SKILL_LEVELS, SKILL_LEVEL_LABEL } from "@/lib/on-deck/session/types";
 import {
   BoardBanner,
