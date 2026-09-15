@@ -9,6 +9,7 @@ import {
   Geist_Mono,
   Libre_Franklin,
   Saira_Condensed,
+  Schibsted_Grotesk,
 } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -90,6 +91,19 @@ const archivoNarrow = Archivo_Narrow({
   subsets: ["latin"],
 });
 
+// Drum Roll's world (direction seed ffed24ea) — "the wheel". One face carries
+// every word a person reads here, and it was picked on legibility alone: the
+// job is a single name read fast off a phone somebody is holding up, and a
+// wheel's labels are where every other draw tool on the internet gives that
+// up. Schibsted Grotesk is a news-lineage grotesque with the large aperture
+// and even colour that survives being set small on a wedge and large on a
+// result. Data the surface reports back — the committed seed, ticket counts —
+// stays in Geist Mono. Scoped to `.dr-surface` in globals.css.
+const schibstedGrotesk = Schibsted_Grotesk({
+  variable: "--font-dr",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -132,7 +146,7 @@ export default function RootLayout({
       // Next to suspend it for the scroll-restoration jump on a route change
       // so it doesn't animate against the page/View Transition.
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} h-full antialiased`}
+      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} ${schibstedGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
