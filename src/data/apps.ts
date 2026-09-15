@@ -76,13 +76,13 @@ export const apps: AppItem[] = [
     title: "Drum Roll",
     href: "/tools/drum-roll",
     description:
-      "Run a prize raffle without paper tickets. Names and tickets in, a winner out, and the room can check the draw.",
+      "Spin a wheel to pick a name, or add prizes and run the whole raffle. No paper tickets, no accounts.",
     icon: Ticket,
     status: "live",
     highlights: [
-      "Put names in from your own phone, or let people sign themselves in",
-      "Buying more tickets really does improve your odds",
-      "The seed shows before each draw, so nobody has to take it on trust",
+      "Paste your names and spin, or pass the phone round and let people add themselves",
+      "More tickets means a wider slice of the wheel, so the odds are there to see",
+      "Add a prize and it becomes a full raffle, drawn one prize at a time",
     ],
     terms: ["Free", "No sign-up", "Open now"],
   },

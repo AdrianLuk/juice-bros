@@ -4601,3 +4601,459 @@ html:has(.bb-app-chrome) {
     margin: 0 -0.25rem;
   }
 }
+
+/* ==========================================================================
+   Drum Roll — the wheel (direction seed ffed24ea).
+
+   CONCEPT — the wheel, built like equipment instead of a widget. This is the
+   category's signature device, chosen deliberately over five own-world
+   alternates and over the roll's own assignment: Adrian pinned it after
+   rejecting the assigned direction (a thermal lottery terminal) on
+   legibility, which is the constraint that governs everything below. The job
+   is one name read fast off a phone held up in a room, so the page refuses
+   both the flat conic-gradient wheel with a modal and the SaaS tool page that
+   buries the odds behind a ticket count.
+
+   The wheel earns its place on one argument: wedge widths are ticket counts,
+   so five tickets is a wedge five times wider and the odds are the picture
+   rather than a number somebody has to be told. Nothing else on the surface
+   competes with it.
+
+   COLOR — a quiet warm hall white carrying one heavy object. Wedges cycle
+   three warm neutrals, never a colour per name: the rainbow wheel everyone
+   else ships is why their labels are unreadable. Brand orange is spent on
+   exactly two things, the pointer and the wedge that wins, so the landing is
+   the only saturated event that ever happens here. Everything else is ink on
+   ground with hairline rules and no cards.
+
+   TYPE — Schibsted Grotesk (`--font-dr`) for every word a person reads,
+   picked for how it holds up small and at a distance, which is the whole
+   brief. Geist Mono only where the surface is reporting data back — the
+   committed seed, ticket figures — never as a costume.
+
+   MOTION — one authored moment, the spin: exponential ease-out over a long
+   tail, with a sprung flapper that each peg pushes up and drops as it passes.
+   Reduced motion resolves straight to the landed state.
+   ========================================================================== */
+
+.dr-surface {
+  --dr-ground: oklch(0.957 0.007 85);
+  --dr-ground-sink: oklch(0.929 0.009 84);
+  --dr-ink: oklch(0.22 0.008 70);
+  /* Secondary text tinted from the ground's own warmth, never a flat gray.
+     ~7:1 on --dr-ground. */
+  --dr-ink-dim: oklch(0.45 0.012 70);
+  --dr-hairline: oklch(0.872 0.008 82);
+  --dr-line: oklch(0.78 0.011 82);
+  --dr-hub: oklch(0.26 0.01 70);
+
+  --dr-accent: #f26522;
+  --dr-accent-ink: #ffffff;
+  --dr-accent-wash: oklch(0.66 0.2 40 / 0.12);
+
+  --dr-wedge-0: oklch(0.988 0.004 92);
+  --dr-wedge-1: oklch(0.928 0.019 84);
+  --dr-wedge-2: oklch(0.858 0.029 76);
+
+  background-color: var(--dr-ground);
+  color: var(--dr-ink);
+  font-family: var(--font-dr), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The document behind the surface, so a short page never shows page-bg. */
+body:has(.dr-surface) {
+  background-color: oklch(0.957 0.007 85);
+}
+
+/* Themed browser surfaces — the parts not drawn still carry the world. */
+.dr-surface ::selection {
+  background-color: var(--dr-accent-wash);
+  color: var(--dr-ink);
+}
+.dr-surface {
+  scrollbar-color: var(--dr-line) transparent;
+  caret-color: var(--dr-accent);
+}
+.dr-surface *:focus-visible {
+  outline: 2px solid var(--dr-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---- the wheel --------------------------------------------------------- */
+
+.dr-wheel {
+  position: relative;
+  /* Sized off the viewport in both axes: height matters as much as width, or
+     the wheel overflows the fold on a short laptop while looking small. The
+     height term is held under 55vh so the Spin key stays above the fold at
+     900px tall, including the extra line the raffle state adds. */
+  width: min(92vw, 54vh, 40rem);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+}
+.dr-wheel--ghost {
+  width: min(70vw, 34vh, 17rem);
+  opacity: 0.45;
+  filter: saturate(0.4);
+}
+
+.dr-wheel-face {
+  width: 100%;
+  height: 100%;
+  /* Rotation is written straight to this element's style by the spin loop,
+     so React never renders a frame. */
+  transform: rotate(0deg);
+  will-change: transform;
+}
+.dr-wheel-face svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 16px 26px oklch(0.24 0.02 70 / 0.26));
+}
+
+.dr-wheel-rim {
+  fill: none;
+  stroke: var(--dr-hub);
+  stroke-width: 11;
+}
+/* The turned inner edge, so the rim reads as a band with a lip rather than a
+   drawn circle. */
+.dr-wheel-bevel {
+  fill: none;
+  stroke: oklch(0.52 0.012 70);
+  stroke-width: 1.6;
+}
+
+.dr-wedge {
+  stroke: var(--dr-hub);
+  stroke-width: 0.6;
+  transition: fill 260ms ease-out;
+}
+
+/* The landing: the winning wedge comes up proud and stays there. Scaled about
+   the viewBox centre so it grows out of the wheel rather than about itself. */
+.dr-slice--won {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: dr-land 460ms cubic-bezier(0.18, 0.9, 0.28, 1) both;
+  filter: drop-shadow(0 3px 7px oklch(0.42 0.14 40 / 0.45));
+}
+@keyframes dr-land {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.04); }
+  100% { transform: scale(1.022); }
+}
+.dr-wedge[data-tone="0"] { fill: var(--dr-wedge-0); }
+.dr-wedge[data-tone="1"] { fill: var(--dr-wedge-1); }
+.dr-wedge[data-tone="2"] { fill: var(--dr-wedge-2); }
+/* Doubled class on purpose: the tone selectors above carry an attribute and
+   would otherwise out-specify the one state that matters. */
+.dr-wedge.dr-wedge--won { fill: var(--dr-accent); }
+
+.dr-wedge-name {
+  fill: var(--dr-ink);
+  font-family: var(--font-dr), ui-sans-serif, system-ui, sans-serif;
+  font-size: 8.4px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.dr-wedge-name--won {
+  fill: var(--dr-accent-ink);
+  font-weight: 700;
+}
+
+/* The pegs the flapper rides over — short marks at the rim, not spokes. */
+.dr-wheel-peg {
+  stroke: oklch(0.63 0.012 75);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.dr-wheel-hub {
+  position: absolute;
+  width: 13%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 32%, oklch(0.46 0.01 70), oklch(0.24 0.01 70) 62%);
+  box-shadow:
+    inset 0 0 0 2px oklch(0.6 0.01 70 / 0.5),
+    0 2px 5px oklch(0.2 0.01 70 / 0.5);
+}
+
+.dr-wheel-pointer {
+  position: absolute;
+  top: -0.35rem;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 2;
+  /* The flapper is sprung from its tip, so a peg pushes the tail up. */
+  transform-origin: 50% 12%;
+}
+.dr-flapper {
+  transform-origin: 50% 8%;
+  filter: drop-shadow(0 2px 3px oklch(0.24 0.02 70 / 0.4));
+}
+.dr-flapper-mount {
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  translate: -50% 0;
+}
+
+/* ---- the stage around it ----------------------------------------------- */
+
+.dr-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.dr-drawing-lede {
+  font-weight: 400;
+  color: var(--dr-ink-dim);
+  letter-spacing: -0.01em;
+}
+
+.dr-drawing-for {
+  font-size: clamp(1.35rem, 5.2vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.12;
+  margin: 0;
+  text-wrap: balance;
+}
+
+/* Data the surface reports back: seed, counts. Mono because it is measured,
+   not because it should look technical. */
+.dr-readout {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--dr-ink-dim);
+  margin: 0;
+}
+.dr-readout b {
+  color: var(--dr-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dr-result {
+  font-size: clamp(2rem, 10vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+/* ---- controls ---------------------------------------------------------- */
+
+.dr-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.25rem;
+  padding: 0.8rem 2.4rem;
+  border: 0;
+  border-radius: 3px;
+  background: var(--dr-accent);
+  color: var(--dr-accent-ink);
+  font-family: inherit;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 -2px 3px oklch(0.44 0.15 40 / 0.55),
+    0 2px 4px oklch(0.24 0.02 70 / 0.24);
+  transition: translate 90ms ease-out, box-shadow 90ms ease-out;
+}
+.dr-key:hover:not(:disabled) {
+  box-shadow:
+    inset 0 -2px 3px oklch(0.44 0.15 40 / 0.55),
+    0 4px 9px oklch(0.24 0.02 70 / 0.3);
+}
+.dr-key:active:not(:disabled) {
+  translate: 0 2px;
+  box-shadow: inset 0 -1px 0 oklch(0.48 0.16 40);
+}
+.dr-key:disabled {
+  background: var(--dr-line);
+  color: oklch(0.42 0.008 70);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.dr-key--quiet {
+  background: transparent;
+  color: var(--dr-ink);
+  min-height: 2.5rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--dr-line);
+}
+.dr-key--quiet:hover:not(:disabled) {
+  background: var(--dr-ground-sink);
+  box-shadow: inset 0 0 0 1px var(--dr-line);
+}
+.dr-key--quiet:active:not(:disabled) {
+  translate: 0 1px;
+  box-shadow: inset 0 0 0 1px var(--dr-line);
+}
+
+.dr-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--dr-ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+.dr-link:hover { color: var(--dr-ink); }
+
+/* ---- sections, rules, no cards ----------------------------------------- */
+
+.dr-section {
+  border-top: 1px solid var(--dr-hairline);
+  padding-top: 1.5rem;
+}
+
+.dr-h {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+
+.dr-note {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--dr-ink-dim);
+  margin: 0;
+}
+
+.dr-field {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--dr-line);
+  border-radius: 3px;
+  background: oklch(0.99 0.003 90);
+  color: var(--dr-ink);
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.dr-field::placeholder { color: oklch(0.58 0.01 75); }
+
+.dr-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dr-ink-dim);
+  margin-bottom: 0.3rem;
+}
+
+/* Roster and prize rows: hairline-separated, never boxed. */
+.dr-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--dr-hairline);
+}
+.dr-row-name {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dr-row-sub {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--dr-ink-dim);
+  margin-top: 0.1rem;
+}
+.dr-row-sub--won { color: var(--dr-accent); font-weight: 600; }
+
+.dr-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--dr-line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--dr-ink);
+  cursor: pointer;
+}
+.dr-step:hover:not(:disabled) { background: var(--dr-ground-sink); }
+.dr-step:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.dr-count {
+  min-width: 2.25rem;
+  text-align: center;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* The site's fixed mobile menu button sits bottom-right. Below its breakpoint
+   the row's controls move off that gutter entirely rather than being covered
+   by it, which also gives a long name the full width. */
+.dr-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+@media (max-width: 30rem) {
+  /* Nothing this route owns sits in the bottom-right gutter, because the
+     site's fixed menu button is parked there. */
+  .dr-section-head {
+    justify-content: flex-start;
+    gap: 0.35rem 1rem;
+  }
+
+  .dr-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+  .dr-row > span:last-child {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dr-wheel-face,
+  .dr-wedge,
+  .dr-key {
+    transition-duration: 1ms;
+  }
+  .dr-slice--won {
+    animation: none;
+    transform: scale(1.022);
+  }
+}

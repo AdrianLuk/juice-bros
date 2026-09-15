@@ -45,7 +45,20 @@ export type RaffleEvent =
   | { readonly type: "PRIZE_REMOVED"; readonly id: PrizeId }
   | { readonly type: "DRAWN"; readonly prizeId: PrizeId; readonly entrantId: EntrantId; readonly seed: number }
   | { readonly type: "REDRAWN"; readonly prizeId: PrizeId; readonly entrantId: EntrantId; readonly reason: RedrawReason }
-  | { readonly type: "ONE_PRIZE_PER_PERSON_SET"; readonly value: boolean };
+  | { readonly type: "ONE_PRIZE_PER_PERSON_SET"; readonly value: boolean }
+  /**
+   * A draw with no Prize attached: the whole of "pick one of us", which is the
+   * common case and used to be impossible because the Draw screen refused to
+   * open until a Prize existed.
+   *
+   * Deliberately its own event rather than a Prize with an empty name. A
+   * nameless Prize would have to be invented on the user's behalf, would show
+   * up in the Prize list they never added to, and would make "every prize has
+   * gone" fire after a draw nobody attached a prize to. Two shapes of draw are
+   * two shapes of event.
+   */
+  | { readonly type: "QUICK_DRAWN"; readonly entrantId: EntrantId; readonly seed: number }
+  | { readonly type: "QUICK_CLEARED" };
 
 /**
  * A Prize plus what has happened to it. `winnerId` is the last name drawn that
@@ -59,6 +72,13 @@ export interface PrizeStanding extends Prize {
   readonly skipped: readonly EntrantId[];
 }
 
+/** One name out of the bucket, with no Prize on it. */
+export interface QuickDraw {
+  readonly entrantId: EntrantId;
+  /** The seed that produced it, so this draw can be recomputed later too. */
+  readonly seed: number;
+}
+
 export interface RaffleState {
   readonly entrants: readonly Entrant[];
   readonly prizes: readonly PrizeStanding[];
@@ -67,6 +87,13 @@ export interface RaffleState {
    * rest of the night. Off matches a physical bucket, where your other tickets
    * stay in and you can win twice. The draw screen prints whichever is active,
    * so the room knows the rule before a name comes out.
+   *
+   * It governs both shapes of draw. With no Prizes in play the same rule reads
+   * as "nobody comes out twice", which is the same promise about the same
+   * bucket, so it stays one setting rather than two the organizer has to keep
+   * in agreement.
    */
   readonly onePrizePerPerson: boolean;
+  /** Prizeless draws, oldest first. */
+  readonly quickDraws: readonly QuickDraw[];
 }
