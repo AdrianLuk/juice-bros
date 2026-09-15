@@ -29,8 +29,12 @@ with a compere.
 - **The prize is not a precondition.** The old build refused to open the Draw screen until
   a prize existed, which made the pick-one case impossible. Prizes are an upgrade.
 - Engine is untouched: the append-only `RaffleEvent` log, `reduceRaffle`, undo-by-drop,
-  `pickWinner`'s cumulative weighted walk, the seed committed before the draw, and
-  localStorage persistence all stay exactly as they are.
+  `pickWinner`'s cumulative weighted walk, the recorded seed, and localStorage
+  persistence all stay exactly as they are.
+- **The seed is never shown** (decided 2026-09-14 with Adrian): "i don't want the seed
+  number because it's meaningless to a user". A ten digit number nobody will recompute
+  buys the look of verifiability and none of it. It stays in the log, where it makes a
+  draw reproducible and Undo exact, and it stays out of the interface.
 - Legibility outranks expression here, stated by Adrian on the direction round: the job is
   one name read fast off a phone held up in a room. No fixed-pitch body text, no tracked
   caps carrying content, no script faces for names or data.
@@ -47,11 +51,11 @@ a controlled palette stepped from brand orange. Everything else — roster, priz
 — is large flat type on the ground with hairline rules and no cards. Brand orange is
 reserved for the pointer and the landed wedge.
 
-**STORY:** The organiser pastes names, sees the odds as wedge widths, reads the seed out,
-spins, and the room reads one name off the wheel.
+**STORY:** The organiser pastes names, sees the odds as wedge widths, spins, and the room
+reads one name off the wheel.
 
 **FIRST VIEWPORT:** The wheel centred and as large as the viewport allows, pointer at top.
-One line beneath it carries the bucket count and the committed seed. The SPIN key sits
+One line beneath it carries the bucket count and the house rule. The SPIN key sits
 under that. Roster below the fold as a plain list. On mobile the wheel is the whole screen.
 
 **FORM:** The wheel — the category's signature device, user-pinned over the roll's

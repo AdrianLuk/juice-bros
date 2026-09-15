@@ -36,9 +36,6 @@ const newId = () =>
     ? crypto.randomUUID()
     : `id-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 
-/** Grouped so it can be read out loud without losing your place. */
-const spellSeed = (seed: number) => seed.toLocaleString("en-US");
-
 /**
  * Drum Roll: names in, one out, and a draw the room can check.
  *
@@ -46,11 +43,12 @@ const spellSeed = (seed: number) => seed.toLocaleString("en-US");
  * Undo is dropping the last event, and the log is written to storage after
  * every tap. The night has to survive a pocketed phone.
  *
- * The draw is deliberately not a surprise to the machine: the seed is generated
- * and shown *before* the key is pressed, the winner is `pickWinner(pool, seed)`,
- * and the wheel that follows is presentation of a decision already recorded.
- * That ordering is the whole reason a room can check a result instead of taking
- * it on trust, and it is why the wheel itself contains no randomness.
+ * The draw is deliberately not a surprise to the machine: a seed is rolled, the
+ * winner is `pickWinner(pool, seed)`, and the wheel that follows is presentation
+ * of a decision already recorded. The seed is no longer shown to anyone — a ten
+ * digit number is not something a room can check, so displaying it bought the
+ * look of verifiability and none of the substance. It stays in the log, where it
+ * is what makes a draw reproducible and Undo exact.
  *
  * Two shapes of draw share this screen. With no prizes added it is "pick one of
  * us", which needs no setup at all. Add a prize and the same bucket becomes a
@@ -156,10 +154,9 @@ function Draw({
 
   /**
    * A fresh seed whenever the thing being drawn for changes, and never while a
-   * result is on screen: the readout has to keep showing the seed that produced
-   * the name the room is looking at. Deferred a frame for the same reason the
-   * log is, a seed rolled during render would differ between the server's paint
-   * and the client's.
+   * result is on screen, so the recorded seed still matches the name showing.
+   * Deferred a frame for the same reason the log is: a seed rolled during render
+   * would differ between the server's paint and the client's.
    */
   const commitKey = prize
     ? `prize:${prize.id}:${prize.skipped.length}`
@@ -240,16 +237,6 @@ function Draw({
               </span>
             )}
           </p>
-
-          {!allGone ? (
-            <p className="dr-readout">
-              Seed{" "}
-              <span className="dr-seed">
-                {seed === null ? "…" : spellSeed(spin?.seed ?? seed)}
-              </span>
-              {landed ? " produced this name" : null}
-            </p>
-          ) : null}
 
           {landed && winner ? (
             <div className="flex flex-wrap justify-center gap-2">
@@ -708,9 +695,6 @@ function Results({ state }: { state: State }) {
               {entrantById(state, draw.entrantId)?.name ?? "a removed name"}
               <span className="dr-row-sub">{index + 1} of {quick.length}</span>
             </span>
-            <span className="dr-readout">
-              seed <span className="dr-seed">{spellSeed(draw.seed)}</span>
-            </span>
           </li>
         ))}
         {drawn.map((prize) => (
@@ -718,12 +702,6 @@ function Results({ state }: { state: State }) {
             <span className="dr-row-name">
               {entrantById(state, prize.winnerId)?.name ?? "a removed name"}
               <span className="dr-row-sub">{prize.name}</span>
-            </span>
-            <span className="dr-readout">
-              seed{" "}
-              <span className="dr-seed">
-                {prize.seed === null ? "not recorded" : spellSeed(prize.seed)}
-              </span>
             </span>
           </li>
         ))}

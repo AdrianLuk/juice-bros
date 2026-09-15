@@ -161,7 +161,7 @@ The wheel, built like equipment instead of a widget. A quiet warm hall white
 carries one heavy object with real geometry: a machined hub, a turned rim with a
 bevelled inner edge, pegs standing proud of the band, and a sprung flapper that
 each peg pushes up and drops as it passes. Everything else on the page —
-roster, prizes, seed, controls — is flat type on the ground, separated by
+roster, prizes, controls — is flat type on the ground, separated by
 hairlines, with no cards anywhere.
 
 The wheel earns its place on one argument, and the argument is visual: wedge
@@ -270,12 +270,12 @@ is read at distance and in a hurry, not skimmed.
 - **Key** (700, 1.0625rem, +0.02em): the letterforms on a control.
 - **Wedge name** (600, 8.4px in a 208-unit viewBox, -0.01em): set at the rim and
   running inward, flipped past six o'clock so both halves read left to right.
-- **Readout** (Geist Mono, tabular): the committed seed and ticket counts only.
+- **Readout** (Geist Mono, tabular): ticket counts only.
 
 ### Named Rules
 **The Mono Reports Data Rule.** Geist Mono appears only where the surface is
 reporting a value back that someone will read aloud and check afterwards — the
-seed, ticket counts, the manual-paste field. It is never a costume for a label
+ticket counts, the manual-paste field. It is never a costume for a label
 or a heading.
 
 **The Every Ticket Is Labelled Rule.** A wedge degrades its label rather than
@@ -305,7 +305,7 @@ cosmetic: the site's fixed mobile menu button is parked in the bottom-right
 gutter, so nothing this route owns is allowed to sit there.
 
 ### Named Rules
-**The Wheel Owns The Fold Rule.** The wheel, the drawing line, the seed readout
+**The Wheel Owns The Fold Rule.** The wheel, the drawing line, the bucket readout
 and the spin key fit one viewport together. Anything that would push the key
 below the fold gets a smaller wheel, not a scroll.
 
@@ -408,9 +408,11 @@ state, transitions collapse to 1ms, and the landing keeps its final scale with
 no animation.
 
 ### Named Rules
-**The Wheel Decides Nothing Rule.** The winner is chosen against a seed the room
-has already seen and logged before the wheel is told anything; the spin is
-presentation of a result that already exists. No randomness lives in the wheel.
+**The Wheel Decides Nothing Rule.** The winner is chosen and written to the log
+before the wheel is told anything; the spin is presentation of a result that
+already exists. No randomness lives in the wheel. The seed that produced it is
+recorded but never displayed — it is what makes a draw reproducible and Undo
+exact, not something a person is expected to read.
 
 ## Do's and Don'ts
 
@@ -423,7 +425,7 @@ presentation of a result that already exists. No randomness lives in the wheel.
   page; boxes never do.
 - **Do** degrade a wedge label down the ladder (full name → first + initial →
   truncated first → initials) before dropping it.
-- **Do** set anything the surface reports back — the seed, ticket counts — in
+- **Do** set anything the surface reports back — ticket counts — in
   Geist Mono with tabular numerals.
 - **Do** drive the spin through direct style writes on the wheel face, and give
   reduced-motion users the landed state immediately.
