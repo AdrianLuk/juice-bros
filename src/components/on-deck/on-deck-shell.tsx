@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { siteConfig } from "@/config/site";
-import { ON_DECK_ROOT } from "@/lib/on-deck/routes";
+import { ON_DECK_QR_HOLD_UP_PATH, ON_DECK_ROOT } from "@/lib/on-deck/routes";
 
 /**
  * On Deck's standalone chrome. Every surface under `/on-deck/` — the live
@@ -22,6 +22,11 @@ import { ON_DECK_ROOT } from "@/lib/on-deck/routes";
  * board (direction seed 92ec9d54); the header/footer switch to the arena
  * palette on those so the chrome doesn't sit as a light strip above a dark
  * board. The Organizer's home/settings pages keep the plain light shell.
+ *
+ * The Club QR hold-up (`ON_DECK_QR_HOLD_UP_PATH`, issue #517) renders neither
+ * header nor footer: its whole point is nothing on the screen competing with
+ * a code sized to be scanned off a held-up phone, and even this minimal brand
+ * bar is something. It carries its own way back to Tonight instead.
  */
 
 function isArenaPath(pathname: string): boolean {
@@ -29,9 +34,14 @@ function isArenaPath(pathname: string): boolean {
   return sub.startsWith("/session/") || sub.startsWith("/c/");
 }
 
+function isChromelessPath(pathname: string): boolean {
+  return pathname === ON_DECK_QR_HOLD_UP_PATH;
+}
+
 export function OnDeckShellHeader() {
   const pathname = usePathname() ?? "";
   if (!pathname.startsWith(`${ON_DECK_ROOT}/`)) return null;
+  if (isChromelessPath(pathname)) return null;
 
   const arena = isArenaPath(pathname);
 
@@ -68,6 +78,7 @@ export function OnDeckShellHeader() {
 export function OnDeckShellFooter() {
   const pathname = usePathname() ?? "";
   if (!pathname.startsWith(`${ON_DECK_ROOT}/`)) return null;
+  if (isChromelessPath(pathname)) return null;
 
   const arena = isArenaPath(pathname);
 

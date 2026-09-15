@@ -2730,6 +2730,52 @@ html:has(.bb-app-chrome) {
   color: var(--sign-ink-dim);
 }
 
+/* The Club QR full-bleed (issue #517) — the code sized to fill a held-up
+   phone, for the door on a night the sign isn't there. `.od-sign` above stays
+   paper-shaped on every screen size on purpose (issue #463); this is a
+   second surface for the one job paper can't do, not a resize of that one.
+
+   White regardless of the site theme, same reasoning as the sign: a code
+   that went dark mode on screen would fight the scanner reading it in a dim
+   gym. Sized off the smaller of viewport width and height so it fills a
+   portrait phone edge to edge without ever growing past the screen in
+   landscape. */
+.od-holdup {
+  position: relative;
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  padding: 1.5rem;
+  background-color: #ffffff;
+  color: #000000;
+  text-align: center;
+}
+
+.od-holdup-club {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+
+.od-holdup-qr {
+  width: min(84vw, 58dvh);
+  max-width: 30rem;
+  aspect-ratio: 1;
+  background-color: #ffffff;
+}
+.od-holdup-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* Everything below sits in Tailwind's `components` layer on purpose. Plain CSS
    after `@import "tailwindcss"` is unlayered, and unlayered rules outrank every
    layered utility - so a `.bx-btn md:hidden` would stay visible and a
