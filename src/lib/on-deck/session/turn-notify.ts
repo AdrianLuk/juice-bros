@@ -29,6 +29,7 @@
  *     phantom `on-deck` one.
  */
 
+import { nightHasStarted } from "./types.ts";
 import type { SessionState } from "./types.ts";
 
 /** One moment worth notifying a Player about. */
@@ -97,6 +98,14 @@ function onDeckFoursomeOf(state: SessionState, token: string) {
  * `after`, were not On Deck in `before`, and did not just go on a Court (the
  * Court transition supersedes it — "one buzz").
  *
+ * No `on-deck` transition fires before the night has started. "Head to the
+ * courts" is wrong advice while every Court is empty and the Organizer has not
+ * sent anybody out yet, and since #533 the pre-start On Deck cards are a
+ * running prediction over a filling room rather than a commitment — buzzing
+ * each revision of one would be noise about a Game nobody can walk onto. The
+ * Players it would have reached are buzzed for real when the night starts,
+ * either On Deck or straight onto a Court.
+ *
  * Order: `court` transitions first, then `on-deck`, each in roster order, so a
  * caller iterating the list sends the more urgent buzz first.
  */
@@ -104,6 +113,7 @@ export function turnTransitions(
   before: SessionState,
   after: SessionState,
 ): TurnTransition[] {
+  const started = nightHasStarted(after);
   const wasOnCourt = tokensOnCourt(before);
   const wasOnDeck = tokensOnDeck(before);
   const nowOnCourt = tokensOnCourt(after);
@@ -127,6 +137,7 @@ export function turnTransitions(
     }
 
     if (
+      started &&
       nowOnDeck.has(token) &&
       !wasOnDeck.has(token) &&
       !wasOnCourt.has(token)

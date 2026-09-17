@@ -815,6 +815,50 @@ migration's timestamp past whatever else merged (the drift lesson
   `on-deck-last-call.spec.ts`, which already drove a night to Close and
   asserted nothing about what it left behind; verified failing without the fix.
 
+- [x] **The opening round of a night is Match Me's, not arrival order (#533,
+  2026-09-17).** Found by the demo night (#519). `refreshOnDeck` committed a
+  Foursome the moment four Players were queued and, per ADR 0007, never
+  reconsidered it — so at a club where the doors open before play does, the
+  first Courts of the night went out in arrival order. On the demo's log,
+  twenty-four Players were waiting when the Organizer tapped Send next four,
+  and the opening Courts came out `newbie/beginner/intermediate/advanced`: the
+  worst fit the scorer can produce, on the part of the night an Organizer is
+  most likely to be judging the matching by. Twenty of forty Players, roughly
+  the opening quarter of the evening.
+
+  ADR 0007 had already recorded and accepted this, sized as "the first eight
+  Players" — and rejected the obvious fix by name, on the grounds that a board
+  naming nobody leaves the first eight with nothing to gather around. Two
+  things unpicked that: no Court can free before one is occupied, so there is
+  nothing pre-start to gather *ahead of*; and the gathering premise is weaker
+  than the record assumed even mid-Session, because Players do not reliably
+  know a Court has freed without a Display, a Kiosk or the opt-in push, none of
+  which OD-6's organizer has. So the rule is narrowed rather than dropped:
+  commitment begins when the first Foursome walks onto a Court
+  (`nightHasStarted`, in `types.ts` beside the other fold selectors), and until
+  then On Deck re-forms from the whole Queue. From the first seating on, ADR
+  0007 holds exactly as written. The anchor (ADR 0004) holds in both windows,
+  so nobody can be displaced from the front of the line.
+
+  The turn notification (#260) is suppressed over the same window: "head to the
+  courts" is wrong advice while every Court is empty, and without this the
+  re-forming would buzz a Player once per revision of a prediction.
+
+  Demo night before: opening Courts at a three-level Skill spread. After: every
+  Court within one level, the claimed opening board unchanged. Tests: the two
+  ADR 0007 cases in `reduce.test.ts` moved to after the first seating, where
+  the rule now lives, plus three new ones for the pre-start window; one in
+  `turn-notify.test.ts` for the suppressed buzz.
+
+  One e2e assertion moved with the rule. `on-deck-display.spec.ts` seeds ten
+  waiting Players and never sends a Court out, so the whole fixture sits in the
+  pre-start window; its "a join lands on the board" step asserted the new
+  arrival appears in the *Queue list*, which is no longer guaranteed. With ten
+  waiting, Match Me's window reaches all of them, so a latecomer can be picked
+  onto an On Deck card on Skill fit instead of queueing behind it — ordinary
+  ADR 0004 windowed selection that commitment used to freeze out of this
+  window. The assertion now reads the board, which is what the step was for.
+
 
 ## Next
 
