@@ -28,7 +28,8 @@ import {
  * board. The Organizer's whole back office joined that world in the redesign
  * (seed 7323f5fb) and switches with them: `/home` and everything under it,
  * which is every screen an Organizer ever sees. No light On Deck surface is
- * left.
+ * left. The demo night (`/demo`, issue #519) is that same floor screen with an
+ * invented Session behind it, so it switches with them too.
  *
  * The one thing that stays white is the printed club sign itself, and that is
  * not a theme decision — `.od-sign` carries its own ink because it ends up as
@@ -54,6 +55,8 @@ function isArenaPath(pathname: string): boolean {
   return (
     sub.startsWith("/session/") ||
     sub.startsWith("/c/") ||
+    sub === "/demo" ||
+    sub.startsWith("/demo/") ||
     sub === "/home" ||
     sub.startsWith("/home/")
   );

@@ -17,6 +17,15 @@ export const ON_DECK_HOME_PATH = `${ON_DECK_ROOT}/home`;
 
 export const ON_DECK_SIGN_IN_PATH = `${ON_DECK_ROOT}/sign-in`;
 
+/**
+ * The demo night (issue #519) — a whole club Session folded in the visitor's
+ * own browser so somebody who has never heard of On Deck can tap through a
+ * turnover before giving anyone their email. Open to everyone and deliberately
+ * not room-facing: it is the Organizer's evaluation screen, so it keeps On
+ * Deck's own chrome.
+ */
+export const ON_DECK_DEMO_PATH = `${ON_DECK_ROOT}/demo`;
+
 /** The Organizer's Club settings screen — edit the saved Session defaults. */
 export const ON_DECK_SETTINGS_PATH = `${ON_DECK_ROOT}/home/settings`;
 

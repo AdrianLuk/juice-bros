@@ -4,9 +4,12 @@ import QRCode from "qrcode";
 
 import { onDeckAbsoluteUrl } from "./request-origin.ts";
 import { clubQrPath } from "./routes.ts";
+import type { ClubJoinQr } from "./qr-types.ts";
 
-/** The Club QR as drawn markup plus the link it encodes. */
-export type ClubJoinQr = { url: string; svg: string };
+// The shape lives in `qr-types.ts` so a board can name it without importing
+// this `server-only` module (issue #514's rule); re-exported here so callers
+// that already have a reason to be on the server keep one import.
+export type { ClubJoinQr } from "./qr-types.ts";
 
 /**
  * The Club QR as an inline SVG plus the link it encodes, rendered server-side
