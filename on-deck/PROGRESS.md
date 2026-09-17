@@ -795,6 +795,27 @@ migration's timestamp past whatever else merged (the drift lesson
   night, the let-it-run control, and reset. A page reload is the reset until
   then.
 
+- [x] **The floor screen stops offering to operate a closed Session (#532,
+  2026-09-17).** Found by the demo night (#519), which was the first thing to
+  fold a Session all the way to Close and then look at what was left. Only
+  `WrapUp` was gated on `view.status === "open"`; everything else gated on
+  `!view.lastCall`, which is already false once a Session closes
+  (`rotationViewFrom` only sets `lastCall` while the Session is open). So a
+  closed board still offered Add a walk-up, Queue together, Fix a skill level,
+  the turnover keys, the no-show swap, Set aside and Back in the queue. The
+  projection had taken the right position all along — it returns `undo: null`
+  and no `idleCourts` for a closed Session — the board just never asked.
+
+  One `live = !closed && !view.lastCall` now gates every control that would
+  *start* something, and a `BoardBanner` says why, matching the Display's and
+  the Kiosk's wording. The board itself stays readable rather than being
+  replaced: the last state of the night is worth being able to look at, and on
+  a real Session the log is purged at close anyway, so what an Organizer
+  actually sees is an empty board under the banner. Covered in
+  `on-deck-last-call.spec.ts`, which already drove a night to Close and
+  asserted nothing about what it left behind; verified failing without the fix.
+
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its
