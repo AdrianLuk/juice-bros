@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   FloorBoard,
   NOTHING_PENDING,
   type FloorBoardOps,
 } from "@/components/on-deck/floor-board";
+import { useBoardClock } from "@/components/on-deck/use-board-clock";
 import { DEMO_CONFIG, demoNightEvents } from "@/lib/on-deck/demo/night";
 import { demoEventFor, demoLoadedSession } from "@/lib/on-deck/demo/fold";
 import {
@@ -40,27 +41,19 @@ import type { Operator, SessionEvent } from "@/lib/on-deck/session/types";
  * with no account and no round trip, and what makes a bug it shows a bug in
  * the Floor rather than in a mock of it.
  *
- * The page renders per request (`dynamic = "force-dynamic"`), so the clock the
- * log is stamped against is within a network hop of the browser's own and the
- * two sides of hydration agree on every wait time.
+ * The log is stamped against `origin`, the moment this board first rendered.
+ * The page renders per request (`dynamic = "force-dynamic"`), so the server's
+ * stamp and the browser's are a network hop apart and the wait times either
+ * side of hydration agree to the minute they are rounded to — the same
+ * approximation the live board has always made. `now` then ticks on, so a demo
+ * left open ages the way a real night left untouched would.
  */
 export function DemoFloor() {
-  const [origin] = useState(() => Date.now());
+  const { origin, now } = useBoardClock();
   const [events, setEvents] = useState<SessionEvent[]>(() =>
     demoNightEvents(origin),
   );
   const [error, setError] = useState<string | null>(null);
-
-  // The projection's clock — it feeds the Undo window and the idle-court
-  // nudge, never the fold. Seeded from the server's `now` so the first render
-  // is identical on both sides of hydration, then ticking like the live
-  // board's, so a demo somebody leaves open goes the way a real night left
-  // untouched would.
-  const [now, setNow] = useState(origin);
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   const loaded = useMemo(
     () => demoLoadedSession(DEMO_CONFIG, events),
@@ -88,7 +81,13 @@ export function DemoFloor() {
     if (outcome.kind === "noop") return { ok: true };
 
     const event = demoEventFor(outcome, Date.now(), DEMO_OPERATOR);
-    if (!event) return { ok: false };
+    if (!event) {
+      // Unreachable short of a `floor-ops` outcome this module has no case
+      // for. Say so rather than swallowing it: a tap that does nothing and
+      // explains nothing is the one thing worse than a tap that fails.
+      setError("The demo can't do that one. Reload to start the night over.");
+      return { ok: false };
+    }
     setEvents((prev) => [...prev, event]);
     return { ok: true };
   };
@@ -155,6 +154,7 @@ export function DemoFloor() {
       auth={{ kind: "organizer" }}
       error={error}
       pending={NOTHING_PENDING}
+      now={now}
       ops={ops}
     />
   );

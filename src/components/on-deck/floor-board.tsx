@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   BoardHeading,
@@ -459,6 +459,7 @@ function WrapUp({
   lastCall,
   canClose,
   permitEndsAt,
+  now,
   onLastCall,
   onClose,
   pending,
@@ -466,6 +467,7 @@ function WrapUp({
   lastCall: boolean;
   canClose: boolean;
   permitEndsAt: number | null;
+  now: number;
   onLastCall: () => void;
   onClose: () => void;
   pending: boolean;
@@ -473,11 +475,6 @@ function WrapUp({
   const [confirming, setConfirming] = useState<"last-call" | "close" | null>(
     null,
   );
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
   const nudging =
     !lastCall &&
     permitEndsAt !== null &&
@@ -658,6 +655,7 @@ export function FloorBoard({
   auth,
   error,
   pending,
+  now,
   ops,
 }: {
   view: RotationView;
@@ -668,17 +666,17 @@ export function FloorBoard({
   auth: FloorAuth;
   error: string | null;
   pending: FloorBoardPending;
+  /**
+   * The board's clock (`useBoardClock`), owned by whoever drives it so that
+   * the Queue's wait times, the permit nudge, and — on the demo, which folds
+   * its own board — the projection all read the same moment. The fold never
+   * sees it.
+   */
+  now: number;
   ops: FloorBoardOps;
 }) {
   const undoTarget = view.undo;
   const busy = pending.any;
-  // Wait Times count up between polls — tick a local clock so a quiet board
-  // still advances the queue's minutes.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   const nextReady = !view.lastCall && view.onDeck[0]?.length === 4;
   const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
@@ -849,6 +847,7 @@ export function FloorBoard({
           lastCall={view.lastCall}
           canClose={auth.kind === "organizer"}
           permitEndsAt={view.permitEndsAt}
+          now={now}
           onLastCall={ops.callLastCall}
           onClose={ops.closeSession}
           pending={busy}

@@ -51,14 +51,17 @@ export function demoLoadedSession(
 }
 
 /**
- * Turn a `floor-ops` decision into the event to append, or null when the
- * outcome carried no event. The live paths hand the same `{ type, payload }`
- * to Postgres, which reads it back through `sessions.ts`'s row parser; here
- * the payload is already typed and trusted, so the switch only has to put the
- * fields where the fold expects them.
+ * Turn a `floor-ops` decision into the event to append, or null when it cannot
+ * become one. The live paths hand the same `{ type, payload }` to Postgres,
+ * which reads it back through `sessions.ts`'s row parser; this is the browser's
+ * half of that same trip.
  *
- * An unhandled type returns null rather than throwing: a decision this demo
- * cannot commit must leave the board untouched, never break it.
+ * `FloorOpOutcome.payload` is a `Record<string, unknown>`, so every field has
+ * to be narrowed on the way out. A field that is missing or the wrong type
+ * returns null rather than a `0` or an empty string: an event carrying
+ * `court: 0` would fold into a board nobody could explain, and a decision this
+ * module has no case for must leave the board untouched, not quietly damage
+ * it. Callers surface the null; nothing here throws.
  */
 export function demoEventFor(
   outcome: FloorOpOutcome,
@@ -67,88 +70,95 @@ export function demoEventFor(
 ): SessionEvent | null {
   if (outcome.kind !== "event") return null;
   const p = outcome.payload;
-  const str = (key: string): string =>
-    typeof p[key] === "string" ? (p[key] as string) : "";
-  const num = (key: string): number =>
-    typeof p[key] === "number" ? (p[key] as number) : 0;
+  const str = (key: string): string | null =>
+    typeof p[key] === "string" && p[key] ? (p[key] as string) : null;
+  const court = (): number | null =>
+    typeof p.court === "number" && Number.isInteger(p.court) ? p.court : null;
 
   switch (outcome.type) {
-    case "COURT_FINISHED":
-      return { type: "COURT_FINISHED", at, operator, court: num("court") };
-    case "COURT_CONFIRMED":
-      return {
-        type: "COURT_CONFIRMED",
-        at,
-        operator,
-        court: num("court"),
-        since: typeof p.since === "number" ? p.since : null,
-      };
-    case "PLAYER_PAUSED":
-      return isPauseReason(p.reason)
-        ? {
-            type: "PLAYER_PAUSED",
+    case "COURT_FINISHED": {
+      const n = court();
+      return n === null ? null : { type: "COURT_FINISHED", at, operator, court: n };
+    }
+    case "COURT_CONFIRMED": {
+      const n = court();
+      return n === null
+        ? null
+        : {
+            type: "COURT_CONFIRMED",
             at,
             operator,
-            token: str("token"),
-            reason: p.reason,
-          }
+            court: n,
+            since: typeof p.since === "number" ? p.since : null,
+          };
+    }
+    case "PLAYER_PAUSED": {
+      const token = str("token");
+      return token && isPauseReason(p.reason)
+        ? { type: "PLAYER_PAUSED", at, operator, token, reason: p.reason }
         : null;
-    case "PLAYER_REQUEUED":
-      return { type: "PLAYER_REQUEUED", at, operator, token: str("token") };
-    case "FOURSOME_MEMBER_SWAPPED":
-      return {
-        type: "FOURSOME_MEMBER_SWAPPED",
-        at,
-        operator,
-        court: num("court"),
-        out: str("out"),
-        in: str("in"),
-      };
-    case "PLAYER_JOINED":
-      return isSkillLevel(p.skillLevel)
+    }
+    case "PLAYER_REQUEUED": {
+      const token = str("token");
+      return token ? { type: "PLAYER_REQUEUED", at, operator, token } : null;
+    }
+    case "FOURSOME_MEMBER_SWAPPED": {
+      const n = court();
+      const out = str("out");
+      const incoming = str("in");
+      return n !== null && out && incoming
+        ? { type: "FOURSOME_MEMBER_SWAPPED", at, operator, court: n, out, in: incoming }
+        : null;
+    }
+    case "PLAYER_JOINED": {
+      const token = str("token");
+      const firstName = str("firstName");
+      const lastInitial = str("lastInitial");
+      return token && firstName && lastInitial && isSkillLevel(p.skillLevel)
         ? {
             type: "PLAYER_JOINED",
             at,
             operator,
-            token: str("token"),
-            firstName: str("firstName"),
-            lastInitial: str("lastInitial"),
+            token,
+            firstName,
+            lastInitial,
             skillLevel: p.skillLevel,
             queueOnJoin: p.queueOnJoin === true,
           }
         : null;
-    case "PLAYER_SKILL_SET":
-      return isSkillLevel(p.skillLevel)
-        ? {
-            type: "PLAYER_SKILL_SET",
-            at,
-            operator,
-            token: str("token"),
-            skillLevel: p.skillLevel,
-          }
+    }
+    case "PLAYER_SKILL_SET": {
+      const token = str("token");
+      return token && isSkillLevel(p.skillLevel)
+        ? { type: "PLAYER_SKILL_SET", at, operator, token, skillLevel: p.skillLevel }
         : null;
-    case "GROUP_FORMED":
-      return {
-        type: "GROUP_FORMED",
-        at,
-        operator,
-        groupId: str("groupId"),
-        memberTokens: Array.isArray(p.memberTokens)
-          ? p.memberTokens.filter((t): t is string => typeof t === "string")
-          : [],
-      };
-    case "GROUP_MEMBER_REMOVED":
-      return {
-        type: "GROUP_MEMBER_REMOVED",
-        at,
-        operator,
-        groupId: str("groupId"),
-        token: str("token"),
-      };
-    case "GROUP_DISSOLVED":
-      return { type: "GROUP_DISSOLVED", at, operator, groupId: str("groupId") };
+    }
+    case "GROUP_FORMED": {
+      const groupId = str("groupId");
+      const raw = Array.isArray(p.memberTokens) ? p.memberTokens : null;
+      const memberTokens =
+        raw?.filter((t): t is string => typeof t === "string") ?? [];
+      // Every member has to survive the narrowing, or the Group that forms is
+      // not the one the Operator picked.
+      return groupId && raw && memberTokens.length === raw.length
+        ? { type: "GROUP_FORMED", at, operator, groupId, memberTokens }
+        : null;
+    }
+    case "GROUP_MEMBER_REMOVED": {
+      const groupId = str("groupId");
+      const token = str("token");
+      return groupId && token
+        ? { type: "GROUP_MEMBER_REMOVED", at, operator, groupId, token }
+        : null;
+    }
+    case "GROUP_DISSOLVED": {
+      const groupId = str("groupId");
+      return groupId ? { type: "GROUP_DISSOLVED", at, operator, groupId } : null;
+    }
     case "GROUP_CAP_CHANGED":
-      return { type: "GROUP_CAP_CHANGED", at, operator, cap: num("cap") };
+      return typeof p.cap === "number" && Number.isInteger(p.cap)
+        ? { type: "GROUP_CAP_CHANGED", at, operator, cap: p.cap }
+        : null;
     default:
       return null;
   }

@@ -732,6 +732,16 @@ migration's timestamp past whatever else merged (the drift lesson
   again. Undo is what it is in the database: drop the last event, re-fold. The
   widening #514 started, finished one layer out.
 
+  The split also collapsed three clocks into one. `FloorBoard` and `WrapUp`
+  each ran their own 30-second `setInterval`, and the demo needs a third for
+  its projection, which would have left the Queue's wait times, the permit
+  nudge and the Undo window up to half a minute apart on one screen.
+  `useBoardClock` is now the single clock per board, owned by whoever drives
+  it: it hands back `origin` (the moment the board first rendered, which is
+  what the demo stamps its log against, so the log and the first projection of
+  it share a zero) and a ticking `now`. `FloorBoard` takes `now` as a prop and
+  no longer reads a clock at all.
+
   **The log is authored, and tested as such.** There is no recorded night and
   will not be until a stranger runs one, so `demo/night.ts` writes the
   arrivals and the turnovers and lets the fold decide every selection —
@@ -741,19 +751,32 @@ migration's timestamp past whatever else merged (the drift lesson
   "now" and the script is built once and re-stamped, which is sound precisely
   because the fold never reads the wall clock.
 
-  Tests: `demo/night.test.ts` — the log folds to the claimed opening board
-  (five Courts of four, two full On Deck foursomes, a Queue of twelve
-  including one Queue Together Group), nobody is in two places at once, every
-  one of the 22 turnovers in the log seats exactly the "Up next" card that was
-  showing, no Foursome on a Court spans more than one Skill Level (selection
-  is choosing on fit, not arrival order), the same night folds whatever the
-  clock says, and ten further turnovers driven through `finishCourtOutcome`
-  leave the board whole. `demo/import-graph.test.ts` walks the route's imports
-  from the page outwards and fails on a `"use server"` module, anything under
+  Tests: `demo/night.test.ts` (17 cases) — the log folds to the claimed
+  opening board (five Courts of four, two full On Deck foursomes, a Queue of
+  twelve including one Queue Together Group), nobody is in two places at once,
+  no Foursome now in play spans more than one Skill Level, the same night folds
+  whatever the clock says, and ten further turnovers driven through
+  `finishCourtOutcome` leave the board whole. The one carrying the "derived
+  from the Match Me selection rules" claim runs `selectFoursome` independently
+  over the same Queue, Skill Levels and Game history the fold had, for each of
+  the 20 Foursomes committed with no Group in play and no top-up to model, and
+  requires the same four in the same order — asserting instead that the four
+  who walk on are the "Up next" card would have been near-tautological, since
+  `seatCourt` seating `onDeck[0]` *is* that rule, so that one stays, renamed,
+  as the ADR 0007 regression guard it actually is.
+
+  `demo/import-graph.test.ts` walks the route's imports from the page outwards and fails on a `"use server"` module, anything under
   `actions/` or `supabase/`, or a `@supabase/*` import — it caught the first
   one straight away (`floor-board.tsx` was reaching into the `server-only`
   `qr.ts` for the `ClubJoinQr` type, now in `qr-types.ts`, which is #514's own
-  rule applied one file further).
+  rule applied one file further). Two things the walker has to get
+  right to be worth having, both verified by breaking them on purpose: the
+  forbidden-package list matches on the `@supabase` prefix rather than the two
+  entry packages, so `@supabase/realtime-js` cannot slip past a criterion that
+  names realtime explicitly; and an `import()` whose argument is not a plain
+  string literal is a hard failure rather than a silently skipped edge, since a
+  template literal would otherwise drop a whole subtree out of the graph and
+  the test would pass for the wrong reason.
 
   **What the exercise turned up.** One Floor bug, filed: the floor screen does
   not gate its operational controls on a closed Session, so after Close it

@@ -19,10 +19,21 @@ import {
 } from "./night.ts";
 import { demoEventFor, demoLoadedSession } from "./fold.ts";
 import { finishCourtOutcome } from "../floor-ops.ts";
-import { SELECTION_WINDOW } from "../session/match-me.ts";
+import { SELECTION_WINDOW, selectFoursome } from "../session/match-me.ts";
 import { rotationViewFrom } from "../session/rotation-view.ts";
 import { SKILL_LEVELS } from "../session/types.ts";
 import type { SessionEvent, SessionState } from "../session/types.ts";
+
+/** A Player's Skill Level by token, the way the fold looks it up. Throws
+ * rather than defaulting: a silent fallback would make Match Me's pick agree
+ * with the fold for the wrong reason. */
+function skillLookup(state: SessionState) {
+  return (id: string) => {
+    const player = state.roster.find((p) => p.id === id);
+    assert.ok(player, `${id} is being selected but is not on the roster`);
+    return player!.skillLevel;
+  };
+}
 
 /** A fixed wall clock — the demo stamps its log against whatever "now" is. */
 const NOW = 1_800_000_000_000;
@@ -158,11 +169,14 @@ test("the log exercises the paths a real night takes, not just turnovers", () =>
   }
 });
 
-test("every foursome in the log is the one the board had promised", () => {
-  // The demo's claim is that its selections are derived rather than invented.
-  // Replaying the log one turnover at a time: whoever walks onto the freed
-  // Court is exactly the "Up next" card that was showing before the tap —
-  // never a hand-picked four, and never a reshuffle (ADR 0007).
+test("whoever walks on is the card the board was showing", () => {
+  // ADR 0007: a committed Foursome is never reshuffled. Replaying the log one
+  // turnover at a time, whoever walks onto the freed Court is exactly the "Up
+  // next" card that was showing before the tap.
+  //
+  // This guards the promise, not the selection — `seatCourt` seating
+  // `onDeck[0]` is the rule under test, so the test restating it is the point.
+  // What proves the *choice* is Match Me's is the next one down.
   const { events } = openingNight();
   let seatings = 0;
 
@@ -182,17 +196,71 @@ test("every foursome in the log is the one the board had promised", () => {
   assert.ok(seatings >= 20, `only ${seatings} turnovers to check`);
 });
 
-test("selection is choosing on skill fit, not on arrival order", () => {
-  // What an organizer judges the algorithm by. Match Me's skill cost is
-  // quadratic in the gap between levels, so a Queue this deep should never
-  // leave a two-level spread standing on a Court — and if it does, the pick
-  // was made on something other than fit.
+test("the on deck foursomes in the log are Match Me's own picks", () => {
+  // The acceptance criterion the demo lives or dies on: the log's selections
+  // are *derived* from the Match Me rules, not written down by hand. So run
+  // Match Me here, independently, over the same Queue, Skill Levels and Game
+  // history the fold had, and require the same four in the same order.
+  //
+  // Only the unambiguous cases are checked: a second Foursome committed
+  // alongside an already-complete first one, with no Queue Together Group in
+  // play. That is `refreshOnDeck`'s rule 3 with no top-up and no Group branch,
+  // so the available pool is simply the Queue minus the committed four, and
+  // any disagreement is a real one rather than this test mis-modelling which
+  // Players were on offer.
+  const { events } = openingNight();
+  let checked = 0;
+
+  for (let i = 0; i < events.length; i++) {
+    const before = demoLoadedSession(DEMO_CONFIG, events.slice(0, i)).state;
+    const after = demoLoadedSession(DEMO_CONFIG, events.slice(0, i + 1)).state;
+    if (before.groups.length > 0 || after.groups.length > 0) continue;
+    if (after.onDeck.length !== 2) continue;
+
+    const [committed, fresh] = after.onDeck;
+    if (fresh.committedAt !== events[i].at) continue;
+    if (committed.players.length !== 4 || fresh.players.length !== 4) continue;
+
+    const spokenFor = new Set(committed.players);
+    const available = after.queue
+      .map((e) => e.playerId)
+      .filter((id) => !spokenFor.has(id));
+
+    assert.deepEqual(
+      fresh.players,
+      selectFoursome({
+        queue: available,
+        skillOf: skillLookup(after),
+        completedGames: after.completedGames,
+        seed: DEMO_CONFIG.seed,
+      }),
+      `the foursome committed at event ${i} (${events[i].type}) is not Match Me's pick`,
+    );
+    checked += 1;
+  }
+
+  assert.ok(checked >= 15, `only ${checked} committed foursomes to check`);
+});
+
+test("every foursome now in play is within one skill level", () => {
+  // What an organizer judges the algorithm by, on the board the demo actually
+  // opens. Match Me's skill cost is quadratic in the gap between levels, so a
+  // Queue this deep should not leave a two-level spread standing on a Court.
+  //
+  // Deliberately scoped to the *current* board. Earlier in the log there are
+  // three-level spreads, and they are not a bug in this assertion: On Deck
+  // commits its first Foursomes while the room is still filling, so the
+  // opening round is seated in arrival order (issue #533). By the time the
+  // demo opens, every Foursome on a Court was picked against a real Queue.
   const { loaded } = openingNight();
   const { state } = loaded;
-  const level = (id: string) =>
-    SKILL_LEVELS.indexOf(
-      state.roster.find((p) => p.id === id)?.skillLevel ?? "intermediate",
-    );
+  const level = (id: string) => {
+    const player = state.roster.find((p) => p.id === id);
+    // Never default: a fallback here would collapse every spread to zero and
+    // pass this test for a roster that had gone missing entirely.
+    assert.ok(player, `${id} is on a court but not on the roster`);
+    return SKILL_LEVELS.indexOf(player!.skillLevel);
+  };
   const spread = (ids: readonly string[]) =>
     Math.max(...ids.map(level)) - Math.min(...ids.map(level));
 

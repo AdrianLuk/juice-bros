@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
+import { useBoardClock } from "@/components/on-deck/use-board-clock";
 import {
   FloorBoard,
   type FloorAuth,
@@ -43,9 +44,6 @@ import type {
   RotationView,
 } from "@/lib/on-deck/session/rotation-view";
 import type { ClubJoinQr } from "@/lib/on-deck/qr-types";
-
-export type { FloorAuth } from "@/components/on-deck/floor-board";
-export { LAST_CALL_NUDGE_LEAD_MS } from "@/components/on-deck/floor-board";
 
 const ORGANIZER_AUTH: FloorAuth = { kind: "organizer" };
 
@@ -179,6 +177,7 @@ function RotationBoardInner({
     initialData: initialRoster,
   });
   const [error, setError] = useState<string | null>(null);
+  const { now } = useBoardClock();
   const actions = boundFloorActions(sessionId, auth);
 
   const refresh = () => {
@@ -318,6 +317,7 @@ function RotationBoardInner({
       joinQr={joinQr}
       auth={auth}
       error={error}
+      now={now}
       pending={{
         any: busy,
         swap: swap.isPending,

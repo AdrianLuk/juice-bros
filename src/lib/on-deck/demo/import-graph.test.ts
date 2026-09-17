@@ -31,8 +31,14 @@ const ENTRY_POINTS = [
   "src/app/on-deck/layout.tsx",
 ];
 
-/** Packages that are a database connection by definition. */
-const FORBIDDEN_PACKAGES = ["@supabase/supabase-js", "@supabase/ssr", "server-only"];
+/**
+ * Packages that are a database connection by definition. Matched as prefixes:
+ * `@supabase/realtime-js` and `@supabase/postgrest-js` are reachable without
+ * going through `supabase-js`, and "realtime channel" is the acceptance
+ * criterion's own word, so the whole scope is out rather than the two entry
+ * packages that happen to be in `package.json` today.
+ */
+const FORBIDDEN_PACKAGES = ["@supabase", "server-only"];
 
 /** Source trees that only exist to talk to Postgres. */
 const FORBIDDEN_DIRS = [
@@ -56,6 +62,26 @@ function specifiersIn(source: string): string[] {
     for (const match of source.matchAll(pattern)) found.push(match[1]);
   }
   return found;
+}
+
+/**
+ * An `import(…)` or `require(…)` whose argument is not a plain string
+ * literal — a template literal, a variable, a concatenation. The walk cannot
+ * follow one, so a module containing one would silently drop a whole subtree
+ * out of the graph and the test would pass for the wrong reason. Better to
+ * fail and make somebody either write the specifier out or widen this.
+ */
+function hasUnresolvableImport(source: string): string | null {
+  const dynamic = /\b(?:import|require)\s*\(\s*([^)]*?)\s*\)/g;
+  for (const match of source.matchAll(dynamic)) {
+    const argument = match[1].trim();
+    if (argument === "") continue;
+    if (/^["'][^"']*["']$/.test(argument)) continue;
+    // `import.meta`, and TypeScript's `import("./x").Type` are handled by the
+    // string-literal case above; anything left is computed.
+    return match[0];
+  }
+  return null;
 }
 
 /** A specifier to a file on disk, or null when it is a bare package. */
@@ -109,6 +135,13 @@ test("nothing that can reach the database is in the demo route's import graph", 
     assert.ok(
       !/^\s*["']use server["']/m.test(source),
       `${trail} is a "use server" module`,
+    );
+
+    const computed = hasUnresolvableImport(source);
+    assert.equal(
+      computed,
+      null,
+      `${trail} has a computed import (${computed}) this walk cannot follow`,
     );
 
     for (const dir of FORBIDDEN_DIRS) {

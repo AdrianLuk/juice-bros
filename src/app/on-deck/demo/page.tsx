@@ -43,7 +43,7 @@ export default function OnDeckDemoPage() {
             Nothing on this board is real. {DEMO_PLAYER_COUNT} invented players
             have been rotating through {DEMO_CONFIG.courtCount} courts for the
             past hour, and the whole night folds in your browser. Nobody is
-            signed in, nothing is saved, and nothing leaves this page.
+            signed in, and nothing you tap here leaves the page.
           </p>
           <p className="mt-3 text-arena-faint">
             Tap <span className="text-arena-fg">Court 1 done</span>. The four
