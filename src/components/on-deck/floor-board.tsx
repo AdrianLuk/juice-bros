@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import {
+  BoardBanner,
   BoardHeading,
   CourtPanel,
   FoursomePanel,
@@ -678,12 +679,31 @@ export function FloorBoard({
   const undoTarget = view.undo;
   const busy = pending.any;
 
-  const nextReady = !view.lastCall && view.onDeck[0]?.length === 4;
-  const hasOnDeck = !view.lastCall && view.onDeck.some((f) => f.length > 0);
+  /**
+   * The Session is over — closed, or Last Call has ended new play. Every
+   * control that would *start* something is gated on this; the board itself
+   * stays readable, because the last state of the night is worth being able
+   * to look at (issue #532).
+   *
+   * `lastCall` is already false once a Session closes (`rotationViewFrom`
+   * only sets it while the Session is open), so the two have to be asked
+   * separately — a closed Session is not a Last Called one.
+   */
+  const closed = view.status === "closed";
+  const live = !closed && !view.lastCall;
+
+  const nextReady = live && view.onDeck[0]?.length === 4;
+  const hasOnDeck = live && view.onDeck.some((f) => f.length > 0);
 
   return (
     <SkillColors by={view.skillByName}>
     <div className="space-y-7">
+      {closed && (
+        <BoardBanner tone="closed" data-testid="floor-closed">
+          Tonight&apos;s session has wrapped up
+        </BoardBanner>
+      )}
+
       {error && (
         <p
           className="od-readout text-[0.72rem] text-arena-warn"
@@ -729,21 +749,23 @@ export function FloorBoard({
               const occupied = court.players.length > 0;
               return (
                 <CourtPanel key={court.number} court={court}>
-                  <button
-                    type="button"
-                    className={
-                      occupied
-                        ? "od-key od-key--go od-key--turnover mt-4"
-                        : "od-key od-key--ghost mt-4 w-full"
-                    }
-                    disabled={busy || (!occupied && !nextReady)}
-                    onClick={() =>
-                      ops.finishCourt(court.number, court.since)
-                    }
-                  >
-                    {occupied ? `Court ${court.number} done` : "Send next four"}
-                  </button>
-                  {occupied && (
+                  {!closed && (
+                    <button
+                      type="button"
+                      className={
+                        occupied
+                          ? "od-key od-key--go od-key--turnover mt-4"
+                          : "od-key od-key--ghost mt-4 w-full"
+                      }
+                      disabled={busy || (!occupied && !nextReady)}
+                      onClick={() =>
+                        ops.finishCourt(court.number, court.since)
+                      }
+                    >
+                      {occupied ? `Court ${court.number} done` : "Send next four"}
+                    </button>
+                  )}
+                  {occupied && !closed && (
                     <NoShowSwap
                       court={court.number}
                       players={court.players}
@@ -761,7 +783,7 @@ export function FloorBoard({
         </section>
 
         {/* ── On Deck ─────────────────────────────────────────────────── */}
-        {!view.lastCall && (
+        {live && (
           <section className="order-1 sm:order-2">
             <BoardHeading tone="next">On deck</BoardHeading>
             <div className="mt-3 grid items-start gap-4 sm:grid-cols-2">
@@ -787,7 +809,7 @@ export function FloorBoard({
 
       {/* Both ways to get a new arrival in — and neither survives Last Call,
           which is the point at which nobody else gets a game tonight. */}
-      {!view.lastCall && (
+      {live && (
         <>
           {joinQr && <ShowTheQr qr={joinQr} />}
           <AddWalkup
@@ -807,7 +829,7 @@ export function FloorBoard({
             Last call was made before a court opened for these players.
           </p>
         )}
-        {!view.lastCall && view.queue.some((e) => e.kind === "group") && (
+        {live && view.queue.some((e) => e.kind === "group") && (
           <p className="mt-1 text-xs text-arena-faint">
             {QUEUE_TOGETHER_EXPLAINER}
           </p>
@@ -817,13 +839,13 @@ export function FloorBoard({
           now={now}
           lastCall={view.lastCall}
           busy={busy}
-          onSetAside={ops.setPlayerAside}
-          onBreakUp={ops.dissolveGroup}
+          onSetAside={live ? ops.setPlayerAside : undefined}
+          onBreakUp={live ? ops.dissolveGroup : undefined}
           data-testid="queue-list"
         />
       </section>
 
-      {!view.lastCall && (
+      {live && (
         <>
           <QueueTogether
             waiting={view.groupablePlayers}
@@ -869,14 +891,16 @@ export function FloorBoard({
                     {PAUSE_REASON_LABEL[p.reason]}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  className="od-readout text-arena-dim underline-offset-4 hover:underline"
-                  disabled={busy}
-                  onClick={() => ops.bringPlayerBack(p.name)}
-                >
-                  Back in the queue
-                </button>
+                {!closed && (
+                  <button
+                    type="button"
+                    className="od-readout text-arena-dim underline-offset-4 hover:underline"
+                    disabled={busy}
+                    onClick={() => ops.bringPlayerBack(p.name)}
+                  >
+                    Back in the queue
+                  </button>
+                )}
               </li>
             ))}
           </ul>
