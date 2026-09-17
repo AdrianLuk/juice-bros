@@ -714,6 +714,64 @@ migration's timestamp past whatever else merged (the drift lesson
   being re-pointed at the shared tail), 1262/1262 `node --test`, `tsc --noEmit`
   and `eslint` clean.
 
+- [x] **A demo night that folds in the browser (#519, 2026-09-16).** OD-6
+  slice 2, and the first time this software has run a complete night start to
+  finish anywhere. `/on-deck/demo` is open to anyone: no sign-in, no Club, no
+  Supabase client, no Realtime channel, no Server Action, and no row written.
+  A visitor lands 64 minutes into somebody else's Saturday with all five
+  Courts in play, both On Deck foursomes committed, and twelve waiting, taps
+  "Court 1 done", and the four who were promised walk on.
+
+  **It is the Floor, not a replica of it.** `rotation-board.tsx` split in two:
+  `floor-board.tsx` is the screen and takes its board plus a `FloorBoardOps`
+  of callbacks, and `rotation-board.tsx` is that screen wired to TanStack
+  Query over the Organizer's and the Volunteer's Server Actions. The demo
+  passes the same component a different `ops` — each tap asks the same
+  `floor-ops` decision function what event it should append, the event goes on
+  the end of an array in `useState`, and `reduceSession` folds the whole log
+  again. Undo is what it is in the database: drop the last event, re-fold. The
+  widening #514 started, finished one layer out.
+
+  **The log is authored, and tested as such.** There is no recorded night and
+  will not be until a stranger runs one, so `demo/night.ts` writes the
+  arrivals and the turnovers and lets the fold decide every selection —
+  folding mid-build so the one no-show swap in it comes out of a Foursome
+  Match Me really seated. Players come from `dev-players.ts`, whose fixed
+  "B." last initial is the tell on the board. Timestamps are relative to
+  "now" and the script is built once and re-stamped, which is sound precisely
+  because the fold never reads the wall clock.
+
+  Tests: `demo/night.test.ts` — the log folds to the claimed opening board
+  (five Courts of four, two full On Deck foursomes, a Queue of twelve
+  including one Queue Together Group), nobody is in two places at once, every
+  one of the 22 turnovers in the log seats exactly the "Up next" card that was
+  showing, no Foursome on a Court spans more than one Skill Level (selection
+  is choosing on fit, not arrival order), the same night folds whatever the
+  clock says, and ten further turnovers driven through `finishCourtOutcome`
+  leave the board whole. `demo/import-graph.test.ts` walks the route's imports
+  from the page outwards and fails on a `"use server"` module, anything under
+  `actions/` or `supabase/`, or a `@supabase/*` import — it caught the first
+  one straight away (`floor-board.tsx` was reaching into the `server-only`
+  `qr.ts` for the `ClubJoinQr` type, now in `qr-types.ts`, which is #514's own
+  rule applied one file further).
+
+  **What the exercise turned up.** One Floor bug, filed: the floor screen does
+  not gate its operational controls on a closed Session, so after Close it
+  still offers "Add a walk-up", "Queue together" and the turnover keys. Less
+  visible in production, where a closed Session's log is purged and the board
+  comes back empty, but the rule is missing either way. And one thing that is
+  working as designed and worth knowing: On Deck commits its first Foursomes
+  as soon as four Players have queued, so at a club where the doors open
+  before play does, the opening round is seated in arrival order and Match
+  Me's skill fit contributes nothing to it. ADR 0007 is why (a committed
+  Foursome is never reshuffled), and the board did show those names the whole
+  time, so nobody is passed over — but it means the first five Games of a
+  40-player night are the five the algorithm had the least say in.
+
+  Not in this slice, and #522's: the Display and Kiosk views of the same demo
+  night, the let-it-run control, and reset. A page reload is the reset until
+  then.
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its
