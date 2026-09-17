@@ -13,6 +13,8 @@ import {
   setClubTimeZone,
   updateClubDefaults,
 } from "../clubs.ts";
+import { CLUB_NAME_MAX, COURT_COUNT_RANGE, collapseSpaces } from "../club-draft.ts";
+import { deleteClubDraftCookie } from "../club-draft-server.ts";
 import { FLOOR_MODES, type ClubDefaults } from "../session/types.ts";
 import { isKnownTimeZone } from "../timezone.ts";
 import { getOpenSessionForClub, resolveOpenSessionForClub } from "../sessions.ts";
@@ -85,23 +87,14 @@ export async function startSession(input?: {
 
 export type SessionSettingsResult = { ok: true } | { ok?: false; error: string };
 
-const COURT_COUNT = { min: 1, max: 40 };
 const GROUP_CAP = { min: 2, max: 8 };
 const VENUE_MAX = 120;
-const CLUB_NAME_MAX = 120;
-
-/** Trimmed, with runs of space collapsed — the same normalisation the RPCs
- * apply, done here so a bad value comes back as a sentence about the field
- * somebody typed rather than as the name of a CHECK constraint. */
-function collapseSpaces(raw: string | undefined): string {
-  return raw?.trim().replace(/\s+/g, " ") ?? "";
-}
 
 /** The Club's name, as both the create and the settings form need it checked. */
 function validateClubName(
   raw: string | undefined,
 ): { ok: true; name: string } | { ok: false; error: string } {
-  const name = collapseSpaces(raw);
+  const name = collapseSpaces(raw ?? "");
   if (!name) return { ok: false, error: "Enter your club's name." };
   if (name.length > CLUB_NAME_MAX) {
     return {
@@ -120,12 +113,12 @@ function validateCourtCount(
   const courtCount = Number(raw);
   if (
     !Number.isInteger(courtCount) ||
-    courtCount < COURT_COUNT.min ||
-    courtCount > COURT_COUNT.max
+    courtCount < COURT_COUNT_RANGE.min ||
+    courtCount > COURT_COUNT_RANGE.max
   ) {
     return {
       ok: false,
-      error: `Court count has to be a whole number from ${COURT_COUNT.min} to ${COURT_COUNT.max}.`,
+      error: `Court count has to be a whole number from ${COURT_COUNT_RANGE.min} to ${COURT_COUNT_RANGE.max}.`,
     };
   }
   return { ok: true, courtCount };
@@ -295,6 +288,7 @@ export async function createClub(input: {
     // double submit. Not a failure to report as one: the home screen they are
     // about to be shown is their Club, with Start on it.
     if (error instanceof ClubAlreadyExistsError) {
+      await deleteClubDraftCookie();
       revalidatePath(ON_DECK_HOME_PATH);
       return { ok: true };
     }
@@ -302,6 +296,10 @@ export async function createClub(input: {
     return { error: "Couldn't create your club just now. Try again." };
   }
 
+  // Whatever was carried through sign-in (issue #520) has done its job —
+  // there is nowhere else it would ever be used, one Club per account with no
+  // way to delete it.
+  await deleteClubDraftCookie();
   revalidatePath(ON_DECK_HOME_PATH);
   revalidatePath(ON_DECK_SETTINGS_PATH);
   return { ok: true };

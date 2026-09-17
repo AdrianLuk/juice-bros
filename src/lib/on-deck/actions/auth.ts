@@ -9,6 +9,7 @@ import {
   ON_DECK_SIGN_IN_PATH,
   safeRedirectTarget,
 } from "../routes.ts";
+import { deleteClubDraftCookie } from "../club-draft-server.ts";
 // Request infrastructure shared with Booking Buddy (turns a path into an
 // absolute URL on the current request's host), not domain logic — so it is
 // imported rather than reimplemented.
@@ -135,6 +136,12 @@ export async function signInWithGoogleIdToken(
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+
+  // A draft typed before this session isn't this browser's next Organizer's
+  // to inherit (issue #520) — a shared device signing out one account and
+  // straight into another must not silently carry the first's club name onto
+  // the second's create-club form.
+  await deleteClubDraftCookie();
 
   revalidatePath(ON_DECK_ROOT, "layout");
   redirect(ON_DECK_ROOT);

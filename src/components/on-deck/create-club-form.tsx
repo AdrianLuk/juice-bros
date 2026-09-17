@@ -9,6 +9,11 @@ import {
   HANDOFF_KEY,
   Stage,
 } from "@/components/on-deck/back-office";
+import {
+  CLUB_NAME_MAX,
+  COURT_COUNT_RANGE,
+  type ClubDraft,
+} from "@/lib/on-deck/club-draft";
 
 /**
  * The Organizer's own Club, in two fields (issue #515).
@@ -29,13 +34,28 @@ import {
  *
  * On success the Organizer stays where they are and the page re-renders as
  * their Club, with Start on it.
+ *
+ * `initialDraft` seeds the two fields from a draft typed before sign-in
+ * (issue #520). The caller keys this component on the same value (see
+ * `/on-deck/home`'s page) — a plain prop would only apply once, since
+ * `useState`'s initializer never re-runs on its own.
  */
-export function CreateClubForm() {
+export function CreateClubForm({
+  initialDraft,
+}: {
+  initialDraft?: ClubDraft | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [name, setName] = useState("");
-  const [courts, setCourts] = useState("");
+  const [name, setName] = useState(initialDraft?.name ?? "");
+  const [courts, setCourts] = useState(initialDraft?.courtCount ?? "");
   const [error, setError] = useState<string | null>(null);
+  // The caller remounts this component per draft (see the `key` at the call
+  // site), so this prop is fixed for its whole lifetime — a plain const,
+  // never stale as the fields are edited afterward. On a shared or reused
+  // browser, the person actually signing in might not be who typed this —
+  // surfaced below rather than silently treated as theirs.
+  const seededFromDraft = initialDraft != null;
 
   const courtCount = Number(courts);
   const courtsValid = Number.isInteger(courtCount) && courtCount > 0;
@@ -80,6 +100,13 @@ export function CreateClubForm() {
           sensible default, and all of it is editable in settings.
         </p>
 
+        {seededFromDraft && (
+          <p className="od-bo-note">
+            Filled in from what was typed before signing in — worth checking
+            it&apos;s right before you create your club.
+          </p>
+        )}
+
         <form onSubmit={submit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <label className="od-readout text-arena-dim" htmlFor="od-club-name">
@@ -90,7 +117,7 @@ export function CreateClubForm() {
               name="name"
               className="od-field"
               value={name}
-              maxLength={120}
+              maxLength={CLUB_NAME_MAX}
               autoComplete="off"
               autoCapitalize="words"
               onChange={(event) => setName(event.target.value)}
@@ -115,8 +142,8 @@ export function CreateClubForm() {
               className="od-field max-w-[7.5rem]"
               type="number"
               inputMode="numeric"
-              min={1}
-              max={40}
+              min={COURT_COUNT_RANGE.min}
+              max={COURT_COUNT_RANGE.max}
               value={courts}
               onChange={(event) => setCourts(event.target.value)}
               required
