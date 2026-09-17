@@ -814,6 +814,7 @@ migration's timestamp past whatever else merged (the drift lesson
   actually sees is an empty board under the banner. Covered in
   `on-deck-last-call.spec.ts`, which already drove a night to Close and
   asserted nothing about what it left behind; verified failing without the fix.
+
 - [x] **The opening round of a night is Match Me's, not arrival order (#533,
   2026-09-17).** Found by the demo night (#519). `refreshOnDeck` committed a
   Foursome the moment four Players were queued and, per ADR 0007, never
