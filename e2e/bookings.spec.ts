@@ -15,6 +15,19 @@ import {
 import { deleteOrgs } from "./support/db-reset.ts";
 
 /**
+ * A date comfortably in the future, so a run's own clock can never age it
+ * out (issue #530 — this file used to hard-code a calendar date, which
+ * worked right up until that date arrived and then failed forever after).
+ */
+const BOOKING_DATE_OBJ = new Date(Date.now() + 3 * 86_400_000);
+const BOOKING_DATE = BOOKING_DATE_OBJ.toLocaleDateString("sv-SE");
+const BOOKING_DATE_LABEL = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+}).format(BOOKING_DATE_OBJ);
+
+/**
  * The Org → Booking journey, clicked rather than asserted against the database.
  *
  * Everything these tests make is named with a unique suffix and removed at the
@@ -56,14 +69,14 @@ test("a place can be added, booked at, and removed again", async ({ page }) => {
     // formatCourtLabel prepends "Court " for display — the field itself is
     // now numbers-only (type="number"), so the row still reads "Court 3".
     court: "3",
-    date: "2026-09-15",
+    date: BOOKING_DATE,
     start: "18:00",
     end: "19:00",
   });
 
   const booking = row(page, "Court 3");
   await expect(booking).toContainText(place);
-  await expect(booking).toContainText("Sep 15, 2026");
+  await expect(booking).toContainText(BOOKING_DATE_LABEL);
   await expect(booking).toContainText("6:00");
   await expect(booking).toContainText("7:00");
 
@@ -83,7 +96,7 @@ test("a booking's name renders on the Bookings list row", async ({ page }) => {
     place,
     name,
     court: "5",
-    date: "2026-09-15",
+    date: BOOKING_DATE,
     start: "18:00",
     end: "19:00",
   });
@@ -107,7 +120,7 @@ test("a booking's name and court can be edited, in place on the Bookings list ro
     place,
     name: originalName,
     court: "95",
-    date: "2026-09-15",
+    date: BOOKING_DATE,
     start: "18:00",
     end: "19:00",
   });
@@ -134,7 +147,7 @@ test("a booking's notes can be added, shown in its details modal, and edited", a
   await logBooking(page, {
     place,
     court: "94",
-    date: "2026-09-15",
+    date: BOOKING_DATE,
     start: "18:00",
     end: "19:00",
     notes: originalNotes,
@@ -169,7 +182,7 @@ test("a booking's players can be added, edited, and removed via the Edit dialog 
   await logBooking(page, {
     place,
     court: "97",
-    date: "2026-09-15",
+    date: BOOKING_DATE,
     start: "18:00",
     end: "19:00",
     players: `${playerOne}, ${playerTwo}`,
@@ -198,7 +211,7 @@ test("a booking that runs past midnight can be logged", async ({ page }) => {
   await page.goto("/booking-buddy/bookings");
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByLabel("Court").fill("91");
-  await pickDate(page, "2026-09-15");
+  await pickDate(page, BOOKING_DATE);
   await page.getByLabel("Start").selectOption("22:00");
   await selectDuration(page, "22:00", "01:00");
 
@@ -206,7 +219,7 @@ test("a booking that runs past midnight can be logged", async ({ page }) => {
   await page.getByRole("button", { name: "Log booking" }).click();
 
   const booking = row(page, "Court 91");
-  await expect(booking).toContainText("Sep 15, 2026");
+  await expect(booking).toContainText(BOOKING_DATE_LABEL);
   await expect(booking).toContainText("10:00");
   await expect(booking).toContainText("1:00");
 
@@ -277,7 +290,7 @@ test("another User sees none of it", async ({ page, browser, accounts }) => {
   await logBooking(page, {
     place,
     court: "93",
-    date: "2026-09-15",
+    date: BOOKING_DATE,
     start: "18:00",
     end: "19:00",
   });

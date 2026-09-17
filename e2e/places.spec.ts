@@ -17,6 +17,12 @@ import { deleteOrgs } from "./support/db-reset.ts";
  */
 const PREFIX = "PlacesPlaywright";
 
+/**
+ * A date comfortably in the future, so a run's own clock can never age it
+ * out (issue #530).
+ */
+const BOOKING_DATE = new Date(Date.now() + 3 * 86_400_000).toLocaleDateString("sv-SE");
+
 const uniqueName = (suffix = "") =>
   `${PREFIX} ${Date.now()}${Math.random().toString(36).slice(2, 6)}${suffix}`;
 
@@ -202,7 +208,7 @@ test("a picked place's time zone is derived from its coordinates, no question as
   // formatCourtLabel prepends "Court " for display — the field itself is
   // numbers-only (type="number"), so the row still reads "Court 98".
   await page.getByLabel("Court").fill("98");
-  await pickDate(page, "2026-09-15");
+  await pickDate(page, BOOKING_DATE);
   await page.getByLabel("Start").selectOption("18:00");
   // End is computed from Start + Duration (issue #57), not its own field.
   await page.getByRole("radio", { name: "1 hour" }).click();
