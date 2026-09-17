@@ -114,9 +114,26 @@ persuasive page (a hero, a scrollable narrative, marketing CTAs) rather than the
 own single-panel Operate layout — see `.impeccable/surfaces/src-app-on-deck-page-tsx.md` for that
 surface's own direction contract.
 
-**Out of scope:** the Organizer home/settings pages. Those use the Juice Bros site's default
-shadcn light theme and are not touched by this file. The rest of the Juice Bros site keeps its
-own separate light marketing identity.
+The Organizer's own **back office** — `/on-deck/home` and everything under it — joined this
+world on 2026-09-15 (surface seed `7323f5fb`; see
+`.impeccable/surfaces/src-app-on-deck-home.md`). That is the home screen, club settings, the
+club-sign page, past nights, a night's summary, and the scheduled-night forms. This file used
+to list those pages as out of scope on the default shadcn light theme, which had stopped being
+true of anything else in the product: every surface a Player or a Volunteer sees already ran
+the board, and so did the marketing landing, leaving the Organizer's own screens as the only
+ones wearing a theme nothing else used. **There is no light On Deck surface left.** They run
+`.od-arena` directly rather than a quoted local scope — unlike the landing page, this *is* the
+app, and sharing the live board's tokens is the point. Their own composition rules are the Back
+Office section below.
+
+**The one thing that stays white is the printed club sign**, and it is not a theme decision.
+`.od-sign` declares its own ink (`--sign-paper`, `--sign-ink`) precisely so it never rides a
+token that flips, because it is the one On Deck surface that ends up as toner on paper. The
+page around it is dark like every other, which leaves the right picture anyway: a white sheet
+held up against a dark wall, which is what the Organizer is about to do with it.
+
+**Out of scope:** the rest of the Juice Bros site, which keeps its own separate light marketing
+identity.
 
 ## Overview
 
@@ -367,6 +384,86 @@ keyframes: `.od-slide-in` (a fresh foursome entering the "after that" slot, 320m
 `.od-call-land` (the player's "you're up" verdict landing once with a 0.96→1.03→1 scale pop).
 The ladder fill transition (`transform 520ms`) runs regardless of motion preference because it
 carries information.
+
+## The Back Office
+
+The Organizer's own two screens (`/on-deck/home`, `/on-deck/home/settings`), on the same
+board but read at a different distance. The live board is built for eight people reading
+across a gym at once; this is one person holding a phone in a car park before a social. The
+composition rule is **one thing lit**, and it replaced a column of five same-weight shadcn
+cards in which the one thing the Organizer came to do was the third of them.
+
+**The club's name is the page's only h1**, at `clamp(2.375rem, 9vw, 3.5rem)` in
+`.od-display-tight` (`.od-bo-name`), with the `.od-readout` spec line directly under it
+(`.od-bo-spec`) carrying real values and nothing else. On the create screen the name does not
+exist yet, so the heading is the live echo of what is being typed: there is one Club per
+account and no way to delete one, which is what earns a name a heading before it is committed.
+A value equal to the heading is dropped from the spec line rather than printed twice — a
+brand-new Club's venue *is* its name.
+
+**One panel carries the next action** (`.od-bo-stage`, on `.od-panel`). It is the same object
+in every state and swaps only its tone and the key at its foot, never its position, so the
+Organizer's thumb lands in the same place whatever week it is:
+
+| Tone | When | Reads as |
+|---|---|---|
+| `.od-next` | something is waiting for you (create a club, start tonight) | cool imminent wash |
+| `.od-live` | a Session is open **right now** | orange, the board's own LIVE |
+| *(flat)* | settings | plain panel, no wash |
+
+**The ration on orange gets stricter back here, not looser.** On the board orange marks the
+call; in the back office there is usually no call to mark, so it appears only on a Session that
+is actually running and on the one primary key of a screen. A settings form is not waiting for
+anybody, which is why both of its panels are flat: two washed panels down one page said "two
+things need you", and that was false.
+
+**A key on the orange panel keeps its own milled face** rather than inverting to white. It is a
+control set into a lit panel, and cool-white on `--arena-panel-raised` measures 14.5:1 against
+a white-on-orange key's 3.15:1.
+
+**Everything else is a row, not a card** (`.od-bo-list` / `.od-bo-row`): the club sign, the
+nights already played, the scheduled ones, settings. Each row carries a real `.od-readout`
+value where one exists (`18 played · 24 games`, `2 set up`) and never a verb standing in for
+one, plus a drawn chevron at `--arena-faint` — 5.78:1 on the ground, where `--arena-line` would
+have been 1.79:1 and under the non-text floor.
+
+**Deliberately not `.od-rail`.** That is the board's numbered queue index, where the ordinal is
+the whole point (you are 7th). Back-office rows are destinations in no sequence, and numbering
+them would be the board's vocabulary worn as costume.
+
+**The account sits at the foot** (`.od-bo-foot`), with the way out. One Club per account and no
+way to move one afterwards, so which address owns this club matters here and nowhere else — but
+it is account chrome, not a label for the heading, and it never sits above one.
+
+**Contrast, measured on the composited grounds** (`--arena-next-wash` over `--arena-panel`):
+`--arena-dim` is 4.84:1 there and is the floor for any prose on a lit stage; `--arena-faint`
+falls to 3.32:1 on that ground and is for the chevron and the spec line only, never body text.
+On `--arena-panel` both are comfortable (7.64:1 and 5.24:1).
+
+**This screen's one authored moment** is `.od-bo-stage.od-live` landing once with
+`.od-call-land`, the same pop the player's "you're up" verdict uses, and only on the one state
+that has news: arriving to find a Session already running. Nothing else on the page moves.
+
+**A night's numbers are cool-white, never orange.** The Session Summary's bars used to be a
+deepened brand orange chosen against a white page. On the board that would be the worst
+possible spend of the accent: orange means LIVE everywhere else in this app, and a night that
+closed has no live anything, so a page of orange bars would teach the eye that orange is
+merely "a mark" — which is exactly what the live screens rely on it not meaning. The mark is
+`--arena-fg` (14.9:1 on the panel, brighter than its own row label so the bar still leads),
+and the track is `--arena-line` (1.81:1, the board's resting-ring register). The track has to
+stay visible: four of five wait buckets reading zero is the shape of a good night, and an
+empty row must read as a scale nothing reached rather than as a missing cell. A recessed
+track was tried and failed that test at 6px.
+
+**Every back-office page names itself in the h1 and puts facts under it.** Home and settings
+carry the club's name, past nights carries "Past nights", a summary carries the night's date,
+a scheduled night carries its own date. The `.od-readout` line under it takes real values and
+is simply absent when there are none; a phrase naming the page in that slot is the readout
+voice used as a caption, and one line under an h1 it reads as the eyebrow this system bans.
+
+**A night looks the same wherever it is listed.** The row on home's list, the row on past
+nights, and the row at the foot of a summary are one component, so a closed night reads
+identically in all three places.
 
 ## Do's and Don'ts
 

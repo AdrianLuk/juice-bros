@@ -25,26 +25,38 @@ import {
  * The live-event surfaces (`/session/*`, `/c/*`) are the dark substitution
  * board (direction seed 92ec9d54); the header/footer switch to the arena
  * palette on those so the chrome doesn't sit as a light strip above a dark
- * board. The Organizer's home/settings pages keep the plain light shell.
+ * board. The Organizer's whole back office joined that world in the redesign
+ * (seed 7323f5fb) and switches with them: `/home` and everything under it,
+ * which is every screen an Organizer ever sees. No light On Deck surface is
+ * left.
  *
- * Room-facing paths (`isRoomFacingPath`, issue #518) render neither header
- * nor footer at all, rather than a re-skinned one: the room a Club's Players
- * and volunteers stand in should carry the Club's name, not ours, and every
- * one of those pages already headlines the venue name itself, so there is
- * nothing this bar would add. That set is the dark board *minus* the
- * Organizer's own floor screen (`/session/:id/floor`), which keeps On Deck's
- * identity exactly like `/home` does — an Organizer running their own night
- * is not "the room".
+ * The one thing that stays white is the printed club sign itself, and that is
+ * not a theme decision — `.od-sign` carries its own ink because it ends up as
+ * toner on paper. The page around it is dark like everything else.
  *
- * The Club QR hold-up (`ON_DECK_QR_HOLD_UP_PATH`, issue #517) is chromeless
- * for the same no-header-or-footer reason, for a narrower cause: nothing on
- * the screen should compete with a code sized to be scanned off a held-up
- * phone. It carries its own way back to Tonight instead.
+ * Room-facing paths (`isRoomFacingPath`, issue #518) render neither header nor
+ * footer at all, rather than a re-skinned one: the room a Club's Players and
+ * volunteers stand in should carry the Club's name, not ours, and every one of
+ * those pages already headlines the venue name itself, so there is nothing this
+ * bar would add. That set is the dark board *minus* the Organizer's own floor
+ * screen (`/session/:id/floor`), which keeps On Deck's identity exactly like
+ * the back office does — an Organizer running their own night is not "the
+ * room".
+ *
+ * The Club QR hold-up (`ON_DECK_QR_HOLD_UP_PATH`, issue #517) is chromeless for
+ * the same no-header-or-footer reason, for a narrower cause: nothing on the
+ * screen should compete with a code sized to be scanned off a held-up phone. It
+ * carries its own way back to Tonight instead.
  */
 
 function isArenaPath(pathname: string): boolean {
   const sub = pathname.slice(ON_DECK_ROOT.length);
-  return sub.startsWith("/session/") || sub.startsWith("/c/");
+  return (
+    sub.startsWith("/session/") ||
+    sub.startsWith("/c/") ||
+    sub === "/home" ||
+    sub.startsWith("/home/")
+  );
 }
 
 function isChromelessPath(pathname: string): boolean {

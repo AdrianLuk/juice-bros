@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { saveClubTimeZone } from "@/lib/on-deck/actions/sessions";
+import { Stage, StageHeading } from "@/components/on-deck/back-office";
 
 type Props = {
   /** The Club's clock, or null while nothing has established one yet. */
@@ -40,6 +39,25 @@ export function ClubClockCard({ timeZone, zones }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // This card swaps its whole body in place, so the control the keyboard was
+  // on gets unmounted under it and focus falls to <body>. Without this, opening
+  // the picker means tabbing back down from the top of the page to reach the
+  // select that just appeared, and closing it strands you at the top again.
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const changeRef = useRef<HTMLButtonElement>(null);
+  const moveFocus = useRef(false);
+
+  useEffect(() => {
+    if (!moveFocus.current) return;
+    moveFocus.current = false;
+    (editing ? selectRef.current : changeRef.current)?.focus();
+  }, [editing]);
+
+  function setEditingFocused(next: boolean) {
+    moveFocus.current = true;
+    setEditing(next);
+  }
+
   // The Club's own zone is always offered, even if this runtime's ICU build
   // does not list it: a stored zone that vanished from the picker would be
   // silently replaced by whatever sorted first.
@@ -56,47 +74,55 @@ export function ClubClockCard({ timeZone, zones }: Props) {
         return;
       }
       setSaved(true);
-      setEditing(false);
+      setEditingFocused(false);
       router.refresh();
     });
   }
 
   return (
-    <div className="mt-8 rounded-2xl border bg-card p-5">
-      <h2 className="text-sm font-semibold">The club clock</h2>
+    <Stage tone="flat">
+      <StageHeading>The club clock</StageHeading>
 
       {!editing ? (
         <>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Nights are dated on{" "}
-            <span className="text-foreground">{timeZone ?? "UTC"}</span>, set
-            from the device you first signed in on. A session that runs to 8pm
-            is the next day in UTC, so this is what keeps last Saturday from
-            reading as Sunday.
+          <p className="od-bo-note">
+            Nights are dated on <strong>{timeZone ?? "UTC"}</strong>, taken from
+            the device you first signed in on. A session that runs to 8pm is the
+            next day in UTC, so this is what keeps last Saturday from reading as
+            Sunday.
           </p>
           {saved && (
-            <p className="mt-2 text-sm text-brand-orange" role="status">
+            <p className="od-readout text-arena-next" role="status">
               Time zone saved.
             </p>
           )}
-          <button
-            type="button"
-            className="mt-3 text-sm underline underline-offset-4"
-            onClick={() => setEditing(true)}
-          >
-            Change it
-          </button>
+          <div>
+            <button
+              ref={changeRef}
+              type="button"
+              className="od-key od-key--ghost"
+              onClick={() => setEditingFocused(true)}
+            >
+              Change it
+            </button>
+          </div>
         </>
       ) : (
-        <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="on-deck-time-zone">Time zone</Label>
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label
+              className="od-readout text-arena-dim"
+              htmlFor="on-deck-time-zone"
+            >
+              Time zone
+            </label>
             <select
+              ref={selectRef}
               id="on-deck-time-zone"
               name="timeZone"
               value={zone}
               onChange={(event) => setZone(event.target.value)}
-              className="h-10 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="od-select sm:max-w-[20rem]"
               required
             >
               {options.map((value) => (
@@ -108,21 +134,25 @@ export function ClubClockCard({ timeZone, zones }: Props) {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive" role="alert">
+            <p className="text-sm font-medium text-arena-warn" role="alert">
               {error}
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={pending}>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <button
+              type="submit"
+              className="od-key od-key--go"
+              disabled={pending}
+            >
               {pending ? "Saving…" : "Save time zone"}
-            </Button>
+            </button>
             <button
               type="button"
-              className="text-sm underline underline-offset-4"
+              className="od-readout text-arena-dim underline decoration-arena-line underline-offset-4 transition-colors hover:text-arena-fg"
               onClick={() => {
                 setZone(timeZone ?? "UTC");
-                setEditing(false);
+                setEditingFocused(false);
                 setError(null);
               }}
             >
@@ -131,6 +161,6 @@ export function ClubClockCard({ timeZone, zones }: Props) {
           </div>
         </form>
       )}
-    </div>
+    </Stage>
   );
 }

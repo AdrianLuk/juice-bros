@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { pageMetadata } from "@/lib/metadata";
-import { PageHeading } from "@/components/typography/page-heading";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
@@ -15,14 +12,19 @@ import {
   resolveOpenSessionForClub,
 } from "@/lib/on-deck/sessions";
 import { signOut } from "@/lib/on-deck/actions/auth";
-import { TonightControls } from "@/components/on-deck/tonight-controls";
+import {
+  ScheduledRows,
+  TonightControls,
+} from "@/components/on-deck/tonight-controls";
+import { CreateClubForm } from "@/components/on-deck/create-club-form";
 import { AdoptTimeZone } from "@/components/on-deck/adopt-time-zone";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
+import { BoardHead, Row, RowList, Stage } from "@/components/on-deck/back-office";
 import {
   ON_DECK_QR_DISPLAY_PATH,
   ON_DECK_SETTINGS_PATH,
   ON_DECK_SUMMARIES_PATH,
   floorPath,
-  sessionPath,
   summaryPath,
 } from "@/lib/on-deck/routes";
 import { FLOOR_MODE_LABEL } from "@/lib/on-deck/session/types";
@@ -33,6 +35,22 @@ export const metadata: Metadata = pageMetadata({
   path: "/on-deck/home",
 });
 
+/**
+ * The Organizer's home screen, on the board (issue #515, surface seed
+ * 7323f5fb).
+ *
+ * "One thing lit": the club's name is the page's only heading, one panel below
+ * it carries the single thing to do right now, and everything else is a row on
+ * a hairline. The panel is the same object in every state and only its tone and
+ * its key change — the cool imminent wash while something is waiting for the
+ * Organizer, orange only when a Session is genuinely running, which is the same
+ * ration on orange the live board keeps.
+ *
+ * What this replaced was a column of five same-weight shadcn cards on the light
+ * theme: the club, the start control, the scheduled nights, the past nights,
+ * each as loud as the others, and the one thing the Organizer came to do buried
+ * in the middle of them.
+ */
 export default async function OnDeckHomePage() {
   const organizer = await verifyOrganizer();
   const supabase = await createClient();
@@ -49,159 +67,105 @@ export default async function OnDeckHomePage() {
   const pastSessions = club ? await getSummariesForClub(supabase, club.id, 3) : [];
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-lg">
-          <PageHeading eyebrow="On Deck" title="Tonight" />
-
+    <ArenaShell>
+      <section className="w-full flex-1 px-5 py-12 sm:px-6 sm:py-16">
+        <div className="mx-auto w-full max-w-xl">
           {/* The Club's clock, established from the Organizer's own browser
               rather than asked for. Mounted only while it is unset, so this is
               one write on one visit and nothing thereafter. */}
           {club && club.timeZone === null ? <AdoptTimeZone /> : null}
 
           {!club ? (
-            <div className="mt-8 rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
-              <p>
-                No club is set up for{" "}
-                <span className="text-foreground">{organizer.email}</span> yet.
-                On Deck clubs are created by hand for now. Get in touch and
-                we&apos;ll set yours up.
-              </p>
-              <Link
-                href="/contact"
-                className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
-              >
-                Contact us
-              </Link>
-            </div>
+            /* No club yet: the form owns the heading too, because the heading
+               is the club's name and the name is what is being typed. */
+            <CreateClubForm />
           ) : (
-            <div className="mt-8 space-y-6">
-              <div className="rounded-2xl border bg-card p-6">
-                <h2 className="font-heading text-xl font-semibold">
-                  {club.name}
-                </h2>
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  <dt className="text-muted-foreground">Venue</dt>
-                  <dd>{club.venueName}</dd>
-                  <dt className="text-muted-foreground">Courts</dt>
-                  <dd>{club.courtCount}</dd>
-                  <dt className="text-muted-foreground">Group cap</dt>
-                  <dd>{club.groupCap}</dd>
-                  <dt className="text-muted-foreground">Floor Mode</dt>
-                  <dd>{FLOOR_MODE_LABEL[club.floorMode]}</dd>
-                </dl>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={ON_DECK_QR_DISPLAY_PATH}
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  >
-                    The club sign
-                  </Link>
-                  <Link
-                    href={ON_DECK_SUMMARIES_PATH}
-                    className="text-sm underline underline-offset-4"
-                  >
-                    Past nights
-                  </Link>
-                  <Link
-                    href={ON_DECK_SETTINGS_PATH}
-                    className="text-sm underline underline-offset-4"
-                  >
-                    Edit defaults
-                  </Link>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Print it once and it works every week. No sign on the wall
-                  today? Open{" "}
-                  <Link
-                    href={ON_DECK_QR_DISPLAY_PATH}
-                    className="underline underline-offset-4"
-                  >
-                    the same page
-                  </Link>{" "}
-                  and hold your screen up instead.
-                </p>
-              </div>
+            <>
+              <BoardHead
+                name={club.name}
+                spec={[
+                  // A brand-new Club's venue *is* its name, because that is
+                  // what the two-field form defaults it to. Printing it twice
+                  // reads as a bug to somebody who has not seen the form.
+                  ...(club.venueName === club.name ? [] : [club.venueName]),
+                  `${club.courtCount} ${club.courtCount === 1 ? "court" : "courts"}`,
+                  `Cap ${club.groupCap}`,
+                  FLOOR_MODE_LABEL[club.floorMode],
+                ]}
+              />
 
               {openSession ? (
-                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
-                  <p className="text-sm font-medium">A session is running.</p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <Link
-                      href={floorPath(openSession.config.sessionId)}
-                      className={cn(buttonVariants())}
-                    >
-                      Open the floor screen
-                    </Link>
-                    <Link
-                      href={sessionPath(openSession.config.sessionId)}
-                      className={cn(buttonVariants({ variant: "outline" }))}
-                    >
-                      Player view
-                    </Link>
-                  </div>
-                </div>
+                <Stage tone="live">
+                  <p className="od-bo-note">
+                    A session is running right now. The floor screen is where you
+                    turn courts over; the players are watching the same night
+                    from their own phones.
+                  </p>
+                  {/* The key keeps its own milled face on the orange
+                      ground rather than inverting to white. It is a control
+                      set into a lit panel, which is what every key on the
+                      board is, and cool-white on the raised metal measures
+                      14.5:1 against a white-on-orange key's 3.15. */}
+                  <Link
+                    href={floorPath(openSession.config.sessionId)}
+                    className="od-key od-key--turnover"
+                  >
+                    Open the floor
+                  </Link>
+                </Stage>
               ) : (
                 <TonightControls scheduledSessions={scheduledSessions} />
               )}
 
-              {/* The three most recent, shown only once there are some:
-                  before the club's first close this card would be explaining
-                  an absence on the one screen that should be about tonight.
-                  The way *in* is the "Past nights" link above, which is there
-                  from the start — the empty state has to be reachable. */}
-              {pastSessions.length > 0 ? (
-                <div className="rounded-2xl border bg-card p-6">
-                  <h2 className="font-heading text-base font-semibold">
-                    Past nights
-                  </h2>
-                  <ul className="mt-3 flex flex-col gap-2">
-                    {pastSessions.map((session) => (
-                      <li key={session.sessionId}>
-                        <Link
-                          href={summaryPath(session.sessionId)}
-                          className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm underline-offset-4 hover:underline"
-                        >
-                          <span>
-                            {sessionDate({
-                              at: session.startedAt,
-                              timeZone: session.timeZone,
-                            })}
-                            {session.autoClosed ? (
-                              <span className="text-muted-foreground">
-                                {" "}
-                                · closed automatically
-                              </span>
-                            ) : null}
-                          </span>
-                          <span className="tabular-nums text-muted-foreground">
-                            {session.attendance} played, {session.gamesPlayed} games
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href={ON_DECK_SUMMARIES_PATH}
-                    className="mt-4 inline-block text-sm underline underline-offset-4"
-                  >
-                    All past nights
-                  </Link>
-                </div>
-              ) : null}
-            </div>
+              <RowList>
+                {!openSession && (
+                  <ScheduledRows scheduledSessions={scheduledSessions} />
+                )}
+
+                <Row href={ON_DECK_QR_DISPLAY_PATH} label="The club sign" />
+
+                {pastSessions.length > 0 ? (
+                  pastSessions.map((session) => (
+                    <Row
+                      key={session.sessionId}
+                      href={summaryPath(session.sessionId)}
+                      label={sessionDate({
+                        at: session.startedAt,
+                        timeZone: session.timeZone,
+                      })}
+                      sub={
+                        session.autoClosed ? "Closed automatically" : undefined
+                      }
+                      value={`${session.attendance} played · ${session.gamesPlayed} games`}
+                    />
+                  ))
+                ) : (
+                  /* Before the first close this is the way *in* and nothing
+                     more. The old design was right that home should not
+                     explain an absence on the one screen that is about
+                     tonight; a destination with no sub-line does not. */
+                  <Row href={ON_DECK_SUMMARIES_PATH} label="Past nights" />
+                )}
+
+                {pastSessions.length > 0 && (
+                  <Row href={ON_DECK_SUMMARIES_PATH} label="All past nights" />
+                )}
+
+                <Row href={ON_DECK_SETTINGS_PATH} label="Club settings" />
+              </RowList>
+            </>
           )}
 
-          <form action={signOut} className="mt-10">
-            <button
-              type="submit"
-              className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Sign out
-            </button>
-          </form>
+          <div className="od-bo-foot od-readout">
+            <span>{organizer.email}</span>
+            <form action={signOut}>
+              <button type="submit" className="od-readout">
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

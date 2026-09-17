@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
-import { PageHeading } from "@/components/typography/page-heading";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { ON_DECK_HOME_PATH, ON_DECK_NEW_SESSION_PATH } from "@/lib/on-deck/routes";
 import { SessionForm } from "@/components/on-deck/session-form";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
+import { BoardHead } from "@/components/on-deck/back-office";
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -33,14 +34,14 @@ export default async function OnDeckNewSessionPage() {
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-lg">
-          <PageHeading eyebrow={club.name} title="Schedule a session" />
+    <ArenaShell>
+      <section className="w-full flex-1 px-5 py-12 sm:px-6 sm:py-16">
+        <div className="mx-auto w-full max-w-xl">
+          <BoardHead name="Schedule a night" spec={[club.name]} />
 
           <SessionForm venueName={club.venueName} courtCount={club.courtCount} />
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

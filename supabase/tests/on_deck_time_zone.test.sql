@@ -123,11 +123,12 @@ select throws_ok(
   'the setter cannot smuggle an unknown zone past the table''s trigger'
 );
 
--- The defaults RPC keeps its original three arguments, so there is no path by
--- which saving a venue or a court count writes a clock nobody chose.
+-- The defaults RPC has no time_zone argument, so there is no path by which
+-- saving a venue or a court count writes a clock nobody chose. It grew two
+-- arguments with self-serve creation (issue #515) and neither is the clock.
 select lives_ok(
-  $$select public.on_deck_update_club_defaults('Trinity Bellwoods', 6, 4)$$,
-  'saving the other defaults still works, and still takes three arguments'
+  $$select public.on_deck_update_club_defaults('TO Pickleball Club', 'Trinity Bellwoods', 6, 4, 'hybrid')$$,
+  'saving the other defaults still works, and still takes no clock'
 );
 
 select is(

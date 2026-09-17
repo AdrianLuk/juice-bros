@@ -6,11 +6,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../supabase/server.ts";
 import { verifyOrganizer } from "../dal.ts";
 import {
+  ClubAlreadyExistsError,
   adoptClubTimeZone,
+  createClub as createClubRow,
   getOwnedClub,
   setClubTimeZone,
   updateClubDefaults,
 } from "../clubs.ts";
+import { FLOOR_MODES, type ClubDefaults } from "../session/types.ts";
 import { isKnownTimeZone } from "../timezone.ts";
 import { getOpenSessionForClub, resolveOpenSessionForClub } from "../sessions.ts";
 import {
@@ -85,6 +88,48 @@ export type SessionSettingsResult = { ok: true } | { ok?: false; error: string }
 const COURT_COUNT = { min: 1, max: 40 };
 const GROUP_CAP = { min: 2, max: 8 };
 const VENUE_MAX = 120;
+const CLUB_NAME_MAX = 120;
+
+/** Trimmed, with runs of space collapsed — the same normalisation the RPCs
+ * apply, done here so a bad value comes back as a sentence about the field
+ * somebody typed rather than as the name of a CHECK constraint. */
+function collapseSpaces(raw: string | undefined): string {
+  return raw?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+/** The Club's name, as both the create and the settings form need it checked. */
+function validateClubName(
+  raw: string | undefined,
+): { ok: true; name: string } | { ok: false; error: string } {
+  const name = collapseSpaces(raw);
+  if (!name) return { ok: false, error: "Enter your club's name." };
+  if (name.length > CLUB_NAME_MAX) {
+    return {
+      ok: false,
+      error: `Keep the club name under ${CLUB_NAME_MAX} characters.`,
+    };
+  }
+  return { ok: true, name };
+}
+
+/** How many courts, as the create form, the settings form and a scheduled
+ * Session all need it checked. */
+function validateCourtCount(
+  raw: number | undefined,
+): { ok: true; courtCount: number } | { ok: false; error: string } {
+  const courtCount = Number(raw);
+  if (
+    !Number.isInteger(courtCount) ||
+    courtCount < COURT_COUNT.min ||
+    courtCount > COURT_COUNT.max
+  ) {
+    return {
+      ok: false,
+      error: `Court count has to be a whole number from ${COURT_COUNT.min} to ${COURT_COUNT.max}.`,
+    };
+  }
+  return { ok: true, courtCount };
+}
 
 /** `YYYY-MM-DD`, and a real calendar date. */
 function parseIsoDate(raw: string): string | null {
@@ -119,17 +164,9 @@ function validateFields(
     return { ok: false, error: `Keep the venue name under ${VENUE_MAX} characters.` };
   }
 
-  const courtCount = Number(input.courtCount);
-  if (
-    !Number.isInteger(courtCount) ||
-    courtCount < COURT_COUNT.min ||
-    courtCount > COURT_COUNT.max
-  ) {
-    return {
-      ok: false,
-      error: `Court count has to be a whole number from ${COURT_COUNT.min} to ${COURT_COUNT.max}.`,
-    };
-  }
+  const courts = validateCourtCount(input.courtCount);
+  if (!courts.ok) return courts;
+  const courtCount = courts.courtCount;
 
   let groupCap = GROUP_CAP.min;
   if (need.groupCap) {
@@ -224,17 +261,76 @@ export async function saveClubTimeZone(
 }
 
 /**
- * Saves the Club's saved Session defaults (issue #254, user story 44). Only the
- * Club owner reaches this — `verifyOrganizer` plus the RPC's own ownership
- * check — and only venue / court count / group cap move. The clock has its
- * own action, so a form opened to change a court count cannot commit one.
+ * Creates the Organizer's own Club (issue #515, user stories 11-13).
+ *
+ * The screen this replaces told a signed-in Organizer that On Deck Clubs are
+ * made by hand and to get in touch, which is where every stranger who wanted
+ * to try this stopped. Two fields, because they have not run a night yet;
+ * everything else takes the schema's defaults and Settings can reach all of it.
+ *
+ * One Club per owner is the RPC's own check as well as a unique index, so the
+ * second tab of a double-submit gets the same sentence as a second attempt.
  */
-export async function saveClubDefaults(input: {
-  venueName: string;
+export async function createClub(input: {
+  name: string;
   courtCount: number;
-  groupCap: number;
 }): Promise<SessionSettingsResult> {
   await verifyOrganizer();
+
+  const named = validateClubName(input.name);
+  if (!named.ok) return named;
+
+  const courts = validateCourtCount(input.courtCount);
+  if (!courts.ok) return courts;
+
+  const supabase = await createClient();
+
+  try {
+    await createClubRow(supabase, {
+      name: named.name,
+      courtCount: courts.courtCount,
+    });
+  } catch (error) {
+    // The Organizer already has one — a stale form, or the losing half of a
+    // double submit. Not a failure to report as one: the home screen they are
+    // about to be shown is their Club, with Start on it.
+    if (error instanceof ClubAlreadyExistsError) {
+      revalidatePath(ON_DECK_HOME_PATH);
+      return { ok: true };
+    }
+    console.error("on-deck: creating a Club failed", error);
+    return { error: "Couldn't create your club just now. Try again." };
+  }
+
+  revalidatePath(ON_DECK_HOME_PATH);
+  revalidatePath(ON_DECK_SETTINGS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Saves the Club (issue #254, user story 44; issue #515, user story 14). Only
+ * the Club owner reaches this — `verifyOrganizer` plus the RPC's own ownership
+ * check.
+ *
+ * Everything the two-field create form guessed is reachable from here: the
+ * name it asked for, the venue it copied off that name, and the group cap and
+ * Floor Mode nobody was asked about. The clock is the one exception and has its
+ * own action, so a form opened to change a court count cannot commit one.
+ */
+export async function saveClubDefaults(
+  input: ClubDefaults,
+): Promise<SessionSettingsResult> {
+  await verifyOrganizer();
+
+  const named = validateClubName(input.name);
+  if (!named.ok) return named;
+
+  // The only one of these values the RPC does not check for itself — the
+  // table's own CHECK is the backstop, and it names a constraint rather than
+  // a floor mode.
+  if (!FLOOR_MODES.includes(input.floorMode)) {
+    return { error: "Pick one of the floor modes." };
+  }
 
   const valid = validateFields(input, { date: false, groupCap: true });
   if (!valid.ok) return valid;
@@ -245,9 +341,11 @@ export async function saveClubDefaults(input: {
 
   try {
     await updateClubDefaults(supabase, {
+      name: named.name,
       venueName: valid.venueName,
       courtCount: valid.courtCount,
       groupCap: valid.groupCap,
+      floorMode: input.floorMode,
     });
   } catch (error) {
     console.error("on-deck: saving Club defaults failed", error);

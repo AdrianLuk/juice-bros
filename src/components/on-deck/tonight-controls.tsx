@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useSyncExternalStore, useTransition } from "react";
-import Link from "next/link";
-
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { startSession } from "@/lib/on-deck/actions/sessions";
 import {
-  ON_DECK_NEW_SESSION_PATH,
-  editSessionPath,
-} from "@/lib/on-deck/routes";
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
+
+import { startSession } from "@/lib/on-deck/actions/sessions";
+import { ON_DECK_NEW_SESSION_PATH, editSessionPath } from "@/lib/on-deck/routes";
 import type { ScheduledSession } from "@/lib/on-deck/sessions";
+import { HANDOFF_KEY, Row, Stage } from "@/components/on-deck/back-office";
 
 /** `YYYY-MM-DD` → "Sat, Mar 14" (dates carry no time; read them as UTC). */
 function formatSessionDate(iso: string): string {
@@ -23,13 +24,31 @@ function formatSessionDate(iso: string): string {
 }
 
 /**
- * The "no session running yet" half of the Organizer home screen (issue #254):
- * one-tap Start plus the list of Sessions set up ahead of time.
+ * The Organizer's *local* calendar date (`sv-SE` renders `YYYY-MM-DD`).
  *
- * A client component for one reason — "which scheduled Session does Start
- * open?" is judged against the Organizer's *local* calendar date (that is what
- * `startSession` sends the RPC), which the server render can't know. The badge
- * and Start-card copy here therefore always agree with what the button does.
+ * Read through `useSyncExternalStore` so SSR and the first client render agree
+ * on "" (no night flagged), then the real local date takes over on the client.
+ * No hydration mismatch, and it always matches what `startSession` sends the
+ * RPC — which is the whole reason these two pieces are client components.
+ */
+function useLocalDate(): string {
+  return useSyncExternalStore(
+    () => () => {},
+    () => new Date().toLocaleDateString("sv-SE"),
+    () => "",
+  );
+}
+
+function dueToday(sessions: ScheduledSession[], today: string) {
+  return today ? sessions.find((s) => s.scheduledFor === today) : undefined;
+}
+
+/**
+ * The "nothing running yet" state of the lit panel (issue #254; recomposed for
+ * the back office redesign, issue #515).
+ *
+ * The panel says what Start will open and carries the key that opens it, and
+ * nothing on the screen competes with it.
  */
 export function TonightControls({
   scheduledSessions,
@@ -38,19 +57,21 @@ export function TonightControls({
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const today = useLocalDate();
+  const dueSession = dueToday(scheduledSessions, today);
 
-  // The Organizer's local calendar date (`sv-SE` renders `YYYY-MM-DD`). Read
-  // through `useSyncExternalStore` so SSR and the first client render agree on
-  // "" (no session flagged), then the real local date takes over on the client
-  // — no hydration mismatch, and it always matches what `startSession` sends.
-  const today = useSyncExternalStore(
-    () => () => {},
-    () => new Date().toLocaleDateString("sv-SE"),
-    () => "",
-  );
-  const dueSession = today
-    ? scheduledSessions.find((s) => s.scheduledFor === today)
-    : undefined;
+  // Arriving straight from the create form, this key is what replaced the
+  // button that was just pressed. Take the focus it left behind.
+  const startRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(HANDOFF_KEY) === null) return;
+      sessionStorage.removeItem(HANDOFF_KEY);
+    } catch {
+      return;
+    }
+    startRef.current?.focus();
+  }, []);
 
   function onStart() {
     setError(null);
@@ -76,89 +97,83 @@ export function TonightControls({
   }
 
   return (
-    <>
-      <div className="rounded-2xl border bg-card p-6">
-        <p className="text-sm text-muted-foreground">
-          {dueSession ? (
-            <>
-              Start opens the session you set up for{" "}
-              <span className="text-foreground">
-                {formatSessionDate(dueSession.scheduledFor)}
-              </span>
-              : {dueSession.venueName}, {dueSession.courtCount} courts.
-            </>
-          ) : (
-            <>
-              Opens a session from the defaults above. You can rename courts and
-              adjust things once it&apos;s running.
-            </>
-          )}
-        </p>
-        <Button
-          type="button"
-          size="lg"
-          className="mt-4 h-11 px-6 text-base"
-          disabled={pending}
-          onClick={onStart}
-        >
-          {pending ? "Starting…" : "Start"}
-        </Button>
-        {error && (
-          <p className="mt-3 text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-
-      <div className="rounded-2xl border bg-card p-6">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="font-heading text-lg font-semibold">
-            Scheduled sessions
-          </h2>
-          <Link
-            href={ON_DECK_NEW_SESSION_PATH}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Schedule a session
-          </Link>
-        </div>
-
-        {scheduledSessions.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Nothing scheduled. Set one up ahead of time to give a night its own
-            venue or court count.
-          </p>
+    <Stage>
+      <p className="od-bo-note">
+        {dueSession ? (
+          <>
+            Start opens the night you set up for{" "}
+            <strong>{formatSessionDate(dueSession.scheduledFor)}</strong>:{" "}
+            {dueSession.venueName}, {dueSession.courtCount} courts.
+          </>
         ) : (
-          <ul className="mt-4 divide-y" data-testid="scheduled-sessions">
-            {scheduledSessions.map((session) => (
-              <li
-                key={session.id}
-                className="flex items-center justify-between gap-4 py-3 text-sm"
-              >
-                <div>
-                  <p className="font-medium">
-                    {formatSessionDate(session.scheduledFor)}
-                    {dueSession?.id === session.id && (
-                      <span className="ml-2 rounded-full bg-brand-orange/10 px-2 py-0.5 text-xs font-medium text-brand-orange">
-                        Start opens this
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {session.venueName}, {session.courtCount} courts
-                  </p>
-                </div>
-                <Link
-                  href={editSessionPath(session.id)}
-                  className="underline underline-offset-4"
-                >
-                  Edit
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <>
+            Start opens a session from your saved defaults. You can rename courts
+            and change the group cap once it is running.
+          </>
         )}
-      </div>
+      </p>
+
+      {error && (
+        <p className="text-sm font-medium text-arena-warn" role="alert">
+          {error}
+        </p>
+      )}
+
+      <button
+        ref={startRef}
+        type="button"
+        className="od-key od-key--go od-key--turnover"
+        disabled={pending}
+        onClick={onStart}
+      >
+        {pending ? "Starting…" : "Start tonight"}
+      </button>
+    </Stage>
+  );
+}
+
+/**
+ * Nights set up ahead of time, as rows under the panel.
+ *
+ * These used to be a second card of equal weight beside Start. A night three
+ * weeks out is not what the Organizer opened this screen to do, so it reads as
+ * a row — except the one Start is about to open, which carries the tag saying
+ * so. That tag is why this is a client component: "due today" is judged on the
+ * Organizer's own clock, not the server's.
+ */
+export function ScheduledRows({
+  scheduledSessions,
+}: {
+  scheduledSessions: ScheduledSession[];
+}) {
+  const dueSession = dueToday(scheduledSessions, useLocalDate());
+
+  return (
+    <>
+      {scheduledSessions.length > 0 && (
+        <div data-testid="scheduled-sessions" className="contents">
+          {scheduledSessions.map((session) => (
+            <Row
+              key={session.id}
+              href={editSessionPath(session.id)}
+              label={formatSessionDate(session.scheduledFor)}
+              sub={`${session.venueName}, ${session.courtCount} courts`}
+              tag={
+                dueSession?.id === session.id ? "Start opens this" : undefined
+              }
+            />
+          ))}
+        </div>
+      )}
+      <Row
+        href={ON_DECK_NEW_SESSION_PATH}
+        label="Schedule a night"
+        value={
+          scheduledSessions.length > 0
+            ? `${scheduledSessions.length} set up`
+            : undefined
+        }
+      />
     </>
   );
 }
