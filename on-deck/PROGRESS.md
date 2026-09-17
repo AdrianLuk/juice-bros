@@ -828,7 +828,16 @@ migration's timestamp past whatever else merged (the drift lesson
   Court within one level, the claimed opening board unchanged. Tests: the two
   ADR 0007 cases in `reduce.test.ts` moved to after the first seating, where
   the rule now lives, plus three new ones for the pre-start window; one in
-  `turn-notify.test.ts` for the suppressed buzz. 1304/1304 `node --test`.
+  `turn-notify.test.ts` for the suppressed buzz.
+
+  One e2e assertion moved with the rule. `on-deck-display.spec.ts` seeds ten
+  waiting Players and never sends a Court out, so the whole fixture sits in the
+  pre-start window; its "a join lands on the board" step asserted the new
+  arrival appears in the *Queue list*, which is no longer guaranteed. With ten
+  waiting, Match Me's window reaches all of them, so a latecomer can be picked
+  onto an On Deck card on Skill fit instead of queueing behind it — ordinary
+  ADR 0004 windowed selection that commitment used to freeze out of this
+  window. The assertion now reads the board, which is what the step was for.
 
 
 ## Next
