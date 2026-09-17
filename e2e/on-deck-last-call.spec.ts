@@ -118,6 +118,26 @@ test("last call → finish → close → the QR shows nothing running", async ({
 
   await expect(page.getByText("Session closed")).toBeVisible({ timeout: 10_000 });
 
+  // The board says the night is over, and stops offering to operate it
+  // (issue #532). Every one of these is a tap that would either fail at the
+  // database or, worse, not — on a night that has already been summarised.
+  await expect(page.getByTestId("floor-closed")).toBeVisible();
+  await expect(page.getByTestId("wrap-up")).toHaveCount(0);
+  await expect(page.getByTestId("add-walkup")).toHaveCount(0);
+  await expect(page.getByTestId("floor-join-qr")).toHaveCount(0);
+  await expect(page.getByTestId("queue-together")).toHaveCount(0);
+  await expect(page.getByTestId("skill-levels")).toHaveCount(0);
+  await expect(page.getByTestId("on-deck-0")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /^(Court \d done|Send next four)$/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Someone didn't show?" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Set aside" }),
+  ).toHaveCount(0);
+
   // The Club QR now resolves to "nothing running right now".
   await page.goto(`/on-deck/c/${clubId}`);
   await expect(
