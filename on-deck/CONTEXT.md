@@ -1,6 +1,6 @@
 # On Deck
 
-A live-event court rotation app for pickleball socials, living under the Juice Bros platform. Replaces the physical paddle stack and the volunteers holding the whole board in their heads: it decides who plays next as courts free up, keeping court time fair and varying who people play with. Built club-generic; TO Pickleball Club (Saturday socials, ~50-60 players, ~8 courts) is the first tenant.
+A live-event court rotation app for pickleball socials, living under the Juice Bros platform. Replaces the physical paddle stack and the volunteers holding the whole board in their heads: it decides who plays next as courts free up, keeping court time fair and varying who people play with. Built club-generic. TO Pickleball Club (Saturday socials, ~50-60 players, ~8 courts) is the club it was designed against, and it has since ended without ever running a night on this; organizers now sign their own club up (#515), so the first real tenant will be somebody we have never met.
 
 Distinct from [Booking Buddy](../booking-buddy/CONTEXT.md): Booking Buddy coordinates *before* an event (who's free, book a court); On Deck runs the two hours *during* one. No shared entities.
 
@@ -15,7 +15,7 @@ from a seed in the config (never `Math.random()`), and **undo is dropping the
 last event** and re-folding. The fold, its types, and its selectors use
 relative imports only — `node --test` cannot resolve the `@/` alias.
 
-Three tables back it: `on_deck_clubs` (the tenant, seeded by hand),
+Three tables back it: `on_deck_clubs` (the tenant, created by its own Organizer through `on_deck_create_club`; the table carries no INSERT grant outside `service_role`),
 `on_deck_sessions` (one open per Club at a time, enforced), and
 `on_deck_session_events`. Access follows Booking Buddy's hybrid RLS posture
 (its ADR 0003) with one On Deck twist: an *open* Session and its log are
@@ -25,7 +25,9 @@ readable with no account, because everyone at the venue reads the same board
 ## Organizing
 
 **Club**:
-The tenant, and the owner of everything below it. Has a name, an owner, saved session defaults (venue, court count, group cap, Floor Mode), and a **clock** - the IANA time zone its nights are dated on. One Club per real-world organization.
+The tenant, and the owner of everything below it. Has a name, an owner, saved session defaults (venue, court count, group cap, Floor Mode), and a **clock** - the IANA time zone its nights are dated on. One Club per real-world organization, and one per account.
+
+An Organizer creates their own, in two fields: the club's name and how many courts. The venue starts as the club's name and everything else takes the schema's default, because somebody who has not run a night yet has nothing to base a group cap on. Settings reaches all of it afterwards, which is what makes asking so little safe. Creation goes through a `security definer` RPC rather than a table grant, so the table stays unwritable by any role but `service_role`; one per account is the RPC's own check as well as a unique index.
 
 The clock exists only because a Session Summary has to name a day, and an instant has no date until you say whose clock; nothing during a live Session needs it. It is never asked for: the app adopts the Organizer's own browser zone on their first visit, and Settings can correct a wrong guess. A Session snapshots it at creation the way it snapshots venue and court count, so changing it dates future nights and never re-dates past ones.
 _Avoid_: Org (means something different in Booking Buddy - a User's record of playing at a facility), Tenant, Venue.

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
-import { PageHeading } from "@/components/typography/page-heading";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getSessionSummary } from "@/lib/on-deck/summaries";
@@ -16,6 +14,13 @@ import {
   waitRows,
 } from "@/lib/on-deck/session/summary-format";
 import { BarTable, StatTile } from "@/components/on-deck/summary-report";
+import { ArenaShell } from "@/components/on-deck/arena-shell";
+import {
+  BoardHead,
+  Row,
+  RowList,
+  Stage,
+} from "@/components/on-deck/back-office";
 import { ON_DECK_SUMMARIES_PATH, summaryPath } from "@/lib/on-deck/routes";
 
 export async function generateMetadata({
@@ -64,35 +69,37 @@ export default async function OnDeckSummaryPage({
   const waitNote = waitConfidenceNote(summary);
 
   return (
-    <div className="od-summary flex w-full flex-1 flex-col">
-      <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-2xl flex-col gap-8">
-          <div>
-            <PageHeading
-              eyebrow={session.venueName}
-              title={sessionDateWithYear({
-                at: session.startedAt,
-                timeZone: session.timeZone,
-              })}
-            />
-            <p className="mt-3 text-sm text-muted-foreground">
-              What this night left behind. The players themselves were not
-              kept, because a closed session leaves numbers, not people.
-            </p>
-            {session.autoClosed ? (
-              <p className="mt-3 rounded-xl border border-dashed bg-muted/50 p-3 text-sm text-muted-foreground">
+    <ArenaShell className="od-summary">
+      <section className="w-full flex-1 px-5 py-12 sm:px-6 sm:py-16">
+        <div className="mx-auto w-full max-w-xl">
+          <BoardHead
+            name={sessionDateWithYear({
+              at: session.startedAt,
+              timeZone: session.timeZone,
+            })}
+            spec={[session.venueName]}
+          />
+
+          <p className="od-bo-note mt-6">
+            What this night left behind. The players themselves were not kept,
+            because a closed session leaves numbers, not people.
+          </p>
+
+          {session.autoClosed ? (
+            <Stage tone="flat">
+              <p className="od-bo-note">
                 Nobody tapped Close. This session sat open with nothing
                 happening long enough that On Deck closed it for you.
               </p>
-            ) : null}
-          </div>
+            </Stage>
+          ) : null}
 
           {/* The wait tiles carry their own sample size rather than leaving it
               to a line underneath. With nobody seated, `projectSummary`
               reports both waits as 0, and "Average wait 0 min" set in the same
               type as a real figure is exactly the false headline this page is
               supposed to avoid — so with no sample there is no number. */}
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <dl className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatTile label="Played" value={String(summary.attendance)} />
             <StatTile label="Games" value={String(summary.gamesPlayed)} />
             <StatTile
@@ -107,35 +114,34 @@ export default async function OnDeckSummaryPage({
             />
           </dl>
 
-          <BarTable
-            caption="How long people waited"
-            note="Every completed wait, from joining the queue to walking onto a court."
-            unit="waits"
-            rows={waitRows(summary)}
-          />
+          <div className="mt-7 flex flex-col gap-5">
+            <BarTable
+              caption="How long people waited"
+              note="Every completed wait, from joining the queue to walking onto a court."
+              unit="waits"
+              rows={waitRows(summary)}
+            />
 
-          <BarTable
-            caption="How hard each court worked"
-            note={utilizationSentence(summary)}
-            unit="games"
-            rows={courtRows(summary)}
-          />
+            <BarTable
+              caption="How hard each court worked"
+              note={utilizationSentence(summary)}
+              unit="games"
+              rows={courtRows(summary)}
+            />
 
-          <BarTable
-            caption="Who was in the room"
-            note="Self-declared, and never corrected by the app."
-            unit="players"
-            rows={skillRows(summary)}
-          />
+            <BarTable
+              caption="Who was in the room"
+              note="Self-declared, and never corrected by the app."
+              unit="players"
+              rows={skillRows(summary)}
+            />
+          </div>
 
-          <Link
-            href={ON_DECK_SUMMARIES_PATH}
-            className="text-sm underline underline-offset-4"
-          >
-            All past nights
-          </Link>
+          <RowList>
+            <Row href={ON_DECK_SUMMARIES_PATH} label="All past nights" />
+          </RowList>
         </div>
       </section>
-    </div>
+    </ArenaShell>
   );
 }

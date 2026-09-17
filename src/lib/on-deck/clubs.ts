@@ -2,21 +2,17 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { FloorMode } from "./session/types.ts";
+import type { ClubDefaults, FloorMode } from "./session/types.ts";
 
 /**
- * A Club: the tenant and the owner of everything below it. Seeded by hand
- * (self-serve club creation is out of scope, #238); the app only ever reads
- * one — the signed-in Organizer's own, enforced by the one-per-owner unique
- * index and by RLS.
+ * A Club: the tenant and the owner of everything below it. Created by the
+ * Organizer themselves in two fields (#515) through `createClub`, because
+ * `on_deck_clubs` carries no INSERT grant outside `service_role`. The app only
+ * ever reads one — the signed-in Organizer's own, enforced by the
+ * one-per-owner unique index and by RLS.
  */
-export type Club = {
+export type Club = ClubDefaults & {
   id: string;
-  name: string;
-  venueName: string;
-  courtCount: number;
-  groupCap: number;
-  floorMode: FloorMode;
   /**
    * IANA zone the Club's nights are named on (issue #469). Display only:
    * every timestamp is a `timestamptz`. A Session snapshots this at creation,
@@ -52,9 +48,9 @@ function toClub(row: ClubRow): Club {
 }
 
 /**
- * The Organizer's own Club, or null if none has been seeded for their account
- * yet. RLS already scopes `on_deck_clubs` to the caller, so this needs no
- * `owner_id` filter of its own.
+ * The Organizer's own Club, or null if they have not created one yet. RLS
+ * already scopes `on_deck_clubs` to the caller, so this needs no `owner_id`
+ * filter of its own.
  */
 export async function getOwnedClub(
   supabase: SupabaseClient,
@@ -111,10 +107,65 @@ export async function setClubTimeZone(
 }
 
 /**
- * Saves the Organizer's Club defaults — venue, court count, group cap (issue
- * #254). Goes through the `on_deck_update_club_defaults` RPC because
- * `on_deck_clubs` carries no UPDATE grant (the foundation's "seeded by hand"
- * posture); the RPC touches only those three columns and checks ownership.
+ * The one-per-owner rule, refused. Not a failure: the caller already has the
+ * Club they were trying to make, so the screen they are about to see is the
+ * one they wanted.
+ *
+ * `on_deck_create_club` raises this as a `23505`, distinct from the `42501`
+ * the same function uses for "not signed in", so this is a code check rather
+ * than a message check.
+ */
+export class ClubAlreadyExistsError extends Error {
+  constructor() {
+    super("this account already has a Club");
+    this.name = "ClubAlreadyExistsError";
+  }
+}
+
+/**
+ * Creates the Organizer's own Club and returns its id (issue #515).
+ *
+ * Two fields, because somebody who has not run a night yet has nothing to base
+ * a group cap on. Venue name starts as the Club's name and everything else
+ * takes the schema's defaults; all of it is editable in Settings afterwards,
+ * which is what makes asking so little safe.
+ *
+ * Goes through an RPC rather than an insert because `on_deck_clubs` carries no
+ * INSERT grant for anyone but `service_role`, and that stays true — the same
+ * posture that keeps a Player out of the table keeps a signed-in stranger from
+ * writing an `owner_id` that is not theirs.
+ */
+export async function createClub(
+  supabase: SupabaseClient,
+  input: { name: string; courtCount: number },
+): Promise<string> {
+  const { data, error } = await supabase.rpc("on_deck_create_club", {
+    p_name: input.name,
+    p_court_count: input.courtCount,
+  });
+
+  if (error) {
+    // 23505 = unique_violation, which this RPC raises for the one-per-owner
+    // rule as well as inheriting from the index behind it.
+    if (error.code === "23505") {
+      throw new ClubAlreadyExistsError();
+    }
+    throw new Error(`creating the Club failed: ${error.message}`);
+  }
+
+  return data as string;
+}
+
+/**
+ * Saves the Organizer's Club — name, venue, court count, group cap, Floor Mode
+ * (issues #254, #515). Goes through the `on_deck_update_club_defaults` RPC
+ * because `on_deck_clubs` carries no UPDATE grant; the RPC checks ownership and
+ * leaves `owner_id` and `created_at` alone.
+ *
+ * The name and Floor Mode joined this path when Clubs became self-serve. Both
+ * used to be fixed by whoever ran the insert; now the name is typed by a
+ * stranger into a two-field form and shown to every Player who opens the Club's
+ * link, and the Floor Mode is never chosen at all.
  *
  * The Club's clock is deliberately *not* here. Folding it in would mean saving
  * a court count also commits a zone — and for a Club that has none yet, the
@@ -123,12 +174,14 @@ export async function setClubTimeZone(
  */
 export async function updateClubDefaults(
   supabase: SupabaseClient,
-  input: { venueName: string; courtCount: number; groupCap: number },
+  input: ClubDefaults,
 ): Promise<void> {
   const { error } = await supabase.rpc("on_deck_update_club_defaults", {
+    p_name: input.name,
     p_venue_name: input.venueName,
     p_court_count: input.courtCount,
     p_group_cap: input.groupCap,
+    p_floor_mode: input.floorMode,
   });
 
   if (error) {

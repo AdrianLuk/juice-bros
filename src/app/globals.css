@@ -2049,6 +2049,12 @@ html:has(.bb-app-chrome) {
 }
 .od-arena {
   scrollbar-color: var(--arena-line) transparent;
+  /* The parts of the board nobody drew. Without this the UA renders its light
+     defaults on a near-black ground: a number field's stepper arrows come back
+     as a bright white block, a native select's popup opens white, and the
+     caret and autofill wash follow. Declared on the scope rather than the
+     document so the light surfaces in this app keep theirs. */
+  color-scheme: dark;
 }
 .od-arena *:focus-visible {
   outline: 2px solid var(--arena-next);
@@ -2287,6 +2293,14 @@ html:has(.bb-app-chrome) {
 .od-field::placeholder {
   color: var(--arena-faint);
 }
+.od-field[type="number"] {
+  appearance: textfield;
+}
+.od-field[type="number"]::-webkit-outer-spin-button,
+.od-field[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
 .od-field:focus-visible,
 .od-select:focus-visible {
   outline: none;
@@ -2465,28 +2479,273 @@ html:has(.bb-app-chrome) {
 }
 
 
-/* ── The Session Summary reader (issue #469) ────────────────────────────────
+/* ── The back office (issue #515 redesign, surface seed 7323f5fb) ───────────
 
-   Charts for the morning after, on the Organizer's light shell, not the
-   arena's dark board. Read at a desk while writing the retro.
+   The Organizer's own screens — `/on-deck/home` and its settings — were the
+   last On Deck surface wearing the default light shadcn theme, which nothing
+   else in this product uses any more. They join the board here.
 
-   One mark colour for every bar on the page. Row labels carry identity, so
-   hue is a free channel here, and spending it on a per-row ramp would
-   double-encode bar length as colour. The colour is a deepened brand orange:
-   `#f26522` itself sits at 3.07:1 against this page, which is on the floor
-   for a discernible mark, and this step is 4.3:1. */
+   The composition is "one thing lit": a single panel carries the Organizer's
+   next action and nothing competes with it, and everything else drops to a
+   list of rows beneath. It refuses the dashboard of equal same-weight cards
+   these screens used to be.
 
-.od-summary {
-  --od-mark: #d24a12;
-  --od-mark-track: oklch(0.94 0.008 60);
+   Same world as the live board, read at a different distance. The board is
+   built to be read across a gym by eight people at once; this is one person
+   holding a phone in a car park, so the type comes down off signage scale and
+   the ration on orange gets stricter: on the live board orange marks the call,
+   and back here there is no call to mark, so it appears only when a Session is
+   actually running. Everything the Organizer is merely *able* to do wears the
+   cool imminent wash instead. */
+
+/* The club's own name, and the page's only h1. On the create screen this is
+   the field's live echo: one Club per account and no way to delete one, so the
+   name is rendered on the board as it is typed rather than after it is
+   committed. */
+.od-bo-name {
+  font-size: clamp(2.375rem, 9vw, 3.5rem);
+  text-wrap: balance;
+  margin: 0;
+}
+.od-bo-name[data-empty="true"] {
+  color: var(--arena-faint);
 }
 
+/* The spec line, always directly under the name it describes. Real values
+   only — this is the readout voice, so it carries facts or it is not used. */
+.od-bo-spec {
+  margin-top: 0.625rem;
+  color: var(--arena-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+}
+/* The separator belongs to the item *before* the break, not after it: as a
+   ::before it led the wrapped line with a stray "·", which is what four spec
+   values on a 390px phone actually do. */
+.od-bo-spec > *:not(:last-child)::after {
+  content: "·";
+  margin-left: 0.75rem;
+  color: var(--arena-line);
+}
+.od-bo-spec > * {
+  white-space: nowrap;
+}
+
+/* The lit panel. One object across every state of this screen: it changes its
+   state class and the key at its foot, never its position, so the Organizer's
+   thumb lands in the same place whatever week it is. */
+.od-bo-stage {
+  margin-top: 1.75rem;
+  padding: 1.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+/* Prose inside the stage. Held under a 60ch measure — this is a phone in a car
+   park, not a document. */
+.od-bo-note {
+  max-width: 58ch;
+  color: var(--arena-dim);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.od-bo-note strong {
+  color: var(--arena-fg);
+  font-weight: 600;
+}
+.od-live .od-bo-note,
+.od-live .od-bo-note strong {
+  color: var(--arena-live-ink);
+}
+
+/* ── The list beneath ───────────────────────────────────────────────────────
+
+   Everything that is not tonight's one action: the sign, the nights already
+   played, the defaults. Rows on hairlines rather than a stack of cards, so
+   nothing down here can compete with the lit panel above it.
+
+   Deliberately *not* `.od-rail`. That is the board's numbered queue index,
+   where the ordinal is the whole point (you are 7th); these rows are
+   destinations in no sequence, and numbering them would be the board's
+   vocabulary worn as costume. Each row carries a real readout value where one
+   exists and a drawn chevron where one does not. */
+.od-bo-list {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--arena-line-soft);
+}
+
+.od-bo-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.875rem;
+  min-height: 56px;
+  padding: 0.625rem 0.25rem 0.625rem 0;
+  border-bottom: 1px solid var(--arena-line-soft);
+  color: var(--arena-fg);
+  text-align: left;
+  width: 100%;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  transition:
+    transform 140ms cubic-bezier(0.32, 0.72, 0, 1),
+    color 120ms ease;
+}
+@media (hover: hover) {
+  .od-bo-row:hover {
+    transform: translateX(0.375rem);
+  }
+  .od-bo-row:hover .od-bo-chev {
+    color: var(--arena-next);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .od-bo-row { transition: color 120ms ease; }
+  .od-bo-row:hover { transform: none; }
+}
+
+.od-bo-lab {
+  font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+/* The line under a field, saying what the field is for. Same step as a row's
+   sub-line, because it is the same kind of remark. */
+.od-bo-hint {
+  font-size: 0.8125rem;
+  line-height: 1.375;
+  color: var(--arena-dim);
+}
+
+/* The second line a row may carry, and only ever a fact: a venue, a scheduled
+   date's detail. Not instructions — three rows of help prose under the lit
+   panel is the densest text on the page, pointed at the things that matter
+   least. */
+.od-bo-sub {
+  display: block;
+  margin-top: 0.1875rem;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--arena-dim);
+}
+
+.od-bo-val {
+  color: var(--arena-faint);
+  white-space: nowrap;
+}
+
+.od-bo-chev {
+  color: var(--arena-faint);
+  flex: none;
+  transition: color 120ms ease;
+}
+
+/* The account foot. Which account owns this club matters here and nowhere
+   else: one club per account, and no way to move one afterwards. It sits at
+   the bottom with the way out, not above the heading as a label for it. */
+.od-bo-foot {
+  margin-top: 2.5rem;
+  padding-top: 1.125rem;
+  border-top: 1px solid var(--arena-line-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  color: var(--arena-faint);
+}
+.od-bo-foot button {
+  color: var(--arena-dim);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--arena-line);
+  transition: color 120ms ease, text-decoration-color 120ms ease;
+}
+.od-bo-foot button:hover {
+  color: var(--arena-fg);
+  text-decoration-color: var(--arena-next);
+}
+
+/* An inline chip on a row — "start opens this one" against a scheduled date.
+   The cool imminent signal, never the orange live one: nothing is called yet. */
+.od-bo-tag {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--arena-next);
+  border: 1px solid var(--arena-next-line);
+  border-radius: 4px;
+  padding: 0.125rem 0.375rem;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* This screen's one authored moment, and it only ever fires on the one
+     state that has news: arriving to find a Session already running. The
+     panel lands once, the way the player's "you're up" readout does. Nothing
+     else on the page moves. */
+  .od-bo-stage.od-live {
+    animation: od-call-land 460ms cubic-bezier(0.32, 0.72, 0, 1) 1;
+  }
+}
+
+/* ── The Session Summary reader (issue #469, on the board since #515) ────────
+
+   Charts for the morning after. This used to be the argument for keeping the
+   Organizer's screens light — read at a desk while writing the retro, not
+   across a gym — but a desk is where the rest of the back office is read too,
+   and one light report inside a dark app is a seam, not a considerate choice.
+
+   **The mark is not orange, and that is the point.** On this board orange means
+   LIVE: the foursome being called, the court that just opened. A night that
+   closed has no live anything, so spending the accent on its bars would teach
+   the eye that orange is just "a mark", which is exactly what the live screens
+   rely on it not meaning. The mark is the board's own cool-white instead —
+   14.9:1 on the panel, brighter than the labels beside it, so the bar still
+   leads its row without borrowing a state colour it has no right to.
+
+   One mark colour for every bar on the page. Row labels carry identity, so hue
+   is a free channel here, and spending it on a per-row ramp would double-encode
+   bar length as colour. */
+
+.od-summary {
+  --od-mark: var(--arena-fg);
+  /* Most of these distributions have empty rows — five wait buckets where four
+     are zero is the shape of a good night — so the track has to be visible or
+     an empty row reads as a missing cell rather than as a scale nothing
+     reached. A recess was the wrong instinct here: at 6px on a dark panel it
+     vanished. `--arena-line` on `--arena-panel` is 1.81:1, the same register
+     the board gives a resting ring, which is what this is. */
+  --od-mark-track: var(--arena-line);
+}
+
+/* Four numbers, and on this page the numbers are the point. Board type for the
+   figure, readout voice for what it counts. */
+.od-bo-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.875rem 1rem;
+}
 .od-stat-label {
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted-foreground);
+  color: var(--arena-dim);
 }
 .od-stat-value {
   font-family: var(--font-arena), "Saira Condensed", "Arial Narrow", sans-serif;
@@ -2494,6 +2753,12 @@ html:has(.bb-app-chrome) {
   font-size: 2rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  color: var(--arena-fg);
+}
+.od-stat-note {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--arena-faint);
 }
 
 /* Label, bar, value — three columns, so a value can never be clipped by the
@@ -2510,6 +2775,7 @@ html:has(.bb-app-chrome) {
   white-space: nowrap;
   padding: 0.3rem 0.75rem 0.3rem 0;
   vertical-align: middle;
+  color: var(--arena-dim);
 }
 .od-bars td {
   padding: 0.3rem 0;
@@ -2544,6 +2810,7 @@ html:has(.bb-app-chrome) {
   font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
   white-space: nowrap;
+  color: var(--arena-fg);
 }
 
 /* ── The Club QR sign (issue #463) ──────────────────────────────────────────

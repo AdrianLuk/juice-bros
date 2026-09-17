@@ -66,7 +66,7 @@ test("an Organizer edits the Club's saved defaults and they persist", async ({
   await signIn(page);
   await page.goto("/on-deck/home");
 
-  await page.getByRole("link", { name: "Edit defaults" }).click();
+  await page.getByRole("link", { name: "Club settings" }).click();
   await page.waitForURL(/\/on-deck\/home\/settings$/);
 
   await page.getByLabel("Venue name").fill("Trinity Bellwoods");
@@ -104,7 +104,7 @@ test("Start opens a pre-created Session with its own court count, not the defaul
   await signIn(page);
   await page.goto("/on-deck/home");
 
-  await page.getByRole("link", { name: "Schedule a session" }).click();
+  await page.getByRole("link", { name: "Schedule a night" }).click();
   await page.waitForURL(/\/on-deck\/home\/sessions\/new$/);
 
   await page.getByLabel("Date").fill(TODAY);
@@ -134,7 +134,7 @@ test("Start opens a pre-created Session with its own court count, not the defaul
   });
   await page.setViewportSize({ width: 1280, height: 900 });
 
-  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start tonight" }).click();
   await page.waitForURL(/\/on-deck\/session\/[0-9a-f-]+$/);
 
   const sessionUrl = page.url();
@@ -160,8 +160,14 @@ test("editing a pre-created Session ahead of time — Start uses the edited valu
   await page.getByRole("button", { name: "Schedule session" }).click();
   await page.waitForURL(/\/on-deck\/home$/);
 
-  // …then edit it down to 2 courts and a different venue.
-  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  // …then edit it down to 2 courts and a different venue. The scheduled night
+  // is a row on home now, and the row itself is the way into it — there is no
+  // separate Edit link beside it any more (back office redesign, #515).
+  await page
+    .getByTestId("scheduled-sessions")
+    .getByRole("link")
+    .first()
+    .click();
   await page.waitForURL(/\/on-deck\/home\/sessions\/[0-9a-f-]+$/);
   await expect(page.getByLabel("Courts")).toHaveValue("8");
   await page.getByLabel("Venue name").fill("Dufferin Grove");
@@ -173,7 +179,7 @@ test("editing a pre-created Session ahead of time — Start uses the edited valu
   ).toBeVisible();
 
   // Start opens the edited Session.
-  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Start tonight" }).click();
   await page.waitForURL(/\/on-deck\/session\/[0-9a-f-]+$/);
   await page.goto(`${page.url()}/floor`);
   await expect(

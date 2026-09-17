@@ -108,6 +108,25 @@ export function isSkillLevel(value: unknown): value is SkillLevel {
 }
 
 /**
+ * Everything about a Club that somebody can edit: what it is called, and the
+ * four values a Session is opened from. One type, because these travel
+ * together through every layer — the settings form's props, the Server
+ * Action's input, and the RPC wrapper's — and the next field added to a Club
+ * should not have to be declared in three places to reach the form.
+ *
+ * Not the Club: `id` is not editable, and the clock has its own write path
+ * because a form opened to change a court count must not commit a time zone
+ * nobody chose (issue #469).
+ */
+export interface ClubDefaults {
+  name: string;
+  venueName: string;
+  courtCount: number;
+  groupCap: number;
+  floorMode: FloorMode;
+}
+
+/**
  * The immutable facts a Session is folded against — the Club's saved defaults
  * captured at Start, plus a seed that makes every later tie-break
  * deterministic (never `Math.random()`).
