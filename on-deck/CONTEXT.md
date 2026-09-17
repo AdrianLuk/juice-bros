@@ -70,6 +70,11 @@ A read-only view of a live Session, intended for a cheap tablet or laptop on the
 The Display plus the buttons a Game turnover needs - **Game done**, **a player short** (pulls a replacement into the Foursome), **add me** (a walk-up with no phone) - for a tablet stood near the courts. Enabled by Floor Mode (self-serve or hybrid); the taps it accepts are Operator actions, logged as coming from a Kiosk. A Session can carry a read-only Display, a Kiosk, both, or neither.
 _Avoid_: Terminal, Station.
 
+**Demo night**:
+A whole Session, authored rather than recorded, that folds in the visitor's own browser at `/on-deck/demo` (issue #519). An organizer who has never heard of On Deck arrives mid-night with every Court in play and a Queue twelve deep, taps a Court done, and watches the next foursome walk on. No account, no Club, no row written, and nothing in the route's import graph that could reach the database - the taps go through the same `floor-ops` decisions and the same `reduceSession` fold a real Saturday uses, with an event array in React state where Postgres would be. It renders the Floor itself, not a replica: `floor-board.tsx` is the screen and knows nothing about where its board came from, which is what makes anything the demo gets wrong a Floor bug.
+The log is authored because there is no real one and will not be until a stranger runs a night. Its players come from the synthetic generator the dev console uses, whose fixed "B." last initial is the tell on the board, and every foursome in it was picked by Match Me through the fold rather than written down by hand - `demo/night.test.ts` is what holds that claim up.
+_Avoid_: Sandbox, Playground, Sample data.
+
 **Last Call**:
 An Operator's single tap ending new play for the night - the Organizer or a Volunteer, never a Kiosk button (it is a judgment about the night, not a Court turnover). After it, no further foursomes are assigned; Games in progress finish. A human judgment call, not a clock trigger, because Games have no time cap (see [adr/0002-rolling-queue-no-time-cap.md](docs/adr/0002-rolling-queue-no-time-cap.md)). In a self-serve Session with no Volunteers, it is the Organizer's alone.
 

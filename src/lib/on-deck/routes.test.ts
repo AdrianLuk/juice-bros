@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ON_DECK_DEMO_PATH,
   ON_DECK_DEV_ENTER_PATH,
   ON_DECK_DEV_PATH,
   ON_DECK_HOME_PATH,
@@ -56,6 +57,16 @@ test("only the Organizer subtree requires a session", () => {
   );
   assert.equal(requiresOrganizerSession("/on-deck/session/abc"), false);
   assert.equal(requiresOrganizerSession("/booking-buddy/friends"), false);
+});
+
+test("the demo night is open to anyone and keeps On Deck's own chrome", () => {
+  // The whole point is that a stranger can tap through a night before giving
+  // anyone their email (issue #519) — a sign-in bounce would defeat it.
+  assert.equal(requiresOrganizerSession(ON_DECK_DEMO_PATH), false);
+  assert.equal(requiresOrganizerSession(`${ON_DECK_DEMO_PATH}/`), false);
+  // Not a room-facing surface: nobody is standing in a gym looking at it, and
+  // the Club it shows is invented, so there is no Club identity to carry.
+  assert.equal(isRoomFacingPath(ON_DECK_DEMO_PATH), false);
 });
 
 test("the dev console is not Organizer-gated — it 404s without its key, never redirects", () => {
