@@ -76,7 +76,11 @@ export default async function OnDeckSummariesPage() {
                     at: session.startedAt,
                     timeZone: session.timeZone,
                   })}
-                  sub={session.venueName}
+                  sub={
+                    session.autoClosed
+                      ? `${session.venueName} · closed automatically`
+                      : session.venueName
+                  }
                   value={`${session.attendance} played · ${session.gamesPlayed} games`}
                 />
               ))}

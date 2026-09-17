@@ -39,6 +39,14 @@ export const ON_DECK_DEV_ENTER_PATH = `${ON_DECK_ROOT}/dev/enter`;
  */
 export const ON_DECK_QR_DISPLAY_PATH = `${ON_DECK_ROOT}/home/qr`;
 
+/**
+ * The Club QR full-bleed, sized to be scanned off a held-up phone (issue
+ * #517). `ON_DECK_QR_DISPLAY_PATH` draws the same stable link at paper
+ * proportions, which is the right shape to print and the wrong shape to
+ * carry to the door — this is the shape for that.
+ */
+export const ON_DECK_QR_HOLD_UP_PATH = `${ON_DECK_QR_DISPLAY_PATH}/hold-up`;
+
 /** Create a Session ahead of time (issue #254). */
 export const ON_DECK_NEW_SESSION_PATH = `${ON_DECK_ROOT}/home/sessions/new`;
 
@@ -129,6 +137,9 @@ function isUnderRoot(pathname: string): boolean {
   return pathname === ON_DECK_ROOT || pathname.startsWith(`${ON_DECK_ROOT}/`);
 }
 
+/** The Organizer's floor screen under a Session — `/session/:id/floor`. */
+const FLOOR_SUBPATH_RE = /^\/session\/[^/]+\/floor\/?$/;
+
 /**
  * Only the Organizer subtree requires a session. The landing page, sign-in,
  * the Club QR resolver, and the live Session view are all open — but the
@@ -145,13 +156,38 @@ export function requiresOrganizerSession(pathname: string): boolean {
 
   const subpath = pathname.slice(ON_DECK_ROOT.length);
 
-  if (/^\/session\/[^/]+\/floor\/?$/.test(subpath)) {
+  if (FLOOR_SUBPATH_RE.test(subpath)) {
     return true;
   }
 
   return ORGANIZER_SUBPATHS.some(
     (gated) => subpath === gated || subpath.startsWith(`${gated}/`),
   );
+}
+
+/**
+ * Room-facing paths (issue #518): everywhere a Player, a Volunteer, or a
+ * courtside/snack-table tablet looks — the join screen, the Display, the
+ * Kiosk, the Volunteer Link, and the Club QR resolver. These carry the
+ * Club's identity, never the platform's.
+ *
+ * Deliberately narrower than "the dark arena palette" (`/session/*` and
+ * `/c/*` together): the Organizer's own floor screen lives under
+ * `/session/:id/floor` and renders that same dark board, but it is *their*
+ * screen, so it keeps On Deck's identity same as `/home`.
+ */
+export function isRoomFacingPath(pathname: string): boolean {
+  if (!isUnderRoot(pathname)) {
+    return false;
+  }
+
+  const subpath = pathname.slice(ON_DECK_ROOT.length);
+
+  if (FLOOR_SUBPATH_RE.test(subpath)) {
+    return false;
+  }
+
+  return subpath.startsWith("/session/") || subpath.startsWith("/c/");
 }
 
 /**

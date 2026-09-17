@@ -12,6 +12,8 @@ import { ArenaShell } from "@/components/on-deck/arena-shell";
 import {
   BackToTonight,
   BoardHead,
+  Row,
+  RowList,
   Stage,
   StageHeading,
 } from "@/components/on-deck/back-office";
@@ -19,6 +21,7 @@ import {
   clubQrImagePath,
   ON_DECK_HOME_PATH,
   ON_DECK_QR_DISPLAY_PATH,
+  ON_DECK_QR_HOLD_UP_PATH,
 } from "@/lib/on-deck/routes";
 
 export const metadata: Metadata = {
@@ -70,9 +73,21 @@ export default async function OnDeckQrDisplayPage() {
             <p className="od-bo-note mt-6">
               Print this once and put it on the wall. The link behind the code
               never changes, so it works every week whether or not a session is
-              running yet. On a night without the printed sign, hold this screen
-              up instead and turn the brightness up.
+              running yet.
             </p>
+          </div>
+
+          {/* The other way to get a code in front of people (issue #517). A
+              destination, so it reads as one of the back office's rows rather
+              than as a sentence with a link buried in it. */}
+          <div className="od-sign-controls">
+            <RowList>
+              <Row
+                href={ON_DECK_QR_HOLD_UP_PATH}
+                label="Hold up your own phone"
+                sub="Full screen at the door, with a message to paste into your group chat"
+              />
+            </RowList>
           </div>
 
           <div className="od-sign-mount mt-8">

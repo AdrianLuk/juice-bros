@@ -15,7 +15,12 @@ import {
 } from "@/lib/on-deck/session/summary-format";
 import { BarTable, StatTile } from "@/components/on-deck/summary-report";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
-import { BoardHead, Row, RowList } from "@/components/on-deck/back-office";
+import {
+  BoardHead,
+  Row,
+  RowList,
+  Stage,
+} from "@/components/on-deck/back-office";
 import { ON_DECK_SUMMARIES_PATH, summaryPath } from "@/lib/on-deck/routes";
 
 export async function generateMetadata({
@@ -79,6 +84,15 @@ export default async function OnDeckSummaryPage({
             What this night left behind. The players themselves were not kept,
             because a closed session leaves numbers, not people.
           </p>
+
+          {session.autoClosed ? (
+            <Stage tone="flat">
+              <p className="od-bo-note">
+                Nobody tapped Close. This session sat open with nothing
+                happening long enough that On Deck closed it for you.
+              </p>
+            </Stage>
+          ) : null}
 
           {/* The wait tiles carry their own sample size rather than leaving it
               to a line underneath. With nobody seated, `projectSummary`

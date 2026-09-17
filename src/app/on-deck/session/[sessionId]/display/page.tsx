@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
 import { createClient } from "@/lib/on-deck/supabase/server";
-import { getSession } from "@/lib/on-deck/sessions";
+import { getSession, venueNameOf } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { displayPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
@@ -16,9 +16,15 @@ export async function generateMetadata({
   params: Promise<{ sessionId: string }>;
 }): Promise<Metadata> {
   const { sessionId } = await params;
+  const supabase = await createClient();
+  const loaded = await getSession(supabase, sessionId).catch(() => null);
+  const venueName = venueNameOf(loaded);
+
   return {
     ...pageMetadata({
-      title: "On Deck display",
+      // Named for the venue, not the platform (issue #518) — this is the tab
+      // title on a tablet sat in the Club's own room.
+      title: venueName ? `${venueName} display` : "On Deck display",
       description: "Tonight's courts, queue, and who's on deck.",
       path: displayPath(sessionId),
     }),
