@@ -32,20 +32,22 @@ export function ClubDraftTeaser({
   const [draft, setDraft] = useState<ClubDraft>(
     initialDraft ?? { name: "", courtCount: "" },
   );
+  // The value `draft` started as, captured once and never reassigned — a
+  // stable reference `update()` never produces again once a field actually
+  // changes, unlike a "have we run once" flag, which Strict Mode's
+  // double-invoked effect would flip before the second invocation ever
+  // gets a look, defeating the point of skipping it.
+  const initialDraftRef = useRef(draft);
 
   // The cookie write is a side effect of `draft` changing, not part of
   // computing it — keeping it out of `setDraft`'s updater (which React may
   // invoke more than once per update) means it only ever runs once per
-  // actual change. Skipped on the render that mounts this component: `draft`
-  // is "new" then too, but rewriting the cookie back to a value it already
-  // held would just reset a stray draft's TTL on every plain page view that
-  // never touched either field.
-  const isFirstRender = useRef(true);
+  // actual change. Skipped while `draft` is still the value this component
+  // mounted with: rewriting the cookie back to a value it already held would
+  // just reset a stray draft's TTL on every plain page view that never
+  // touched either field.
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    if (draft === initialDraftRef.current) return;
     writeClubDraftCookie(draft);
   }, [draft]);
 

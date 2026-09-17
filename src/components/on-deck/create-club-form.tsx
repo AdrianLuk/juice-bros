@@ -50,15 +50,20 @@ export function CreateClubForm({
   const [name, setName] = useState(initialDraft?.name ?? "");
   const [courts, setCourts] = useState(initialDraft?.courtCount ?? "");
   const [error, setError] = useState<string | null>(null);
-  // The caller remounts this component per draft (see the `key` at the call
-  // site), so this prop is fixed for its whole lifetime — a plain const,
-  // never stale as the fields are edited afterward. On a shared or reused
-  // browser, the person actually signing in might not be who typed this —
-  // surfaced below rather than silently treated as theirs.
-  const seededFromDraft = initialDraft != null;
+  // Tracks the *current* fields against the draft, not just whether one was
+  // ever seeded — an Organizer who has fully retyped both fields has already
+  // done the checking this note asks for, and a note that keeps insisting
+  // otherwise would be the misleading thing on a shared browser.
+  const seededFromDraft =
+    initialDraft != null &&
+    name === initialDraft.name &&
+    courts === initialDraft.courtCount;
 
   const courtCount = Number(courts);
-  const courtsValid = Number.isInteger(courtCount) && courtCount > 0;
+  const courtsValid =
+    Number.isInteger(courtCount) &&
+    courtCount >= COURT_COUNT_RANGE.min &&
+    courtCount <= COURT_COUNT_RANGE.max;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
