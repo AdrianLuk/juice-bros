@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { deleteClubForOrganizer } from "./support/on-deck.ts";
+import { deleteClubForOrganizer, fillUntilSet } from "./support/on-deck.ts";
 
 /**
  * On Deck: an Organizer creates their own Club (issue #515).
@@ -47,26 +47,6 @@ test.afterAll(async () => {
   await deleteClubForOrganizer(ORGANIZER_EMAIL);
 });
 
-/**
- * Fills a controlled field and keeps filling until the value sticks.
- *
- * A `fill` that lands before React has hydrated this form is silently thrown
- * away when it takes over the input, leaving an empty `required` field and a
- * submit that never fires. Under two workers on a loaded local backend that
- * window is wide enough to lose, so the fill retries rather than asserting
- * once and failing the run on a race that has nothing to do with the feature.
- */
-async function fillUntilSet(
-  page: import("@playwright/test").Page,
-  label: string,
-  value: string,
-) {
-  const field = page.getByLabel(label);
-  await expect(async () => {
-    await field.fill(value);
-    await expect(field).toHaveValue(value, { timeout: 500 });
-  }).toPass({ timeout: 15_000 });
-}
 
 /** Fills the two fields and waits for home to come back as the Club. */
 async function createTheClub(page: import("@playwright/test").Page) {
