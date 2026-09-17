@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHeading } from "@/components/typography/page-heading";
 import { OnDeckSignInForm } from "@/components/on-deck/sign-in-form";
+import { ClubDraftTeaser } from "@/components/on-deck/club-draft-teaser";
 import { getOptionalOrganizer } from "@/lib/on-deck/dal";
 import { readGoogleSignInClientId } from "@/lib/on-deck/env";
 import { safeRedirectTarget } from "@/lib/on-deck/routes";
+import { readClubDraft } from "@/lib/on-deck/club-draft-server";
 
 export const metadata: Metadata = pageMetadata({
   title: "Sign in to On Deck",
@@ -28,6 +30,13 @@ export default async function OnDeckSignInPage({
     redirect(target);
   }
 
+  // Whatever is already sitting in the draft cookie, shown here rather than
+  // only on the create-club screen it seeds afterward (issue #520) — a stale
+  // draft left by a previous visitor on a shared browser is then something an
+  // Organizer can see and clear before signing in, not a surprise on the next
+  // screen they might miss.
+  const draft = await readClubDraft();
+
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-4 py-16 sm:px-6 lg:px-8">
@@ -39,6 +48,7 @@ export default async function OnDeckSignInPage({
           />
 
           <div className="mt-8 rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+            <ClubDraftTeaser initialDraft={draft} />
             <OnDeckSignInForm
               next={target}
               error={error}

@@ -1,3 +1,5 @@
+import { expect, type Page } from "@playwright/test";
+
 /** Local Docker stack only — Supabase's published demo keys, same as guest-rsvp-log.ts. */
 const LOCAL_SUPABASE_API_URL = "http://127.0.0.1:54321";
 const LOCAL_SUPABASE_SERVICE_ROLE_KEY =
@@ -342,4 +344,26 @@ export async function deleteClubForOrganizer(email: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`deleting the Club failed: ${res.status} ${await res.text()}`);
   }
+}
+
+/**
+ * Fills a controlled field and keeps filling until the value sticks.
+ *
+ * A `fill` that lands before React has hydrated this form is silently thrown
+ * away when it takes over the input, leaving an empty `required` field and a
+ * submit that never fires. Under two workers on a loaded local backend that
+ * window is wide enough to lose, so the fill retries rather than asserting
+ * once and failing the run on a race that has nothing to do with the feature.
+ * Shared by `on-deck-create-club.spec.ts` and `on-deck-club-draft.spec.ts`.
+ */
+export async function fillUntilSet(
+  page: Page,
+  label: string,
+  value: string,
+): Promise<void> {
+  const field = page.getByLabel(label);
+  await expect(async () => {
+    await field.fill(value);
+    await expect(field).toHaveValue(value, { timeout: 500 });
+  }).toPass({ timeout: 15_000 });
 }

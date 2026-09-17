@@ -5,6 +5,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
+import { readClubDraft } from "@/lib/on-deck/club-draft-server";
 import { getSummariesForClub } from "@/lib/on-deck/summaries";
 import { sessionDate } from "@/lib/on-deck/session-date";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/components/on-deck/tonight-controls";
 import { CreateClubForm } from "@/components/on-deck/create-club-form";
 import { AdoptTimeZone } from "@/components/on-deck/adopt-time-zone";
+import { ClearStrayClubDraft } from "@/components/on-deck/clear-stray-club-draft";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { BoardHead, Row, RowList, Stage } from "@/components/on-deck/back-office";
 import {
@@ -55,6 +57,12 @@ export default async function OnDeckHomePage() {
   const organizer = await verifyOrganizer();
   const supabase = await createClient();
   const club = await getOwnedClub(supabase);
+  // Read regardless of `club`: a Club owner with a stray draft still typed
+  // one, and knowing that (rather than skipping the read) is what lets
+  // `ClearStrayClubDraft` mount only when there's actually something to
+  // clear, instead of on every visit from every Organizer who already has
+  // a Club — the common case, and the one with nothing to do here.
+  const draft = await readClubDraft();
   const openSession = club
     ? await resolveOpenSessionForClub(supabase, club.id)
     : null;
@@ -75,10 +83,24 @@ export default async function OnDeckHomePage() {
               one write on one visit and nothing thereafter. */}
           {club && club.timeZone === null ? <AdoptTimeZone /> : null}
 
+          {/* A draft (issue #520) only ever belongs to the Organizer who is
+              about to create a Club with it. One who already has a Club
+              never reaches `CreateClubForm` to consume it, so a stray cookie
+              from an earlier, unrelated attempt on this browser is cleared
+              here instead — mounted only when there's actually one to clear. */}
+          {club && draft ? <ClearStrayClubDraft /> : null}
+
           {!club ? (
             /* No club yet: the form owns the heading too, because the heading
-               is the club's name and the name is what is being typed. */
-            <CreateClubForm />
+               is the club's name and the name is what is being typed.
+               `draft` is whatever was typed on the sign-in page before this
+               Organizer signed in (issue #520) — `key`ed on its own content so
+               a second sign-in carrying a different draft actually replaces
+               the fields rather than leaving stale text from the first. */
+            <CreateClubForm
+              key={draft ? JSON.stringify(draft) : "no-draft"}
+              initialDraft={draft}
+            />
           ) : (
             <>
               <BoardHead
