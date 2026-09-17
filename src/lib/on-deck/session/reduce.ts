@@ -1,5 +1,5 @@
 import { fillFoursome, selectFoursome } from "./match-me.ts";
-import { median } from "./types.ts";
+import { median, nightHasStarted } from "./types.ts";
 import type {
   CourtSlot,
   Group,
@@ -277,6 +277,22 @@ function refreshOnDeck(state: SessionState, at: number): void {
   // After Last Call (issue #255) no new On Deck Foursome forms. `LAST_CALL`
   // itself clears any already committed — nobody else walks on.
   if (state.lastCallAt !== null) return;
+
+  // Before the night has started, an On Deck card is a prediction about a room
+  // that is still filling, not a promise anybody can act on — no Court can
+  // free, because no Court is occupied. So until then it is re-formed from the
+  // whole Queue rather than carried forward from the moment four people had
+  // arrived (issue #533, ADR 0007's amendment).
+  //
+  // Without this, at a club where the doors open before play does, every
+  // opening Foursome is the arrival order: the first four to tap Join get
+  // committed while they are the only four waiting, and commitment means they
+  // are never reconsidered. On five Courts that is the first twenty of forty
+  // Players seated with no Skill fit at all, which is the part of the night an
+  // Organizer is most likely to be judging the matching by.
+  if (!nightHasStarted(state)) {
+    state.onDeck = [];
+  }
 
   const queuedIds = new Set(state.queue.map((e) => e.playerId));
   const groupOf = groupByMember(state);

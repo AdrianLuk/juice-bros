@@ -615,6 +615,24 @@ export function playerCourt(
   return court ? court.number : null;
 }
 
+/**
+ * Has anybody played yet tonight? True from the moment the first Foursome
+ * walks onto a Court, and true for the rest of the Session after that —
+ * `completedGames` is what carries it across a moment when every Court happens
+ * to be empty again.
+ *
+ * On Deck's commitment rule (ADR 0007) is conditioned on this. Before the
+ * night starts there is nothing for a named Foursome to gather ahead of, so a
+ * committed Foursome buys no stability anybody can use, while the cost of it —
+ * the opening Games seated in arrival order — is paid in full (issue #533).
+ */
+export function nightHasStarted(state: SessionState): boolean {
+  return (
+    state.completedGames.length > 0 ||
+    state.courts.some((c) => c.foursome.length > 0)
+  );
+}
+
 /** Is this Player currently paused (stepped out of the rotation)? */
 export function playerPaused(state: SessionState, playerId: string): boolean {
   return state.paused.some((p) => p.playerId === playerId);

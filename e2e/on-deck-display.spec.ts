@@ -165,9 +165,16 @@ test("the Display renders courts, the ordered queue with wait times, and the On 
   await page.setViewportSize({ width: 1024, height: 768 });
 
   // A join lands on the board within a poll interval.
+  //
+  // On the board, not necessarily in the Queue list: nothing has been sent out
+  // yet in this fixture, and before the night starts On Deck is re-formed from
+  // the whole Queue rather than committed (issue #533). With ten waiting, Match
+  // Me's window reaches every one of them, so a new arrival can be picked onto
+  // an On Deck card on Skill fit instead of queueing behind it. The anchor is
+  // still the longest waiter either way (ADR 0004).
   await joinPlayerViaRpc(sessionId, "dev-disp-late", "Kip", "K");
   await queuePlayerViaRpc(sessionId, "dev-disp-late");
-  await expect(queue.getByText("Kip K.")).toBeVisible({ timeout: 15_000 });
+  await expect(board.getByText("Kip K.")).toBeVisible({ timeout: 15_000 });
 
   // A Court finish: the "Up next" Foursome walks onto Court 1, and a fresh
   // Foursome refills On Deck — an On Deck change the board reflects.

@@ -557,9 +557,14 @@ test("each On Deck Foursome is anchored by its longest waiter", () => {
 });
 
 test("a committed On Deck Foursome does not change when another Player joins", () => {
-  const base = sessionWith(8);
+  // The night has started — Court 1 is in play — so ADR 0007's commitment
+  // holds: a name on the board stays there. (Before the first Court goes out
+  // it does not; see the pre-start tests below, and issue #533.)
+  const base = [...sessionWith(12), courtFinished(1)];
   const before = reduceSession(config, base);
-  const after = reduceSession(config, [...base, ...addWaiter(9)]);
+  assert.equal(before.onDeck.length, 2);
+
+  const after = reduceSession(config, [...base, ...addWaiter(13)]);
 
   assert.deepEqual(after.onDeck[0], before.onDeck[0]);
   assert.deepEqual(after.onDeck[1], before.onDeck[1]);
@@ -567,13 +572,19 @@ test("a committed On Deck Foursome does not change when another Player joins", (
 });
 
 test("an incomplete On Deck Foursome tops up as Players join, without reshuffling its members", () => {
-  // Six waiting: F0 is a full Match Me pick, F1 is the two left over.
-  const base = sessionWith(6);
+  // Ten waiting, Court 1 sent out: six left, so F0 is a full Match Me pick and
+  // F1 is the two left over. Again after the night has started — an incomplete
+  // Foursome tops up rather than re-forming only once commitment is in force.
+  const base = [...sessionWith(10), courtFinished(1)];
   const six = reduceSession(config, base);
   assert.equal(six.onDeck[1].players.length, 2);
   const f1Members = six.onDeck[1].players;
 
-  const eight = reduceSession(config, [...base, ...addWaiter(7), ...addWaiter(8)]);
+  const eight = reduceSession(config, [
+    ...base,
+    ...addWaiter(11),
+    ...addWaiter(12),
+  ]);
   assert.deepEqual(eight.onDeck[0], six.onDeck[0], "F0 untouched");
   assert.equal(eight.onDeck[1].players.length, 4);
   assert.deepEqual(
@@ -582,6 +593,71 @@ test("an incomplete On Deck Foursome tops up as Players join, without reshufflin
     "existing members keep their places, new ones append",
   );
   assert.equal(eight.onDeck[1].committedAt, six.onDeck[1].committedAt);
+});
+
+/**
+ * Issue #533. Commitment (ADR 0007) buys stability so a named Foursome can
+ * gather ahead of a Court freeing. No Court can free before one is occupied,
+ * so before the night starts there is nothing to gather for — and carrying a
+ * Foursome committed when four people had arrived means the opening Games are
+ * seated in arrival order, with Match Me's skill fit contributing nothing.
+ */
+const ONE_NEWBIE_AMONG_ADVANCED: SkillLevel[] = [
+  "advanced",
+  "advanced",
+  "advanced",
+  "newbie",
+  "advanced",
+  "advanced",
+  "advanced",
+  "advanced",
+];
+
+test("before the night starts, On Deck re-forms as the room fills", () => {
+  // Four in the room: they are the only four, so they are the card.
+  const four = reduceSession(
+    config,
+    sessionWithSkills(ONE_NEWBIE_AMONG_ADVANCED.slice(0, 4)),
+  );
+  assert.deepEqual(four.onDeck[0].players, ["p1", "p2", "p3", "p4"]);
+
+  // Eight in the room, nothing started: the newbie is no longer in a foursome
+  // of advanced players, because nobody was promised anything yet.
+  const eight = reduceSession(config, sessionWithSkills(ONE_NEWBIE_AMONG_ADVANCED));
+  assert.equal(eight.onDeck[0].players.includes("p4"), false);
+  // The anchor never moves, whatever else does — Wait Time fairness is not
+  // what was being traded away here (ADR 0004).
+  assert.equal(eight.onDeck[0].players[0], "p1");
+});
+
+test("the first foursome of the night is Match Me's pick over everyone waiting", () => {
+  const events = [
+    ...sessionWithSkills(ONE_NEWBIE_AMONG_ADVANCED),
+    courtFinished(1),
+  ];
+  const state = reduceSession(config, events);
+
+  // Arrival order would have put the newbie on the first Court of the night
+  // alongside three advanced players. Match Me does not.
+  assert.equal(state.courts[0].foursome.length, 4);
+  assert.equal(state.courts[0].foursome.includes("p4"), false);
+  assert.equal(state.courts[0].foursome[0], "p1");
+});
+
+test("commitment takes over from the moment the first foursome walks on", () => {
+  const started = [
+    ...sessionWithSkills(ONE_NEWBIE_AMONG_ADVANCED),
+    courtFinished(1),
+  ];
+  const before = reduceSession(config, started);
+  const upNext = before.onDeck[0];
+
+  // A late arrival who would fit the card better does not displace anybody.
+  const after = reduceSession(config, [
+    ...started,
+    ...addWaiter(9),
+  ]);
+  assert.deepEqual(after.onDeck[0], upNext);
 });
 
 test("when a Court frees, the leading Foursome takes it and a fresh second Foursome is selected", () => {

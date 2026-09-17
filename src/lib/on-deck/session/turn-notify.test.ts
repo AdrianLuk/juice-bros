@@ -98,6 +98,34 @@ test("a Foursome becoming On Deck fires one on-deck transition per member", () =
   assert.ok(result.every((t) => t.court === null));
 });
 
+test("nobody is told to head to the courts before the night has started", () => {
+  // Issue #533: while every Court is empty and nobody has been sent out, the
+  // On Deck cards are a running prediction over a filling room, not a
+  // commitment. Buzzing "head to the courts" for each revision would be noise
+  // about a Game nobody can walk onto — and the advice is wrong anyway.
+  const base: SessionEvent[] = [started()];
+  for (let i = 1; i <= 8; i++) base.push(joined(`p${i}`));
+
+  const queueFour = [queued("p1"), queued("p2"), queued("p3"), queued("p4")];
+  assert.deepEqual(transitionsAfter(base, queueFour), []);
+
+  // Four more arrive and the card is re-formed around them: still nothing.
+  assert.deepEqual(
+    transitionsAfter(
+      [...base, ...queueFour],
+      [queued("p5"), queued("p6"), queued("p7"), queued("p8")],
+    ),
+    [],
+  );
+
+  // The Organizer sends the first four out. That is a real turn, and the four
+  // who walk on are told so.
+  const seeded = [...base, ...queueFour, queued("p5"), queued("p6"), queued("p7"), queued("p8")];
+  const result = transitionsAfter(seeded, [courtFinished(1)]);
+  assert.deepEqual(new Set(result.map((t) => t.kind)), new Set(["court"]));
+  assert.equal(result.length, 4);
+});
+
 test("being assigned a Court fires one court transition carrying the Court number", () => {
   const base: SessionEvent[] = [started()];
   for (let i = 1; i <= 8; i++) base.push(joined(`p${i}`));
