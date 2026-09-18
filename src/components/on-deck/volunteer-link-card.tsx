@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCopyToClipboard } from "@/components/on-deck/use-copy-to-clipboard";
 
 /**
  * The Organizer's view-and-copy of the open Session's Volunteer Link (issue
@@ -8,17 +8,7 @@ import { useState } from "react";
  * so this component only owns the copy interaction.
  */
 export function VolunteerLinkCard({ url }: { url: string }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
+  const { copied, copy } = useCopyToClipboard(url);
 
   return (
     <div className="od-panel p-4">
