@@ -31,7 +31,7 @@ const FLOOR_MODES: {
     id: "hybrid",
     label: "Hybrid",
     detail:
-      "Both at once — volunteers run the night, and anyone courtside can still tap a game done.",
+      "Volunteers run the night, and anyone courtside can still tap a game done.",
   },
   {
     id: "self-serve",
@@ -111,7 +111,9 @@ export function FloorModeConsoles() {
         </div>
       </div>
 
-      <p className="odl-mono odlc-readout">One session. One truth.</p>
+      <p className="odl-mono odlc-readout">
+        The same night, on whichever screens you have
+      </p>
 
       <div
         className="odlc-modes"

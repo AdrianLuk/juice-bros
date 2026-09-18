@@ -6,7 +6,7 @@ export function Matching() {
       <div className="mx-auto w-full max-w-3xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <Reveal>
           <h2 className="odl-display text-3xl sm:text-4xl">
-            Fair by default, flexible when it matters
+            How the next four get picked
           </h2>
         </Reveal>
         <div className="mt-10 flex flex-col gap-4">
