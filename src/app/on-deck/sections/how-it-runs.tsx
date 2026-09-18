@@ -15,7 +15,7 @@ const steps = [
   },
   {
     title: "A court frees, the next four walk on",
-    body: "When a game wraps, someone taps that court done: a volunteer, or any player on the tablet by the courts. The leading On Deck Foursome takes the court, a fresh one moves up, and the players coming off re-queue on their own. Run your night with volunteers, without them, or both.",
+    body: "When a game wraps, someone taps that court done: a volunteer, or any player on the tablet by the courts. The leading On Deck Foursome walks on and a fresh one moves up behind it. The players coming off re-queue on their own. Volunteers can run the turnover, or nobody has to and the tablet handles it.",
   },
   {
     title: "Call Last Call when the night winds down",

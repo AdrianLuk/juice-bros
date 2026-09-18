@@ -310,10 +310,8 @@ export function buildOnDeckLandingJsonLd() {
         id: `${pageUrl}#app`,
         name: "On Deck",
         description:
-          "Live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up, keeping court time fair and varying who plays with whom.",
+          "Free live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up, keeping court time fair and varying who plays with whom.",
         url: pageUrl,
-        // No public pricing set yet, so don't assert a zero-price Offer.
-        free: false,
         publisher: true,
       }),
     ],
