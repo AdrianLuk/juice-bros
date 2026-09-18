@@ -73,6 +73,26 @@ const DEMO_FINISHED_TURNOVERS = 3;
 const DEMO_OPENED: OnDeckFunnelEvent = "od_demo_opened";
 const DEMO_FINISHED: OnDeckFunnelEvent = "od_demo_finished";
 
+/**
+ * Funnel state for the page load, not for the mount — deliberately module
+ * scope rather than refs.
+ *
+ * A visitor who clicks "Create your Club" under the board and then comes back
+ * has client-side-navigated away and back, which unmounts and remounts this
+ * component. Refs would be fresh, so that one visit would report two opens and
+ * could report two finishes, and both of those are denominators in the funnel
+ * read — `od_club_intent ÷ od_demo_finished` is the headline number. Module
+ * scope survives the router and resets on an actual page load, which is the
+ * unit being counted.
+ *
+ * `demoTurnovers` survives the same way on purpose: somebody who watched two
+ * turnovers, went to look at the sign-in page and came back to watch a third
+ * has watched three.
+ */
+let demoOpenedFired = false;
+let demoFinishedFired = false;
+let demoTurnovers = 0;
+
 type DemoScreen = "floor" | "display" | "kiosk";
 
 const SCREENS: { id: DemoScreen; label: string }[] = [
@@ -112,22 +132,16 @@ export function DemoStage() {
    * row is written, and this route's import graph must stay clear of a
    * Supabase client.
    *
-   * Refs rather than state throughout — none of this is rendered, and a
-   * re-render must never re-fire an event. They deliberately survive `reset()`
-   * too: somebody who starts the night over has still watched the turnovers
-   * they watched, and counting them twice would inflate the one number this
-   * release has.
+   * The guards deliberately survive `reset()` as well as a remount: somebody
+   * who starts the night over has still watched the turnovers they watched,
+   * and counting them twice would inflate the one number this release has.
    */
-  const openedRef = useRef(false);
-  const finishedRef = useRef(false);
-  const turnoversRef = useRef(0);
-
   useEffect(() => {
     // Guarded rather than trusting the empty dependency array: Strict Mode
     // double-invokes this in development, and the count of people who opened
     // the demo is the denominator for everything else in the funnel.
-    if (openedRef.current) return;
-    openedRef.current = true;
+    if (demoOpenedFired) return;
+    demoOpenedFired = true;
     // `trackWhenReady`, not `track`: this is the repo's only mount-time client
     // event, and a bare `track()` here lands before `<Analytics />` has set
     // itself up and is dropped without a word. Nothing is returned to clean
@@ -143,10 +157,10 @@ export function DemoStage() {
    * Undo does not decrement. They saw it happen.
    */
   const countTurnover = (): void => {
-    if (finishedRef.current) return;
-    turnoversRef.current += 1;
-    if (turnoversRef.current < DEMO_FINISHED_TURNOVERS) return;
-    finishedRef.current = true;
+    if (demoFinishedFired) return;
+    demoTurnovers += 1;
+    if (demoTurnovers < DEMO_FINISHED_TURNOVERS) return;
+    demoFinishedFired = true;
     trackWhenReady(DEMO_FINISHED);
   };
 

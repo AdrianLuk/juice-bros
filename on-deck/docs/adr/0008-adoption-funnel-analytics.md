@@ -18,7 +18,7 @@ are browser facts about a page with no account behind it.
 
 | Event | Where | Fires when |
 |---|---|---|
-| `od_demo_opened` | browser | `DemoStage` mounts. Once per page load |
+| `od_demo_opened` | browser | the demo first mounts. Once per page load |
 | `od_demo_finished` | browser | three turnovers have been watched. Once per page load |
 | `od_club_intent` | browser | a "Create your Club" is clicked, carrying `{ from }` |
 | `od_club_created` | server | `createClub` genuinely creates one |
@@ -60,8 +60,13 @@ tap. It is an invented number and is written here as one. If it turns out to be 
 `od_demo_opened` remains the honest denominator and the threshold can move without
 invalidating what has already been counted.
 
-Refs, not state, and deliberately not reset by the demo's Reset: somebody who starts the
-night over has still watched the turnovers they watched.
+The guards are module scope, not refs, and deliberately not cleared by the demo's Reset.
+Somebody who starts the night over has still watched the turnovers they watched — and,
+more sharply, the new "Create your Club" under the board means a visitor can navigate
+away and come back, which remounts the component. Per-instance refs would have reported
+that one visit as two opens and two finishes, inflating both of the denominators this
+funnel is read through. Module scope survives the router and resets on an actual page
+load, which is the unit being counted.
 
 ## Why the first-time gates are shaped the way they are
 
@@ -113,6 +118,15 @@ record of one: the event log and the roster are purged on close (ADR 0001).
   waits for the SDK and explains why it hands back nothing to clean up with — a canceller
   is the obvious shape and Strict Mode turns it into a lost event. This only bites
   `od_demo_opened`; every other client event in the repo is click-driven.
+- **`od_club_intent` counts some clicks that can never become a Club.** The landing page
+  shows both calls to action to everybody, signed in or not, so an Organizer who already
+  owns a Club can click "Create your Club", and `od_club_created` will not follow —
+  `createClub`'s already-exists branch deliberately stays quiet. That depresses
+  `od_club_created ÷ od_club_intent` and reads as sign-in friction that is not there.
+  Left alone rather than suppressed: knowing whether the visitor already owns a Club is a
+  server fact, and asking for it would make a static marketing page dynamic in order to
+  improve a ratio that, in the window this release is about, has no existing Organizers in
+  it at all. Worth remembering before reading that number once there are some.
 - **The demo's events are trivially spoofable and trivially blockable.** They are
   browser calls on a public page with no account. An ad blocker suppresses them and
   anybody can fire them by hand. Acceptable: this is a funnel for spotting where ten

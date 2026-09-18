@@ -51,9 +51,11 @@ boundary as an estimate. The ADR has the full statement of this.
 
 ## Local verification
 
-In `npm run dev` (no `VERCEL_URL`) the SDK logs `[Vercel Web Analytics] Track "<event>"`
-instead of sending, for both the browser and the server halves. The whole funnel can be
-walked in one sitting:
+In `npm run dev` nothing is sent. The server half logs
+`[Vercel Web Analytics] Track "<event>" with data {...}` to the **dev server's** console;
+the browser half logs `[Vercel Web Analytics] [event] <name>` to the **browser** console,
+a different format from a different script. The whole funnel can be walked in one
+sitting:
 
 1. Open `/on-deck/demo` — `od_demo_opened`.
 2. Tap "Court 1 done" three times — `od_demo_finished` on the third.
