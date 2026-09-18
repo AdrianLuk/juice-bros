@@ -12,12 +12,13 @@ import { HowItRuns } from "./sections/how-it-runs";
 import { AtTheVenue } from "./sections/at-the-venue";
 import { CourtsideBoard } from "./sections/courtside-board";
 import { Matching } from "./sections/matching";
+import { WhenItGoesWrong } from "./sections/when-it-goes-wrong";
 import { StaysSocial } from "./sections/stays-social";
 
 export const metadata: Metadata = pageMetadata({
   title: "On Deck",
   description:
-    "Live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up, keeping court time fair and mixing up who plays with whom.",
+    "Free live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up. Tap through a whole night in your browser before you sign up for anything.",
   path: "/on-deck",
 });
 
@@ -36,6 +37,7 @@ export default function OnDeckPage() {
       <AtTheVenue />
       <CourtsideBoard />
       <Matching />
+      <WhenItGoesWrong />
       <StaysSocial />
     </div>
   );

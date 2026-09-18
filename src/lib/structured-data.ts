@@ -289,9 +289,10 @@ export function buildToolsJsonLd(apps: AppItem[]) {
 
 /**
  * BreadcrumbList + SoftwareApplication for the On Deck landing page. On Deck
- * is not on the /tools shelf yet (it has no working app, only this explainer),
- * so the breadcrumb runs Home > On Deck and there's no `apps.ts` entry to pull
- * from. `offers` is omitted rather than asserting a price we haven't set.
+ * is not on the /tools shelf, so the breadcrumb runs Home > On Deck and there
+ * is no `apps.ts` entry to pull from. The zero-price `offers` node is asserted
+ * because the page itself now says plainly that On Deck is free (issue #523);
+ * withholding it here would leave search results contradicting the page.
  */
 export function buildOnDeckLandingJsonLd() {
   const pageUrl = `${siteConfig.url}/on-deck`;
@@ -310,10 +311,8 @@ export function buildOnDeckLandingJsonLd() {
         id: `${pageUrl}#app`,
         name: "On Deck",
         description:
-          "Live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up, keeping court time fair and varying who plays with whom.",
+          "Free live court rotation for pickleball socials. Players scan a sign to join the queue, and On Deck calls the next foursome as courts free up, keeping court time fair and varying who plays with whom.",
         url: pageUrl,
-        // No public pricing set yet, so don't assert a zero-price Offer.
-        free: false,
         publisher: true,
       }),
     ],

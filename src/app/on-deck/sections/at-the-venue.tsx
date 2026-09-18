@@ -41,8 +41,9 @@ export function AtTheVenue() {
             A sign on the wall and your phone
           </h2>
           <p className="odl-body mt-4 text-lg">
-            The club prints one sign and never touches it again. A player scans
-            it, gives a first name, and their phone does the rest.
+            The club prints one sign and never touches it again. A player
+            points a camera at it and gives a first name. Their phone does the
+            rest.
           </p>
         </Reveal>
 

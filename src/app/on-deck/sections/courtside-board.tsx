@@ -58,6 +58,10 @@ const annotations = [
     live: true,
   },
   {
+    head: "Waits are on the board",
+    body: "Every name in the line carries how long it has been there, so the order is something anyone in the room can check rather than something they take a volunteer's word for.",
+  },
+  {
     head: "Check your own spot",
     body: "A player scans the sign and sees their place in line on their phone, so nobody has to ask a volunteer whether they're up.",
   },
@@ -72,8 +76,8 @@ export function CourtsideBoard() {
             What the courtside screen shows
           </h2>
           <p className="odl-body mt-4 text-lg">
-            One lit panel a loud gym reads at a glance: who&apos;s on which
-            court, who&apos;s up next, and how long the line really is.
+            One lit panel a loud gym can read from the far end: who is on each
+            court, and who walks on when one of them frees up.
           </p>
         </Reveal>
 
@@ -458,7 +462,7 @@ const boardCss = `
   gap: 1.75rem 2.5rem;
 }
 @media (min-width: 768px) {
-  .odm-notes { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2.5rem; }
+  .odm-notes { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 2.5rem; }
 }
 
 .odm-note-head {

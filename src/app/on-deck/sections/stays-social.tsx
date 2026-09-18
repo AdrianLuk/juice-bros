@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/motion/reveal";
+import { ON_DECK_DEMO_PATH, ON_DECK_SIGN_IN_PATH } from "@/lib/on-deck/routes";
 
 export function StaysSocial() {
   return (
@@ -14,30 +15,41 @@ export function StaysSocial() {
           It stays a social
         </h2>
         <p className="odl-body max-w-md text-white/70">
-          Nobody keeps score. There are no winners recorded and no
-          leaderboard. The only thing a game leaves behind is that its four
-          players have now shared a court, which feeds back into who they get
-          matched with next.
+          Nobody keeps score. There are no winners recorded and no leaderboard.
+          The only thing a game leaves behind is that its four players have now
+          shared a court, which feeds back into who they get matched with next.
         </p>
         <p className="odl-body max-w-md text-white/70">
-          On Deck was built for one club&apos;s Saturday social, the kind where
-          sixty people turn up and one person ends up deciding who plays next.
-          Nothing about it is specific to that club, and if yours runs a night
-          like it, we&apos;d like to hear how it goes.
+          On Deck is free to use. There is no trial to run out and no card to
+          enter.
         </p>
-        <div className="odl-cta-glow mt-5">
+        <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row">
+          <span className="odl-cta-glow">
+            <Button
+              size="lg"
+              nativeButton={false}
+              className="odl-key odl-key--go h-12 px-8 text-base"
+              render={<Link href={ON_DECK_DEMO_PATH} />}
+            >
+              Try the demo night
+            </Button>
+          </span>
           <Button
             size="lg"
+            variant="outline"
             nativeButton={false}
-            className="odl-key odl-key--go h-12 rounded-[11px] border-transparent bg-(--odl-live) px-8 text-base text-white hover:bg-[color-mix(in_oklch,var(--odl-live),white_7%)]"
-            render={<Link href="/contact" />}
+            className="odl-key odl-key--neutral h-12 px-7 text-base"
+            render={<Link href={ON_DECK_SIGN_IN_PATH} />}
           >
-            Talk to us about your club
+            Create your Club
           </Button>
         </div>
+        <p className="odl-mono mt-1">
+          Two fields to start a Club. Nothing to install at the venue.
+        </p>
       </Reveal>
       <style>{`
-        .odl-cta-glow { filter: drop-shadow(0 0 32px oklch(0.68 0.19 40 / 0.4)); }
+        .odl-cta-glow { display: inline-flex; filter: drop-shadow(0 0 32px oklch(0.68 0.19 40 / 0.4)); }
       `}</style>
     </section>
   );
