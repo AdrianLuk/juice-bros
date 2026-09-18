@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { verifyOrganizer } from "@/lib/on-deck/dal";
 import { createClient } from "@/lib/on-deck/supabase/server";
+import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { getSessionSummary } from "@/lib/on-deck/summaries";
+import { clubJoinUrl } from "@/lib/on-deck/qr";
 import { sessionDateWithYear } from "@/lib/on-deck/session-date";
 import {
   courtRows,
@@ -14,6 +16,7 @@ import {
   waitRows,
 } from "@/lib/on-deck/session/summary-format";
 import { BarTable, StatTile } from "@/components/on-deck/summary-report";
+import { NextWeekMessage } from "@/components/on-deck/next-week-message";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import {
   BoardHead,
@@ -67,6 +70,15 @@ export default async function OnDeckSummaryPage({
   const { waitTime } = summary;
   const seated = waitTime.sampleSize > 0;
   const waitNote = waitConfidenceNote(summary);
+
+  // The first-night kit (issue #521) only ever shows before a Club's first
+  // close, so once it's gone this is where the same join message resurfaces
+  // for the weekly rhythm. `getOwnedClub` rather than trusting this Session's
+  // own `club_id`: RLS already scoped `getSessionSummary` to the caller's
+  // Club, so this is the same Club either way, and reusing the helper avoids
+  // a second notion of "whose Club is this".
+  const club = await getOwnedClub(supabase);
+  const joinUrl = club ? await clubJoinUrl(club.id) : null;
 
   return (
     <ArenaShell className="od-summary">
@@ -136,6 +148,12 @@ export default async function OnDeckSummaryPage({
               rows={skillRows(summary)}
             />
           </div>
+
+          {joinUrl && club && (
+            <div className="mt-7">
+              <NextWeekMessage clubName={club.name} joinUrl={joinUrl} />
+            </div>
+          )}
 
           <RowList>
             <Row href={ON_DECK_SUMMARIES_PATH} label="All past nights" />
