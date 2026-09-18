@@ -902,6 +902,71 @@ migration's timestamp past whatever else merged (the drift lesson
   new code is composition over `buildJoinMessage` (#517) and a clipboard
   hook, both already covered where they're defined.
 
+- [x] **Six funnel counters (#524, parent #512, OD-6.10).** The release's one
+  irreversible deferral: analytics added in month two cannot see month one,
+  and the first ten people who ever touch On Deck are not repeatable. Six
+  custom Vercel Analytics events, shaped exactly like Booking Buddy's
+  onboarding funnel (its ADR 0014) — `after()` from the Server Action, failures
+  swallowed, gated on a post-write row count, no table of our own and no
+  dashboard.
+
+  `od_demo_opened`, `od_demo_finished` and `od_club_intent` fire from the
+  browser; `od_club_created`, `od_first_session_started` and
+  `od_first_session_closed` from the server. Names live in
+  `analytics-events.ts` (types only, so both halves can import it); the server
+  emitters and their gates in `analytics.ts`.
+
+  The sixth counter is the one the spec added over the doc's original five,
+  and it is the load-bearing one. `od_club_intent` fires **before**
+  authentication, from a new `ClubIntentLink`, carrying `from` (`demo`,
+  `landing-hero`, `landing-close`). Without it "the demo did not convince
+  them" and "signing up was too much friction" are the same number and they
+  need opposite fixes.
+
+  Two judgment calls, both written up in the ADR rather than buried. First,
+  `od_demo_finished` is **three turnovers**, not the demo night closing: the
+  night has no ending to reach (ADR 0002), so the only literal "finished"
+  would have been a wrap-up tap next to nobody makes, and the middle of the
+  funnel would have read as total drop-off whether or not it was. Three is
+  chosen, said to be chosen, and movable. Second, the demo had **no exit
+  toward a Club at all** — #512's user story 9, which no child ticket picked
+  up — so the event as specified could never have fired. A "Create your Club"
+  now sits under the board, in the arena's own `od-key` rather than the
+  landing page's, and that click is what `od_club_intent` counts.
+
+  `od_first_session_closed` carries `auto`, so a first night the Organizer ran
+  to its end reads differently from one that closed itself six hours after
+  going quiet (#516). Both paths are wired: `closeSession` in `actions/floor.ts`
+  and the auto-close in `sessions.ts`, the latter through `after()` because it
+  runs during home's render as well as inside Start. `od_club_created` has no
+  gate — one Club per owner makes it once-per-account by construction — and
+  fires only on the real create, never on the `ClubAlreadyExistsError` branch
+  that reports success for a Club that was already there.
+
+  Two things the wiring turned up, both in the ADR because both will be met
+  again. `after()` refuses a fresh `cookies()` while rendering, so the
+  auto-close event was throwing and vanishing until every gated helper took
+  the client its caller already held. And the browser SDK's `track()` has no
+  queue of its own while the root layout mounts `<Analytics />` after
+  `{children}`, so `od_demo_opened` — the repo's first mount-time client event
+  — was dropped in silence; `analytics-browser.ts` waits for the SDK, and
+  deliberately returns no canceller, because Strict Mode's teardown would
+  cancel the pending emit while the caller's guard suppressed the retry.
+
+  Recorded durably, per the ticket: events are keyed to a visitor session and
+  carry nothing to join on, so **a visitor who demos today and signs up next
+  week does not join across the gap**. That is in ADR 0008's consequences, in
+  the read doc as a "do not report this ratio as a measurement", and in
+  `CONTEXT.md`'s new **Funnel Event** entry.
+
+  Tests: `e2e/on-deck-demo.spec.ts` gains the way out — the CTA renders and
+  lands on sign-in. No `node --test` or pgTAP: same call Booking Buddy made on
+  the same code shape, the added logic is a row count plus a guarded external
+  call, and the seam policy at the top of this file says not to build a
+  harness for that. Verified by hand against the dev server, where the SDK
+  logs `Track "<event>"` instead of sending — see
+  `on-deck/docs/adoption-funnel.md` for the walkthrough.
+
 ## Next
 
 **v1 is complete** — every ticket in the #238 breakdown is merged and its

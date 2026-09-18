@@ -2,8 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { createClient } from "../supabase/server.ts";
+import { trackClubCreated, trackFirstSessionStarted } from "../analytics.ts";
 import { verifyOrganizer } from "../dal.ts";
 import {
   ClubAlreadyExistsError,
@@ -82,6 +84,10 @@ export async function startSession(input?: {
   }
 
   revalidatePath(ON_DECK_HOME_PATH);
+  // Registered before the redirect, not after it: `redirect()` throws to
+  // unwind, so nothing below this line runs. The callback itself still fires,
+  // once the response is on its way (issue #524).
+  after(() => trackFirstSessionStarted(supabase, club.id));
   redirect(sessionPath(sessionId as string));
 }
 
@@ -302,6 +308,10 @@ export async function createClub(input: {
   await deleteClubDraftCookie();
   revalidatePath(ON_DECK_HOME_PATH);
   revalidatePath(ON_DECK_SETTINGS_PATH);
+  // Only this return, never the `ClubAlreadyExistsError` one above — that one
+  // reports success for a Club that was already there, and counting it would
+  // turn a double-submit into a second stranger (issue #524).
+  after(() => trackClubCreated());
   return { ok: true };
 }
 

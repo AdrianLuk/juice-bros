@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { ON_DECK_DEMO_PATH } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
+import { ClubIntentLink } from "@/components/on-deck/club-intent-link";
 import { DemoStage } from "@/components/on-deck/demo-stage";
 import { DEMO_CONFIG, DEMO_PLAYER_COUNT } from "@/lib/on-deck/demo/night";
 
@@ -67,6 +68,27 @@ export default function OnDeckDemoPage() {
 
           <div className="mt-9">
             <DemoStage />
+          </div>
+
+          {/* The way out (#512, user story 9). The demo had no exit toward a
+              Club of your own, which left the moment somebody is convinced
+              and the moment they can act in two different places. */}
+          <div className="mt-12 border-t border-arena-line-soft pt-8">
+            <h2 className="od-display text-2xl text-arena-fg">
+              Run this at your own club
+            </h2>
+            <p className="mt-3 text-arena-faint">
+              Two fields to start: what your club is called and how many courts
+              you have. Everything else takes a default you can change later,
+              and there is nothing to install at the venue.
+            </p>
+            <ClubIntentLink
+              from="demo"
+              className="od-key od-key--go mt-6"
+              data-testid="demo-create-club"
+            >
+              Create your Club
+            </ClubIntentLink>
           </div>
         </div>
       </section>
