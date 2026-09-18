@@ -143,15 +143,13 @@
   background: color-mix(in oklch, var(--odl-live), white 7%);
 }
 
-.odl-key--ghost {
-  height: 40px;
-  background: transparent;
-  color: var(--odl-dim);
-  box-shadow: none;
-  padding: 0 16px;
-}
-.odl-key--ghost:hover {
-  background: oklch(1 0 0 / 0.04);
+/* The secondary key beside `--go`. Same weight and height as the primary,
+   because "create your Club" is the other thing a visitor may have come to do
+   (issue #523) rather than an afterthought the page whispers. */
+.odl-key--neutral {
+  background: var(--odl-panel-raised);
+  color: var(--odl-fg);
+  border-color: var(--odl-line);
 }
 
 /* --- Chips (the Floor Mode selector borrows the name-picker chip) --- */

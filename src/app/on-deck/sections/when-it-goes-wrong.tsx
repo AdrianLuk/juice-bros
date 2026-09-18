@@ -1,11 +1,10 @@
 import { Reveal, RevealGroup } from "@/components/motion/reveal";
 
 /**
- * The section that answers "what happens on a bad night" (issue #523, user
- * story 37). Every answer here is checked against the implementation rather
- * than written as reassurance: the no-internet row and the limits on Undo are
- * in because an organizer who finds out later is an organizer who stops
- * trusting the rest of the page.
+ * Every answer here is checked against the implementation rather than written
+ * as reassurance (issue #523, user story 37). The no-internet row and the
+ * limits on Undo are in deliberately: an organizer who finds either out on a
+ * Saturday is an organizer who stops trusting the rest of the page.
  */
 
 const failures = [

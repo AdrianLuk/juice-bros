@@ -28,7 +28,7 @@ export function StaysSocial() {
             <Button
               size="lg"
               nativeButton={false}
-              className="odl-key odl-key--go h-12 rounded-[11px] border-transparent bg-(--odl-live) px-8 text-base text-white hover:bg-[color-mix(in_oklch,var(--odl-live),white_7%)]"
+              className="odl-key odl-key--go h-12 px-8 text-base"
               render={<Link href={ON_DECK_DEMO_PATH} />}
             >
               Try the demo night
@@ -38,7 +38,7 @@ export function StaysSocial() {
             size="lg"
             variant="outline"
             nativeButton={false}
-            className="odl-key h-12 rounded-[11px] border-[var(--odl-line)] bg-[var(--odl-panel-raised)] px-7 text-base text-[var(--odl-fg)] hover:bg-[color-mix(in_oklch,var(--odl-panel-raised),white_7%)]"
+            className="odl-key odl-key--neutral h-12 px-7 text-base"
             render={<Link href={ON_DECK_SIGN_IN_PATH} />}
           >
             Create your Club

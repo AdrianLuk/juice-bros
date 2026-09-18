@@ -25,7 +25,7 @@ const steps = [
 
 export function HowItRuns() {
   return (
-    <section id="how-it-runs" className="odl-section w-full scroll-mt-24">
+    <section className="odl-section w-full">
       <div className="mx-auto w-full max-w-3xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <Reveal>
           <h2 className="odl-display text-3xl sm:text-4xl">
