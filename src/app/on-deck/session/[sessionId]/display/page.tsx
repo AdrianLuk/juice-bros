@@ -7,7 +7,7 @@ import { getSession, venueNameOf } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { displayPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
-import { DisplayBoard } from "@/components/on-deck/display-board";
+import { DisplayRotationBoard } from "@/components/on-deck/display-rotation-board";
 import { clubJoinQr } from "@/lib/on-deck/qr";
 
 export async function generateMetadata({
@@ -78,7 +78,7 @@ export default async function DisplayPage({
           </header>
 
           <div className="mt-7">
-            <DisplayBoard
+            <DisplayRotationBoard
               sessionId={sessionId}
               initialView={view}
               joinQr={joinQr}

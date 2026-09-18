@@ -7,7 +7,7 @@ import { venueNameOf } from "@/lib/on-deck/sessions";
 import { rotationViewFrom } from "@/lib/on-deck/rotation";
 import { kioskPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
-import { KioskBoard } from "@/components/on-deck/kiosk-board";
+import { KioskRotationBoard } from "@/components/on-deck/kiosk-rotation-board";
 
 export async function generateMetadata({
   params,
@@ -72,7 +72,7 @@ export default async function KioskPage({
           </p>
 
           <div className="mt-7">
-            <KioskBoard sessionId={sessionId} initialView={view} />
+            <KioskRotationBoard sessionId={sessionId} initialView={view} />
           </div>
         </div>
       </section>

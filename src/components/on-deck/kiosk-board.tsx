@@ -1,20 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
-import { QueryProvider } from "@/components/on-deck/query-provider";
-import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
-import {
-  kioskAddWalkup,
-  kioskConfirmCourt,
-  kioskFinishCourt,
-  kioskSwapNoShow,
-  kioskUndoLastAction,
-} from "@/lib/on-deck/actions/kiosk";
-import { getRotationView } from "@/lib/on-deck/actions/rotation";
-import type { RotationView } from "@/lib/on-deck/session/rotation-view";
-import { SKILL_LEVELS, SKILL_LEVEL_LABEL } from "@/lib/on-deck/session/types";
 import {
   BoardBanner,
   BoardHeading,
@@ -25,33 +12,53 @@ import {
   SkillColors,
   SkillKey,
 } from "@/components/on-deck/board-parts";
+import type { RotationView } from "@/lib/on-deck/session/rotation-view";
+import { SKILL_LEVELS, SKILL_LEVEL_LABEL } from "@/lib/on-deck/session/types";
+
+/*
+ * The courtside Kiosk itself (issue #259), with nothing in it that knows where
+ * the board came from. `kiosk-rotation-board.tsx` wires it to the database for
+ * the live route; the demo night (#522) folds its own `view` in the browser
+ * and drives this identical screen at the same `floor-ops` decisions the
+ * Kiosk's Server Actions call, with no Supabase client anywhere in its import
+ * graph — the same seam `floor-board.tsx` opened for the Floor in #519.
+ */
 
 /**
- * The courtside Kiosk (issue #259) on the substitution board (direction seed
- * 92ec9d54): the Display's board — courts, on deck, the queue — plus the milled
- * keys a Game turnover needs, for a tablet stood by the courts.
- *
- *   - **Court N done** — the orange turnover key; the next Foursome walks on
- *   - **A player short** — flag a missing fourth; Match Me pulls a replacement
- *   - **Add me** — a walk-up with no phone enters name + last initial + skill
- *
- * plus an **idle-court nudge** — "Is Court N still going?" — when a Court has
- * sat unconfirmed well past a normal Game length.
- *
- * No token — the Session id in the URL is the whole credential (ADR 0005). All
- * taps are `kiosk` Operator actions.
+ * What a tap on the Kiosk does. The live board hands these to TanStack Query
+ * mutations that call the Kiosk's Server Actions; the demo hands them a
+ * reducer over an event array. Neither shape leaks into the board.
  */
-export function KioskBoard(props: {
-  sessionId: string;
-  initialView: RotationView;
-}) {
-  return (
-    <QueryProvider>
-      <KioskBoardInner {...props} />
-    </QueryProvider>
-  );
-}
+export type KioskBoardOps = {
+  finishCourt: (court: number, since: number | null) => void;
+  swapNoShow: (args: {
+    court: number;
+    since: number | null;
+    outName: string;
+    inName: string;
+  }) => void;
+  addWalkup: (args: {
+    first: string;
+    initial: string;
+    skill: string;
+  }) => Promise<{ ok?: boolean } | undefined>;
+  confirmCourt: (court: number, since: number | null) => void;
+  undo: (expectedSeq: number) => void;
+};
 
+/** Which controls are mid-flight. `any` is what the turnover keys watch. */
+export type KioskBoardPending = {
+  any: boolean;
+  swap: boolean;
+  walkup: boolean;
+};
+
+/** Nothing in flight — what a board committing its taps synchronously passes. */
+export const NOTHING_PENDING: KioskBoardPending = {
+  any: false,
+  swap: false,
+  walkup: false,
+};
 
 /** "A player short" for one in-play Court: pick who didn't show, confirm the
  * Match Me replacement (overridable). Collapsed until tapped. */
@@ -265,78 +272,32 @@ function AddMe({
   );
 }
 
-function KioskBoardInner({
-  sessionId,
-  initialView,
+/**
+ * The courtside Kiosk (issue #259) on the substitution board (direction seed
+ * 92ec9d54): the Display's board — courts, on deck, the queue — plus the milled
+ * keys a Game turnover needs, for a tablet stood by the courts.
+ *
+ *   - **Court N done** — the orange turnover key; the next Foursome walks on
+ *   - **A player short** — flag a missing fourth; Match Me pulls a replacement
+ *   - **Add me** — a walk-up with no phone enters name + last initial + skill
+ *
+ * plus an **idle-court nudge** — "Is Court N still going?" — when a Court has
+ * sat unconfirmed well past a normal Game length.
+ */
+export function KioskBoard({
+  view,
+  error,
+  pending,
+  now,
+  ops,
 }: {
-  sessionId: string;
-  initialView: RotationView;
+  view: RotationView;
+  error: string | null;
+  pending: KioskBoardPending;
+  now: number;
+  ops: KioskBoardOps;
 }) {
-  const queryClient = useQueryClient();
-  const queryKey = ["on-deck", "rotation", sessionId, "kiosk"] as const;
-  const pollInterval = useRotationSync(sessionId, [queryKey]);
-  const query = useQuery({
-    queryKey,
-    queryFn: () => getRotationView(sessionId),
-    refetchInterval: pollInterval,
-    initialData: initialView,
-  });
-
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = () => queryClient.invalidateQueries({ queryKey });
-  const handle = (result: { ok?: boolean; error?: string }) => {
-    setError(result.ok ? null : (result.error ?? "Something went wrong. Try again."));
-    refresh();
-  };
-
-  const finish = useMutation({
-    mutationFn: ({ court, since }: { court: number; since: number | null }) =>
-      kioskFinishCourt(sessionId, court, since),
-    onSuccess: handle,
-    onError: () => setError("Couldn't end that game. Try again."),
-  });
-  const swap = useMutation({
-    mutationFn: (args: {
-      court: number;
-      since: number | null;
-      outName: string;
-      inName: string;
-    }) => kioskSwapNoShow(sessionId, args.court, args.since, args.outName, args.inName),
-    onSuccess: handle,
-    onError: () => setError("Couldn't bring someone in. Try again."),
-  });
-  const walkup = useMutation({
-    mutationFn: (args: { first: string; initial: string; skill: string }) =>
-      kioskAddWalkup(sessionId, args.first, args.initial, args.skill),
-    onSuccess: handle,
-    onError: () => setError("Couldn't add you. Try again."),
-  });
-  const confirm = useMutation({
-    mutationFn: ({ court, since }: { court: number; since: number | null }) =>
-      kioskConfirmCourt(sessionId, court, since),
-    onSuccess: handle,
-    onError: () => setError("Couldn't update that. Try again."),
-  });
-  const undo = useMutation({
-    mutationFn: (expectedSeq: number) => kioskUndoLastAction(sessionId, expectedSeq),
-    onSuccess: handle,
-    onError: () => setError("Couldn't undo that. Try again."),
-  });
-
-  const view = query.data ?? initialView;
-  const busy =
-    finish.isPending ||
-    swap.isPending ||
-    walkup.isPending ||
-    confirm.isPending ||
-    undo.isPending;
+  const busy = pending.any;
   const kioskUndo = view.undo && view.undo.by === "kiosk" ? view.undo : null;
 
   if (view.status !== "open") {
@@ -372,7 +333,7 @@ function KioskBoardInner({
             className="od-key od-key--ghost"
             disabled={busy}
             data-testid="kiosk-undo"
-            onClick={() => undo.mutate(kioskUndo.seq)}
+            onClick={() => ops.undo(kioskUndo.seq)}
           >
             Undo {kioskUndo.label}
           </button>
@@ -412,9 +373,7 @@ function KioskBoardInner({
                     }
                     disabled={busy || (!occupied && !nextReady)}
                     data-testid={`kiosk-court-${court.number}`}
-                    onClick={() =>
-                      finish.mutate({ court: court.number, since: court.since })
-                    }
+                    onClick={() => ops.finishCourt(court.number, court.since)}
                   >
                     {occupied ? `Court ${court.number} done` : "Send next four"}
                   </button>
@@ -432,9 +391,7 @@ function KioskBoardInner({
                         className="od-key od-key--ghost"
                         disabled={busy}
                         data-testid={`kiosk-still-going-${court.number}`}
-                        onClick={() =>
-                          confirm.mutate({ court: court.number, since: court.since })
-                        }
+                        onClick={() => ops.confirmCourt(court.number, court.since)}
                       >
                         Still going
                       </button>
@@ -448,8 +405,8 @@ function KioskBoardInner({
                       since={court.since}
                       suggested={court.suggestedReplacement}
                       waiting={view.waitingNames}
-                      onSwap={swap.mutate}
-                      pending={swap.isPending}
+                      onSwap={ops.swapNoShow}
+                      pending={pending.swap}
                     />
                   )}
                 </CourtPanel>
@@ -483,7 +440,7 @@ function KioskBoardInner({
       </div>
 
       {!view.lastCall && (
-        <AddMe onAdd={(args) => walkup.mutateAsync(args)} pending={walkup.isPending} />
+        <AddMe onAdd={ops.addWalkup} pending={pending.walkup} />
       )}
 
       {/* ── Queue ─────────────────────────────────────────────────────── */}
