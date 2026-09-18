@@ -34,6 +34,8 @@ import {
   rotationViewFrom,
 } from "@/lib/on-deck/session/rotation-view";
 import type { Operator, SessionEvent } from "@/lib/on-deck/session/types";
+import type { OnDeckFunnelEvent } from "@/lib/on-deck/analytics-events";
+import { trackWhenReady } from "@/lib/on-deck/analytics-browser";
 
 /**
  * The demo's three screens sharing one night (issue #522): a visitor can flip
@@ -53,6 +55,43 @@ import type { Operator, SessionEvent } from "@/lib/on-deck/session/types";
 /** How often "let it run" fires a turnover — long enough to watch each one
  * land, short enough that a stranger doesn't get bored waiting for the next. */
 const LET_IT_RUN_INTERVAL_MS = 3000;
+
+/**
+ * How many turnovers count as having seen the demo work (issue #524).
+ *
+ * A chosen number, not a derived one. The demo's night has no ending to reach
+ * — a rolling queue with no time cap (ADR 0002), which is the product's
+ * actual behaviour and not a shortcut taken here — so the only literal
+ * "finished" available is the visitor tapping Last Call and then Close, which
+ * next to nobody will do. Three is the smallest count that is unmistakably a
+ * decision to keep watching rather than a single curious tap. If it turns out
+ * to be the wrong threshold, `od_demo_opened` is still the honest denominator
+ * and this number can move without losing what has already been counted.
+ */
+const DEMO_FINISHED_TURNOVERS = 3;
+
+const DEMO_OPENED: OnDeckFunnelEvent = "od_demo_opened";
+const DEMO_FINISHED: OnDeckFunnelEvent = "od_demo_finished";
+
+/**
+ * Funnel state for the page load, not for the mount — deliberately module
+ * scope rather than refs.
+ *
+ * A visitor who clicks "Create your Club" under the board and then comes back
+ * has client-side-navigated away and back, which unmounts and remounts this
+ * component. Refs would be fresh, so that one visit would report two opens and
+ * could report two finishes, and both of those are denominators in the funnel
+ * read — `od_club_intent ÷ od_demo_finished` is the headline number. Module
+ * scope survives the router and resets on an actual page load, which is the
+ * unit being counted.
+ *
+ * `demoTurnovers` survives the same way on purpose: somebody who watched two
+ * turnovers, went to look at the sign-in page and came back to watch a third
+ * has watched three.
+ */
+let demoOpenedFired = false;
+let demoFinishedFired = false;
+let demoTurnovers = 0;
 
 type DemoScreen = "floor" | "display" | "kiosk";
 
@@ -88,6 +127,44 @@ export function DemoStage() {
   const roster = useMemo(() => floorRosterFrom(loaded), [loaded]);
 
   /**
+   * The demo's two funnel events (issue #524). Both are browser-side and
+   * anonymous, because that is all they can be: there is no account here, no
+   * row is written, and this route's import graph must stay clear of a
+   * Supabase client.
+   *
+   * The guards deliberately survive `reset()` as well as a remount: somebody
+   * who starts the night over has still watched the turnovers they watched,
+   * and counting them twice would inflate the one number this release has.
+   */
+  useEffect(() => {
+    // Guarded rather than trusting the empty dependency array: Strict Mode
+    // double-invokes this in development, and the count of people who opened
+    // the demo is the denominator for everything else in the funnel.
+    if (demoOpenedFired) return;
+    demoOpenedFired = true;
+    // `trackWhenReady`, not `track`: this is the repo's only mount-time client
+    // event, and a bare `track()` here lands before `<Analytics />` has set
+    // itself up and is dropped without a word. Nothing is returned to clean
+    // up with, on purpose — see `analytics-browser.ts`.
+    trackWhenReady(DEMO_OPENED);
+  }, []);
+
+  /**
+   * One more foursome walked on. Counted from the committed event rather than
+   * from the tap, so a tap that no-ops (a Court that already turned over) or
+   * one the rules refuse does not count as a turnover somebody watched.
+   *
+   * Undo does not decrement. They saw it happen.
+   */
+  const countTurnover = (): void => {
+    if (demoFinishedFired) return;
+    demoTurnovers += 1;
+    if (demoTurnovers < DEMO_FINISHED_TURNOVERS) return;
+    demoFinishedFired = true;
+    trackWhenReady(DEMO_FINISHED);
+  };
+
+  /**
    * Commit one floor decision as `operator`. An `error` outcome is shown and
    * nothing is appended; a `noop` — a double tap on a Court that already
    * turned over — clears the error and leaves the board alone, exactly as the
@@ -114,6 +191,9 @@ export function DemoStage() {
       return { ok: false };
     }
     setEvents((prev) => [...prev, event]);
+    // Every path that calls a new foursome onto a Court comes through here —
+    // a tap on the Floor, a tap on the Kiosk, and "let it run" alike.
+    if (event.type === "COURT_FINISHED") countTurnover();
     return { ok: true };
   };
 

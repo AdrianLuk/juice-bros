@@ -2,7 +2,8 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/motion/reveal";
-import { ON_DECK_DEMO_PATH, ON_DECK_SIGN_IN_PATH } from "@/lib/on-deck/routes";
+import { ClubIntentLink } from "@/components/on-deck/club-intent-link";
+import { ON_DECK_DEMO_PATH } from "@/lib/on-deck/routes";
 
 export function StaysSocial() {
   return (
@@ -39,7 +40,7 @@ export function StaysSocial() {
             variant="outline"
             nativeButton={false}
             className="odl-key odl-key--neutral h-12 px-7 text-base"
-            render={<Link href={ON_DECK_SIGN_IN_PATH} />}
+            render={<ClubIntentLink from="landing-close" />}
           >
             Create your Club
           </Button>
