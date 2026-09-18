@@ -1,28 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-
-import { QueryProvider } from "@/components/on-deck/query-provider";
-import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
-import { getRotationView } from "@/lib/on-deck/actions/rotation";
+import { BoardBanner, BoardHeading, CourtPanel, FoursomePanel, QueueList, Readout, SkillColors, SkillKey } from "@/components/on-deck/board-parts";
 import type { RotationView } from "@/lib/on-deck/session/rotation-view";
 import { QUEUE_TOGETHER_EXPLAINER } from "@/lib/on-deck/session/types";
 import type { ClubJoinQr } from "@/lib/on-deck/qr-types";
-import {
-  BoardBanner,
-  BoardHeading,
-  CourtPanel,
-  FoursomePanel,
-  QueueList,
-  Readout,
-  SkillColors,
-  SkillKey,
-} from "@/components/on-deck/board-parts";
 
-function displayQueryKey(sessionId: string) {
-  return ["on-deck", "rotation", sessionId, "display"] as const;
-}
+/*
+ * The read-only Display itself (issue #253), with nothing in it that knows
+ * where the board came from. `display-rotation-board.tsx` wires it to the
+ * database for the live route; the demo night (#522) folds its own `view` in
+ * the browser and renders this identical screen with no Supabase client
+ * anywhere in its import graph, the same seam `floor-board.tsx` opened for the
+ * Floor in #519.
+ */
 
 /**
  * The read-only Display (issue #253) on the substitution board (direction seed
@@ -33,43 +23,17 @@ function displayQueryKey(sessionId: string) {
  * `getRotationView` — display names and Skill Levels only (every name is inked
  * by its level, with the legend under the queue), no contact data, no buttons.
  */
-export function DisplayBoard(props: {
-  sessionId: string;
-  initialView: RotationView;
-  joinQr: ClubJoinQr;
-}) {
-  return (
-    <QueryProvider>
-      <DisplayBoardInner {...props} />
-    </QueryProvider>
-  );
-}
-
-function DisplayBoardInner({
-  sessionId,
-  initialView,
+export function DisplayBoard({
+  view,
   joinQr,
+  now,
 }: {
-  sessionId: string;
-  initialView: RotationView;
-  joinQr: ClubJoinQr;
+  view: RotationView;
+  /** The Club QR to hold up, or null where there is no Club to join — the
+   * demo night, whose players are invented. */
+  joinQr: ClubJoinQr | null;
+  now: number;
 }) {
-  const queryKey = displayQueryKey(sessionId);
-  const pollInterval = useRotationSync(sessionId, [queryKey]);
-  const query = useQuery({
-    queryKey,
-    queryFn: () => getRotationView(sessionId, undefined),
-    refetchInterval: pollInterval,
-  });
-
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const view = query.data ?? initialView;
-
   if (view.status !== "open") {
     return (
       <BoardBanner tone="closed" data-testid="display-closed">
@@ -94,9 +58,10 @@ function DisplayBoardInner({
         snack table — the one surface at the venue a newcomer can reach without
         finding a person first. Leads the board on purpose: everything below it
         is unreadable to someone not yet in the queue. Gone at Last Call, when
-        scanning in would only buy a place in a queue going nowhere.
+        scanning in would only buy a place in a queue going nowhere, and gone
+        wherever there is no Club to scan into.
       */}
-      {!view.lastCall && (
+      {!view.lastCall && joinQr && (
         <div
           className="od-panel flex items-center gap-4 p-4 sm:w-fit"
           data-testid="display-join-qr"

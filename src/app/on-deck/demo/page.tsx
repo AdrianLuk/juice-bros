@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { ON_DECK_DEMO_PATH } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
-import { DemoFloor } from "@/components/on-deck/demo-floor";
+import { DemoStage } from "@/components/on-deck/demo-stage";
 import { DEMO_CONFIG, DEMO_PLAYER_COUNT } from "@/lib/on-deck/demo/night";
 
 export const metadata: Metadata = pageMetadata({
@@ -21,14 +21,14 @@ export const metadata: Metadata = pageMetadata({
 export const dynamic = "force-dynamic";
 
 /**
- * The demo night (issue #519). The Organizer's floor screen, folded entirely
- * in the visitor's browser off an authored event log: no account, no Club, no
- * Supabase client, no Server Action, no row written.
+ * The demo night (issue #519, widened to all three screens by #522). Folded
+ * entirely in the visitor's browser off an authored event log: no account, no
+ * Club, no Supabase client, no Server Action, no row written.
  *
- * It is the real screen, not a picture of one. Every tap goes through the same
- * `floor-ops` decision and the same `reduceSession` fold a Saturday night
- * runs on, which is what makes it worth trusting and what makes anything it
- * gets wrong a bug in the Floor.
+ * It is the real screens, not pictures of them. Every tap goes through the
+ * same `floor-ops` decision and the same `reduceSession` fold a Saturday
+ * night runs on, which is what makes it worth trusting and what makes
+ * anything it gets wrong a bug in the Floor.
  */
 export default function OnDeckDemoPage() {
   return (
@@ -49,6 +49,9 @@ export default function OnDeckDemoPage() {
             Tap <span className="text-arena-fg">Court 1 done</span>. The four
             who were waiting walk on, picked the way they would be at a real
             club, and the four coming off go back in the queue at the bottom.
+            Switch to the Display or the Kiosk to see the same night from
+            those screens, or let it run and watch the turnovers happen on
+            their own.
           </p>
           <p className="od-readout mt-4 text-[0.72rem] text-arena-dim">
             Every name here ends in B. That is how you know nobody on this
@@ -59,11 +62,11 @@ export default function OnDeckDemoPage() {
             <h2 className="od-display text-2xl text-arena-dim sm:text-3xl">
               {DEMO_CONFIG.venueName}
             </h2>
-            <p className="od-readout text-arena-live">● Floor screen</p>
+            <p className="od-readout text-arena-live">● Live</p>
           </header>
 
           <div className="mt-9">
-            <DemoFloor />
+            <DemoStage />
           </div>
         </div>
       </section>
