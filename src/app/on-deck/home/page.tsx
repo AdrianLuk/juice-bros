@@ -7,6 +7,7 @@ import { createClient } from "@/lib/on-deck/supabase/server";
 import { getOwnedClub } from "@/lib/on-deck/clubs";
 import { readClubDraft } from "@/lib/on-deck/club-draft-server";
 import { getSummariesForClub } from "@/lib/on-deck/summaries";
+import { clubJoinUrl } from "@/lib/on-deck/qr";
 import { sessionDate } from "@/lib/on-deck/session-date";
 import {
   getScheduledSessionsForClub,
@@ -20,6 +21,7 @@ import {
 import { CreateClubForm } from "@/components/on-deck/create-club-form";
 import { AdoptTimeZone } from "@/components/on-deck/adopt-time-zone";
 import { ClearStrayClubDraft } from "@/components/on-deck/clear-stray-club-draft";
+import { FirstNightKit } from "@/components/on-deck/first-night-kit";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { BoardHead, Row, RowList, Stage } from "@/components/on-deck/back-office";
 import {
@@ -73,6 +75,12 @@ export default async function OnDeckHomePage() {
   // The three most recent closed nights. The full list has its own page; this
   // is the way in, so the reader is not something you have to know the URL of.
   const pastSessions = club ? await getSummariesForClub(supabase, club.id, 3) : [];
+  // Never having closed a Session is exactly what the first-night kit (issue
+  // #521) is shown for, and this is the same fact the past-nights rows below
+  // already read — one query answers both rather than each deciding "new" on
+  // its own terms.
+  const isFirstNight = club !== null && pastSessions.length === 0;
+  const joinUrl = isFirstNight ? await clubJoinUrl(club.id) : null;
 
   return (
     <ArenaShell>
@@ -137,6 +145,10 @@ export default async function OnDeckHomePage() {
                 </Stage>
               ) : (
                 <TonightControls scheduledSessions={scheduledSessions} />
+              )}
+
+              {joinUrl && (
+                <FirstNightKit clubName={club.name} joinUrl={joinUrl} />
               )}
 
               <RowList>

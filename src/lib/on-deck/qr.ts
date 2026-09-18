@@ -22,7 +22,7 @@ export type { ClubJoinQr } from "./qr-types.ts";
  * zone the scanner needs against a dark arena panel.
  */
 export async function clubJoinQr(clubId: string): Promise<ClubJoinQr> {
-  const url = await onDeckAbsoluteUrl(clubQrPath(clubId));
+  const url = await clubJoinUrl(clubId);
   const svg = await QRCode.toString(url, {
     type: "svg",
     errorCorrectionLevel: "M",
@@ -34,6 +34,16 @@ export async function clubJoinQr(clubId: string): Promise<ClubJoinQr> {
   // announce itself a second time with no name of its own. Every caller wraps
   // it in an element that *is* labelled — this hides the duplicate.
   return { url, svg: svg.replace("<svg", '<svg aria-hidden="true"') };
+}
+
+/**
+ * Just the stable Club join link, with no QR encoded — for a caller that
+ * wants the URL alone (a copy-the-message control, a link's `href`) and would
+ * otherwise pay for an SVG it throws away. `clubJoinQr` calls this for its own
+ * `url` field, so the two never drift apart.
+ */
+export async function clubJoinUrl(clubId: string): Promise<string> {
+  return onDeckAbsoluteUrl(clubQrPath(clubId));
 }
 
 /** A downloadable rendering of the Club QR: the bytes plus how to serve them. */

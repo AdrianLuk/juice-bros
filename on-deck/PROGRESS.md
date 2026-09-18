@@ -859,6 +859,48 @@ migration's timestamp past whatever else merged (the drift lesson
   ADR 0004 windowed selection that commitment used to freeze out of this
   window. The assertion now reads the board, which is what the step was for.
 
+- [x] **The first-night kit (#521, parent #512, OD-6.8).** Two rows on home
+  for a Club that has never closed a Session, led by the one that needs no
+  hardware: put the join link in the group chat, and have the code ready for
+  walk-ups. Deliberately two, not four — the Kiosk and the Volunteer Link are
+  capabilities an Organizer already discovers from the floor screen once a
+  Session is open, and putting them on this checklist too would teach that
+  the product has more setup than it does.
+
+  `FirstNightKit` sits between the lit panel and the rows beneath, gated on
+  `pastSessions.length === 0` — the same read the past-nights rows already
+  make, so home decides "new" once rather than the kit inventing its own
+  notion of it. Item one is a straight copy, right there: `buildJoinMessage`
+  (issue #517) onto the clipboard via a new `useCopyToClipboard` hook, no
+  navigation at all. Item two links to the phone-first Club QR hold-up
+  (`/home/qr/hold-up`, issue #517) as the primary action, with "Prefer a
+  printed sign?" to `/home/qr` alongside it — printing offered, never
+  required. `useCopyToClipboard` is lifted out of `ClubQrHoldUp`, which used
+  to own this logic alone; both surfaces and the summary page below now share
+  one implementation of "copy, then say so for a couple seconds."
+
+  The kit's join message doesn't just vanish once it's served its purpose:
+  `NextWeekMessage` puts the same control on every closed Session's own
+  Summary page (`/home/summaries/[sessionId]`), because the kit only ever
+  shows before a Club's *first* close and the weekly rhythm still needs
+  something to paste after that.
+
+  `on-deck/CONTEXT.md`'s Club QR entry no longer treats the pinned link as an
+  aside to the printed sign and the hold-up screen — it's a first-class way
+  in, listed first, because most of a first Saturday's room can be admitted
+  from the group chat before anyone has arrived. A new **First-night kit**
+  glossary entry records the "two, not four" decision and why Kiosk /
+  Volunteer Link stay off it; the **Player** entry now allows a Player
+  arriving by the pinned link, not only by scanning.
+
+  Tests: `e2e/on-deck-first-night-kit.spec.ts` — the kit's two items render
+  with no hardware required for either, Kiosk and Volunteer Link are named
+  nowhere on home, item one copies in place, item two opens the hold-up view;
+  a second case seeds an open Session, drives Last Call → Close through the
+  real floor UI, and asserts the kit is gone from home while the join message
+  is back on that Session's Summary page. No pure-logic tests needed — the
+  new code is composition over `buildJoinMessage` (#517) and a clipboard
+  hook, both already covered where they're defined.
 
 ## Next
 

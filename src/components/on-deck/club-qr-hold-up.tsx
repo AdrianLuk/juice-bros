@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
 import { ON_DECK_HOME_PATH } from "@/lib/on-deck/routes";
+import { useCopyToClipboard } from "@/components/on-deck/use-copy-to-clipboard";
 
 /**
  * The Club QR full-bleed (issue #517) — the code sized to fill a held-up
@@ -26,17 +26,7 @@ export function ClubQrHoldUp({
   svg: string;
   message: string;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(message);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
+  const { copied, copy } = useCopyToClipboard(message);
 
   return (
     <div className="od-holdup">

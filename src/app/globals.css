@@ -2560,6 +2560,39 @@ html:has(.bb-app-chrome) {
   color: var(--arena-live-ink);
 }
 
+/* ── The first-night kit (issue #521, OD-6.8) ───────────────────────────────
+
+   The two things a brand-new Club's Organizer actually has to do before
+   Saturday, sitting between the lit panel and the rows beneath. It never
+   takes the panel's wash — that register is reserved for tonight's one
+   action, and this is preparation, not that — so it reads in the same
+   readout voice as the rows below it, gone once the Club's first Session has
+   closed. */
+.od-kit {
+  margin-top: 1.75rem;
+  padding-top: 1.375rem;
+  border-top: 1px solid var(--arena-line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.od-kit-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.od-kit-item-text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.od-kit-item-text .od-bo-hint {
+  margin-top: 0.25rem;
+}
+
 /* ── The list beneath ───────────────────────────────────────────────────────
 
    Everything that is not tonight's one action: the sign, the nights already
