@@ -1,7 +1,9 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { after } from "next/server";
 
+import { trackFirstSessionClosed } from "./analytics.ts";
 import { reduceSession } from "./session/reduce.ts";
 import { projectSummary } from "./session/summary.ts";
 import { isSessionStale } from "./session/stale.ts";
@@ -310,6 +312,15 @@ export async function resolveOpenSessionForClub(
     return openSession;
   }
 
+  // The other half of `od_first_session_closed` (issue #524). A Session that
+  // closed itself is still a night that ended, and it is the outcome most
+  // worth seeing: an Organizer who walked away from their first night is the
+  // clearest possible signal, and reading it as a deliberate close would hide
+  // it. `after()` because this runs during the home screen's render as well as
+  // inside Start, and neither should wait on analytics — and the caller's own
+  // client, because Next refuses a fresh `cookies()` inside `after()` while
+  // rendering and this one resolved them long before the callback existed.
+  after(() => trackFirstSessionClosed(supabase, clubId, true));
   return null;
 }
 

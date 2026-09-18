@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { createClient } from "../supabase/server.ts";
+import { trackFirstSessionClosed } from "../analytics.ts";
 import { verifyOrganizer } from "../dal.ts";
 import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
@@ -310,5 +312,11 @@ export async function closeSession(
 
   revalidatePath(sessionPath(sessionId));
   revalidatePath(floorPath(sessionId));
+  // The Organizer ran the night to its end and said so, as against the
+  // Session that closed itself six hours after going quiet (issue #516).
+  // `auto: false` is what tells those two apart when the funnel is read.
+  after(() =>
+    trackFirstSessionClosed(owned.supabase, owned.loaded.config.clubId, false),
+  );
   return { ok: true };
 }

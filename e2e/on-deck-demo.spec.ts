@@ -8,7 +8,8 @@ import { expect, test } from "@playwright/test";
  *
  * Covers: opening the demo mid-night, one turnover, switching between the
  * Floor, the Display and the Kiosk without losing state, letting the night
- * run on its own, and resetting back to the opening state.
+ * run on its own, the way out toward creating a Club (#524), and resetting
+ * back to the opening state.
  *
  * Foursomes are read as `ul > li` text arrays rather than a panel's whole
  * `innerText`/`textContent`, following `on-deck-kiosk.spec.ts`: a Kiosk Court
@@ -99,6 +100,19 @@ test("let it run fires turnovers on its own, and can be stopped", async ({ page 
   // Give a would-be tick time to land, then confirm none did.
   await page.waitForTimeout(3_500);
   expect(await page.getByTestId("queue-list").textContent()).toBe(stopped);
+});
+
+test("offers a way out toward a Club of your own", async ({ page }) => {
+  await page.goto("/on-deck/demo");
+
+  // Issue #524, and #512's user story 9: the demo used to be a dead end, which
+  // put the moment somebody is convinced and the moment they can act on two
+  // different pages. The click itself is what `od_club_intent` counts.
+  const createClub = page.getByTestId("demo-create-club");
+  await expect(createClub).toBeVisible();
+
+  await createClub.click();
+  await expect(page).toHaveURL(/\/on-deck\/sign-in/);
 });
 
 test("reset returns the board to its opening state", async ({ page }) => {
