@@ -123,6 +123,10 @@ Default label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-h
 
 Multi-context layout: root `CONTEXT-MAP.md` indexes per-context `CONTEXT.md` files (currently just `booking-buddy/`). See `docs/agents/domain.md`.
 
+### PR screenshots
+
+Any PR touching a UI surface embeds desktop and mobile screenshots, committed to `docs/screenshots/` and referenced by raw URLs pinned to a commit SHA rather than a branch or `master`. See `docs/agents/pr-screenshots.md`.
+
 ## Git Workflow & Worktrees
 - Always perform code changes, feature development, or refactoring in an isolated Git worktree rather than the main working directory.
 - Use `.claude/worktrees/` for task isolation or spin up subagents with worktree isolation enabled.
