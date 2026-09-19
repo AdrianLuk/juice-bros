@@ -4142,6 +4142,28 @@ html:has(.bb-app-chrome) {
     color: var(--mm-mark-red);
   }
 
+  /* The two plates of one Game, wrapped so the mark has something the size of
+     a Game to be drawn round. In rotating doubles nothing is ever drawn here
+     and this is an inert box; in fixed partners the pair is the constant and
+     the matchup is the thing that can repeat, so the stroke goes round the
+     whole Game rather than round a side of it. Same hand, bigger mark.
+
+     It wraps the plates rather than the cell so that the stacked layout below
+     `sm` - where the cell also carries its court label - is ringed round the
+     names and not round the heading above them. */
+  .mm-game {
+    display: block;
+    position: relative;
+  }
+  /* The side ring sizes itself off the plate it overhangs; this one is drawn
+     just inside the Game it encloses, so it needs the insets to decide the box
+     rather than the plate-sized width and height above. */
+  .mm-game[data-repeat] > .mm-ring {
+    inset: -3px -8px;
+    width: auto;
+    height: auto;
+  }
+
   .mm-versus {
     display: block;
     padding: 0.14rem 0 0.14rem 0.45rem;
@@ -4948,7 +4970,8 @@ html:has(.bb-app-chrome) {
   .mm-ring {
     display: none;
   }
-  .mm-side[data-repeat] {
+  .mm-side[data-repeat],
+  .mm-game[data-repeat] {
     border: 2px solid var(--mm-vinyl);
     padding: 0.1rem 0.25rem;
     margin: 0 -0.25rem;

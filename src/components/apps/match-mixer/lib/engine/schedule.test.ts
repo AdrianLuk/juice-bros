@@ -6,9 +6,23 @@ import { parseRoster } from "./roster.ts";
 import { scoreSchedule } from "./scorer.ts";
 import { generateSchedule, UnsupportedConfigError } from "./schedule.ts";
 import { TABLES } from "./tables.ts";
-import { MAX_ROSTER_SIZE, MIN_ROSTER_SIZE, type Config, type Schedule } from "./types.ts";
+import {
+  MAX_ROSTER_SIZE,
+  MIN_ROSTER_SIZE,
+  type RotatingConfig,
+  type Schedule,
+} from "./types.ts";
 
-function configFor(n: number, overrides: Partial<Config> = {}): Config {
+/**
+ * A rotating Config. Typed as one rather than as a bare `Config` so the Scorer
+ * hands back the rotating reading — the Format these tests are about, named by
+ * leaving it out, which is also how every Config written before Formats
+ * existed names it.
+ */
+function configFor(
+  n: number,
+  overrides: Partial<RotatingConfig> = {},
+): RotatingConfig {
   const roster = parseRoster(
     Array.from({ length: n }, (_, i) => `Player ${i + 1}`).join("\n"),
   );

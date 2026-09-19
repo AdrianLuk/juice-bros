@@ -36,8 +36,8 @@
  */
 
 import type {
+  RotatingScore,
   Roster,
-  ScorerResult,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
 /**
@@ -45,13 +45,22 @@ import type {
  * filled/empty mark: a balanced schedule is sparse by design, so an empty cell
  * is expected and the failure signal is a cell above 1. The diagonal is inert
  * rather than missing, and gets a rule through it to say so.
+ *
+ * It takes a `RotatingScore` rather than the `ScorerResult` union, which is
+ * the keeping-it-typechecked mechanism above doing exactly its job: RR-4.1
+ * (#543) made the Scorer's reading depend on the Format, and this surface is a
+ * statement about partnerships. On a fixed-partner board every occupied cell
+ * would read 5 or 6 and mean "as requested" — a fourth way for this surface to
+ * name a failure that is not one, on top of the three that retired it. A
+ * revival that wants to cover every Format has to decide what it is counting
+ * before it decides how to draw it.
  */
 export function PartnerMatrix({
   roster,
   score,
 }: {
   roster: Roster;
-  score: ScorerResult;
+  score: RotatingScore;
 }) {
   const n = roster.length;
   const numbers = Array.from({ length: n }, (_, i) => i);

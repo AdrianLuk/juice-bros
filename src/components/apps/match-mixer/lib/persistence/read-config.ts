@@ -1,4 +1,5 @@
-import type { Roster } from "../engine/types.ts";
+import { FORMATS } from "../engine/format.ts";
+import { DEFAULT_FORMAT, type Format, type Roster } from "../engine/types.ts";
 
 /**
  * Field-level validators for a Config read from somewhere the organizer could
@@ -42,4 +43,19 @@ export function isFiniteNumber(value: unknown): value is number {
 export function readChoice(value: unknown): number | null | undefined {
   if (value == null) return null;
   return isFiniteNumber(value) ? value : undefined;
+}
+
+/**
+ * A Format, where absent means rotating — a Config written before Formats
+ * existed, from either reader.
+ *
+ * `undefined` is a refusal and never a default: a value that is present but is
+ * not a Format this build knows is a board this build cannot draw, and drawing
+ * a rotating one in its place would put a Schedule on screen that nobody
+ * generated. That is the same failure the Share Link's checksum exists to
+ * catch, so it gets the same answer.
+ */
+export function readFormat(value: unknown): Format | undefined {
+  if (value == null) return DEFAULT_FORMAT;
+  return FORMATS.find((format) => format === value);
 }
