@@ -2,14 +2,16 @@
 
 Date: 2026-09-19
 Status: Accepted
-Context: Match Mixer (RR-4.1, #543)
+Context: Match Mixer (RR-4.1, #543); extended by RR-4.2 (#544)
 
 ## The decision
 
 Each **Format** is its own generator, chosen before anything is searched for.
 Fixed partners does not reach the rotating generator with a weight attached to
 it; it goes to a construction of its own, and `generateSchedule` routes on the
-Format as its first act.
+Format as its first act. Singles (#544) is the second Format to take that route,
+and it shares the construction rather than the router — see "What RR-4.2 added"
+below.
 
 The **Scorer** takes the Format too, and answers a different question in each.
 `ScorerResult` is a union, so a reader has to say which board it is looking at
@@ -66,16 +68,18 @@ organizer reads as a verdict.
 
 So `ScorerResult` became a union: rotating counts partner repeats and
 partnership coverage, fixed counts rematches between Pairings and matchup
-coverage. What they share — the raw counts, the price, the Bye verdict — is
+coverage, and singles counts rematches between Players against a denominator of
+its own. What they share — the raw counts, the price, the Bye verdict — is
 shared, and the Bye verdict needed no variant at all, because both members of a
 sitting Pairing sit and the spread over Players is already the spread over
 Pairings.
 
 **The Repeat mark follows the failure, not the element.** Rotating rings the
 side that partnered twice. Fixed rings the whole Game, because the pair is the
-constant and the matchup is the thing that can repeat. The mark is the Scorer's
-failure signal made visible, so when the Scorer's question changes, what the
-mark encircles changes with it.
+constant and the matchup is the thing that can repeat. Singles rings the whole
+Game too, for a different reason: in singles the Game *is* the pairing. The mark
+is the Scorer's failure signal made visible, so when the Scorer's question
+changes, what the mark encircles changes with it.
 
 ## What this does not decide
 
@@ -100,11 +104,51 @@ Format does not, by itself, move rotating. RR-4.1 pinned both rotating paths in
 Format inherits the same obligation and the same way of discharging it: change
 the pins or do not bump.
 
+RR-4.2 discharged it the same way and also did not bump, which is a stronger
+result than RR-4.1's: it widened the shape a side is stored in, moved the circle
+construction into a module of its own, and renamed `Game.teams` to `Game.sides`
+throughout, and both pinned boards came out unchanged down to the seat. That is
+what the pins are for — the question "did rotating move" is answered by a test
+rather than by judgement.
+
+## What RR-4.2 added to it
+
+Singles (#544) is the second Format built on the circle method, and it landed
+without amending anything above. Three things came out of building it that are
+worth recording, because they are the shape of what the next Format will cost.
+
+**The construction was shared, not copied.** Fixed partners circles `n / 2`
+Pairings and singles circles `n` Players, and that is the *whole* of the
+difference: the packing, the ghost for an odd count, the Bye rotation and the
+refusal to manufacture a rematch to fill an idle court are the same code
+(`lib/engine/circle.ts`). It is written over Sides rather than over an abstract
+unit, so there is nothing to translate at the end — whatever a Format circles is
+already the thing that goes on a name plate. `generateFixedRounds` and
+`generateSinglesRounds` are each one line, and what they say is which units.
+
+**A Format decides how many seats a court has.** That was invisible while every
+Format seated four, and `maxCourts` was a function of the Roster alone. Singles
+seats two, so the court ceiling follows the Format and the field's maximum moves
+when the row is switched rather than only when names are pasted. Nothing about
+that is special to singles; it is the general shape the earlier signature
+happened to hide.
+
+**The side had to widen before the Format could exist.** `Game` held two Teams
+and a `Team` was exactly two Roster indices, which put "a side is two people"
+into the Scorer's partner matrix, the Itinerary's `partner`, the name plate's
+stroke between two names and the court arithmetic. So singles was not
+unimplemented, it was inexpressible. `Side` is a one-or-two tuple rather than a
+`PlayerIndex | Team` union precisely so that every reader walks a side the same
+way, which is also what let the two pinned rotating boards come through
+byte-identical.
+
 ## Consequences
 
-- `lib/engine/fixed.ts` carries the same "bump `GENERATOR_VERSION`" notice as
-  `generator.ts`, `tables.ts` and `scorer.ts`. A change to a construction is a
-  change to what a Seed reproduces, whichever construction it is.
+- `lib/engine/circle.ts` carries the same "bump `GENERATOR_VERSION`" notice as
+  `generator.ts`, `tables.ts` and `scorer.ts` — it moved there from `fixed.ts`
+  along with the construction, and it now covers two Formats. A change to a
+  construction is a change to what a Seed reproduces, whichever construction it
+  is.
 - A Format that cannot seat a Roster refuses rather than dropping somebody:
   `formatObjection` is asked by the screen before drawing and by
   `generateSchedule` again at the entry point.

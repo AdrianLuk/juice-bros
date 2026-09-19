@@ -1,4 +1,4 @@
-import { resolveFormat } from "./format.ts";
+import { resolveFormat, seatsPerCourt } from "./format.ts";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
@@ -18,20 +18,29 @@ import {
  */
 
 /**
- * Nobody plays without a court, and four players fill exactly one.
+ * Nobody plays without a court, and a court seats what the Format puts on it.
  *
- * The same ceiling holds in fixed partners, which seats four to a court too:
- * `n / 2` Pairings two to a court is `n / 4`, and that Format only ever asks
- * this about an even Roster. RR-4.2's singles is where the ceiling first
- * follows the Format, because a side there is one player.
+ * Four in both doubles Formats: fixed partners is `n / 2` Pairings two to a
+ * court, which is the same `n / 4`, and that Format only ever asks this about
+ * an even Roster. Singles is where the ceiling first follows the Format,
+ * because a side there is one Player and a court takes two of them.
+ *
+ * The Format is defaulted rather than required, on the same terms as
+ * `naturalLength` below: a caller that names no Format is a caller in the one
+ * every Config predating Formats is in.
  */
-export function maxCourts(n: number): number {
-  return Math.max(1, Math.floor(n / 4));
+export function maxCourts(n: number, format: Format = "rotating"): number {
+  return Math.max(1, Math.floor(n / seatsPerCourt(format)));
 }
 
-export function clampCourts(n: number, courts: number): number {
-  if (!Number.isFinite(courts)) return maxCourts(n);
-  return Math.min(maxCourts(n), Math.max(1, Math.floor(courts)));
+export function clampCourts(
+  n: number,
+  courts: number,
+  format: Format = "rotating",
+): number {
+  const ceiling = maxCourts(n, format);
+  if (!Number.isFinite(courts)) return ceiling;
+  return Math.min(ceiling, Math.max(1, Math.floor(courts)));
 }
 
 /**
@@ -46,18 +55,23 @@ export function clampCourts(n: number, courts: number): number {
  * Fixed partners has no partnerships to spend, because they are all spent in
  * Round 1 and deliberately; what runs out there is meetings between the `n / 2`
  * Pairings, and a Round spends `courts` of them rather than `2 x courts`.
+ * Singles has no partnerships at all: what it spends is meetings between
+ * Players, out of the Roster's own `n(n-1)/2`, one per court per Round — so an
+ * even Roster on `n / 2` courts comes out at exactly the `n - 1` rounds it
+ * takes for everybody to have played everybody.
  */
 export function naturalLength(
   n: number,
   courts: number,
   format: Format = "rotating",
 ): number {
-  const seated = clampCourts(n, courts);
+  const seated = clampCourts(n, courts, format);
   if (format === "fixed") {
     const teams = Math.floor(n / 2);
     return Math.max(1, Math.floor((teams * (teams - 1)) / 2 / seated));
   }
   const pairs = (n * (n - 1)) / 2;
+  if (format === "singles") return Math.max(1, Math.floor(pairs / seated));
   return Math.max(1, Math.floor(pairs / (2 * seated)));
 }
 
@@ -120,7 +134,7 @@ export function resolveNumbers(
   rounds?: number,
   format: Format = "rotating",
 ): ResolvedNumbers {
-  const settled = clampCourts(n, courts ?? maxCourts(n));
+  const settled = clampCourts(n, courts ?? maxCourts(n, format), format);
   return {
     courts: settled,
     rounds: clampRounds(rounds ?? defaultRounds(n, settled, format)),

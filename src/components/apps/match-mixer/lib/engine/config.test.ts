@@ -53,6 +53,25 @@ test("courts never clamp below one, however the field is emptied", () => {
   assert.equal(clampCourts(16, Number.NaN), maxCourts(16));
 });
 
+test("the court ceiling follows the format, because singles seats two", () => {
+  assert.equal(maxCourts(4, "singles"), 2);
+  assert.equal(maxCourts(7, "singles"), 3);
+  assert.equal(maxCourts(8, "singles"), 4);
+  assert.equal(maxCourts(32, "singles"), 16);
+  // Fixed partners seats four to a court like rotating: `n / 2` pairs, two to
+  // a court, is the same `n / 4`.
+  assert.equal(maxCourts(8, "fixed"), 2);
+  assert.equal(maxCourts(32, "fixed"), 8);
+});
+
+test("a doubles court count clamps down when the format changes under it", () => {
+  // The other direction is what the field's maximum is for: eight courts is
+  // legal for 16 names in singles and four too many in doubles.
+  assert.equal(clampCourts(16, 8, "singles"), 8);
+  assert.equal(clampCourts(16, 8, "rotating"), 4);
+  assert.equal(clampCourts(16, 99, "singles"), 8);
+});
+
 test("the natural length of a Table's roster is the whist length", () => {
   // The two definitions have to agree, or the rounds field would offer a
   // default the Table cannot serve.
@@ -71,6 +90,16 @@ test("fewer courts means the rotation takes longer to use up every pair", () => 
   assert.equal(naturalLength(8, 1), 14);
   // 10 players is 45 pairs, spent 4 at a time.
   assert.equal(naturalLength(10, 2), 11);
+});
+
+test("a singles round spends one matchup per court, not two", () => {
+  // Eight names hold 28 matchups. Four courts spend four a round, so the
+  // rotation runs seven rounds — the same `n - 1` the whist length gives,
+  // reached by different arithmetic.
+  assert.equal(naturalLength(8, 4, "singles"), 7);
+  assert.equal(naturalLength(8, 2, "singles"), 14);
+  // The same board in rotating doubles spends two partnerships a court.
+  assert.equal(naturalLength(8, 2, "rotating"), 7);
 });
 
 test("rounds default to an evening, not the whole rotation", () => {

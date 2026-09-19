@@ -2,7 +2,7 @@
 
 A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. No account, no database, no network — the whole thing runs in the browser so it works on rec-centre wifi.
 
-Since #543 that rotation is one **Format** of several rather than the only thing the tool knows. Rotating partners is still the default and still what the sentence above describes; fixed partners is the same board drawn for a night where people turn up already partnered. Read every claim below about partners, Byes and balance as a claim about rotating unless it says otherwise, because the Format is what decides which of them still hold.
+Since #543 that rotation is one **Format** of several rather than the only thing the tool knows. Rotating partners is still the default and still what the sentence above describes; fixed partners is the same board drawn for a night where people turn up already partnered; singles (#544) is the one where a side is a single Player and the word "doubles" in the sentence above stops being true. Read every claim below about partners, Byes and balance as a claim about rotating unless it says otherwise, because the Format is what decides which of them still hold.
 
 A board can be handed round: a Share Link carries the Config in its query string and the reader's browser generates the same Schedule again from it (#492). That is still no server and still no account, but it is no longer true that nothing leaves the browser, and the page's own copy says so.
 
@@ -15,7 +15,7 @@ Since #482 the surface is **the board**: a magnetic planning board of the kind b
 **Roster**:
 The ordered list of people playing, entered as one name per line. Each entry carries a stable identity of its own, so a name can be corrected or a person removed without disturbing who played where. Order is entry order and means nothing — it is not a seeding or a ranking.
 
-One Format contradicts that last sentence on purpose. In **fixed partners** the list is read two lines at a time and consecutive lines are a Pairing, so order is how the organizer says who is with whom. It is the only way they can say it: a marker on the line is RR-4.3's mechanism, and drawing the pairs by Seed would make the one thing that Format exists for unsayable. Order still carries no seeding and no ranking in any Format — what it carries in fixed partners is partnership, and nothing else.
+One Format contradicts that last sentence on purpose. In **fixed partners** the list is read two lines at a time and consecutive lines are a Pairing, so order is how the organizer says who is with whom. It is the only way they can say it: a marker on the line is RR-4.3's mechanism, and drawing the pairs by Seed would make the one thing that Format exists for unsayable. Order still carries no seeding and no ranking in any Format — what it carries in fixed partners is partnership, and nothing else. In **singles** it is back to meaning nothing: a Roster of `n` circles as `n` units and entry order is entry order.
 _Avoid_: Lineup, list, Queue (On Deck's word, and a very different idea)
 
 **Player**:
@@ -27,14 +27,16 @@ Everything the organizer has chosen: the Roster, the Format, the court count, th
 _Avoid_: Settings, options, form state
 
 **Format**:
-How a Round is put together, and therefore which generator builds it: **rotating partners** (the default) or **fixed partners**. It is a Config value like any other, so it survives a reload, rides in a Share Link, and flags the board stale when it changes — which it must, because it is the one input that changes the whole board without changing a single name or number.
+How a Round is put together, and therefore which generator builds it: **rotating partners** (the default), **fixed partners** or **singles**. It is a Config value like any other, so it survives a reload, rides in a Share Link, and flags the board stale when it changes — which it must, because it is the one input that changes the whole board without changing a single name or number.
 
-A Format is a generator and not a cost term ([ADR 0003](docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md)). Rotating searches for a seating that avoids partner repeats; fixed partners has none to avoid, because the pairs are given and rotate as units, so it is a circle method over `n / 2` Pairings and there is nothing to search. A Config in any Format but rotating never reaches `findTable`.
+The Format is also the only thing that decides how many seats a court has: four in both doubling Formats, two in singles. So the court ceiling follows the Format rather than the Roster alone — `floor(n / 4)` in doubles, `floor(n / 2)` in singles — and the courts field's maximum moves when the row is switched, not only when names are pasted.
 
-The Scorer takes the Format too, because what counts as a failure is the Format's own question: partner repeats in rotating, rematches between Pairings in fixed. Not every Format will be a generator — RR-4.3's mixed doubles is a hard constraint inside rotating's search, which is a different thing and is argued in the same ADR.
+A Format is a generator and not a cost term ([ADR 0003](docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md)). Rotating searches for a seating that avoids partner repeats; the other two have none to avoid and are the same circle method over different units — `n / 2` Pairings in fixed partners, `n` Players in singles — so there is nothing to search in either, and they share one construction (`lib/engine/circle.ts`). A Config in any Format but rotating never reaches `findTable`.
 
-A Roster a Format cannot seat is refused with a message rather than quietly trimmed: an odd list in fixed partners leaves somebody with nobody to partner, and that is not a Bye.
-_Avoid_: Mode, game type, variant, toggle (three of the four RR-4 features are not Formats — see the ADR)
+The Scorer takes the Format too, because what counts as a failure is the Format's own question: partner repeats in rotating, rematches between Pairings in fixed, rematches between Players in singles. Not every Format will be a generator — RR-4.3's mixed doubles is a hard constraint inside rotating's search, which is a different thing and is argued in the same ADR.
+
+A Roster a Format cannot seat is refused with a message rather than quietly trimmed: an odd list in fixed partners leaves somebody with nobody to partner, and that is not a Bye. Only that Format refuses anything — an odd list in singles is an ordinary night where one name sits each Round.
+_Avoid_: Mode, game type, variant, toggle (three of the four RR-4 features are not Formats — see the ADR). "Doubles" as a Format name: two of the three are doubles.
 
 **Seed**:
 The number that makes generation reproducible. The same Config with the same Seed always yields the same Schedule, so a Schedule never has to be stored — it can be rebuilt from what produced it. "Regenerate" means nothing more than writing a new Seed.
@@ -55,19 +57,25 @@ One slice of the Schedule: every court plays a Game simultaneously and whoever i
 _Avoid_: Rotation, session
 
 **Game**:
-Four Players on one court within one Round — two partners against two partners. A Game belongs to exactly one Round and one court.
+Two Sides on one court within one Round. A Game belongs to exactly one Round and one court. In doubles that is four Players, two partners against two partners; in singles it is two, one against one.
 _Avoid_: Match (Pickle Point Pal's word for a scored contest between two sides), Foursome (On Deck's word)
 
-**Bye**:
-A Player sitting out a Round because there are more Players than seats. A Bye is arithmetic, not a status: everyone left over once `courts × 4` seats are filled takes one, and spreading them evenly is the second thing the Scorer cares about.
+**Side**:
+One of the two parties to a Game: a Team in either doubles Format, a lone Player in singles. It is the unit a name plate carries and the unit the `vs` sits between.
 
-In **fixed partners** a Bye belongs to a Pairing rather than to a Player. Four teams on one court means two whole teams sit, and both members of a sitting team sit — so the count the organizer reads is pairs, and Bye fairness is measured across Pairings. The Scorer needs no separate arithmetic for it: because the two always sit together, the spread over Players is already the spread over Pairings.
+Before #544 a side was two Roster indices everywhere in the engine, which is why singles could not be expressed rather than merely being unimplemented — it was in the Scorer's partner matrix, in the Itinerary's `partner`, in the plate's stroke between two names, and in court arithmetic counting four seats. Widening it was most of what that milestone was, and the widening is deliberately a one-or-two tuple rather than "a Player or a Team", so every reader walks a side the same way whichever Format drew it.
+_Avoid_: Team where a side might be one Player (a Team is exactly two, and stays the word for the doubles pair and for what fixed partners declares), half, net side
+
+**Bye**:
+A Player sitting out a Round because there are more Players than seats. A Bye is arithmetic, not a status: everyone left over once the courts are full takes one, and spreading them evenly is the second thing the Scorer cares about. How many seats there are to fill is the Format's question — `courts × 4` in doubles, `courts × 2` in singles.
+
+In **fixed partners** a Bye belongs to a Pairing rather than to a Player. Four teams on one court means two whole teams sit, and both members of a sitting team sit — so the count the organizer reads is pairs, and Bye fairness is measured across Pairings. The Scorer needs no separate arithmetic for it: because the two always sit together, the spread over Players is already the spread over Pairings. In **singles** the unit that sits is a Player again, so there was never anything to convert.
 _Avoid_: Sit-out as a noun, rest, bench
 
 ### Handing it round
 
 **Share Link**:
-A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, a checksum over the names, the Format, and then the names. The Format is last because a field is always appended and never inserted: a link minted before Formats existed carries five fields, reads as rotating, and goes on drawing the board it named. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
+A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, a checksum over the names, the Format, and then the names. The Format is last because a field is always appended and never inserted: a link minted before Formats existed carries five fields, reads as rotating, and goes on drawing the board it named. The Format rides as one character (`r`, `f`, `s`), so a new Format costs a link nothing — which is what #544 was able to demonstrate. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
 _Avoid_: Invite Link (Booking Buddy's word, and an account-bound one), permalink, share code, export
 
 **Generator Version**:
@@ -83,27 +91,33 @@ _Avoid_: Read-only, guest mode, preview. Nothing is locked — the board is full
 **Table**:
 A published, precomputed Schedule stored in the app for a Roster size the maths solves perfectly. Every Table is a whist tournament — each Player partners every other exactly once, opposes every other exactly twice, and nobody sits out — so any leading run of its Rounds is still perfectly balanced and can be served as-is.
 
-Tables are **rotating doubles only**, and that is a statement about what a whist tournament is rather than a gap waiting to be filled. A Config in any other Format goes to that Format's own generator and never reaches `findTable`.
+Tables are **rotating doubles only**, and that is a statement about what a whist tournament is rather than a gap waiting to be filled. A Config in any other Format goes to that Format's own generator and never reaches `findTable`. Singles is where that is most visibly right: a whist Table for n=8 seats four to a court, and a singles night on the same eight names has four courts of two.
 _Avoid_: Preset, template, fixture list
 
 **Scorer**:
 The measurement of a Schedule. It is this context's definition of "fair" — it validates the Tables in tests, it picks the winner among the generator's attempts, and it produces the summary line under the Schedule. Nothing claims a Schedule is balanced except the Scorer.
 
-What it measures depends on the Format, so its reading is a union and a caller has to say which board it is looking at before taking a verdict off it. In **rotating** it is partner repeats first, Bye imbalance second, opponent repeats third. In **fixed partners** every partner repeat is deliberate, so the question becomes whether every Pairing has faced every other and whether the team Byes come round evenly — a fixed board scored as a rotating one reports a perfectly correct Schedule as a catastrophe. A `cost` of zero means the same thing in every Format.
+What it measures depends on the Format, so its reading is a union and a caller has to say which board it is looking at before taking a verdict off it. In **rotating** it is partner repeats first, Bye imbalance second, opponent repeats third. In **fixed partners** every partner repeat is deliberate, so the question becomes whether every Pairing has faced every other and whether the team Byes come round evenly — a fixed board scored as a rotating one reports a perfectly correct Schedule as a catastrophe. In **singles** there are no partners at all and the partner matrix stays empty, so the whole verdict is what the opponent matrix says: has anybody played the same person twice, and do the Byes rotate. A `cost` of zero means the same thing in every Format.
+
+Singles and fixed partners count the same noun over different units — meetings between Players, meetings between Pairings — which is why they are two shapes rather than one. A reader that could not tell them apart would report a figure against the wrong denominator.
 _Avoid_: Cost function (fine as the function's name; the Scorer is the concept), validator. Unrelated to entering game scores, which is a separate future concern.
 
 **Pairing**:
-Two Players who have partnered at least once, counted as a pair and not as an occasion: a Pairing that happened twice is one Pairing and one repeat. In **fixed partners** a Pairing is not something a Schedule accumulates but something the Roster declares — two consecutive lines — and it is the unit that takes a Bye and that meets other Pairings. **Coverage** is how many of the Roster's Pairings a Schedule has used, reported in the summary line as "18 of 66 possible pairings". It answers whether another Round is worth playing, which is the one question the Schedule grid cannot be read for.
+Two Players who have partnered at least once, counted as a pair and not as an occasion: a Pairing that happened twice is one Pairing and one repeat. In **fixed partners** a Pairing is not something a Schedule accumulates but something the Roster declares — two consecutive lines — and it is the unit that takes a Bye and that meets other Pairings. **Singles** has no Pairings whatsoever.
+
+**Coverage** is how much of the supply a Schedule has used, reported in the summary line as "18 of 66 possible pairings". What is in supply follows the Format: partnerships in rotating, matchups between Pairings in fixed partners, and matchups between Players in singles — `n(n − 1) / 2` of them, one spent per court per Round rather than two. It answers whether another Round is worth playing, which is the one question the Schedule grid cannot be read for.
 _Avoid_: Partner Matrix (removed 2026-09-09, see below), heatmap, pairing chart. Not a synonym for Team, which is a Pairing in one particular Game.
 
 **Repeat mark**:
-The marker ring drawn in the Schedule grid round the thing that happened twice. It is the Scorer's failure signal made visible in the Round it happened in, so what it encircles follows the Format's question rather than the element: in **rotating** it rings a Team, the pair that partnered more than once; in **fixed partners** it rings the whole Game, because the pair is the constant and the matchup is what can repeat. On screen it is a drawn stroke — the one hand-made mark on an otherwise manufactured board (#482); on paper it falls back to a ruled box, because an ellipse positioned against a name plate has nothing to sit on once the plate is gone.
+The marker ring drawn in the Schedule grid round the thing that happened twice. It is the Scorer's failure signal made visible in the Round it happened in, so what it encircles follows the Format's question rather than the element: in **rotating** it rings a Team, the pair that partnered more than once; in **fixed partners** it rings the whole Game, because the pair is the constant and the matchup is what can repeat; in **singles** it rings the whole Game too, because in singles the Game *is* the pairing. On screen it is a drawn stroke — the one hand-made mark on an otherwise manufactured board (#482); on paper it falls back to a ruled box, because an ellipse positioned against a name plate has nothing to sit on once the plate is gone.
+
+Leaving a rematch to the summary line alone is deliberately not an option, in any Format. It would reintroduce exactly what got the Partner Matrix cut (#477): a figure naming a failure without locating it.
 _Avoid_: Warning, error, conflict
 
 ### Reading your own night
 
 **Itinerary**:
-One Player's evening pulled out of the Schedule: for every Round, either the court, the partner and the opponents, or a Bye. It is a second reading of the same Schedule and never a second Schedule — a pure function in the engine, asked for by Roster index, which is what keeps two Players called Mike apart. The line above the board is derived from it rather than assembled in the component, for the same reason the summary line's figures come off the Scorer.
+One Player's evening pulled out of the Schedule: for every Round, either the court, the partner and the opponents, or a Bye. In **singles** the partner is `null` and there is one opponent — an answer to the question rather than an absence of one, which is why it is a nullable field and not a second shape. It is a second reading of the same Schedule and never a second Schedule — a pure function in the engine, asked for by Roster index, which is what keeps two Players called Mike apart. The line above the board is derived from it rather than assembled in the component, for the same reason the summary line's figures come off the Scorer.
 _Avoid_: Card, personal schedule, my games. Not a Mixer, which is a plan being run rather than a plan being read.
 
 **Find-me**:

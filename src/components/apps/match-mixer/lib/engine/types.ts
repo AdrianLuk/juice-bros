@@ -29,6 +29,23 @@ export type PlayerIndex = number;
 export type Team = readonly [PlayerIndex, PlayerIndex];
 
 /**
+ * One of the two parties to a Game: a Team in doubles, a lone Player in
+ * singles.
+ *
+ * This is the shape RR-4.2 widened, and widening it is most of what that
+ * milestone was. Before it, a side was two indices everywhere — in the
+ * Scorer's partner matrix, in the Itinerary's `partner`, in the name plate
+ * with its stroke between two names, in court arithmetic that counted four
+ * seats — so singles could not be expressed at all rather than merely being
+ * unimplemented.
+ *
+ * A one-tuple rather than a `PlayerIndex | Team`, so that every reader walks a
+ * side the same way whichever Format drew it, and a doubles board comes out of
+ * the engine byte-identical to the one it produced before the union existed.
+ */
+export type Side = readonly [PlayerIndex] | Team;
+
+/**
  * How a Round is put together, and therefore which generator builds it.
  *
  * A Format is a generator and not a cost term (ADR 0003). Rotating is the
@@ -41,15 +58,18 @@ export type Team = readonly [PlayerIndex, PlayerIndex];
  * before Formats existed: a saved visit, or a Share Link already sitting in a
  * group chat.
  */
-export type Format = "rotating" | "fixed";
+export type Format = "rotating" | "fixed" | "singles";
 
 export const DEFAULT_FORMAT: Format = "rotating";
 
-/** Four Players on one court within one Round. */
+/**
+ * Two Sides on one court within one Round — four Players in doubles, two in
+ * singles. A Game belongs to exactly one Round and one court.
+ */
 export interface Game {
   /** Zero-based column of the grid; not a venue and has no name. */
   readonly court: number;
-  readonly teams: readonly [Team, Team];
+  readonly sides: readonly [Side, Side];
 }
 
 /** One slice of the Schedule: every court plays at once, the rest take a Bye. */
@@ -109,8 +129,16 @@ export interface Config {
  */
 export type RotatingConfig = Config & { readonly format?: "rotating" };
 export type FixedConfig = Config & { readonly format: "fixed" };
+export type SinglesConfig = Config & { readonly format: "singles" };
 
-/** A Roster below this can't fill a single court. */
+/**
+ * A Roster below this can't fill a single doubles court.
+ *
+ * It does not move for singles, which could technically draw two names on one
+ * court. Two people do not need a tool to work out that they are playing each
+ * other, and a floor that moved with the Format would make the roster note
+ * under the box lie in the other two.
+ */
 export const MIN_ROSTER_SIZE = 4;
 /** Above this the grid stops fitting a sheet and the search stops being quick. */
 export const MAX_ROSTER_SIZE = 32;
@@ -121,7 +149,10 @@ export const MAX_ROSTER_SIZE = 32;
  * both are reading the same counts.
  */
 export interface Tally {
-  /** `[i][j]` — how many times i and j partnered. The diagonal stays zero. */
+  /**
+   * `[i][j]` — how many times i and j partnered. The diagonal stays zero, and
+   * in singles the whole matrix does: a side of one has nobody to partner.
+   */
   readonly partnerMatrix: number[][];
   /** `[i][j]` — how many times i and j faced each other. */
   readonly opponentMatrix: number[][];
@@ -201,12 +232,38 @@ export interface FixedScore extends ScoreBase {
 }
 
 /**
+ * Singles, where a side is one Player and there are no partners at all. What
+ * is left is the opponent matrix, and what it says is the whole verdict: has
+ * anybody played the same person twice, and do the Byes come round evenly.
+ *
+ * The counts are meetings between Players rather than between Pairings, so the
+ * supply is the Roster's own `n(n − 1) / 2` pairs and a Round spends `courts`
+ * of them rather than `2 × courts`. Coverage here means how much of the room
+ * has played each other.
+ *
+ * It is a separate shape from `FixedScore` despite counting the same noun,
+ * because the two count it over different things — Pairings there, Players
+ * here — and a reader that could not tell them apart would report "12 of 28
+ * possible matchups" against the wrong denominator.
+ */
+export interface SinglesScore extends ScoreBase {
+  readonly format: "singles";
+  /** Players who have met more than once — the headline failure here. */
+  readonly repeatedMeetings: number;
+  readonly maxMeetingCount: number;
+  /** How many distinct pairs of Players have met at least once. */
+  readonly meetingsPlayed: number;
+  /** Every meeting the Roster contains, `n × (n − 1) / 2`. */
+  readonly meetingsPossible: number;
+}
+
+/**
  * The Scorer's reading of one Schedule, in whichever Format drew it. A union
  * rather than one shape, so that a reader has to say which board it is looking
  * at before it can read a verdict off it — which is what stops a fixed-partner
  * board being reported as a rotating one that went badly wrong.
  */
-export type ScorerResult = RotatingScore | FixedScore;
+export type ScorerResult = RotatingScore | FixedScore | SinglesScore;
 
 /**
  * A published, precomputed Schedule for a Roster size the maths solves

@@ -302,10 +302,15 @@ test("a value that is not a URL is handed back unchanged", () => {
 });
 
 /**
- * The Format on the wire. These four are the whole of RR-4.1's claim on this
- * module (#543): the Format travels, it travels appended rather than inserted,
- * a link minted before it existed still opens, and a Format this build cannot
- * draw is refused rather than quietly turned into a rotating board.
+ * The Format on the wire. These are the whole of RR-4.1's claim on this module
+ * (#543): the Format travels, it travels appended rather than inserted, a link
+ * minted before it existed still opens, and a Format this build cannot draw is
+ * refused rather than quietly turned into a rotating board.
+ *
+ * RR-4.2 (#544) adds one Format to that and nothing else. Which is the point
+ * of the field being a code appended to the number line: a third Format is a
+ * third character and a link already in a group chat cannot tell the
+ * difference.
  */
 test("the format travels, so a shared fixed-partner board opens as one", () => {
   const pairs = { ...config, format: "fixed" } as const;
@@ -314,6 +319,17 @@ test("the format travels, so a shared fixed-partner board opens as one", () => {
   assert.deepEqual(
     generateSchedule(shared!.config),
     generateSchedule(pairs),
+    "the reader's browser draws the same board",
+  );
+});
+
+test("a singles board travels too, on the same one character", () => {
+  const solo = { ...config, format: "singles" } as const;
+  const shared = decodeShareLink(encoded(solo));
+  assert.equal(shared?.config.format, "singles");
+  assert.deepEqual(
+    generateSchedule(shared!.config),
+    generateSchedule(solo),
     "the reader's browser draws the same board",
   );
 });
@@ -343,7 +359,13 @@ test("a format this build cannot draw is refused, not turned into rotating", () 
   // A code from a later build, or a hand-edited link. Drawing a rotating board
   // under it would put a schedule on screen that nobody generated — the same
   // failure the checksum catches, so it gets the same answer.
-  for (const unknown of ["s", "x", "fixed", "0"]) {
+  //
+  // "s" is deliberately absent from this list now: it was an unknown code
+  // until RR-4.2 minted it for singles, which is exactly the transition the
+  // refusal exists for. A later Format taking one of these characters owes the
+  // same edit, in both directions — the code goes into `FORMAT_CODES` and
+  // comes out of here.
+  for (const unknown of ["x", "fixed", "0"]) {
     assert.equal(
       decodeShareLink(withField(encoded(), FORMAT_FIELD, unknown)),
       null,

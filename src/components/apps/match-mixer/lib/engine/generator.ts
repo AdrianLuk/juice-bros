@@ -41,6 +41,19 @@ export interface GenerationSpec {
   readonly prefix?: readonly Round[];
 }
 
+/**
+ * A Game this generator built, where both sides are always Teams.
+ *
+ * A `Game`'s sides widened in RR-4.2 to hold one Player or two, because
+ * singles exists. Nothing widened here: rotating doubles seats four to a court
+ * and every cost below reads a partner out of a side. Saying so in a type is
+ * what keeps the seat arithmetic — `court * 4`, four names to a Game — honest
+ * rather than an assumption the wider shape now permits it to break.
+ */
+interface DoublesGame extends Game {
+  readonly sides: readonly [Team, Team];
+}
+
 /** How wide the search goes. Trimmed for long Schedules so a paste stays quick. */
 function attemptsFor(roundsToBuild: number): number {
   return Math.max(4, Math.min(24, Math.ceil(400 / Math.max(1, roundsToBuild))));
@@ -71,9 +84,9 @@ function gameCost(tally: Tally, teams: readonly [Team, Team]): number {
   return cost;
 }
 
-function roundCost(tally: Tally, games: readonly Game[]): number {
+function roundCost(tally: Tally, games: readonly DoublesGame[]): number {
   let cost = 0;
-  for (const game of games) cost += gameCost(tally, game.teams);
+  for (const game of games) cost += gameCost(tally, game.sides);
   return cost;
 }
 
@@ -105,9 +118,9 @@ function seatGreedily(
   courts: number,
   tally: Tally,
   random: () => number,
-): Game[] {
+): DoublesGame[] {
   const pool = shuffle([...seated], random);
-  const games: Game[] = [];
+  const games: DoublesGame[] = [];
 
   const take = (index: number): PlayerIndex => pool.splice(index, 1)[0];
 
@@ -146,7 +159,7 @@ function seatGreedily(
     const d = take(bestPair[1]);
     const c = take(bestPair[0]);
 
-    games.push({ court, teams: [[a, b], [c, d]] });
+    games.push({ court, sides: [[a, b], [c, d]] });
   }
 
   return games;
@@ -157,14 +170,17 @@ function seatGreedily(
  * worst choices end up. Swapping two seats at a time undoes most of that, and
  * a swap is only ever kept if the Round got cheaper.
  */
-function improveBySwapping(games: readonly Game[], tally: Tally): Game[] {
+function improveBySwapping(
+  games: readonly DoublesGame[],
+  tally: Tally,
+): DoublesGame[] {
   const seats: PlayerIndex[] = [];
-  for (const game of games) seats.push(...game.teams[0], ...game.teams[1]);
+  for (const game of games) seats.push(...game.sides[0], ...game.sides[1]);
 
-  const rebuild = (from: readonly PlayerIndex[]): Game[] =>
+  const rebuild = (from: readonly PlayerIndex[]): DoublesGame[] =>
     games.map((_, court) => ({
       court,
-      teams: [
+      sides: [
         [from[court * 4], from[court * 4 + 1]],
         [from[court * 4 + 2], from[court * 4 + 3]],
       ] as [Team, Team],

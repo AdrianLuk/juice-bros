@@ -22,8 +22,18 @@ export interface PlayedRound {
   /** Zero-based, like every other index the engine works in. */
   readonly round: number;
   readonly court: number;
-  readonly partner: PlayerIndex;
-  readonly opponents: readonly [PlayerIndex, PlayerIndex];
+  /**
+   * Who they are playing with, or `null` in singles, where a side is one
+   * Player and there is nobody to play with.
+   *
+   * Null rather than the field being absent from a second shape, because every
+   * reader of an evening asks the same two questions of every Round of it —
+   * where am I, and who with — and a Format that answers the second one
+   * "nobody" is still answering it.
+   */
+  readonly partner: PlayerIndex | null;
+  /** One in singles, two in doubles: whoever is on the other side. */
+  readonly opponents: readonly PlayerIndex[];
 }
 
 /** A Round the Player sits out. */
@@ -49,17 +59,18 @@ export function itinerary(
 ): readonly ItineraryEntry[] {
   return schedule.rounds.map((round, index) => {
     for (const game of round.games) {
-      for (const side of [0, 1] as const) {
-        const team = game.teams[side];
-        const seat = team.indexOf(player);
+      for (const which of [0, 1] as const) {
+        const side = game.sides[which];
+        const seat = side.indexOf(player);
         if (seat === -1) continue;
-        const other = game.teams[side === 0 ? 1 : 0];
+        const other = game.sides[which === 0 ? 1 : 0];
         return {
           kind: "game",
           round: index,
           court: game.court,
-          partner: team[seat === 0 ? 1 : 0],
-          opponents: [other[0], other[1]],
+          // The other seat on this side, where there is one.
+          partner: side[seat === 0 ? 1 : 0] ?? null,
+          opponents: [...other],
         };
       }
     }
