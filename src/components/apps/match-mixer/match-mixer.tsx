@@ -114,11 +114,24 @@ const LEDE: Record<Format, string> = {
 
 /**
  * Past this many courts a sheet of portrait paper runs out of width, so the
- * board turns the page sideways instead of dropping the last court off the
- * edge. Only singles reaches it: doubles tops out at eight courts, which is
- * `MAX_ROSTER_SIZE / 4`.
+ * board turns the page sideways rather than breaking names mid-word to fit.
+ *
+ * Measured rather than guessed, on Letter with the sheet's own 14mm margins
+ * (711px of printable width) and a roster of real pickleball names: six
+ * singles courts need 711px and land exactly on it, seven need 814, eight need
+ * 867. So the threshold is six, not eight — seven courts is already over.
+ *
+ * It catches one doubles board on the way past: thirty-two names on eight
+ * courts needs 730px and has been printing with broken names all along. That
+ * is a fix rather than a side effect, and it is why this reads the court count
+ * instead of the Format — the question is how wide the field is, and a
+ * two-court singles board is no wider than a two-court doubles one.
+ *
+ * Landscape is not a cure at every size. Twelve singles courts need 1186px
+ * against 964px of landscape width, so a board that big still breaks names;
+ * the print stylesheet says why that beats dropping the court.
  */
-const WIDE_BOARD_COURTS = 8;
+const WIDE_BOARD_COURTS = 6;
 
 /**
  * The zero state's board: a real Schedule, generated the way any other

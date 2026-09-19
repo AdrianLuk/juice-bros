@@ -4842,16 +4842,18 @@ html:has(.bb-app-chrome) {
   }
 
   /* A singles board can be sixteen courts wide, which is twice what doubles
-     can reach: `MAX_ROSTER_SIZE / 2` rather than `/ 4`. Past eight of them the
-     field is wider than portrait paper and the last courts fall off the right
-     edge - on screen the scroller catches that, and paper has no sideways. So
-     the sheet turns instead. A narrower margin with it, because the width is
-     what ran out.
+     can reach: `MAX_ROSTER_SIZE / 2` rather than `/ 4`. Past six of them the
+     field is wider than portrait paper, and the rule below that lets a name
+     break mid-word is what stops the last court falling off the edge - on
+     screen the scroller catches it, and paper has no sideways. So the sheet
+     turns instead, and the names stay whole. A narrower margin with it,
+     because the width is what ran out.
 
      Set by `data-wide` on the sheet, off the *drawn* court count rather than
      the Format: a two-court singles board is no wider than a two-court doubles
-     one, and it is a width problem throughout. Only singles reaches the
-     threshold, but nothing here has to know that. */
+     one, and it is a width problem throughout. The measurements behind the
+     six, including the one doubles board it catches, are in `match-mixer.tsx`
+     beside `WIDE_BOARD_COURTS`. */
   @page mm-sheet-wide {
     size: landscape;
     margin: 10mm 12mm;
