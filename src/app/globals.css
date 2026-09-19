@@ -3916,6 +3916,76 @@ html:has(.bb-app-chrome) {
     color: #9aa4a6;
   }
 
+  /* ---- Which format the night is in --------------------------------------- */
+
+  /* Above the roster box because it decides what the names in it mean: in
+     fixed partners the list is read two lines at a time, and finding that out
+     after pasting is finding it out too late.
+
+     Each option is a card-stock plate. The chosen one is lifted off the enamel
+     the way a name plate is — one crisp contact line and a short drop — and
+     the others lie flat against it. That is the board's own way of saying
+     which one is on, so the selection survives being looked at from across a
+     court rather than depending on a 12px dot. The dot is still there and
+     still native: it is what a screen reader and a keyboard are reading, and
+     the plate is decoration on top of it. */
+  .mm-formats {
+    border: 0;
+    margin: 0 0 1.4rem;
+    padding: 0;
+  }
+  .mm-formats > .mm-legend {
+    display: block;
+    margin-bottom: 0.4rem;
+    padding: 0;
+  }
+  .mm-format {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.5rem;
+    align-items: start;
+    padding: 0.42rem 0.55rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .mm-format + .mm-format {
+    margin-top: 0.3rem;
+  }
+  .mm-format input {
+    grid-row: span 2;
+    margin: 0.16rem 0 0;
+    accent-color: var(--mm-mark-red);
+  }
+  .mm-format-name {
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    color: var(--mm-vinyl);
+  }
+  .mm-format-note {
+    grid-column: 2;
+    margin-top: 0.1rem;
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--mm-vinyl-2);
+  }
+  .mm-format[data-on] {
+    background: var(--mm-plate);
+    border-color: var(--mm-plate-edge);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18);
+  }
+  /* An unchosen option is still a control, so hovering it shows the plate it
+     would become rather than changing colour. */
+  .mm-format:hover:not([data-on]) {
+    border-color: var(--mm-rule);
+  }
+
   /* Courts and rounds: two dials on the board, not a settings panel. */
   .mm-fields {
     display: grid;
