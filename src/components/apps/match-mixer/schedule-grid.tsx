@@ -252,14 +252,24 @@ function GameCell({
         selected={selected}
         onSelect={onSelect}
       />
-      <span className="mm-versus">vs</span>
-      <Side
-        roster={roster}
-        side={right}
-        repeat={sideRepeats(right)}
-        selected={selected}
-        onSelect={onSelect}
-      />
+      {/* The far side and the `vs` that introduces it, tied together so they
+          cannot be separated. It is furniture in doubles, where the two plates
+          are stacked and nothing wraps — `.mm-far` is `display: contents`
+          there and the box does not exist. It earns its place in singles: a
+          Game laid out across the column has to be able to wrap onto a second
+          line when the court is narrow, and a wrap that split these would
+          leave the `vs` stranded at the end of the first line pointing at
+          nothing. */}
+      <span className="mm-far">
+        <span className="mm-versus">vs</span>
+        <Side
+          roster={roster}
+          side={right}
+          repeat={sideRepeats(right)}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      </span>
       {rematch ? (
         <>
           <RepeatRing />
