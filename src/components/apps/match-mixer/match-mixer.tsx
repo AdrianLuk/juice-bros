@@ -23,6 +23,7 @@ import {
 import {
   countMarkers,
   describeMarkers,
+  mixedCourtDefault,
   mixedObjection,
   partnershipSupply,
   resolveMixed,
@@ -514,7 +515,7 @@ export function MatchMixer() {
 
   const editRoster = (next: string) => {
     setText(next);
-    setRoster((previous) => parseRoster(next, previous));
+    setRoster((previous) => parseRoster(next, previous, mixing));
     // Typing gives up the cleared list. By then the board may have been drawn
     // from different names, and putting the old ones back beside it would be
     // offering to undo something that is no longer what happened.
@@ -542,7 +543,13 @@ export function MatchMixer() {
   const restoreRoster = () => {
     if (!cleared) return;
     setText(cleared.text);
-    setRoster(cleared.roster);
+    // Read again rather than put the entries back as they were, because the
+    // box may have been cleared under a different reading of the same lines:
+    // ticking or unticking the box while it stands changes whether a trailing
+    // letter is a marker or the last initial it was typed as. The entries go
+    // in as `previous`, so a reading that has not changed reuses every id and
+    // a Player comes back as the same Player.
+    setRoster(parseRoster(cleared.text, cleared.roster, mixing));
     setCleared(null);
   };
 
@@ -558,6 +565,8 @@ export function MatchMixer() {
   // round count, both of which would otherwise count pairs the night can never
   // draw.
   const supply = partnershipSupply(roster, mixing);
+  // What a mixed night can fill, for the court dial's note and its default.
+  const mixedCeiling = mixedCourtDefault(roster, mixing);
   // The fields show what the engine will actually use, which is the same clamp
   // `generateSchedule` applies rather than a second opinion beside it. A null
   // choice is an untouched or emptied field, and means the default.
@@ -567,7 +576,7 @@ export function MatchMixer() {
   // to preserve once one of the inputs is derived from the Roster.
   const { courts, rounds } = resolveNumbers(
     size,
-    courtsChoice ?? undefined,
+    courtsChoice ?? mixedCeiling,
     roundsChoice ?? undefined,
     format,
     supply,
@@ -626,7 +635,22 @@ export function MatchMixer() {
    */
   const chooseFormat = (next: Format) => {
     setFormat(next);
-    if (next !== "rotating") setMixed(false);
+    if (next !== "rotating") chooseMixed(false, next);
+  };
+
+  /**
+   * Ticking the box re-reads the roster box, because the same lines mean
+   * something different under it: `Sarah M` is a name with a last initial
+   * while it is off and a marked Sarah while it is on. Without the re-read
+   * the constraint would be applied to a Roster parsed under the other
+   * reading, and every line would look unmarked however carefully it was
+   * typed.
+   */
+  const chooseMixed = (next: boolean, withFormat: Format = format) => {
+    setMixed(next);
+    setRoster((previous) =>
+      parseRoster(text, previous, resolveMixed(withFormat, next)),
+    );
   };
 
   return (
@@ -694,7 +718,7 @@ export function MatchMixer() {
               value={format}
               onChange={chooseFormat}
               mixed={mixed}
-              onMixedChange={setMixed}
+              onMixedChange={chooseMixed}
             />
 
             <div className="mm-field-head">
@@ -756,9 +780,17 @@ export function MatchMixer() {
                   max={courtCeiling}
                   onChange={setCourtsChoice}
                   note={
-                    courtCeiling === 1
-                      ? `${size} players fill one court.`
-                      : `Up to ${courtCeiling} with ${size} players.`
+                    // The dial's own ceiling is what the Roster can seat, and
+                    // it stays there under mixed doubles: the courts are
+                    // booked, and the field must go on accepting the number
+                    // the organizer actually has. What changes is what this
+                    // says, because "up to 4" is not true of a mixed night
+                    // that can fill 3 — and the refusal below does the rest.
+                    mixedCeiling !== undefined && mixedCeiling < courtCeiling
+                      ? `Up to ${mixedCeiling} as mixed doubles.`
+                      : courtCeiling === 1
+                        ? `${size} players fill one court.`
+                        : `Up to ${courtCeiling} with ${size} players.`
                   }
                 />
                 <NumberField

@@ -394,6 +394,8 @@ function mixedConfig(
       ...Array.from({ length: m }, (_, i) => `Man ${i + 1} M`),
       ...Array.from({ length: f }, (_, i) => `Woman ${i + 1} F`),
     ].join("\n"),
+    [],
+    true,
   );
   return {
     roster,
@@ -482,7 +484,7 @@ test("a fully covered mixed board says every possible pairing has played", () =>
 });
 
 test("a half-marked roster refuses rather than drawing a board that may be mixed", () => {
-  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja");
+  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja", [], true);
   assert.throws(
     () => generateSchedule({ roster, courts: 1, seed: 1, mixed: true }),
     UnsupportedConfigError,
@@ -513,12 +515,12 @@ test("a mixed board never comes off a Table, whatever the roster size", () => {
 });
 
 test("the constraint is dropped in any format that cannot carry it", () => {
-  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja F");
+  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja F", [], true);
   // Fixed partners takes its pairs off the list two lines at a time, so a
   // marker has nothing left to decide — and an unmarked line there must not
   // start refusing because a stale flag came along for the ride.
   const drawn = generateSchedule({
-    roster: parseRoster("Sam M\nAnna F\nBen\nJorja"),
+    roster: parseRoster("Sam M\nAnna F\nBen\nJorja", [], true),
     courts: 1,
     seed: 1,
     format: "fixed",

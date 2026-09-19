@@ -11,10 +11,19 @@ import type { Roster } from "./types.ts";
  * is what editing a pasted list actually looks like.
  *
  * A line may end in a marker (`Sam M`), which mixed doubles reads and nothing
- * else does. It is taken off the name here rather than left on it, so that a
- * marked line and a bare one describe the same Player under a different
- * constraint: ids are reused by name, and changing somebody's marker must not
- * turn them into somebody else.
+ * else does. It is taken off the name rather than left on it, so that a marked
+ * line and a bare one describe the same Player under a different constraint:
+ * ids are reused by name, and changing somebody's marker must not turn them
+ * into somebody else.
+ *
+ * `marked` is why that is a parameter and not just the regex. A club roster
+ * that tells two Sarahs apart by last initial types exactly what a marker
+ * looks like, so reading one off every line unconditionally would quietly
+ * delete the initial — and only for the two letters, leaving `Mike T` intact
+ * beside a `Sarah M` that had become a second `Sarah`. The duplicate notice
+ * would then fire on names the organizer had already disambiguated. So the
+ * marker is read only when the organizer has asked for mixed doubles, and the
+ * default is the reading every Roster has always had.
  */
 
 const ID_PREFIX = "p";
@@ -29,12 +38,16 @@ function nextIdAfter(previous: Roster): number {
   return next;
 }
 
-export function parseRoster(text: string, previous: Roster = []): Roster {
+export function parseRoster(
+  text: string,
+  previous: Roster = [],
+  marked = false,
+): Roster {
   const entries = text
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
-    .map(splitMarker);
+    .map((line) => (marked ? splitMarker(line) : { name: line }));
 
   // Each previous entry can be claimed once, so two players called Mike keep
   // their two distinct ids rather than collapsing into one.

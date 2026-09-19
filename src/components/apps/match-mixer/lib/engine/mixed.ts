@@ -121,6 +121,14 @@ export function markersOf(roster: Roster): readonly Marker[] | null {
  *
  * `undefined` when the constraint does not apply, which is the shape
  * `naturalLength` and the Scorer both take to mean "the whole triangle".
+ *
+ * A Roster part-way through being marked comes back `undefined` too, rather
+ * than the `0` its counts would multiply out to while the first line still has
+ * no `F` on it. `naturalLength` reads `partnerships ?? triangle`, and `0` is
+ * not absent — it is a supply of nothing, which floors the rotation at one
+ * Round. The organizer would watch the Rounds dial drop to 1 and climb back on
+ * its own as the last marker landed, showing a number nobody chose. Nothing
+ * can be drawn in that window anyway: the refusal is already on screen.
  */
 export function partnershipSupply(
   roster: Roster,
@@ -128,12 +136,43 @@ export function partnershipSupply(
 ): number | undefined {
   if (!mixed) return undefined;
   const counts = countMarkers(roster);
+  if (counts.unmarked > 0) return undefined;
   return counts.M * counts.F;
 }
 
 /** The most courts this Roster's markers can fill as mixed doubles. */
 export function maxMixedCourts(counts: MarkerCounts): number {
   return Math.floor(Math.min(counts.M, counts.F) / 2);
+}
+
+/**
+ * How many courts to offer before the organizer has said, or `undefined` to
+ * leave that to the Roster size as usual.
+ *
+ * This is a default and deliberately not a ceiling. How many courts there are
+ * is a fact about the evening rather than a number to optimize — they are
+ * booked, and clamping the field to what the markers allow would quietly take
+ * one away and call it a fix. So the field still accepts the three courts the
+ * organizer actually has, and answers with the arithmetic for why this list
+ * cannot fill them.
+ *
+ * What it does fix is the opening state. Ten `M` and six `F` would otherwise
+ * offer `floor(n / 4)` = four courts, which the constraint refuses, so ticking
+ * the box on a perfectly drawable Roster would grey the button out before
+ * anybody had chosen anything.
+ *
+ * `undefined` while a line is still unmarked, for the reason
+ * `partnershipSupply` gives, and when no court count works at all — below two
+ * of a side the answer is the refusal, not a silent zero.
+ */
+export function mixedCourtDefault(
+  roster: Roster,
+  mixed: boolean,
+): number | undefined {
+  if (!mixed) return undefined;
+  const counts = countMarkers(roster);
+  if (counts.unmarked > 0) return undefined;
+  return maxMixedCourts(counts) || undefined;
 }
 
 function lines(count: number): string {

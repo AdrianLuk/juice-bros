@@ -306,7 +306,7 @@ test("a side that does sit unevenly is still reported", () => {
 });
 
 test("scoreSchedule reads the markers off the config it is handed", () => {
-  const roster = parseRoster("A M\nB M\nC F\nD F");
+  const roster = parseRoster("A M\nB M\nC F\nD F", [], true);
   const schedule: Schedule = {
     source: "generated",
     rounds: [{ games: [{ court: 0, teams: [[0, 2], [1, 3]] }], byes: [] }],

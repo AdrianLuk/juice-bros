@@ -128,9 +128,9 @@ function chooseByes(
  *
  * A mixed Round seats `2c` of each side, so the two sides sit out independent
  * numbers of people and one queue cannot be allowed to decide the other's
- * turn. With ten `M` and six `F` on two courts, two `M` sit every Round and no
- * `F` ever does; taking the four lowest counts off one shared queue would sit
- * `F` down and leave the court short of somebody to fill the seat.
+ * turn. With ten `M` and six `F` on three courts, four `M` sit every Round and
+ * no `F` ever does; taking the four lowest counts off one shared queue would
+ * sit an `F` down and leave a court short of somebody to fill the seat.
  */
 function chooseMixedByes(
   n: number,

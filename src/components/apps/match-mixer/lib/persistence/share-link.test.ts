@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { defaultRounds, maxCourts, type ResolvedConfig } from "../engine/config.ts";
+import { rosterLine } from "../engine/mixed.ts";
 import { parseRoster } from "../engine/roster.ts";
 import { generateSchedule } from "../engine/schedule.ts";
 import { MAX_ROSTER_SIZE } from "../engine/types.ts";
@@ -385,6 +386,8 @@ const mixedRoster = parseRoster(
     ...Array.from({ length: 6 }, (_, i) => `Man ${i + 1} M`),
     ...Array.from({ length: 6 }, (_, i) => `Woman ${i + 1} F`),
   ].join("\n"),
+  [],
+  true,
 );
 
 const mixedConfig: ResolvedConfig = {
@@ -410,12 +413,29 @@ test("a shared mixed board opens as a mixed board", () => {
   );
 });
 
-test("the markers travel even when the constraint is off", () => {
-  // Marking the lines and asking for a mixed board are two different things,
-  // and a reader who turns the box on should find the list already marked.
+test("an unmixed link's lines are names, last initials and all", () => {
+  // The marker is only read when the payload asked for a mixed board, which is
+  // the same rule the roster box follows. A club that tells two Sarahs apart
+  // by last initial types exactly what a marker looks like, and a link must
+  // not be the one place that stops being a name.
   const shared = decodeShareLink(encoded({ ...mixedConfig, mixed: false }));
   assert.equal(shared?.config.mixed, false);
-  assert.equal(shared?.config.roster[0].marker, "M");
+  assert.equal(shared?.config.roster[0].marker, undefined);
+  assert.equal(shared?.config.roster[0].name, "Man 1 M");
+});
+
+test("the lines survive either way, so ticking the box after opening marks them", () => {
+  // The round trip is lossless as text in both readings, which is what lets a
+  // reader who opens an unmixed link turn the constraint on: the box re-reads
+  // what is in it, and the markers are still there to be read.
+  for (const mixed of [true, false]) {
+    const shared = decodeShareLink(encoded({ ...mixedConfig, mixed }));
+    assert.deepEqual(
+      shared?.config.roster.map(rosterLine),
+      mixedRoster.map(rosterLine),
+      `lost a line with mixed=${mixed}`,
+    );
+  }
 });
 
 test("a link for an unmixed board carries no mixed field at all", () => {

@@ -255,7 +255,11 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   if (mixed === undefined) return null;
   if (mixed && format !== "rotating") return null;
 
-  const roster = parseRoster(names);
+  // The markers are read only when the payload asked for a mixed board, which
+  // is the same rule the roster box follows: a line ending in a last initial
+  // is a name everywhere else, and a link must not be the one place it stops
+  // being one.
+  const roster = parseRoster(names, [], mixed);
   // Anything the engine would refuse is corruption here too, so a link with
   // three names in it opens the empty tool rather than throwing on mount.
   //

@@ -6,6 +6,7 @@ import {
   describeMarkers,
   markersOf,
   maxMixedCourts,
+  mixedCourtDefault,
   mixedObjection,
   partnershipSupply,
   resolveMixed,
@@ -51,14 +52,14 @@ test("the round trip through the roster box is the identity", () => {
 });
 
 test("counting says how the list divides and how much of it has not said", () => {
-  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja");
+  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja", [], true);
   assert.deepEqual(countMarkers(roster), { M: 2, F: 1, unmarked: 1 });
   assert.equal(describeMarkers(countMarkers(roster)), "2 M, 1 F");
 });
 
 test("markersOf is the whole list or nothing at all", () => {
-  assert.deepEqual(markersOf(parseRoster("Sam M\nAnna F")), ["M", "F"]);
-  assert.equal(markersOf(parseRoster("Sam M\nAnna")), null);
+  assert.deepEqual(markersOf(parseRoster("Sam M\nAnna F", [], true)), ["M", "F"]);
+  assert.equal(markersOf(parseRoster("Sam M\nAnna", [], true)), null);
 });
 
 test("mixed doubles is a qualifier on rotating and means nothing elsewhere", () => {
@@ -68,7 +69,7 @@ test("mixed doubles is a qualifier on rotating and means nothing elsewhere", () 
 });
 
 test("the partnership supply is M x F while the constraint is on", () => {
-  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja F\nJW M\nCat F");
+  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja F\nJW M\nCat F", [], true);
   assert.equal(partnershipSupply(roster, true), 9);
   // Off, it is the whole triangle, which is what `naturalLength` works out
   // for itself when nothing overrides it.
@@ -81,6 +82,8 @@ function rosterOf(m: number, f: number) {
       ...Array.from({ length: m }, (_, i) => `M${i + 1} M`),
       ...Array.from({ length: f }, (_, i) => `F${i + 1} F`),
     ].join("\n"),
+    [],
+    true,
   );
 }
 
@@ -93,14 +96,14 @@ test("a fully marked list that fills the courts draws", () => {
 });
 
 test("an unmarked line refuses, and the message says how many are missing one", () => {
-  const roster = parseRoster("Sam M\nAnna F\nBen\nJorja");
+  const roster = parseRoster("Sam M\nAnna F\nBen\nJorja", [], true);
   const objection = mixedObjection(roster, 1, true);
   assert.ok(objection);
   assert.match(objection, /2 lines are missing one/);
 });
 
 test("one unmarked line reads as one line, not as '1 lines'", () => {
-  const objection = mixedObjection(parseRoster("Sam M\nAnna F\nBen M\nJorja"), 1, true);
+  const objection = mixedObjection(parseRoster("Sam M\nAnna F\nBen M\nJorja", [], true), 1, true);
   assert.ok(objection);
   assert.match(objection, /1 line is missing one/);
 });
@@ -137,4 +140,33 @@ test("the court ceiling is the short side, two to a court", () => {
   assert.equal(maxMixedCourts({ M: 10, F: 4, unmarked: 0 }), 2);
   assert.equal(maxMixedCourts({ M: 6, F: 6, unmarked: 0 }), 3);
   assert.equal(maxMixedCourts({ M: 7, F: 1, unmarked: 0 }), 0);
+});
+
+test("a roster part-way through being marked has no supply figure, not a supply of nothing", () => {
+  // `0` is not absence: `naturalLength` reads `partnerships ?? triangle`, so a
+  // zero would floor the rotation at one round and the Rounds dial would drop
+  // to 1 and climb back on its own as the last marker landed.
+  assert.equal(partnershipSupply(parseRoster("Sam M\nAnna\nBen\nJo", [], true), true), undefined);
+  assert.equal(partnershipSupply(parseRoster("Sam M\nAnna F\nBen M\nJo F", [], true), true), 4);
+});
+
+test("the court default follows the markers, so ticking the box does not block the button", () => {
+  // Ten M and six F: the roster fills four courts, mixed doubles fills three.
+  // Offering four before anybody has chosen would refuse a drawable roster out
+  // of the gate.
+  assert.equal(mixedCourtDefault(rosterOf(10, 6), true), 3);
+  // Off, and while a line is still bare, the roster size decides as it always has.
+  assert.equal(mixedCourtDefault(rosterOf(10, 6), false), undefined);
+  assert.equal(mixedCourtDefault(parseRoster("Sam M\nAnna\nBen\nJo", [], true), true), undefined);
+  // Below two of a side the answer is the refusal, not a silent zero.
+  assert.equal(mixedCourtDefault(rosterOf(7, 1), true), undefined);
+});
+
+test("the court default is a default and never a ceiling", () => {
+  // The courts are booked. An organizer who has three and types three still
+  // gets the arithmetic for why this list cannot fill them, rather than having
+  // one quietly taken away.
+  const roster = rosterOf(10, 4);
+  assert.equal(mixedCourtDefault(roster, true), 2);
+  assert.ok(mixedObjection(roster, 3, true));
 });

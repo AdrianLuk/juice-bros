@@ -202,8 +202,8 @@ function byeVerdict(
   if (!markers) return shareOver(tally, everyone);
 
   // A mixed Round seats `2c` of each marker, so the two sides take their Byes
-  // from two separate queues: with ten M and six F on two courts, no F ever
-  // sits and two M do every Round. Measured across the whole Roster that
+  // from two separate queues: with ten M and six F on three courts, no F ever
+  // sits and four M do every Round. Measured across the whole Roster that
   // reads as a broken rotation, and it is not one — it is the only rotation
   // those counts allow. What the organizer can be let down by is somebody
   // sitting out more often than the others *of their own side*, so that is
