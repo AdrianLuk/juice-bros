@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   isSupportedRosterSize,
@@ -20,6 +20,15 @@ import {
   FORMATS,
   formatObjection,
 } from "@/components/apps/match-mixer/lib/engine/format";
+import {
+  countMarkers,
+  describeMarkers,
+  mixedCourtDefault,
+  mixedObjection,
+  partnershipSupply,
+  resolveMixed,
+  rosterLine,
+} from "@/components/apps/match-mixer/lib/engine/mixed";
 import {
   duplicateNames,
   parseRoster,
@@ -131,16 +140,17 @@ interface Draw {
 
 /** Draws the board for a Config, whether it was just asked for or restored. */
 function drawFrom(config: ResolvedConfig, outdated = false): Draw {
-  const { roster, courts, rounds, format } = config;
+  const { roster, courts, rounds, format, mixed } = config;
   const schedule = generateSchedule(config);
   return {
     config,
-    key: drawKey(roster, courts, rounds, format),
+    key: drawKey(roster, courts, rounds, format, mixed),
     numbers: describeNumbers({
       players: roster.length,
       courts,
       rounds,
       format,
+      mixed,
     }),
     schedule,
     score: scoreSchedule(schedule, config),
@@ -156,18 +166,23 @@ function drawFrom(config: ResolvedConfig, outdated = false): Draw {
  * The Format is in here because it is the one input that changes the board
  * without changing a single name or number. Without it, switching the row
  * would leave the previous Format's board on screen with nothing over it
- * saying so — which is the exact reading this key exists to prevent.
+ * saying so — which is the exact reading this key exists to prevent. Mixed
+ * doubles is in here on the same argument, twice over: the box and the markers
+ * on the lines both change the board, and one of them changes it while every
+ * name stays where it was.
  */
 function drawKey(
   roster: Roster,
   courts: number,
   rounds: number,
   format: Format,
+  mixed: boolean,
 ): string {
-  // Joined on a newline because that is the one character `parseRoster` will
-  // not leave inside a name. On a space, "Mary Ann / Bo" and "Mary / Ann Bo"
-  // would key the same, and an edit between them would never flag the board.
-  return `${format}/${courts}/${rounds}/${roster.map((player) => player.name).join("\n")}`;
+  // The line as typed, joined on a newline because that is the one character
+  // `parseRoster` will not leave inside a name. On a space, "Mary Ann / Bo"
+  // and "Mary / Ann Bo" would key the same, and an edit between them would
+  // never flag the board.
+  return `${format}${mixed ? "+mixed" : ""}/${courts}/${rounds}/${roster.map(rosterLine).join("\n")}`;
 }
 
 /**
@@ -186,10 +201,18 @@ function borrowKey(
   courts: number | null,
   rounds: number | null,
   format: Format,
+  mixed: boolean,
   seed: number | undefined,
 ): string {
-  const entries = roster.map((player) => `${player.id}=${player.name}`);
-  return [seed ?? "", courts ?? "", rounds ?? "", format, ...entries].join("\n");
+  const entries = roster.map((player) => `${player.id}=${rosterLine(player)}`);
+  return [
+    seed ?? "",
+    courts ?? "",
+    rounds ?? "",
+    format,
+    mixed ? "mixed" : "",
+    ...entries,
+  ].join("\n");
 }
 
 /**
@@ -239,6 +262,10 @@ export function MatchMixer() {
   // Roster until overruled, and a Format has nothing to follow. Rotating is a
   // selection made on the organizer's behalf before they arrive.
   const [format, setFormat] = useState<Format>(DEFAULT_FORMAT);
+  // Whether every team has to come out one M and one F. A qualifier on
+  // rotating rather than a Format of its own, so it is held beside the row
+  // rather than inside it.
+  const [mixed, setMixed] = useState(false);
   const [draw, setDraw] = useState<Draw | null>(null);
   // Whether the saved Config has been read yet, which is only ever asked so
   // that saving cannot start before loading has finished. The screen itself
@@ -302,13 +329,22 @@ export function MatchMixer() {
       // A link beats storage, and beats it without reading it at all.
       const shared = decodeShareLink(param);
       if (shared) {
-        const { roster: shown, courts, rounds, format: shownFormat } =
-          shared.config;
-        setText(shown.map((player) => player.name).join("\n"));
+        const {
+          roster: shown,
+          courts,
+          rounds,
+          format: shownFormat,
+          mixed: shownMixed,
+        } = shared.config;
+        // The lines as they were typed, markers and all: a shared mixed board
+        // has to open as a mixed board, and the box over it has to be ticked
+        // against a roster that still says why.
+        setText(shown.map(rosterLine).join("\n"));
         setRoster(shown);
         setCourtsChoice(courts);
         setRoundsChoice(rounds);
         setFormat(shownFormat);
+        setMixed(shownMixed);
         // Generated again from the values the link carried rather than sent as
         // a grid, which is what ADR 0001's determinism was for. `!current` is
         // never a decode failure (#494): an unrecognised or future version
@@ -319,6 +355,7 @@ export function MatchMixer() {
           courts,
           rounds,
           shownFormat,
+          shownMixed,
           shared.config.seed,
         );
         setRestored(true);
@@ -335,12 +372,14 @@ export function MatchMixer() {
         courts: null,
         rounds: null,
         format: DEFAULT_FORMAT,
+        mixed: false,
       };
-      setText(edited.roster.map((player) => player.name).join("\n"));
+      setText(edited.roster.map(rosterLine).join("\n"));
       setRoster(edited.roster);
       setCourtsChoice(edited.courts);
       setRoundsChoice(edited.rounds);
       setFormat(edited.format);
+      setMixed(edited.mixed);
       // The board is generated again rather than stored, so what comes back is
       // the same board down to the seat every name sat in.
       setDraw(saved?.drawn ? drawFrom(saved.drawn) : null);
@@ -371,6 +410,7 @@ export function MatchMixer() {
         courtsChoice,
         roundsChoice,
         format,
+        mixed,
         draw?.config.seed,
       );
       if (borrowed.current === onScreen) return;
@@ -404,6 +444,7 @@ export function MatchMixer() {
       courts: courtsChoice,
       rounds: roundsChoice,
       format,
+      mixed,
     };
     const drawn = draw?.config ?? null;
 
@@ -425,7 +466,7 @@ export function MatchMixer() {
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flush);
     };
-  }, [restored, cleared, roster, courtsChoice, roundsChoice, format, draw]);
+  }, [restored, cleared, roster, courtsChoice, roundsChoice, format, mixed, draw]);
 
   // Which board is on screen, for the find-me selection to be held against.
   // Never the Roster index alone: an index only means anything against one
@@ -474,7 +515,7 @@ export function MatchMixer() {
 
   const editRoster = (next: string) => {
     setText(next);
-    setRoster((previous) => parseRoster(next, previous));
+    setRoster((previous) => parseRoster(next, previous, mixing));
     // Typing gives up the cleared list. By then the board may have been drawn
     // from different names, and putting the old ones back beside it would be
     // offering to undo something that is no longer what happened.
@@ -502,34 +543,63 @@ export function MatchMixer() {
   const restoreRoster = () => {
     if (!cleared) return;
     setText(cleared.text);
-    setRoster(cleared.roster);
+    // Read again rather than put the entries back as they were, because the
+    // box may have been cleared under a different reading of the same lines:
+    // ticking or unticking the box while it stands changes whether a trailing
+    // letter is a marker or the last initial it was typed as. The entries go
+    // in as `previous`, so a reading that has not changed reuses every id and
+    // a Player comes back as the same Player.
+    setRoster(parseRoster(cleared.text, cleared.roster, mixing));
     setCleared(null);
   };
 
   const size = roster.length;
   const supported = isSupportedRosterSize(size);
   const courtCeiling = maxCourts(size);
+  // Mixed doubles applies to rotating and nothing else, so a Format that
+  // cannot carry it drops it here as well as hiding the box: nothing below
+  // this line has to remember the pairing is impossible.
+  const mixing = resolveMixed(format, mixed);
+  // How many partnerships this board has to spend, which mixed doubles cuts to
+  // `M × F`. Read by the consequence line's supply clause and by the default
+  // round count, both of which would otherwise count pairs the night can never
+  // draw.
+  const supply = partnershipSupply(roster, mixing);
+  // What a mixed night can fill, for the court dial's note and its default.
+  const mixedCeiling = mixedCourtDefault(roster, mixing);
   // The fields show what the engine will actually use, which is the same clamp
   // `generateSchedule` applies rather than a second opinion beside it. A null
   // choice is an untouched or emptied field, and means the default.
-  const { courts, rounds } = useMemo(
-    () =>
-      resolveNumbers(
-        size,
-        courtsChoice ?? undefined,
-        roundsChoice ?? undefined,
-        format,
-      ),
-    [size, courtsChoice, roundsChoice, format],
+  //
+  // Not memoized. It is four comparisons over primitives, and the manual
+  // memoization it used to carry is the kind the React Compiler has to refuse
+  // to preserve once one of the inputs is derived from the Roster.
+  const { courts, rounds } = resolveNumbers(
+    size,
+    courtsChoice ?? mixedCeiling,
+    roundsChoice ?? undefined,
+    format,
+    supply,
   );
 
   const repeated = duplicateNames(roster);
-  const shape = { players: size, courts, rounds, format };
-  // Why this Roster cannot be drawn in this Format, if it cannot. Asked here
-  // rather than caught out of `generateSchedule`, because the answer is a
-  // sentence the organizer can act on and it has to be on screen before the
-  // button is pressed rather than instead of the board afterwards.
-  const objection = supported ? formatObjection(roster, format) : null;
+  const markers = countMarkers(roster);
+  const shape = {
+    players: size,
+    courts,
+    rounds,
+    format,
+    mixed: mixing,
+    partnerships: supply,
+  };
+  // Why this Roster cannot be drawn like this, if it cannot. Asked here rather
+  // than caught out of `generateSchedule`, because the answer is a sentence
+  // the organizer can act on and it has to be on screen before the button is
+  // pressed rather than instead of the board afterwards.
+  const objection = supported
+    ? (formatObjection(roster, format) ??
+      mixedObjection(roster, courts, mixing))
+    : null;
   const drawable = supported && objection === null;
   // The consequence line stays on the screen at every Roster size, including
   // the sizes with no Config to describe: a Roster on its way to eleven names
@@ -540,7 +610,7 @@ export function MatchMixer() {
   const consequence = !supported
     ? describeUnsupportedRoster(size)
     : (objection ?? describeConfig(shape));
-  const key = drawKey(roster, courts, rounds, format);
+  const key = drawKey(roster, courts, rounds, format, mixing);
   const stale = draw !== null && draw.key !== key;
 
   const generate = () => {
@@ -550,8 +620,36 @@ export function MatchMixer() {
         courts,
         rounds,
         format,
+        mixed: mixing,
         seed: nextSeed(draw?.config.seed),
       }),
+    );
+  };
+
+  /**
+   * Leaving rotating takes the constraint with it rather than leaving a ticked
+   * box applying to nothing. Cleared as well as hidden, because a box that
+   * came back ticked on the way round would be a constraint the organizer
+   * never re-chose, arriving silently at the moment they stopped looking at
+   * it.
+   */
+  const chooseFormat = (next: Format) => {
+    setFormat(next);
+    if (next !== "rotating") chooseMixed(false, next);
+  };
+
+  /**
+   * Ticking the box re-reads the roster box, because the same lines mean
+   * something different under it: `Sarah M` is a name with a last initial
+   * while it is off and a marked Sarah while it is on. Without the re-read
+   * the constraint would be applied to a Roster parsed under the other
+   * reading, and every line would look unmarked however carefully it was
+   * typed.
+   */
+  const chooseMixed = (next: boolean, withFormat: Format = format) => {
+    setMixed(next);
+    setRoster((previous) =>
+      parseRoster(text, previous, resolveMixed(withFormat, next)),
     );
   };
 
@@ -602,7 +700,9 @@ export function MatchMixer() {
           <p className="mm-lede">
             {format === "fixed"
               ? "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair."
-              : "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice."}{" "}
+              : mixing
+                ? "Mark each name M or F and get a doubles rotation where every pair is one of each, and nobody partners the same person twice."
+                : "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice."}{" "}
             Your list stays in this browser and waits here for next week. There
             is no account to make and no database behind this: nothing you type
             is kept on a server.
@@ -614,7 +714,12 @@ export function MatchMixer() {
               page in one rule — everything in it is an edit, and nothing you
               can edit belongs on paper. */}
           <div className="mm-controls">
-            <FormatRow value={format} onChange={setFormat} />
+            <FormatRow
+              value={format}
+              onChange={chooseFormat}
+              mixed={mixed}
+              onMixedChange={chooseMixed}
+            />
 
             <div className="mm-field-head">
               <label className="mm-legend" htmlFor="mm-roster">
@@ -652,7 +757,17 @@ export function MatchMixer() {
               {format === "fixed"
                 ? " Each pair goes on two lines, one after the other."
                 : null}
+              {mixing ? " Put an M or an F on the end of each line." : null}
             </p>
+            {/* The readback, and the whole of why the marker is worth a line
+                of its own: an organizer who typed twelve of them wants to see
+                that twelve were read, not find out from a board that came out
+                six and six when the room is seven and five. It only appears
+                once every line carries one, because until then the refusal
+                above is the truer thing to be saying. */}
+            {mixing && size > 0 && markers.unmarked === 0 ? (
+              <p className="mm-note mt-2">Read: {describeMarkers(markers)}.</p>
+            ) : null}
             <DuplicateNotice names={repeated} />
 
             {supported ? (
@@ -665,9 +780,17 @@ export function MatchMixer() {
                   max={courtCeiling}
                   onChange={setCourtsChoice}
                   note={
-                    courtCeiling === 1
-                      ? `${size} players fill one court.`
-                      : `Up to ${courtCeiling} with ${size} players.`
+                    // The dial's own ceiling is what the Roster can seat, and
+                    // it stays there under mixed doubles: the courts are
+                    // booked, and the field must go on accepting the number
+                    // the organizer actually has. What changes is what this
+                    // says, because "up to 4" is not true of a mixed night
+                    // that can fill 3 — and the refusal below does the rest.
+                    mixedCeiling !== undefined && mixedCeiling < courtCeiling
+                      ? `Up to ${mixedCeiling} as mixed doubles.`
+                      : courtCeiling === 1
+                        ? `${size} players fill one court.`
+                        : `Up to ${courtCeiling} with ${size} players.`
                   }
                 />
                 <NumberField
@@ -743,8 +866,7 @@ export function MatchMixer() {
                     work out the difference themselves. */}
                 {stale ? (
                   <p className="mm-flag">
-                    Superseded · you now have{" "}
-                    {describeNumbers({ players: size, courts, rounds, format })}
+                    Superseded · you now have {describeNumbers(shape)}
                   </p>
                 ) : null}
                 {/* Keyed on the Seed so a new draw remounts the field: that is
@@ -803,29 +925,59 @@ export function MatchMixer() {
  * and should be able to see the whole of. The note under each option is what
  * makes it a choice rather than a pair of words: "fixed partners" only tells
  * you what it does if you already knew.
+ *
+ * Mixed doubles is a checkbox under the row rather than a fourth radio,
+ * because it is not a fourth way to put a Round together — it is a constraint
+ * on one of the three. It is indented to the options' own text column, which
+ * is the board's way of saying it hangs off them, and it is only in the DOM
+ * while rotating is selected: the other Formats cannot carry it, and a ticked
+ * box applying to nothing is the one state this control must not have.
  */
 function FormatRow({
   value,
   onChange,
+  mixed,
+  onMixedChange,
 }: {
   value: Format;
   onChange: (next: Format) => void;
+  mixed: boolean;
+  onMixedChange: (next: boolean) => void;
 }) {
   return (
     <fieldset className="mm-formats">
       <legend className="mm-legend">Format</legend>
       {FORMATS.map((format) => (
-        <label className="mm-format" key={format} data-on={value === format ? "true" : undefined}>
-          <input
-            type="radio"
-            name="mm-format"
-            value={format}
-            checked={value === format}
-            onChange={() => onChange(format)}
-          />
-          <span className="mm-format-name">{FORMAT_LABELS[format]}</span>
-          <span className="mm-format-note">{FORMAT_NOTES[format]}</span>
-        </label>
+        <Fragment key={format}>
+          <label className="mm-format" data-on={value === format ? "true" : undefined}>
+            <input
+              type="radio"
+              name="mm-format"
+              value={format}
+              checked={value === format}
+              onChange={() => onChange(format)}
+            />
+            <span className="mm-format-name">{FORMAT_LABELS[format]}</span>
+            <span className="mm-format-note">{FORMAT_NOTES[format]}</span>
+          </label>
+          {/* Directly under the option it qualifies, not at the foot of the
+              row: at the foot it would sit against fixed partners and read as
+              hanging off that instead, which is the one thing it must not
+              say. */}
+          {format === "rotating" && value === "rotating" ? (
+            <label className="mm-format mm-constraint" data-on={mixed ? "true" : undefined}>
+              <input
+                type="checkbox"
+                checked={mixed}
+                onChange={(event) => onMixedChange(event.target.checked)}
+              />
+              <span className="mm-format-name">Mixed doubles</span>
+              <span className="mm-format-note">
+                Every pair is one M and one F. Put the marker after each name.
+              </span>
+            </label>
+          ) : null}
+        </Fragment>
       ))}
     </fieldset>
   );
@@ -847,7 +999,10 @@ function ActionNote({
   draw: Draw | null;
   stale: boolean;
   size: number;
-  /** The Format cannot seat this Roster; the consequence line says why. */
+  /**
+   * The Format or the mixed-doubles constraint cannot seat this Roster; the
+   * consequence line says which, and why.
+   */
   blocked: boolean;
 }) {
   if (size === 0) return <>Paste your names above, then make the board.</>;
@@ -857,7 +1012,8 @@ function ActionNote({
   // The line above this one is already the whole explanation, so this says
   // only that the button will not act. Restating it here would put the same
   // sentence on screen twice, a centimetre apart.
-  if (blocked) return <>Nothing to draw until the roster suits the format.</>;
+  if (blocked)
+    return <>Nothing to draw until the roster suits what you have chosen.</>;
   if (stale)
     return <>The board on screen is the previous draw, not this one.</>;
   if (draw) return <>Same names, same numbers, a different draw.</>;

@@ -144,3 +144,35 @@ test("a roster too big to seat says how far over it is", () => {
   assert.equal(describeUnsupportedRoster(33), "33 players. 1 more than one sheet holds.");
   assert.equal(describeUnsupportedRoster(40), "40 players. 8 more than one sheet holds.");
 });
+
+/** The same shape with mixed doubles on, and the supply that goes with it. */
+function mixedShape(
+  players: number,
+  courts: number,
+  rounds: number,
+  partnerships: number,
+): ConfigShape {
+  return { players, courts, rounds, format: "rotating", mixed: true, partnerships };
+}
+
+test("the particulars name mixed doubles, which is the only thing on paper that can", () => {
+  assert.equal(
+    describeNumbers(mixedShape(12, 3, 6, 36)),
+    "rotating partners, mixed doubles · 12 players on 3 courts, 6 rounds",
+  );
+});
+
+test("the supply clause counts M x F while the constraint is on", () => {
+  // Six and six on three courts is 36 cross-marker partnerships spent six a
+  // round, so round seven is where they run out. The whole triangle would be
+  // 66 and would promise there were plenty left.
+  assert.match(describeConfig(mixedShape(12, 3, 6, 36)), /enough partnerships to go round\.$/);
+  assert.match(
+    describeConfig(mixedShape(12, 3, 8, 36)),
+    /Partners start repeating after round 6\.$/,
+  );
+  assert.match(
+    describeConfig(shape(12, 3, 8)),
+    /enough partnerships to go round\.$/,
+  );
+});

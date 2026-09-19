@@ -54,9 +54,16 @@ const drawn: ResolvedConfig = {
   rounds: 5,
   seed: 12345,
   format: "rotating",
+  mixed: false,
 };
 
-const edited = { roster, courts: 2, rounds: null, format: "rotating" } as const;
+const edited = {
+  roster,
+  courts: 2,
+  rounds: null,
+  format: "rotating",
+  mixed: false,
+} as const;
 
 test("round-trips the edited config and the drawn one", () => {
   clear();
@@ -186,7 +193,7 @@ test("save with an empty roster clears the save, sheet on screen or not", () => 
     clear();
     save(edited, drawn);
     save(
-      { roster: [], courts: null, rounds: null, format: "rotating" },
+      { roster: [], courts: null, rounds: null, format: "rotating", mixed: false },
       stillDrawn,
     );
     assert.equal(storage.getItem(KEY), null);
@@ -263,4 +270,130 @@ test("a saved board its format cannot seat is discarded, not restored", () => {
     }),
   );
   assert.equal(load(), null);
+});
+
+/**
+ * Mixed doubles (#545). The markers live on the Roster entries and the
+ * constraint beside the Format, and both have to come back: a marker dropped
+ * on the way in would put a roster on screen that no longer says what was
+ * typed, and the ticked box over it would start refusing a list the organizer
+ * had already marked.
+ */
+
+const marked: Roster = [
+  { id: "p0", name: "Ben Johns", marker: "M" },
+  { id: "p1", name: "Anna Leigh Waters", marker: "F" },
+  { id: "p2", name: "Federico Staksrud", marker: "M" },
+  { id: "p3", name: "Catherine Parenteau", marker: "F" },
+];
+
+const mixedEdited = {
+  roster: marked,
+  courts: 1,
+  rounds: null,
+  format: "rotating",
+  mixed: true,
+} as const;
+
+const mixedDrawn: ResolvedConfig = {
+  roster: marked,
+  courts: 1,
+  rounds: 4,
+  seed: 777,
+  format: "rotating",
+  mixed: true,
+};
+
+test("markers and the mixed box survive a reload", () => {
+  clear();
+  save(mixedEdited, mixedDrawn);
+  const loaded = load();
+  assert.deepEqual(loaded?.edited, mixedEdited);
+  assert.deepEqual(loaded?.drawn, mixedDrawn);
+});
+
+test("a restored mixed config regenerates the identical board", () => {
+  clear();
+  save(mixedEdited, mixedDrawn);
+  const loaded = load();
+  assert.ok(loaded?.drawn);
+  assert.deepEqual(generateSchedule(loaded.drawn), generateSchedule(mixedDrawn));
+});
+
+test("a save written before mixed doubles existed reads as unmixed", () => {
+  // The whole reason this milestone does not bump the schema: what it adds is
+  // a flag that is off in every existing save and a marker absent from every
+  // existing Roster, and both read correctly as what they were.
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { roster, courts: 2, rounds: null, format: "rotating" },
+      drawn: { roster, courts: 2, rounds: 5, seed: 12345, format: "rotating" },
+      savedAt: 1,
+    }),
+  );
+  const loaded = load();
+  assert.equal(loaded?.edited.mixed, false);
+  assert.equal(loaded?.drawn?.mixed, false);
+  assert.equal(loaded?.edited.roster[0].marker, undefined);
+});
+
+test("a marker this build cannot seat is corruption, not something to drop", () => {
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: {
+        roster: [{ id: "p0", name: "Sam", marker: "X" }],
+        courts: null,
+        rounds: null,
+        format: "rotating",
+      },
+      drawn: null,
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load(), null);
+});
+
+test("a hand-edited save asking for mixed doubles it cannot seat is refused", () => {
+  // Drawn from during mount, so anything `generateSchedule` would throw on is
+  // a screen that never renders until storage is cleared by hand.
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { roster, courts: 2, rounds: null, format: "rotating", mixed: true },
+      drawn: {
+        roster,
+        courts: 2,
+        rounds: 5,
+        seed: 12345,
+        format: "rotating",
+        mixed: true,
+      },
+      savedAt: 1,
+    }),
+  );
+  // The unmarked roster cannot be seated as mixed doubles, so the drawn half
+  // is corruption and the whole read is refused.
+  assert.equal(load(), null);
+});
+
+test("a ticked box under a format that cannot carry it is dropped, not restored", () => {
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { roster, courts: 2, rounds: null, format: "fixed", mixed: true },
+      drawn: null,
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load()?.edited.mixed, false);
 });

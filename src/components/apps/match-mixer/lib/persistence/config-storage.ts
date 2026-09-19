@@ -4,11 +4,17 @@ import {
   type ResolvedConfig,
 } from "../engine/config.ts";
 import { formatObjection } from "../engine/format.ts";
+import {
+  mixedObjection,
+  partnershipSupply,
+  resolveMixed,
+} from "../engine/mixed.ts";
 import type { Format, Roster } from "../engine/types.ts";
 import {
   isFiniteNumber,
   isRecord,
   readChoice,
+  readFlag,
   readFormat,
   readRoster,
 } from "./read-config.ts";
@@ -45,6 +51,13 @@ const KEY = "juicebros.matchmixer.config";
  * and the alternative is a migration path kept alive forever for one optional
  * field. The Share Link makes the opposite trade, and has to — a link in a
  * group chat cannot be asked to paste anything again.
+ *
+ * RR-4.3's mixed doubles (#545) is deliberately *not* a bump, which is the
+ * other half of that same trade rather than a change of mind about it. What it
+ * adds is a flag that is off in every existing save and a per-Player marker
+ * that is absent from every existing Roster, and both read correctly as what
+ * they were. There is nothing to migrate and nothing to discard, so discarding
+ * would only throw away a roster to no end.
  */
 const SCHEMA = 2;
 
@@ -68,6 +81,12 @@ export interface EditedConfig {
    * the organizer's behalf before they arrive.
    */
   readonly format: Format;
+  /**
+   * Whether the mixed-doubles box is ticked. Kept beside the Format rather
+   * than folded into it because it is a constraint on rotating and not a
+   * Format of its own, and the markers it reads live on the Roster lines.
+   */
+  readonly mixed: boolean;
 }
 
 export interface SavedVisit {
@@ -159,9 +178,14 @@ function readEdited(value: unknown): EditedConfig | null {
   const courts = readChoice(value.courts);
   const rounds = readChoice(value.rounds);
   const format = readFormat(value.format);
+  const mixed = readFlag(value.mixed);
   if (!roster || courts === undefined || rounds === undefined) return null;
-  if (format === undefined) return null;
-  return { roster, courts, rounds, format };
+  if (format === undefined || mixed === undefined) return null;
+  // Normalized rather than restored as written: mixed doubles is a qualifier
+  // on rotating, and a box that came back ticked under fixed partners would be
+  // applying to nothing. The screen never writes that pair, so this is only
+  // about a save edited by hand.
+  return { roster, courts, rounds, format, mixed: resolveMixed(format, mixed) };
 }
 
 function readDrawn(value: unknown): ResolvedConfig | null {
@@ -175,21 +199,27 @@ function readDrawn(value: unknown): ResolvedConfig | null {
     return null;
   }
   const format = readFormat(value.format);
-  if (format === undefined) return null;
-  // Roster size is not the only thing a Format refuses: an odd list in fixed
-  // partners leaves somebody with nobody to partner. Both have to be checked
-  // here, and for the same reason — this Config is drawn from during mount,
-  // so anything `generateSchedule` would throw on is a screen that never
-  // renders, on every visit, until storage is cleared by hand.
-  if (formatObjection(roster, format) !== null) return null;
+  const saved = readFlag(value.mixed);
+  if (format === undefined || saved === undefined) return null;
+  const mixed = resolveMixed(format, saved);
   // Brought inside what the Roster supports here rather than left to
   // `generateSchedule`, which clamps its own copy and hands nothing back: the
   // restored numbers are read again for the stale key and for the line naming
   // what the sheet was drawn from, and both have to be the numbers used.
-  return {
-    roster,
-    seed,
+  const numbers = resolveNumbers(
+    roster.length,
+    courts,
+    rounds,
     format,
-    ...resolveNumbers(roster.length, courts, rounds, format),
-  };
+    partnershipSupply(roster, mixed),
+  );
+  // Roster size is not the only thing a draw refuses: an odd list in fixed
+  // partners leaves somebody with nobody to partner, and a half-marked or
+  // lopsided list cannot be seated as mixed doubles. All of them have to be
+  // checked here, and for the same reason — this Config is drawn from during
+  // mount, so anything `generateSchedule` would throw on is a screen that
+  // never renders, on every visit, until storage is cleared by hand.
+  if (formatObjection(roster, format) !== null) return null;
+  if (mixedObjection(roster, numbers.courts, mixed) !== null) return null;
+  return { roster, seed, format, mixed, ...numbers };
 }
