@@ -12,9 +12,15 @@ import {
   scoreSchedule,
   tallyRounds,
 } from "./scorer.ts";
-import type { Config, Round, Schedule, Team } from "./types.ts";
+import type { Round, RotatingConfig, Schedule, Team } from "./types.ts";
 
-function config(n: number, courts = Math.floor(n / 4)): Config {
+/**
+ * A rotating Config, which is what every test below is reading. Typed as such
+ * rather than as a bare `Config` so the Scorer hands back the rotating
+ * reading: these tests are about partner repeats, and a union would make each
+ * of them narrow to a Format they already named by leaving it out.
+ */
+function config(n: number, courts = Math.floor(n / 4)): RotatingConfig {
   return {
     roster: parseRoster(
       Array.from({ length: n }, (_, i) => `Player ${i + 1}`).join("\n"),
