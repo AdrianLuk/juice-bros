@@ -1,4 +1,10 @@
-import { MAX_ROSTER_SIZE, MIN_ROSTER_SIZE, type Config } from "./types.ts";
+import { resolveFormat } from "./format.ts";
+import {
+  MAX_ROSTER_SIZE,
+  MIN_ROSTER_SIZE,
+  type Config,
+  type Format,
+} from "./types.ts";
 
 /**
  * The Config's arithmetic: what a Roster of this size can support, and what to
@@ -11,7 +17,14 @@ import { MAX_ROSTER_SIZE, MIN_ROSTER_SIZE, type Config } from "./types.ts";
  * a broken Schedule.
  */
 
-/** Nobody plays without a court, and four players fill exactly one. */
+/**
+ * Nobody plays without a court, and four players fill exactly one.
+ *
+ * The same ceiling holds in fixed partners, which seats four to a court too:
+ * `n / 2` Pairings two to a court is `n / 4`, and that Format only ever asks
+ * this about an even Roster. RR-4.2's singles is where the ceiling first
+ * follows the Format, because a side there is one player.
+ */
 export function maxCourts(n: number): number {
   return Math.max(1, Math.floor(n / 4));
 }
@@ -22,16 +35,30 @@ export function clampCourts(n: number, courts: number): number {
 }
 
 /**
- * The length of the full rotation: how many Rounds it takes to use up every
- * possible partnership, after which a repeat is forced no matter how good the
- * generator is. Each Round spends `2 x courts` of the `n(n-1)/2` pairs.
+ * The length of the full rotation: how many Rounds it takes to use up what the
+ * Format has to spend, after which a repeat is forced no matter how good the
+ * generator is.
  *
- * For a Roster with a Table this is exactly the whist length (`n - 1`), which
+ * What is being spent differs by Format, so this does too. Rotating spends
+ * partnerships — `2 x courts` of the `n(n-1)/2` pairs per Round — and for a
+ * Roster with a Table the answer is exactly the whist length (`n - 1`), which
  * is why the two never disagree about how long a Schedule naturally runs.
+ * Fixed partners has no partnerships to spend, because they are all spent in
+ * Round 1 and deliberately; what runs out there is meetings between the `n / 2`
+ * Pairings, and a Round spends `courts` of them rather than `2 x courts`.
  */
-export function naturalLength(n: number, courts: number): number {
+export function naturalLength(
+  n: number,
+  courts: number,
+  format: Format = "rotating",
+): number {
+  const seated = clampCourts(n, courts);
+  if (format === "fixed") {
+    const teams = Math.floor(n / 2);
+    return Math.max(1, Math.floor((teams * (teams - 1)) / 2 / seated));
+  }
   const pairs = (n * (n - 1)) / 2;
-  return Math.max(1, Math.floor(pairs / (2 * clampCourts(n, courts))));
+  return Math.max(1, Math.floor(pairs / (2 * seated)));
 }
 
 /**
@@ -47,8 +74,12 @@ export const DEFAULT_ROUND_TARGET = 8;
  */
 export const MAX_ROUNDS = 40;
 
-export function defaultRounds(n: number, courts: number): number {
-  return Math.min(naturalLength(n, courts), DEFAULT_ROUND_TARGET);
+export function defaultRounds(
+  n: number,
+  courts: number,
+  format: Format = "rotating",
+): number {
+  return Math.min(naturalLength(n, courts, format), DEFAULT_ROUND_TARGET);
 }
 
 export function clampRounds(rounds: number): number {
@@ -61,8 +92,15 @@ export function isSupportedRosterSize(n: number): boolean {
   return n >= MIN_ROSTER_SIZE && n <= MAX_ROSTER_SIZE;
 }
 
-/** A Config with nothing left to decide: both numbers settled and in range. */
-export type ResolvedConfig = Config & ResolvedNumbers;
+/**
+ * A Config with nothing left to decide: both numbers settled and in range, and
+ * the Format said out loud rather than left to a default a reader has to know
+ * about. Intersecting an optional field with a required one makes it required,
+ * so every place that builds one of these has to answer the Format question —
+ * which is the point, since each of them answers it from a different source.
+ */
+export type ResolvedConfig = Config &
+  ResolvedNumbers & { readonly format: Format };
 
 export interface ResolvedNumbers {
   readonly courts: number;
@@ -80,11 +118,12 @@ export function resolveNumbers(
   n: number,
   courts?: number,
   rounds?: number,
+  format: Format = "rotating",
 ): ResolvedNumbers {
   const settled = clampCourts(n, courts ?? maxCourts(n));
   return {
     courts: settled,
-    rounds: clampRounds(rounds ?? defaultRounds(n, settled)),
+    rounds: clampRounds(rounds ?? defaultRounds(n, settled, format)),
   };
 }
 
@@ -97,8 +136,15 @@ export function resolveNumbers(
  * quiet trim of somebody off the end.
  */
 export function clampConfig(config: Config): ResolvedConfig {
+  const format = resolveFormat(config.format);
   return {
     ...config,
-    ...resolveNumbers(config.roster.length, config.courts, config.rounds),
+    format,
+    ...resolveNumbers(
+      config.roster.length,
+      config.courts,
+      config.rounds,
+      format,
+    ),
   };
 }

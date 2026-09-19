@@ -38,7 +38,13 @@ const roster = parseRoster(
   ].join("\n"),
 );
 
-const config: ResolvedConfig = { roster, courts: 2, rounds: 5, seed: 12345 };
+const config: ResolvedConfig = {
+  roster,
+  courts: 2,
+  rounds: 5,
+  seed: 12345,
+  format: "rotating",
+};
 
 /** The payload of a link, which is all the decoder ever sees. */
 function payloadOf(link: string): string {
@@ -69,6 +75,14 @@ const VERSION_FIELD = 0;
 const COURTS_FIELD = 1;
 const ROUNDS_FIELD = 2;
 const SEED_FIELD = 3;
+const FORMAT_FIELD = 5;
+
+/** The number line with a trailing field lopped off, the way an older mint had none. */
+function withoutField(payload: string, index: number): string {
+  const cut = payload.indexOf("\n");
+  const fields = payload.slice(0, cut).split(".").slice(0, index);
+  return fields.join(".") + payload.slice(cut);
+}
 
 test("the board a link opens is the board that was shared", () => {
   // The load-bearing test. Everything else here is a detail of it: what a
@@ -285,4 +299,72 @@ test("a URL with no share parameter is handed back unchanged", () => {
 
 test("a value that is not a URL is handed back unchanged", () => {
   assert.equal(stripShareParam("not a url"), "not a url");
+});
+
+/**
+ * The Format on the wire. These four are the whole of RR-4.1's claim on this
+ * module (#543): the Format travels, it travels appended rather than inserted,
+ * a link minted before it existed still opens, and a Format this build cannot
+ * draw is refused rather than quietly turned into a rotating board.
+ */
+test("the format travels, so a shared fixed-partner board opens as one", () => {
+  const pairs = { ...config, format: "fixed" } as const;
+  const shared = decodeShareLink(encoded(pairs));
+  assert.equal(shared?.config.format, "fixed");
+  assert.deepEqual(
+    generateSchedule(shared!.config),
+    generateSchedule(pairs),
+    "the reader's browser draws the same board",
+  );
+});
+
+test("a link minted before formats existed opens, and reads as rotating", () => {
+  // The five-field number line is what every link already sitting in a group
+  // chat carries. Appending rather than inserting is what keeps them working,
+  // and this is the test that says so.
+  const legacy = withoutField(encoded(), FORMAT_FIELD);
+  const shared = decodeShareLink(legacy);
+
+  assert.ok(shared, "a five-field payload is still a board");
+  assert.equal(shared.config.format, "rotating");
+  assert.deepEqual(
+    generateSchedule(shared.config),
+    generateSchedule(config),
+    "and it is the same board it always drew",
+  );
+});
+
+test("an empty format field is absence, and absence is rotating", () => {
+  const blanked = withField(encoded(), FORMAT_FIELD, "");
+  assert.equal(decodeShareLink(blanked)?.config.format, "rotating");
+});
+
+test("a format this build cannot draw is refused, not turned into rotating", () => {
+  // A code from a later build, or a hand-edited link. Drawing a rotating board
+  // under it would put a schedule on screen that nobody generated — the same
+  // failure the checksum catches, so it gets the same answer.
+  for (const unknown of ["s", "x", "fixed", "0"]) {
+    assert.equal(
+      decodeShareLink(withField(encoded(), FORMAT_FIELD, unknown)),
+      null,
+      `accepted "${unknown}" as a format`,
+    );
+  }
+});
+
+test("a link naming a format its roster cannot play is not a board", () => {
+  // The checksum is no help here: it covers the names block, and the Format
+  // rides on the number line. Flipping that one character by hand gives a
+  // payload that checksums perfectly and describes a board nobody can draw —
+  // five names cannot be paired up. Left to `generateSchedule` it would throw
+  // during mount and the tool would not render at all.
+  const odd = parseRoster(
+    ["Ben Johns", "Anna Leigh Waters", "JW Johnson", "Anna Bright", "Jorja Johnson"].join(
+      "\n",
+    ),
+  );
+  const payload = encoded({ ...config, roster: odd, courts: 1, rounds: 4 });
+
+  assert.ok(decodeShareLink(payload), "the rotating original is a board");
+  assert.equal(decodeShareLink(withField(payload, FORMAT_FIELD, "f")), null);
 });

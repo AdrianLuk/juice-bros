@@ -29,7 +29,13 @@ const storage = new MemoryStorage();
 const { save, load, clear } = await import("./config-storage.ts");
 
 const KEY = "juicebros.matchmixer.config";
-const SCHEMA = 1;
+/**
+ * Deliberately a second copy rather than an import: the module's SCHEMA is a
+ * promise about what is already on disk in somebody's browser, so a bump
+ * should have to be typed twice and show up as an edit to this file. 2 is
+ * RR-4.1's Format (#543).
+ */
+const SCHEMA = 2;
 
 const roster: Roster = [
   { id: "p0", name: "Ben Johns" },
@@ -42,9 +48,15 @@ const roster: Roster = [
   { id: "p7", name: "Jorja Johnson" },
 ];
 
-const drawn: ResolvedConfig = { roster, courts: 2, rounds: 5, seed: 12345 };
+const drawn: ResolvedConfig = {
+  roster,
+  courts: 2,
+  rounds: 5,
+  seed: 12345,
+  format: "rotating",
+};
 
-const edited = { roster, courts: 2, rounds: null };
+const edited = { roster, courts: 2, rounds: null, format: "rotating" } as const;
 
 test("round-trips the edited config and the drawn one", () => {
   clear();
@@ -173,7 +185,10 @@ test("save with an empty roster clears the save, sheet on screen or not", () => 
   for (const stillDrawn of [null, drawn]) {
     clear();
     save(edited, drawn);
-    save({ roster: [], courts: null, rounds: null }, stillDrawn);
+    save(
+      { roster: [], courts: null, rounds: null, format: "rotating" },
+      stillDrawn,
+    );
     assert.equal(storage.getItem(KEY), null);
   }
 });
@@ -183,5 +198,69 @@ test("save swallows quota errors", () => {
   storage.throwOnWrite = true;
   assert.doesNotThrow(() => save(edited, drawn));
   storage.throwOnWrite = false;
+  assert.equal(load(), null);
+});
+
+test("the format round-trips, and a schedule restored in it is that format", () => {
+  clear();
+  const pairs = { ...drawn, format: "fixed" } as const;
+  save({ ...edited, format: "fixed" }, pairs);
+
+  const loaded = load();
+  assert.equal(loaded?.edited.format, "fixed");
+  assert.equal(loaded?.drawn?.format, "fixed");
+});
+
+test("a save written by the previous schema is discarded, not migrated", () => {
+  // A schema-1 save has no Format and would read as rotating perfectly well,
+  // so this is the bump being deliberate rather than forced. What is thrown
+  // away is a Roster the organizer can paste again; the alternative is a
+  // migration path kept alive forever for one optional field.
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: 1,
+      edited: { roster, courts: 2, rounds: null },
+      drawn: { roster, courts: 2, rounds: 5, seed: 12345 },
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load(), null);
+});
+
+test("a saved format this build does not know is refused, not guessed at", () => {
+  // Storage is hand-editable, and a Format nobody here can draw would
+  // otherwise fall back to rotating and put a board on screen that is not the
+  // one the save describes.
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { ...edited, format: "kingofthecourt" },
+      drawn: null,
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load(), null);
+});
+
+test("a saved board its format cannot seat is discarded, not restored", () => {
+  // Storage is hand-editable, and this Config is drawn from during mount. A
+  // fixed-partner board with an odd roster would throw there rather than fail
+  // gracefully — a tool that does not render at all, on every visit, until
+  // somebody clears localStorage by hand.
+  clear();
+  const odd = roster.slice(0, 5);
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { ...edited, roster: odd, format: "fixed" },
+      drawn: { ...drawn, roster: odd, courts: 1, rounds: 4, format: "fixed" },
+      savedAt: 1,
+    }),
+  );
   assert.equal(load(), null);
 });

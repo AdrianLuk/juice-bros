@@ -3916,6 +3916,76 @@ html:has(.bb-app-chrome) {
     color: #9aa4a6;
   }
 
+  /* ---- Which format the night is in --------------------------------------- */
+
+  /* Above the roster box because it decides what the names in it mean: in
+     fixed partners the list is read two lines at a time, and finding that out
+     after pasting is finding it out too late.
+
+     Each option is a card-stock plate. The chosen one is lifted off the enamel
+     the way a name plate is — one crisp contact line and a short drop — and
+     the others lie flat against it. That is the board's own way of saying
+     which one is on, so the selection survives being looked at from across a
+     court rather than depending on a 12px dot. The dot is still there and
+     still native: it is what a screen reader and a keyboard are reading, and
+     the plate is decoration on top of it. */
+  .mm-formats {
+    border: 0;
+    margin: 0 0 1.4rem;
+    padding: 0;
+  }
+  .mm-formats > .mm-legend {
+    display: block;
+    margin-bottom: 0.4rem;
+    padding: 0;
+  }
+  .mm-format {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.5rem;
+    align-items: start;
+    padding: 0.42rem 0.55rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .mm-format + .mm-format {
+    margin-top: 0.3rem;
+  }
+  .mm-format input {
+    grid-row: span 2;
+    margin: 0.16rem 0 0;
+    accent-color: var(--mm-mark-red);
+  }
+  .mm-format-name {
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    color: var(--mm-vinyl);
+  }
+  .mm-format-note {
+    grid-column: 2;
+    margin-top: 0.1rem;
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--mm-vinyl-2);
+  }
+  .mm-format[data-on] {
+    background: var(--mm-plate);
+    border-color: var(--mm-plate-edge);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -1px rgb(24 32 36 / 0.18);
+  }
+  /* An unchosen option is still a control, so hovering it shows the plate it
+     would become rather than changing colour. */
+  .mm-format:hover:not([data-on]) {
+    border-color: var(--mm-rule);
+  }
+
   /* Courts and rounds: two dials on the board, not a settings panel. */
   .mm-fields {
     display: grid;
@@ -4140,6 +4210,28 @@ html:has(.bb-app-chrome) {
     overflow: visible;
     pointer-events: none;
     color: var(--mm-mark-red);
+  }
+
+  /* The two plates of one Game, wrapped so the mark has something the size of
+     a Game to be drawn round. In rotating doubles nothing is ever drawn here
+     and this is an inert box; in fixed partners the pair is the constant and
+     the matchup is the thing that can repeat, so the stroke goes round the
+     whole Game rather than round a side of it. Same hand, bigger mark.
+
+     It wraps the plates rather than the cell so that the stacked layout below
+     `sm` - where the cell also carries its court label - is ringed round the
+     names and not round the heading above them. */
+  .mm-game {
+    display: block;
+    position: relative;
+  }
+  /* The side ring sizes itself off the plate it overhangs; this one is drawn
+     just inside the Game it encloses, so it needs the insets to decide the box
+     rather than the plate-sized width and height above. */
+  .mm-game[data-repeat] > .mm-ring {
+    inset: -3px -8px;
+    width: auto;
+    height: auto;
   }
 
   .mm-versus {
@@ -4948,7 +5040,8 @@ html:has(.bb-app-chrome) {
   .mm-ring {
     display: none;
   }
-  .mm-side[data-repeat] {
+  .mm-side[data-repeat],
+  .mm-game[data-repeat] {
     border: 2px solid var(--mm-vinyl);
     padding: 0.1rem 0.25rem;
     margin: 0 -0.25rem;

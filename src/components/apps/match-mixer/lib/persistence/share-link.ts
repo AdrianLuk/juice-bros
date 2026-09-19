@@ -3,7 +3,9 @@ import {
   resolveNumbers,
   type ResolvedConfig,
 } from "../engine/config.ts";
+import { FORMATS, formatObjection } from "../engine/format.ts";
 import { parseRoster } from "../engine/roster.ts";
+import { DEFAULT_FORMAT, type Format } from "../engine/types.ts";
 import { isFiniteNumber, readChoice } from "./read-config.ts";
 
 /**
@@ -62,9 +64,11 @@ export interface SharedBoard {
  *
  * A future field is appended to the number line, never inserted, and an absent
  * one reads as its default. That is what keeps a link minted today valid once
- * RR-6 adds Pool Count.
+ * RR-6 adds Pool Count, and it is how RR-4.1's Format arrived: a sixth field
+ * after the checksum, absent in every link already sitting in a group chat,
+ * and absent reads as rotating.
  *
- * The number line ends with a checksum over the Roster block, which is the one
+ * The number line carries a checksum over the Roster block, which is the one
  * thing in the payload not implied by the rest of it. It is there because a
  * truncated link is the failure this transport actually has — a chat client
  * that autolinks half a URL, an address bar that loses the tail — and without
@@ -81,6 +85,20 @@ export interface SharedBoard {
  */
 const LINE = "\n";
 const FIELD = ".";
+
+/**
+ * The Format, as one character on the number line.
+ *
+ * A code rather than the Format's own name, because every character in a link
+ * is budget, and a code rather than a position in `FORMATS`, because a
+ * position is a promise never to reorder that list. Appended after the
+ * checksum and never inserted, so a link minted before Formats existed has
+ * five fields, reads as rotating, and goes on drawing the board it named.
+ */
+const FORMAT_CODES: Record<Format, string> = {
+  rotating: "r",
+  fixed: "f",
+};
 
 /**
  * The link for a drawn board, or `null` if the Roster is too long to fit one.
@@ -113,6 +131,7 @@ export function encodeShareLink(
     config.rounds,
     config.seed,
     checksum(names),
+    FORMAT_CODES[config.format],
   ].join(FIELD);
   const payload = [numbers, names].join(LINE);
 
@@ -170,7 +189,7 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const cut = value.indexOf(LINE);
   const numbers = cut === -1 ? value : value.slice(0, cut);
   const names = cut === -1 ? "" : value.slice(cut + LINE.length);
-  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSum] =
+  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSum, rawFormat] =
     numbers.split(FIELD);
 
   // Required. A payload that cannot say which generator drew it, or with what
@@ -191,10 +210,26 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const rounds = readChoice(toNumber(rawRounds));
   if (courts === undefined || rounds === undefined) return null;
 
+  // Absent is rotating, which is what every link minted before Formats existed
+  // is. A code this build does not know is not: it names a board this build
+  // cannot draw, and drawing a rotating one under it would put a Schedule on
+  // screen that nobody generated — the same failure the checksum above exists
+  // to catch, so it gets the same answer rather than a quiet substitution.
+  const format = toFormat(rawFormat);
+  if (format === undefined) return null;
+
   const roster = parseRoster(names);
   // Anything the engine would refuse is corruption here too, so a link with
   // three names in it opens the empty tool rather than throwing on mount.
+  //
+  // Roster size is not the whole of what the engine refuses. A Format has its
+  // own arithmetic — an odd list in fixed partners leaves somebody with nobody
+  // to partner — and the checksum is no help here, because it covers the names
+  // block and the Format rides on the number line. Flipping that one character
+  // by hand produces a payload that checksums perfectly and describes a board
+  // that cannot be drawn.
   if (!isSupportedRosterSize(roster.length)) return null;
+  if (formatObjection(roster, format) !== null) return null;
 
   return {
     // Brought inside what the Roster supports here rather than left to
@@ -204,10 +239,12 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
     config: {
       roster,
       seed,
+      format,
       ...resolveNumbers(
         roster.length,
         courts ?? undefined,
         rounds ?? undefined,
+        format,
       ),
     },
     version,
@@ -223,6 +260,16 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
 function toNumber(field: string | undefined): number | undefined {
   if (field === undefined || field.trim() === "") return undefined;
   return Number(field);
+}
+
+/**
+ * The Format field as a Format. Absent or empty is absence rather than
+ * corruption, and absence is rotating; anything else has to be a code this
+ * build mints, or the whole read is refused.
+ */
+function toFormat(field: string | undefined): Format | undefined {
+  if (field === undefined || field.trim() === "") return DEFAULT_FORMAT;
+  return FORMATS.find((format) => FORMAT_CODES[format] === field.trim());
 }
 
 /**

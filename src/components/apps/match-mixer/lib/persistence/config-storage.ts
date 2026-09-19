@@ -3,8 +3,15 @@ import {
   resolveNumbers,
   type ResolvedConfig,
 } from "../engine/config.ts";
-import type { Roster } from "../engine/types.ts";
-import { isFiniteNumber, isRecord, readChoice, readRoster } from "./read-config.ts";
+import { formatObjection } from "../engine/format.ts";
+import type { Format, Roster } from "../engine/types.ts";
+import {
+  isFiniteNumber,
+  isRecord,
+  readChoice,
+  readFormat,
+  readRoster,
+} from "./read-config.ts";
 
 /**
  * The organizer's last visit, kept in this browser.
@@ -28,8 +35,18 @@ import { isFiniteNumber, isRecord, readChoice, readRoster } from "./read-config.
  */
 const KEY = "juicebros.matchmixer.config";
 
-/** Bump whenever the saved shape changes. Old saves are discarded, not migrated. */
-const SCHEMA = 1;
+/**
+ * Bump whenever the saved shape changes. Old saves are discarded, not
+ * migrated.
+ *
+ * 2 is RR-4.1's Format (#543). A schema-1 save has no Format and would read as
+ * rotating perfectly well, so discarding it is a choice rather than a
+ * necessity: what is thrown away is a Roster the organizer can paste again,
+ * and the alternative is a migration path kept alive forever for one optional
+ * field. The Share Link makes the opposite trade, and has to — a link in a
+ * group chat cannot be asked to paste anything again.
+ */
+const SCHEMA = 2;
 
 /**
  * The Config as it stands in the fields: everything but the Seed, which is
@@ -44,6 +61,13 @@ export interface EditedConfig {
   readonly roster: Roster;
   readonly courts: number | null;
   readonly rounds: number | null;
+  /**
+   * Which Format the row is on. Not nullable the way the two numbers are:
+   * those follow the Roster until the organizer overrules them, and a Format
+   * has nothing to follow — rotating is a selection like any other, made on
+   * the organizer's behalf before they arrive.
+   */
+  readonly format: Format;
 }
 
 export interface SavedVisit {
@@ -134,8 +158,10 @@ function readEdited(value: unknown): EditedConfig | null {
   const roster = readRoster(value.roster);
   const courts = readChoice(value.courts);
   const rounds = readChoice(value.rounds);
+  const format = readFormat(value.format);
   if (!roster || courts === undefined || rounds === undefined) return null;
-  return { roster, courts, rounds };
+  if (format === undefined) return null;
+  return { roster, courts, rounds, format };
 }
 
 function readDrawn(value: unknown): ResolvedConfig | null {
@@ -148,9 +174,22 @@ function readDrawn(value: unknown): ResolvedConfig | null {
   if (!isFiniteNumber(courts) || !isFiniteNumber(rounds) || !isFiniteNumber(seed)) {
     return null;
   }
+  const format = readFormat(value.format);
+  if (format === undefined) return null;
+  // Roster size is not the only thing a Format refuses: an odd list in fixed
+  // partners leaves somebody with nobody to partner. Both have to be checked
+  // here, and for the same reason — this Config is drawn from during mount,
+  // so anything `generateSchedule` would throw on is a screen that never
+  // renders, on every visit, until storage is cleared by hand.
+  if (formatObjection(roster, format) !== null) return null;
   // Brought inside what the Roster supports here rather than left to
   // `generateSchedule`, which clamps its own copy and hands nothing back: the
   // restored numbers are read again for the stale key and for the line naming
   // what the sheet was drawn from, and both have to be the numbers used.
-  return { roster, seed, ...resolveNumbers(roster.length, courts, rounds) };
+  return {
+    roster,
+    seed,
+    format,
+    ...resolveNumbers(roster.length, courts, rounds, format),
+  };
 }

@@ -1,10 +1,35 @@
-import type { Config, PlayerIndex, Round, Schedule, ScorerResult, Tally } from "./types.ts";
+import { pairsOf, resolveFormat } from "./format.ts";
+import type {
+  Config,
+  FixedConfig,
+  FixedScore,
+  Format,
+  PlayerIndex,
+  RotatingConfig,
+  RotatingScore,
+  Round,
+  Schedule,
+  ScorerResult,
+  Tally,
+} from "./types.ts";
 
 /**
- * The Scorer: this context's definition of "fair". Partner repeats first, Bye
- * imbalance second, opponent repeats third. Nothing else in the app may claim
- * a Schedule is balanced — the summary line and the repeat marks in the grid
- * both read what this returns for the Schedule that was actually produced.
+ * The Scorer: this context's definition of "fair". Nothing else in the app may
+ * claim a Schedule is balanced — the summary line and the repeat marks in the
+ * grid both read what this returns for the Schedule that was actually
+ * produced.
+ *
+ * What "fair" means depends on the Format, so this asks a different question
+ * of each. In rotating doubles it is partner repeats first, Bye imbalance
+ * second, opponent repeats third. In fixed partners every partner repeat is
+ * deliberate and counting them would report a Schedule that is exactly right
+ * as a catastrophe, so the question becomes whether every Pairing has faced
+ * every other and whether the team Byes come round evenly.
+ *
+ * That is why the Format reaches the Scorer at all rather than being handled
+ * by the grid: a board in a Format the Scorer did not know about could only be
+ * described by something else deciding what balance meant, and this is the one
+ * place allowed to decide that.
  *
  * A change to the weights below changes what an existing Config generates —
  * the generator's search picks its winner by them — so it requires bumping
@@ -22,6 +47,15 @@ export const OPPONENT_REPEAT_WEIGHT = 5;
 
 /** A whist tournament has everyone opposing everyone exactly twice, so 2 is free. */
 export const FREE_OPPONENT_MEETINGS = 2;
+
+/**
+ * Fixed partners only: two Pairings meeting again before every Pairing has
+ * met. It is this Format's equivalent of a partner repeat — the one thing the
+ * construction can get wrong — so it is priced the same, and a fixed-partner
+ * board that costs zero means the same thing a rotating one that costs zero
+ * means.
+ */
+export const REMATCH_WEIGHT = 100;
 
 function matrix(n: number): number[][] {
   return Array.from({ length: n }, () => new Array<number>(n).fill(0));
@@ -66,8 +100,31 @@ export function tallyRounds(rounds: readonly Round[], n: number): Tally {
   return tally;
 }
 
+/**
+ * The Scorer's reading of a drawn Schedule.
+ *
+ * The overloads exist so that a caller who already knows which Format it drew
+ * in gets that Format's reading back, and a caller holding a Config whose
+ * Format is only known at runtime gets the union and has to say which board it
+ * is looking at before reading a verdict off it. The screen is the second kind
+ * and should be; a test that writes `{ roster, courts, seed }` is the first,
+ * and asking it to narrow would be ceremony over a Format it named by omission.
+ */
+export function scoreSchedule(
+  schedule: Schedule,
+  config: RotatingConfig,
+): RotatingScore;
+export function scoreSchedule(
+  schedule: Schedule,
+  config: FixedConfig,
+): FixedScore;
+export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult;
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult {
-  return scoreRounds(schedule.rounds, config.roster.length);
+  return scoreRounds(
+    schedule.rounds,
+    config.roster.length,
+    resolveFormat(config.format),
+  );
 }
 
 /**
@@ -75,9 +132,141 @@ export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult 
  * half-built attempts before there is a Roster or a Config to hand over, and
  * it has to be judged by exactly the function that judges the finished
  * Schedule rather than by a second opinion that might disagree.
+ *
+ * The Format defaults to rotating, which is both the Format every caller
+ * predating Formats is in and the one the search still runs for.
  */
-export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
-  const { partnerMatrix, opponentMatrix, gamesPlayed, byes } = tallyRounds(rounds, n);
+export function scoreRounds(
+  rounds: readonly Round[],
+  n: number,
+  format?: "rotating",
+): RotatingScore;
+export function scoreRounds(
+  rounds: readonly Round[],
+  n: number,
+  format: "fixed",
+): FixedScore;
+export function scoreRounds(
+  rounds: readonly Round[],
+  n: number,
+  format?: Format,
+): ScorerResult;
+export function scoreRounds(
+  rounds: readonly Round[],
+  n: number,
+  format: Format = "rotating",
+): ScorerResult {
+  const tally = tallyRounds(rounds, n);
+  const byes = byeVerdict(tally, n);
+
+  return format === "fixed"
+    ? scoreFixed(tally, n, byes)
+    : scoreRotating(tally, n, byes);
+}
+
+/**
+ * How evenly the night was shared out, which is the second thing every Format
+ * cares about and means the same thing in all of them.
+ *
+ * Measured off games played rather than Byes counted, so a Schedule that seats
+ * someone twice in one Round can't hide behind a tidy Bye list.
+ *
+ * It needs no fixed-partner variant. A Bye there belongs to a Pairing and both
+ * members of a sitting team sit, so every Player's count is their team's count
+ * and the spread over Players is already the spread over Pairings. The
+ * divisibility below comes out the same way: twice the team Byes over twice
+ * the teams is the same remainder as the team Byes over the teams.
+ */
+function byeVerdict(
+  tally: Tally,
+  n: number,
+): { byeSpread: number; byesRotateEvenly: boolean } {
+  const { gamesPlayed, byes } = tally;
+  const byeSpread =
+    n === 0 ? 0 : Math.max(...gamesPlayed) - Math.min(...gamesPlayed);
+
+  // Byes divide among the Roster like anything else: when the total does not
+  // go round exactly, somebody has to take one more than somebody else. That
+  // is arithmetic rather than a flaw, so it still counts as rotating evenly,
+  // and this is the only place allowed to decide that.
+  const totalByes = byes.reduce((sum, count) => sum + count, 0);
+  const byesRotateEvenly =
+    n === 0 || totalByes % n === 0 ? byeSpread === 0 : byeSpread <= 1;
+
+  return { byeSpread, byesRotateEvenly };
+}
+
+/**
+ * Fixed partners: has every Pairing faced every other, and did the team Byes
+ * come round evenly. The partner counts are left alone deliberately — they are
+ * all repeats by construction, and there is nothing to report about a thing
+ * that was asked for.
+ *
+ * The meetings are counted off the Games rather than off the opponent matrix,
+ * because that matrix counts Players facing Players and would read one meeting
+ * as four. Two Pairings met once, and once is what has to be counted for
+ * "before any rematch" to mean anything.
+ */
+function scoreFixed(
+  tally: Tally,
+  n: number,
+  { byeSpread, byesRotateEvenly }: ReturnType<typeof byeVerdict>,
+): FixedScore {
+  const teams = pairsOf(n);
+  const t = teams.length;
+  const meetingMatrix = matrix(t);
+
+  for (let i = 0; i < t; i++) {
+    for (let j = i + 1; j < t; j++) {
+      // Two Pairings met as many times as they share a Game, which the partner
+      // matrix already records once per side: a Player of i faced a Player of
+      // j in that Game, four times over.
+      const met = tally.opponentMatrix[teams[i][0]][teams[j][0]];
+      meetingMatrix[i][j] = met;
+      meetingMatrix[j][i] = met;
+    }
+  }
+
+  let cost = 0;
+  let repeatedMeetings = 0;
+  let maxMeetingCount = 0;
+  let meetingsPlayed = 0;
+
+  for (let i = 0; i < t; i++) {
+    for (let j = i + 1; j < t; j++) {
+      const met = meetingMatrix[i][j];
+      maxMeetingCount = Math.max(maxMeetingCount, met);
+      if (met > 0) meetingsPlayed += 1;
+      if (met > 1) {
+        repeatedMeetings += 1;
+        cost += (met - 1) * REMATCH_WEIGHT;
+      }
+    }
+  }
+
+  cost += byeSpread * BYE_IMBALANCE_WEIGHT;
+
+  return {
+    format: "fixed",
+    cost,
+    ...tally,
+    teams,
+    meetingMatrix,
+    repeatedMeetings,
+    maxMeetingCount,
+    meetingsPlayed,
+    meetingsPossible: Math.max(0, (t * (t - 1)) / 2),
+    byeSpread,
+    byesRotateEvenly,
+  };
+}
+
+function scoreRotating(
+  tally: Tally,
+  n: number,
+  { byeSpread, byesRotateEvenly }: ReturnType<typeof byeVerdict>,
+): RotatingScore {
+  const { partnerMatrix, opponentMatrix } = tally;
 
   let cost = 0;
   let repeatedPartnerPairs = 0;
@@ -104,26 +293,12 @@ export function scoreRounds(rounds: readonly Round[], n: number): ScorerResult {
     }
   }
 
-  // Bye imbalance is measured off games played rather than Byes counted, so a
-  // Schedule that seats someone twice in one Round can't hide behind a tidy
-  // Bye list.
-  const byeSpread = n === 0 ? 0 : Math.max(...gamesPlayed) - Math.min(...gamesPlayed);
   cost += byeSpread * BYE_IMBALANCE_WEIGHT;
 
-  // Byes divide among the Roster like anything else: when the total does not
-  // go round exactly, somebody has to take one more than somebody else. That
-  // is arithmetic rather than a flaw, so it still counts as rotating evenly,
-  // and this is the only place allowed to decide that.
-  const totalByes = byes.reduce((sum, count) => sum + count, 0);
-  const byesRotateEvenly =
-    n === 0 || totalByes % n === 0 ? byeSpread === 0 : byeSpread <= 1;
-
   return {
+    format: "rotating",
     cost,
-    partnerMatrix,
-    opponentMatrix,
-    gamesPlayed,
-    byes,
+    ...tally,
     repeatedPartnerPairs,
     maxPartnerCount,
     maxOpponentCount,
