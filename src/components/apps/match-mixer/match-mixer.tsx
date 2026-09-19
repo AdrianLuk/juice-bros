@@ -594,11 +594,18 @@ export function MatchMixer() {
               posting one puts the names in a request log without anyone
               clicking it. What is still true is the part worth promising, and
               the share control says the rest where it is relevant. */}
+          {/* The first sentence follows the Format row rather than the board,
+              because it is a promise about what pressing the button will do.
+              Left fixed it would go on promising nobody partners the same
+              person twice while a fixed-partner board sat under it, which is
+              the one thing that format is for. */}
           <p className="mm-lede">
-            Paste the names you have tonight and get a doubles rotation where
-            nobody partners the same person twice. Your list stays in this
-            browser and waits here for next week. There is no account to make
-            and no database behind this: nothing you type is kept on a server.
+            {format === "fixed"
+              ? "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair."
+              : "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice."}{" "}
+            Your list stays in this browser and waits here for next week. There
+            is no account to make and no database behind this: nothing you type
+            is kept on a server.
           </p>
         </header>
 
