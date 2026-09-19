@@ -24,6 +24,18 @@ function seatedIn(schedule: Schedule): number[][] {
 }
 
 /**
+ * A Schedule as plain arrays, for comparing one whole board against another.
+ * `Team` is a readonly tuple and `assert.deepEqual` reads that difference, so
+ * a pinned board written as a literal would never match without this.
+ */
+function asPlain(schedule: Schedule) {
+  return schedule.rounds.map((round) => ({
+    games: round.games.map((game) => [[...game.teams[0]], [...game.teams[1]]]),
+    byes: [...round.byes],
+  }));
+}
+
+/**
  * Every Round has to seat each of its players exactly once and account for
  * everyone else as a Bye. A Schedule that fails this is not a worse schedule,
  * it is not a schedule.
@@ -299,4 +311,54 @@ test("a redrawn Table seats the same players, only in different places", () => {
   for (const seats of seatedIn(generateSchedule({ ...base, seed: 12345 }))) {
     assert.deepEqual(seats, everyone);
   }
+});
+
+/**
+ * The pinned boards. These two are the whole of RR-4.1's answer to "does this
+ * milestone owe `GENERATOR_VERSION` a bump" (#543).
+ *
+ * The rule the code states is narrower than "a milestone that adds a Format
+ * owes a bump": a bump is owed when a change alters what an *existing* Config
+ * generates. Rotating is the only Format any existing Config or Share Link is
+ * in, so the question is only ever whether rotating moved — and that is a
+ * thing a test can decide rather than a thing to judge.
+ *
+ * One board from each path, because they can move independently: the Table
+ * lookup with its Seed-driven relabelling, and the randomized greedy search.
+ * If either of these has to be edited, the Seed no longer reproduces the board
+ * it named, every link already in a group chat is drawing something else, and
+ * `GENERATOR_VERSION` in `persistence/share-link.ts` is owed the bump that
+ * puts #494's notice on them.
+ *
+ * Deliberately whole boards rather than scores. A Schedule that still costs
+ * zero is not the same Schedule, and it is the seat every name sat in that a
+ * reader is comparing against the organizer's screen.
+ */
+test("the Table path draws the board it drew before", () => {
+  const config = { ...configFor(8), courts: 2, rounds: 4, seed: 3 };
+  const schedule = generateSchedule(config);
+
+  assert.equal(schedule.source, "table");
+  assert.deepEqual(asPlain(schedule), [
+    { games: [[[7, 4], [1, 6]], [[3, 0], [2, 5]]], byes: [] },
+    { games: [[[7, 6], [0, 5]], [[4, 1], [3, 2]]], byes: [] },
+    { games: [[[7, 5], [4, 2]], [[1, 3], [6, 0]]], byes: [] },
+    { games: [[[7, 2], [3, 6]], [[4, 5], [1, 0]]], byes: [] },
+  ]);
+});
+
+test("the search path draws the board it drew before", () => {
+  // A Roster that divides by neither four nor the court count, so it reaches
+  // the search cold and takes Byes: the path with the most moving parts.
+  const config = { ...configFor(13), courts: 3, rounds: 5, seed: 7 };
+  const schedule = generateSchedule(config);
+
+  assert.equal(schedule.source, "generated");
+  assert.deepEqual(asPlain(schedule), [
+    { games: [[[11, 9], [1, 10]], [[7, 8], [4, 2]], [[0, 3], [12, 6]]], byes: [5] },
+    { games: [[[0, 8], [4, 3]], [[11, 10], [7, 9]], [[1, 5], [2, 12]]], byes: [6] },
+    { games: [[[2, 6], [12, 9]], [[3, 10], [0, 5]], [[11, 4], [7, 1]]], byes: [8] },
+    { games: [[[2, 8], [3, 9]], [[7, 5], [0, 12]], [[1, 11], [4, 6]]], byes: [10] },
+    { games: [[[3, 8], [10, 5]], [[2, 7], [1, 6]], [[11, 12], [4, 0]]], byes: [9] },
+  ]);
 });
