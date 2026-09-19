@@ -106,8 +106,10 @@ const LEDE: Record<Format, string> = {
     "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice.",
   fixed:
     "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair.",
+  // "Rotation" rather than "ladder": a pickleball ladder is a standings board
+  // people climb, which is a different thing that this tool does not do.
   singles:
-    "Paste the names you have tonight and get a singles ladder where nobody plays the same person twice.",
+    "Paste the names you have tonight and get a singles rotation where nobody plays the same person twice.",
 };
 
 /**
