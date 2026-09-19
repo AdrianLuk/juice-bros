@@ -3,6 +3,7 @@ import {
   resolveNumbers,
   type ResolvedConfig,
 } from "../engine/config.ts";
+import { formatObjection } from "../engine/format.ts";
 import type { Format, Roster } from "../engine/types.ts";
 import {
   isFiniteNumber,
@@ -175,6 +176,12 @@ function readDrawn(value: unknown): ResolvedConfig | null {
   }
   const format = readFormat(value.format);
   if (format === undefined) return null;
+  // Roster size is not the only thing a Format refuses: an odd list in fixed
+  // partners leaves somebody with nobody to partner. Both have to be checked
+  // here, and for the same reason — this Config is drawn from during mount,
+  // so anything `generateSchedule` would throw on is a screen that never
+  // renders, on every visit, until storage is cleared by hand.
+  if (formatObjection(roster, format) !== null) return null;
   // Brought inside what the Roster supports here rather than left to
   // `generateSchedule`, which clamps its own copy and hands nothing back: the
   // restored numbers are read again for the stale key and for the line naming

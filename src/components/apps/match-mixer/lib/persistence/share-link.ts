@@ -3,7 +3,7 @@ import {
   resolveNumbers,
   type ResolvedConfig,
 } from "../engine/config.ts";
-import { FORMATS } from "../engine/format.ts";
+import { FORMATS, formatObjection } from "../engine/format.ts";
 import { parseRoster } from "../engine/roster.ts";
 import { DEFAULT_FORMAT, type Format } from "../engine/types.ts";
 import { isFiniteNumber, readChoice } from "./read-config.ts";
@@ -221,7 +221,15 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const roster = parseRoster(names);
   // Anything the engine would refuse is corruption here too, so a link with
   // three names in it opens the empty tool rather than throwing on mount.
+  //
+  // Roster size is not the whole of what the engine refuses. A Format has its
+  // own arithmetic — an odd list in fixed partners leaves somebody with nobody
+  // to partner — and the checksum is no help here, because it covers the names
+  // block and the Format rides on the number line. Flipping that one character
+  // by hand produces a payload that checksums perfectly and describes a board
+  // that cannot be drawn.
   if (!isSupportedRosterSize(roster.length)) return null;
+  if (formatObjection(roster, format) !== null) return null;
 
   return {
     // Brought inside what the Roster supports here rather than left to

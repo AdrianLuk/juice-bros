@@ -245,3 +245,22 @@ test("a saved format this build does not know is refused, not guessed at", () =>
   );
   assert.equal(load(), null);
 });
+
+test("a saved board its format cannot seat is discarded, not restored", () => {
+  // Storage is hand-editable, and this Config is drawn from during mount. A
+  // fixed-partner board with an odd roster would throw there rather than fail
+  // gracefully — a tool that does not render at all, on every visit, until
+  // somebody clears localStorage by hand.
+  clear();
+  const odd = roster.slice(0, 5);
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { ...edited, roster: odd, format: "fixed" },
+      drawn: { ...drawn, roster: odd, courts: 1, rounds: 4, format: "fixed" },
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load(), null);
+});

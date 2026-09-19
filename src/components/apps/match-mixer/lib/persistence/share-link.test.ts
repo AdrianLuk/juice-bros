@@ -351,3 +351,20 @@ test("a format this build cannot draw is refused, not turned into rotating", () 
     );
   }
 });
+
+test("a link naming a format its roster cannot play is not a board", () => {
+  // The checksum is no help here: it covers the names block, and the Format
+  // rides on the number line. Flipping that one character by hand gives a
+  // payload that checksums perfectly and describes a board nobody can draw —
+  // five names cannot be paired up. Left to `generateSchedule` it would throw
+  // during mount and the tool would not render at all.
+  const odd = parseRoster(
+    ["Ben Johns", "Anna Leigh Waters", "JW Johnson", "Anna Bright", "Jorja Johnson"].join(
+      "\n",
+    ),
+  );
+  const payload = encoded({ ...config, roster: odd, courts: 1, rounds: 4 });
+
+  assert.ok(decodeShareLink(payload), "the rotating original is a board");
+  assert.equal(decodeShareLink(withField(payload, FORMAT_FIELD, "f")), null);
+});
