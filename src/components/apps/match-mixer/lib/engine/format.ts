@@ -28,22 +28,34 @@ export function resolveFormat(format: Format | undefined): Format {
 
 /**
  * The Formats in the order the row offers them, rotating first because it is
- * the default and the one most nights are. RR-4.2 adds singles to the end of
- * this list and the row follows.
+ * the default and the one most nights are, singles last because it is the one
+ * that is not doubles at all.
  */
-export const FORMATS: readonly Format[] = ["rotating", "fixed"];
+export const FORMATS: readonly Format[] = ["rotating", "fixed", "singles"];
 
 /** Title case, for the control that selects it. */
 export const FORMAT_LABELS: Record<Format, string> = {
   rotating: "Rotating partners",
   fixed: "Fixed partners",
+  singles: "Singles",
 };
 
 /** What the row's options say underneath their own names. */
 export const FORMAT_NOTES: Record<Format, string> = {
   rotating: "Nobody partners the same person twice.",
   fixed: "Two names to a pair, down the list. Pairs stay together all night.",
+  singles: "One against one, two to a court. Nobody plays the same person twice.",
 };
+
+/** True where a side is one Player rather than two. */
+export function isSingles(format: Format): boolean {
+  return format === "singles";
+}
+
+/** How many Players a court seats in this Format: four, or two in singles. */
+export function seatsPerCourt(format: Format): number {
+  return isSingles(format) ? 2 : 4;
+}
 
 /** Lower case, for the middle of a sentence and for the board's particulars. */
 export function formatName(format: Format): string {
@@ -86,6 +98,11 @@ export function pairIndexOf(player: PlayerIndex): number {
  * Why this Roster cannot be drawn in this Format, in words, or `null` when it
  * can. Roster size itself is not this function's question — 4 to 32 is
  * `isSupportedRosterSize`, and it holds in every Format.
+ *
+ * Only fixed partners has an objection. Rotating seats an odd Roster by giving
+ * somebody a Bye, and singles seats one the same way — an odd list there is
+ * the ordinary case rather than a list with a name left over, because a side
+ * is one Player and the leftover has a Bye to take.
  *
  * The message names who is left over, because "needs an even number" leaves
  * the organizer counting a list they have already counted. It is a refusal

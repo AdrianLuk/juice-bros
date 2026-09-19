@@ -1,5 +1,5 @@
 import { naturalLength } from "./config.ts";
-import { formatName } from "./format.ts";
+import { formatName, seatsPerCourt } from "./format.ts";
 import { MAX_ROSTER_SIZE, MIN_ROSTER_SIZE, type Format } from "./types.ts";
 
 /**
@@ -45,15 +45,40 @@ export function describeNumbers({
   return `${formatName(format)} · ${plural(players, "player")} on ${plural(courts, "court")}, ${plural(rounds, "round")}`;
 }
 
+/**
+ * What each Format runs out of, and when. A table rather than a cascade,
+ * because there are three of them now and the third one added to a nested
+ * ternary would have put the rotating wording behind two negations.
+ *
+ * Both halves of every line are statements about the supply the Format has to
+ * spend, which is all counting can establish — see the note at the call site.
+ */
+const SUPPLY: Record<Format, (natural: number, spent: boolean) => string> = {
+  rotating: (natural, spent) =>
+    spent
+      ? `Partners start repeating after round ${natural}`
+      : "There are enough partnerships to go round",
+  fixed: (natural, spent) =>
+    spent
+      ? `Pairs start meeting again after round ${natural}`
+      : "There are enough matchups to go round",
+  singles: (natural, spent) =>
+    spent
+      ? `People start playing each other again after round ${natural}`
+      : "There are enough matchups to go round",
+};
+
 export function describeConfig(shape: ConfigShape): string {
   const { players, courts, rounds, format } = shape;
-  const sitting = Math.max(0, players - courts * 4);
+  // Two seats to a court in singles, four in both doubles Formats.
+  const sitting = Math.max(0, players - courts * seatsPerCourt(format));
   const natural = naturalLength(players, courts, format);
 
   // A Bye belongs to a Pairing in fixed partners — both members of a sitting
   // team sit — so the count that means anything to the organizer is pairs, not
-  // people. The seats themselves are the same four to a court in both Formats;
-  // it is what fills them that differs.
+  // people. The seats themselves are the same four to a court in both doubles
+  // Formats; it is what fills them that differs. In singles a Bye is a Player
+  // again, and the count is the plain one above.
   //
   // Counted off the pairs rather than by halving the players, because this
   // line runs on every keystroke and passes through odd Rosters on the way to
@@ -76,17 +101,11 @@ export function describeConfig(shape: ConfigShape): string {
   // to go round, which is not the same as promising a draw that uses it all
   // without collision. Whether one came out is the Scorer's to report.
   //
-  // What is in supply differs: rotating spends partnerships, and fixed
-  // partners spends meetings between pairs, because its partnerships are all
-  // spent in round one on purpose.
-  const supply =
-    format === "fixed"
-      ? rounds > natural
-        ? `Pairs start meeting again after round ${natural}`
-        : "There are enough matchups to go round"
-      : rounds > natural
-        ? `Partners start repeating after round ${natural}`
-        : "There are enough partnerships to go round";
+  // What is in supply differs: rotating spends partnerships, fixed partners
+  // spends meetings between pairs because its partnerships are all spent in
+  // round one on purpose, and singles spends meetings between people because
+  // it has no partnerships at all.
+  const supply = SUPPLY[format](natural, rounds > natural);
 
   return [describeNumbers(shape), seating, supply].join(". ").concat(".");
 }

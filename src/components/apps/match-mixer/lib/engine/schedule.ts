@@ -3,6 +3,7 @@ import { generateFixedRounds } from "./fixed.ts";
 import { formatObjection } from "./format.ts";
 import { generateRounds } from "./generator.ts";
 import { seating } from "./random.ts";
+import { generateSinglesRounds } from "./singles.ts";
 import { findTable } from "./tables.ts";
 import {
   MAX_ROSTER_SIZE,
@@ -18,8 +19,8 @@ import {
  * generator a Config goes to.
  *
  * A Format is a generator and not a cost term (ADR 0003), so this routes on it
- * first. Fixed partners goes to its own circle construction and is finished
- * with; everything below applies to rotating doubles alone.
+ * first. Fixed partners and singles each go to their own circle construction
+ * and are finished with; everything below applies to rotating doubles alone.
  *
  * For rotating it is Table lookup first, then the randomized greedy generator
  * for everything else, behind one signature (ADR 0002). Three things send a
@@ -76,9 +77,9 @@ function tablePrefix(
   // Truncation is the normal case, not a compromise: any leading run of a
   // whist tournament is still balanced (ADR 0002).
   return table.rounds.slice(0, limit).map((games) => ({
-    games: games.map((teams, court) => ({
+    games: games.map((sides, court) => ({
       court,
-      teams: [relabel(teams[0]), relabel(teams[1])] as const,
+      sides: [relabel(sides[0]), relabel(sides[1])] as const,
     })),
     // A Table seats everyone every Round, by construction.
     byes: [],
@@ -104,11 +105,18 @@ export function generateSchedule(config: Config): Schedule {
   const objection = formatObjection(config.roster, format);
   if (objection) throw new UnsupportedConfigError(objection);
 
+  // Never a Table, whatever the Roster size: see the note above.
   if (format === "fixed") {
-    // Never a Table, whatever the Roster size: see the note above.
     return {
       source: "generated",
       rounds: generateFixedRounds({ n, courts, rounds, seed: config.seed }),
+    };
+  }
+
+  if (format === "singles") {
+    return {
+      source: "generated",
+      rounds: generateSinglesRounds({ n, courts, rounds, seed: config.seed }),
     };
   }
 

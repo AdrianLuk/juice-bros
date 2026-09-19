@@ -15,7 +15,7 @@ Several words collide across the contexts. Check the right glossary before reusi
 
 - **Player** — a name on a past Booking in Booking Buddy; a live participant in the Queue in On Deck; one line of the Roster in Match Mixer.
 - **Court** — a physical, named court belonging to a Club in On Deck; a column count with no venue or identity in Match Mixer.
-- **Game** — a foursome playing until they report done in On Deck; four Players on one court within one Round in Match Mixer.
+- **Game** — a foursome playing until they report done in On Deck; two Sides on one court within one Round in Match Mixer, which is four Players in doubles and two in singles.
 - **Session** — one night at a club in On Deck. Match Mixer avoids the word entirely and calls its equivalent a **Mixer**.
 - **User**, **Org**, **Connection** and **Invite Link** are Booking Buddy's alone, and are explicitly avoided in On Deck and Match Mixer.
 

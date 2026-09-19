@@ -211,6 +211,22 @@ test("the format round-trips, and a schedule restored in it is that format", () 
   assert.equal(loaded?.drawn?.format, "fixed");
 });
 
+test("a singles visit comes back as one, court count and all", () => {
+  // Adding a Format is a new value in an existing field rather than a new
+  // shape, so the schema does not move and a singles save reads back like any
+  // other. Four courts is a singles number — the same eight names in doubles
+  // would have clamped it to two.
+  clear();
+  const solo = { ...drawn, courts: 4, format: "singles" } as const;
+  save({ ...edited, courts: 4, format: "singles" }, solo);
+
+  const loaded = load();
+  assert.equal(loaded?.edited.format, "singles");
+  assert.equal(loaded?.edited.courts, 4);
+  assert.equal(loaded?.drawn?.format, "singles");
+  assert.equal(loaded?.drawn?.courts, 4);
+});
+
 test("a save written by the previous schema is discarded, not migrated", () => {
   // A schema-1 save has no Format and would read as rotating perfectly well,
   // so this is the bump being deliberate rather than forced. What is thrown

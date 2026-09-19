@@ -92,6 +92,33 @@ const EXAMPLE_ROSTER = EXAMPLE_NAMES.join("\n");
 const SAVE_DEBOUNCE_MS = 400;
 
 /**
+ * What pressing the button will get you, per Format. It follows the Format row
+ * rather than the board, because it is a promise about what the button will do:
+ * left fixed it would go on promising nobody partners the same person twice
+ * while a fixed-partner board sat under it, which is the one thing that Format
+ * is for.
+ *
+ * A table rather than a cascade now there are three of them, for the same
+ * reason the consequence line's supply clause became one.
+ */
+const LEDE: Record<Format, string> = {
+  rotating:
+    "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice.",
+  fixed:
+    "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair.",
+  singles:
+    "Paste the names you have tonight and get a singles ladder where nobody plays the same person twice.",
+};
+
+/**
+ * Past this many courts a sheet of portrait paper runs out of width, so the
+ * board turns the page sideways instead of dropping the last court off the
+ * edge. Only singles reaches it: doubles tops out at eight courts, which is
+ * `MAX_ROSTER_SIZE / 4`.
+ */
+const WIDE_BOARD_COURTS = 8;
+
+/**
  * The zero state's board: a real Schedule, generated the way any other
  * one is, so what it shows is what the tool actually does. Fixed Seed and
  * built once at module scope, because it must not differ between the server's
@@ -508,7 +535,11 @@ export function MatchMixer() {
 
   const size = roster.length;
   const supported = isSupportedRosterSize(size);
-  const courtCeiling = maxCourts(size);
+  // The ceiling follows the Format, because a singles court seats two: the
+  // field's maximum has to move as the row is switched, not only as names are
+  // pasted, or a doubles court count would survive into a Format that could
+  // have offered twice as many.
+  const courtCeiling = maxCourts(size, format);
   // The fields show what the engine will actually use, which is the same clamp
   // `generateSchedule` applies rather than a second opinion beside it. A null
   // choice is an untouched or emptied field, and means the default.
@@ -559,7 +590,17 @@ export function MatchMixer() {
     // The board fills the frame — aluminium surround, enamel face, pen tray
     // along the bottom. There is deliberately no page around it and no
     // max-width: this is an object on a wall, not a document on a background.
-    <div className="mm-sheet">
+    <div
+      className="mm-sheet"
+      // Which way up the paper goes, decided by the board on screen rather
+      // than by the Format: it is a width problem, and a two-court singles
+      // board has the same width as a two-court doubles one. Read off the
+      // drawn board and not the fields, because the fields can already be
+      // describing a wider board than the one that would print.
+      data-wide={
+        (draw?.config.courts ?? 0) > WIDE_BOARD_COURTS ? "true" : undefined
+      }
+    >
       <div className="mm-face mm-fixings">
         {/* The head runs the full width of the board rather than stacking in
             the left column: at desktop that column is 15.5rem, and a header
@@ -600,9 +641,7 @@ export function MatchMixer() {
               person twice while a fixed-partner board sat under it, which is
               the one thing that format is for. */}
           <p className="mm-lede">
-            {format === "fixed"
-              ? "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair."
-              : "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice."}{" "}
+            {LEDE[format]}{" "}
             Your list stays in this browser and waits here for next week. There
             is no account to make and no database behind this: nothing you type
             is kept on a server.

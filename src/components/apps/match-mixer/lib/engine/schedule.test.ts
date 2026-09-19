@@ -32,7 +32,7 @@ function configFor(
 function seatedIn(schedule: Schedule): number[][] {
   return schedule.rounds.map((round) =>
     round.games
-      .flatMap((game) => [...game.teams[0], ...game.teams[1]])
+      .flatMap((game) => [...game.sides[0], ...game.sides[1]])
       .sort((a, b) => a - b),
   );
 }
@@ -44,7 +44,7 @@ function seatedIn(schedule: Schedule): number[][] {
  */
 function asPlain(schedule: Schedule) {
   return schedule.rounds.map((round) => ({
-    games: round.games.map((game) => [[...game.teams[0]], [...game.teams[1]]]),
+    games: round.games.map((game) => [[...game.sides[0]], [...game.sides[1]]]),
     byes: [...round.byes],
   }));
 }
@@ -64,7 +64,7 @@ function assertWellFormed(schedule: Schedule, n: number, courts: number): void {
       `${where} court numbering`,
     );
 
-    const seats = round.games.flatMap((game) => [...game.teams[0], ...game.teams[1]]);
+    const seats = round.games.flatMap((game) => [...game.sides[0], ...game.sides[1]]);
     const everyone = [...seats, ...round.byes].sort((a, b) => a - b);
     assert.deepEqual(
       everyone,

@@ -13,7 +13,7 @@ import type {
   Roster,
   Schedule,
   ScorerResult,
-  Team,
+  Side as GameSide,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
 /**
@@ -80,13 +80,20 @@ function PlayerName({
  * What is being counted follows the Format, because what the night is working
  * through does. Rotating works through partnerships; fixed partners has none
  * left to work through after round one, and works through matchups between
- * pairs instead.
+ * pairs instead; singles never had any, and works through matchups between
+ * people.
+ *
+ * The same noun for both matchup Formats, over two different denominators: a
+ * fixed-partner matchup is between Pairings and a singles one is between
+ * Players, which is exactly the distinction the Scorer's union keeps so that
+ * nothing here has to. What the figure answers is the same question in both —
+ * how much of the room is left.
  */
 function coverage(score: ScorerResult): string | null {
   const [played, possible, noun] =
-    score.format === "fixed"
-      ? [score.meetingsPlayed, score.meetingsPossible, "matchup"]
-      : [score.pairingsPlayed, score.pairingsPossible, "pairing"];
+    score.format === "rotating"
+      ? [score.pairingsPlayed, score.pairingsPossible, "pairing"]
+      : [score.meetingsPlayed, score.meetingsPossible, "matchup"];
 
   if (possible === 0) return null;
   if (played === possible) return `every possible ${noun} has played`;
@@ -130,47 +137,53 @@ function RepeatRing() {
 }
 
 /**
- * One side of a Game, on its own name plate. In rotating doubles a pair who
- * partnered more than once is marked here, on the side it belongs to rather
- * than on the Game or in a grid of its own, because naming the pair without
- * showing which Rounds they are in leaves the organizer to find them by hand.
- * The mark is spelled out for screen readers, which have no ring to see.
+ * One side of a Game, on its own name plate — two names in doubles, one in
+ * singles. Same plate either way: it is cut to what is printed on it, so a
+ * singles plate is simply a shorter one and not a different object.
+ *
+ * In rotating doubles a pair who partnered more than once is marked here, on
+ * the side it belongs to rather than on the Game or in a grid of its own,
+ * because naming the pair without showing which Rounds they are in leaves the
+ * organizer to find them by hand. The mark is spelled out for screen readers,
+ * which have no ring to see.
  *
  * Whether this side repeated is the caller's to decide, not this component's.
- * In fixed partners it never does — the pair is the whole point — and what
- * repeats there is the Game, which is marked a level up.
+ * In fixed partners it never does — the pair is the whole point — and in
+ * singles there is no pair to repeat; what repeats in both is the Game, which
+ * is marked a level up.
  */
 function Side({
   roster,
-  team,
+  side,
   repeat,
   selected,
   onSelect,
 }: {
   roster: Roster;
-  team: Team;
+  side: GameSide;
   repeat: boolean;
   selected: PlayerIndex | null;
   onSelect?: (player: PlayerIndex) => void;
 }) {
   return (
     <span className="mm-side" data-repeat={repeat ? "true" : undefined}>
-      <PlayerName
-        roster={roster}
-        index={team[0]}
-        selected={selected}
-        onSelect={onSelect}
-      />
-      {/* The stroke between two partners is furniture, not a word. */}
-      <span className="mm-join" aria-hidden="true">
-        {" / "}
-      </span>
-      <PlayerName
-        roster={roster}
-        index={team[1]}
-        selected={selected}
-        onSelect={onSelect}
-      />
+      {side.map((player, seat) => (
+        <Fragment key={player}>
+          {/* The stroke between two partners is furniture, not a word — and
+              with nobody to be between, there is nothing for it to do. */}
+          {seat > 0 ? (
+            <span className="mm-join" aria-hidden="true">
+              {" / "}
+            </span>
+          ) : null}
+          <PlayerName
+            roster={roster}
+            index={player}
+            selected={selected}
+            onSelect={onSelect}
+          />
+        </Fragment>
+      ))}
       {repeat ? (
         <>
           <RepeatRing />
@@ -188,8 +201,15 @@ function Side({
  * round the side it belongs to. In fixed partners every side repeats by
  * construction and marking them would bury the board in rings that all mean
  * "as requested"; what can go wrong there is two Pairings meeting again, which
- * is a fact about the Game. So the same marker stroke is drawn round the whole
- * Game instead — the mark follows the failure rather than the element.
+ * is a fact about the Game. Singles has no side to mark at all, and the thing
+ * that can go wrong is again a fact about the Game — two people meeting twice.
+ * So in both the same marker stroke is drawn round the whole Game: the mark
+ * follows the failure rather than the element, and in singles the Game *is*
+ * the pairing.
+ *
+ * `data-solo` is what lets the two plates of a singles Game sit side by side
+ * rather than stacked. It is on the Game because that is where the layout
+ * decision belongs — a side has no idea what is opposite it.
  */
 function GameCell({
   roster,
@@ -204,36 +224,50 @@ function GameCell({
   selected: PlayerIndex | null;
   onSelect?: (player: PlayerIndex) => void;
 }) {
-  const rematch =
-    score.format === "fixed" &&
-    score.meetingMatrix[pairIndexOf(game.teams[0][0])][
-      pairIndexOf(game.teams[1][0])
-    ] > 1;
+  const [left, right] = game.sides;
 
-  const sideRepeats = (team: Team) =>
-    score.format === "rotating" && score.partnerMatrix[team[0]][team[1]] > 1;
+  const rematch =
+    score.format === "fixed"
+      ? score.meetingMatrix[pairIndexOf(left[0])][pairIndexOf(right[0])] > 1
+      : score.format === "singles" &&
+        // The opponent matrix is the meeting count itself in singles: one
+        // Player on each side, so a Game bumps exactly one cell of it.
+        score.opponentMatrix[left[0]][right[0]] > 1;
+
+  const sideRepeats = (side: GameSide) =>
+    score.format === "rotating" &&
+    side.length === 2 &&
+    score.partnerMatrix[side[0]][side[1]] > 1;
 
   return (
-    <span className="mm-game" data-repeat={rematch ? "true" : undefined}>
+    <span
+      className="mm-game"
+      data-solo={score.format === "singles" ? "true" : undefined}
+      data-repeat={rematch ? "true" : undefined}
+    >
       <Side
         roster={roster}
-        team={game.teams[0]}
-        repeat={sideRepeats(game.teams[0])}
+        side={left}
+        repeat={sideRepeats(left)}
         selected={selected}
         onSelect={onSelect}
       />
       <span className="mm-versus">vs</span>
       <Side
         roster={roster}
-        team={game.teams[1]}
-        repeat={sideRepeats(game.teams[1])}
+        side={right}
+        repeat={sideRepeats(right)}
         selected={selected}
         onSelect={onSelect}
       />
       {rematch ? (
         <>
           <RepeatRing />
-          <span className="sr-only"> (these two pairs have met before)</span>
+          <span className="sr-only">
+            {score.format === "singles"
+              ? " (these two have played before)"
+              : " (these two pairs have met before)"}
+          </span>
         </>
       ) : null}
     </span>
@@ -284,6 +318,54 @@ function FoundLine({
 }
 
 /**
+ * The clause the organizer is scanning for, pulled out of the run so the board
+ * can carry it in marker green or red. It is the one clause with a pass and a
+ * fail; the rest are figures.
+ *
+ * What counts as the failure is the Format's question. Rotating fails by
+ * partnering the same person twice; fixed partners fails by two pairs meeting
+ * again before everyone has met; singles fails by two people doing the same.
+ * The word "partner" never appears in the singles reading, because a singles
+ * night has none — not even a clean one to report.
+ */
+function verdictOf(score: ScorerResult): {
+  failed: boolean;
+  verdict: string;
+  /** A clause only rotating has; see below. */
+  opponents: string | null;
+} {
+  if (score.format === "rotating") {
+    const repeats = score.repeatedPartnerPairs;
+    return {
+      failed: repeats > 0,
+      verdict:
+        repeats > 0
+          ? `${repeats} repeat partnerships, ringed below`
+          : "no repeat partners",
+      // Only rotating has an opponent count worth reporting on its own: in the
+      // other two, facing the same side again is the headline failure above, so
+      // a second clause would say it twice.
+      opponents:
+        score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
+          ? "nobody faces the same person more than twice"
+          : `some players face each other ${score.maxOpponentCount} times`,
+    };
+  }
+
+  const rematches = score.repeatedMeetings;
+  return {
+    failed: rematches > 0,
+    verdict:
+      rematches > 0
+        ? `${rematches} rematch${rematches === 1 ? "" : "es"}, ringed below`
+        : score.format === "singles"
+          ? "nobody plays the same person twice"
+          : "every pair faces a new pair each round",
+    opponents: null,
+  };
+}
+
+/**
  * The summary line is a readout of the Scorer against the Schedule that was
  * actually produced, never a claim derived from the Config. Whether the Byes
  * rotate evenly is the Scorer's verdict too, not a second rule worked out
@@ -291,10 +373,11 @@ function FoundLine({
  *
  * Every clause reads off the Format's own reading, which is why the Scorer
  * returns a union and this switches on it rather than reinterpreting one shape
- * two ways. A fixed-partner board has every pair on it partnering every round
- * by construction; reporting that as repeat partnerships would be a true count
- * of a thing nobody got wrong, and it is the single sentence on the board most
- * likely to be read as a verdict.
+ * three ways. A fixed-partner board has every pair on it partnering every round
+ * by construction and a singles board has no partnerships at all; reporting
+ * either as repeat partnerships — or as none — would be a true count of a
+ * thing nobody got wrong, in the single sentence on the board most likely to be
+ * read as a verdict.
  */
 function summarise(
   score: ScorerResult,
@@ -304,7 +387,8 @@ function summarise(
   const sitting = schedule.rounds[0]?.byes.length ?? 0;
   // A Bye belongs to a Pairing in fixed partners, so it is counted in pairs:
   // both members of a sitting team sit, and "4 players sit out" would have the
-  // organizer looking for four names to shuffle rather than two pairs.
+  // organizer looking for four names to shuffle rather than two pairs. In
+  // singles the unit that sits is a Player again.
   const idle = score.format === "fixed" ? sitting / 2 : sitting;
   const unit = score.format === "fixed" ? "pair" : "player";
   const sit = `${idle} ${unit}${idle === 1 ? " sits" : "s sit"}`;
@@ -318,37 +402,7 @@ function summarise(
     byes = `${sit} out each round, but some sit out ${score.byeSpread} more time${score.byeSpread === 1 ? "" : "s"} than others`;
   }
 
-  // The repeat clause is pulled out of the run so the board can carry it in
-  // marker green or red. It is the one clause the organizer is scanning for,
-  // and the only one with a pass and a fail; the rest are figures.
-  //
-  // What counts as the failure is the Format's question. Rotating fails by
-  // partnering the same person twice; fixed partners fails by two pairs
-  // meeting again before everyone has met.
-  const { failed, verdict, opponents } =
-    score.format === "fixed"
-      ? {
-          failed: score.repeatedMeetings > 0,
-          verdict:
-            score.repeatedMeetings > 0
-              ? `${score.repeatedMeetings} rematches, ringed below`
-              : "every pair faces a new pair each round",
-          opponents: null,
-        }
-      : {
-          failed: score.repeatedPartnerPairs > 0,
-          verdict:
-            score.repeatedPartnerPairs > 0
-              ? `${score.repeatedPartnerPairs} repeat partnerships, ringed below`
-              : "no repeat partners",
-          // Only rotating has an opponent count worth reporting on its own: in
-          // fixed partners facing the same pair again is the headline failure
-          // above, so a second clause would say it twice.
-          opponents:
-            score.maxOpponentCount <= FREE_OPPONENT_MEETINGS
-              ? "nobody faces the same person more than twice"
-              : `some players face each other ${score.maxOpponentCount} times`,
-        };
+  const { failed, verdict, opponents } = verdictOf(score);
 
   return {
     failed,

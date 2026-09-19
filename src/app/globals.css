@@ -4234,6 +4234,24 @@ html:has(.bb-app-chrome) {
     height: auto;
   }
 
+  /* A singles Game turns on its side. Two plates stacked with a divider
+     between them is three rows carrying two names, which at up to sixteen
+     courts is a board twice as tall as the one it replaced and half as full -
+     and it reads wrong besides: one against one is a line, the way anybody
+     would write it on a board by hand.
+
+     Deliberately no wrapping. A column that cannot fit `A vs B` widens the
+     field instead of breaking the line, and the scroller above is what that
+     was always for; a wrapped line would leave the divider stranded at the end
+     of the first row, pointing at nothing. Above eight courts the printed
+     sheet turns sideways rather than dropping a court off the edge - see the
+     print block at the foot of this file. */
+  .mm-game[data-solo] {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+  }
+
   .mm-versus {
     display: block;
     padding: 0.14rem 0 0.14rem 0.45rem;
@@ -4243,6 +4261,25 @@ html:has(.bb-app-chrome) {
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--mm-vinyl-2);
+  }
+  /* Between two plates rather than under one, so it needs air on both sides
+     and none above. The type is untouched: it is the same piece of applied
+     furniture doing the same job, and a second treatment of `vs` would be a
+     second vocabulary for one word. */
+  .mm-game[data-solo] > .mm-versus {
+    flex: 0 0 auto;
+    padding: 0 0.5rem;
+  }
+  /* Both plates lean the same way in a singles Game. The alternated tilts
+     above are what keeps a *column* of plates from reading as a ruled table,
+     and two plates side by side tilting into each other read as a hand that
+     could not put them on straight rather than as a hand at all. */
+  .mm-game[data-solo] > .mm-side,
+  .mm-game[data-solo] > .mm-versus + .mm-side {
+    transform: rotate(-0.26deg);
+  }
+  .mm-grid tr:nth-child(even) .mm-game[data-solo] > .mm-side {
+    transform: rotate(0.19deg);
   }
 
   /* Who is off this round is part of the schedule, so it reads as a column
@@ -4764,6 +4801,22 @@ html:has(.bb-app-chrome) {
     margin: 14mm;
   }
 
+  /* A singles board can be sixteen courts wide, which is twice what doubles
+     can reach: `MAX_ROSTER_SIZE / 2` rather than `/ 4`. Past eight of them the
+     field is wider than portrait paper and the last courts fall off the right
+     edge - on screen the scroller catches that, and paper has no sideways. So
+     the sheet turns instead. A narrower margin with it, because the width is
+     what ran out.
+
+     Set by `data-wide` on the sheet, off the *drawn* court count rather than
+     the Format: a two-court singles board is no wider than a two-court doubles
+     one, and it is a width problem throughout. Only singles reaches the
+     threshold, but nothing here has to know that. */
+  @page mm-sheet-wide {
+    size: landscape;
+    margin: 10mm 12mm;
+  }
+
   /* Two named pages rather than one, because the Club QR sign is the only
      thing on this site whose paper size is a choice the user makes — a club
      in Toronto prints Letter, the same sheet mailed to a club anywhere else
@@ -4859,6 +4912,10 @@ html:has(.bb-app-chrome) {
      turned on. */
   body:has(.mm-sheet) {
     background: #fff;
+  }
+
+  .mm-sheet[data-wide] {
+    page: mm-sheet-wide;
   }
 
   .mm-sheet {
