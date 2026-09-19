@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { describeItinerary, itinerary } from "./itinerary.ts";
-import type { Round, Schedule, Team } from "./types.ts";
+import type { Round, Schedule, Side } from "./types.ts";
 
-/** Each argument is one Game: two Teams facing each other. */
-function round(games: [Team, Team][], byes: number[] = []): Round {
+/** Each argument is one Game: two Sides facing each other. */
+function round(games: [Side, Side][], byes: number[] = []): Round {
   return {
-    games: games.map((teams, court) => ({ court, teams })),
+    games: games.map((sides, court) => ({ court, sides })),
     byes,
   };
 }
@@ -130,6 +130,22 @@ const sittingTwice = schedule(
   ),
 );
 
+/** Four players, two singles courts: a side is one name and nobody sits out. */
+const solo = schedule(
+  round([
+    [[0], [1]],
+    [[2], [3]],
+  ]),
+  round([
+    [[0], [2]],
+    [[1], [3]],
+  ]),
+  round([
+    [[0], [3]],
+    [[1], [2]],
+  ]),
+);
+
 test("returns one entry per round, in round order", () => {
   const evening = itinerary(full, 0);
   assert.equal(evening.length, 3);
@@ -168,6 +184,40 @@ test("reads a player sitting on the far side of the net the same way", () => {
     partner: 2,
     opponents: [0, 1],
   });
+});
+
+test("a singles round gives an opponent and no partner", () => {
+  // The whole of what widening a side cost the Itinerary. Find-me on a singles
+  // board has to answer "who am I playing" with one name and "who with" with
+  // nobody, rather than inventing a partner out of the other seat.
+  assert.deepEqual(itinerary(solo, 0), [
+    { kind: "game", round: 0, court: 0, partner: null, opponents: [1] },
+    { kind: "game", round: 1, court: 0, partner: null, opponents: [2] },
+    { kind: "game", round: 2, court: 0, partner: null, opponents: [3] },
+  ]);
+});
+
+test("a singles player on the far side reads the same way", () => {
+  assert.deepEqual(itinerary(solo, 3)[0], {
+    kind: "game",
+    round: 0,
+    court: 1,
+    partner: null,
+    opponents: [2],
+  });
+});
+
+test("the singles sentence still names the courts and the byes", () => {
+  const sittingSolo = schedule(
+    round([[[0], [1]]], [2]),
+    round([[[0], [2]]], [1]),
+    round([[[1], [2]]], [0]),
+  );
+
+  assert.equal(
+    describeItinerary(itinerary(sittingSolo, 0)),
+    "You're on Court 1 in rounds 1 and 2. Sitting out round 3.",
+  );
 });
 
 test("carries the court a player is actually on, not the first one", () => {

@@ -90,9 +90,10 @@ test("the particulars alone are the head of the same sentence, without the stop"
  * fixed-partner sheet and a printed rotating sheet are otherwise the same
  * object.
  */
-test("both formats are named in the particulars, not just the unusual one", () => {
+test("every format is named in the particulars, not just the unusual ones", () => {
   assert.match(describeNumbers(shape(8, 2, 4)), /^rotating partners · /);
   assert.match(describeNumbers(shape(8, 2, 4, "fixed")), /^fixed partners · /);
+  assert.match(describeNumbers(shape(8, 4, 4, "singles")), /^singles · /);
 });
 
 test("fixed partners counts what sits out in pairs, not in people", () => {
@@ -133,6 +134,38 @@ test("an odd roster in fixed partners never produces half a pair", () => {
     const line = describeConfig(shape(players, 1, 4, "fixed"));
     assert.doesNotMatch(line, /\d+\.\d/, `n=${players}`);
   }
+});
+
+test("singles counts two seats to a court, so a full board seats everybody", () => {
+  assert.match(
+    describeConfig(shape(8, 4, 7, "singles")),
+    /Everybody plays every round\./,
+  );
+  // Seven names on three courts seat six, so the odd one out sits — a player,
+  // not a pair.
+  assert.match(
+    describeConfig(shape(7, 3, 6, "singles")),
+    /1 player sits out each round, taking turns\./,
+  );
+  assert.match(
+    describeConfig(shape(12, 4, 6, "singles")),
+    /4 players sit out each round, taking turns\./,
+  );
+});
+
+test("singles talks about matchups, and never about partners at all", () => {
+  const line = describeConfig(shape(8, 4, 7, "singles"));
+  assert.match(line, /There are enough matchups to go round\.$/);
+  assert.doesNotMatch(line, /partner/i);
+});
+
+test("past the natural length singles says where the rematches begin", () => {
+  // Eight names hold 28 matchups; four courts spend four a round, so round 8
+  // is the first that cannot be drawn from fresh ones.
+  assert.match(
+    describeConfig(shape(8, 4, 12, "singles")),
+    /People start playing each other again after round 7\.$/,
+  );
 });
 
 test("a roster too small to seat still gets a line, counting what is missing", () => {
