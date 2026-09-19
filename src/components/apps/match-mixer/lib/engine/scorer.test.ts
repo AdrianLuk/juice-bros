@@ -248,3 +248,73 @@ test("a roster too small to pair has no possible pairings rather than a crash", 
   assert.equal(score.pairingsPlayed, 0);
   assert.equal(score.pairingsPossible, 0);
 });
+
+/**
+ * Mixed doubles (#545). Two of the Scorer's answers change under it — what the
+ * partnership supply is, and what an even share of the night looks like — and
+ * both of them would otherwise report a board that is exactly right as one
+ * that fell short.
+ */
+
+/** Six positions: 0-3 are M, 4-5 are F. */
+const SIX: readonly ("M" | "F")[] = ["M", "M", "M", "M", "F", "F"];
+
+test("the partnership supply is M x F, not the whole triangle", () => {
+  // One round of two mixed games, then read the same board both ways.
+  const board = [
+    {
+      games: [
+        { court: 0, teams: [[0, 4], [1, 5]] as [Team, Team] },
+      ],
+      byes: [2, 3],
+    },
+  ];
+  assert.equal(scoreRounds(board, 6, "rotating", SIX).pairingsPossible, 8);
+  assert.equal(scoreRounds(board, 6).pairingsPossible, 15);
+});
+
+test("the bye verdict is asked once per side, because the queues are separate", () => {
+  // Four M and two F on one court: both F play every round and two M sit out
+  // every round. Across the whole roster that is a spread of four games and
+  // reads as a broken rotation; it is in fact the only rotation these counts
+  // allow, and within each side the turns come round exactly.
+  const rounds: Round[] = [
+    { games: [{ court: 0, teams: [[0, 4], [1, 5]] }], byes: [2, 3] },
+    { games: [{ court: 0, teams: [[2, 5], [3, 4]] }], byes: [0, 1] },
+  ];
+
+  const mixed = scoreRounds(rounds, 6, "rotating", SIX);
+  assert.equal(mixed.byeSpread, 0);
+  assert.equal(mixed.byesRotateEvenly, true);
+
+  // The same board read without the markers prices the same rotation as a
+  // failure, which is what makes the constraint the Scorer's business.
+  const flat = scoreRounds(rounds, 6);
+  assert.equal(flat.byeSpread, 1);
+});
+
+test("a side that does sit unevenly is still reported", () => {
+  // Player 0 plays both rounds and player 3 plays neither, so two M are a
+  // whole two games apart and the constraint is no excuse for it.
+  const rounds: Round[] = [
+    { games: [{ court: 0, teams: [[0, 4], [1, 5]] }], byes: [2, 3] },
+    { games: [{ court: 0, teams: [[0, 5], [2, 4]] }], byes: [1, 3] },
+  ];
+  const mixed = scoreRounds(rounds, 6, "rotating", SIX);
+  assert.equal(mixed.byeSpread, 2);
+  assert.equal(mixed.byesRotateEvenly, false);
+});
+
+test("scoreSchedule reads the markers off the config it is handed", () => {
+  const roster = parseRoster("A M\nB M\nC F\nD F");
+  const schedule: Schedule = {
+    source: "generated",
+    rounds: [{ games: [{ court: 0, teams: [[0, 2], [1, 3]] }], byes: [] }],
+  };
+  const on = scoreSchedule(schedule, { roster, courts: 1, seed: 1, mixed: true });
+  assert.equal(on.pairingsPossible, 4);
+  // Off, the same marked roster is an ordinary rotation and the whole triangle
+  // is in play.
+  const off = scoreSchedule(schedule, { roster, courts: 1, seed: 1 });
+  assert.equal(off.pairingsPossible, 6);
+});

@@ -62,3 +62,32 @@ test("names that differ only in case are two different players", () => {
   // are the same person is the organizer's call, not the tool's.
   assert.deepEqual(duplicateNames(parseRoster("Mike\nmike")), []);
 });
+
+test("a trailing M or F is read as a marker and taken off the name", () => {
+  const roster = parseRoster("Sam M\nAnna Leigh Waters F\nBen Johns");
+  assert.deepEqual(roster, [
+    { id: "p0", name: "Sam", marker: "M" },
+    { id: "p1", name: "Anna Leigh Waters", marker: "F" },
+    { id: "p2", name: "Ben Johns" },
+  ]);
+});
+
+test("changing somebody's marker keeps them the same player", () => {
+  const first = parseRoster("Sam M\nAnna F");
+  const second = parseRoster("Sam F\nAnna F", first);
+  assert.deepEqual(
+    second.map((player) => player.id),
+    first.map((player) => player.id),
+  );
+  assert.equal(second[0].marker, "F");
+});
+
+test("two Sams with different markers are still two Sams", () => {
+  const roster = parseRoster("Sam M\nSam F\nBen Johns M");
+  // Distinct entries to the engine...
+  assert.equal(new Set(roster.map((player) => player.id)).size, 3);
+  // ...and the same name to anyone reading the board, which is what the
+  // notice is about: the board prints no markers, so it cannot tell them
+  // apart at all.
+  assert.deepEqual(duplicateNames(roster), ["Sam"]);
+});

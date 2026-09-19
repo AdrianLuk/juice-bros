@@ -2,6 +2,7 @@ import { clampConfig } from "./config.ts";
 import { generateFixedRounds } from "./fixed.ts";
 import { formatObjection } from "./format.ts";
 import { generateRounds } from "./generator.ts";
+import { markersOf, mixedObjection } from "./mixed.ts";
 import { seating } from "./random.ts";
 import { findTable } from "./tables.ts";
 import {
@@ -32,12 +33,21 @@ import {
  * half of that routing: every stored Table is a whist tournament, and ADR
  * 0002's guarantee about its prefixes is a claim about rotating doubles that
  * says nothing at all about any other Format.
+ *
+ * Mixed doubles is the one thing here that is not a Format. It is a hard
+ * constraint on rotating's seating, so it does not get a generator of its own
+ * — it goes to the same search with the markers handed to it. What it does
+ * share with the other Formats is that it never reaches `findTable`: a Table
+ * is a construction over bare positions and cannot know which of them is an
+ * `M`.
  */
 
 /**
- * Thrown when no Schedule can be produced for a Config. Two things reach it:
- * a Roster outside 4 to 32, and a Roster the selected Format cannot seat — an
- * odd list in fixed partners, where the last name has nobody to partner.
+ * Thrown when no Schedule can be produced for a Config. Three things reach it:
+ * a Roster outside 4 to 32; a Roster the selected Format cannot seat — an odd
+ * list in fixed partners, where the last name has nobody to partner; and a
+ * Roster the mixed-doubles constraint cannot seat, either because a line is
+ * missing its marker or because one side is too short to fill the courts.
  *
  * Courts and Round count are not among them; they are clamped into range
  * rather than refused, because a number picker cannot offer an impossible
@@ -96,13 +106,38 @@ export function generateSchedule(config: Config): Schedule {
 
   // Run the same clamps the fields run, so a Config assembled anywhere else
   // still cannot ask for a Schedule the Roster could not sit down to.
-  const { courts, rounds, format } = clampConfig(config);
+  const { courts, rounds, format, mixed } = clampConfig(config);
 
   // Checked again here rather than trusted to the screen, for the same reason
   // Roster size is: this is the entry point, and a Config assembled anywhere
   // else must not be able to produce a board with somebody dropped off it.
-  const objection = formatObjection(config.roster, format);
+  //
+  // Mixed doubles has two of its own: a Roster only half marked, and one whose
+  // counts cannot fill the chosen courts with `2c` of each. The second is why
+  // this one takes the clamped court count rather than the Config's — the
+  // arithmetic is about the courts that will actually be seated.
+  const objection =
+    formatObjection(config.roster, format) ??
+    mixedObjection(config.roster, courts, mixed);
   if (objection) throw new UnsupportedConfigError(objection);
+
+  // Past the objection every line carries a marker, so this is never null.
+  const markers = mixed ? markersOf(config.roster) : null;
+  if (markers) {
+    // Never a Table either: every stored Table is a whist tournament over
+    // bare positions and knows nothing about which seat holds which marker,
+    // so its Rounds would seat two `M` on a side as readily as one of each.
+    return {
+      source: "generated",
+      rounds: generateRounds({
+        n,
+        courts,
+        rounds,
+        seed: config.seed,
+        markers,
+      }),
+    };
+  }
 
   if (format === "fixed") {
     // Never a Table, whatever the Roster size: see the note above.

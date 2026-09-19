@@ -1,3 +1,4 @@
+import { splitMarker } from "./mixed.ts";
 import type { Roster } from "./types.ts";
 
 /**
@@ -8,6 +9,12 @@ import type { Roster } from "./types.ts";
  * than a position the next paste might shift. Ids are reused by name — the
  * cheapest rule that survives inserting, deleting and reordering lines, which
  * is what editing a pasted list actually looks like.
+ *
+ * A line may end in a marker (`Sam M`), which mixed doubles reads and nothing
+ * else does. It is taken off the name here rather than left on it, so that a
+ * marked line and a bare one describe the same Player under a different
+ * constraint: ids are reused by name, and changing somebody's marker must not
+ * turn them into somebody else.
  */
 
 const ID_PREFIX = "p";
@@ -23,10 +30,11 @@ function nextIdAfter(previous: Roster): number {
 }
 
 export function parseRoster(text: string, previous: Roster = []): Roster {
-  const names = text
+  const entries = text
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+    .filter((line) => line.length > 0)
+    .map(splitMarker);
 
   // Each previous entry can be claimed once, so two players called Mike keep
   // their two distinct ids rather than collapsing into one.
@@ -38,10 +46,12 @@ export function parseRoster(text: string, previous: Roster = []): Roster {
   }
 
   let nextId = nextIdAfter(previous);
-  return names.map((name) => {
+  return entries.map(({ name, marker }) => {
     const reusable = unclaimed.get(name);
     const id = reusable?.shift() ?? `${ID_PREFIX}${nextId++}`;
-    return { id, name };
+    // The key is left off a bare line rather than set to `undefined`, so an
+    // unmarked Roster is the same value it has always been.
+    return marker ? { id, name, marker } : { id, name };
   });
 }
 
@@ -51,6 +61,10 @@ export function parseRoster(text: string, previous: Roster = []): Roster {
  * Never a reason to refuse a Roster: two Mikes schedule perfectly well, and
  * the engine has ids to tell them apart. It is the printout that can't, which
  * is why this exists only to hand the UI a quiet inline notice.
+ *
+ * The marker is no part of the question. Two Sams, one marked `M` and one
+ * marked `F`, are still two Sams — this notice is about what the printed board
+ * can tell apart, and the board prints no markers.
  *
  * Matching is exact, so "mike" and "Mike" are two different players — whether
  * they are the same person is the organizer's call and not a guess to make on

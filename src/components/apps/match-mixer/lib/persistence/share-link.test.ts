@@ -44,6 +44,7 @@ const config: ResolvedConfig = {
   rounds: 5,
   seed: 12345,
   format: "rotating",
+  mixed: false,
 };
 
 /** The payload of a link, which is all the decoder ever sees. */
@@ -367,4 +368,89 @@ test("a link naming a format its roster cannot play is not a board", () => {
 
   assert.ok(decodeShareLink(payload), "the rotating original is a board");
   assert.equal(decodeShareLink(withField(payload, FORMAT_FIELD, "f")), null);
+});
+
+/**
+ * Mixed doubles (#545). The markers ride in the Roster block, the constraint
+ * rides on the number line, and the failure this is all guarding against is
+ * quiet: a marker dropped on the way through opens an unmixed board that looks
+ * exactly like the mixed one that was shared.
+ */
+
+const MIXED_FIELD = 6;
+
+/** Six M and six F, which three courts of mixed doubles seats exactly. */
+const mixedRoster = parseRoster(
+  [
+    ...Array.from({ length: 6 }, (_, i) => `Man ${i + 1} M`),
+    ...Array.from({ length: 6 }, (_, i) => `Woman ${i + 1} F`),
+  ].join("\n"),
+);
+
+const mixedConfig: ResolvedConfig = {
+  roster: mixedRoster,
+  courts: 3,
+  rounds: 6,
+  seed: 4242,
+  format: "rotating",
+  mixed: true,
+};
+
+test("a shared mixed board opens as a mixed board", () => {
+  const shared = decodeShareLink(encoded(mixedConfig));
+  assert.ok(shared);
+  assert.equal(shared.config.mixed, true);
+  assert.deepEqual(
+    shared.config.roster.map((player) => player.marker),
+    mixedRoster.map((player) => player.marker),
+  );
+  assert.deepEqual(
+    shared.config.roster.map((player) => player.name),
+    mixedRoster.map((player) => player.name),
+  );
+});
+
+test("the markers travel even when the constraint is off", () => {
+  // Marking the lines and asking for a mixed board are two different things,
+  // and a reader who turns the box on should find the list already marked.
+  const shared = decodeShareLink(encoded({ ...mixedConfig, mixed: false }));
+  assert.equal(shared?.config.mixed, false);
+  assert.equal(shared?.config.roster[0].marker, "M");
+});
+
+test("a link for an unmixed board carries no mixed field at all", () => {
+  // The seventh field is appended rather than always emitted, so a link minted
+  // for an ordinary rotation is the link this build minted yesterday.
+  assert.equal(encoded().split("\n")[0].split(".").length, 6);
+  assert.equal(encoded(mixedConfig).split("\n")[0].split(".").length, 7);
+});
+
+test("a mixed code this build does not mint is refused", () => {
+  assert.equal(decodeShareLink(withField(encoded(), MIXED_FIELD, "x")), null);
+  // Absent and empty are both off, which is every link minted before this.
+  assert.equal(decodeShareLink(withField(encoded(), MIXED_FIELD, ""))?.config.mixed, false);
+});
+
+test("mixed doubles under any other format is refused", () => {
+  // A qualifier on rotating. Under fixed partners it describes a board this
+  // build cannot draw, and drawing an unmixed one under it would put a
+  // Schedule on screen that nobody generated.
+  const fixed = encoded({ ...config, format: "fixed" });
+  assert.equal(decodeShareLink(withField(fixed, MIXED_FIELD, "m")), null);
+});
+
+test("a hand-set mixed flag over a roster that cannot be seated is refused", () => {
+  // The checksum is no help here: the markers are inside the names block it
+  // covers, and the flag rides on the number line outside it. Appending that
+  // one character by hand checksums perfectly.
+  assert.equal(decodeShareLink(withField(encoded(), MIXED_FIELD, "m")), null);
+});
+
+test("a mixed link regenerates the board it named", () => {
+  const shared = decodeShareLink(encoded(mixedConfig));
+  assert.ok(shared);
+  assert.deepEqual(
+    generateSchedule(shared.config),
+    generateSchedule(mixedConfig),
+  );
 });
