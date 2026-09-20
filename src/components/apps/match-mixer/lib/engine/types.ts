@@ -10,10 +10,29 @@
  * Schedule out, ScorerResult read off the Schedule that was actually produced.
  */
 
-/** One entry in the Roster. Identity is the `id`; the name is free to change. */
+/**
+ * Which half of a mixed-doubles pair a Player counts toward, read off the end
+ * of their Roster line. Two letters and no third option: this is the one
+ * constraint a rotation cannot launder on its own, and it only means anything
+ * as a partition of the Roster into two sides of a pair.
+ */
+export type Marker = "M" | "F";
+
+/** Both markers, in the order a roster and a message name them. */
+export const MARKERS: readonly Marker[] = ["M", "F"];
+
+/**
+ * One entry in the Roster. Identity is the `id`; the name is free to change.
+ *
+ * The marker is the one thing a Player holds besides a name, and it rides on
+ * the Roster line rather than in a field of its own (`Sam M`). It is optional
+ * because most nights are not mixed doubles and most lines carry nothing; the
+ * constraint that every line carry one is the toggle's, not the type's.
+ */
 export interface Player {
   readonly id: string;
   readonly name: string;
+  readonly marker?: Marker;
 }
 
 export type Roster = readonly Player[];
@@ -119,6 +138,17 @@ export interface Config {
    * what it meant, whether it comes from storage or off a link.
    */
   readonly format?: Format;
+  /**
+   * Whether every team has to come out one `M` and one `F`. Rotating only,
+   * and absent reads as off — so no Config written before this existed draws
+   * a different board than it did, which is what leaves
+   * `GENERATOR_VERSION` alone.
+   *
+   * A hard constraint inside the generator's seating rather than a weight the
+   * search may trade away. A lopsided skill pairing comes out in the wash over
+   * eight rounds; a mixed-doubles night is either mixed or it is not.
+   */
+  readonly mixed?: boolean;
 }
 
 /**
@@ -198,7 +228,13 @@ export interface RotatingScore extends ScoreBase {
    * one repeat, so this counts pairs rather than partnerships.
    */
   readonly pairingsPlayed: number;
-  /** Every pair the Roster contains, `n × (n − 1) / 2`. */
+  /**
+   * Every pair the Roster contains, `n × (n − 1) / 2` — or `M × F` while the
+   * mixed-doubles constraint is on, because a same-marker pair is not a
+   * partnership this board can ever spend. Counting the whole triangle there
+   * would report coverage against a total the night cannot reach, so a fully
+   * covered mixed board would stall a few pairings short of saying so.
+   */
   readonly pairingsPossible: number;
 }
 

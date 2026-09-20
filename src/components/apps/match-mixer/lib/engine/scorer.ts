@@ -1,9 +1,12 @@
 import { pairsOf, resolveFormat } from "./format.ts";
+import { markersOf, resolveMixed } from "./mixed.ts";
+import { MARKERS } from "./types.ts";
 import type {
   Config,
   FixedConfig,
   FixedScore,
   Format,
+  Marker,
   PlayerIndex,
   RotatingConfig,
   RotatingScore,
@@ -133,10 +136,15 @@ export function scoreSchedule(
 ): SinglesScore;
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult;
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult {
+  const format = resolveFormat(config.format);
   return scoreRounds(
     schedule.rounds,
     config.roster.length,
-    resolveFormat(config.format),
+    format,
+    // A half-marked Roster never reaches a drawn Schedule — `mixedObjection`
+    // refuses it at the entry point — so `null` here is a board that was not
+    // asked to be mixed, and it reads as the ordinary rotating one.
+    resolveMixed(format, config.mixed) ? markersOf(config.roster) : null,
   );
 }
 
@@ -148,16 +156,22 @@ export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult 
  *
  * The Format defaults to rotating, which is both the Format every caller
  * predating Formats is in and the one the search still runs for.
+ *
+ * `markers` is the mixed-doubles constraint, and it changes two of the
+ * answers: what the partnership supply is, and what an even share of the Byes
+ * looks like. Absent or `null` is every board that is not mixed.
  */
 export function scoreRounds(
   rounds: readonly Round[],
   n: number,
   format?: "rotating",
+  markers?: readonly Marker[] | null,
 ): RotatingScore;
 export function scoreRounds(
   rounds: readonly Round[],
   n: number,
   format: "fixed",
+  markers?: readonly Marker[] | null,
 ): FixedScore;
 export function scoreRounds(
   rounds: readonly Round[],
@@ -168,18 +182,20 @@ export function scoreRounds(
   rounds: readonly Round[],
   n: number,
   format?: Format,
+  markers?: readonly Marker[] | null,
 ): ScorerResult;
 export function scoreRounds(
   rounds: readonly Round[],
   n: number,
   format: Format = "rotating",
+  markers: readonly Marker[] | null = null,
 ): ScorerResult {
   const tally = tallyRounds(rounds, n);
-  const byes = byeVerdict(tally, n);
+  const byes = byeVerdict(tally, n, markers);
 
   if (format === "fixed") return scoreFixed(tally, n, byes);
   if (format === "singles") return scoreSingles(tally, n, byes);
-  return scoreRotating(tally, n, byes);
+  return scoreRotating(tally, n, byes, markers);
 }
 
 /**
@@ -200,18 +216,51 @@ export function scoreRounds(
 function byeVerdict(
   tally: Tally,
   n: number,
+  markers: readonly Marker[] | null = null,
 ): { byeSpread: number; byesRotateEvenly: boolean } {
-  const { gamesPlayed, byes } = tally;
-  const byeSpread =
-    n === 0 ? 0 : Math.max(...gamesPlayed) - Math.min(...gamesPlayed);
+  const everyone = Array.from({ length: n }, (_, i) => i);
+  if (!markers) return shareOver(tally, everyone);
 
-  // Byes divide among the Roster like anything else: when the total does not
-  // go round exactly, somebody has to take one more than somebody else. That
-  // is arithmetic rather than a flaw, so it still counts as rotating evenly,
-  // and this is the only place allowed to decide that.
-  const totalByes = byes.reduce((sum, count) => sum + count, 0);
+  // A mixed Round seats `2c` of each marker, so the two sides take their Byes
+  // from two separate queues: with ten M and six F on three courts, no F ever
+  // sits and four M do every Round. Measured across the whole Roster that
+  // reads as a broken rotation, and it is not one — it is the only rotation
+  // those counts allow. What the organizer can be let down by is somebody
+  // sitting out more often than the others *of their own side*, so that is
+  // what is asked, once per side.
+  const sides = MARKERS.map((marker) =>
+    shareOver(
+      tally,
+      everyone.filter((player) => markers[player] === marker),
+    ),
+  );
+
+  return {
+    byeSpread: Math.max(...sides.map((side) => side.byeSpread)),
+    byesRotateEvenly: sides.every((side) => side.byesRotateEvenly),
+  };
+}
+
+/**
+ * How evenly one group of Players shared the night, which is the whole of the
+ * Bye verdict for an unmixed board and half of it for a mixed one.
+ *
+ * Byes divide among a group like anything else: when the total does not go
+ * round exactly, somebody has to take one more than somebody else. That is
+ * arithmetic rather than a flaw, so it still counts as rotating evenly, and
+ * this is the only place allowed to decide that.
+ */
+function shareOver(
+  tally: Tally,
+  group: readonly PlayerIndex[],
+): { byeSpread: number; byesRotateEvenly: boolean } {
+  if (group.length === 0) return { byeSpread: 0, byesRotateEvenly: true };
+
+  const played = group.map((player) => tally.gamesPlayed[player]);
+  const byeSpread = Math.max(...played) - Math.min(...played);
+  const totalByes = group.reduce((sum, player) => sum + tally.byes[player], 0);
   const byesRotateEvenly =
-    n === 0 || totalByes % n === 0 ? byeSpread === 0 : byeSpread <= 1;
+    totalByes % group.length === 0 ? byeSpread === 0 : byeSpread <= 1;
 
   return { byeSpread, byesRotateEvenly };
 }
@@ -346,6 +395,7 @@ function scoreRotating(
   tally: Tally,
   n: number,
   { byeSpread, byesRotateEvenly }: ReturnType<typeof byeVerdict>,
+  markers: readonly Marker[] | null = null,
 ): RotatingScore {
   const { partnerMatrix, opponentMatrix } = tally;
 
@@ -386,7 +436,15 @@ function scoreRotating(
     pairingsPlayed,
     // Floored at zero because an empty Roster works out at -0, which prints as
     // "-0" the moment the summary line interpolates it.
-    pairingsPossible: Math.max(0, (n * (n - 1)) / 2),
+    //
+    // A mixed board has `M × F` partnerships and not the whole triangle: a
+    // same-marker pair is one this night can never draw, so counting it in
+    // the total would leave a board that has played every partnership it has
+    // reporting itself short of one it never could.
+    pairingsPossible: markers
+      ? markers.filter((marker) => marker === "M").length *
+        markers.filter((marker) => marker === "F").length
+      : Math.max(0, (n * (n - 1)) / 2),
     byeSpread,
     byesRotateEvenly,
   };

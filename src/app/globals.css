@@ -3986,6 +3986,18 @@ html:has(.bb-app-chrome) {
     border-color: var(--mm-rule);
   }
 
+  /* Mixed doubles hangs off rotating rather than standing beside it: it is a
+     constraint on one way of putting a round together, not a fourth way. So
+     it takes the same plate as an option — same type, same lift when it is on
+     — and is indented until its box sits under the options' own text column.
+     That indent is the whole of the argument: a control set in from the row
+     above reads as qualifying it, and nothing else on this board has to say
+     so in words. */
+  .mm-format.mm-constraint {
+    margin-top: 0.45rem;
+    margin-left: 1.3rem;
+  }
+
   /* Courts and rounds: two dials on the board, not a settings panel. */
   .mm-fields {
     display: grid;

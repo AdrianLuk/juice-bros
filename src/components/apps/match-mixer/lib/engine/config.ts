@@ -1,4 +1,5 @@
 import { resolveFormat, seatsPerCourt } from "./format.ts";
+import { partnershipSupply, resolveMixed } from "./mixed.ts";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
@@ -59,11 +60,21 @@ export function clampCourts(
  * Players, out of the Roster's own `n(n-1)/2`, one per court per Round — so an
  * even Roster on `n / 2` courts comes out at exactly the `n - 1` rounds it
  * takes for everybody to have played everybody.
+ *
+ * `partnerships` overrides how many rotating has, which is what mixed doubles
+ * needs: cross-marker pairs only means the supply is `M x F` rather than the
+ * whole triangle, and a rotation counted against the triangle would promise
+ * partnerships the board can never draw. `partnershipSupply` in `mixed.ts`
+ * works the figure out; absent means the whole triangle, which is every
+ * unmixed board. It is rotating's alone — mixed doubles is a constraint on
+ * that Format and on no other — so it is read below the two Formats that
+ * answer first.
  */
 export function naturalLength(
   n: number,
   courts: number,
   format: Format = "rotating",
+  partnerships?: number,
 ): number {
   const seated = clampCourts(n, courts, format);
   if (format === "fixed") {
@@ -72,7 +83,7 @@ export function naturalLength(
   }
   const pairs = (n * (n - 1)) / 2;
   if (format === "singles") return Math.max(1, Math.floor(pairs / seated));
-  return Math.max(1, Math.floor(pairs / (2 * seated)));
+  return Math.max(1, Math.floor((partnerships ?? pairs) / (2 * seated)));
 }
 
 /**
@@ -92,8 +103,12 @@ export function defaultRounds(
   n: number,
   courts: number,
   format: Format = "rotating",
+  partnerships?: number,
 ): number {
-  return Math.min(naturalLength(n, courts, format), DEFAULT_ROUND_TARGET);
+  return Math.min(
+    naturalLength(n, courts, format, partnerships),
+    DEFAULT_ROUND_TARGET,
+  );
 }
 
 export function clampRounds(rounds: number): number {
@@ -114,7 +129,7 @@ export function isSupportedRosterSize(n: number): boolean {
  * which is the point, since each of them answers it from a different source.
  */
 export type ResolvedConfig = Config &
-  ResolvedNumbers & { readonly format: Format };
+  ResolvedNumbers & { readonly format: Format; readonly mixed: boolean };
 
 export interface ResolvedNumbers {
   readonly courts: number;
@@ -133,11 +148,14 @@ export function resolveNumbers(
   courts?: number,
   rounds?: number,
   format: Format = "rotating",
+  partnerships?: number,
 ): ResolvedNumbers {
   const settled = clampCourts(n, courts ?? maxCourts(n, format), format);
   return {
     courts: settled,
-    rounds: clampRounds(rounds ?? defaultRounds(n, settled, format)),
+    rounds: clampRounds(
+      rounds ?? defaultRounds(n, settled, format, partnerships),
+    ),
   };
 }
 
@@ -151,14 +169,17 @@ export function resolveNumbers(
  */
 export function clampConfig(config: Config): ResolvedConfig {
   const format = resolveFormat(config.format);
+  const mixed = resolveMixed(format, config.mixed);
   return {
     ...config,
     format,
+    mixed,
     ...resolveNumbers(
       config.roster.length,
       config.courts,
       config.rounds,
       format,
+      partnershipSupply(config.roster, mixed),
     ),
   };
 }

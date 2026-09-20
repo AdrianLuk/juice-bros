@@ -4,6 +4,11 @@ import {
   type ResolvedConfig,
 } from "../engine/config.ts";
 import { FORMATS, formatObjection } from "../engine/format.ts";
+import {
+  mixedObjection,
+  partnershipSupply,
+  rosterLine,
+} from "../engine/mixed.ts";
 import { parseRoster } from "../engine/roster.ts";
 import { DEFAULT_FORMAT, type Format } from "../engine/types.ts";
 import { isFiniteNumber, readChoice } from "./read-config.ts";
@@ -58,15 +63,19 @@ export interface SharedBoard {
 }
 
 /**
- * The payload is one line of numbers followed by the Roster, one name per
- * line. Newline is the separator because it is the one character `parseRoster`
- * will not leave inside a name — the same argument the stale-board key makes.
+ * The payload is one line of numbers followed by the Roster, one line per
+ * Player exactly as it was typed — including the marker mixed doubles reads
+ * off the end of it. Newline is the separator because it is the one character
+ * `parseRoster` will not leave inside a name, and the same parse reads the
+ * block here as reads the roster box, so the two cannot disagree about where
+ * a name ends and a marker begins.
  *
  * A future field is appended to the number line, never inserted, and an absent
  * one reads as its default. That is what keeps a link minted today valid once
  * RR-6 adds Pool Count, and it is how RR-4.1's Format arrived: a sixth field
  * after the checksum, absent in every link already sitting in a group chat,
- * and absent reads as rotating.
+ * and absent reads as rotating. RR-4.3's mixed doubles is the seventh, on the
+ * same terms.
  *
  * The number line carries a checksum over the Roster block, which is the one
  * thing in the payload not implied by the rest of it. It is there because a
@@ -102,6 +111,20 @@ const FORMAT_CODES: Record<Format, string> = {
 };
 
 /**
+ * Mixed doubles, as a seventh field, present only when it is on.
+ *
+ * The constraint needs a field of its own even though the markers travel in
+ * the Roster block, because marking the lines and asking for a mixed board are
+ * two different things: an organizer can paste a marked list, leave the box
+ * unticked and get an ordinary rotation, and a link that carried only the
+ * markers could not tell the reader which of those they were looking at.
+ *
+ * Appended rather than always emitted, so a link minted for an unmixed board
+ * is byte-for-byte the link this build minted yesterday.
+ */
+const MIXED_CODE = "m";
+
+/**
  * The link for a drawn board, or `null` if the Roster is too long to fit one.
  *
  * `base` is the address of the tool itself, normally `window.location.href`.
@@ -125,7 +148,12 @@ export function encodeShareLink(
     return null;
   }
 
-  const names = config.roster.map((player) => player.name).join(LINE);
+  // The line as typed, not the name: a marker parsed off one end of the
+  // journey and dropped at the other would open an unmixed board that looks
+  // exactly like the mixed one that was shared, and the reader would have no
+  // way to tell. Carrying the line also puts the markers under the checksum,
+  // where the rest of the Roster already is.
+  const names = config.roster.map(rosterLine).join(LINE);
   const numbers = [
     GENERATOR_VERSION,
     config.courts,
@@ -133,8 +161,9 @@ export function encodeShareLink(
     config.seed,
     checksum(names),
     FORMAT_CODES[config.format],
-  ].join(FIELD);
-  const payload = [numbers, names].join(LINE);
+  ];
+  if (config.mixed) numbers.push(MIXED_CODE);
+  const payload = [numbers.join(FIELD), names].join(LINE);
 
   url.hash = "";
   url.searchParams.set(SHARE_PARAM, payload);
@@ -190,7 +219,7 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const cut = value.indexOf(LINE);
   const numbers = cut === -1 ? value : value.slice(0, cut);
   const names = cut === -1 ? "" : value.slice(cut + LINE.length);
-  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSum, rawFormat] =
+  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSum, rawFormat, rawMixed] =
     numbers.split(FIELD);
 
   // Required. A payload that cannot say which generator drew it, or with what
@@ -219,7 +248,19 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const format = toFormat(rawFormat);
   if (format === undefined) return null;
 
-  const roster = parseRoster(names);
+  // Same rule one field along, and one extra refusal: mixed doubles is a
+  // qualifier on rotating, so a payload asking for it under any other Format
+  // is describing a board this build cannot draw rather than one it should
+  // quietly draw differently.
+  const mixed = toMixed(rawMixed);
+  if (mixed === undefined) return null;
+  if (mixed && format !== "rotating") return null;
+
+  // The markers are read only when the payload asked for a mixed board, which
+  // is the same rule the roster box follows: a line ending in a last initial
+  // is a name everywhere else, and a link must not be the one place it stops
+  // being one.
+  const roster = parseRoster(names, [], mixed);
   // Anything the engine would refuse is corruption here too, so a link with
   // three names in it opens the empty tool rather than throwing on mount.
   //
@@ -230,24 +271,29 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   // by hand produces a payload that checksums perfectly and describes a board
   // that cannot be drawn.
   if (!isSupportedRosterSize(roster.length)) return null;
+
+  // Brought inside what the Roster supports here rather than left to
+  // `generateSchedule`, for the same reason a restored Config is: these
+  // numbers are read again for the stale key and for the line naming what
+  // the board was drawn from, and both have to be the numbers used.
+  const numbersFor = resolveNumbers(
+    roster.length,
+    courts ?? undefined,
+    rounds ?? undefined,
+    format,
+    partnershipSupply(roster, mixed),
+  );
+
   if (formatObjection(roster, format) !== null) return null;
+  // Mixed doubles has its own arithmetic and the checksum is no help with it
+  // either: the markers are inside the names block it covers, but the flag
+  // rides on the number line. Appending that one character by hand produces a
+  // payload that checksums perfectly and asks for a board that cannot be
+  // seated.
+  if (mixedObjection(roster, numbersFor.courts, mixed) !== null) return null;
 
   return {
-    // Brought inside what the Roster supports here rather than left to
-    // `generateSchedule`, for the same reason a restored Config is: these
-    // numbers are read again for the stale key and for the line naming what
-    // the board was drawn from, and both have to be the numbers used.
-    config: {
-      roster,
-      seed,
-      format,
-      ...resolveNumbers(
-        roster.length,
-        courts ?? undefined,
-        rounds ?? undefined,
-        format,
-      ),
-    },
+    config: { roster, seed, format, mixed, ...numbersFor },
     version,
     current: version === GENERATOR_VERSION,
   };
@@ -271,6 +317,17 @@ function toNumber(field: string | undefined): number | undefined {
 function toFormat(field: string | undefined): Format | undefined {
   if (field === undefined || field.trim() === "") return DEFAULT_FORMAT;
   return FORMATS.find((format) => FORMAT_CODES[format] === field.trim());
+}
+
+/**
+ * The mixed-doubles field as a flag. Absent or empty is off, which is every
+ * link minted before this existed and every link minted for an ordinary
+ * rotation since. Anything that is not the one code this build mints is
+ * refused, for the reason `toFormat` gives.
+ */
+function toMixed(field: string | undefined): boolean | undefined {
+  if (field === undefined || field.trim() === "") return false;
+  return field.trim() === MIXED_CODE ? true : undefined;
 }
 
 /**

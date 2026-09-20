@@ -15,15 +15,21 @@ Since #482 the surface is **the board**: a magnetic planning board of the kind b
 **Roster**:
 The ordered list of people playing, entered as one name per line. Each entry carries a stable identity of its own, so a name can be corrected or a person removed without disturbing who played where. Order is entry order and means nothing — it is not a seeding or a ranking.
 
-One Format contradicts that last sentence on purpose. In **fixed partners** the list is read two lines at a time and consecutive lines are a Pairing, so order is how the organizer says who is with whom. It is the only way they can say it: a marker on the line is RR-4.3's mechanism, and drawing the pairs by Seed would make the one thing that Format exists for unsayable. Order still carries no seeding and no ranking in any Format — what it carries in fixed partners is partnership, and nothing else. In **singles** it is back to meaning nothing: a Roster of `n` circles as `n` units and entry order is entry order.
+One Format contradicts that last sentence on purpose. In **fixed partners** the list is read two lines at a time and consecutive lines are a Pairing, so order is how the organizer says who is with whom. Order still carries no seeding and no ranking in any Format — what it carries in fixed partners is partnership, and nothing else. In **singles** it is back to meaning nothing: a Roster of `n` circles as `n` units and entry order is entry order.
+
+A line may also end in a **Marker**, a single trailing `M` or `F` that **mixed doubles** reads. It rides on the roster line and never in a field of its own, which is what keeps the parse honest — there is no range to guess at and no question of whether a name ends in one — and what lets it travel: the Share Link carries lines rather than names, so a marked board opens marked. A line that is only a Marker is a name, because there is nothing before it to attach one to.
+
+**A Marker is read only while mixed doubles is on**, and this is load-bearing rather than an optimisation. A club that tells two Sarahs apart by last initial types exactly what a Marker looks like, so reading one off every line unconditionally would delete the initial — and only for those two letters, leaving `Mike T` intact beside a `Sarah M` that had silently become a second `Sarah`, with the duplicate notice firing on names the organizer had already told apart. So ticking the box re-reads the roster box, and unticking it reads the same lines back as names. Everything that parses a Roster answers the same question first: the box, the Share Link, and nothing else — a saved Roster stores its Markers structurally and is not re-parsed at all.
 _Avoid_: Lineup, list, Queue (On Deck's word, and a very different idea)
 
 **Player**:
-One entry in the Roster: a name, and nothing else. Match Mixer holds no skill level, no history and no account for a Player, who exists only for the length of one Config. Two Players may share a name — they stay distinct, and the tool points it out rather than refusing the paste.
-_Avoid_: Participant, attendee. The word means different things in Booking Buddy and On Deck — see `CONTEXT-MAP.md`.
+One entry in the Roster: a name, and optionally a **Marker** — a trailing `M` or `F` on the line, which **mixed doubles** reads and nothing else does. Two Players may share a name, and a shared name with two different Markers is still a shared name: they stay distinct to the engine, and the duplicate notice still points them out, because the board prints no Markers and cannot tell them apart.
+
+This entry used to read "a name, and nothing else". The sentence was amended in RR-4.3 (#545) rather than quietly widened, because what it was guarding is still the rule and the Marker is the one exception to it: Match Mixer holds no skill level, no history, no rating, no contact detail and no account for a Player, who exists only for the length of one Config. The Marker earned its place by being the one attribute a rotation cannot launder — a lopsided skill pairing comes out in the wash over eight Rounds, and a mixed-doubles night is either mixed or it is not. Nothing else about a person may follow it in on that argument without the same one.
+_Avoid_: Participant, attendee. The word means different things in Booking Buddy and On Deck — see `CONTEXT-MAP.md`. **Gender** is not the word for the Marker: what the tool reads is two letters on a line, and what it promises is one of each to a side.
 
 **Config**:
-Everything the organizer has chosen: the Roster, the Format, the court count, the Round count and the Seed. It is the only thing edited and the only thing remembered between visits. A Schedule is never edited — the Config is edited, and the Schedule follows.
+Everything the organizer has chosen: the Roster, the Format, whether it is **mixed doubles**, the court count, the Round count and the Seed. It is the only thing edited and the only thing remembered between visits. A Schedule is never edited — the Config is edited, and the Schedule follows.
 _Avoid_: Settings, options, form state
 
 **Format**:
@@ -33,10 +39,24 @@ The Format is also the only thing that decides how many seats a court has: four 
 
 A Format is a generator and not a cost term ([ADR 0003](docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md)). Rotating searches for a seating that avoids partner repeats; the other two have none to avoid and are the same circle method over different units — `n / 2` Pairings in fixed partners, `n` Players in singles — so there is nothing to search in either, and they share one construction (`lib/engine/circle.ts`). A Config in any Format but rotating never reaches `findTable`.
 
-The Scorer takes the Format too, because what counts as a failure is the Format's own question: partner repeats in rotating, rematches between Pairings in fixed, rematches between Players in singles. Not every Format will be a generator — RR-4.3's mixed doubles is a hard constraint inside rotating's search, which is a different thing and is argued in the same ADR.
+The Scorer takes the Format too, because what counts as a failure is the Format's own question: partner repeats in rotating, rematches between Pairings in fixed, rematches between Players in singles. Not everything in the Format row is a Format — **mixed doubles** is a hard constraint inside rotating's search, which is a different thing and is argued in the same ADR.
 
 A Roster a Format cannot seat is refused with a message rather than quietly trimmed: an odd list in fixed partners leaves somebody with nobody to partner, and that is not a Bye. Only that Format refuses anything — an odd list in singles is an ordinary night where one name sits each Round.
 _Avoid_: Mode, game type, variant, toggle (three of the four RR-4 features are not Formats — see the ADR). "Doubles" as a Format name: two of the three are doubles.
+
+**Mixed doubles**:
+A constraint on **rotating partners**, not a Format of its own: every Team comes out one `M` and one `F`, read off the **Markers** on the roster lines. A checkbox under the Format row, present only while rotating is selected and dropped when it is not, because no other Format has anything for a Marker to decide.
+
+It is a hard constraint inside the generator's seating rather than a weight the search may trade away ([ADR 0003](docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md)). A Round with two `M` on a side is not a worse mixed board — it is not a mixed board — so it is never constructed: the seating draws from two pools, the Byes come off two queues, and the swap pass will not trade a player for one of the other Marker. A mixed board never comes off a **Table** either, because a Table is a whist construction over bare positions and knows nothing about which of them is an `M`.
+
+Two things it changes that are easy to miss. The partnership supply is `M × F` rather than `n(n − 1) / 2`, which both the consequence line and **Coverage** read, and which shortens the rotation's natural length. And an even share of the Byes is asked once per Marker rather than across the whole Roster: ten `M` and six `F` on three courts sits four `M` down every Round and no `F` ever, which is not a broken rotation but the only one those counts allow.
+
+Two refusals, both with arithmetic in them. A Roster only half marked produces Teams that may or may not be mixed, so it is refused and the message says how many lines are short. A Roster whose counts cannot put `2c` of each on `c` courts is refused too, and the message names the shortfall and both ways out — fewer courts, or more of the short side.
+
+The court count follows the Markers as a **default and never as a ceiling**. How many courts there are is a fact about the evening rather than a number to optimize: they are booked, and clamping the field to what the Markers allow would quietly take one away and call it a fix. So the dial opens on what a mixed night can fill — otherwise ticking the box on a drawable Roster would grey the button out before anybody had chosen anything — and still accepts the three courts the organizer actually has, answering with the arithmetic for why this list cannot fill them.
+
+The board prints no Markers. On a mixed board every side is one of each by construction, so a letter after all twenty-four names would repeat a fact the guarantee already carries; what says the night was mixed is the board's own particulars, which is also the only thing on the printed sheet that can.
+_Avoid_: Mixed (on its own — the word has to carry "doubles" or it sounds like a Format), gender balance, co-ed, M/F split
 
 **Seed**:
 The number that makes generation reproducible. The same Config with the same Seed always yields the same Schedule, so a Schedule never has to be stored — it can be rebuilt from what produced it. "Regenerate" means nothing more than writing a new Seed.
@@ -105,7 +125,7 @@ _Avoid_: Cost function (fine as the function's name; the Scorer is the concept),
 **Pairing**:
 Two Players who have partnered at least once, counted as a pair and not as an occasion: a Pairing that happened twice is one Pairing and one repeat. In **fixed partners** a Pairing is not something a Schedule accumulates but something the Roster declares — two consecutive lines — and it is the unit that takes a Bye and that meets other Pairings. **Singles** has no Pairings whatsoever.
 
-**Coverage** is how much of the supply a Schedule has used, reported in the summary line as "18 of 66 possible pairings". What is in supply follows the Format: partnerships in rotating, matchups between Pairings in fixed partners, and matchups between Players in singles — `n(n − 1) / 2` of them, one spent per court per Round rather than two. It answers whether another Round is worth playing, which is the one question the Schedule grid cannot be read for.
+**Coverage** is how much of the supply a Schedule has used, reported in the summary line as "18 of 66 possible pairings". What is in supply follows the Format: partnerships in rotating, matchups between Pairings in fixed partners, and matchups between Players in singles — `n(n − 1) / 2` of them, one spent per court per Round rather than two. Under **mixed doubles** rotating's total is `M × F` instead of the whole triangle, because a same-Marker pair is not a partnership that night can ever draw and counting it would leave a fully covered board reporting itself short of one it never could reach. It answers whether another Round is worth playing, which is the one question the Schedule grid cannot be read for.
 _Avoid_: Partner Matrix (removed 2026-09-09, see below), heatmap, pairing chart. Not a synonym for Team, which is a Pairing in one particular Game.
 
 **Repeat mark**:
