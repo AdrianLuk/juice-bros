@@ -1,5 +1,12 @@
 import { FORMATS } from "../engine/format.ts";
-import { DEFAULT_FORMAT, type Format, type Roster } from "../engine/types.ts";
+import {
+  DEFAULT_FORMAT,
+  MARKERS,
+  type Format,
+  type Marker,
+  type Player,
+  type Roster,
+} from "../engine/types.ts";
 
 /**
  * Field-level validators for a Config read from somewhere the organizer could
@@ -17,16 +24,48 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-/** A Roster: an array of players, each with a string `id` and `name`. */
+/**
+ * A Roster: an array of players, each with a string `id` and `name`, and
+ * optionally the marker mixed doubles reads off their line.
+ *
+ * The marker is carried through rather than dropped. A save written by a
+ * build before it existed simply has none, which reads as an unmarked line and
+ * is exactly what it was — but a marker dropped on the way back *in* would put
+ * a roster on screen that no longer says what was typed, and the toggle over
+ * it would start refusing a list the organizer had already marked.
+ */
 export function readRoster(value: unknown): Roster | null {
   if (!Array.isArray(value)) return null;
-  const roster: { id: string; name: string }[] = [];
+  const roster: Player[] = [];
   for (const entry of value) {
     if (!isRecord(entry)) return null;
     if (typeof entry.id !== "string" || typeof entry.name !== "string") return null;
-    roster.push({ id: entry.id, name: entry.name });
+    const marker = readMarker(entry.marker);
+    if (marker === undefined) return null;
+    roster.push(marker ? { id: entry.id, name: entry.name, marker } : { id: entry.id, name: entry.name });
   }
   return roster;
+}
+
+/**
+ * A marker, where absent is a bare line and `undefined` is a refusal. Present
+ * but not `M` or `F` is a value this build cannot seat, which gets the same
+ * answer as an unknown Format: refuse the whole read rather than quietly drop
+ * it and draw a board nobody asked for.
+ */
+function readMarker(value: unknown): Marker | null | undefined {
+  if (value == null) return null;
+  return MARKERS.find((marker) => marker === value);
+}
+
+/**
+ * A flag that may be absent, where absent is `false`. Present but not a
+ * boolean is corruption, and comes back as `undefined` so the caller can
+ * refuse the whole read.
+ */
+export function readFlag(value: unknown): boolean | undefined {
+  if (value == null) return false;
+  return typeof value === "boolean" ? value : undefined;
 }
 
 /** A court count, a Round count or a Seed: always a finite number. */

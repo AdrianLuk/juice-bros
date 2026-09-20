@@ -19,6 +19,14 @@ export interface ConfigShape {
   readonly courts: number;
   readonly rounds: number;
   readonly format: Format;
+  /** Whether every team has to come out one `M` and one `F`. */
+  readonly mixed?: boolean;
+  /**
+   * How many partnerships this board has to spend, when it is not the whole
+   * `n(n − 1) / 2` triangle. `partnershipSupply` in `mixed.ts` works it out;
+   * absent is every board that is not mixed.
+   */
+  readonly partnerships?: number;
 }
 
 function plural(count: number, noun: string): string {
@@ -35,14 +43,22 @@ function plural(count: number, noun: string): string {
  * paper is the one place where nothing else on the page can say which is
  * which — so naming only the unusual one would leave the common one mute
  * exactly where being mute costs something.
+ *
+ * Mixed doubles follows it, for the same reason and more sharply. The board
+ * prints no markers — on a mixed board every side is one of each by
+ * construction, so a letter after all twenty-four names would repeat a fact
+ * the guarantee already carries — which leaves this line the only thing on
+ * the paper that says the night was mixed at all.
  */
 export function describeNumbers({
   players,
   courts,
   rounds,
   format,
+  mixed,
 }: ConfigShape): string {
-  return `${formatName(format)} · ${plural(players, "player")} on ${plural(courts, "court")}, ${plural(rounds, "round")}`;
+  const drawn = mixed ? `${formatName(format)}, mixed doubles` : formatName(format);
+  return `${drawn} · ${plural(players, "player")} on ${plural(courts, "court")}, ${plural(rounds, "round")}`;
 }
 
 /**
@@ -69,10 +85,10 @@ const SUPPLY: Record<Format, (natural: number, spent: boolean) => string> = {
 };
 
 export function describeConfig(shape: ConfigShape): string {
-  const { players, courts, rounds, format } = shape;
+  const { players, courts, rounds, format, partnerships } = shape;
   // Two seats to a court in singles, four in both doubles Formats.
   const sitting = Math.max(0, players - courts * seatsPerCourt(format));
-  const natural = naturalLength(players, courts, format);
+  const natural = naturalLength(players, courts, format, partnerships);
 
   // A Bye belongs to a Pairing in fixed partners — both members of a sitting
   // team sit — so the count that means anything to the organizer is pairs, not
@@ -105,6 +121,12 @@ export function describeConfig(shape: ConfigShape): string {
   // spends meetings between pairs because its partnerships are all spent in
   // round one on purpose, and singles spends meetings between people because
   // it has no partnerships at all.
+  //
+  // How many rotating has differs too, which is why `natural` above takes the
+  // supply rather than working it out. Cross-marker pairs only means a mixed
+  // night has `M × F` of them rather than the whole triangle, so the round the
+  // repeats start at comes sooner — and this line would go on promising there
+  // were enough to go round long past the point there were not.
   const supply = SUPPLY[format](natural, rounds > natural);
 
   return [describeNumbers(shape), seating, supply].join(". ").concat(".");

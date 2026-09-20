@@ -376,3 +376,175 @@ test("the search path draws the board it drew before", () => {
     { games: [[[3, 8], [10, 5]], [[2, 7], [1, 6]], [[11, 12], [4, 0]]], byes: [9] },
   ]);
 });
+
+/**
+ * Mixed doubles (#545). A hard constraint inside rotating's seating rather
+ * than a Format of its own, so what these check is that the constraint holds
+ * in every Game of every Round — never that it usually does.
+ */
+
+/** A marked Roster: `m` lines ending in M, then `f` ending in F. */
+function mixedConfig(
+  m: number,
+  f: number,
+  overrides: Partial<RotatingConfig> = {},
+): RotatingConfig {
+  const roster = parseRoster(
+    [
+      ...Array.from({ length: m }, (_, i) => `Man ${i + 1} M`),
+      ...Array.from({ length: f }, (_, i) => `Woman ${i + 1} F`),
+    ].join("\n"),
+    [],
+    true,
+  );
+  return {
+    roster,
+    courts: maxCourts(m + f),
+    seed: 1,
+    mixed: true,
+    ...overrides,
+  };
+}
+
+/** Which marker each Roster position carries, for reading a board back. */
+function markersIn(config: RotatingConfig): string[] {
+  return config.roster.map((player) => player.marker ?? "-");
+}
+
+test("every team in every game is one M and one F", () => {
+  for (const [m, f, courts, seed] of [
+    [6, 6, 3, 1],
+    [8, 4, 2, 2],
+    [5, 7, 2, 3],
+    [10, 6, 3, 4],
+  ] as const) {
+    const config = mixedConfig(m, f, { courts, rounds: 8, seed });
+    const marker = markersIn(config);
+
+    for (const round of generateSchedule(config).rounds) {
+      for (const game of round.games) {
+        for (const side of game.sides) {
+          // Spread rather than indexed, because a Side holds one Player or two
+          // since RR-4.2. That makes this assert both halves of the promise at
+          // once: a mixed side is two Players, and one of each marker.
+          assert.deepEqual(
+            [...side].map((player) => marker[player]).sort(),
+            ["F", "M"],
+            `n=${m}+${f} courts=${courts} seed=${seed}`,
+          );
+        }
+      }
+    }
+  }
+});
+
+test("a mixed board seats 2c of each marker and sits the rest down", () => {
+  const config = mixedConfig(10, 6, { courts: 3, rounds: 6 });
+  const marker = markersIn(config);
+
+  for (const round of generateSchedule(config).rounds) {
+    const seated = round.games.flatMap((game) => [
+      ...game.sides[0],
+      ...game.sides[1],
+    ]);
+    assert.equal(seated.filter((p) => marker[p] === "M").length, 6);
+    assert.equal(seated.filter((p) => marker[p] === "F").length, 6);
+    // Nobody is in two places at once, and everybody is somewhere.
+    assert.equal(new Set([...seated, ...round.byes]).size, config.roster.length);
+  }
+});
+
+test("byes rotate evenly on a mixed board whose counts allow the courts", () => {
+  // Uneven sides on purpose: ten M and six F on three courts sits four M and
+  // nothing else down every Round, so the two sides take their Byes off
+  // separate queues and the verdict has to be asked once per side.
+  const config = mixedConfig(10, 6, { courts: 3, rounds: 10 });
+  const score = scoreSchedule(generateSchedule(config), config);
+  assert.equal(score.byesRotateEvenly, true);
+});
+
+test("coverage on a mixed board counts out of M x F", () => {
+  const config = mixedConfig(6, 6, { courts: 3, rounds: 8 });
+  const score = scoreSchedule(generateSchedule(config), config);
+  assert.equal(score.pairingsPossible, 36);
+  // The same Roster drawn without the constraint has the whole triangle.
+  const plain = scoreSchedule(
+    generateSchedule({ ...config, mixed: false }),
+    { ...config, mixed: false },
+  );
+  assert.equal(plain.pairingsPossible, 66);
+});
+
+test("a fully covered mixed board says every possible pairing has played", () => {
+  // Four M and four F on two courts spends four partnerships a Round, so the
+  // sixteen cross-marker pairs are gone in four Rounds and there is nothing
+  // left to reach.
+  const config = mixedConfig(4, 4, { courts: 2, rounds: 4 });
+  const score = scoreSchedule(generateSchedule(config), config);
+  assert.equal(score.pairingsPossible, 16);
+  assert.equal(score.pairingsPlayed, 16);
+  assert.equal(score.repeatedPartnerPairs, 0);
+});
+
+test("a half-marked roster refuses rather than drawing a board that may be mixed", () => {
+  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja", [], true);
+  assert.throws(
+    () => generateSchedule({ roster, courts: 1, seed: 1, mixed: true }),
+    UnsupportedConfigError,
+  );
+  // The same list draws perfectly well with the constraint off.
+  assert.ok(generateSchedule({ roster, courts: 1, seed: 1 }));
+});
+
+test("counts that cannot fill the chosen courts refuse", () => {
+  assert.throws(
+    () => generateSchedule(mixedConfig(10, 4, { courts: 3, rounds: 4 })),
+    UnsupportedConfigError,
+  );
+  // Two courts is the way out the message names, and it draws.
+  assert.ok(generateSchedule(mixedConfig(10, 4, { courts: 2, rounds: 4 })));
+});
+
+test("a mixed board never comes off a Table, whatever the roster size", () => {
+  // Eight players on two courts is the Table path for an unmixed board, and a
+  // Table is a construction over bare positions that knows nothing about
+  // markers.
+  const config = mixedConfig(4, 4, { courts: 2, rounds: 4 });
+  assert.equal(generateSchedule(config).source, "generated");
+  assert.equal(
+    generateSchedule({ ...config, mixed: false }).source,
+    "table",
+  );
+});
+
+test("the constraint is dropped in any format that cannot carry it", () => {
+  const roster = parseRoster("Sam M\nAnna F\nBen M\nJorja F", [], true);
+  // Fixed partners takes its pairs off the list two lines at a time, so a
+  // marker has nothing left to decide — and an unmarked line there must not
+  // start refusing because a stale flag came along for the ride.
+  const drawn = generateSchedule({
+    roster: parseRoster("Sam M\nAnna F\nBen\nJorja", [], true),
+    courts: 1,
+    seed: 1,
+    format: "fixed",
+    mixed: true,
+  });
+  assert.equal(drawn.rounds.length > 0, true);
+  assert.ok(generateSchedule({ roster, courts: 1, seed: 1, format: "fixed" }));
+});
+
+test("the same config and seed draw the same mixed board twice", () => {
+  const config = mixedConfig(7, 5, { courts: 2, rounds: 6, seed: 99 });
+  assert.deepEqual(
+    asPlain(generateSchedule(config)),
+    asPlain(generateSchedule(config)),
+  );
+});
+
+test("the default round count follows the smaller mixed supply", () => {
+  // Six and six on three courts has 36 cross-marker partnerships and spends
+  // six a Round, so the rotation runs six Rounds rather than the eleven the
+  // whole triangle would suggest.
+  assert.equal(defaultRounds(12, 3, "rotating", 36), 6);
+  assert.equal(defaultRounds(12, 3, "rotating"), 8);
+});
