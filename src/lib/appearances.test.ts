@@ -165,11 +165,49 @@ test("buildAppearanceEvent maps a range to startDate + endDate with a Place loca
   });
 });
 
-test("buildAppearanceEvent omits endDate for a single-day event and url when absent", () => {
+test("buildAppearanceEvent omits endDate for a single-day event and url/offers when absent", () => {
   const event = buildAppearanceEvent(make({ date: "2026-09-26", url: undefined }));
   assert.equal(event.startDate, "2026-09-26");
   assert.ok(!("endDate" in event));
   assert.ok(!("url" in event));
+  assert.ok(!("offers" in event));
+});
+
+test("buildAppearanceEvent fills description, image, and performer from the appearance", () => {
+  const event = buildAppearanceEvent(
+    make({ name: "Test Open", location: "Somewhere, ON", players: "both", image: undefined }),
+  );
+  assert.equal(event.description, "Adrian and Daven at Test Open, Somewhere, ON.");
+  assert.match(event.image, /\/brand\/JB_Logo_whitebg\.jpeg$/);
+  assert.deepEqual(event.performer, [
+    { "@type": "Person", name: "Adrian" },
+    { "@type": "Person", name: "Daven" },
+  ]);
+});
+
+test("buildAppearanceEvent uses a set image over the logo fallback", () => {
+  const event = buildAppearanceEvent(make({ image: "/appearances/test.png" }));
+  assert.match(event.image, /\/appearances\/test\.png$/);
+});
+
+test("buildAppearanceEvent builds a solo performer list from a single-host entry", () => {
+  const event = buildAppearanceEvent(make({ players: "daven" }));
+  assert.deepEqual(event.performer, [{ "@type": "Person", name: "Daven" }]);
+});
+
+test("buildAppearanceEvent adds offers/url when a registration url is set, and organizer only when given", () => {
+  const withOrganizer = buildAppearanceEvent(
+    make({ url: "https://example.com/register", organizer: "APA" }),
+  );
+  assert.deepEqual(withOrganizer.offers, {
+    "@type": "Offer",
+    url: "https://example.com/register",
+    availability: "https://schema.org/InStock",
+  });
+  assert.deepEqual(withOrganizer.organizer, { "@type": "Organization", name: "APA" });
+
+  const withoutOrganizer = buildAppearanceEvent(make({ url: "https://example.com/register" }));
+  assert.ok(!("organizer" in withoutOrganizer));
 });
 
 test("confirmedUpcomingEvents keeps only confirmed upcoming entries, soonest-first", () => {
