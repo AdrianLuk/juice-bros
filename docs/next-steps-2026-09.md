@@ -147,7 +147,7 @@ order they already held relative to each other.
 | 8 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked since 2026-09-07, but now sits above the Schedule shape RR-6 settles rather than underneath it |
 | 9 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
 | 10 |  | BB-4 Copy for group chat | Small, high-use |
-| 11 |  | RR-4 Constraint toggles (#391) | Fixed partners, singles, skill balance, mixed doubles. Filed and open, `needs-triage`. Genuinely orthogonal to RR-6 — each pool runs whichever Format is picked — so the order between the two is free, and it stays behind because a club night that needs two pools is more common than one that needs fixed partners |
+| 11 | ✅ | **RR-4 Constraint toggles (#391)** | Shipped 2026-09-19 to 2026-09-20 (#391; tickets #543, #544, #545). Three of the four features specced, and skill balance cut rather than deferred — a lopsided skill pairing comes out in the wash over eight rounds, which is the argument mixed doubles cannot make and is why that one got a hard constraint instead. Three of the four also turned out not to be Formats at all (ADR 0003): the row holds rotating, fixed partners and singles, and mixed doubles is a checkbox under rotating. Still orthogonal to RR-6 — each pool runs whichever Format is picked |
 | 12 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
 | 13 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
 | 14 |  | **OD-A Point somebody at it** | **Was row 6; moved to the bottom of the table in the seventh pass, 2026-09-18, because nobody is using On Deck right now.** The reasoning that made this the cheapest possible next On Deck step is untouched (see OD-A below) — #512's shipping rule was *"the release is the day we start pointing people at On Deck, not a deploy,"* the product is live, the funnel is instrumented, and the counters read zero. It is simply not the priority at the moment. Still first among the four remaining On Deck rows whenever that changes |
@@ -1167,28 +1167,47 @@ sitting open across it.
    `GENERATOR_VERSION`). Any table change is therefore a visible event, not a silent one.
    RR-4 and RR-6 both change what a Config generates, so both owe this a bump.
 
-### RR-4 · Constraint toggles (#391, open)
+### RR-4 · Constraint toggles (#391, shipped 2026-09-20)
 
-**Size:** M. **Blocked by:** RR-1. Independent of RR-2 and RR-3.
+**Size:** M. **Blocked by:** RR-1. Independent of RR-2 and RR-3. Shipped as #543
+(fixed partners and the Format row), #544 (singles) and #545 (mixed doubles).
+`match-mixer/CONTEXT.md` is the authority on what these are now, not this section.
 
 **Claim.** Four toggles that each unlock a common format without turning the tool into a
 mode picker: fixed partners, singles, skill balance, mixed doubles.
 
+**What shipped instead: three, and not as four of a kind.** Skill balance was cut rather
+than deferred. A lopsided skill pairing is transient — over eight rounds everybody
+partners everybody, so it comes out in the wash — and that is exactly the argument mixed
+doubles cannot make, since no amount of rotating turns two `M`s on one side into one of
+each. So mixed doubles became a *hard constraint* inside rotating's seating and skill
+balance got no cost term at all. Reopening it needs a new argument, not this section.
+
+The "four toggles" framing also did not survive. Three of the four are not Formats
+(ADR 0003): the row holds rotating, fixed partners and singles, and mixed doubles is a
+checkbox that appears under rotating alone.
+
 **Already decided.**
 - Fixed partners and singles are separate generators (circle method), not cost terms.
-- Skill balance and mixed doubles are cost-function terms on the rotating generator.
-- No king of the court, no brackets.
+  ✅ Both are, and they share one circle construction (`lib/engine/circle.ts`).
+- ~~Skill balance and mixed doubles are cost-function terms on the rotating generator.~~
+  Wrong on both counts: skill balance is gone, and mixed doubles is a hard constraint.
+- No king of the court, no brackets. ✅ Still out of scope.
 
-**Open questions.**
+**Open questions**, as answered by the build.
 1. How are toggles presented?
    ➡️ One "format" row above the textarea: rotating partners (default), fixed partners,
-   singles. Skill balance and mixed doubles are checkboxes that appear only for rotating.
+   singles, with mixed doubles a checkbox indented under rotating and cleared when the
+   row moves off it.
 2. Skill input?
-   ➡️ An optional number after the name on the same line ("Sam 4.0"). Parsed, never a
-   separate form. Balance means minimizing the team rating gap within a game.
+   ➡️ Moot — skill balance is cut. The line-annotation mechanism it wanted got built for
+   the marker anyway, so a future skill term would inherit a working parse.
 3. Mixed doubles input?
-   ➡️ An optional M/F marker on the line ("Sam M"). Hard constraint (each team is one of
-   each) with a clear message when the counts don't allow it.
+   ➡️ An optional M/F marker on the line ("Sam M"), read **only while the box is
+   ticked** — reading it unconditionally deletes the last initial from a roster that uses
+   one to tell two Sarahs apart, and only for those two letters. Hard constraint, with
+   two refusals that carry the arithmetic: how many lines are short of a marker, and what
+   the counts cannot fill.
 
 ### RR-5 · Live score sync (v2, gated)
 
@@ -1229,9 +1248,11 @@ the final shape. The cost of the swap is that courtside mode waits; the thing th
 that affordable is that RR-2 is gated on nothing but attention, and no organizer is
 waiting on it because nobody has used the tool on a Saturday yet.
 
-Against RR-4 the order is genuinely free — each pool runs whichever Format is selected —
-so RR-4 stays where it was, behind this, on the plainer argument that a club night
-splitting into a 4.0 and a 3.0 group is more common than one wanting fixed partners.
+Against RR-4 the order was genuinely free — each pool runs whichever Format is selected —
+and it resolved itself: RR-4 shipped first, on 2026-09-19 to 2026-09-20, so this now
+builds on a Format row that already exists. What that costs here is that pools have three
+Formats to run per pool rather than one, plus the mixed-doubles constraint; what it buys
+is that none of them is a question this milestone has to answer.
 
 **Claim.** A club night is often several simultaneous mini round robins sharing one set of
 courts (a 4.0 group and a 3.0 group, or just too many people for one shared rotation) —
