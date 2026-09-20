@@ -28,6 +28,12 @@ export type Appearance = {
   /** Cover art under `public/appearances/`, e.g. "/appearances/foo.png". Falls
    *  back to the Juice Bros logo when absent. */
   image?: string;
+  /** Who runs the tournament, for the Event schema's `organizer` field. Best
+   *  guess from the tournament's own name where it names a running body (e.g.
+   *  "APA" from "APA - The Admiral Cup") - left off rather than invented when
+   *  the name is just sponsors, so structured data never claims more than we
+   *  actually know. */
+  organizer?: string;
   status: AppearanceStatus;
   players: AppearancePlayers;
   /** Brackets entered, if known. Fine to leave off tentative entries. */
@@ -68,6 +74,7 @@ export const appearances: Appearance[] = [
     location: "The Backyard Club, Vaughan, ON",
     url: "https://pickleballtournaments.com/tournaments/apa-the-admiral-cup-powered-by-dink-monsters-1",
     image: "/appearances/apa-admiral-cup-2026.png",
+    organizer: "APA",
     status: "confirmed",
     players: "both",
     divisions: [
@@ -82,6 +89,7 @@ export const appearances: Appearance[] = [
     name: "Backyard Club Team Tournament",
     date: "2026-09-26",
     location: "The Backyard Club, Vaughan, ON",
+    organizer: "The Backyard Club",
     status: "tentative",
     players: "both",
   },
@@ -92,6 +100,7 @@ export const appearances: Appearance[] = [
     location: "Vaughan Pickleball, Vaughan, ON",
     url: "https://pickleballtournaments.com/tournaments/vaughan-pickleball-fall-open",
     image: "/appearances/vaughan-fall-open-2026.png",
+    organizer: "Vaughan Pickleball",
     status: "tentative",
     players: "adrian",
   },
@@ -100,6 +109,7 @@ export const appearances: Appearance[] = [
     startDate: "2026-11-26",
     endDate: "2026-11-29",
     location: "Pickleplex Downsview, Toronto, ON",
+    organizer: "PPA Tour",
     status: "tentative",
     players: "both",
   },

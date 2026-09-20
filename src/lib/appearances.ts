@@ -1,4 +1,5 @@
 import type { Appearance, AppearanceDivision } from "../../content/appearances.ts";
+import { siteConfig } from "../config/site.ts";
 
 export type {
   Appearance,
@@ -108,15 +109,36 @@ export function describePlayers(players: Appearance["players"]): string {
   return players === "adrian" ? "Adrian" : "Daven";
 }
 
+/** `Person` nodes for whoever's playing, for the Event schema's `performer`
+ *  field - Adrian and/or Daven, drawn from the same players data the row's
+ *  "who's playing" line uses. */
+function buildPerformers(players: Appearance["players"]) {
+  const names = Array.isArray(players)
+    ? players
+    : players === "both"
+      ? ["Adrian", "Daven"]
+      : [players === "adrian" ? "Adrian" : "Daven"];
+
+  return names.map((name) => ({ "@type": "Person" as const, name }));
+}
+
 /** A schema.org `Event` node for one appearance: `startDate` always, `endDate`
- *  only for a real multi-day range, `location` as a `Place`, `url` when set. */
+ *  only for a real multi-day range, `location` as a `Place`, `url` when set.
+ *  `image` falls back to the site logo, `performer` is whoever's playing, and
+ *  `organizer`/`offers` (a link to register, not a price we don't know) only
+ *  appear when the content has real data for them - never invented. */
 export function buildAppearanceEvent(appearance: Appearance) {
   const startDate = appearanceStartDate(appearance);
   const endDate = appearanceEndDate(appearance);
+  const image = appearance.image
+    ? `${siteConfig.url}${appearance.image}`
+    : `${siteConfig.url}/brand/JB_Logo_whitebg.jpeg`;
 
   return {
     "@type": "Event" as const,
     name: appearance.name,
+    description: `${describePlayers(appearance.players)} at ${appearance.name}, ${appearance.location}.`,
+    image,
     startDate,
     ...(endDate !== startDate ? { endDate } : {}),
     eventStatus: "https://schema.org/EventScheduled",
@@ -126,7 +148,20 @@ export function buildAppearanceEvent(appearance: Appearance) {
       name: appearance.location,
       address: appearance.location,
     },
-    ...(appearance.url ? { url: appearance.url } : {}),
+    performer: buildPerformers(appearance.players),
+    ...(appearance.organizer
+      ? { organizer: { "@type": "Organization" as const, name: appearance.organizer } }
+      : {}),
+    ...(appearance.url
+      ? {
+          url: appearance.url,
+          offers: {
+            "@type": "Offer" as const,
+            url: appearance.url,
+            availability: "https://schema.org/InStock",
+          },
+        }
+      : {}),
   };
 }
 
