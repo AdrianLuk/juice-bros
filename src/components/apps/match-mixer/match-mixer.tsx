@@ -101,6 +101,58 @@ const EXAMPLE_ROSTER = EXAMPLE_NAMES.join("\n");
 const SAVE_DEBOUNCE_MS = 400;
 
 /**
+ * What pressing the button will get you, per Format. It follows the Format row
+ * rather than the board, because it is a promise about what the button will do:
+ * left fixed it would go on promising nobody partners the same person twice
+ * while a fixed-partner board sat under it, which is the one thing that Format
+ * is for.
+ *
+ * A table rather than a cascade now there are three of them, for the same
+ * reason the consequence line's supply clause became one.
+ */
+const LEDE: Record<Format, string> = {
+  rotating:
+    "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice.",
+  fixed:
+    "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair.",
+  // "Rotation" rather than "ladder": a pickleball ladder is a standings board
+  // people climb, which is a different thing that this tool does not do.
+  singles:
+    "Paste the names you have tonight and get a singles rotation where nobody plays the same person twice.",
+};
+
+/**
+ * Mixed doubles has its own, because it is the one selection that changes what
+ * the box below wants: the lines have to carry a marker, and finding that out
+ * from a refusal after pasting is finding it out too late. It sits beside the
+ * table rather than in it because it is not a Format — there is no
+ * `Record<Format, …>` slot for a qualifier on one of them.
+ */
+const MIXED_LEDE =
+  "Mark each name M or F and get a doubles rotation where every pair is one of each, and nobody partners the same person twice.";
+
+/**
+ * Past this many courts a sheet of portrait paper runs out of width, so the
+ * board turns the page sideways rather than breaking names mid-word to fit.
+ *
+ * Measured rather than guessed, on Letter with the sheet's own 14mm margins
+ * (711px of printable width) and a roster of real pickleball names: six
+ * singles courts need 711px and land exactly on it, seven need 814, eight need
+ * 867. So the threshold is six, not eight — seven courts is already over.
+ *
+ * It catches one doubles board on the way past: thirty-two names on eight
+ * courts needs 730px and has been printing with broken names all along. That
+ * is a fix rather than a side effect, and it is why this reads the court count
+ * instead of the Format — the question is how wide the field is, and a
+ * two-court singles board is no wider than a two-court doubles one.
+ *
+ * Landscape is not a cure at every size. Twelve singles courts need 1186px
+ * against 964px of landscape width, so a board that big still breaks names;
+ * the print stylesheet says why that beats dropping the court.
+ */
+const WIDE_BOARD_COURTS = 6;
+
+/**
  * The zero state's board: a real Schedule, generated the way any other
  * one is, so what it shows is what the tool actually does. Fixed Seed and
  * built once at module scope, because it must not differ between the server's
@@ -555,7 +607,11 @@ export function MatchMixer() {
 
   const size = roster.length;
   const supported = isSupportedRosterSize(size);
-  const courtCeiling = maxCourts(size);
+  // The ceiling follows the Format, because a singles court seats two: the
+  // field's maximum has to move as the row is switched, not only as names are
+  // pasted, or a doubles court count would survive into a Format that could
+  // have offered twice as many.
+  const courtCeiling = maxCourts(size, format);
   // Mixed doubles applies to rotating and nothing else, so a Format that
   // cannot carry it drops it here as well as hiding the box: nothing below
   // this line has to remember the pairing is impossible.
@@ -657,7 +713,17 @@ export function MatchMixer() {
     // The board fills the frame — aluminium surround, enamel face, pen tray
     // along the bottom. There is deliberately no page around it and no
     // max-width: this is an object on a wall, not a document on a background.
-    <div className="mm-sheet">
+    <div
+      className="mm-sheet"
+      // Which way up the paper goes, decided by the board on screen rather
+      // than by the Format: it is a width problem, and a two-court singles
+      // board has the same width as a two-court doubles one. Read off the
+      // drawn board and not the fields, because the fields can already be
+      // describing a wider board than the one that would print.
+      data-wide={
+        (draw?.config.courts ?? 0) > WIDE_BOARD_COURTS ? "true" : undefined
+      }
+    >
       <div className="mm-face mm-fixings">
         {/* The head runs the full width of the board rather than stacking in
             the left column: at desktop that column is 15.5rem, and a header
@@ -698,11 +764,7 @@ export function MatchMixer() {
               person twice while a fixed-partner board sat under it, which is
               the one thing that format is for. */}
           <p className="mm-lede">
-            {format === "fixed"
-              ? "Paste tonight's pairs, two names to a pair, and get a rotation where every pair faces every other pair."
-              : mixing
-                ? "Mark each name M or F and get a doubles rotation where every pair is one of each, and nobody partners the same person twice."
-                : "Paste the names you have tonight and get a doubles rotation where nobody partners the same person twice."}{" "}
+            {mixing ? MIXED_LEDE : LEDE[format]}{" "}
             Your list stays in this browser and waits here for next week. There
             is no account to make and no database behind this: nothing you type
             is kept on a server.

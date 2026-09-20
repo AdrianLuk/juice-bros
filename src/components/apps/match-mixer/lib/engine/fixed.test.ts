@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { circleMeetings } from "./circle.ts";
 import { MAX_ROUNDS, maxCourts, naturalLength } from "./config.ts";
-import { circleMeetings, generateFixedRounds } from "./fixed.ts";
+import { generateFixedRounds } from "./fixed.ts";
 import { formatObjection, pairIndexOf, pairsOf } from "./format.ts";
 import { parseRoster } from "./roster.ts";
 import { BYE_IMBALANCE_WEIGHT, scoreSchedule } from "./scorer.ts";
@@ -48,8 +49,8 @@ function* everyBoard(): Generator<{ n: number; courts: number }> {
 /** Which Pairing each side of each Game belongs to, as `[a, b]` per Game. */
 function meetingsIn(round: Round): [number, number][] {
   return round.games.map((game) => [
-    pairIndexOf(game.teams[0][0]),
-    pairIndexOf(game.teams[1][0]),
+    pairIndexOf(game.sides[0][0]),
+    pairIndexOf(game.sides[1][0]),
   ]);
 }
 
@@ -78,7 +79,7 @@ test("every pair is identical in every round it plays", () => {
 
     for (const [index, round] of schedule.rounds.entries()) {
       for (const game of round.games) {
-        for (const side of game.teams) {
+        for (const side of game.sides) {
           assert.ok(
             pairs.has(`${side[0]}/${side[1]}`),
             `n=${n} courts=${courts} round ${index + 1}: ${side} is not a pair`,
@@ -167,8 +168,8 @@ test("a bye is taken by a whole pairing, and both of its members sit", () => {
       }
       // And the seats and the byes between them still account for everybody.
       const seats = round.games.flatMap((game) => [
-        ...game.teams[0],
-        ...game.teams[1],
+        ...game.sides[0],
+        ...game.sides[1],
       ]);
       assert.deepEqual(
         [...seats, ...round.byes].sort((a, b) => a - b),
@@ -247,7 +248,7 @@ test("a new seed moves the matchups without moving the pairs", () => {
   const pairs = new Set(pairsOf(12).map(([a, b]) => `${a}/${b}`));
   for (const round of two.rounds) {
     for (const game of round.games) {
-      for (const side of game.teams) assert.ok(pairs.has(`${side[0]}/${side[1]}`));
+      for (const side of game.sides) assert.ok(pairs.has(`${side[0]}/${side[1]}`));
     }
   }
 });

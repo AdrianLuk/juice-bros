@@ -65,6 +65,19 @@ export interface GenerationSpec {
   readonly markers?: readonly Marker[] | null;
 }
 
+/**
+ * A Game this generator built, where both sides are always Teams.
+ *
+ * A `Game`'s sides widened in RR-4.2 to hold one Player or two, because
+ * singles exists. Nothing widened here: rotating doubles seats four to a court
+ * and every cost below reads a partner out of a side. Saying so in a type is
+ * what keeps the seat arithmetic — `court * 4`, four names to a Game — honest
+ * rather than an assumption the wider shape now permits it to break.
+ */
+interface DoublesGame extends Game {
+  readonly sides: readonly [Team, Team];
+}
+
 /** How wide the search goes. Trimmed for long Schedules so a paste stays quick. */
 function attemptsFor(roundsToBuild: number): number {
   return Math.max(4, Math.min(24, Math.ceil(400 / Math.max(1, roundsToBuild))));
@@ -95,9 +108,9 @@ function gameCost(tally: Tally, teams: readonly [Team, Team]): number {
   return cost;
 }
 
-function roundCost(tally: Tally, games: readonly Game[]): number {
+function roundCost(tally: Tally, games: readonly DoublesGame[]): number {
   let cost = 0;
-  for (const game of games) cost += gameCost(tally, game.teams);
+  for (const game of games) cost += gameCost(tally, game.sides);
   return cost;
 }
 
@@ -160,9 +173,9 @@ function seatGreedily(
   courts: number,
   tally: Tally,
   random: () => number,
-): Game[] {
+): DoublesGame[] {
   const pool = shuffle([...seated], random);
-  const games: Game[] = [];
+  const games: DoublesGame[] = [];
 
   const take = (index: number): PlayerIndex => pool.splice(index, 1)[0];
 
@@ -201,7 +214,7 @@ function seatGreedily(
     const d = take(bestPair[1]);
     const c = take(bestPair[0]);
 
-    games.push({ court, teams: [[a, b], [c, d]] });
+    games.push({ court, sides: [[a, b], [c, d]] });
   }
 
   return games;
@@ -228,7 +241,7 @@ function seatMixed(
   tally: Tally,
   random: () => number,
   markers: readonly Marker[],
-): Game[] {
+): DoublesGame[] {
   const pools: Record<Marker, PlayerIndex[]> = {
     M: shuffle(
       seated.filter((player) => markers[player] === "M"),
@@ -239,7 +252,7 @@ function seatMixed(
       random,
     ),
   };
-  const games: Game[] = [];
+  const games: DoublesGame[] = [];
 
   for (let court = 0; court < courts; court++) {
     const a = pools.M.splice(0, 1)[0];
@@ -274,7 +287,7 @@ function seatMixed(
     const c = pools.M.splice(bestPair[0], 1)[0];
     const d = pools.F.splice(bestPair[1], 1)[0];
 
-    games.push({ court, teams: [[a, b], [c, d]] });
+    games.push({ court, sides: [[a, b], [c, d]] });
   }
 
   return games;
@@ -286,17 +299,17 @@ function seatMixed(
  * a swap is only ever kept if the Round got cheaper.
  */
 function improveBySwapping(
-  games: readonly Game[],
+  games: readonly DoublesGame[],
   tally: Tally,
   markers: readonly Marker[] | null = null,
-): Game[] {
+): DoublesGame[] {
   const seats: PlayerIndex[] = [];
-  for (const game of games) seats.push(...game.teams[0], ...game.teams[1]);
+  for (const game of games) seats.push(...game.sides[0], ...game.sides[1]);
 
-  const rebuild = (from: readonly PlayerIndex[]): Game[] =>
+  const rebuild = (from: readonly PlayerIndex[]): DoublesGame[] =>
     games.map((_, court) => ({
       court,
-      teams: [
+      sides: [
         [from[court * 4], from[court * 4 + 1]],
         [from[court * 4 + 2], from[court * 4 + 3]],
       ] as [Team, Team],

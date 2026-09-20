@@ -4,6 +4,7 @@ import { formatObjection } from "./format.ts";
 import { generateRounds } from "./generator.ts";
 import { markersOf, mixedObjection } from "./mixed.ts";
 import { seating } from "./random.ts";
+import { generateSinglesRounds } from "./singles.ts";
 import { findTable } from "./tables.ts";
 import {
   MAX_ROSTER_SIZE,
@@ -19,8 +20,8 @@ import {
  * generator a Config goes to.
  *
  * A Format is a generator and not a cost term (ADR 0003), so this routes on it
- * first. Fixed partners goes to its own circle construction and is finished
- * with; everything below applies to rotating doubles alone.
+ * first. Fixed partners and singles each go to their own circle construction
+ * and are finished with; everything below applies to rotating doubles alone.
  *
  * For rotating it is Table lookup first, then the randomized greedy generator
  * for everything else, behind one signature (ADR 0002). Three things send a
@@ -86,9 +87,9 @@ function tablePrefix(
   // Truncation is the normal case, not a compromise: any leading run of a
   // whist tournament is still balanced (ADR 0002).
   return table.rounds.slice(0, limit).map((games) => ({
-    games: games.map((teams, court) => ({
+    games: games.map((sides, court) => ({
       court,
-      teams: [relabel(teams[0]), relabel(teams[1])] as const,
+      sides: [relabel(sides[0]), relabel(sides[1])] as const,
     })),
     // A Table seats everyone every Round, by construction.
     byes: [],
@@ -122,11 +123,15 @@ export function generateSchedule(config: Config): Schedule {
   if (objection) throw new UnsupportedConfigError(objection);
 
   // Past the objection every line carries a marker, so this is never null.
+  // Answered before the Format branches below because mixed doubles is not a
+  // Format: it is rotating's own search with the markers handed to it, and it
+  // is only ever reached when the Format already is rotating.
   const markers = mixed ? markersOf(config.roster) : null;
   if (markers) {
-    // Never a Table either: every stored Table is a whist tournament over
-    // bare positions and knows nothing about which seat holds which marker,
-    // so its Rounds would seat two `M` on a side as readily as one of each.
+    // Never a Table either, and for a reason of its own: every stored Table is
+    // a whist tournament over bare positions and knows nothing about which
+    // seat holds which marker, so its Rounds would seat two `M` on a side as
+    // readily as one of each.
     return {
       source: "generated",
       rounds: generateRounds({
@@ -139,11 +144,18 @@ export function generateSchedule(config: Config): Schedule {
     };
   }
 
+  // Never a Table, whatever the Roster size: see the note above.
   if (format === "fixed") {
-    // Never a Table, whatever the Roster size: see the note above.
     return {
       source: "generated",
       rounds: generateFixedRounds({ n, courts, rounds, seed: config.seed }),
+    };
+  }
+
+  if (format === "singles") {
+    return {
+      source: "generated",
+      rounds: generateSinglesRounds({ n, courts, rounds, seed: config.seed }),
     };
   }
 

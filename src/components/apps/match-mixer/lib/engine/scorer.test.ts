@@ -33,7 +33,7 @@ function config(n: number, courts = Math.floor(n / 4)): RotatingConfig {
 /** Each argument is one Game: two Teams facing each other. */
 function round(...games: [Team, Team][]): Round {
   return {
-    games: games.map((teams, court) => ({ court, teams })),
+    games: games.map((sides, court) => ({ court, sides })),
     byes: [],
   };
 }
@@ -102,8 +102,8 @@ test("an uneven bye spread costs the bye weight per game of difference", () => {
   const built: Schedule = {
     source: "generated",
     rounds: [
-      { games: [{ court: 0, teams: [[0, 1], [6, 7]] }], byes: [2, 3, 4, 5] },
-      { games: [{ court: 0, teams: [[2, 3], [6, 7]] }], byes: [0, 1, 4, 5] },
+      { games: [{ court: 0, sides: [[0, 1], [6, 7]] }], byes: [2, 3, 4, 5] },
+      { games: [{ court: 0, sides: [[2, 3], [6, 7]] }], byes: [0, 1, 4, 5] },
     ],
   };
   const score = scoreSchedule(built, config(8, 1));
@@ -153,8 +153,8 @@ test("byes that go round exactly have to land dead level to count as even", () =
   const level: Schedule = {
     source: "generated",
     rounds: [
-      { games: [{ court: 0, teams: [[0, 1], [2, 3]] }], byes: [4, 5, 6, 7] },
-      { games: [{ court: 0, teams: [[4, 5], [6, 7]] }], byes: [0, 1, 2, 3] },
+      { games: [{ court: 0, sides: [[0, 1], [2, 3]] }], byes: [4, 5, 6, 7] },
+      { games: [{ court: 0, sides: [[4, 5], [6, 7]] }], byes: [0, 1, 2, 3] },
     ],
   };
   const levelScore = scoreSchedule(level, config(8, 1));
@@ -164,8 +164,8 @@ test("byes that go round exactly have to land dead level to count as even", () =
   const lopsided: Schedule = {
     source: "generated",
     rounds: [
-      { games: [{ court: 0, teams: [[0, 1], [2, 3]] }], byes: [4, 5, 6, 7] },
-      { games: [{ court: 0, teams: [[0, 2], [1, 3]] }], byes: [4, 5, 6, 7] },
+      { games: [{ court: 0, sides: [[0, 1], [2, 3]] }], byes: [4, 5, 6, 7] },
+      { games: [{ court: 0, sides: [[0, 2], [1, 3]] }], byes: [4, 5, 6, 7] },
     ],
   };
   const lopsidedScore = scoreSchedule(lopsided, config(8, 1));
@@ -180,9 +180,9 @@ test("a bye count that cannot divide the roster still rotates evenly", () => {
   const built: Schedule = {
     source: "generated",
     rounds: [
-      { games: [{ court: 0, teams: [[0, 1], [2, 3]] }], byes: [4] },
-      { games: [{ court: 0, teams: [[0, 2], [1, 4]] }], byes: [3] },
-      { games: [{ court: 0, teams: [[0, 4], [1, 3]] }], byes: [2] },
+      { games: [{ court: 0, sides: [[0, 1], [2, 3]] }], byes: [4] },
+      { games: [{ court: 0, sides: [[0, 2], [1, 4]] }], byes: [3] },
+      { games: [{ court: 0, sides: [[0, 4], [1, 3]] }], byes: [2] },
     ],
   };
   const score = scoreSchedule(built, config(5, 1));
@@ -264,7 +264,7 @@ test("the partnership supply is M x F, not the whole triangle", () => {
   const board = [
     {
       games: [
-        { court: 0, teams: [[0, 4], [1, 5]] as [Team, Team] },
+        { court: 0, sides: [[0, 4], [1, 5]] as [Team, Team] },
       ],
       byes: [2, 3],
     },
@@ -279,8 +279,8 @@ test("the bye verdict is asked once per side, because the queues are separate", 
   // reads as a broken rotation; it is in fact the only rotation these counts
   // allow, and within each side the turns come round exactly.
   const rounds: Round[] = [
-    { games: [{ court: 0, teams: [[0, 4], [1, 5]] }], byes: [2, 3] },
-    { games: [{ court: 0, teams: [[2, 5], [3, 4]] }], byes: [0, 1] },
+    { games: [{ court: 0, sides: [[0, 4], [1, 5]] }], byes: [2, 3] },
+    { games: [{ court: 0, sides: [[2, 5], [3, 4]] }], byes: [0, 1] },
   ];
 
   const mixed = scoreRounds(rounds, 6, "rotating", SIX);
@@ -297,8 +297,8 @@ test("a side that does sit unevenly is still reported", () => {
   // Player 0 plays both rounds and player 3 plays neither, so two M are a
   // whole two games apart and the constraint is no excuse for it.
   const rounds: Round[] = [
-    { games: [{ court: 0, teams: [[0, 4], [1, 5]] }], byes: [2, 3] },
-    { games: [{ court: 0, teams: [[0, 5], [2, 4]] }], byes: [1, 3] },
+    { games: [{ court: 0, sides: [[0, 4], [1, 5]] }], byes: [2, 3] },
+    { games: [{ court: 0, sides: [[0, 5], [2, 4]] }], byes: [1, 3] },
   ];
   const mixed = scoreRounds(rounds, 6, "rotating", SIX);
   assert.equal(mixed.byeSpread, 2);
@@ -309,7 +309,7 @@ test("scoreSchedule reads the markers off the config it is handed", () => {
   const roster = parseRoster("A M\nB M\nC F\nD F", [], true);
   const schedule: Schedule = {
     source: "generated",
-    rounds: [{ games: [{ court: 0, teams: [[0, 2], [1, 3]] }], byes: [] }],
+    rounds: [{ games: [{ court: 0, sides: [[0, 2], [1, 3]] }], byes: [] }],
   };
   const on = scoreSchedule(schedule, { roster, courts: 1, seed: 1, mixed: true });
   assert.equal(on.pairingsPossible, 4);

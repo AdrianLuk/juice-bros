@@ -32,7 +32,7 @@ function configFor(
 function seatedIn(schedule: Schedule): number[][] {
   return schedule.rounds.map((round) =>
     round.games
-      .flatMap((game) => [...game.teams[0], ...game.teams[1]])
+      .flatMap((game) => [...game.sides[0], ...game.sides[1]])
       .sort((a, b) => a - b),
   );
 }
@@ -44,7 +44,7 @@ function seatedIn(schedule: Schedule): number[][] {
  */
 function asPlain(schedule: Schedule) {
   return schedule.rounds.map((round) => ({
-    games: round.games.map((game) => [[...game.teams[0]], [...game.teams[1]]]),
+    games: round.games.map((game) => [[...game.sides[0]], [...game.sides[1]]]),
     byes: [...round.byes],
   }));
 }
@@ -64,7 +64,7 @@ function assertWellFormed(schedule: Schedule, n: number, courts: number): void {
       `${where} court numbering`,
     );
 
-    const seats = round.games.flatMap((game) => [...game.teams[0], ...game.teams[1]]);
+    const seats = round.games.flatMap((game) => [...game.sides[0], ...game.sides[1]]);
     const everyone = [...seats, ...round.byes].sort((a, b) => a - b);
     assert.deepEqual(
       everyone,
@@ -423,9 +423,12 @@ test("every team in every game is one M and one F", () => {
 
     for (const round of generateSchedule(config).rounds) {
       for (const game of round.games) {
-        for (const team of game.teams) {
+        for (const side of game.sides) {
+          // Spread rather than indexed, because a Side holds one Player or two
+          // since RR-4.2. That makes this assert both halves of the promise at
+          // once: a mixed side is two Players, and one of each marker.
           assert.deepEqual(
-            [marker[team[0]], marker[team[1]]].sort(),
+            [...side].map((player) => marker[player]).sort(),
             ["F", "M"],
             `n=${m}+${f} courts=${courts} seed=${seed}`,
           );
@@ -441,8 +444,8 @@ test("a mixed board seats 2c of each marker and sits the rest down", () => {
 
   for (const round of generateSchedule(config).rounds) {
     const seated = round.games.flatMap((game) => [
-      ...game.teams[0],
-      ...game.teams[1],
+      ...game.sides[0],
+      ...game.sides[1],
     ]);
     assert.equal(seated.filter((p) => marker[p] === "M").length, 6);
     assert.equal(seated.filter((p) => marker[p] === "F").length, 6);

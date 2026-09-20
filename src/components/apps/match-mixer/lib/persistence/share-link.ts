@@ -107,6 +107,7 @@ const FIELD = ".";
 const FORMAT_CODES: Record<Format, string> = {
   rotating: "r",
   fixed: "f",
+  singles: "s",
 };
 
 /**

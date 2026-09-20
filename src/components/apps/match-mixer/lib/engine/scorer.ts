@@ -13,6 +13,8 @@ import type {
   Round,
   Schedule,
   ScorerResult,
+  SinglesConfig,
+  SinglesScore,
   Tally,
 } from "./types.ts";
 
@@ -27,7 +29,9 @@ import type {
  * second, opponent repeats third. In fixed partners every partner repeat is
  * deliberate and counting them would report a Schedule that is exactly right
  * as a catastrophe, so the question becomes whether every Pairing has faced
- * every other and whether the team Byes come round evenly.
+ * every other and whether the team Byes come round evenly. In singles there
+ * are no partners at all, so the whole verdict is what the opponent matrix
+ * says: has anybody played the same person twice, and do the Byes rotate.
  *
  * That is why the Format reaches the Scorer at all rather than being handled
  * by the grid: a board in a Format the Scorer did not know about could only be
@@ -52,11 +56,11 @@ export const OPPONENT_REPEAT_WEIGHT = 5;
 export const FREE_OPPONENT_MEETINGS = 2;
 
 /**
- * Fixed partners only: two Pairings meeting again before every Pairing has
- * met. It is this Format's equivalent of a partner repeat — the one thing the
- * construction can get wrong — so it is priced the same, and a fixed-partner
- * board that costs zero means the same thing a rotating one that costs zero
- * means.
+ * The circling Formats: two units meeting again before every unit has met —
+ * two Pairings in fixed partners, two Players in singles. It is their
+ * equivalent of a partner repeat, the one thing the construction can get
+ * wrong, so it is priced the same, and a board in either Format that costs
+ * zero means the same thing a rotating one that costs zero means.
  */
 export const REMATCH_WEIGHT = 100;
 
@@ -78,6 +82,10 @@ export function emptyTally(n: number): Tally {
  * counts who played with and against whom, so the generator guessing its next
  * move and the Scorer judging the finished Schedule cannot come to different
  * arithmetic.
+ *
+ * A side of one contributes nothing to the partner matrix, which is why a
+ * singles board leaves it entirely at zero. That is a fact and not an omission:
+ * there is nobody on the far side of a singles player to have partnered.
  */
 export function recordRound(tally: Tally, round: Round): void {
   const bump = (grid: number[][], a: PlayerIndex, b: PlayerIndex) => {
@@ -86,13 +94,14 @@ export function recordRound(tally: Tally, round: Round): void {
   };
 
   for (const game of round.games) {
-    const [teamA, teamB] = game.teams;
-    bump(tally.partnerMatrix, teamA[0], teamA[1]);
-    bump(tally.partnerMatrix, teamB[0], teamB[1]);
-    for (const x of teamA) {
-      for (const y of teamB) bump(tally.opponentMatrix, x, y);
+    const [sideA, sideB] = game.sides;
+    for (const side of game.sides) {
+      if (side.length === 2) bump(tally.partnerMatrix, side[0], side[1]);
     }
-    for (const p of [...teamA, ...teamB]) tally.gamesPlayed[p] += 1;
+    for (const x of sideA) {
+      for (const y of sideB) bump(tally.opponentMatrix, x, y);
+    }
+    for (const p of [...sideA, ...sideB]) tally.gamesPlayed[p] += 1;
   }
   for (const p of round.byes) tally.byes[p] += 1;
 }
@@ -121,6 +130,10 @@ export function scoreSchedule(
   schedule: Schedule,
   config: FixedConfig,
 ): FixedScore;
+export function scoreSchedule(
+  schedule: Schedule,
+  config: SinglesConfig,
+): SinglesScore;
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult;
 export function scoreSchedule(schedule: Schedule, config: Config): ScorerResult {
   const format = resolveFormat(config.format);
@@ -163,6 +176,11 @@ export function scoreRounds(
 export function scoreRounds(
   rounds: readonly Round[],
   n: number,
+  format: "singles",
+): SinglesScore;
+export function scoreRounds(
+  rounds: readonly Round[],
+  n: number,
   format?: Format,
   markers?: readonly Marker[] | null,
 ): ScorerResult;
@@ -175,9 +193,9 @@ export function scoreRounds(
   const tally = tallyRounds(rounds, n);
   const byes = byeVerdict(tally, n, markers);
 
-  return format === "fixed"
-    ? scoreFixed(tally, n, byes)
-    : scoreRotating(tally, n, byes, markers);
+  if (format === "fixed") return scoreFixed(tally, n, byes);
+  if (format === "singles") return scoreSingles(tally, n, byes);
+  return scoreRotating(tally, n, byes, markers);
 }
 
 /**
@@ -187,11 +205,13 @@ export function scoreRounds(
  * Measured off games played rather than Byes counted, so a Schedule that seats
  * someone twice in one Round can't hide behind a tidy Bye list.
  *
- * It needs no fixed-partner variant. A Bye there belongs to a Pairing and both
- * members of a sitting team sit, so every Player's count is their team's count
- * and the spread over Players is already the spread over Pairings. The
- * divisibility below comes out the same way: twice the team Byes over twice
- * the teams is the same remainder as the team Byes over the teams.
+ * It needs no variant in either of the other Formats. A Bye in fixed partners
+ * belongs to a Pairing and both members of a sitting team sit, so every
+ * Player's count is their team's count and the spread over Players is already
+ * the spread over Pairings; the divisibility below comes out the same way,
+ * since twice the team Byes over twice the teams is the same remainder as the
+ * team Byes over the teams. In singles the unit that sits *is* a Player, so
+ * there was never anything to convert.
  */
 function byeVerdict(
   tally: Tally,
@@ -276,15 +296,90 @@ function scoreFixed(
     }
   }
 
+  const meetings = readMeetings(meetingMatrix, t);
+
+  return {
+    format: "fixed",
+    cost: meetings.cost + byeSpread * BYE_IMBALANCE_WEIGHT,
+    ...tally,
+    teams,
+    meetingMatrix,
+    ...meetings.counts,
+    meetingsPossible: Math.max(0, (t * (t - 1)) / 2),
+    byeSpread,
+    byesRotateEvenly,
+  };
+}
+
+/**
+ * Singles: has anybody played the same person twice, and did the Byes come
+ * round evenly. That is the whole of it, because there is nothing else on a
+ * singles board to get wrong.
+ *
+ * The meetings are read straight off the opponent matrix rather than out of a
+ * matrix of its own, which is the one place singles is simpler than fixed
+ * partners: there a meeting is between Pairings and the opponent matrix counts
+ * one of them four times, so it has to be collapsed. Here the unit that meets
+ * is the Player, so `opponentMatrix[i][j]` is already the count.
+ *
+ * The partner counts are left alone, and they are all zero. Nothing here reads
+ * them and nothing should: a reader that took `maxPartnerCount` off a singles
+ * board would get a truthful 0 and draw a conclusion from it about partnering
+ * that a singles night does not have an opinion on, which is exactly why the
+ * Scorer returns a union rather than one shape with the unused fields left in.
+ */
+function scoreSingles(
+  tally: Tally,
+  n: number,
+  { byeSpread, byesRotateEvenly }: ReturnType<typeof byeVerdict>,
+): SinglesScore {
+  const meetings = readMeetings(tally.opponentMatrix, n);
+
+  return {
+    format: "singles",
+    cost: meetings.cost + byeSpread * BYE_IMBALANCE_WEIGHT,
+    ...tally,
+    ...meetings.counts,
+    // Floored at zero for the same reason rotating's supply is: an empty
+    // Roster works out at -0, which prints as "-0" in the summary line.
+    meetingsPossible: Math.max(0, (n * (n - 1)) / 2),
+    byeSpread,
+    byesRotateEvenly,
+  };
+}
+
+/**
+ * What a symmetric matrix of meeting counts says: how many distinct meetings
+ * happened, how many happened more than once, the worst of them, and what the
+ * repeats cost.
+ *
+ * Shared by the two Formats that circle, which count the same noun over
+ * different units — Pairings in fixed partners, Players in singles. Sharing it
+ * is what keeps a rematch priced identically in both, which is the claim that
+ * `cost === 0` means the same thing on every board rests on.
+ */
+function readMeetings(
+  meetings: readonly number[][],
+  units: number,
+): {
+  cost: number;
+  counts: {
+    repeatedMeetings: number;
+    maxMeetingCount: number;
+    meetingsPlayed: number;
+  };
+} {
   let cost = 0;
   let repeatedMeetings = 0;
   let maxMeetingCount = 0;
   let meetingsPlayed = 0;
 
-  for (let i = 0; i < t; i++) {
-    for (let j = i + 1; j < t; j++) {
-      const met = meetingMatrix[i][j];
+  for (let i = 0; i < units; i++) {
+    for (let j = i + 1; j < units; j++) {
+      const met = meetings[i][j];
       maxMeetingCount = Math.max(maxMeetingCount, met);
+      // Counted per pair rather than per meeting, so a rematch adds to the
+      // failure without also inflating how much of the room has met.
       if (met > 0) meetingsPlayed += 1;
       if (met > 1) {
         repeatedMeetings += 1;
@@ -293,21 +388,7 @@ function scoreFixed(
     }
   }
 
-  cost += byeSpread * BYE_IMBALANCE_WEIGHT;
-
-  return {
-    format: "fixed",
-    cost,
-    ...tally,
-    teams,
-    meetingMatrix,
-    repeatedMeetings,
-    maxMeetingCount,
-    meetingsPlayed,
-    meetingsPossible: Math.max(0, (t * (t - 1)) / 2),
-    byeSpread,
-    byesRotateEvenly,
-  };
+  return { cost, counts: { repeatedMeetings, maxMeetingCount, meetingsPlayed } };
 }
 
 function scoreRotating(
