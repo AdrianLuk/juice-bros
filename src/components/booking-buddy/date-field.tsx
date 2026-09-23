@@ -100,7 +100,6 @@ export function DateField({
         >
           <DayPicker
             mode="single"
-            autoFocus
             selected={selected}
             defaultMonth={selected}
             onSelect={(next) => {
