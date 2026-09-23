@@ -4,6 +4,7 @@ import test from "node:test";
 import { defaultRounds, maxCourts, type ResolvedConfig } from "../engine/config.ts";
 import { rosterLine } from "../engine/mixed.ts";
 import { parseRoster } from "../engine/roster.ts";
+import { drawPools, type BoardConfig } from "../engine/pools.ts";
 import { generateSchedule } from "../engine/schedule.ts";
 import { MAX_ROSTER_SIZE } from "../engine/types.ts";
 import {
@@ -53,7 +54,7 @@ function payloadOf(link: string): string {
   return new URL(link).searchParams.get(SHARE_PARAM)!;
 }
 
-function encoded(from: ResolvedConfig = config): string {
+function encoded(from: ResolvedConfig & { pools?: number } = config): string {
   const link = encodeShareLink(from, BASE);
   assert.ok(link, "expected a link");
   return payloadOf(link);
@@ -495,4 +496,91 @@ test("a mixed link regenerates the board it named", () => {
     generateSchedule(shared.config),
     generateSchedule(mixedConfig),
   );
+});
+
+/**
+ * Pools (#552). The count rides on the number line as the eighth field, and
+ * the deal never travels: the reader's browser deals the same Pools again off
+ * the same Seed. A one-Pool link carries no eighth field at all.
+ */
+
+const POOLS_FIELD = 7;
+
+/** Twenty names, which two Pools of ten seat on four courts. */
+const pooledRoster = parseRoster(
+  Array.from({ length: 20 }, (_, i) => `Player ${i + 1}`).join("\n"),
+);
+
+const pooledConfig: BoardConfig = {
+  roster: pooledRoster,
+  courts: 4,
+  rounds: 6,
+  seed: 9001,
+  format: "rotating",
+  mixed: false,
+  pools: 2,
+};
+
+test("a pooled board opens as the same pools, dealt the same way", () => {
+  const shared = decodeShareLink(encoded(pooledConfig));
+  assert.ok(shared);
+  assert.equal(shared.config.pools, 2);
+  assert.deepEqual(drawPools(shared.config), drawPools(pooledConfig));
+});
+
+test("a one-pool link carries no pool field, and reads as one pool", () => {
+  assert.equal(encoded({ ...pooledConfig, roster: roster, pools: 1, courts: 2 }).split("\n")[0].split(".").length, 6);
+  assert.equal(decodeShareLink(encoded())?.config.pools, 1);
+});
+
+test("a pooled link on an unmixed board leaves the mixed field empty to reach it", () => {
+  const fields = encoded(pooledConfig).split("\n")[0].split(".");
+  assert.equal(fields.length, 8);
+  assert.equal(fields[MIXED_FIELD], "");
+  assert.equal(fields[POOLS_FIELD], "2");
+});
+
+test("a pooled mixed board carries both fields", () => {
+  const roster = parseRoster(
+    Array.from({ length: 16 }, (_, i) => `Player ${i + 1} ${i % 2 ? "F" : "M"}`).join("\n"),
+    [],
+    true,
+  );
+  const shared = decodeShareLink(
+    encoded({ ...mixedConfig, roster, courts: 4, pools: 2 } as BoardConfig),
+  );
+  assert.ok(shared);
+  assert.equal(shared.config.mixed, true);
+  assert.equal(shared.config.pools, 2);
+});
+
+test("more than 32 names travel at two pools", () => {
+  const forty = parseRoster(
+    Array.from({ length: 40 }, (_, i) => `P${i + 1}`).join("\n"),
+  );
+  const shared = decodeShareLink(
+    encoded({ ...pooledConfig, roster: forty, courts: 10, pools: 2 }),
+  );
+  assert.equal(shared?.config.roster.length, 40);
+  assert.equal(shared?.config.pools, 2);
+  // The same names at one pool are not a board.
+  assert.equal(
+    decodeShareLink(withoutField(encoded({ ...pooledConfig, roster: forty, courts: 10, pools: 2 }), MIXED_FIELD)),
+    null,
+  );
+});
+
+test("a pool count this build does not mint is refused", () => {
+  const payload = encoded(pooledConfig);
+  for (const bad of ["1", "0", "-2", "2x", "two", "99"]) {
+    assert.equal(decodeShareLink(withField(payload, POOLS_FIELD, bad)), null, bad);
+  }
+  // Empty is absence, and absence is one Pool.
+  assert.equal(decodeShareLink(withField(payload, POOLS_FIELD, ""))?.config.pools, 1);
+});
+
+test("a hand-set pool count the courts cannot hold is refused", () => {
+  // Three Pools on two courts: every Pool needs one of its own.
+  const payload = withField(encoded({ ...pooledConfig, courts: 2 }), POOLS_FIELD, "3");
+  assert.equal(decodeShareLink(payload), null);
 });
