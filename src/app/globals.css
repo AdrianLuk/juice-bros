@@ -4017,6 +4017,11 @@ html:has(.bb-app-chrome) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
+  /* The Pools dial on a row of its own, its note running the column's width
+     rather than wrapping in half of it. */
+  .mm-fields-one {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .mm-number {
     width: 100%;
     max-width: 7rem;

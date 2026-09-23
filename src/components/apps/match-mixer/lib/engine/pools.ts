@@ -509,6 +509,22 @@ export function dealPools(
   return dealt.map((members) => members.sort((a, b) => a - b));
 }
 
+/**
+ * One Pool through the engine, with any refusal the engine raises for it
+ * handed back naming the Pool. `boardObjection` already answers for every
+ * refusal a Pool can meet today, so this is a guarantee rather than a path
+ * anything takes: a Format that later grows an objection of its own still
+ * refuses the whole board, and still says which Pool it was about.
+ */
+function drawOne(config: ResolvedConfig, label: string): Schedule {
+  try {
+    return generateSchedule(config);
+  } catch (error) {
+    if (!(error instanceof UnsupportedConfigError)) throw error;
+    throw new UnsupportedConfigError(`${poolName(label)}: ${error.message}`);
+  }
+}
+
 /** The same Schedule, every Game moved along to the court it is really on. */
 function onCourts(schedule: Schedule, first: number): Schedule {
   if (first === 0) return schedule;
@@ -541,7 +557,17 @@ export function drawPools(config: BoardConfig): Pool[] {
   const everyone = roster.map((_, index) => index);
 
   if (resolvePools(roster.length, config.pools) === 1) {
-    const schedule = generateSchedule(config);
+    // The count comes off before the engine sees the Config, so nothing below
+    // this layer is ever handed a field it would have to know to ignore.
+    const plain: ResolvedConfig = {
+      roster,
+      seed,
+      courts: config.courts,
+      rounds: config.rounds,
+      format: config.format,
+      mixed: config.mixed,
+    };
+    const schedule = generateSchedule(plain);
     return [
       {
         label: poolLabel(0),
@@ -550,7 +576,7 @@ export function drawPools(config: BoardConfig): Pool[] {
         firstCourt: 0,
         courts: schedule.rounds[0]?.games.length ?? 0,
         schedule,
-        score: scoreSchedule(schedule, config),
+        score: scoreSchedule(schedule, plain),
       },
     ];
   }
@@ -588,7 +614,7 @@ export function drawPools(config: BoardConfig): Pool[] {
       format,
       mixed,
     };
-    const schedule = onCourts(generateSchedule(own), shape.firstCourt);
+    const schedule = onCourts(drawOne(own, shape.label), shape.firstCourt);
     return {
       label: shape.label,
       members,

@@ -643,11 +643,19 @@ export function ScheduleGrid({
     mark?.focus();
   };
 
-  // Each band's own columns: its courts in the order its Games name them,
+  // Each band's own columns: every court any of its Games is on, in order,
   // which is the real court across the whole night, and an Off column only
-  // if that band ever sits anybody out.
+  // if that band ever sits anybody out. Read off every Round rather than the
+  // first, so a court a circle Format leaves idle in some Round still has its
+  // column.
   const columns = bands.map((band) => ({
-    courts: band.schedule.rounds[0]?.games.map((game) => game.court) ?? [],
+    courts: [
+      ...new Set(
+        band.schedule.rounds.flatMap((round) =>
+          round.games.map((game) => game.court),
+        ),
+      ),
+    ].sort((a, b) => a - b),
     byes: band.schedule.rounds.some((round) => round.byes.length > 0),
   }));
 
@@ -691,7 +699,7 @@ export function ScheduleGrid({
         >
           <caption className="sr-only">
             {banded
-              ? "Every round of the night, with one column per court and the courts grouped into pools."
+              ? "Every round of the night, with one column per court and the courts grouped under the name above them."
               : "Every round of the rotation, with one column per court."}
             {onSelect
               ? " Choose a name to read just that player's evening; choose it again to show everyone."

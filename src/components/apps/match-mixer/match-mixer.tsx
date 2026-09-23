@@ -167,7 +167,7 @@ const MIXED_LEDE =
 const WIDE_BOARD_COURTS = 6;
 
 /** How many columns wide the drawn field is, in the measure above. */
-function fieldWidth(pools: readonly Pool[]): number {
+function fieldColumns(pools: readonly Pool[]): number {
   const courts = pools.reduce((total, pool) => total + pool.courts, 0);
   if (pools.length === 1) return courts;
   const off = pools.filter((pool) =>
@@ -636,9 +636,9 @@ export function MatchMixer() {
         score: pool.score,
       }))
     : [];
-  const spot = draw && selected !== null ? locate(draw.pools, selected) : null;
-  const bandSelected: BandPlayer | null = spot
-    ? { band: spot.pool, player: spot.index }
+  const located = draw && selected !== null ? locate(draw.pools, selected) : null;
+  const bandSelected: BandPlayer | null = located
+    ? { band: located.pool, player: located.index }
     : null;
   const selectInBand = ({ band, player }: BandPlayer) => {
     const member = draw?.pools[band]?.members[player];
@@ -820,7 +820,7 @@ export function MatchMixer() {
       // drawn board and not the fields, because the fields can already be
       // describing a wider board than the one that would print.
       data-wide={
-        draw && fieldWidth(draw.pools) > WIDE_BOARD_COURTS ? "true" : undefined
+        draw && fieldColumns(draw.pools) > WIDE_BOARD_COURTS ? "true" : undefined
       }
     >
       <div className="mm-face mm-fixings">

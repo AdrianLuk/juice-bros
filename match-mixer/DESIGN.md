@@ -540,8 +540,10 @@ hairline runs down the body where one band meets the next.
 - **On paper** the strip loses its fill and becomes the ordinary 2px rail with
   the name in black; the band gutter is restated in the unlayered print block.
 
-A one-Pool board renders none of this and is byte-identical to the board
-before Pools.
+Each band carries its own Off column after its own courts, so on a pooled
+board "Off last" holds per band rather than for the field: who sits out of
+Pool A is read beside Pool A. A one-Pool board renders none of this and is
+byte-identical to the board before Pools.
 
 ### Superseded board (signature state)
 `.mm-draw[data-stale]` — the wipe has started but the board has not been

@@ -2,6 +2,7 @@ import { resolveMixed } from "../engine/mixed.ts";
 import {
   boardObjection,
   isSupportedBoardSize,
+  maxPools,
   resolveBoard,
   type BoardConfig,
 } from "../engine/pools.ts";
@@ -209,11 +210,14 @@ function readEdited(value: unknown): EditedConfig | null {
 function readDrawn(value: unknown): BoardConfig | null {
   if (!isRecord(value)) return null;
   const roster = readRoster(value.roster);
-  const saved = readPools(value.pools);
+  const count = readPools(value.pools);
   // Anything the engine would refuse is treated as corrupt here, so a
   // hand-edited save cannot turn into an UnsupportedConfigError on mount.
-  if (!roster || saved === undefined) return null;
-  if (!isSupportedBoardSize(roster.length, saved)) return null;
+  // A drawn count this Roster cannot make is refused rather than clamped, on
+  // the Share Link's terms: the screen only ever writes the count it drew.
+  if (!roster || count === undefined) return null;
+  if (count > maxPools(roster.length)) return null;
+  if (!isSupportedBoardSize(roster.length, count)) return null;
   const { courts, rounds, seed } = value;
   if (!isFiniteNumber(courts) || !isFiniteNumber(rounds) || !isFiniteNumber(seed)) {
     return null;
@@ -226,7 +230,7 @@ function readDrawn(value: unknown): BoardConfig | null {
   // `generateSchedule`, which clamps its own copy and hands nothing back: the
   // restored numbers are read again for the stale key and for the line naming
   // what the sheet was drawn from, and both have to be the numbers used.
-  const numbers = resolveBoard(roster, courts, rounds, format, mixed, saved);
+  const numbers = resolveBoard(roster, courts, rounds, format, mixed, count);
   // Roster size is not the only thing a draw refuses: an odd list in fixed
   // partners leaves somebody with nobody to partner, a half-marked or
   // lopsided list cannot be seated as mixed doubles, and a Pool short of a
