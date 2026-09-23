@@ -142,7 +142,7 @@ order they already held relative to each other.
 | 3 | ✅ | RR-3 remainder — share URL and find-me | Shipped 2026-09-10. Specced as #490 and ticketed #491 to #495, all closed inside one day. RR-3 is now complete on all four counts: print and roster memory landed early inside RR-1, the share link and find-me landed here. It cleared the gap in front of the night exactly as the slot intended, and nothing was left in flight across Saturday |
 | 4 | ✅ | **Correct the landing page** | Shipped 2026-09-13 (#504, PR #505). The page no longer names the club anywhere in its copy — naming it was the part that implied the relationship — and the two illustrations use a stand-in the way the PPA pro names beside them already do. "Talk to us about your club" stays, because self-serve is row 5 and not yet real. Half a day, blocking nothing, taken first because shipping an adoption release off a page making a claim that stopped being true is worse than the day it costs |
 | 5 | ✅ | **OD-6 The adoption release** (demo night, self-serve Club, first-night kit, landing flip, funnel) | Shipped 2026-09-14 to 2026-09-18 (#512; tickets #514 to #524). Specced out of a grilling session that cut co-owners, dropped the one-release rule in favour of shipping continuously, and narrowed the target user. **#512 is the authority on what this is, not the OD-6 section below.** The front door exists: demo night at `/on-deck/demo`, self-serve Club creation, a first-night kit, a landing page that claims nothing it cannot show, a Session that closes itself, and six funnel counters live before anyone is told |
-| 6 |  | RR-6 Pools (#392) | **First among the unstarted rows as of the seventh pass**, 2026-09-18 — every On Deck row moved to the bottom (nobody is using On Deck right now), which promotes this by default rather than by winning anything. On its own merits it was already the strongest non-OD contender: Match Mixer is the only one of the three apps with a live public surface anyone can use today without an account, it's an M where BB-1 below is an L, and it unblocks RR-2. The original reason for that stays true: pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, each with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock and standings *on top of* a Schedule. Built the other way round, courtside mode gets built twice, or pools land as a second-class thing the lock doesn't understand. Still `needs-triage`: wants `/grill-with-docs` for the pool-assignment UI and validation copy, plus an Impeccable pass on the multi-board layout against `match-mixer/DESIGN.md` |
+| 6 |  | RR-6 Pools (#392) | **First among the unstarted rows as of the seventh pass**, 2026-09-18 — every On Deck row moved to the bottom (nobody is using On Deck right now), which promotes this by default rather than by winning anything. On its own merits it was already the strongest non-OD contender: Match Mixer is the only one of the three apps with a live public surface anyone can use today without an account, it's an M where BB-1 below is an L, and it unblocks RR-2. The original reason for that stays true: pools change what a Schedule *is* — one Schedule per Round becomes one per pool per Round, each with its own Scorer and Bye accounting — and RR-2 builds an event log, a round lock and standings *on top of* a Schedule. Built the other way round, courtside mode gets built twice, or pools land as a second-class thing the lock doesn't understand. **Grilled 2026-09-23** (`match-mixer/docs/adr/` 0004 and 0005): the Roster can declare the pools, a Pool count deals them otherwise, courts are allocated once for the night, and the board is one field with a band per pool. Split into RR-6.1, 6.2 and 6.3. Still wants an Impeccable pass on the banded field's width and where the per-pool summary lines sit |
 | 7 |  | BB-1 Recurring games | The month's other goal and now the nearer one, because it needs no user we do not have. Booking Buddy has people using it; On Deck does not. The one L on the table, unchanged in importance, and no longer waiting on anything at all |
 | 8 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. Unblocked since 2026-09-07, but now sits above the Schedule shape RR-6 settles rather than underneath it |
 | 9 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
@@ -1083,8 +1083,9 @@ this section and the brief.
    falls through to the greedy generator, seeded from the table's prefix counts when one
    exists. This is the fallback rule RR-6 inherits per pool.
 2. **The roster floor is 4 and the ceiling is 32.** Above 32 the greedy search gets slow;
-   below 4 there is no game. RR-6 validates against `players / poolCount` for the same
-   reason.
+   below 4 there is no game. Under RR-6 both limits become per pool (ADR 0004), with
+   `min(32 × pools, 64)` overall, because both reasons for the cap are reasons about one
+   rotation and a rotation is now a pool.
 3. **Do not paste a schedule in from the brief.** Its published n=8 table partners
    correctly but has players 0 and 1 facing each other six times — it scores 20 under the
    Scorer, not 0. Every table is validated by `schedule.test.ts` at full length and at
@@ -1165,7 +1166,10 @@ sitting open across it.
    encoder was built with that in mind rather than retrofitted.
 3. **A link that can no longer reproduce its board says so** (#494, via
    `GENERATOR_VERSION`). Any table change is therefore a visible event, not a silent one.
-   RR-4 and RR-6 both change what a Config generates, so both owe this a bump.
+   This used to say RR-4 and RR-6 both owe it a bump. Neither does: RR-4 shipped with
+   `GENERATOR_VERSION` still at 1, and RR-6 is the same shape, since an absent Pool count
+   is one pool and draws the board it always drew. That only holds if Pool A keeps the
+   raw Seed and a one-pool Config does no deal at all (ADR 0004).
 
 ### RR-4 · Constraint toggles (#391, shipped 2026-09-20)
 
@@ -1259,45 +1263,78 @@ courts (a 4.0 group and a 3.0 group, or just too many people for one shared rota
 not a tournament. No seeding, no standings that feed a playoff; each pool is a complete,
 self-contained round robin that happens to share courts and a printout with the others.
 
-**Already decided.**
-- **Pool Count** joins Courts, Rounds, and Seed as a Config field. `1` (default) is
-  today's behavior — nothing changes for the existing user. `>1` partitions the Roster.
-- **Assignment is random, off the existing Seed** — no new input, no mandatory skill
-  ratings. Consistent with the glossary's rule that Roster order "means nothing." As even
-  a split as the numbers allow (13 players / 3 pools = 5/4/4); "regenerate" reshuffles
-  pools the same way it reshuffles everything else today.
-- **Courts split evenly across pools**, remainder rotating which pool gets the extra
-  court each Round, rather than a per-pool courts field. One fewer input; matches the
-  brief's "no wizard" posture.
-- Each pool gets its own Schedule, Scorer, and Bye accounting — a Bye in Pool A has
-  nothing to do with Pool B's balance. `match-mixer/CONTEXT.md`'s Scorer definition
-  ("this context's definition of fair") now applies per pool, not globally.
-- Bracket, seeding, and standings-across-pools stay out of scope per the note above —
-  this is RR-6 exactly because it's the non-bracket half of "pools into brackets."
+**Grilled 2026-09-23.** The durable record is `match-mixer/docs/adr/0004` (the engine
+shape) and `0005` (who is in which pool), with **Pool** in `match-mixer/CONTEXT.md` under
+"Not built yet". This section is the summary; those are the authority. Four of the
+"already decided" lines this section used to carry did not survive the pass, and they are
+marked below so nobody builds from an old copy of the issue.
 
-**Open questions.**
-1. Round count when pools land on different natural table sizes?
-   ➡️ Rounds stays one global Config field (a time slot across every court, per the
-   existing Round definition) — organizers running pools side by side expect to call
-   "next round" once for everyone. Each pool's own generator fills its slice of that
-   Round from its own table/greedy search, same fallback rule RR-1 shipped (tables keyed
-   on `(n, courts)`, greedy seeded from the table prefix otherwise).
-2. Minimum players per pool?
-   ➡️ 4, same floor as the whole-roster minimum today. Below that a pool is nothing but
-   byes. Validate against `players / poolCount`, not just total players — 15 players
-   into 4 pools quietly produces a pool of 3.
-3. Print/on-screen layout with more than one grid?
-   ➡️ Stacked sections (Pool A's grid, then Pool B's, each with its own summary line) over
-   one interleaved grid — keeps RR-1's grid markup and print stylesheet almost unchanged.
-   **Simplified 2026-09-09 (#477):** this used to have to decide one matrix per pool
-   against one combined, and with the matrix gone there is nothing to duplicate.
-   **Re-aimed 2026-09-12:** the surface is no longer a grid on a sheet, it is The Board
-   (#482 to #489), so the open question is what a second pool *is* on that board — a second
-   framed board, or a divided one — and print follows from the answer rather than setting
-   it. Still wants an Impeccable pass, now against `match-mixer/DESIGN.md` and not the
-   brief.
-4. Naming?
-   ➡️ Pool A/B/C…, not editable in v1. A rename field is a cheap follow-up, not a blocker.
+**Who is in which pool.** *Reversed:* assignment was going to be random off the Seed,
+which cannot produce the 4.0 group and 3.0 group the claim above opens with. Now there are
+two mechanisms. `---` lines in the roster box declare pools, optionally labelled
+(`--- 4.0`); with none, a **Pool count** deals the Roster at random off the Seed and a
+redraw deals again. Headers win when both are present. **Keep this split** writes the
+current deal into the box as bare `---` lines so the organizer can move a name across. A
+blank line is not a divider, because `parseRoster` drops them and chat pastes are full of
+them. The deal deals the Format's own unit: Pairings in fixed partners, `M` and `F` as
+separate queues under mixed doubles, Players otherwise.
+
+**Courts.** *Reversed:* the remainder court was going to rotate between pools each Round.
+Now allocation is fixed for the night: one court each, then each spare to whichever pool
+sits out the most, capped at what it can fill. A court is where people walk, and a
+rotating remainder also made every pool's column count change by Round. Fewer courts than
+pools is refused; more than the pools can fill is not, and the board says which stand
+empty. `Game.court` is rewritten to the real court number, so two pools never both say
+court 1.
+
+**Engine shape.** One layer above `generateSchedule` partitions, allocates, calls it once
+per pool with the pool's own sub-roster, and returns a list of pools. The generator, the
+Tables, the Scorer, the Itinerary and the grid never hear the word, which is what makes
+every Format and mixed doubles work per pool for free and lets a pool of 8 on 2 courts get
+the real n=8 Table. Pool A keeps the raw Seed, other pools derive theirs, and a one-pool
+Config does no deal at all. That is what leaves `GENERATOR_VERSION` at 1.
+
+**Limits and refusals.** 4 to 32 Players per pool, `min(32 × pools, 64)` overall. The
+too-many message stops refusing and starts pointing: *40 names is more than one rotation
+holds. Split into 2 pools or more.* Any pool's refusal refuses the whole board, naming the
+pool, including a `---` on an odd boundary in fixed partners.
+
+**Rounds.** One global count, as before. The default is the shortest pool's natural
+length, capped at eight, which keeps the invariant that the default board never asks for
+forced repeats. The consequence line names the pool that set it.
+
+**Reading it.** Each pool has its own summary line off its own Scorer and there is no
+verdict for the night. Find-me names the pool first in words and holds back the other
+pools' bands. A Selection stays a global Roster index; the Pool count joins the board
+identity.
+
+**Layout.** *Reversed:* stacked sections, one per pool. Fixed courts and a shared Round
+count make the night one table, so it is **one field with a column band per pool**, courts
+in order across it. On a phone, where the grid already shows one Round at a time, Round 3
+shows every court in the building instead of appearing once per pool. Print stays pure
+CSS and goes landscape past `WIDE_BOARD_COURTS`; the cost, named on purpose, is that one
+sheet carries every pool and a group cannot be handed its own page. Still wants the
+Impeccable pass against `match-mixer/DESIGN.md` for how a band reads when half of it is
+scrolled off, and where the per-pool summary lines sit.
+
+**Naming.** *Reversed:* "Pool A/B/C, not editable in v1". The label rides on the `---`
+line, since the organizer is already typing the line it belongs on. Unlabelled pools keep
+their letter.
+
+**Transport.** The Pool count is the eighth number-line field, absent reading as one.
+Headers travel inside the roster block under the checksum. A link never turns a dealt
+board into a declared one.
+
+**Tickets.**
+- **RR-6.1 The split and the board.** Pool count in Config and link, the deal, court
+  allocation, the pool layer, the banded field, per-pool summaries, limits, refusals,
+  landscape print. The link ships here, not later: a pooled board that shares as a
+  one-pool board is worse than no pools.
+- **RR-6.2 The Roster declares the pools.** `---` and labels, Keep this split, the
+  precedence rule, headers round-tripping through a link. After 6.1.
+- **RR-6.3 Reading a pooled board.** The pool in the find-me line, band treatment,
+  Selection identity. After 6.1, independent of 6.2. A banded board already dims
+  correctly by accident; this makes it deliberate.
 
 ---
 
