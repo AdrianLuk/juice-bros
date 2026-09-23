@@ -117,12 +117,9 @@ for (const { label, roster, config } of ONE_POOL_BOARDS) {
   });
 
   test(`an absent pool count is one pool: ${label}`, () => {
-    const drawn = board(roster, config);
-    const { pools: _pools, ...before } = drawn;
-    assert.deepEqual(
-      drawPools({ ...before, pools: undefined as unknown as number })[0].schedule,
-      generateSchedule(before),
-    );
+    // A Config read from somewhere that predates Pools carries no count.
+    const before = { ...board(roster, config), pools: undefined as unknown as number };
+    assert.deepEqual(drawPools(before)[0].schedule, generateSchedule(before));
   });
 
   test(`one pool resolves the numbers resolveNumbers always did: ${label}`, () => {
