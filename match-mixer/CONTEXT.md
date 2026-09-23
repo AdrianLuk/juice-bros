@@ -152,6 +152,27 @@ Selection has a key and a module of its own in the persistence layer (`selection
 
 ### Not built yet
 
+**Pool** (RR-6, #392):
+A part of the Roster playing its own complete round robin, on courts of its own, at the same time as the others. A Pool has its own Players, its own courts, its own Schedule and its own reading from the Scorer, and it has nothing to do with any other Pool beyond sharing a Round count and a board. A Bye in Pool A has no bearing on Pool B's balance. It is not a stage of a tournament: nothing is seeded into a Pool and nothing comes out of one into a playoff.
+
+Who is in which Pool is decided one of two ways ([ADR 0005](docs/adr/0005-the-roster-declares-the-pools.md)). A **Pool header** is a roster line beginning `---`, and everything below it until the next one is that Pool; a header may carry a label (`--- 4.0`) that becomes the Pool's name, and a bare one falls back to its letter. With no headers, the **Pool count** on the Config deals the Roster at random off the Seed, as evenly as the numbers allow, and a redraw deals again. Headers win when both are present: if the organizer drew the lines they are theirs, and if not, the tool draws them. **Keep this split** writes the current deal into the roster box as headers, and is the only thing that ever writes to it.
+
+The deal deals the Format's own unit, the same noun-over-different-units shape the Scorer already has: Players in rotating and singles, Pairings in fixed partners so no pair is torn in two, and `M` and `F` as separate queues under mixed doubles.
+
+A Pool's courts are allocated once for the night and never move ([ADR 0004](docs/adr/0004-pools-partition-above-a-pool-blind-engine.md)). Fewer courts than Pools is refused, because a Pool with no court is not a Pool. More courts than the Pools can fill is not, on mixed doubles' precedent that the court count is a fact about the evening.
+
+When Pools land they change several entries above, and those entries should be amended in place rather than contradicted from here:
+
+- **Roster**: order gains a second deliberate meaning after fixed partners' Pairings, which is where a line sits relative to a header. Still never a seeding or a ranking. A header is read before anything else on its line, so it is never a name and never carries a Marker.
+- **Config**: gains the Pool count.
+- **Court**: still no name and no venue, but its number now counts across the whole night rather than being a column index, so two Pools can never both send somebody to court 1. On the board a column is a court for the whole evening, grouped into one band per Pool.
+- **Round**: the Round count is one number for every Pool. A Round is a time slot and the room calls "next round" once.
+- **Scorer**: its unit is the Pool. Each Pool's summary line is its own, and there is no verdict for the night, because there is no definition of fair across Pools.
+- **Roster size**: the floor of 4 and the ceiling of 32 are per Pool, with `min(32 × pools, 64)` overall.
+- **Share Link**: the Pool count is appended as the eighth field; headers travel in the roster block under the checksum. Neither bumps the Generator Version, because a Config with no Pool count is one Pool and draws the board it always did.
+- **Find-me** and **Selection**: the words name the Pool first, and the other Pools' bands are held back with everything else outside the evening. A Selection stays a global Roster index, and the Pool count joins the board identity.
+_Avoid_: Group (too loose to mean anything), flight, division, heat, bracket (nothing here is elimination), court group
+
 **Mixer**:
 A Schedule plus everything that has since happened to it — Rounds locked, scores entered, people arriving and leaving. A Config and its Schedule describe a plan; a Mixer is a plan being run.
 _Avoid_: Session (On Deck's word for one night at a club), event, tournament
@@ -167,4 +188,4 @@ An `n × n` grid at the foot of the Schedule counting how many times each pair p
 
 Its source is kept dormant at `src/components/apps/match-mixer/partner-matrix.tsx`, with the CSS it needs written up in [docs/retired-partner-matrix.css.md](docs/retired-partner-matrix.css.md). Nothing imports the component, and the CSS is Markdown rather than a stylesheet because as a `.css` file Tailwind compiled it into every page unasked (#480). They are in the tree rather than left to `git` because PR #478 was squash-merged and both branches deleted, which leaves the commits holding them prunable. Keeping them is a hedge against losing the work, not a plan to render it: reviving the surface as-is reopens everything above, so if it comes back it should come back answering "which Rounds", which is the thing it could never do.
 
-See [docs/adr/0001-config-and-schedule-are-not-event-sourced.md](docs/adr/0001-config-and-schedule-are-not-event-sourced.md), [docs/adr/0002-precomputed-tables-are-whist-prefixes.md](docs/adr/0002-precomputed-tables-are-whist-prefixes.md) and [docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md](docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md).
+See [docs/adr/0001-config-and-schedule-are-not-event-sourced.md](docs/adr/0001-config-and-schedule-are-not-event-sourced.md), [docs/adr/0002-precomputed-tables-are-whist-prefixes.md](docs/adr/0002-precomputed-tables-are-whist-prefixes.md), [docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md](docs/adr/0003-a-format-is-a-generator-not-a-cost-term.md), [docs/adr/0004-pools-partition-above-a-pool-blind-engine.md](docs/adr/0004-pools-partition-above-a-pool-blind-engine.md) and [docs/adr/0005-the-roster-declares-the-pools.md](docs/adr/0005-the-roster-declares-the-pools.md).
