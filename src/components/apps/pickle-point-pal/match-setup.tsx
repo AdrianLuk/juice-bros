@@ -63,7 +63,7 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
 
   return (
     <div className="mx-auto w-full max-w-md ref-landscape:max-w-4xl">
-      <h1 className="pp-plate text-2xl text-pp-ink ref-landscape:text-lg">New match</h1>
+      <h2 className="pp-plate text-2xl text-pp-ink ref-landscape:text-lg">New match</h2>
       {/* Cut in the ref layout — the one line here that's explanation rather
           than a control, and height is what's scarce sideways. */}
       <p className="mt-1.5 text-sm text-pp-ink-dim ref-landscape:hidden">
