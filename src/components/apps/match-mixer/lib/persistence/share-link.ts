@@ -1,14 +1,19 @@
 import type { ResolvedConfig } from "../engine/config.ts";
 import { FORMATS } from "../engine/format.ts";
-import { rosterLine } from "../engine/mixed.ts";
 import {
   boardObjection,
+  declaredPools,
   isSupportedBoardSize,
   maxPools,
   resolveBoard,
   type BoardConfig,
 } from "../engine/pools.ts";
-import { parseRoster } from "../engine/roster.ts";
+import {
+  parsePoolHeaders,
+  parseRoster,
+  rosterText,
+  type PoolHeader,
+} from "../engine/roster.ts";
 import { DEFAULT_FORMAT, type Format } from "../engine/types.ts";
 import { isFiniteNumber, readChoice } from "./read-config.ts";
 
@@ -156,7 +161,10 @@ function poolsField(pools: number | undefined): string | null {
  * budget is not tight enough to pay that.
  */
 export function encodeShareLink(
-  config: ResolvedConfig & { readonly pools?: number },
+  config: ResolvedConfig & {
+    readonly pools?: number;
+    readonly headers?: readonly PoolHeader[];
+  },
   base: string,
 ): string | null {
   let url: URL;
@@ -166,12 +174,19 @@ export function encodeShareLink(
     return null;
   }
 
-  // The line as typed, not the name: a marker parsed off one end of the
+  // The lines as typed, not the names: a marker parsed off one end of the
   // journey and dropped at the other would open an unmixed board that looks
   // exactly like the mixed one that was shared, and the reader would have no
-  // way to tell. Carrying the line also puts the markers under the checksum,
+  // way to tell. Carrying the lines also puts the markers under the checksum,
   // where the rest of the Roster already is.
-  const names = config.roster.map(rosterLine).join(LINE);
+  //
+  // A declared split's headers ride in this same block, under the same
+  // checksum (ADR 0005) — they are the Roster's own lines, not a separate
+  // field. A dealt split never does: the count rides on the number line
+  // below and the reader's browser deals the same Pools again off the same
+  // Seed, so a link never materialises a random deal into headers.
+  const headers = config.headers ?? [];
+  const names = rosterText(config.roster, headers);
   const numbers = [
     GENERATOR_VERSION,
     config.courts,
@@ -180,7 +195,11 @@ export function encodeShareLink(
     checksum(names),
     FORMAT_CODES[config.format],
   ];
-  const pools = poolsField(config.pools);
+  // Headers already say how many Pools there are and win over this field on
+  // decode, so a declared board carries no Pool count at all — it would only
+  // be a second, redundant way to say the same thing, and one a hand-edited
+  // link could contradict.
+  const pools = headers.length > 0 ? null : poolsField(config.pools);
   if (config.mixed || pools) numbers.push(config.mixed ? MIXED_CODE : "");
   if (pools) numbers.push(pools);
   const payload = [numbers.join(FIELD), names].join(LINE);
@@ -284,29 +303,45 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   if (mixed === undefined) return null;
   if (mixed && format !== "rotating") return null;
 
-  const pools = toPools(rawPools);
-  if (pools === undefined) return null;
-
   // The markers are read only when the payload asked for a mixed board, which
   // is the same rule the roster box follows: a line ending in a last initial
   // is a name everywhere else, and a link must not be the one place it stops
-  // being one.
+  // being one. Headers are read before either — a header line is never a
+  // Player and never carries a Marker, so the roster block reads the same way
+  // the box does.
+  const headers = parsePoolHeaders(names);
   const roster = parseRoster(names, [], mixed);
-  // Anything the engine would refuse is corruption here too, so a link with
-  // three names in it opens the empty tool rather than throwing on mount.
-  //
-  // Roster size is not the whole of what the engine refuses. A Format has its
-  // own arithmetic — an odd list in fixed partners leaves somebody with nobody
-  // to partner — and the checksum is no help here, because it covers the names
-  // block and the Format rides on the number line. Flipping that one character
-  // by hand produces a payload that checksums perfectly and describes a board
-  // that cannot be drawn.
-  //
-  // The Pool count is on the number line too, so the same goes for it: a count
-  // this Roster cannot make, or a Roster over what the count can hold, is a
-  // hand-edited link rather than a board to clamp into something else.
-  if (pools > maxPools(roster.length)) return null;
-  if (!isSupportedBoardSize(roster.length, pools)) return null;
+
+  // Headers win over the Pool count field, on the same terms as the roster
+  // box (ADR 0005): present, they are the Pools and the field is not
+  // consulted at all — a hand-edited mismatch between the two is caught by
+  // `boardObjection` below like any other corrupt payload, not compared here.
+  let pools: number;
+  if (headers.length > 0) {
+    pools = declaredPools(roster.length, headers)?.length ?? 1;
+  } else {
+    const rawCount = toPools(rawPools);
+    if (rawCount === undefined) return null;
+    // Anything the engine would refuse is corruption here too, so a link with
+    // three names in it opens the empty tool rather than throwing on mount.
+    //
+    // Roster size is not the whole of what the engine refuses. A Format has
+    // its own arithmetic — an odd list in fixed partners leaves somebody with
+    // nobody to partner — and the checksum is no help here, because it covers
+    // the names block and the Format rides on the number line. Flipping that
+    // one character by hand produces a payload that checksums perfectly and
+    // describes a board that cannot be drawn.
+    //
+    // The Pool count is on the number line too, so the same goes for it: a
+    // count this Roster cannot make, or a Roster over what the count can
+    // hold, is a hand-edited link rather than a board to clamp into
+    // something else. Declared Pools have their own size check below,
+    // because `maxPools`/`isSupportedBoardSize` are the dealt count's own
+    // clamp and do not apply to a split the organizer typed by hand.
+    if (rawCount > maxPools(roster.length)) return null;
+    if (!isSupportedBoardSize(roster.length, rawCount)) return null;
+    pools = rawCount;
+  }
 
   // Brought inside what the Roster supports here rather than left to
   // `generateSchedule`, for the same reason a restored Config is: these
@@ -319,22 +354,37 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
     format,
     mixed,
     pools,
+    headers,
   );
 
   // Mixed doubles has its own arithmetic and the checksum is no help with it
   // either: the markers are inside the names block it covers, but the flag
   // rides on the number line. Appending that one character by hand produces a
   // payload that checksums perfectly and asks for a board that cannot be
-  // seated. Past one Pool, every Pool answers for itself as well.
+  // seated. Past one Pool, every Pool answers for itself as well — a declared
+  // Pool's own composition, an even deal otherwise.
   if (
-    boardObjection(roster, format, mixed, numbersFor.pools, numbersFor.courts) !==
-    null
+    boardObjection(
+      roster,
+      format,
+      mixed,
+      numbersFor.pools,
+      numbersFor.courts,
+      headers,
+    ) !== null
   ) {
     return null;
   }
 
   return {
-    config: { roster, seed, format, mixed, ...numbersFor },
+    config: {
+      roster,
+      seed,
+      format,
+      mixed,
+      ...numbersFor,
+      ...(headers.length > 0 ? { headers } : {}),
+    },
     version,
     current: version === GENERATOR_VERSION,
   };

@@ -18,6 +18,7 @@ import {
   type MarkerCounts,
 } from "./mixed.ts";
 import { randomFrom, shuffle } from "./random.ts";
+import type { PoolHeader } from "./roster.ts";
 import { generateSchedule, UnsupportedConfigError } from "./schedule.ts";
 import { scoreSchedule } from "./scorer.ts";
 import {
@@ -72,7 +73,18 @@ export const MAX_BOARD_SIZE = 64;
  * a Pool count reaching the engine would be a Pool count something below this
  * layer had to know how to ignore.
  */
-export type BoardConfig = ResolvedConfig & { readonly pools: number };
+export type BoardConfig = ResolvedConfig & {
+  readonly pools: number;
+  /**
+   * The Roster's own declared split (ADR 0005), when it has one. Present, it
+   * wins over `pools` throughout this module: `drawPools` builds the board's
+   * Pools straight from these ranges rather than dealing, and never falls
+   * back to the one-Pool fast path below even when there is only one of them
+   * — a single labelled header is still a declared board, not an undeclared
+   * one that happens to carry a name nobody asked to see.
+   */
+  readonly headers?: readonly PoolHeader[];
+};
 
 /** Every Pool needs a court's worth of names, so a Roster holds this many. */
 export function maxPools(n: number): number {
@@ -246,8 +258,6 @@ export function planPools(
   pools: number,
   courts: number,
 ): PoolPlan | null {
-  if (courts < pools) return null;
-
   const marked = readsMarkers(roster, mixed);
   const sizes = new Array<number>(pools).fill(0);
   const markers: MarkerCounts[] | null = marked ? [] : null;
@@ -265,6 +275,27 @@ export function planPools(
     const dealt = dealtCounts(Math.floor(roster.length / unit), pools);
     for (let i = 0; i < pools; i++) sizes[i] = dealt[i] * unit;
   }
+
+  const labels = Array.from({ length: pools }, (_, i) => poolLabel(i));
+  return buildPlan(labels, sizes, markers, courts, format);
+}
+
+/**
+ * The court allocation and the shapes it produces, given each Pool's size and
+ * marker counts already worked out. Shared by `planPools`, which works those
+ * out from a round-robin deal, and `planDeclaredPools`, which counts them
+ * directly off the Roster's own headers (ADR 0005) — the allocation itself
+ * does not care which produced them.
+ */
+function buildPlan(
+  labels: readonly string[],
+  sizes: readonly number[],
+  markers: readonly MarkerCounts[] | null,
+  courts: number,
+  format: Format,
+): PoolPlan | null {
+  const pools = sizes.length;
+  if (courts < pools) return null;
 
   const ceilings = sizes.map((size, i) =>
     markers ? maxMixedCourts(markers[i]) : maxCourts(size, format),
@@ -289,7 +320,7 @@ export function planPools(
   let first = 0;
   const shapes = sizes.map((size, i): PoolShape => {
     const shape: PoolShape = {
-      label: poolLabel(i),
+      label: labels[i],
       size,
       markers: markers ? markers[i] : null,
       ceiling: ceilings[i],
@@ -316,6 +347,101 @@ export function planPools(
       .filter((shape) => shape.natural === natural)
       .map((shape) => shape.label),
   };
+}
+
+/**
+ * A Pool the Roster declared with its own `---` header, as a range over the
+ * Roster `parseRoster` returned (ADR 0005). `label` is the header's own —
+ * `null` for a bare `---`, which falls back to its letter by position
+ * wherever it is read.
+ */
+export interface DeclaredPool {
+  readonly label: string | null;
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
+ * The Roster's headers, turned into ranges over it — or `null` when there are
+ * none, which is every Roster this app read before ADR 0005 and every one
+ * typed without a `---` line since.
+ *
+ * A leading header is optional: the first Pool is whatever comes before the
+ * first header, named or not. That is what lets a single `---` in the middle
+ * of a list mean "Pool A and Pool B" without the organizer typing a header
+ * for the group already at the top.
+ */
+export function declaredPools(
+  n: number,
+  headers: readonly PoolHeader[],
+): DeclaredPool[] | null {
+  if (headers.length === 0) return null;
+
+  const pools: DeclaredPool[] = [];
+  if (headers[0].start > 0) {
+    pools.push({ label: null, start: 0, end: headers[0].start });
+  }
+  for (let i = 0; i < headers.length; i++) {
+    const end = i + 1 < headers.length ? headers[i + 1].start : n;
+    pools.push({ label: headers[i].label, start: headers[i].start, end });
+  }
+  return pools;
+}
+
+/** A declared Pool's name: its own label, or its letter by position. */
+function declaredLabel(pool: DeclaredPool, index: number): string {
+  return pool.label ?? poolLabel(index);
+}
+
+/**
+ * The declared Pools' shapes and courts — `planPools`' counterpart for a
+ * Roster that named its own split.
+ *
+ * The one thing it does differently: sizes and marker counts are counted
+ * straight off each Pool's own slice of the Roster rather than dealt evenly.
+ * A declared split is the organizer's own composition, lopsided or not, and
+ * nothing here may quietly rebalance it — that is what `dealPools` is for,
+ * and it is not what a header asked for.
+ */
+export function planDeclaredPools(
+  roster: Roster,
+  format: Format,
+  mixed: boolean,
+  declared: readonly DeclaredPool[],
+  courts: number,
+): PoolPlan | null {
+  const marked = readsMarkers(roster, mixed);
+  const labels = declared.map((pool, i) => declaredLabel(pool, i));
+  const sizes = declared.map((pool) => pool.end - pool.start);
+  const markers: MarkerCounts[] | null = marked
+    ? declared.map((pool) => countMarkers(roster.slice(pool.start, pool.end)))
+    : null;
+  return buildPlan(labels, sizes, markers, courts, format);
+}
+
+/**
+ * How many courts to offer a declared split before the organizer has said,
+ * on `pooledCourtDefault`'s own terms: as many as the declared Pools can fill
+ * between them.
+ */
+export function declaredCourtDefault(
+  roster: Roster,
+  format: Format,
+  mixed: boolean,
+  declared: readonly DeclaredPool[],
+): number {
+  const plan = planDeclaredPools(
+    roster,
+    format,
+    mixed,
+    declared,
+    Number.MAX_SAFE_INTEGER,
+  );
+  if (!plan) return declared.length;
+  return plan.shapes.reduce(
+    (total, shape) => total + Math.max(1, shape.ceiling),
+    0,
+  );
 }
 
 /**
@@ -348,6 +474,11 @@ export function pooledCourtDefault(
  * can fill and the Rounds to the shortest Pool's natural length, capped at the
  * usual evening — which keeps the invariant that the default board never asks
  * for more Rounds than the partnership supply holds, in every Pool at once.
+ *
+ * `headers` is the Roster's own declared split (ADR 0005). Present, they win:
+ * the Pool count is not read at all, and the returned `pools` is however many
+ * declared Pools there are. Absent — the default, and every call site from
+ * before headers existed — this is exactly what it always was.
  */
 export function resolveBoard(
   roster: Roster,
@@ -356,10 +487,27 @@ export function resolveBoard(
   format: Format,
   mixed: boolean,
   pools: number | undefined,
+  headers: readonly PoolHeader[] = [],
 ): ResolvedNumbers & { readonly pools: number } {
   const n = roster.length;
-  const count = resolvePools(n, pools);
   const mixing = resolveMixed(format, mixed);
+  const declared = headers.length > 0 ? declaredPools(n, headers) : null;
+  if (declared) {
+    const settled = clampCourts(
+      n,
+      courts ?? declaredCourtDefault(roster, format, mixing, declared),
+      format,
+    );
+    const plan = planDeclaredPools(roster, format, mixing, declared, settled);
+    const natural = plan?.natural ?? DEFAULT_ROUND_TARGET;
+    return {
+      courts: settled,
+      rounds: clampRounds(rounds ?? Math.min(natural, DEFAULT_ROUND_TARGET)),
+      pools: declared.length,
+    };
+  }
+
+  const count = resolvePools(n, pools);
   if (count === 1) {
     return {
       ...resolveNumbers(
@@ -392,6 +540,99 @@ function courtsWord(count: number): string {
 }
 
 /**
+ * Why a declared split cannot be drawn as sized, in words, or `null` when it
+ * can: every Pool from 4 to 32, and the board no more than `MAX_BOARD_SIZE`
+ * whatever the number of Pools — the organizer's own headers are not clamped
+ * to a shape the way a dealt Pool count is, so this is the check the count
+ * gets for free out of `dealtCounts` and a declared split has to ask for
+ * itself.
+ */
+function declaredSizeObjection(declared: readonly DeclaredPool[]): string | null {
+  let total = 0;
+  for (let i = 0; i < declared.length; i++) {
+    const pool = declared[i];
+    const size = pool.end - pool.start;
+    total += size;
+    const label = declaredLabel(pool, i);
+    if (size < MIN_ROSTER_SIZE) {
+      return `${poolName(label)} has ${size} ${size === 1 ? "player" : "players"}, and a pool needs at least ${MIN_ROSTER_SIZE}. Move a name across the divider, or take the divider out.`;
+    }
+    if (size > MAX_ROSTER_SIZE) {
+      return `${poolName(label)} has ${size} players, and a pool holds up to ${MAX_ROSTER_SIZE}. Move some across the divider, or split it with another header.`;
+    }
+  }
+  // Every declared Pool is a fine size on its own, but the board is still one
+  // board: two full Pools side by side is what a sheet and the search both
+  // hold, whatever the headers split it into.
+  const ceiling = rosterCeiling(declared.length);
+  if (total > ceiling) {
+    return `${total} players across ${declared.length} pools is more than one board holds. A board holds up to ${ceiling} split this way.`;
+  }
+  return null;
+}
+
+/**
+ * Why a declared split's fixed-partner pairing cannot be made, in words, or
+ * `null` when it can: each declared Pool pairs its own lines two at a time,
+ * from its own top, so a Pool with an odd count leaves a Player with nobody
+ * to partner (ADR 0005) — the same refusal an odd Roster gets today, now
+ * asked once per Pool and naming which one.
+ */
+function declaredFormatObjection(
+  roster: Roster,
+  format: Format,
+  declared: readonly DeclaredPool[],
+): string | null {
+  if (format !== "fixed") return null;
+  for (let i = 0; i < declared.length; i++) {
+    const pool = declared[i];
+    const objection = formatObjection(roster.slice(pool.start, pool.end), format);
+    if (objection) return `${poolName(declaredLabel(pool, i))}: ${objection}`;
+  }
+  return null;
+}
+
+/**
+ * `boardObjection`'s declared-split half (ADR 0005): the same questions, in
+ * the same order, but sized and paired off each Pool's own slice of the
+ * Roster rather than off an even deal, because a declared split is the
+ * organizer's own composition and nothing here may rebalance it before
+ * answering.
+ */
+function declaredBoardObjection(
+  roster: Roster,
+  format: Format,
+  mixing: boolean,
+  declared: readonly DeclaredPool[],
+  courts: number,
+): string | null {
+  const size = declaredSizeObjection(declared);
+  if (size) return size;
+
+  const paired = declaredFormatObjection(roster, format, declared);
+  if (paired) return paired;
+
+  if (mixing && !readsMarkers(roster, mixing)) {
+    return mixedObjection(roster, courts, mixing);
+  }
+
+  const count = declared.length;
+  if (courts < count) {
+    return `${count} pools need a court each, and there ${courts === 1 ? "is" : "are"} ${courtsWord(courts)}. Add ${count - courts === 1 ? "a court" : `${count - courts} courts`}.`;
+  }
+
+  const plan = planDeclaredPools(roster, format, mixing, declared, courts);
+  const short = plan?.shapes.find((shape) => shape.ceiling < 1);
+  if (!short?.markers) return null;
+
+  // A mixed Pool short of a side, off what the organizer actually put in it
+  // rather than an even deal: there is no count to fall back to, only names
+  // to move.
+  const side = short.markers.M < 2 ? "M" : "F";
+  return `${poolName(short.label)} has ${short.markers[side]} ${side}, and a court of mixed doubles needs 2 of each. Move ${side === "M" ? "an M" : "an F"} across the divider, or add more.`;
+}
+
+/**
  * Why this board cannot be drawn, in words, or `null` when it can.
  *
  * At one Pool it is the two refusals the board has always had, asked in the
@@ -400,6 +641,10 @@ function courtsWord(count: number): string {
  * partners, a line with no marker — and then each Pool answers for itself.
  * Any Pool refused refuses the whole board (ADR 0004), and the message names
  * the Pool, because "the list has 1 F" is not true of a list with seven.
+ *
+ * `headers` wins over `pools` on the same terms as `resolveBoard`: present,
+ * the declared split answers for itself (`declaredBoardObjection`) and the
+ * Pool count is not consulted at all.
  */
 export function boardObjection(
   roster: Roster,
@@ -407,9 +652,15 @@ export function boardObjection(
   mixed: boolean,
   pools: number | undefined,
   courts: number,
+  headers: readonly PoolHeader[] = [],
 ): string | null {
-  const count = resolvePools(roster.length, pools);
   const mixing = resolveMixed(format, mixed);
+  const declared = headers.length > 0 ? declaredPools(roster.length, headers) : null;
+  if (declared) {
+    return declaredBoardObjection(roster, format, mixing, declared, courts);
+  }
+
+  const count = resolvePools(roster.length, pools);
   const whole = formatObjection(roster, format);
   if (count === 1 || whole) return whole ?? mixedObjection(roster, courts, mixing);
 
@@ -551,10 +802,14 @@ function onCourts(schedule: Schedule, first: number): Schedule {
  * round" once.
  */
 export function drawPools(config: BoardConfig): Pool[] {
-  const { roster, seed } = config;
+  const { roster, seed, headers } = config;
   const format = resolveFormat(config.format);
   const mixed = resolveMixed(format, config.mixed);
   const everyone = roster.map((_, index) => index);
+
+  if (headers && headers.length > 0) {
+    return drawDeclared(config, format, mixed);
+  }
 
   if (resolvePools(roster.length, config.pools) === 1) {
     // The count comes off before the engine sees the Config, so nothing below
@@ -606,6 +861,68 @@ export function drawPools(config: BoardConfig): Pool[] {
 
   return plan.shapes.map((shape, index) => {
     const members = dealt[index];
+    const own = {
+      roster: members.map((player) => roster[player]),
+      courts: shape.courts,
+      rounds,
+      seed: seedFor(seed, index),
+      format,
+      mixed,
+    };
+    const schedule = onCourts(drawOne(own, shape.label), shape.firstCourt);
+    return {
+      label: shape.label,
+      members,
+      roster: own.roster,
+      firstCourt: shape.firstCourt,
+      courts: shape.courts,
+      schedule,
+      score: scoreSchedule(schedule, own),
+    };
+  });
+}
+
+/**
+ * A declared board: `drawPools`' branch for a Roster with its own `---`
+ * headers (ADR 0005). Membership is not dealt — it is exactly the ranges the
+ * headers describe — so unlike the count-based branch above there is no
+ * `dealPools` step and no one-Pool fast path: a single declared Pool still
+ * goes through this, because it carries a label the fast path's board has
+ * nowhere to put.
+ */
+function drawDeclared(
+  config: BoardConfig,
+  format: Format,
+  mixed: boolean,
+): Pool[] {
+  const { roster, seed, headers } = config;
+  const declared = declaredPools(roster.length, headers ?? []) ?? [];
+
+  // Settled again rather than trusted, for the reason the count-based branch
+  // gives for its own re-resolve: this is the entry point, and a Config
+  // assembled anywhere else must not be able to ask for a board nobody can
+  // sit down to.
+  const { courts, rounds } = resolveBoard(
+    roster,
+    config.courts,
+    config.rounds,
+    format,
+    config.mixed,
+    undefined,
+    headers,
+  );
+  const objection = declaredBoardObjection(roster, format, mixed, declared, courts);
+  if (objection) throw new UnsupportedConfigError(objection);
+
+  // Past the objection there are at least as many courts as Pools.
+  const plan = planDeclaredPools(roster, format, mixed, declared, courts) as PoolPlan;
+
+  return plan.shapes.map((shape, index) => {
+    const pool = declared[index];
+    const members = Array.from(
+      { length: pool.end - pool.start },
+      (_, i) => pool.start + i,
+    );
     const own = {
       roster: members.map((player) => roster[player]),
       courts: shape.courts,

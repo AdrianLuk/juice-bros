@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { drawPools, type BoardConfig } from "../engine/pools.ts";
+import { parsePoolHeaders, parseRoster } from "../engine/roster.ts";
 import { generateSchedule } from "../engine/schedule.ts";
 import type { Roster } from "../engine/types.ts";
 
@@ -65,6 +66,7 @@ const edited = {
   format: "rotating",
   mixed: false,
   pools: 1,
+  headers: [],
 } as const;
 
 test("round-trips the edited config and the drawn one", () => {
@@ -195,7 +197,15 @@ test("save with an empty roster clears the save, sheet on screen or not", () => 
     clear();
     save(edited, drawn);
     save(
-      { roster: [], courts: null, rounds: null, format: "rotating", mixed: false, pools: 1 },
+      {
+        roster: [],
+        courts: null,
+        rounds: null,
+        format: "rotating",
+        mixed: false,
+        pools: 1,
+        headers: [],
+      },
       stillDrawn,
     );
     assert.equal(storage.getItem(KEY), null);
@@ -312,6 +322,7 @@ const mixedEdited = {
   format: "rotating",
   mixed: true,
   pools: 1,
+  headers: [],
 } as const;
 
 const mixedDrawn: BoardConfig = {
@@ -486,5 +497,110 @@ test("a pool count that is not a count is corruption", () => {
 test("a saved pooled board the courts cannot hold is discarded, not restored", () => {
   clear();
   save({ ...edited, roster: twenty, pools: 3 }, { ...pooledDrawn, pools: 3, courts: 2 });
+  assert.equal(load(), null);
+});
+
+/**
+ * The Roster declares the Pools (#553, ADR 0005). Headers are absent from
+ * every save written before this, and absent reads as no declared split — the
+ * ordinary Roster every existing save already is. No schema bump, for the
+ * same reason the Pool count had none.
+ */
+
+const declaredText = [
+  ...twenty.slice(0, 10).map((p) => p.name),
+  "--- 4.0",
+  ...twenty.slice(10).map((p) => p.name),
+].join("\n");
+const declaredHeaders = parsePoolHeaders(declaredText);
+const declaredRoster = parseRoster(declaredText);
+
+const declaredEdited = {
+  roster: declaredRoster,
+  courts: 4,
+  rounds: null,
+  format: "rotating",
+  mixed: false,
+  pools: 2,
+  headers: declaredHeaders,
+} as const;
+
+const declaredDrawn: BoardConfig = {
+  roster: declaredRoster,
+  courts: 4,
+  rounds: 6,
+  seed: 31,
+  format: "rotating",
+  mixed: false,
+  pools: 2,
+  headers: declaredHeaders,
+};
+
+test("headers survive a reload, and the board comes back declared the same", () => {
+  clear();
+  save(declaredEdited, declaredDrawn);
+  const loaded = load();
+  assert.deepEqual(loaded?.edited.headers, declaredHeaders);
+  assert.ok(loaded?.drawn);
+  assert.deepEqual(loaded.drawn.headers, declaredHeaders);
+  const pools = drawPools(loaded.drawn);
+  assert.deepEqual(
+    pools.map((pool) => pool.label),
+    ["A", "4.0"],
+  );
+  assert.deepEqual(pools, drawPools(declaredDrawn));
+});
+
+test("a save written before headers existed reads as no declared split", () => {
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { roster: twenty, courts: 4, rounds: null, format: "rotating", mixed: false, pools: 2 },
+      drawn: { roster: twenty, courts: 4, rounds: 6, seed: 31, format: "rotating", mixed: false, pools: 2 },
+      savedAt: 1,
+    }),
+  );
+  const loaded = load();
+  assert.deepEqual(loaded?.edited.headers, []);
+  assert.equal(loaded?.drawn?.headers, undefined);
+});
+
+test("headers that are not { label, start } pairs are corruption", () => {
+  for (const bad of [
+    "not an array",
+    [{ label: 1, start: 0 }],
+    [{ label: "A", start: -1 }],
+    [{ label: "A", start: 1.5 }],
+    [{ start: 0 }],
+  ]) {
+    clear();
+    storage.setItem(
+      KEY,
+      JSON.stringify({ schema: SCHEMA, edited: { ...edited, headers: bad }, drawn: null, savedAt: 1 }),
+    );
+    assert.equal(load(), null, JSON.stringify(bad));
+  }
+});
+
+test("a header on an odd boundary in fixed partners is discarded, not restored", () => {
+  clear();
+  const oddText = "Ben\nAnna\nCath\nDon\n---\nDave\nEve\nFay\nGus\nHal";
+  const oddRoster = parseRoster(oddText);
+  const oddHeaders = parsePoolHeaders(oddText);
+  save(
+    { ...edited, roster: oddRoster, format: "fixed", headers: oddHeaders, pools: 2 },
+    {
+      roster: oddRoster,
+      courts: 2,
+      rounds: 3,
+      seed: 1,
+      format: "fixed",
+      mixed: false,
+      pools: 2,
+      headers: oddHeaders,
+    },
+  );
   assert.equal(load(), null);
 });

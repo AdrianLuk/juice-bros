@@ -6,6 +6,7 @@ import { itinerary } from "./itinerary.ts";
 import {
   boardObjection,
   dealPools,
+  declaredPools,
   drawPools,
   isSupportedBoardSize,
   locate,
@@ -19,7 +20,7 @@ import {
   type BoardConfig,
   type Pool,
 } from "./pools.ts";
-import { parseRoster } from "./roster.ts";
+import { parsePoolHeaders, parseRoster, rosterText } from "./roster.ts";
 import { generateSchedule, UnsupportedConfigError } from "./schedule.ts";
 import { scoreSchedule } from "./scorer.ts";
 import type { Format, Roster, Schedule } from "./types.ts";
@@ -50,6 +51,7 @@ function board(
   const format: Format = overrides.format ?? "rotating";
   const mixed = overrides.mixed ?? false;
   const pools = overrides.pools ?? 1;
+  const headers = overrides.headers ?? [];
   const numbers = resolveBoard(
     roster,
     overrides.courts,
@@ -57,8 +59,16 @@ function board(
     format,
     mixed,
     pools,
+    headers,
   );
-  return { roster, seed: overrides.seed ?? 1, format, mixed, ...numbers };
+  return {
+    roster,
+    seed: overrides.seed ?? 1,
+    format,
+    mixed,
+    ...numbers,
+    ...(headers.length > 0 ? { headers } : {}),
+  };
 }
 
 /** Every Game's court, across every Round of a Pool. */
@@ -545,4 +555,181 @@ test("locate maps a roster index to its pool and its place in it", () => {
     assert.equal(pools[found.pool].members[found.index], player);
   }
   assert.equal(locate(pools, 20), null);
+});
+
+// ---- The Roster declares the Pools (ADR 0005, RR-6.2) ----------------------------
+
+/** A Roster and its headers, off one pasted block. */
+function withHeaders(text: string, marked = false) {
+  return {
+    roster: parseRoster(text, [], marked),
+    headers: parsePoolHeaders(text),
+  };
+}
+
+test("declaredPools: no headers is no declared split", () => {
+  assert.equal(declaredPools(8, []), null);
+});
+
+test("declaredPools: a leading header is optional — one --- makes A and B", () => {
+  const { roster, headers } = withHeaders(
+    `${names(4).map((p) => p.name).join("\n")}\n---\n${names(4).map((p) => p.name).join("\n")}`,
+  );
+  const declared = declaredPools(roster.length, headers);
+  assert.deepEqual(declared, [
+    { label: null, start: 0, end: 4 },
+    { label: null, start: 4, end: 8 },
+  ]);
+});
+
+test("declaredPools: a leading header is Pool A named, not implicit", () => {
+  const { roster, headers } = withHeaders("--- A\nBen\nAnna");
+  assert.deepEqual(declaredPools(roster.length, headers), [
+    { label: "A", start: 0, end: 2 },
+  ]);
+});
+
+test("a header's label names the pool on the board", () => {
+  const text = [
+    "--- 4.0",
+    ...names(4).map((p) => p.name),
+    "---",
+    ...names(4).map((p) => p.name),
+  ].join("\n");
+  const { roster, headers } = withHeaders(text);
+  const pools = drawPools(board(roster, { headers, seed: 5 }));
+  assert.deepEqual(
+    pools.map((pool) => pool.label),
+    ["4.0", "B"],
+  );
+});
+
+test("headers win: the pool count is not consulted at all", () => {
+  const { roster, headers } = withHeaders(
+    `${names(4).map((p) => p.name).join("\n")}\n---\n${names(4).map((p) => p.name).join("\n")}`,
+  );
+  // A pool count of 4 would be refused for this 8-name roster if it were
+  // read, but it is not read: the two declared pools of four are what draws.
+  const resolved = resolveBoard(roster, undefined, undefined, "rotating", false, 4, headers);
+  assert.equal(resolved.pools, 2);
+  const pools = drawPools(board(roster, { headers, pools: 4, seed: 1 }));
+  assert.equal(pools.length, 2);
+});
+
+test("a single declared pool still carries its label, unlike the one-pool fast path", () => {
+  const { roster, headers } = withHeaders(`--- 4.0\n${names(6).map((p) => p.name).join("\n")}`);
+  const pools = drawPools(board(roster, { headers, seed: 2 }));
+  assert.equal(pools.length, 1);
+  assert.equal(pools[0].label, "4.0");
+});
+
+test("moving a header changes who is in which pool without touching names", () => {
+  const flat = names(10).map((p) => p.name);
+  const early = withHeaders(`${flat.slice(0, 5).join("\n")}\n---\n${flat.slice(5).join("\n")}`);
+  const late = withHeaders(`${flat.slice(0, 6).join("\n")}\n---\n${flat.slice(6).join("\n")}`);
+
+  const earlySplit = drawPools(board(early.roster, { headers: early.headers, seed: 9 }));
+  const lateSplit = drawPools(board(late.roster, { headers: late.headers, seed: 9 }));
+  assert.deepEqual(
+    earlySplit.map((pool) => pool.roster.length),
+    [5, 5],
+  );
+  assert.deepEqual(
+    lateSplit.map((pool) => pool.roster.length),
+    [6, 4],
+  );
+});
+
+test("every per-pool rule from RR-6.1 holds for declared pools: 4 to 32 a pool", () => {
+  const short = withHeaders(`Ann\nBo\n---\n${names(6).map((p) => p.name).join("\n")}`);
+  assert.match(
+    boardObjection(short.roster, "rotating", false, undefined, 4, short.headers) ?? "",
+    /Pool A has 2 players.*at least 4/,
+  );
+
+  const oversized = withHeaders(`${names(33).map((p) => p.name).join("\n")}\n---\nBen`);
+  assert.match(
+    boardObjection(oversized.roster, "rotating", false, undefined, 4, oversized.headers) ?? "",
+    /Pool A has 33 players.*up to 32/,
+  );
+});
+
+test("declared pools cap the whole board at MAX_BOARD_SIZE", () => {
+  const text = Array.from({ length: 3 }, (_, i) =>
+    (i === 0 ? "" : "---\n") + names(24).map((p) => p.name).join("\n"),
+  ).join("\n");
+  const { roster, headers } = withHeaders(text);
+  assert.equal(roster.length, 72);
+  assert.match(
+    boardObjection(roster, "rotating", false, undefined, 6, headers) ?? "",
+    /more than one board holds/,
+  );
+});
+
+test("fixed partners refuses a header on an odd boundary, naming the pool", () => {
+  const oddSecond = withHeaders(`${names(4).map((p) => p.name).join("\n")}\n---\n${names(5).map((p) => p.name).join("\n")}`);
+  assert.match(
+    boardObjection(oddSecond.roster, "fixed", false, undefined, 3, oddSecond.headers) ?? "",
+    /^Pool B: Fixed partners pairs the list up/,
+  );
+});
+
+test("fixed partners pairs each declared pool from its own top", () => {
+  const { roster, headers } = withHeaders(
+    `${names(4).map((p) => p.name).join("\n")}\n---\n${names(4).map((p) => p.name).join("\n")}`,
+  );
+  const pools = drawPools(board(roster, { format: "fixed", headers, seed: 1 }));
+  assert.equal(pools.length, 2);
+  for (const pool of pools) {
+    for (const round of pool.schedule.rounds) {
+      for (const game of round.games) {
+        for (const side of game.sides) assert.equal(side.length, 2);
+      }
+    }
+  }
+});
+
+test("mixed doubles counts each declared pool's own composition, not an even deal", () => {
+  // Pool A: 3 M, 1 F — short a side, and the message should name Pool A and
+  // its actual counts rather than an evenly-dealt guess.
+  const text = "Ann M\nBo M\nCy M\nDi F\n---\nEd M\nFi F\nGus M\nHal F";
+  const { roster, headers } = withHeaders(text, true);
+  assert.match(
+    boardObjection(roster, "rotating", true, undefined, 2, headers) ?? "",
+    /Pool A has 1 F, and a court of mixed doubles needs 2 of each/,
+  );
+});
+
+test("a declared board draws deterministically: membership never moves with the seed", () => {
+  const { roster, headers } = withHeaders(
+    `${names(4).map((p) => p.name).join("\n")}\n---\n${names(4).map((p) => p.name).join("\n")}`,
+  );
+  const first = drawPools(board(roster, { headers, seed: 1 }));
+  const second = drawPools(board(roster, { headers, seed: 2 }));
+  assert.deepEqual(
+    first.map((pool) => pool.members),
+    second.map((pool) => pool.members),
+  );
+});
+
+test("Keep this split's bare headers round-trip through rosterText and back", () => {
+  const pools = drawPools(board(names(8), { pools: 2, seed: 4 }));
+  const flat = pools.flatMap((pool) => pool.roster);
+  const headers = pools.slice(1).reduce<{ label: null; start: number }[]>(
+    (acc, _pool, i) => [
+      ...acc,
+      { label: null, start: pools.slice(0, i + 1).reduce((n, p) => n + p.roster.length, 0) },
+    ],
+    [],
+  );
+  const text = rosterText(flat, headers);
+  const reparsedHeaders = parsePoolHeaders(text);
+  const reparsedRoster = parseRoster(text);
+  const declared = declaredPools(reparsedRoster.length, reparsedHeaders);
+  assert.ok(declared);
+  assert.equal(declared.length, 2);
+  assert.deepEqual(
+    declared.map((pool) => pool.end - pool.start),
+    pools.map((pool) => pool.roster.length),
+  );
 });

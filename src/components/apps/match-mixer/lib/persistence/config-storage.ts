@@ -6,6 +6,7 @@ import {
   resolveBoard,
   type BoardConfig,
 } from "../engine/pools.ts";
+import type { PoolHeader } from "../engine/roster.ts";
 import type { Format, Roster } from "../engine/types.ts";
 import {
   isFiniteNumber,
@@ -13,6 +14,7 @@ import {
   readChoice,
   readFlag,
   readFormat,
+  readHeaders,
   readPools,
   readRoster,
 } from "./read-config.ts";
@@ -60,6 +62,10 @@ const KEY = "juicebros.matchmixer.config";
  * RR-6's Pool count (#552) is not a bump either, on exactly those terms: it is
  * absent from every existing save, and absent reads as one Pool, which is what
  * every existing save is.
+ *
+ * RR-6.2's headers (#553, ADR 0005) are not a bump on the same terms again:
+ * `headers` is absent from every save written before it, and absent reads as
+ * no declared split — the ordinary Roster every existing save already is.
  */
 const SCHEMA = 2;
 
@@ -94,8 +100,20 @@ export interface EditedConfig {
    * reason: one is a choice made on the organizer's behalf, not a number that
    * follows the Roster. What does follow the Roster is how many it can make,
    * and that is clamped where it is read rather than written back here.
+   *
+   * Meaningless while `headers` says otherwise (ADR 0005) — a declared split
+   * is not a choice this field records, and reading it back is what the
+   * headers are for. It is kept anyway so a save written before headers
+   * existed restores exactly as it did.
    */
   readonly pools: number;
+  /**
+   * The Roster's own `---` headers, in the order they were typed. Empty is
+   * every save written before ADR 0005 and every one since with no header in
+   * the box — the ordinary Roster this app has always read, where the Pool
+   * count above decides the split.
+   */
+  readonly headers: readonly PoolHeader[];
 }
 
 export interface SavedVisit {
@@ -189,10 +207,12 @@ function readEdited(value: unknown): EditedConfig | null {
   const format = readFormat(value.format);
   const mixed = readFlag(value.mixed);
   const pools = readPools(value.pools);
+  const headers = readHeaders(value.headers);
   if (!roster || courts === undefined || rounds === undefined) return null;
   if (format === undefined || mixed === undefined || pools === undefined) {
     return null;
   }
+  if (headers === undefined) return null;
   // Normalized rather than restored as written: mixed doubles is a qualifier
   // on rotating, and a box that came back ticked under fixed partners would be
   // applying to nothing. The screen never writes that pair, so this is only
@@ -204,6 +224,7 @@ function readEdited(value: unknown): EditedConfig | null {
     format,
     mixed: resolveMixed(format, mixed),
     pools,
+    headers,
   };
 }
 
@@ -211,11 +232,16 @@ function readDrawn(value: unknown): BoardConfig | null {
   if (!isRecord(value)) return null;
   const roster = readRoster(value.roster);
   const count = readPools(value.pools);
+  const headers = readHeaders(value.headers);
   // Anything the engine would refuse is treated as corrupt here, so a
   // hand-edited save cannot turn into an UnsupportedConfigError on mount.
   // A drawn count this Roster cannot make is refused rather than clamped, on
   // the Share Link's terms: the screen only ever writes the count it drew.
-  if (!roster || count === undefined) return null;
+  // Headers win over the count on the same terms as everywhere else (ADR
+  // 0005), so this pre-check is the count-based split's own clamp and is
+  // harmless rather than load-bearing once headers are present — the count a
+  // declared save writes is always `headers.length` and already satisfies it.
+  if (!roster || count === undefined || headers === undefined) return null;
   if (count > maxPools(roster.length)) return null;
   if (!isSupportedBoardSize(roster.length, count)) return null;
   const { courts, rounds, seed } = value;
@@ -230,18 +256,27 @@ function readDrawn(value: unknown): BoardConfig | null {
   // `generateSchedule`, which clamps its own copy and hands nothing back: the
   // restored numbers are read again for the stale key and for the line naming
   // what the sheet was drawn from, and both have to be the numbers used.
-  const numbers = resolveBoard(roster, courts, rounds, format, mixed, count);
+  const numbers = resolveBoard(roster, courts, rounds, format, mixed, count, headers);
   // Roster size is not the only thing a draw refuses: an odd list in fixed
   // partners leaves somebody with nobody to partner, a half-marked or
   // lopsided list cannot be seated as mixed doubles, and a Pool short of a
-  // court or of a side cannot be seated at all. All of them have to be
-  // checked here, and for the same reason — this Config is drawn from during
-  // mount, so anything a draw would throw on is a screen that never renders,
-  // on every visit, until storage is cleared by hand.
+  // court or of a side cannot be seated at all — a declared Pool's own
+  // composition, an even deal otherwise. All of them have to be checked here,
+  // and for the same reason — this Config is drawn from during mount, so
+  // anything a draw would throw on is a screen that never renders, on every
+  // visit, until storage is cleared by hand.
   if (
-    boardObjection(roster, format, mixed, numbers.pools, numbers.courts) !== null
+    boardObjection(roster, format, mixed, numbers.pools, numbers.courts, headers) !==
+    null
   ) {
     return null;
   }
-  return { roster, seed, format, mixed, ...numbers };
+  return {
+    roster,
+    seed,
+    format,
+    mixed,
+    ...numbers,
+    ...(headers.length > 0 ? { headers } : {}),
+  };
 }
