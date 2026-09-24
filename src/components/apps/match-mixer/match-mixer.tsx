@@ -840,7 +840,11 @@ export function MatchMixer() {
    * behind them.
    */
   const keepSplit = () => {
-    if (!draw || draw.pools.length <= 1) return;
+    // Guarded again rather than trusted to the button's own gating: writing
+    // a stale draw's Pools over fields the organizer has since edited would
+    // silently discard that edit, which is the one thing this action must
+    // never do.
+    if (!draw || stale || draw.pools.length <= 1) return;
     const nextHeaders: PoolHeader[] = [];
     const flatRoster: Player[] = [];
     for (const pool of draw.pools) {
@@ -1051,8 +1055,11 @@ export function MatchMixer() {
                 0005): findable off a board that is already split rather than
                 buried in a note, and gone the moment the roster names its
                 own split so pressing it twice is a no-op rather than a
-                second write. */}
-            {!declared && draw && draw.pools.length > 1 ? (
+                second write. Also gone while the board is stale — the
+                fields have moved on from what is drawn, and writing the old
+                draw's Pools back would silently overwrite whatever the
+                organizer has typed since. */}
+            {!declared && !stale && draw && draw.pools.length > 1 ? (
               <button
                 type="button"
                 className="mm-quiet mt-2"
@@ -1062,7 +1069,7 @@ export function MatchMixer() {
                 Keep this split
               </button>
             ) : null}
-            {!declared && draw && draw.pools.length > 1 ? (
+            {!declared && !stale && draw && draw.pools.length > 1 ? (
               <p className="mm-note mt-1" id="mm-keep-split-note">
                 Writes today’s pools into the roster box as “---” lines you
                 can edit by hand.

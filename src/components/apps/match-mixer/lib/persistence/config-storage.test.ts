@@ -584,6 +584,40 @@ test("headers that are not { label, start } pairs are corruption", () => {
   }
 });
 
+test("headers out of the order parsePoolHeaders could ever produce are corruption", () => {
+  // parsePoolHeaders walks the Roster once, left to right, so a later header
+  // can only sit at the same position or further along. Anything else is a
+  // hand-edited save that rosterText and declaredPools were never built to
+  // read back.
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { ...edited, headers: [{ label: null, start: 4 }, { label: null, start: 2 }] },
+      drawn: null,
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load(), null);
+});
+
+test("a header past the end of the Roster is corruption", () => {
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      // `edited.roster` has 8 Players; a header at 9 names a position that
+      // does not exist.
+      edited: { ...edited, headers: [{ label: null, start: 9 }] },
+      drawn: null,
+      savedAt: 1,
+    }),
+  );
+  assert.equal(load(), null);
+});
+
 test("a header on an odd boundary in fixed partners is discarded, not restored", () => {
   clear();
   const oddText = "Ben\nAnna\nCath\nDon\n---\nDave\nEve\nFay\nGus\nHal";

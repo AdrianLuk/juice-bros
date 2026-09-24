@@ -258,6 +258,13 @@ export function planPools(
   pools: number,
   courts: number,
 ): PoolPlan | null {
+  // Cheap and first: a Pool with no court is refused before the deal is
+  // worked out, not after — `pooledCourtDefault` calls this with
+  // `Number.MAX_SAFE_INTEGER` on every keystroke, and every other caller
+  // asks it again once a court count exists, so a deal nobody needed is
+  // exactly the kind of repeated cost this line exists to skip.
+  if (courts < pools) return null;
+
   const marked = readsMarkers(roster, mixed);
   const sizes = new Array<number>(pools).fill(0);
   const markers: MarkerCounts[] | null = marked ? [] : null;
@@ -410,6 +417,11 @@ export function planDeclaredPools(
   declared: readonly DeclaredPool[],
   courts: number,
 ): PoolPlan | null {
+  // Same short-circuit as `planPools`, and for the same reason: cheap, and
+  // first, so `declaredCourtDefault`'s `Number.MAX_SAFE_INTEGER` call never
+  // pays for counting markers across every declared slice.
+  if (courts < declared.length) return null;
+
   const marked = readsMarkers(roster, mixed);
   const labels = declared.map((pool, i) => declaredLabel(pool, i));
   const sizes = declared.map((pool) => pool.end - pool.start);

@@ -120,6 +120,14 @@ export function readPools(value: unknown): number | undefined {
  * the box. Present but not an array of `{ label, start }` pairs is
  * corruption, and comes back as `undefined` so the caller can refuse the
  * whole read — the same answer a bad Roster or a bad Format gets.
+ *
+ * `start` is checked non-decreasing across the list, because that is the one
+ * shape `parsePoolHeaders` can ever produce — it walks the Roster once,
+ * left to right, and a later header can only sit at the same position or
+ * further along. A hand-edited save with an out-of-order `start` is not a
+ * split `declaredPools` (in `pools.ts`) or `rosterText` (in `roster.ts`) can
+ * read back correctly — both assume the same ordering — so it is refused
+ * here rather than silently misread there.
  */
 export function readHeaders(
   value: unknown,
@@ -127,14 +135,16 @@ export function readHeaders(
   if (value == null) return [];
   if (!Array.isArray(value)) return undefined;
   const headers: { label: string | null; start: number }[] = [];
+  let previous = 0;
   for (const entry of value) {
     if (!isRecord(entry)) return undefined;
     const { label, start } = entry;
     if (label !== null && typeof label !== "string") return undefined;
-    if (typeof start !== "number" || !Number.isInteger(start) || start < 0) {
+    if (typeof start !== "number" || !Number.isInteger(start) || start < previous) {
       return undefined;
     }
     headers.push({ label, start });
+    previous = start;
   }
   return headers;
 }

@@ -199,6 +199,20 @@ export function clear(): void {
   }
 }
 
+/**
+ * Whether every header's `start` is a real position in this Roster — at most
+ * one past its last Player, which is where a trailing header sits. `readHeaders`
+ * already checked the list is non-decreasing; this is the other half, and it
+ * needs the Roster to ask, which is why it is not part of that function.
+ */
+function headersInBounds(
+  roster: Roster,
+  headers: readonly { readonly start: number }[],
+): boolean {
+  const last = headers[headers.length - 1];
+  return last === undefined || last.start <= roster.length;
+}
+
 function readEdited(value: unknown): EditedConfig | null {
   if (!isRecord(value)) return null;
   const roster = readRoster(value.roster);
@@ -212,7 +226,7 @@ function readEdited(value: unknown): EditedConfig | null {
   if (format === undefined || mixed === undefined || pools === undefined) {
     return null;
   }
-  if (headers === undefined) return null;
+  if (headers === undefined || !headersInBounds(roster, headers)) return null;
   // Normalized rather than restored as written: mixed doubles is a qualifier
   // on rotating, and a box that came back ticked under fixed partners would be
   // applying to nothing. The screen never writes that pair, so this is only
@@ -242,6 +256,7 @@ function readDrawn(value: unknown): BoardConfig | null {
   // harmless rather than load-bearing once headers are present — the count a
   // declared save writes is always `headers.length` and already satisfies it.
   if (!roster || count === undefined || headers === undefined) return null;
+  if (!headersInBounds(roster, headers)) return null;
   if (count > maxPools(roster.length)) return null;
   if (!isSupportedBoardSize(roster.length, count)) return null;
   const { courts, rounds, seed } = value;
