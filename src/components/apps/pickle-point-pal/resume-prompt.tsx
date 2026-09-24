@@ -24,7 +24,7 @@ export function ResumePrompt({
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <h1 className="pp-plate text-2xl text-pp-ink">Match in progress</h1>
+      <h2 className="pp-plate text-2xl text-pp-ink">Match in progress</h2>
       <p className="pp-legend mt-1.5">
         Saved {new Date(saved.savedAt).toLocaleString()} · game {currentGameNumber(state)}
       </p>
