@@ -1,5 +1,12 @@
 import { naturalLength } from "./config.ts";
 import { formatName, seatsPerCourt } from "./format.ts";
+import {
+  MAX_BOARD_SIZE,
+  poolName,
+  poolNames,
+  type PoolPlan,
+  type PoolShape,
+} from "./pools.ts";
 import { MAX_ROSTER_SIZE, MIN_ROSTER_SIZE, type Format } from "./types.ts";
 
 /**
@@ -27,6 +34,8 @@ export interface ConfigShape {
    * absent is every board that is not mixed.
    */
   readonly partnerships?: number;
+  /** How many Pools the Roster is dealt into. Absent is one. */
+  readonly pools?: number;
 }
 
 function plural(count: number, noun: string): string {
@@ -56,9 +65,15 @@ export function describeNumbers({
   rounds,
   format,
   mixed,
+  pools = 1,
 }: ConfigShape): string {
   const drawn = mixed ? `${formatName(format)}, mixed doubles` : formatName(format);
-  return `${drawn} · ${plural(players, "player")} on ${plural(courts, "court")}, ${plural(rounds, "round")}`;
+  // The Pool count sits between the people and the courts because that is the
+  // order the split happens in: these names, in this many round robins, on
+  // these courts. Absent at one Pool, so every board that existed before Pools
+  // carries the particulars it always did.
+  const split = pools > 1 ? ` in ${pools} pools` : "";
+  return `${drawn} · ${plural(players, "player")}${split} on ${plural(courts, "court")}, ${plural(rounds, "round")}`;
 }
 
 /**
@@ -132,6 +147,87 @@ export function describeConfig(shape: ConfigShape): string {
   return [describeNumbers(shape), seating, supply].join(". ").concat(".");
 }
 
+/** "court 3", "courts 3 and 4", "courts 3 to 6": one-based, as the board prints them. */
+function courtRange(first: number, count: number): string {
+  const from = first + 1;
+  const to = first + count;
+  if (count === 1) return `court ${from}`;
+  if (count === 2) return `courts ${from} and ${to}`;
+  return `courts ${from} to ${to}`;
+}
+
+function capitalise(text: string): string {
+  return `${text[0].toUpperCase()}${text.slice(1)}`;
+}
+
+/** Who sits out of one Pool, in the unit its Format sits them out in. */
+function poolSeating(shape: PoolShape, format: Format): string {
+  const idle =
+    format === "fixed"
+      ? Math.max(0, Math.floor(shape.size / 2) - shape.courts * 2)
+      : Math.max(0, shape.size - shape.courts * seatsPerCourt(format));
+  if (idle === 0) return "everybody plays every round";
+  const unit = format === "fixed" ? "pair" : "player";
+  return `${plural(idle, unit)} ${idle === 1 ? "sits" : "sit"} out each round, taking turns`;
+}
+
+/**
+ * The supply clause on a pooled board, which is always about the Pool that
+ * runs out first. The default Round count is that Pool's natural length, so
+ * this is also the line that says which Pool set it.
+ */
+function pooledSupply(plan: PoolPlan, rounds: number, format: Format): string {
+  const every = plan.shortest.length === plan.shapes.length;
+  const who = every ? "every pool" : poolNames(plan.shortest);
+  const round = plan.natural;
+  if (rounds > round) {
+    const where = `in ${who} after round ${round}`;
+    if (format === "rotating") return `Partners start repeating ${where}`;
+    if (format === "fixed") return `Pairs start meeting again ${where}`;
+    return `People start playing each other again ${where}`;
+  }
+  const what = format === "rotating" ? "new partners" : "new matchups";
+  if (every) return `Every pool runs out of ${what} after round ${round}`;
+  const verb = plan.shortest.length === 1 ? "runs" : "run";
+  return `${who} ${verb} out of ${what} first, after round ${round}`;
+}
+
+/**
+ * The consequence line for a board dealt into Pools: the particulars, then a
+ * sentence per Pool saying where it plays and who sits, then any courts
+ * nobody is on, then when the first Pool runs out.
+ *
+ * Still arithmetic and nothing more. It says what each Pool has to spend and
+ * how many of its people are waiting at the fence, never whether a draw came
+ * out balanced, which each Pool's own summary line reads off its own Scorer.
+ */
+export function describePooledConfig(shape: ConfigShape, plan: PoolPlan): string {
+  const { format, rounds } = shape;
+  const pools = plan.shapes.map(
+    (pool) =>
+      `${poolName(pool.label)}: ${plural(pool.size, "player")} on ${courtRange(pool.firstCourt, pool.courts)}, ${poolSeating(pool, format)}`,
+  );
+
+  // More courts than the Pools can fill is not refused, on mixed doubles'
+  // precedent that the court count is a fact about the evening. The courts
+  // are booked; the line says which of them nobody will be standing on.
+  const empty = plan.courts - plan.used;
+  const unused =
+    empty > 0
+      ? `${capitalise(courtRange(plan.used, empty))} ${empty === 1 ? "stands" : "stand"} empty, because no pool has the players to fill ${empty === 1 ? "it" : "them"}`
+      : null;
+
+  return [
+    describeNumbers(shape),
+    ...pools,
+    unused,
+    pooledSupply(plan, rounds, format),
+  ]
+    .filter((clause) => clause !== null)
+    .join(". ")
+    .concat(".");
+}
+
 /**
  * The same line for a Roster the tool cannot seat. It exists so that the
  * consequence line never goes away mid-edit: a Roster on its way from nothing
@@ -144,6 +240,13 @@ export function describeUnsupportedRoster(players: number): string {
     const missing = MIN_ROSTER_SIZE - players;
     return `${plural(players, "player")}. ${missing} more and there is a court's worth.`;
   }
-  const over = players - MAX_ROSTER_SIZE;
-  return `${plural(players, "player")}. ${over} more than one sheet holds.`;
+  // Too many for one rotation is not too many for the board: it is a list
+  // that wants splitting, and the Pool count is the control that does it. So
+  // the line points there rather than at the names to cut.
+  if (players <= MAX_BOARD_SIZE) {
+    const pools = Math.ceil(players / MAX_ROSTER_SIZE);
+    return `${players} names is more than one rotation holds. Split into ${pools} pools or more.`;
+  }
+  const over = players - MAX_BOARD_SIZE;
+  return `${plural(players, "player")}. ${over} more than one board holds, even split into pools.`;
 }

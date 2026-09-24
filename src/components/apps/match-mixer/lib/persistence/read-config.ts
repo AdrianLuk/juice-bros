@@ -98,3 +98,18 @@ export function readFormat(value: unknown): Format | undefined {
   if (value == null) return DEFAULT_FORMAT;
   return FORMATS.find((format) => format === value);
 }
+
+/**
+ * A Pool count, where absent is one Pool: every save and every Config written
+ * before Pools existed. Present but not a whole number of at least one is
+ * corruption, and comes back as `undefined` so the caller can refuse the whole
+ * read. Whether this Roster can make that many is the caller's clamp, not a
+ * reason to refuse: the count is a choice, and the Roster under it may since
+ * have shrunk.
+ */
+export function readPools(value: unknown): number | undefined {
+  if (value == null) return 1;
+  return typeof value === "number" && Number.isInteger(value) && value >= 1
+    ? value
+    : undefined;
+}

@@ -517,6 +517,34 @@ Who is off this round, set in marker green in the narrow voice at 0.75rem —
 sized to be read off the board at the same distance as who is on, not as a
 footnote. Verified 5.90:1.
 
+### Pool band (#552)
+A board dealt into Pools is still one ruled field, with a band of columns per
+Pool. Each band is headed by `.mm-band-rail`: a strip of vinyl with the Pool's
+name knocked out of it in the rail voice at 0.625rem, which is the club
+plate's own treatment at label size. It sits over the court rails rather than
+replacing them, and stops short of the next band's strip (the cell's right
+padding is the gap), so two bands read as two strips. A 1px `--mm-rule`
+hairline runs down the body where one band meets the next.
+
+- **Scrolled bands keep their name.** A banded field holds each court at a
+  plate's width (`.mm-game` at `min-width: 9.8rem`, Off names unbroken,
+  screen at `sm` and up)
+  and lets `.mm-scroll` take the overflow rather than squeezing names onto
+  three lines. The name inside the strip is `position: sticky; left: 0.45rem`,
+  so it rides the scroller's edge while any of its band is in view.
+- **Summary lines stack where the one line always sat**, one per Pool, each
+  opening on the Pool's name in full vinyl. There is no line for the night.
+- **On a phone** the strip comes down onto the first court of its band
+  (`.mm-band-tag`, hidden at every other width), ordered ahead of the court
+  label, so a Round reads round, then pool, then court.
+- **On paper** the strip loses its fill and becomes the ordinary 2px rail with
+  the name in black; the band gutter is restated in the unlayered print block.
+
+Each band carries its own Off column after its own courts, so on a pooled
+board "Off last" holds per band rather than for the field: who sits out of
+Pool A is read beside Pool A. A one-Pool board renders none of this and is
+byte-identical to the board before Pools.
+
 ### Superseded board (signature state)
 `.mm-draw[data-stale]` — the wipe has started but the board has not been
 redrawn. A marker-red rail (`.mm-flag`, 2px top / 1px bottom, tracked caps

@@ -1,14 +1,13 @@
+import type { ResolvedConfig } from "../engine/config.ts";
+import { FORMATS } from "../engine/format.ts";
+import { rosterLine } from "../engine/mixed.ts";
 import {
-  isSupportedRosterSize,
-  resolveNumbers,
-  type ResolvedConfig,
-} from "../engine/config.ts";
-import { FORMATS, formatObjection } from "../engine/format.ts";
-import {
-  mixedObjection,
-  partnershipSupply,
-  rosterLine,
-} from "../engine/mixed.ts";
+  boardObjection,
+  isSupportedBoardSize,
+  maxPools,
+  resolveBoard,
+  type BoardConfig,
+} from "../engine/pools.ts";
 import { parseRoster } from "../engine/roster.ts";
 import { DEFAULT_FORMAT, type Format } from "../engine/types.ts";
 import { isFiniteNumber, readChoice } from "./read-config.ts";
@@ -47,15 +46,16 @@ export const SHARE_PARAM = "b";
 export const GENERATOR_VERSION = 1;
 
 /**
- * Where chat clients, mail clients and address bars stop being reliable. The
- * Roster is capped at 32 Players, so a real link lands well inside this and
- * the ceiling is a refusal rather than a truncation.
+ * Where chat clients, mail clients and address bars stop being reliable. A
+ * one-Pool Roster is capped at 32 Players, so a real link lands well inside
+ * this. A pooled board can carry 64, and a list of long names that size can
+ * run past it, which is why the ceiling is a refusal rather than a truncation.
  */
 export const MAX_LINK_LENGTH = 2000;
 
 /** A board that arrived by link, and which generator minted it. */
 export interface SharedBoard {
-  readonly config: ResolvedConfig;
+  readonly config: BoardConfig;
   /** The generator version the link was minted under. */
   readonly version: number;
   /** Whether that is the version this build generates with. */
@@ -75,7 +75,7 @@ export interface SharedBoard {
  * RR-6 adds Pool Count, and it is how RR-4.1's Format arrived: a sixth field
  * after the checksum, absent in every link already sitting in a group chat,
  * and absent reads as rotating. RR-4.3's mixed doubles is the seventh, on the
- * same terms.
+ * same terms, and RR-6's Pool count is the eighth.
  *
  * The number line carries a checksum over the Roster block, which is the one
  * thing in the payload not implied by the rest of it. It is there because a
@@ -125,6 +125,24 @@ const FORMAT_CODES: Record<Format, string> = {
 const MIXED_CODE = "m";
 
 /**
+ * The Pool count, as an eighth field, present only past one (ADR 0005).
+ *
+ * A dealt split is Config, so the link carries the count and never the deal:
+ * the reader's browser deals the same Pools again off the same Seed, the same
+ * way it draws the same Rounds again. Writing the deal out as membership would
+ * turn a dealt board into a declared one in the reader's hands, and change
+ * what their redraw does.
+ *
+ * Appended rather than always emitted, on the mixed field's terms: a one-Pool
+ * link is byte-for-byte the link this build minted before Pools existed. A
+ * pooled link on an unmixed board carries the seventh field empty to reach the
+ * eighth, and empty already reads as off.
+ */
+function poolsField(pools: number | undefined): string | null {
+  return pools !== undefined && pools > 1 ? String(pools) : null;
+}
+
+/**
  * The link for a drawn board, or `null` if the Roster is too long to fit one.
  *
  * `base` is the address of the tool itself, normally `window.location.href`.
@@ -138,7 +156,7 @@ const MIXED_CODE = "m";
  * budget is not tight enough to pay that.
  */
 export function encodeShareLink(
-  config: ResolvedConfig,
+  config: ResolvedConfig & { readonly pools?: number },
   base: string,
 ): string | null {
   let url: URL;
@@ -162,7 +180,9 @@ export function encodeShareLink(
     checksum(names),
     FORMAT_CODES[config.format],
   ];
-  if (config.mixed) numbers.push(MIXED_CODE);
+  const pools = poolsField(config.pools);
+  if (config.mixed || pools) numbers.push(config.mixed ? MIXED_CODE : "");
+  if (pools) numbers.push(pools);
   const payload = [numbers.join(FIELD), names].join(LINE);
 
   url.hash = "";
@@ -219,8 +239,16 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   const cut = value.indexOf(LINE);
   const numbers = cut === -1 ? value : value.slice(0, cut);
   const names = cut === -1 ? "" : value.slice(cut + LINE.length);
-  const [rawVersion, rawCourts, rawRounds, rawSeed, rawSum, rawFormat, rawMixed] =
-    numbers.split(FIELD);
+  const [
+    rawVersion,
+    rawCourts,
+    rawRounds,
+    rawSeed,
+    rawSum,
+    rawFormat,
+    rawMixed,
+    rawPools,
+  ] = numbers.split(FIELD);
 
   // Required. A payload that cannot say which generator drew it, or with what
   // Seed, does not describe a board — it describes some other board.
@@ -256,6 +284,9 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   if (mixed === undefined) return null;
   if (mixed && format !== "rotating") return null;
 
+  const pools = toPools(rawPools);
+  if (pools === undefined) return null;
+
   // The markers are read only when the payload asked for a mixed board, which
   // is the same rule the roster box follows: a line ending in a last initial
   // is a name everywhere else, and a link must not be the one place it stops
@@ -270,27 +301,37 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
   // block and the Format rides on the number line. Flipping that one character
   // by hand produces a payload that checksums perfectly and describes a board
   // that cannot be drawn.
-  if (!isSupportedRosterSize(roster.length)) return null;
+  //
+  // The Pool count is on the number line too, so the same goes for it: a count
+  // this Roster cannot make, or a Roster over what the count can hold, is a
+  // hand-edited link rather than a board to clamp into something else.
+  if (pools > maxPools(roster.length)) return null;
+  if (!isSupportedBoardSize(roster.length, pools)) return null;
 
   // Brought inside what the Roster supports here rather than left to
   // `generateSchedule`, for the same reason a restored Config is: these
   // numbers are read again for the stale key and for the line naming what
   // the board was drawn from, and both have to be the numbers used.
-  const numbersFor = resolveNumbers(
-    roster.length,
+  const numbersFor = resolveBoard(
+    roster,
     courts ?? undefined,
     rounds ?? undefined,
     format,
-    partnershipSupply(roster, mixed),
+    mixed,
+    pools,
   );
 
-  if (formatObjection(roster, format) !== null) return null;
   // Mixed doubles has its own arithmetic and the checksum is no help with it
   // either: the markers are inside the names block it covers, but the flag
   // rides on the number line. Appending that one character by hand produces a
   // payload that checksums perfectly and asks for a board that cannot be
-  // seated.
-  if (mixedObjection(roster, numbersFor.courts, mixed) !== null) return null;
+  // seated. Past one Pool, every Pool answers for itself as well.
+  if (
+    boardObjection(roster, format, mixed, numbersFor.pools, numbersFor.courts) !==
+    null
+  ) {
+    return null;
+  }
 
   return {
     config: { roster, seed, format, mixed, ...numbersFor },
@@ -328,6 +369,18 @@ function toFormat(field: string | undefined): Format | undefined {
 function toMixed(field: string | undefined): boolean | undefined {
   if (field === undefined || field.trim() === "") return false;
   return field.trim() === MIXED_CODE ? true : undefined;
+}
+
+/**
+ * The Pool count field. Absent or empty is one Pool, which is every link
+ * minted before Pools existed and every one-Pool link since. Otherwise a whole
+ * number of two or more, because one is never written: a `1` in the field was
+ * not minted by this build, and is refused for the reason `toFormat` gives.
+ */
+function toPools(field: string | undefined): number | undefined {
+  if (field === undefined || field.trim() === "") return 1;
+  const pools = Number(field.trim());
+  return Number.isInteger(pools) && pools >= 2 ? pools : undefined;
 }
 
 /**

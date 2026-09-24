@@ -3820,6 +3820,19 @@ html:has(.bb-app-chrome) {
   .mm-summary b[data-fail] {
     color: var(--mm-mark-red);
   }
+  /* A board dealt into Pools carries one verdict per Pool, stacked where the
+     one summary line has always sat, so the verdict is still the first thing
+     read. Each opens on its Pool's name in the full vinyl, the same ink as the
+     band strip over that Pool's columns, which is what ties a line to its
+     band without a second vocabulary. */
+  .mm-summaries {
+    display: grid;
+    gap: 0.1rem;
+  }
+  .mm-summary-band {
+    font-weight: 700;
+    color: var(--mm-vinyl);
+  }
 
   /* The head band. Stacked on a phone; across the board's full width at
      desktop, because the left column is 15.5rem and a header confined to it
@@ -4004,6 +4017,11 @@ html:has(.bb-app-chrome) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
+  /* The Pools dial on a row of its own, its note running the column's width
+     rather than wrapping in half of it. */
+  .mm-fields-one {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .mm-number {
     width: 100%;
     max-width: 7rem;
@@ -4160,6 +4178,72 @@ html:has(.bb-app-chrome) {
     font-size: 1rem;
     letter-spacing: 0.02em;
     color: var(--mm-vinyl);
+  }
+
+  /* ---- Pool bands ---------------------------------------------------------- */
+
+  /* A pooled board is one field with a band of columns per Pool. The band is
+     headed by a strip of vinyl with the Pool's name knocked out of it - the
+     club plate's own treatment at label size, because this is the same kind
+     of thing: lettering cut and stuck on the board, naming what is under it.
+     It sits over the court rails rather than replacing them, so a column
+     still reads "Court 3" and the strip says whose court it is tonight.
+
+     The strip stops short of the next one (the cell's right padding is the
+     gap), so two bands read as two strips and not one bar with words in it. */
+  .mm-grid thead .mm-bands th,
+  .mm-grid thead .mm-bands td {
+    padding-bottom: 0.4rem;
+    border-bottom: 0;
+  }
+  .mm-band-rail {
+    display: block;
+    padding: 0.3rem 0.45rem 0.28rem;
+    background: var(--mm-vinyl);
+    color: var(--mm-enamel);
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+  }
+  /* A band scrolled half off the field keeps its name. The name rides the
+     scroller's left edge for as long as any of its strip is in view, and is
+     carried off with the strip's last column rather than left over a band it
+     no longer heads. */
+  .mm-band-name {
+    display: inline-block;
+    position: sticky;
+    left: 0.45rem;
+  }
+  /* Where one band ends and the next begins: a hairline down the body and a
+     little more air, the rule weight a real board draws between columns. The
+     strips above already say it; this carries it down the rows. */
+  .mm-grid [data-band-start] {
+    padding-left: 0.9rem;
+  }
+  .mm-grid tbody td[data-band-start] {
+    border-left: 1px solid var(--mm-rule);
+  }
+  /* Two or three Pools side by side is seven or eight columns, which a
+     laptop cannot give a doubles plate at full width, and a table left to
+     itself squeezes every column to its longest word - "Hayden / Patriquin"
+     on two lines and the stroke between partners alone on a third. A banded
+     field holds its courts at a plate's width instead and lets the scroller
+     take the rest, which is what the band names riding its edge are for.
+     Screen only: paper has no sideways, and turns landscape instead. */
+  /* Set on the Game rather than the cell, because a table cell's own
+     `min-width` feeds the column algorithm unevenly and the spare width went
+     to the round numerals. Content is what auto layout sizes from. */
+  @media screen and (min-width: 640px) {
+    .mm-grid[data-banded] .mm-game {
+      min-width: 9.8rem;
+    }
+    .mm-grid[data-banded] .mm-byes .mm-name {
+      white-space: nowrap;
+    }
+  }
+  /* The one-round view has no header row to carry the strips, so the first
+     court of each band carries its name instead. Nowhere else. */
+  .mm-band-tag {
+    display: none;
   }
 
   /* ---- Name plates -------------------------------------------------------- */
@@ -4525,6 +4609,37 @@ html:has(.bb-app-chrome) {
     .mm-byes {
       max-width: none;
       padding-top: 0;
+    }
+
+    /* Every court in the Round, grouped by Pool. The band's strip comes down
+       onto the first of its courts, ahead of the court label, and the gap
+       before it is the round's widest short of a new round - so the order a
+       reader scans in is round, then pool, then court. */
+    .mm-grid td:has(> .mm-band-tag) {
+      display: flex;
+      flex-direction: column;
+    }
+    .mm-band-tag {
+      display: block;
+      order: -1;
+      width: fit-content;
+      margin-bottom: 0.55rem;
+      padding: 0.24rem 0.42rem 0.22rem;
+      background: var(--mm-vinyl);
+      color: var(--mm-enamel);
+      font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+      font-weight: 700;
+      font-size: 0.5625rem;
+      letter-spacing: 0.2em;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+    .mm-grid td[data-band-start] {
+      margin-top: 1.4rem;
+      padding-top: 0;
+      padding-left: 0;
+      border-top: 0;
+      border-left: 0;
     }
   }
 
@@ -5022,6 +5137,15 @@ html:has(.bb-app-chrome) {
     color: #000;
     padding: 0;
   }
+  /* The band strip goes the same way as the club plate: off comes the vinyl
+     fill, and what is left is the rail every other column head already has,
+     with the Pool's name on it in black. */
+  .mm-band-rail {
+    background: none;
+    color: #000;
+    padding: 0 0 0.22rem;
+    border-bottom: 2px solid var(--mm-vinyl);
+  }
   /* The two dimmed states set their own ink, so they are unaffected by the
      block above and need lifting to where a printer can hold them. They stay
      dimmed rather than being normalised: a stale sheet and a specimen sheet
@@ -5126,6 +5250,12 @@ html:has(.bb-app-chrome) {
   }
   .mm-grid tbody th {
     padding-right: 1rem;
+  }
+  /* The gutter after a band's rule, restated for the same reason: the
+     shorthand above would otherwise put the first name of every band flush
+     against the rule. */
+  .mm-grid [data-band-start] {
+    padding-left: 0.6rem;
   }
   .mm-side {
     font-size: 0.875rem;
