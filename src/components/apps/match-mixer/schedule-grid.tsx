@@ -315,6 +315,12 @@ function GameCell({
  * the dimming below is decoration on top of text that already says it, which
  * is what makes find-me work with no pointer and no sight of the board.
  *
+ * On a pooled board the words say which Pool before anything else, because on
+ * a banded board the other Pools' bands are already held back as outside the
+ * evening, and the dimming is decoration on top of the words — not the other
+ * way round. `band` is the Player's Pool label (`Pool 4.0`, `Pool A`) and
+ * `null` on a one-Pool board, which is what keeps find-me unchanged there.
+ *
  * The slot is always in the DOM so that the line arriving in it is announced,
  * and it carries the way out — one action, reachable without hunting for the
  * name that was tapped.
@@ -322,11 +328,13 @@ function GameCell({
 function FoundLine({
   roster,
   selected,
+  band,
   evening,
   onClear,
 }: {
   roster: Roster;
   selected: PlayerIndex | null;
+  band: string | null;
   evening: readonly ItineraryEntry[] | null;
   onClear: () => void;
 }) {
@@ -335,7 +343,10 @@ function FoundLine({
       <p className="mm-found-line" role="status">
         {selected !== null && evening !== null ? (
           <>
-            <b className="mm-found-name">{roster[selected].name}</b>
+            <b className="mm-found-name">
+              {roster[selected].name}
+              {band ? `, ${band}.` : ""}
+            </b>
             {/* A real space, not the margin under the label: this is one
                 string to a screen reader and to anyone who copies the line. */}
             {" "}
@@ -687,6 +698,7 @@ export function ScheduleGrid({
         <FoundLine
           roster={pickedBand?.roster ?? []}
           selected={picked}
+          band={pickedBand?.label ?? null}
           evening={evening}
           onClear={clearAndReturn}
         />
