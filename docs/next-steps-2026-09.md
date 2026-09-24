@@ -295,9 +295,9 @@ home and this doc is not it.
 - **Two small fixes, 2026-09-23 to 2026-09-24.** The Booking Buddy date picker scrolling
   the Bookings page to the top (#551), and the crawl signals behind three "Discovered, not
   indexed" pages in Search Console (#559: honest sitemap `lastmod`, episode pages
-  prerendered with 1h ISR, a server-rendered h1 on Pickle Point Pal). #559 leaves a manual
-  step: resubmit the sitemap and request indexing on `/contact`, the part-2 mixed doubles
-  episode and `/tools/pickle-point-pal`.
+  prerendered with 1h ISR, a server-rendered h1 on Pickle Point Pal). Its manual follow-up
+  is done too: sitemap resubmitted and indexing requested on `/contact`, the part-2 mixed
+  doubles episode and `/tools/pickle-point-pal`, 2026-09-24.
 
 **The lesson the log actually produced.** Of everything built between this doc being
 written and 2026-09-07, only row 2 came from the table — the rest was marketing polish and
