@@ -3928,6 +3928,13 @@ html:has(.bb-app-chrome) {
   .mm-input::placeholder {
     color: #9aa4a6;
   }
+  /* The Pool count once the roster's own "---" lines have declared the split
+     (ADR 0005): the plate reads inert rather than editable, because the
+     number it shows comes from the box above it, not from this field. */
+  .mm-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 
   /* ---- Which format the night is in --------------------------------------- */
 

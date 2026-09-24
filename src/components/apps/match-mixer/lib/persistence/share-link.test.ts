@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { defaultRounds, maxCourts, type ResolvedConfig } from "../engine/config.ts";
 import { rosterLine } from "../engine/mixed.ts";
-import { parseRoster } from "../engine/roster.ts";
+import { parsePoolHeaders, parseRoster } from "../engine/roster.ts";
 import { drawPools, type BoardConfig } from "../engine/pools.ts";
 import { generateSchedule } from "../engine/schedule.ts";
 import { MAX_ROSTER_SIZE } from "../engine/types.ts";
@@ -583,4 +583,106 @@ test("a hand-set pool count the courts cannot hold is refused", () => {
   // Three Pools on two courts: every Pool needs one of its own.
   const payload = withField(encoded({ ...pooledConfig, courts: 2 }), POOLS_FIELD, "3");
   assert.equal(decodeShareLink(payload), null);
+});
+
+// ---- The Roster declares the Pools (ADR 0005, RR-6.2) ---------------------------
+
+test("headers round-trip through the roster block, under the checksum, and arrive labelled", () => {
+  const text = [
+    "--- 4.0",
+    ...Array.from({ length: 4 }, (_, i) => `Four ${i + 1}`),
+    "---",
+    ...Array.from({ length: 4 }, (_, i) => `Threefive ${i + 1}`),
+  ].join("\n");
+  const declared: BoardConfig = {
+    roster: parseRoster(text),
+    headers: parsePoolHeaders(text),
+    courts: 2,
+    rounds: 4,
+    seed: 42,
+    format: "rotating",
+    mixed: false,
+    pools: 2,
+  };
+
+  const shared = decodeShareLink(encoded(declared));
+  assert.ok(shared);
+  assert.equal(shared.config.pools, 2);
+  assert.deepEqual(shared.config.headers, declared.headers);
+  const pools = drawPools(shared.config);
+  assert.deepEqual(
+    pools.map((pool) => pool.label),
+    ["4.0", "B"],
+  );
+  assert.deepEqual(pools, drawPools(declared));
+});
+
+test("a dealt board's link never turns into a declared one", () => {
+  // A random split at two Pools carries no --- lines at all, so its own
+  // link keeps reading as a dealt board, not a declared one, however many
+  // times it is copied and reopened.
+  const shared = decodeShareLink(encoded(pooledConfig));
+  assert.ok(shared);
+  assert.equal(shared.config.headers, undefined);
+});
+
+test("a declared board carries no Pool count field at all — the headers already say so", () => {
+  const text = "Ben\nAnna\n---\nCath\nDave";
+  const declared: BoardConfig = {
+    roster: parseRoster(text),
+    headers: parsePoolHeaders(text),
+    courts: 1,
+    rounds: 3,
+    seed: 1,
+    format: "rotating",
+    mixed: false,
+    pools: 2,
+  };
+  const fields = encoded(declared).split("\n")[0].split(".");
+  assert.equal(fields.length, 6);
+});
+
+test("headers win over a mismatched hand-set Pool count field", () => {
+  // Mixed doubles so the link already carries a seventh (mixed) field, which
+  // is what makes room for an eighth (Pool count) one to tamper with. Two
+  // Pools of four, two M and two F each, so both draw as mixed doubles on
+  // one court.
+  const text = "Ben M\nAnna F\nCal M\nDot F\n---\nCath M\nDave F\nEsa M\nFen F";
+  const declared: BoardConfig = {
+    roster: parseRoster(text, [], true),
+    headers: parsePoolHeaders(text),
+    courts: 2,
+    rounds: 3,
+    seed: 1,
+    format: "rotating",
+    mixed: true,
+    pools: 2,
+  };
+  const payload = encoded(declared);
+  const fields = payload.slice(0, payload.indexOf("\n")).split(".");
+  assert.equal(fields.length, 7, "no Pool count field on a declared link");
+  // Appended by hand: a Pool count this Roster could never make evenly, which
+  // would be refused if it were read at all.
+  fields.push("3");
+  const tampered = [fields.join("."), payload.slice(payload.indexOf("\n") + 1)].join(
+    "\n",
+  );
+  const shared = decodeShareLink(tampered);
+  assert.ok(shared);
+  assert.equal(shared.config.pools, 2);
+});
+
+test("a header on an odd boundary in fixed partners is refused on a link too", () => {
+  const text = "Ben\nAnna\nCath\n---\nDave\nEve";
+  const declared: BoardConfig = {
+    roster: parseRoster(text),
+    headers: parsePoolHeaders(text),
+    courts: 2,
+    rounds: 3,
+    seed: 1,
+    format: "fixed",
+    mixed: false,
+    pools: 2,
+  };
+  assert.equal(decodeShareLink(encoded(declared)), null);
 });

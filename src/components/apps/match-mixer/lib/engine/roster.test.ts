@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { duplicateNames, parseRoster } from "./roster.ts";
+import {
+  duplicateNames,
+  parsePoolHeaders,
+  parseRoster,
+  rosterText,
+} from "./roster.ts";
 
 test("one name per line, blank lines and stray whitespace dropped", () => {
   const roster = parseRoster(
@@ -121,4 +126,85 @@ test("the same lines read as markers once mixed doubles is asked for", () => {
   // Now they genuinely are two Sarahs on the printed board, and the notice
   // says so.
   assert.deepEqual(duplicateNames(roster), ["Sarah"]);
+});
+
+test("a line beginning --- is a Pool header and never a Player", () => {
+  const text = "Ben\nAnna\n--- 4.0\nCath\nDave";
+  const roster = parseRoster(text);
+  assert.deepEqual(
+    roster.map((player) => player.name),
+    ["Ben", "Anna", "Cath", "Dave"],
+  );
+  assert.deepEqual(parsePoolHeaders(text), [{ label: "4.0", start: 2 }]);
+});
+
+test("a blank line is still not a divider", () => {
+  const text = "Ben\n\nAnna\n\nCath\nDave";
+  assert.deepEqual(parsePoolHeaders(text), []);
+  assert.deepEqual(
+    parseRoster(text).map((player) => player.name),
+    ["Ben", "Anna", "Cath", "Dave"],
+  );
+});
+
+test("a bare header carries no label", () => {
+  const text = "Ben\nAnna\n---\nCath\nDave";
+  assert.deepEqual(parsePoolHeaders(text), [{ label: null, start: 2 }]);
+});
+
+test("a header's label is trimmed and capped at 24 characters", () => {
+  const text = "Ben\n---    padded label   \nAnna";
+  assert.deepEqual(parsePoolHeaders(text), [{ label: "padded label", start: 1 }]);
+
+  const long = "-".repeat(30);
+  const capped = parsePoolHeaders(`Ben\n--- ${long}\nAnna`);
+  assert.equal(capped[0].label, long.slice(0, 24));
+});
+
+test("headers are read before markers: --- F is a pool, not a player", () => {
+  const text = "Sam M\n--- F\nAnna F";
+  const roster = parseRoster(text, [], true);
+  assert.deepEqual(
+    roster.map((player) => player.name),
+    ["Sam", "Anna"],
+  );
+  assert.deepEqual(parsePoolHeaders(text), [{ label: "F", start: 1 }]);
+});
+
+test("headers are never counted by the duplicate-names notice", () => {
+  // Two headers with nothing before the first one produce an empty Pool, but
+  // that is a size question for `pools.ts` — the headers themselves are never
+  // Players, so they never turn up as a name typed twice.
+  const roster = parseRoster("---\n---\nMike\nMike");
+  assert.deepEqual(duplicateNames(roster), ["Mike"]);
+});
+
+test("moving a header changes nothing about the Players it sits among", () => {
+  const withHeaderLate = parseRoster("Ben\nAnna\n---\nCath\nDave");
+  const withHeaderEarly = parseRoster("Ben\n---\nAnna\nCath\nDave");
+  assert.deepEqual(
+    withHeaderLate.map((p) => p.name),
+    withHeaderEarly.map((p) => p.name),
+  );
+});
+
+test("rosterText is the inverse of parseRoster and parsePoolHeaders", () => {
+  const text = "Ben\nAnna\n--- 4.0\nCath M\nDave F";
+  const roster = parseRoster(text, [], true);
+  const headers = parsePoolHeaders(text);
+  assert.equal(rosterText(roster, headers), text);
+});
+
+test("rosterText writes a bare header with just the three dashes", () => {
+  assert.equal(
+    rosterText(parseRoster("Ben\nAnna"), [{ label: null, start: 1 }]),
+    "Ben\n---\nAnna",
+  );
+});
+
+test("rosterText supports a leading header naming Pool A", () => {
+  assert.equal(
+    rosterText(parseRoster("Ben\nAnna"), [{ label: "A", start: 0 }]),
+    "--- A\nBen\nAnna",
+  );
 });
