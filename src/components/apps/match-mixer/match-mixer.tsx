@@ -27,11 +27,14 @@ import {
 } from "@/components/apps/match-mixer/lib/engine/mixed";
 import {
   boardObjection,
+  declaredCourtDefault,
+  declaredPools,
   drawPools,
   isSupportedBoardSize,
   locate,
   MAX_BOARD_SIZE,
   maxPools,
+  planDeclaredPools,
   planPools,
   pooledCourtDefault,
   poolName,
@@ -42,7 +45,10 @@ import {
 } from "@/components/apps/match-mixer/lib/engine/pools";
 import {
   duplicateNames,
+  parsePoolHeaders,
   parseRoster,
+  rosterText,
+  type PoolHeader,
 } from "@/components/apps/match-mixer/lib/engine/roster";
 import { scoreSchedule } from "@/components/apps/match-mixer/lib/engine/scorer";
 import { generateSchedule } from "@/components/apps/match-mixer/lib/engine/schedule";
@@ -67,6 +73,7 @@ import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
   type Format,
+  type Player,
   type PlayerIndex,
   type Roster,
 } from "@/components/apps/match-mixer/lib/engine/types";
@@ -222,10 +229,10 @@ interface Draw {
 
 /** Draws the board for a Config, whether it was just asked for or restored. */
 function drawFrom(config: BoardConfig, outdated = false): Draw {
-  const { roster, courts, rounds, format, mixed, pools } = config;
+  const { roster, courts, rounds, format, mixed, pools, headers } = config;
   return {
     config,
-    key: drawKey(roster, courts, rounds, format, mixed, pools),
+    key: drawKey(roster, courts, rounds, format, mixed, pools, headers ?? []),
     numbers: describeNumbers({
       players: roster.length,
       courts,
@@ -257,6 +264,12 @@ function drawFrom(config: BoardConfig, outdated = false): Draw {
  * it did before Pools existed. The key is also half of a stored Selection's
  * board identity, and a Selection kept from last week should still find its
  * board.
+ *
+ * Headers are folded in too (ADR 0005), and for the same reason: moving a
+ * `---` line can change every Pool's membership without adding, removing or
+ * reordering a single Player, which `roster.map(rosterLine)` alone would not
+ * notice. `label` and `start` are both in the string, so a relabelled or
+ * reshuffled split reads as a different key even when the names line up.
  */
 function drawKey(
   roster: Roster,
@@ -265,12 +278,17 @@ function drawKey(
   format: Format,
   mixed: boolean,
   pools: number,
+  headers: readonly PoolHeader[],
 ): string {
+  const declared =
+    headers.length > 0
+      ? `+declared:${headers.map((h) => `${h.label ?? ""}@${h.start}`).join(",")}`
+      : "";
   // The line as typed, joined on a newline because that is the one character
   // `parseRoster` will not leave inside a name. On a space, "Mary Ann / Bo"
   // and "Mary / Ann Bo" would key the same, and an edit between them would
   // never flag the board.
-  return `${format}${mixed ? "+mixed" : ""}${pools > 1 ? `+${pools}pools` : ""}/${courts}/${rounds}/${roster.map(rosterLine).join("\n")}`;
+  return `${format}${mixed ? "+mixed" : ""}${pools > 1 ? `+${pools}pools` : ""}${declared}/${courts}/${rounds}/${roster.map(rosterLine).join("\n")}`;
 }
 
 /**
@@ -292,6 +310,7 @@ function borrowKey(
   mixed: boolean,
   pools: number,
   seed: number | undefined,
+  headers: readonly PoolHeader[],
 ): string {
   const entries = roster.map((player) => `${player.id}=${rosterLine(player)}`);
   return [
@@ -301,6 +320,7 @@ function borrowKey(
     format,
     mixed ? "mixed" : "",
     pools,
+    headers.map((h) => `${h.label ?? ""}@${h.start}`).join(","),
     ...entries,
   ].join("\n");
 }
@@ -431,10 +451,11 @@ export function MatchMixer() {
           mixed: shownMixed,
           pools: shownPools,
         } = shared.config;
-        // The lines as they were typed, markers and all: a shared mixed board
-        // has to open as a mixed board, and the box over it has to be ticked
-        // against a roster that still says why.
-        setText(shown.map(rosterLine).join("\n"));
+        // The lines as they were typed, headers and all: a shared declared
+        // split has to open declared, and a shared mixed board has to open as
+        // a mixed board, so the box over it has to be ticked against a roster
+        // that still says why.
+        setText(rosterText(shown, shared.config.headers ?? []));
         setRoster(shown);
         setCourtsChoice(courts);
         setRoundsChoice(rounds);
@@ -454,6 +475,7 @@ export function MatchMixer() {
           shownMixed,
           shownPools,
           shared.config.seed,
+          shared.config.headers ?? [],
         );
         setRestored(true);
         return;
@@ -471,8 +493,9 @@ export function MatchMixer() {
         format: DEFAULT_FORMAT,
         mixed: false,
         pools: 1,
+        headers: [],
       };
-      setText(edited.roster.map(rosterLine).join("\n"));
+      setText(rosterText(edited.roster, edited.headers));
       setRoster(edited.roster);
       setCourtsChoice(edited.courts);
       setRoundsChoice(edited.rounds);
@@ -512,6 +535,7 @@ export function MatchMixer() {
         mixed,
         poolsChoice,
         draw?.config.seed,
+        parsePoolHeaders(text),
       );
       if (borrowed.current === onScreen) return;
       borrowed.current = null;
@@ -546,6 +570,7 @@ export function MatchMixer() {
       format,
       mixed,
       pools: poolsChoice,
+      headers: parsePoolHeaders(text),
     };
     const drawn = draw?.config ?? null;
 
@@ -570,6 +595,7 @@ export function MatchMixer() {
   }, [
     restored,
     cleared,
+    text,
     roster,
     courtsChoice,
     roundsChoice,
@@ -686,12 +712,22 @@ export function MatchMixer() {
   };
 
   const size = roster.length;
-  // The Pool count this Roster will be drawn with: the choice, brought inside
-  // what the names can make. Read before anything else, because whether the
-  // Roster fits at all depends on it — forty names is too many for one
-  // rotation and two Pools of twenty.
-  const pools = resolvePools(size, poolsChoice);
-  const supported = isSupportedBoardSize(size, pools);
+  // The Roster's own declared split (ADR 0005): headers read off the box,
+  // turned into ranges over this Roster. Present, it wins over the Pool count
+  // everywhere below — the count is read only when this is `null`.
+  const headers = parsePoolHeaders(text);
+  const declared = headers.length > 0 ? declaredPools(size, headers) : null;
+  // The Pool count this Roster will be drawn with: the declared split's own
+  // count, or the choice brought inside what the names can make. Read before
+  // anything else, because whether the Roster fits at all depends on it —
+  // forty names is too many for one rotation and two Pools of twenty.
+  const pools = declared ? declared.length : resolvePools(size, poolsChoice);
+  // A declared split answers its own size question per Pool, further down in
+  // `boardObjection` — this is only the coarse "is there a Roster to speak
+  // of at all" gate that decides whether the fields render.
+  const supported = declared
+    ? size >= MIN_ROSTER_SIZE && size <= MAX_BOARD_SIZE
+    : isSupportedBoardSize(size, pools);
   // The ceiling follows the Format, because a singles court seats two: the
   // field's maximum has to move as the row is switched, not only as names are
   // pasted, or a doubles court count would survive into a Format that could
@@ -718,14 +754,17 @@ export function MatchMixer() {
   //
   // Past one Pool the courts default to what the Pools can fill, which the
   // pool layer works out; the mixed ceiling above is a whole-Roster figure and
-  // says nothing about a Pool.
+  // says nothing about a Pool. A declared split works its own default out the
+  // same way, off its own Pools rather than an even deal.
+  const poolish = declared !== null || pools > 1;
   const { courts, rounds } = resolveBoard(
     roster,
-    courtsChoice ?? (pools > 1 ? undefined : mixedCeiling),
+    courtsChoice ?? (poolish ? undefined : mixedCeiling),
     roundsChoice ?? undefined,
     format,
     mixing,
     pools,
+    headers,
   );
 
   const repeated = duplicateNames(roster);
@@ -745,9 +784,10 @@ export function MatchMixer() {
   // pressed rather than instead of the board afterwards.
   //
   // Past one Pool every Pool answers for itself as well, and the message names
-  // the one that could not be seated.
+  // the one that could not be seated — a declared Pool's own composition, an
+  // even deal otherwise.
   const objection = supported
-    ? boardObjection(roster, format, mixing, pools, courts)
+    ? boardObjection(roster, format, mixing, pools, courts, headers)
     : null;
   const drawable = supported && objection === null;
   // The consequence line stays on the screen at every Roster size, including
@@ -757,14 +797,16 @@ export function MatchMixer() {
   // Roster takes its place, because describing seats nobody can sit in would
   // be the more confident of the two wrong answers.
   const plan =
-    supported && pools > 1
-      ? planPools(roster, format, mixing, pools, courts)
+    supported && poolish
+      ? declared
+        ? planDeclaredPools(roster, format, mixing, declared, courts)
+        : planPools(roster, format, mixing, pools, courts)
       : null;
   const consequence = !supported
     ? describeUnsupportedRoster(size)
     : (objection ??
       (plan ? describePooledConfig(shape, plan) : describeConfig(shape)));
-  const key = drawKey(roster, courts, rounds, format, mixing, pools);
+  const key = drawKey(roster, courts, rounds, format, mixing, pools, headers);
   const stale = draw !== null && draw.key !== key;
 
   const generate = () => {
@@ -776,7 +818,55 @@ export function MatchMixer() {
         format,
         mixed: mixing,
         pools,
+        headers: declared ? headers : undefined,
         seed: nextSeed(draw?.config.seed),
+      }),
+    );
+  };
+
+  /**
+   * "Keep this split" (ADR 0005): the only thing in the tool that ever
+   * writes to the roster box, and only when pressed. It takes the Pools
+   * actually on screen and writes them back as bare `---` lines, so the
+   * split becomes the organizer's own — from here they can move a name
+   * across a divider or put a label on it — and it is also how an organizer
+   * discovers the header syntax in the first place, findable from a dealt
+   * board rather than buried in a note.
+   *
+   * It redraws with the Seed already on screen rather than leaving the old
+   * `draw` standing: the Pools it just wrote are the same Pools, in the same
+   * order, with the same names in each — so the board that comes back is the
+   * same board, only now current against the fields instead of one edit
+   * behind them.
+   */
+  const keepSplit = () => {
+    // Guarded again rather than trusted to the button's own gating: writing
+    // a stale draw's Pools over fields the organizer has since edited would
+    // silently discard that edit, which is the one thing this action must
+    // never do.
+    if (!draw || stale || draw.pools.length <= 1) return;
+    const nextHeaders: PoolHeader[] = [];
+    const flatRoster: Player[] = [];
+    for (const pool of draw.pools) {
+      if (flatRoster.length > 0) {
+        nextHeaders.push({ label: null, start: flatRoster.length });
+      }
+      flatRoster.push(...pool.roster);
+    }
+    const nextText = rosterText(flatRoster, nextHeaders);
+    setText(nextText);
+    setRoster(flatRoster);
+    setCleared(null);
+    setDraw(
+      drawFrom({
+        roster: flatRoster,
+        courts: draw.config.courts,
+        rounds: draw.config.rounds,
+        format: draw.config.format,
+        mixed: draw.config.mixed,
+        pools: draw.pools.length,
+        headers: nextHeaders,
+        seed: draw.config.seed,
       }),
     );
   };
@@ -914,7 +1004,7 @@ export function MatchMixer() {
                 where the typing happens rather than discovered from the board
                 afterwards. */}
             <p id="mm-roster-note" className="mm-note mt-2">
-              {pools > 1
+              {poolish
                 ? `One name per line, ${MIN_ROSTER_SIZE} to ${MAX_ROSTER_SIZE} players a pool and ${MAX_BOARD_SIZE} in all.`
                 : `One name per line, ${MIN_ROSTER_SIZE} to ${MAX_ROSTER_SIZE} players.`}
               {format === "fixed"
@@ -933,22 +1023,57 @@ export function MatchMixer() {
             ) : null}
             <DuplicateNotice names={repeated} />
 
-            {/* Shown once the list could make two Pools, and kept showing past
-                what one rotation holds, because that is exactly when it is the
-                way out. Above the courts because it decides what they are for:
-                a court belongs to a Pool for the whole night. */}
-            {maxPools(size) > 1 && size <= MAX_BOARD_SIZE ? (
+            {/* Shown once the list could make two Pools, or once it already
+                has (a declared split can name just one), and kept showing
+                past what one rotation holds, because that is exactly when it
+                is the way out. Above the courts because it decides what they
+                are for: a court belongs to a Pool for the whole night. */}
+            {declared || (maxPools(size) > 1 && size <= MAX_BOARD_SIZE) ? (
               <div className="mm-fields mm-fields-one mt-6">
                 <NumberField
                   id="mm-pools"
                   label="Pools"
                   value={pools}
                   min={1}
-                  max={maxPools(size)}
+                  max={declared ? pools : maxPools(size)}
+                  disabled={declared !== null}
                   onChange={(next) => setPoolsChoice(next ?? 1)}
-                  note={poolsNote(pools, format, mixing)}
+                  note={
+                    // Headers win (ADR 0005): with a `---` line in the box the
+                    // count is read from nowhere and this field only reports
+                    // it, which is what the dial's own disabled state says on
+                    // sight.
+                    declared
+                      ? `Set by the roster’s own “---” lines. Remove them to hand the split back to this count.`
+                      : poolsNote(pools, format, mixing)
+                  }
                 />
               </div>
+            ) : null}
+
+            {/* The bridge between a dealt split and a declared one (ADR
+                0005): findable off a board that is already split rather than
+                buried in a note, and gone the moment the roster names its
+                own split so pressing it twice is a no-op rather than a
+                second write. Also gone while the board is stale — the
+                fields have moved on from what is drawn, and writing the old
+                draw's Pools back would silently overwrite whatever the
+                organizer has typed since. */}
+            {!declared && !stale && draw && draw.pools.length > 1 ? (
+              <button
+                type="button"
+                className="mm-quiet mt-2"
+                onClick={keepSplit}
+                aria-describedby="mm-keep-split-note"
+              >
+                Keep this split
+              </button>
+            ) : null}
+            {!declared && !stale && draw && draw.pools.length > 1 ? (
+              <p className="mm-note mt-1" id="mm-keep-split-note">
+                Writes today’s pools into the roster box as “---” lines you
+                can edit by hand.
+              </p>
             ) : null}
 
             {supported ? (
@@ -967,7 +1092,9 @@ export function MatchMixer() {
                     // the organizer actually has. What changes is what this
                     // says, because "up to 4" is not true of a mixed night
                     // that can fill 3 — and the refusal below does the rest.
-                    pools > 1
+                    declared
+                      ? `The pools can fill ${declaredCourtDefault(roster, format, mixing, declared)}, of up to ${courtCeiling}.`
+                      : pools > 1
                       ? `The pools can fill ${pooledCourtDefault(roster, format, mixing, pools)}, of up to ${courtCeiling}.`
                       : mixedCeiling !== undefined && mixedCeiling < courtCeiling
                       ? `Up to ${mixedCeiling} as mixed doubles.`
@@ -1440,6 +1567,7 @@ function NumberField({
   max,
   note,
   onChange,
+  disabled = false,
 }: {
   id: string;
   label: string;
@@ -1448,6 +1576,10 @@ function NumberField({
   max: number;
   note: string;
   onChange: (next: number | null) => void;
+  /** The field reports a number set elsewhere rather than taking one here —
+   * the Pool count once the Roster's own headers have declared the split
+   * (ADR 0005). */
+  disabled?: boolean;
 }) {
   const [emptied, setEmptied] = useState(false);
 
@@ -1464,6 +1596,7 @@ function NumberField({
         value={emptied ? "" : value}
         min={min}
         max={max}
+        disabled={disabled}
         onChange={(event) => {
           const raw = event.target.value;
           const next = Number.parseInt(raw, 10);
