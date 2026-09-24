@@ -32,6 +32,9 @@ const routes: Route[] = [
   { path: "/contact", changeFrequency: "yearly", priority: 0.3 },
 ];
 
+/** Pages whose content changes when a new episode goes out. */
+const EPISODE_FED_PATHS = new Set(["/", "/podcast"]);
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const episodes = await getEpisodes();
   const episodeRoutes: Route[] = episodes.map((episode) => ({
@@ -41,9 +44,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(episode.published),
   }));
 
-  return [...routes, ...episodeRoutes].map((route) => ({
+  // lastmod has to be true or Google stops trusting it for the whole sitemap.
+  // Stamping every page with "now" on each request told Google every page
+  // changed daily, so the date got ignored. Home and Podcast honestly change
+  // with each new episode; the other static pages leave lastmod out.
+  const latestEpisode = episodes.length
+    ? new Date(Math.max(...episodes.map((episode) => Date.parse(episode.published))))
+    : undefined;
+  const staticRoutes = routes.map((route) =>
+    EPISODE_FED_PATHS.has(route.path) ? { ...route, lastModified: latestEpisode } : route,
+  );
+
+  return [...staticRoutes, ...episodeRoutes].map((route) => ({
     url: `${siteConfig.url}${route.path}`,
-    lastModified: route.lastModified ?? new Date(),
+    lastModified: route.lastModified,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));

@@ -11,9 +11,9 @@ import { picklePointPalFaqs } from "@/data/pickle-point-pal-content";
 export function PicklePointPalAbout() {
   return (
     <section className="mx-auto mt-16 w-full max-w-2xl border-t-2 border-[var(--pp-hairline)] pt-10 text-pp-ink-dim">
-      <h2 className="pp-plate text-2xl text-pp-ink">
+      <h1 className="pp-plate text-2xl text-pp-ink">
         A pickleball scorekeeper that thinks like a referee
-      </h2>
+      </h1>
       <p className="mt-4">
         Pickle Point Pal is a free pickleball scorekeeping app for whoever ends
         up keeping score at the net. You set the format and run the coin toss,
@@ -32,7 +32,7 @@ export function PicklePointPalAbout() {
       </p>
 
       <span className="mt-10 block h-px bg-pp-hairline" />
-      <h3 className="pp-plate mt-6 text-lg text-pp-ink">How pickleball scoring works</h3>
+      <h2 className="pp-plate mt-6 text-lg text-pp-ink">How pickleball scoring works</h2>
       <p className="mt-3">
         In side-out scoring, the traditional format, only the serving team can
         score a point. A doubles score is called as three numbers: the serving
@@ -47,7 +47,7 @@ export function PicklePointPalAbout() {
       </p>
 
       <span className="mt-10 block h-px bg-pp-hairline" />
-      <h3 className="pp-plate mt-6 text-lg text-pp-ink">Questions</h3>
+      <h2 className="pp-plate mt-6 text-lg text-pp-ink">Questions</h2>
       <dl className="mt-4 divide-y divide-[var(--pp-hairline)] border-y border-pp-hairline">
         {picklePointPalFaqs.map((faq) => (
           <div

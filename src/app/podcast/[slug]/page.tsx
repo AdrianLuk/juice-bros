@@ -34,6 +34,16 @@ async function resolveEpisode(slug: string): Promise<Episode> {
   notFound();
 }
 
+/**
+ * Prerender every current episode so crawlers get a cached static page instead
+ * of a fresh server render per request (they were `no-store` before). A new
+ * episode, or a former slug that redirects, still renders on first visit.
+ */
+export async function generateStaticParams() {
+  const episodes = await getEpisodes();
+  return episodes.map((episode) => ({ slug: episode.slug }));
+}
+
 export async function generateMetadata({
   params,
 }: PageProps<"/podcast/[slug]">): Promise<Metadata> {

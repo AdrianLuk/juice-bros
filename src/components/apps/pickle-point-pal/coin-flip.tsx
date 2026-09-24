@@ -52,7 +52,7 @@ export function CoinFlip({
 
   return (
     <div className="mx-auto w-full max-w-md ref-landscape:max-w-4xl">
-      <h1 className="pp-plate text-2xl text-pp-ink ref-landscape:text-lg">Coin toss</h1>
+      <h2 className="pp-plate text-2xl text-pp-ink ref-landscape:text-lg">Coin toss</h2>
       <p className="mt-1.5 text-sm text-pp-ink-dim ref-landscape:hidden">
         One team calls 1 or 2, then draw. Record who called it and who actually
         won the toss.
