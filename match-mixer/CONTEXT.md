@@ -150,10 +150,14 @@ _Avoid_: Card, personal schedule, my games. Not a Mixer, which is a plan being r
 
 **Find-me**:
 Tapping a name to see that Player's Itinerary. The board holds everything not in their evening back, their own name is marked, and the Itinerary says the same thing in words above the grid — the words are the answer and the dimming is decoration on top of them, so it works with no pointer and no sight of the board. Tapping the marked name again puts the whole board back. Available on any board, including one the organizer drew themselves. Finding yourself is a reading and not an edit, so it does not claim a Borrowed board.
+
+On a pooled board (RR-6.3, #554) the other Pools' bands are already held back as outside the evening, and since it is the words that are the answer rather than the dimming, the words say so: the line names the Player's Pool first, by its label when it has one, before anything else. "**Ben Johns, Pool 4.0.** Round 1, court 3, …" answers the first question a player standing at a banded board asks — which Pool am I in — before the Itinerary answers the rest. On a one-Pool board there is only ever one Pool to name, so the line is unchanged.
 _Avoid_: Filter, highlight, focus mode, my view
 
 **Selection**:
-Which Roster index find-me is showing, kept in this browser. Always stored against a **board identity** — the Roster, the courts, the Rounds and the Seed together — because an index only means anything against one particular board: index 3 on a board you were sent is a stranger's evening. A stored Selection whose identity does not match the board on screen reads as no Selection, silently, which is also what makes "the organizer sent a second link" behave.
+Which Roster index find-me is showing, kept in this browser. Always stored against a **board identity** — the Roster, the courts, the Rounds, the **Pool** count and the Seed together — because an index only means anything against one particular board: index 3 on a board you were sent is a stranger's evening, and so is index 3 after a redraw split it into a different number of Pools. A stored Selection whose identity does not match the board on screen reads as no Selection, silently, which is also what makes "the organizer sent a second link" behave.
+
+The index itself stays global rather than becoming a Pool and a position in it — a Selection means "line 3 of the list I typed" and resolves to a Pool only through `locate`, the one place that knows about Pools (ADR 0004), so it still finds the right Player after the Pools are dealt again.
 _Avoid_: Active player, current user (there are no accounts here), pinned name
 
 Selection has a key and a module of its own in the persistence layer (`selection-storage.ts`) rather than a field on the saved Config, so `config-storage.ts` is no longer the only thing in Match Mixer touching `localStorage`. A **Borrowed board** is deliberately never written to the saved Config — reading somebody else's link must not wipe the Roster you keep for your own club night — and that is precisely the visit whose Selection most needs to come back after a pocket.
@@ -179,7 +183,6 @@ On the board a pooled night is one field with a band of columns per Pool, headed
 
 Headers ride inside the Share Link's roster block, under the checksum, and arrive labelled. A dealt board's link never turns into a declared one: the count rides on the number line as its own field, and a link never writes a random deal out as headers, which would quiet a count the reader could otherwise turn and change what their redraw does.
 
-Not built yet: find-me on a pooled board (RR-6.3 #554) — today it holds the other Pools' bands back as outside the evening, but its words do not yet name the Pool, and **Selection**'s board identity carries the Pool count only because the draw key does.
 _Avoid_: Group (too loose to mean anything), flight, division, heat, bracket (nothing here is elimination), court group
 
 ### Not built yet
