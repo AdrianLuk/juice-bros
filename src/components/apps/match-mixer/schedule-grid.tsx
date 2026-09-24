@@ -29,7 +29,32 @@ import type {
  * index, and picking one holds the rest of the board back so one Player's
  * evening is left standing in it. The dimming is decoration on top of the
  * itinerary line above, which says the same thing in words.
+ *
+ * A board dealt into Pools is still one field: a band of columns per Pool,
+ * courts in order across it (ADR 0004). The grid is handed a list of bands and
+ * loops over it, and that loop is the whole of what it knows. Everything below
+ * the loop, from the Game cell down to the name, is handed one band's roster
+ * indexed from zero and one band's Schedule, exactly as it was before there
+ * could be more than one.
  */
+
+/**
+ * One band of the field: a roster, the Schedule drawn over it, and the
+ * Scorer's reading of that Schedule. A one-band board has no label and draws
+ * exactly the field it always drew; past one, each band is named.
+ */
+export interface Band {
+  readonly label: string | null;
+  readonly roster: Roster;
+  readonly schedule: Schedule;
+  readonly score: ScorerResult;
+}
+
+/** A name on the board, by its band and its place in that band's roster. */
+export interface BandPlayer {
+  readonly band: number;
+  readonly player: PlayerIndex;
+}
 
 /**
  * One name, addressable on its own. Selection keys on the Roster index and
@@ -376,6 +401,135 @@ function verdictOf(score: ScorerResult): {
 }
 
 /**
+ * One band's Round: its courts, then who it sits out.
+ *
+ * `here` is what the found Player is doing this Round if they are in this
+ * band, and `away` is whether somebody is found in another band, which holds
+ * the whole of this one back: none of it is in their evening.
+ */
+function BandCells({
+  band,
+  round,
+  courts,
+  byes,
+  tag,
+  start,
+  here,
+  away,
+  selected,
+  onSelect,
+}: {
+  band: Band;
+  round: number;
+  /** The courts this band's columns head, in order. */
+  courts: readonly number[];
+  byes: boolean;
+  /** The band's name, carried by its first court for the one-round view. */
+  tag: string | null;
+  /** Whether this band starts after another, and is ruled off from it. */
+  start: boolean;
+  here: ItineraryEntry | null;
+  away: boolean;
+  selected: PlayerIndex | null;
+  onSelect?: (player: PlayerIndex) => void;
+}) {
+  const { roster, score } = band;
+  const slot = band.schedule.rounds[round];
+  if (!slot) return null;
+
+  // The circle Formats leave a court idle rather than fill it with a rematch,
+  // and always the last one. On a one-band board the row simply ends short,
+  // as it always has. Beside another band it cannot: every cell after it would
+  // slide one column left, under the next band's courts, so the idle court
+  // keeps its place as an empty cell.
+  const idle = tag !== null ? courts.length - slot.games.length : 0;
+
+  return (
+    <>
+      {slot.games.map((game, position) => (
+        <td
+          key={game.court}
+          data-court={`Court ${game.court + 1}`}
+          data-band-start={start && position === 0 ? "true" : undefined}
+          data-dim={
+            away ||
+            (here && !(here.kind === "game" && here.court === game.court))
+              ? "true"
+              : undefined
+          }
+        >
+          {/* On a phone the header row is gone, so the first court of each
+              band says which band it opens. Not rendered on a one-band
+              board, and hidden everywhere but the one-round view. */}
+          {tag !== null && position === 0 ? (
+            <span className="mm-band-tag">{tag}</span>
+          ) : null}
+          <GameCell
+            roster={roster}
+            score={score}
+            game={game}
+            selected={selected}
+            onSelect={onSelect}
+          />
+        </td>
+      ))}
+      {courts.slice(courts.length - idle).map((court) => (
+        <td
+          key={court}
+          data-court={`Court ${court + 1}`}
+          data-dim={away || here ? "true" : undefined}
+        />
+      ))}
+      {byes ? (
+        <td
+          className="mm-byes"
+          data-court="Sitting out"
+          data-dim={away || (here && here.kind !== "bye") ? "true" : undefined}
+        >
+          {slot.byes.map((player, position) => (
+            <Fragment key={player}>
+              {position > 0 ? (
+                <span className="mm-join" aria-hidden="true">
+                  {", "}
+                </span>
+              ) : null}
+              <PlayerName
+                roster={roster}
+                index={player}
+                selected={selected}
+                onSelect={onSelect}
+              />
+            </Fragment>
+          ))}
+        </td>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * One band's summary line, named when there is more than one band. A `p` on a
+ * one-band board, which is the line it always was; a list item when it is one
+ * of several.
+ */
+function Summary({ band, as: Tag }: { band: Band; as: "p" | "li" }) {
+  const summary = summarise(band.score, band.schedule);
+  return (
+    <Tag className="mm-summary">
+      {band.label !== null ? (
+        <>
+          <span className="mm-summary-band">{band.label}</span>
+          {" · "}
+        </>
+      ) : null}
+      <b data-fail={summary.failed ? "true" : undefined}>{summary.verdict}</b>
+      {" · "}
+      {summary.rest}
+    </Tag>
+  );
+}
+
+/**
  * The summary line is a readout of the Scorer against the Schedule that was
  * actually produced, never a claim derived from the Config. Whether the Byes
  * rotate evenly is the Scorer's verdict too, not a second rule worked out
@@ -429,17 +583,13 @@ function summarise(
 }
 
 export function ScheduleGrid({
-  roster,
-  schedule,
-  score,
+  bands,
   headingId = "mm-schedule-heading",
   headingHidden = false,
   selected = null,
   onSelect,
 }: {
-  roster: Roster;
-  schedule: Schedule;
-  score: ScorerResult;
+  bands: readonly Band[];
   /** Overridden by the zero state, which shows a second grid of its own. */
   headingId?: string;
   /**
@@ -447,30 +597,35 @@ export function ScheduleGrid({
    * off rather than sitting under a second one saying the same thing.
    */
   headingHidden?: boolean;
-  /** The Roster index whose evening is being read, if any. */
-  selected?: PlayerIndex | null;
+  /** Whose evening is being read, if anybody's. */
+  selected?: BandPlayer | null;
   /**
    * Omitted on a board nobody is meant to find themselves on. Without it the
    * names render as text and there is no find-me at all, which is what keeps
    * the zero state's specimen out of the way rather than an `inert` somebody
    * has to remember.
    */
-  onSelect?: (player: PlayerIndex) => void;
+  onSelect?: (found: BandPlayer) => void;
 }) {
   const field = useRef<HTMLElement>(null);
-  const courts = schedule.rounds[0]?.games.length ?? 0;
-  const anyByes = schedule.rounds.some((round) => round.byes.length > 0);
-  const summary = summarise(score, schedule);
-  // An index this Roster does not have is nobody, checked here as well as at
-  // the caller so that the grid is total for whatever it is handed: a board
-  // and a selection are two props and nothing makes them arrive together.
-  const picked =
-    selected !== null && selected >= 0 && selected < roster.length
-      ? selected
+  const banded = bands.length > 1;
+  // An index a band does not have is nobody, checked here as well as at the
+  // caller so that the grid is total for whatever it is handed: a board and a
+  // selection are two props and nothing makes them arrive together.
+  const pickedBand =
+    selected !== null &&
+    selected.player >= 0 &&
+    selected.player < (bands[selected.band]?.roster.length ?? 0)
+      ? bands[selected.band]
       : null;
+  const picked = pickedBand && selected ? selected.player : null;
   // One reading of the Schedule for both the sentence and the dimming, so the
   // board cannot end up holding back a cell the line says you are in.
-  const evening = onSelect && picked !== null ? itinerary(schedule, picked) : null;
+  const evening =
+    onSelect && pickedBand && picked !== null
+      ? itinerary(pickedBand.schedule, picked)
+      : null;
+  const rounds = bands[0]?.schedule.rounds.length ?? 0;
 
   /**
    * Putting the board back leaves the button that did it with nothing to say,
@@ -482,11 +637,27 @@ export function ScheduleGrid({
    * comes off, so focusing it before React commits is enough.
    */
   const clearAndReturn = () => {
-    if (picked === null) return;
+    if (selected === null || picked === null) return;
     const mark = field.current?.querySelector<HTMLElement>(".mm-name[data-me]");
-    onSelect?.(picked);
+    onSelect?.(selected);
     mark?.focus();
   };
+
+  // Each band's own columns: every court any of its Games is on, in order,
+  // which is the real court across the whole night, and an Off column only
+  // if that band ever sits anybody out. Read off every Round rather than the
+  // first, so a court a circle Format leaves idle in some Round still has its
+  // column.
+  const columns = bands.map((band) => ({
+    courts: [
+      ...new Set(
+        band.schedule.rounds.flatMap((round) =>
+          round.games.map((game) => game.court),
+        ),
+      ),
+    ].sort((a, b) => a - b),
+    byes: band.schedule.rounds.some((round) => round.byes.length > 0),
+  }));
 
   return (
     <section
@@ -498,15 +669,23 @@ export function ScheduleGrid({
           The board
         </h2>
       )}
-      <p className="mm-summary">
-        <b data-fail={summary.failed ? "true" : undefined}>{summary.verdict}</b>
-        {" · "}
-        {summary.rest}
-      </p>
+      {/* Each band's verdict off its own Scorer, and nothing combining them:
+          the Scorer's unit is the Pool, and there is no definition of fair
+          across Pools (ADR 0004). Stacked where the one summary line has
+          always been, so the verdict is still the first thing read. */}
+      {banded ? (
+        <ul className="mm-summaries">
+          {bands.map((band, index) => (
+            <Summary key={index} band={band} as="li" />
+          ))}
+        </ul>
+      ) : bands[0] ? (
+        <Summary band={bands[0]} as="p" />
+      ) : null}
 
       {onSelect ? (
         <FoundLine
-          roster={roster}
+          roster={pickedBand?.roster ?? []}
           selected={picked}
           evening={evening}
           onClear={clearAndReturn}
@@ -514,28 +693,79 @@ export function ScheduleGrid({
       ) : null}
 
       <div className="mm-scroll mt-4">
-        <table className="mm-grid">
+        <table
+          className="mm-grid"
+          data-banded={banded ? "true" : undefined}
+        >
           <caption className="sr-only">
-            Every round of the rotation, with one column per court.
+            {banded
+              ? "Every round of the night, with one column per court and the courts grouped under the name above them."
+              : "Every round of the rotation, with one column per court."}
             {onSelect
               ? " Choose a name to read just that player's evening; choose it again to show everyone."
               : null}
           </caption>
+          {/* Column groups only where there are bands to group, so that the
+              band headers can say which columns they head. */}
+          {banded ? (
+            <>
+              <colgroup />
+              {columns.map((band, index) => (
+                <colgroup
+                  key={index}
+                  span={band.courts.length + (band.byes ? 1 : 0)}
+                />
+              ))}
+            </>
+          ) : null}
           <thead>
+            {banded ? (
+              <tr className="mm-bands">
+                <td />
+                {bands.map((band, index) => (
+                  <th
+                    key={index}
+                    scope="colgroup"
+                    colSpan={columns[index].courts.length + (columns[index].byes ? 1 : 0)}
+                    data-band-start={index > 0 ? "true" : undefined}
+                  >
+                    {/* The rail under the name is its own box so it stops
+                        short of the next band's, and the name inside it rides
+                        along the scroller's edge while any of the band is
+                        still in view: a band scrolled half off is never a run
+                        of courts with no pool over them. */}
+                    <span className="mm-band-rail">
+                      <span className="mm-band-name">{band.label}</span>
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            ) : null}
             <tr>
               <th scope="col">Rd</th>
-              {Array.from({ length: courts }, (_, court) => (
-                <th key={court} scope="col">
-                  Court {court + 1}
-                </th>
+              {columns.map((band, index) => (
+                <Fragment key={index}>
+                  {band.courts.map((court, position) => (
+                    <th
+                      key={court}
+                      scope="col"
+                      data-band-start={
+                        index > 0 && position === 0 ? "true" : undefined
+                      }
+                    >
+                      Court {court + 1}
+                    </th>
+                  ))}
+                  {band.byes ? <th scope="col">Off</th> : null}
+                </Fragment>
               ))}
-              {anyByes ? <th scope="col">Off</th> : null}
             </tr>
           </thead>
           <tbody>
-            {schedule.rounds.map((round, index) => {
+            {Array.from({ length: rounds }, (_, index) => {
               // What the selected Player is doing this round, which is the
-              // whole of what decides where the board is held back.
+              // whole of what decides where the board is held back. Every band
+              // but theirs is outside their evening altogether.
               const here = evening?.[index] ?? null;
 
               return (
@@ -543,48 +773,25 @@ export function ScheduleGrid({
                 // a wipe; the animation itself is entirely in CSS.
                 <tr key={index} style={{ "--row": index } as CSSProperties}>
                   <th scope="row">{index + 1}</th>
-                  {round.games.map((game) => (
-                    <td
-                      key={game.court}
-                      data-court={`Court ${game.court + 1}`}
-                      data-dim={
-                        here && !(here.kind === "game" && here.court === game.court)
-                          ? "true"
+                  {bands.map((band, which) => (
+                    <BandCells
+                      key={which}
+                      band={band}
+                      round={index}
+                      courts={columns[which].courts}
+                      byes={columns[which].byes}
+                      tag={banded ? band.label : null}
+                      start={banded && which > 0}
+                      here={band === pickedBand ? here : null}
+                      away={pickedBand !== null && band !== pickedBand}
+                      selected={band === pickedBand ? picked : null}
+                      onSelect={
+                        onSelect
+                          ? (player) => onSelect({ band: which, player })
                           : undefined
                       }
-                    >
-                      <GameCell
-                        roster={roster}
-                        score={score}
-                        game={game}
-                        selected={picked}
-                        onSelect={onSelect}
-                      />
-                    </td>
+                    />
                   ))}
-                  {anyByes ? (
-                    <td
-                      className="mm-byes"
-                      data-court="Sitting out"
-                      data-dim={here && here.kind !== "bye" ? "true" : undefined}
-                    >
-                      {round.byes.map((player, position) => (
-                        <Fragment key={player}>
-                          {position > 0 ? (
-                            <span className="mm-join" aria-hidden="true">
-                              {", "}
-                            </span>
-                          ) : null}
-                          <PlayerName
-                            roster={roster}
-                            index={player}
-                            selected={picked}
-                            onSelect={onSelect}
-                          />
-                        </Fragment>
-                      ))}
-                    </td>
-                  ) : null}
                 </tr>
               );
             })}

@@ -1,14 +1,11 @@
+import { resolveMixed } from "../engine/mixed.ts";
 import {
-  isSupportedRosterSize,
-  resolveNumbers,
-  type ResolvedConfig,
-} from "../engine/config.ts";
-import { formatObjection } from "../engine/format.ts";
-import {
-  mixedObjection,
-  partnershipSupply,
-  resolveMixed,
-} from "../engine/mixed.ts";
+  boardObjection,
+  isSupportedBoardSize,
+  maxPools,
+  resolveBoard,
+  type BoardConfig,
+} from "../engine/pools.ts";
 import type { Format, Roster } from "../engine/types.ts";
 import {
   isFiniteNumber,
@@ -16,6 +13,7 @@ import {
   readChoice,
   readFlag,
   readFormat,
+  readPools,
   readRoster,
 } from "./read-config.ts";
 
@@ -58,6 +56,10 @@ const KEY = "juicebros.matchmixer.config";
  * that is absent from every existing Roster, and both read correctly as what
  * they were. There is nothing to migrate and nothing to discard, so discarding
  * would only throw away a roster to no end.
+ *
+ * RR-6's Pool count (#552) is not a bump either, on exactly those terms: it is
+ * absent from every existing save, and absent reads as one Pool, which is what
+ * every existing save is.
  */
 const SCHEMA = 2;
 
@@ -87,13 +89,20 @@ export interface EditedConfig {
    * Format of its own, and the markers it reads live on the Roster lines.
    */
   readonly mixed: boolean;
+  /**
+   * How many Pools the Roster is dealt into. Not nullable, for the Format's
+   * reason: one is a choice made on the organizer's behalf, not a number that
+   * follows the Roster. What does follow the Roster is how many it can make,
+   * and that is clamped where it is read rather than written back here.
+   */
+  readonly pools: number;
 }
 
 export interface SavedVisit {
   readonly schema: number;
   readonly edited: EditedConfig;
   /** The Config the sheet on screen came from, or null if nothing was drawn. */
-  readonly drawn: ResolvedConfig | null;
+  readonly drawn: BoardConfig | null;
   readonly savedAt: number;
 }
 
@@ -108,7 +117,7 @@ export interface SavedVisit {
  * decide when they mean it — a tab that has never held anything must not call
  * this at all, or it would delete what another tab just saved.
  */
-export function save(edited: EditedConfig, drawn: ResolvedConfig | null): void {
+export function save(edited: EditedConfig, drawn: BoardConfig | null): void {
   if (typeof window === "undefined") return;
   if (edited.roster.length === 0) {
     clear();
@@ -179,47 +188,60 @@ function readEdited(value: unknown): EditedConfig | null {
   const rounds = readChoice(value.rounds);
   const format = readFormat(value.format);
   const mixed = readFlag(value.mixed);
+  const pools = readPools(value.pools);
   if (!roster || courts === undefined || rounds === undefined) return null;
-  if (format === undefined || mixed === undefined) return null;
+  if (format === undefined || mixed === undefined || pools === undefined) {
+    return null;
+  }
   // Normalized rather than restored as written: mixed doubles is a qualifier
   // on rotating, and a box that came back ticked under fixed partners would be
   // applying to nothing. The screen never writes that pair, so this is only
   // about a save edited by hand.
-  return { roster, courts, rounds, format, mixed: resolveMixed(format, mixed) };
+  return {
+    roster,
+    courts,
+    rounds,
+    format,
+    mixed: resolveMixed(format, mixed),
+    pools,
+  };
 }
 
-function readDrawn(value: unknown): ResolvedConfig | null {
+function readDrawn(value: unknown): BoardConfig | null {
   if (!isRecord(value)) return null;
   const roster = readRoster(value.roster);
+  const count = readPools(value.pools);
   // Anything the engine would refuse is treated as corrupt here, so a
   // hand-edited save cannot turn into an UnsupportedConfigError on mount.
-  if (!roster || !isSupportedRosterSize(roster.length)) return null;
+  // A drawn count this Roster cannot make is refused rather than clamped, on
+  // the Share Link's terms: the screen only ever writes the count it drew.
+  if (!roster || count === undefined) return null;
+  if (count > maxPools(roster.length)) return null;
+  if (!isSupportedBoardSize(roster.length, count)) return null;
   const { courts, rounds, seed } = value;
   if (!isFiniteNumber(courts) || !isFiniteNumber(rounds) || !isFiniteNumber(seed)) {
     return null;
   }
   const format = readFormat(value.format);
-  const saved = readFlag(value.mixed);
-  if (format === undefined || saved === undefined) return null;
-  const mixed = resolveMixed(format, saved);
+  const ticked = readFlag(value.mixed);
+  if (format === undefined || ticked === undefined) return null;
+  const mixed = resolveMixed(format, ticked);
   // Brought inside what the Roster supports here rather than left to
   // `generateSchedule`, which clamps its own copy and hands nothing back: the
   // restored numbers are read again for the stale key and for the line naming
   // what the sheet was drawn from, and both have to be the numbers used.
-  const numbers = resolveNumbers(
-    roster.length,
-    courts,
-    rounds,
-    format,
-    partnershipSupply(roster, mixed),
-  );
+  const numbers = resolveBoard(roster, courts, rounds, format, mixed, count);
   // Roster size is not the only thing a draw refuses: an odd list in fixed
-  // partners leaves somebody with nobody to partner, and a half-marked or
-  // lopsided list cannot be seated as mixed doubles. All of them have to be
+  // partners leaves somebody with nobody to partner, a half-marked or
+  // lopsided list cannot be seated as mixed doubles, and a Pool short of a
+  // court or of a side cannot be seated at all. All of them have to be
   // checked here, and for the same reason — this Config is drawn from during
-  // mount, so anything `generateSchedule` would throw on is a screen that
-  // never renders, on every visit, until storage is cleared by hand.
-  if (formatObjection(roster, format) !== null) return null;
-  if (mixedObjection(roster, numbers.courts, mixed) !== null) return null;
+  // mount, so anything a draw would throw on is a screen that never renders,
+  // on every visit, until storage is cleared by hand.
+  if (
+    boardObjection(roster, format, mixed, numbers.pools, numbers.courts) !== null
+  ) {
+    return null;
+  }
   return { roster, seed, format, mixed, ...numbers };
 }

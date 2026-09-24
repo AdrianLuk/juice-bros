@@ -4,9 +4,13 @@ import test from "node:test";
 import {
   describeConfig,
   describeNumbers,
+  describePooledConfig,
   describeUnsupportedRoster,
   type ConfigShape,
 } from "./describe.ts";
+import { planPools, resolveBoard } from "./pools.ts";
+import { parseRoster } from "./roster.ts";
+import type { Format } from "./types.ts";
 
 /** A rotating shape, which is what most of these are asking about. */
 function shape(
@@ -173,9 +177,22 @@ test("a roster too small to seat still gets a line, counting what is missing", (
   assert.equal(describeUnsupportedRoster(3), "3 players. 1 more and there is a court's worth.");
 });
 
-test("a roster too big to seat says how far over it is", () => {
-  assert.equal(describeUnsupportedRoster(33), "33 players. 1 more than one sheet holds.");
-  assert.equal(describeUnsupportedRoster(40), "40 players. 8 more than one sheet holds.");
+test("a roster too big for one rotation points at the pool count", () => {
+  assert.equal(
+    describeUnsupportedRoster(40),
+    "40 names is more than one rotation holds. Split into 2 pools or more.",
+  );
+  assert.equal(
+    describeUnsupportedRoster(33),
+    "33 names is more than one rotation holds. Split into 2 pools or more.",
+  );
+});
+
+test("a roster too big for the board says how far over it is", () => {
+  assert.equal(
+    describeUnsupportedRoster(70),
+    "70 players. 6 more than one board holds, even split into pools.",
+  );
 });
 
 /** The same shape with mixed doubles on, and the supply that goes with it. */
@@ -208,4 +225,81 @@ test("the supply clause counts M x F while the constraint is on", () => {
     describeConfig(shape(12, 3, 8)),
     /enough partnerships to go round\.$/,
   );
+});
+
+/**
+ * Pools (#552). One Pool's line is the line it always was; past one, the line
+ * says where each Pool plays, which courts nobody is on, and which Pool runs
+ * out first.
+ */
+
+function pooled(
+  players: number,
+  pools: number,
+  courts: number,
+  rounds?: number,
+  format: Format = "rotating",
+): string {
+  const roster = parseRoster(
+    Array.from({ length: players }, (_, i) => `Player ${i + 1}`).join("\n"),
+  );
+  const numbers = resolveBoard(roster, courts, rounds, format, false, pools);
+  const plan = planPools(roster, format, false, numbers.pools, numbers.courts);
+  assert.ok(plan);
+  return describePooledConfig(
+    { players, courts: numbers.courts, rounds: numbers.rounds, format, pools: numbers.pools },
+    plan,
+  );
+}
+
+test("one pool's particulars are the particulars they always were", () => {
+  const shape: ConfigShape = { players: 13, courts: 3, rounds: 8, format: "rotating" };
+  assert.equal(describeNumbers({ ...shape, pools: 1 }), describeNumbers(shape));
+  assert.equal(describeNumbers(shape), "rotating partners · 13 players on 3 courts, 8 rounds");
+});
+
+test("a pooled board's particulars say how many pools", () => {
+  assert.equal(
+    describeNumbers({ players: 20, courts: 4, rounds: 8, format: "rotating", pools: 2 }),
+    "rotating partners · 20 players in 2 pools on 4 courts, 8 rounds",
+  );
+});
+
+test("each pool gets a sentence saying where it plays and who sits", () => {
+  assert.equal(
+    pooled(20, 2, 4),
+    "rotating partners · 20 players in 2 pools on 4 courts, 8 rounds. Pool A: 10 players on courts 1 and 2, 2 players sit out each round, taking turns. Pool B: 10 players on courts 3 and 4, 2 players sit out each round, taking turns. Every pool runs out of new partners after round 11.",
+  );
+});
+
+test("the line names the pool that sets the round count", () => {
+  // 7 and 6 on a court each: B runs out after 7, A after 10.
+  assert.equal(
+    pooled(13, 2, 2),
+    "rotating partners · 13 players in 2 pools on 2 courts, 7 rounds. Pool A: 7 players on court 1, 3 players sit out each round, taking turns. Pool B: 6 players on court 2, 2 players sit out each round, taking turns. Pool B runs out of new partners first, after round 7.",
+  );
+});
+
+test("past the shortest pool's length the line says where repeats start", () => {
+  assert.match(pooled(13, 2, 2, 9), /Partners start repeating in Pool B after round 7\.$/);
+});
+
+test("courts the pools cannot fill are named, not refused", () => {
+  assert.match(
+    pooled(12, 2, 3),
+    /Court 3 stands empty, because no pool has the players to fill it\./,
+  );
+  // Six Pools of six, one court each, on the nine courts 36 names could fill.
+  assert.match(
+    pooled(36, 6, 9),
+    /Courts 7 to 9 stand empty, because no pool has the players to fill them\./,
+  );
+});
+
+test("fixed partners counts a pool's byes in pairs", () => {
+  assert.match(pooled(20, 2, 2, undefined, "fixed"), /Pool A: 10 players on court 1, 3 pairs sit out each round/);
+});
+
+test("singles talks about matchups in a pooled board too", () => {
+  assert.match(pooled(18, 2, 8, undefined, "singles"), /runs? out of new matchups/);
 });

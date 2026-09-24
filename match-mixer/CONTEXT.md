@@ -20,6 +20,7 @@ One Format contradicts that last sentence on purpose. In **fixed partners** the 
 A line may also end in a **Marker**, a single trailing `M` or `F` that **mixed doubles** reads. It rides on the roster line and never in a field of its own, which is what keeps the parse honest — there is no range to guess at and no question of whether a name ends in one — and what lets it travel: the Share Link carries lines rather than names, so a marked board opens marked. A line that is only a Marker is a name, because there is nothing before it to attach one to.
 
 **A Marker is read only while mixed doubles is on**, and this is load-bearing rather than an optimisation. A club that tells two Sarahs apart by last initial types exactly what a Marker looks like, so reading one off every line unconditionally would delete the initial — and only for those two letters, leaving `Mike T` intact beside a `Sarah M` that had silently become a second `Sarah`, with the duplicate notice firing on names the organizer had already told apart. So ticking the box re-reads the roster box, and unticking it reads the same lines back as names. Everything that parses a Roster answers the same question first: the box, the Share Link, and nothing else — a saved Roster stores its Markers structurally and is not re-parsed at all.
+A Roster holds 4 to 32 Players per **Pool**, and at most `min(32 × pools, 64)` on one board. Both reasons for the old flat ceiling of 32 were reasons about one rotation (the grid fitting a sheet, the search staying quick), and since RR-6 a rotation is a Pool. So a list of forty is not refused outright at one Pool: the screen says it is more than one rotation holds and points at the Pool count.
 _Avoid_: Lineup, list, Queue (On Deck's word, and a very different idea)
 
 **Player**:
@@ -29,7 +30,7 @@ This entry used to read "a name, and nothing else". The sentence was amended in 
 _Avoid_: Participant, attendee. The word means different things in Booking Buddy and On Deck — see `CONTEXT-MAP.md`. **Gender** is not the word for the Marker: what the tool reads is two letters on a line, and what it promises is one of each to a side.
 
 **Config**:
-Everything the organizer has chosen: the Roster, the Format, whether it is **mixed doubles**, the court count, the Round count and the Seed. It is the only thing edited and the only thing remembered between visits. A Schedule is never edited — the Config is edited, and the Schedule follows.
+Everything the organizer has chosen: the Roster, the Format, whether it is **mixed doubles**, the **Pool** count, the court count, the Round count and the Seed. It is the only thing edited and the only thing remembered between visits. A Schedule is never edited — the Config is edited, and the Schedule follows.
 _Avoid_: Settings, options, form state
 
 **Format**:
@@ -64,6 +65,7 @@ _Avoid_: Shuffle, randomiser
 
 **Court**:
 A column of the grid — one of the places a Game can happen within a Round. Here a court is a count, not a place: it has no name, no venue and no existence outside the Config.
+On a board dealt into **Pools** its number counts across the whole night rather than being a column index, so two Pools can never both send somebody to court 1. Each Pool's generator numbers its courts from zero, and the pool layer moves every Game onto its real court. On the board a column is a court for the whole evening, grouped into one band per Pool, and a court no Pool has the players to fill stands empty and the consequence line says which.
 _Avoid_: Court as On Deck uses it (a physical, named court belonging to a Club).
 
 ### The output
@@ -74,6 +76,7 @@ _Avoid_: Draw, bracket (nothing here is elimination), plan
 
 **Round**:
 One slice of the Schedule: every court plays a Game simultaneously and whoever is left over takes a Bye. Rounds are the rows of the grid and the unit the desk reads out.
+The Round count is one number for every **Pool**: a Round is a time slot across every court, and the room calls "next round" once. Its default is the shortest Pool's natural length, capped at the usual eight, and the consequence line names the Pool that set it.
 _Avoid_: Rotation, session
 
 **Game**:
@@ -96,6 +99,8 @@ _Avoid_: Sit-out as a noun, rest, bench
 
 **Share Link**:
 A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, a checksum over the names, the Format, and then the names. The Format is last because a field is always appended and never inserted: a link minted before Formats existed carries five fields, reads as rotating, and goes on drawing the board it named. The Format rides as one character (`r`, `f`, `s`), so a new Format costs a link nothing — which is what #544 was able to demonstrate. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
+
+Mixed doubles is the seventh field and the **Pool** count the eighth, both appended only when they say something: a one-Pool link on an unmixed board is byte-for-byte the link minted before either existed, and a pooled unmixed link leaves the seventh empty to reach the eighth. The link carries the count and never the deal, so the reader's browser deals the same Pools again off the same Seed. Neither bumped the Generator Version, because a Config with no Pool count is one Pool and draws the board it always did; `unchanged-boards.test.ts` pins that with boards minted by the engine before Pools.
 _Avoid_: Invite Link (Booking Buddy's word, and an account-bound one), permalink, share code, export
 
 **Generator Version**:
@@ -120,6 +125,7 @@ The measurement of a Schedule. It is this context's definition of "fair" — it 
 What it measures depends on the Format, so its reading is a union and a caller has to say which board it is looking at before taking a verdict off it. In **rotating** it is partner repeats first, Bye imbalance second, opponent repeats third. In **fixed partners** every partner repeat is deliberate, so the question becomes whether every Pairing has faced every other and whether the team Byes come round evenly — a fixed board scored as a rotating one reports a perfectly correct Schedule as a catastrophe. In **singles** there are no partners at all and the partner matrix stays empty, so the whole verdict is what the opponent matrix says: has anybody played the same person twice, and do the Byes rotate. A `cost` of zero means the same thing in every Format.
 
 Singles and fixed partners count the same noun over different units — meetings between Players, meetings between Pairings — which is why they are two shapes rather than one. A reader that could not tell them apart would report a figure against the wrong denominator.
+Its unit is the **Pool**. On a pooled board each Pool's summary line is its own, read off its own Schedule against its own denominators, and nothing combines them: there is no verdict for the night, because averaging a complete five-player rotation with a third of a twelve-player one gives a number with no referent.
 _Avoid_: Cost function (fine as the function's name; the Scorer is the concept), validator. Unrelated to entering game scores, which is a separate future concern.
 
 **Pairing**:
@@ -150,28 +156,23 @@ _Avoid_: Active player, current user (there are no accounts here), pinned name
 
 Selection has a key and a module of its own in the persistence layer (`selection-storage.ts`) rather than a field on the saved Config, so `config-storage.ts` is no longer the only thing in Match Mixer touching `localStorage`. A **Borrowed board** is deliberately never written to the saved Config — reading somebody else's link must not wipe the Roster you keep for your own club night — and that is precisely the visit whose Selection most needs to come back after a pocket.
 
-### Not built yet
+### Splitting the night
 
-**Pool** (RR-6, #392):
+**Pool** (RR-6, #392; the count shipped in RR-6.1, #552):
 A part of the Roster playing its own complete round robin, on courts of its own, at the same time as the others. A Pool has its own Players, its own courts, its own Schedule and its own reading from the Scorer, and it has nothing to do with any other Pool beyond sharing a Round count and a board. A Bye in Pool A has no bearing on Pool B's balance. It is not a stage of a tournament: nothing is seeded into a Pool and nothing comes out of one into a playoff.
 
-Who is in which Pool is decided one of two ways ([ADR 0005](docs/adr/0005-the-roster-declares-the-pools.md)). A **Pool header** is a roster line beginning `---`, and everything below it until the next one is that Pool; a header may carry a label (`--- 4.0`) that becomes the Pool's name, and a bare one falls back to its letter. With no headers, the **Pool count** on the Config deals the Roster at random off the Seed, as evenly as the numbers allow, and a redraw deals again. Headers win when both are present: if the organizer drew the lines they are theirs, and if not, the tool draws them. **Keep this split** writes the current deal into the roster box as headers, and is the only thing that ever writes to it.
+Pools are made by one layer above `generateSchedule` and nowhere else (`lib/engine/pools.ts`, [ADR 0004](docs/adr/0004-pools-partition-above-a-pool-blind-engine.md)). It deals the Roster, allocates courts, calls `generateSchedule` once per Pool with that Pool's own **sub-roster**, and moves each Game onto its real court. The generator, the Tables, the Scorer and the Itinerary never hear the word, and the grid only loops over a list of bands. A Pool of eight on two courts in rotating is an n=8 board and comes off the n=8 Table.
 
-The deal deals the Format's own unit, the same noun-over-different-units shape the Scorer already has: Players in rotating and singles, Pairings in fixed partners so no pair is torn in two, and `M` and `F` as separate queues under mixed doubles.
+The **Pool count** on the Config deals the Roster at random off the Seed, as evenly as the numbers allow, and a redraw deals again. The deal deals the Format's own unit, the same noun-over-different-units shape the Scorer already has: Players in rotating and singles, Pairings in fixed partners so no pair is torn in two, and `M` and `F` as separate queues under mixed doubles, so a Roster that is mixable as Pools is never refused because of the deal. The deal is random in who and never in how many, which is what lets the consequence line describe every Pool before anything is drawn. Pool A draws with the raw Seed and the others with Seeds derived from it, so two Pools of the same size are not the same grid with different names on it. At one Pool there is no deal at all, not a deal of one.
 
-A Pool's courts are allocated once for the night and never move ([ADR 0004](docs/adr/0004-pools-partition-above-a-pool-blind-engine.md)). Fewer courts than Pools is refused, because a Pool with no court is not a Pool. More courts than the Pools can fill is not, on mixed doubles' precedent that the court count is a fact about the evening.
+A Pool's courts are allocated once for the night and never move: one each, then each spare court to whichever Pool sits the most people out per Round, capped at what that Pool can fill. Fewer courts than Pools is refused, because a Pool with no court is not a Pool. More courts than the Pools can fill is not, on mixed doubles' precedent that the court count is a fact about the evening. Any Pool's refusal refuses the whole board, and the message names the Pool.
 
-When Pools land they change several entries above, and those entries should be amended in place rather than contradicted from here:
+On the board a pooled night is one field with a band of columns per Pool, headed by a vinyl strip with the Pool's name knocked out of it, and each Pool's summary line stacked where the one summary line has always sat. On a phone each Round shows every court, grouped under its Pool's strip.
 
-- **Roster**: order gains a second deliberate meaning after fixed partners' Pairings, which is where a line sits relative to a header. Still never a seeding or a ranking. A header is read before anything else on its line, so it is never a name and never carries a Marker.
-- **Config**: gains the Pool count.
-- **Court**: still no name and no venue, but its number now counts across the whole night rather than being a column index, so two Pools can never both send somebody to court 1. On the board a column is a court for the whole evening, grouped into one band per Pool.
-- **Round**: the Round count is one number for every Pool. A Round is a time slot and the room calls "next round" once.
-- **Scorer**: its unit is the Pool. Each Pool's summary line is its own, and there is no verdict for the night, because there is no definition of fair across Pools.
-- **Roster size**: the floor of 4 and the ceiling of 32 are per Pool, with `min(32 × pools, 64)` overall.
-- **Share Link**: the Pool count is appended as the eighth field; headers travel in the roster block under the checksum. Neither bumps the Generator Version, because a Config with no Pool count is one Pool and draws the board it always did.
-- **Find-me** and **Selection**: the words name the Pool first, and the other Pools' bands are held back with everything else outside the evening. A Selection stays a global Roster index, and the Pool count joins the board identity.
+Not built yet: **Pool headers** in the Roster (a line beginning `---`, optionally labelled, which win over the count when present) and **Keep this split**, which writes the current deal into the roster box as headers ([ADR 0005](docs/adr/0005-the-roster-declares-the-pools.md), RR-6.2 #553). When headers land, the **Roster** entry gains order's second deliberate meaning: where a line sits relative to a header. And find-me on a pooled board (RR-6.3 #554): today it holds the other Pools' bands back as outside the evening, but its words do not yet name the Pool, and **Selection**'s board identity carries the Pool count only because the draw key does.
 _Avoid_: Group (too loose to mean anything), flight, division, heat, bracket (nothing here is elimination), court group
+
+### Not built yet
 
 **Mixer**:
 A Schedule plus everything that has since happened to it — Rounds locked, scores entered, people arriving and leaving. A Config and its Schedule describe a plan; a Mixer is a plan being run.

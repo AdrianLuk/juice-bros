@@ -3,32 +3,43 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
-  isSupportedRosterSize,
   MAX_ROUNDS,
   maxCourts,
-  resolveNumbers,
-  type ResolvedConfig,
 } from "@/components/apps/match-mixer/lib/engine/config";
 import {
   describeConfig,
   describeNumbers,
+  describePooledConfig,
   describeUnsupportedRoster,
 } from "@/components/apps/match-mixer/lib/engine/describe";
 import {
   FORMAT_LABELS,
   FORMAT_NOTES,
   FORMATS,
-  formatObjection,
 } from "@/components/apps/match-mixer/lib/engine/format";
 import {
   countMarkers,
   describeMarkers,
   mixedCourtDefault,
-  mixedObjection,
   partnershipSupply,
   resolveMixed,
   rosterLine,
 } from "@/components/apps/match-mixer/lib/engine/mixed";
+import {
+  boardObjection,
+  drawPools,
+  isSupportedBoardSize,
+  locate,
+  MAX_BOARD_SIZE,
+  maxPools,
+  planPools,
+  pooledCourtDefault,
+  poolName,
+  resolveBoard,
+  resolvePools,
+  type BoardConfig,
+  type Pool,
+} from "@/components/apps/match-mixer/lib/engine/pools";
 import {
   duplicateNames,
   parseRoster,
@@ -58,11 +69,9 @@ import {
   type Format,
   type PlayerIndex,
   type Roster,
-  type Schedule,
-  type ScorerResult,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
-import { ScheduleGrid } from "./schedule-grid";
+import { ScheduleGrid, type Band, type BandPlayer } from "./schedule-grid";
 
 /**
  * Match Mixer's only screen. Paste a Roster, set your courts, draw the
@@ -149,8 +158,23 @@ const MIXED_LEDE =
  * Landscape is not a cure at every size. Twelve singles courts need 1186px
  * against 964px of landscape width, so a board that big still breaks names;
  * the print stylesheet says why that beats dropping the court.
+ *
+ * A pooled board is measured the same way, in columns: every court any Pool is
+ * on, plus every Off column past the first, since a one-Pool board's single
+ * Off column was already inside the measurements above. Courts nobody is on
+ * have no column and add nothing.
  */
 const WIDE_BOARD_COURTS = 6;
+
+/** How many columns wide the drawn field is, in the measure above. */
+function fieldColumns(pools: readonly Pool[]): number {
+  const courts = pools.reduce((total, pool) => total + pool.courts, 0);
+  if (pools.length === 1) return courts;
+  const off = pools.filter((pool) =>
+    pool.schedule.rounds.some((round) => round.byes.length > 0),
+  ).length;
+  return courts + Math.max(0, off - 1);
+}
 
 /**
  * The zero state's board: a real Schedule, generated the way any other
@@ -158,11 +182,13 @@ const WIDE_BOARD_COURTS = 6;
  * built once at module scope, because it must not differ between the server's
  * render and the browser's, and it never changes after that.
  */
-const EXAMPLE = (() => {
+const EXAMPLE: readonly Band[] = (() => {
   const roster = parseRoster(EXAMPLE_ROSTER);
   const config = { roster, courts: 2, rounds: 4, seed: 3 } as const;
   const schedule = generateSchedule(config);
-  return { roster, schedule, score: scoreSchedule(schedule, config) };
+  return [
+    { label: null, roster, schedule, score: scoreSchedule(schedule, config) },
+  ];
 })();
 
 /** What the Schedule on screen was drawn from, kept beside it. */
@@ -174,13 +200,17 @@ interface Draw {
    * matters because it is what lets the same board be generated again after a
    * reload instead of stored (ADR 0001).
    */
-  readonly config: ResolvedConfig;
+  readonly config: BoardConfig;
   /** The Roster and numbers it came from, for telling current from stale. */
   readonly key: string;
   /** The numbers it was drawn from, for the flag over a stale board. */
   readonly numbers: string;
-  readonly schedule: Schedule;
-  readonly score: ScorerResult;
+  /**
+   * What was drawn: one Pool on an ordinary board, several side by side on a
+   * dealt one. Each carries its own Schedule and its own Scorer reading, and
+   * nothing here combines them.
+   */
+  readonly pools: readonly Pool[];
   /**
    * Whether this board came off a Share Link minted under an older Generator
    * Version. It sticks to this particular draw rather than to the screen, so
@@ -191,21 +221,20 @@ interface Draw {
 }
 
 /** Draws the board for a Config, whether it was just asked for or restored. */
-function drawFrom(config: ResolvedConfig, outdated = false): Draw {
-  const { roster, courts, rounds, format, mixed } = config;
-  const schedule = generateSchedule(config);
+function drawFrom(config: BoardConfig, outdated = false): Draw {
+  const { roster, courts, rounds, format, mixed, pools } = config;
   return {
     config,
-    key: drawKey(roster, courts, rounds, format, mixed),
+    key: drawKey(roster, courts, rounds, format, mixed, pools),
     numbers: describeNumbers({
       players: roster.length,
       courts,
       rounds,
       format,
       mixed,
+      pools,
     }),
-    schedule,
-    score: scoreSchedule(schedule, config),
+    pools: drawPools(config),
     outdated,
   };
 }
@@ -221,7 +250,13 @@ function drawFrom(config: ResolvedConfig, outdated = false): Draw {
  * saying so — which is the exact reading this key exists to prevent. Mixed
  * doubles is in here on the same argument, twice over: the box and the markers
  * on the lines both change the board, and one of them changes it while every
- * name stays where it was.
+ * name stays where it was. So is the Pool count, which changes every seat on
+ * the board without touching a name or a court.
+ *
+ * The Pool count is only written past one, so a one-Pool board keys exactly as
+ * it did before Pools existed. The key is also half of a stored Selection's
+ * board identity, and a Selection kept from last week should still find its
+ * board.
  */
 function drawKey(
   roster: Roster,
@@ -229,12 +264,13 @@ function drawKey(
   rounds: number,
   format: Format,
   mixed: boolean,
+  pools: number,
 ): string {
   // The line as typed, joined on a newline because that is the one character
   // `parseRoster` will not leave inside a name. On a space, "Mary Ann / Bo"
   // and "Mary / Ann Bo" would key the same, and an edit between them would
   // never flag the board.
-  return `${format}${mixed ? "+mixed" : ""}/${courts}/${rounds}/${roster.map(rosterLine).join("\n")}`;
+  return `${format}${mixed ? "+mixed" : ""}${pools > 1 ? `+${pools}pools` : ""}/${courts}/${rounds}/${roster.map(rosterLine).join("\n")}`;
 }
 
 /**
@@ -254,6 +290,7 @@ function borrowKey(
   rounds: number | null,
   format: Format,
   mixed: boolean,
+  pools: number,
   seed: number | undefined,
 ): string {
   const entries = roster.map((player) => `${player.id}=${rosterLine(player)}`);
@@ -263,6 +300,7 @@ function borrowKey(
     rounds ?? "",
     format,
     mixed ? "mixed" : "",
+    pools,
     ...entries,
   ].join("\n");
 }
@@ -318,6 +356,10 @@ export function MatchMixer() {
   // rotating rather than a Format of its own, so it is held beside the row
   // rather than inside it.
   const [mixed, setMixed] = useState(false);
+  // How many Pools to deal the Roster into. A choice like the Format rather
+  // than a number that follows the Roster: one until the organizer says
+  // otherwise, and clamped to what the Roster can make wherever it is read.
+  const [poolsChoice, setPoolsChoice] = useState(1);
   const [draw, setDraw] = useState<Draw | null>(null);
   // Whether the saved Config has been read yet, which is only ever asked so
   // that saving cannot start before loading has finished. The screen itself
@@ -387,6 +429,7 @@ export function MatchMixer() {
           rounds,
           format: shownFormat,
           mixed: shownMixed,
+          pools: shownPools,
         } = shared.config;
         // The lines as they were typed, markers and all: a shared mixed board
         // has to open as a mixed board, and the box over it has to be ticked
@@ -397,6 +440,7 @@ export function MatchMixer() {
         setRoundsChoice(rounds);
         setFormat(shownFormat);
         setMixed(shownMixed);
+        setPoolsChoice(shownPools);
         // Generated again from the values the link carried rather than sent as
         // a grid, which is what ADR 0001's determinism was for. `!current` is
         // never a decode failure (#494): an unrecognised or future version
@@ -408,6 +452,7 @@ export function MatchMixer() {
           rounds,
           shownFormat,
           shownMixed,
+          shownPools,
           shared.config.seed,
         );
         setRestored(true);
@@ -425,6 +470,7 @@ export function MatchMixer() {
         rounds: null,
         format: DEFAULT_FORMAT,
         mixed: false,
+        pools: 1,
       };
       setText(edited.roster.map(rosterLine).join("\n"));
       setRoster(edited.roster);
@@ -432,6 +478,7 @@ export function MatchMixer() {
       setRoundsChoice(edited.rounds);
       setFormat(edited.format);
       setMixed(edited.mixed);
+      setPoolsChoice(edited.pools);
       // The board is generated again rather than stored, so what comes back is
       // the same board down to the seat every name sat in.
       setDraw(saved?.drawn ? drawFrom(saved.drawn) : null);
@@ -463,6 +510,7 @@ export function MatchMixer() {
         roundsChoice,
         format,
         mixed,
+        poolsChoice,
         draw?.config.seed,
       );
       if (borrowed.current === onScreen) return;
@@ -497,6 +545,7 @@ export function MatchMixer() {
       rounds: roundsChoice,
       format,
       mixed,
+      pools: poolsChoice,
     };
     const drawn = draw?.config ?? null;
 
@@ -518,7 +567,17 @@ export function MatchMixer() {
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flush);
     };
-  }, [restored, cleared, roster, courtsChoice, roundsChoice, format, mixed, draw]);
+  }, [
+    restored,
+    cleared,
+    roster,
+    courtsChoice,
+    roundsChoice,
+    format,
+    mixed,
+    poolsChoice,
+    draw,
+  ]);
 
   // Which board is on screen, for the find-me selection to be held against.
   // Never the Roster index alone: an index only means anything against one
@@ -565,6 +624,27 @@ export function MatchMixer() {
     else saveSelection(board, next);
   };
 
+  // The grid is handed a band per Pool, each indexed from zero, and names
+  // its picks the same way. A Selection stays a Roster index regardless, so
+  // it is resolved to a band on the way in and back to the Roster on the way
+  // out, through the one place that maps between the two (ADR 0004).
+  const bands: readonly Band[] = draw
+    ? draw.pools.map((pool) => ({
+        label: draw.pools.length > 1 ? poolName(pool.label) : null,
+        roster: pool.roster,
+        schedule: pool.schedule,
+        score: pool.score,
+      }))
+    : [];
+  const located = draw && selected !== null ? locate(draw.pools, selected) : null;
+  const bandSelected: BandPlayer | null = located
+    ? { band: located.pool, player: located.index }
+    : null;
+  const selectInBand = ({ band, player }: BandPlayer) => {
+    const member = draw?.pools[band]?.members[player];
+    if (member !== undefined) selectPlayer(member);
+  };
+
   const editRoster = (next: string) => {
     setText(next);
     setRoster((previous) => parseRoster(next, previous, mixing));
@@ -606,7 +686,12 @@ export function MatchMixer() {
   };
 
   const size = roster.length;
-  const supported = isSupportedRosterSize(size);
+  // The Pool count this Roster will be drawn with: the choice, brought inside
+  // what the names can make. Read before anything else, because whether the
+  // Roster fits at all depends on it — forty names is too many for one
+  // rotation and two Pools of twenty.
+  const pools = resolvePools(size, poolsChoice);
+  const supported = isSupportedBoardSize(size, pools);
   // The ceiling follows the Format, because a singles court seats two: the
   // field's maximum has to move as the row is switched, not only as names are
   // pasted, or a doubles court count would survive into a Format that could
@@ -630,12 +715,17 @@ export function MatchMixer() {
   // Not memoized. It is four comparisons over primitives, and the manual
   // memoization it used to carry is the kind the React Compiler has to refuse
   // to preserve once one of the inputs is derived from the Roster.
-  const { courts, rounds } = resolveNumbers(
-    size,
-    courtsChoice ?? mixedCeiling,
+  //
+  // Past one Pool the courts default to what the Pools can fill, which the
+  // pool layer works out; the mixed ceiling above is a whole-Roster figure and
+  // says nothing about a Pool.
+  const { courts, rounds } = resolveBoard(
+    roster,
+    courtsChoice ?? (pools > 1 ? undefined : mixedCeiling),
     roundsChoice ?? undefined,
     format,
-    supply,
+    mixing,
+    pools,
   );
 
   const repeated = duplicateNames(roster);
@@ -647,14 +737,17 @@ export function MatchMixer() {
     format,
     mixed: mixing,
     partnerships: supply,
+    pools,
   };
   // Why this Roster cannot be drawn like this, if it cannot. Asked here rather
   // than caught out of `generateSchedule`, because the answer is a sentence
   // the organizer can act on and it has to be on screen before the button is
   // pressed rather than instead of the board afterwards.
+  //
+  // Past one Pool every Pool answers for itself as well, and the message names
+  // the one that could not be seated.
   const objection = supported
-    ? (formatObjection(roster, format) ??
-      mixedObjection(roster, courts, mixing))
+    ? boardObjection(roster, format, mixing, pools, courts)
     : null;
   const drawable = supported && objection === null;
   // The consequence line stays on the screen at every Roster size, including
@@ -663,10 +756,15 @@ export function MatchMixer() {
   // organizer is least sure what they have. A Format that cannot seat this
   // Roster takes its place, because describing seats nobody can sit in would
   // be the more confident of the two wrong answers.
+  const plan =
+    supported && pools > 1
+      ? planPools(roster, format, mixing, pools, courts)
+      : null;
   const consequence = !supported
     ? describeUnsupportedRoster(size)
-    : (objection ?? describeConfig(shape));
-  const key = drawKey(roster, courts, rounds, format, mixing);
+    : (objection ??
+      (plan ? describePooledConfig(shape, plan) : describeConfig(shape)));
+  const key = drawKey(roster, courts, rounds, format, mixing, pools);
   const stale = draw !== null && draw.key !== key;
 
   const generate = () => {
@@ -677,6 +775,7 @@ export function MatchMixer() {
         rounds,
         format,
         mixed: mixing,
+        pools,
         seed: nextSeed(draw?.config.seed),
       }),
     );
@@ -721,7 +820,7 @@ export function MatchMixer() {
       // drawn board and not the fields, because the fields can already be
       // describing a wider board than the one that would print.
       data-wide={
-        (draw?.config.courts ?? 0) > WIDE_BOARD_COURTS ? "true" : undefined
+        draw && fieldColumns(draw.pools) > WIDE_BOARD_COURTS ? "true" : undefined
       }
     >
       <div className="mm-face mm-fixings">
@@ -815,7 +914,9 @@ export function MatchMixer() {
                 where the typing happens rather than discovered from the board
                 afterwards. */}
             <p id="mm-roster-note" className="mm-note mt-2">
-              One name per line, {MIN_ROSTER_SIZE} to {MAX_ROSTER_SIZE} players.
+              {pools > 1
+                ? `One name per line, ${MIN_ROSTER_SIZE} to ${MAX_ROSTER_SIZE} players a pool and ${MAX_BOARD_SIZE} in all.`
+                : `One name per line, ${MIN_ROSTER_SIZE} to ${MAX_ROSTER_SIZE} players.`}
               {format === "fixed"
                 ? " Each pair goes on two lines, one after the other."
                 : null}
@@ -831,6 +932,24 @@ export function MatchMixer() {
               <p className="mm-note mt-2">Read: {describeMarkers(markers)}.</p>
             ) : null}
             <DuplicateNotice names={repeated} />
+
+            {/* Shown once the list could make two Pools, and kept showing past
+                what one rotation holds, because that is exactly when it is the
+                way out. Above the courts because it decides what they are for:
+                a court belongs to a Pool for the whole night. */}
+            {maxPools(size) > 1 && size <= MAX_BOARD_SIZE ? (
+              <div className="mm-fields mm-fields-one mt-6">
+                <NumberField
+                  id="mm-pools"
+                  label="Pools"
+                  value={pools}
+                  min={1}
+                  max={maxPools(size)}
+                  onChange={(next) => setPoolsChoice(next ?? 1)}
+                  note={poolsNote(pools, format, mixing)}
+                />
+              </div>
+            ) : null}
 
             {supported ? (
               <div className="mm-fields mt-6">
@@ -848,7 +967,9 @@ export function MatchMixer() {
                     // the organizer actually has. What changes is what this
                     // says, because "up to 4" is not true of a mixed night
                     // that can fill 3 — and the refusal below does the rest.
-                    mixedCeiling !== undefined && mixedCeiling < courtCeiling
+                    pools > 1
+                      ? `The pools can fill ${pooledCourtDefault(roster, format, mixing, pools)}, of up to ${courtCeiling}.`
+                      : mixedCeiling !== undefined && mixedCeiling < courtCeiling
                       ? `Up to ${mixedCeiling} as mixed doubles.`
                       : courtCeiling === 1
                         ? `${size} players fill one court.`
@@ -890,6 +1011,7 @@ export function MatchMixer() {
                 draw={draw}
                 stale={stale}
                 size={size}
+                supported={supported}
                 blocked={objection !== null}
               />
             </p>
@@ -942,15 +1064,13 @@ export function MatchMixer() {
                 >
                   {stale ? null : <span className="mm-wipe" aria-hidden />}
                   <ScheduleGrid
-                    roster={draw.config.roster}
-                    schedule={draw.schedule}
-                    score={draw.score}
-                    selected={selected}
-                    onSelect={selectPlayer}
+                    bands={bands}
+                    selected={bandSelected}
+                    onSelect={selectInBand}
                   />
                 </div>
               </>
-            ) : size > MAX_ROSTER_SIZE ? (
+            ) : !supported && size > MAX_ROSTER_SIZE ? (
               <TooManyPlayers size={size} />
             ) : (
               <ExampleSheet supported={supported} />
@@ -1056,11 +1176,14 @@ function ActionNote({
   draw,
   stale,
   size,
+  supported,
   blocked,
 }: {
   draw: Draw | null;
   stale: boolean;
   size: number;
+  /** Whether this many names can be drawn at the Pool count chosen. */
+  supported: boolean;
   /**
    * The Format or the mixed-doubles constraint cannot seat this Roster; the
    * consequence line says which, and why.
@@ -1069,8 +1192,7 @@ function ActionNote({
 }) {
   if (size === 0) return <>Paste your names above, then make the board.</>;
   if (size < MIN_ROSTER_SIZE) return <>Nothing to draw until there are four.</>;
-  if (size > MAX_ROSTER_SIZE)
-    return <>Nothing to draw until the roster fits.</>;
+  if (!supported) return <>Nothing to draw until the roster fits.</>;
   // The line above this one is already the whole explanation, so this says
   // only that the button will not act. Restating it here would put the same
   // sentence on screen twice, a centimetre apart.
@@ -1136,7 +1258,7 @@ const COPY_OUTCOMES: Record<
  * an insecure origin, a browser that will not hand the page the clipboard —
  * the link is put on screen to be copied by hand rather than lost.
  */
-function ShareBoard({ config }: { config: ResolvedConfig }) {
+function ShareBoard({ config }: { config: BoardConfig }) {
   const [outcome, setOutcome] = useState<CopyOutcome>("waiting");
   const [link, setLink] = useState<string | null>(null);
   const said = COPY_OUTCOMES[outcome];
@@ -1244,9 +1366,7 @@ function ExampleSheet({ supported }: { supported: boolean }) {
           straight on from the caption rather than carrying two. */}
       <div className="mm-example mt-4" aria-hidden="true" inert>
         <ScheduleGrid
-          roster={EXAMPLE.roster}
-          schedule={EXAMPLE.schedule}
-          score={EXAMPLE.score}
+          bands={EXAMPLE}
           headingId="mm-example-heading"
           headingHidden
         />
@@ -1255,18 +1375,51 @@ function ExampleSheet({ supported }: { supported: boolean }) {
   );
 }
 
+/**
+ * A list longer than one rotation holds. Up to two full Pools that is not a
+ * refusal but a pointer: the night wants splitting, and the Pools dial in the
+ * left column is what splits it. Past that it is too many for one board
+ * however it is split, and the only fix is fewer names.
+ */
 function TooManyPlayers({ size }: { size: number }) {
+  if (size <= MAX_BOARD_SIZE) {
+    return (
+      <div className="mm-placeholder">
+        <p className="mm-placeholder-head">
+          {size} names: more than one rotation
+        </p>
+        <p className="mm-note mt-2">
+          One rotation runs up to {MAX_ROSTER_SIZE} players. Set Pools to{" "}
+          {Math.ceil(size / MAX_ROSTER_SIZE)} or more and the list is dealt into
+          round robins that play at the same time, each on courts of its own.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="mm-placeholder">
       <p className="mm-placeholder-head">{size} names: too many for one board</p>
       <p className="mm-note mt-2">
-        Match Mixer schedules up to {MAX_ROSTER_SIZE} players. Above that the
-        field stops fitting a board and the search stops being quick, and a
-        night that size is better split into two rotations. Remove{" "}
-        {size - MAX_ROSTER_SIZE}.
+        Match Mixer schedules up to {MAX_BOARD_SIZE} players, in pools of up to{" "}
+        {MAX_ROSTER_SIZE}. Remove {size - MAX_BOARD_SIZE}.
       </p>
     </div>
   );
+}
+
+/**
+ * What the Pools dial says under itself. At one it offers the split; past one
+ * it says how the split is made, in the Format's own unit, and that a redraw
+ * makes it again, because the deal is part of the draw and the organizer
+ * should not be surprised to see people change pools.
+ */
+function poolsNote(pools: number, format: Format, mixed: boolean): string {
+  if (pools === 1) return "Split the list into round robins that run side by side.";
+  if (format === "fixed")
+    return "Pairs are dealt into pools at random and stay together. A redraw deals again.";
+  if (mixed)
+    return "M and F are dealt separately, at random. A redraw deals again.";
+  return "Names are dealt into pools at random. A redraw deals again.";
 }
 
 /**

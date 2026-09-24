@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { drawPools, type BoardConfig } from "../engine/pools.ts";
 import { generateSchedule } from "../engine/schedule.ts";
-import type { ResolvedConfig } from "../engine/config.ts";
 import type { Roster } from "../engine/types.ts";
 
 /** Minimal localStorage stand-in; the module only ever uses these three. */
@@ -48,13 +48,14 @@ const roster: Roster = [
   { id: "p7", name: "Jorja Johnson" },
 ];
 
-const drawn: ResolvedConfig = {
+const drawn: BoardConfig = {
   roster,
   courts: 2,
   rounds: 5,
   seed: 12345,
   format: "rotating",
   mixed: false,
+  pools: 1,
 };
 
 const edited = {
@@ -63,6 +64,7 @@ const edited = {
   rounds: null,
   format: "rotating",
   mixed: false,
+  pools: 1,
 } as const;
 
 test("round-trips the edited config and the drawn one", () => {
@@ -193,7 +195,7 @@ test("save with an empty roster clears the save, sheet on screen or not", () => 
     clear();
     save(edited, drawn);
     save(
-      { roster: [], courts: null, rounds: null, format: "rotating", mixed: false },
+      { roster: [], courts: null, rounds: null, format: "rotating", mixed: false, pools: 1 },
       stillDrawn,
     );
     assert.equal(storage.getItem(KEY), null);
@@ -309,15 +311,17 @@ const mixedEdited = {
   rounds: null,
   format: "rotating",
   mixed: true,
+  pools: 1,
 } as const;
 
-const mixedDrawn: ResolvedConfig = {
+const mixedDrawn: BoardConfig = {
   roster: marked,
   courts: 1,
   rounds: 4,
   seed: 777,
   format: "rotating",
   mixed: true,
+  pools: 1,
 };
 
 test("markers and the mixed box survive a reload", () => {
@@ -412,4 +416,75 @@ test("a ticked box under a format that cannot carry it is dropped, not restored"
     }),
   );
   assert.equal(load()?.edited.mixed, false);
+});
+
+/**
+ * Pools (#552). A count on the Config, absent from every save written before
+ * it, and absent reads as one Pool. No schema bump, for the same reason mixed
+ * doubles had none.
+ */
+
+const twenty: Roster = Array.from({ length: 20 }, (_, i) => ({
+  id: `p${i}`,
+  name: `Player ${i + 1}`,
+}));
+
+const pooledDrawn: BoardConfig = {
+  roster: twenty,
+  courts: 4,
+  rounds: 6,
+  seed: 31,
+  format: "rotating",
+  mixed: false,
+  pools: 2,
+};
+
+test("the pool count survives a reload, and the board comes back dealt the same", () => {
+  clear();
+  save({ ...edited, roster: twenty, pools: 2 }, pooledDrawn);
+  const loaded = load();
+  assert.equal(loaded?.edited.pools, 2);
+  assert.ok(loaded?.drawn);
+  assert.equal(loaded.drawn.pools, 2);
+  assert.deepEqual(drawPools(loaded.drawn), drawPools(pooledDrawn));
+});
+
+test("a save written before pools existed reads as one pool, and draws what it drew", () => {
+  clear();
+  storage.setItem(
+    KEY,
+    JSON.stringify({
+      schema: SCHEMA,
+      edited: { roster, courts: 2, rounds: null, format: "rotating", mixed: false },
+      drawn: { roster, courts: 2, rounds: 5, seed: 12345, format: "rotating", mixed: false },
+      savedAt: 1,
+    }),
+  );
+  const loaded = load();
+  assert.equal(loaded?.edited.pools, 1);
+  assert.equal(loaded?.drawn?.pools, 1);
+  assert.ok(loaded?.drawn);
+  assert.deepEqual(drawPools(loaded.drawn)[0].schedule, generateSchedule(drawn));
+});
+
+test("a pool count that is not a count is corruption", () => {
+  for (const pools of [0, -1, 1.5, "2", true]) {
+    clear();
+    storage.setItem(
+      KEY,
+      JSON.stringify({
+        schema: SCHEMA,
+        edited: { ...edited, pools },
+        drawn: null,
+        savedAt: 1,
+      }),
+    );
+    assert.equal(load(), null, String(pools));
+  }
+});
+
+test("a saved pooled board the courts cannot hold is discarded, not restored", () => {
+  clear();
+  save({ ...edited, roster: twenty, pools: 3 }, { ...pooledDrawn, pools: 3, courts: 2 });
+  assert.equal(load(), null);
 });
