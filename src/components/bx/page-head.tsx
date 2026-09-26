@@ -22,15 +22,22 @@ export function PageHead({
   lead,
   actions,
   note,
+  media,
 }: {
   title: ReactNode;
   meta?: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
   note?: ReactNode;
+  /**
+   * A photograph beside the copy from `lg:` up, under it below that. Without
+   * one the header renders exactly as it always has, so the routes that don't
+   * pass it keep their single column and their DOM.
+   */
+  media?: ReactNode;
 }) {
-  return (
-    <header className="bx-measure pt-12 pb-10 sm:pt-16 sm:pb-14">
+  const copy = (
+    <>
       <h1 className="bx-display max-w-[18ch] text-[clamp(2.25rem,5.4vw,3.5rem)]">
         {title}
       </h1>
@@ -38,6 +45,19 @@ export function PageHead({
       {lead && <p className="bx-lead mt-5">{lead}</p>}
       {actions && <div className="mt-8 flex flex-wrap gap-3">{actions}</div>}
       {note && <p className="mt-8 max-w-[52ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">{note}</p>}
+    </>
+  );
+
+  return (
+    <header className="bx-measure pt-12 pb-10 sm:pt-16 sm:pb-14">
+      {media ? (
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:items-center lg:gap-16">
+          <div>{copy}</div>
+          {media}
+        </div>
+      ) : (
+        copy
+      )}
     </header>
   );
 }

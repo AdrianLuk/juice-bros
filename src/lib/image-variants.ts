@@ -59,6 +59,16 @@ export const IMAGE_MANIFEST = {
     widths: [800, 1200, 1600],
     quality: { avif: 50, webp: 68 },
   },
+  "/pictures/adrian-dav-at-net-ball-incoming.jpg": {
+    width: 1160,
+    height: 870,
+    // The Gear page header photo: 30rem beside the copy at lg, the full column
+    // below it. The master is pre-cropped to 4:3 from a 1600px WhatsApp
+    // export, centred on the two of them and both paddles. Busy,
+    // phone-compressed shot, so quality sits under the camera original's.
+    widths: [640, 960],
+    quality: { avif: 42, webp: 60 },
+  },
   "/brand/JB_Banner.jpeg": {
     width: 1600,
     height: 900,
