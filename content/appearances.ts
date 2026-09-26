@@ -86,12 +86,16 @@ export const appearances: Appearance[] = [
     ],
   },
   {
-    name: "Backyard Club Team Tournament",
-    date: "2026-09-26",
+    name: "The Backyard Club Open",
+    date: "2026-11-14",
     location: "The Backyard Club, Vaughan, ON",
+    url: "https://pickleballtournaments.com/tournaments/the-backyard-club-open-1",
     organizer: "The Backyard Club",
-    status: "tentative",
+    status: "confirmed",
     players: "both",
+    divisions: [
+      { name: "DUPR 16 Team", date: "2026-11-14", players: "both" },
+    ],
   },
   {
     name: "Vaughan Pickleball Fall Open",
@@ -101,8 +105,11 @@ export const appearances: Appearance[] = [
     url: "https://pickleballtournaments.com/tournaments/vaughan-pickleball-fall-open",
     image: "/appearances/vaughan-fall-open-2026.png",
     organizer: "Vaughan Pickleball",
-    status: "tentative",
+    status: "confirmed",
     players: "adrian",
+    divisions: [
+      { name: "Mixed Doubles 4.0 & Under", date: "2026-10-03", players: "adrian" },
+    ],
   },
   {
     name: "PPA Tour Toronto",
