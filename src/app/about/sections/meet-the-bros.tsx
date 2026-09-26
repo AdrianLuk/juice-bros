@@ -27,7 +27,7 @@ export function MeetTheBros() {
           `<img>` is still `.bx-tile`'s direct child for `object-fit: cover`.
           `sizes` is this layout's own - the figure runs the full 72rem measure
           here, not the 48rem column the incumbent gave it. */}
-      <figure className="bx-tile mt-8 aspect-[16/9]">
+      <figure className="bx-tile mt-8 aspect-video">
         <Picture
           src="/pictures/adrian-dav.jpg"
           alt="Daven and Adrian courtside, mid-match"

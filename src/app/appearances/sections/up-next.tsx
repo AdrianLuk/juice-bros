@@ -22,7 +22,7 @@ export function UpNext({ appearance }: { appearance: Appearance }) {
     <section className="bx-band">
       <div className="bx-measure py-14 sm:py-20">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-14">
-          <AppearanceArt image={appearance.image} className="aspect-[16/10] w-full" />
+          <AppearanceArt image={appearance.image} className="aspect-16/10 w-full" />
 
           <div>
             <h2 className="bx-h2 max-w-[24ch] text-[clamp(1.75rem,3.4vw,2.125rem)]">
