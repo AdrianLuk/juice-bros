@@ -120,6 +120,12 @@ export const IMAGE_MANIFEST = {
     widths: [384, 600],
     quality: { avif: 58, webp: 80 },
   },
+  "/appearances/backyard-club-open-2026.png": {
+    width: 600,
+    height: 315,
+    widths: [384, 600],
+    quality: { avif: 58, webp: 80 },
+  },
   // The annotated CourtReserve screenshot behind the Facilities page's feed
   // help popover (issue #454). Flat UI with fine text rather than a
   // photograph, so it needs a higher quality than the photos above - AVIF at

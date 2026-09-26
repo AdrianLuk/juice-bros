@@ -90,6 +90,7 @@ export const appearances: Appearance[] = [
     date: "2026-11-14",
     location: "The Backyard Club, Vaughan, ON",
     url: "https://pickleballtournaments.com/tournaments/the-backyard-club-open-1",
+    image: "/appearances/backyard-club-open-2026.png",
     organizer: "The Backyard Club",
     status: "confirmed",
     players: "both",
