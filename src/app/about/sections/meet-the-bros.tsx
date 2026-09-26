@@ -5,9 +5,11 @@ import { Picture } from "@/components/picture";
 /**
  * The two hosts, with the on-court photograph at the size it deserves.
  *
- * The home page runs a smaller crop of this shot beside a two-line summary;
+ * The home page runs a different, smaller shot beside a two-line summary;
  * this is the page someone comes to when that summary wasn't enough, so the
- * photograph is full width and each host gets a panel of their own.
+ * photograph is full width and each host gets a panel of their own. It keeps
+ * this one because it is the only camera-original at 2048px: the phone shots
+ * top out at 1600px and go soft stretched across the 72rem measure.
  *
  * The `bio` strings in `content/team.ts` are interim by design - Adrian is
  * writing the real ones in each host's own words - so the layout doesn't
