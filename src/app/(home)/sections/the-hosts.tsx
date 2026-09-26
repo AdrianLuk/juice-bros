@@ -30,15 +30,17 @@ export function TheHosts() {
     <section className="bx-measure bx-hair py-16 sm:py-24">
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
-          the two of them appear and it is not a duplicate. */}
+          the two of them appear on Home. It is a different shot from About's
+          on purpose: the two of them at the net mid-tournament, which is the
+          "rec players" claim shown rather than said. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
-        <figure className="bx-tile aspect-4/3">
+        <figure className="bx-tile aspect-7/6">
           <Picture
-            src="/pictures/adrian-dav.jpg"
-            alt="Daven and Adrian on court between points"
+            src="/pictures/adrian-dav-at-net-crowd.jpg"
+            alt="Daven and Adrian at the net in matching Juice Bros shirts, paddles up"
             sizes="(min-width: 1024px) 26rem, 100vw"
             loading="lazy"
-            className="object-[50%_28%]"
+            className="object-center"
           />
         </figure>
 
