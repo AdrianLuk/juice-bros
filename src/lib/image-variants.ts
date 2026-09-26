@@ -60,14 +60,15 @@ export const IMAGE_MANIFEST = {
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/adrian-dav-at-net-crowd.jpg": {
-    width: 1320,
-    height: 990,
+    width: 960,
+    height: 720,
     // The Home hosts tile: ~416px wide at lg, the full column below it. The
-    // master is pre-cropped to 4:3 from a 1600px WhatsApp export, cut in on
-    // the two of them and the rail: uncropped, the rafters took half the tile
-    // and their faces read as specks at 416px. Busy, phone-compressed shot,
-    // so quality sits under the camera original's with no visible loss.
-    widths: [800, 1200],
+    // master is pre-cropped to 4:3 from a 1600px WhatsApp export, cut in
+    // tight on the two of them: wider crops gave half the tile to the rafters
+    // and the crowd, and their faces read as specks at 416px. 960 is all the
+    // resolution that crop leaves. Busy, phone-compressed shot, so quality
+    // sits under the camera original's with no visible loss.
+    widths: [640, 960],
     quality: { avif: 42, webp: 60 },
   },
   "/brand/JB_Banner.jpeg": {
