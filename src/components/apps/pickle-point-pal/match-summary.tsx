@@ -43,7 +43,7 @@ export function MatchSummary({
         </>
       )}
 
-      <ul className="pp-well mt-6 divide-y divide-[var(--pp-hairline)] overflow-hidden">
+      <ul className="pp-well mt-6 divide-y divide-(--pp-hairline) overflow-hidden">
         {state.games.map((game, i) => (
           <li
             key={i}

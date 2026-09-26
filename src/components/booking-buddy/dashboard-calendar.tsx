@@ -344,7 +344,7 @@ export function DashboardCalendar<T extends CalendarEvent>({
                 "relative rounded-[3px] px-2.5 py-1 font-bb-sign text-[0.68rem] tracking-[0.08em] uppercase transition-colors after:absolute after:-inset-1 after:content-['']",
                 // Ink, not orange — orange is reserved for the one commit action.
                 view === option.id
-                  ? "bg-foreground text-[var(--card)]"
+                  ? "bg-foreground text-(--card)"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >

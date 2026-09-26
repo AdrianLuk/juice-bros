@@ -71,7 +71,7 @@ export function BbDashboardSkeleton() {
           <div className="order-2 mt-8 lg:order-4 lg:mt-12">
             <span className="bb-tape text-xs">The week, ruled out</span>
             <div className="bb-sheet mt-3 px-2 pt-4 pb-3 sm:px-6 sm:pt-6">
-              <div className="mb-4 border-b-[3px] border-double border-[var(--bb-rule)] pb-2.5">
+              <div className="mb-4 border-b-[3px] border-double border-(--bb-rule) pb-2.5">
                 <span className="bb-h text-[0.95rem]">Court sign-up</span>
               </div>
               <div className="bb-skeleton-body">

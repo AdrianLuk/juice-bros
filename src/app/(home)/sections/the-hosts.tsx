@@ -51,7 +51,7 @@ export function TheHosts() {
           <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
             Two rec players, not coaches
           </h2>
-          <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+          <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
             Most pickleball shows are hosted by people who have already arrived.
             This one is hosted by two people who lose to the same team every
             week and fight for the same 8pm court booking.
@@ -64,13 +64,13 @@ export function TheHosts() {
                   <span className="text-base font-semibold">{member.name}</span>
                   <span className="bx-meta">{member.role}</span>
                 </dt>
-                <dd className="mt-1.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+                <dd className="mt-1.5 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
                   {member.funFact}
                   <a
                     href={member.instagramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2.5 flex items-center gap-2 text-sm font-medium text-[var(--bx-ink)] transition-colors duration-200 hover:text-[var(--bx-muted)]"
+                    className="mt-2.5 flex items-center gap-2 text-sm font-medium text-(--bx-ink) transition-colors duration-200 hover:text-(--bx-muted)"
                   >
                     <InstagramIcon className="size-4" />
                     Follow {member.name}
@@ -82,7 +82,7 @@ export function TheHosts() {
 
           <Link
             href="/about"
-            className="group mt-8 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
+            className="group mt-8 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-(--bx-muted)"
           >
             The whole story
             <span aria-hidden className="ml-1.5 inline-block transition-transform duration-200 group-hover:translate-x-0.5">

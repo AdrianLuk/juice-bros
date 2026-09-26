@@ -85,7 +85,7 @@ export function EpisodeCard({
         <Link
           href={href}
           onClick={tagForMorph}
-          className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
+          className="transition-colors duration-200 hover:text-(--bx-muted)"
         >
           {title}
         </Link>

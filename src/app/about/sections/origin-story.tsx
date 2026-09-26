@@ -73,7 +73,7 @@ export function OriginStory({ episodeSlug }: { episodeSlug?: string }) {
 
         <Reveal variant="right" as="aside" className="bx-panel p-6 sm:p-7">
           <h3 className="bx-h2 text-lg sm:text-xl">How we got the name</h3>
-          <div className="mt-4 flex flex-col gap-4 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+          <div className="mt-4 flex flex-col gap-4 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
             <p>
               Back when we first started, we both played at the same local park.
               Adrian&apos;s shot has always been the backhand roll. One day

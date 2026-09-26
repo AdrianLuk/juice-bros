@@ -74,7 +74,7 @@ export default async function OrgsPage() {
                   logging court bookings.
                 </p>
               ) : (
-                <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+                <ul className="mt-4 divide-y divide-(--bb-rule) overflow-hidden rounded-sm border border-(--bb-rule)">
                   {orgs.map((org) => (
                     <OrgRow key={org.id} org={org} />
                   ))}

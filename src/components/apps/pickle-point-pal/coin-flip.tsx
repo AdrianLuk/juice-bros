@@ -233,7 +233,7 @@ function TeamToggle({
                 "min-h-12 truncate rounded-md px-2 text-sm font-semibold ref-landscape:min-h-9 ref-landscape:text-xs",
                 selected
                   ? "bg-pp-frame text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]"
-                  : "text-pp-ink-dim hover:bg-[var(--pp-panel-sink)]"
+                  : "text-pp-ink-dim hover:bg-(--pp-panel-sink)"
               )}
               style={{ touchAction: "manipulation" }}
             >

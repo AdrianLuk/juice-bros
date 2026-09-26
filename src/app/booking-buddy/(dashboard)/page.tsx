@@ -141,7 +141,7 @@ export default async function BookingBuddyPage() {
                 ))}
 
                 {upcomingGames.length === 0 && (
-                  <p className="max-w-xs self-center py-6 text-center text-sm text-[var(--bb-on-cork-dim)]">
+                  <p className="max-w-xs self-center py-6 text-center text-sm text-(--bb-on-cork-dim)">
                     No games on the board yet. Post one and your friends can say
                     they&apos;re in.
                   </p>
@@ -190,7 +190,7 @@ export default async function BookingBuddyPage() {
                 className="bb-pin bb-pin--info"
                 style={{ top: "-0.55rem" }}
               />
-              <div className="mb-4 border-b-[3px] border-double border-[var(--bb-rule)] pb-2.5">
+              <div className="mb-4 border-b-[3px] border-double border-(--bb-rule) pb-2.5">
                 <span className="bb-h text-[0.95rem]">Court sign-up</span>
               </div>
               <OwnerDashboardCalendar

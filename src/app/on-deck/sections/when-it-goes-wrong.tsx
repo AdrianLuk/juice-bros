@@ -57,12 +57,12 @@ export function WhenItGoesWrong() {
 
         <RevealGroup
           as="dl"
-          className="mt-10 border-t border-[var(--odl-line-soft)]"
+          className="mt-10 border-t border-(--odl-line-soft)"
         >
           {failures.map((item) => (
             <div
               key={item.scenario}
-              className="border-b border-[var(--odl-line-soft)] py-6 sm:grid sm:grid-cols-[15rem_1fr] sm:gap-8"
+              className="border-b border-(--odl-line-soft) py-6 sm:grid sm:grid-cols-[15rem_1fr] sm:gap-8"
             >
               <dt className="odl-display text-lg">{item.scenario}</dt>
               <dd className="odl-body mt-2 sm:mt-0">{item.answer}</dd>

@@ -106,7 +106,7 @@ export function FriendSearch() {
         )}
 
         {results.length > 0 && (
-          <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+          <ul className="divide-y divide-(--bb-rule) overflow-hidden rounded-sm border border-(--bb-rule)">
             {results.map((result) => (
               <li
                 key={result.id}
