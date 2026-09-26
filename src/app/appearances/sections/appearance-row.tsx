@@ -62,9 +62,11 @@ export function AppearanceRow({
   return (
     <li>
       <RowShell target={target}>
+        {/* `self-start` so a tall row (one listing divisions) doesn't stretch
+            the plate past its 16:10 and float the art in a white column. */}
         <AppearanceArt
           image={appearance.image}
-          className="aspect-16/10 w-full shrink-0 sm:w-40"
+          className="aspect-16/10 w-full shrink-0 sm:w-40 sm:self-start"
         />
 
         <div className="min-w-0 flex-1">
