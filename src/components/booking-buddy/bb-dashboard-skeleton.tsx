@@ -44,13 +44,13 @@ export function BbDashboardSkeleton() {
           {/* The board: "This week" region + right column. `order` mirrors
               page.tsx so the sheet leads on mobile and the board leads on lg. */}
           <div className="order-3 mt-8 flex flex-col gap-x-8 gap-y-9 rounded-lg p-3 sm:p-6 lg:order-2 lg:flex-row lg:items-start">
-            <div className="bb-region relative px-3 pt-8 pb-4 sm:px-4 lg:w-[37.5rem] lg:shrink-0">
+            <div className="bb-region relative px-3 pt-8 pb-4 sm:px-4 lg:w-150 lg:shrink-0">
               <span className="bb-tape absolute -top-3.5 left-4 text-xs leading-none">
                 This week
               </span>
               <div className="bb-skeleton-body flex flex-wrap items-start gap-5 sm:gap-6">
-                <div className="bb-outline h-44 w-full rounded-sm sm:w-[15.5rem]" />
-                <div className="bb-outline h-44 w-full rounded-sm sm:w-[15.5rem]" />
+                <div className="bb-outline h-44 w-full rounded-sm sm:w-62" />
+                <div className="bb-outline h-44 w-full rounded-sm sm:w-62" />
               </div>
             </div>
 

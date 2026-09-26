@@ -32,7 +32,7 @@ export function TheHosts() {
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear and it is not a duplicate. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
-        <figure className="bx-tile aspect-[4/3]">
+        <figure className="bx-tile aspect-4/3">
           <Picture
             src="/pictures/adrian-dav.jpg"
             alt="Daven and Adrian on court between points"

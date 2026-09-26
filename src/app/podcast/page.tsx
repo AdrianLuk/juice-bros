@@ -58,7 +58,7 @@ export default async function PodcastPage() {
               rel="noopener noreferrer"
               className="bx-btn bx-btn-yt"
             >
-              <YoutubeIcon className="size-[1.125rem]" />
+              <YoutubeIcon className="size-4.5" />
               Watch on YouTube
             </a>
             <a
@@ -67,7 +67,7 @@ export default async function PodcastPage() {
               rel="noopener noreferrer"
               className="bx-btn bx-btn-sp"
             >
-              <SpotifyIcon className="size-[1.125rem]" />
+              <SpotifyIcon className="size-4.5" />
               Listen on Spotify
             </a>
           </>

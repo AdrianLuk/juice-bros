@@ -42,7 +42,7 @@ export function GameCard({
       pinInOnMount={pinInOnMount}
       className={cn(
         "block no-underline",
-        lead ? "w-[19rem] sm:w-[21rem]" : "w-[15.5rem]",
+        lead ? "w-76 sm:w-84" : "w-62",
       )}
     >
       <p className="font-bb-sign text-[0.68rem] tracking-[0.13em] text-muted-foreground uppercase">
