@@ -86,7 +86,7 @@ export function GameCard({
                 className={cn(
                   "size-3 rounded-full",
                   i < (tally?.yes ?? 0)
-                    ? "bg-[var(--bb-pin-in)] shadow-[0_1px_2px_rgba(0,0,0,.35)]"
+                    ? "bg-(--bb-pin-in) shadow-[0_1px_2px_rgba(0,0,0,.35)]"
                     : "bg-black/15 shadow-[inset_0_1px_2px_rgba(0,0,0,.35)]",
                 )}
               />

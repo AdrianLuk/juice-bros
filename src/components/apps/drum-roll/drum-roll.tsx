@@ -229,7 +229,7 @@ function Draw({
 
           <p aria-live="polite" className="min-h-11 w-full">
             {landed && winner ? (
-              <span className="dr-result block text-[var(--dr-accent)]">{winner.name}</span>
+              <span className="dr-result block text-(--dr-accent)">{winner.name}</span>
             ) : (
               <span className="dr-readout block">
                 <b>{ticketsIn(shown)}</b> {ticketsIn(shown) === 1 ? "ticket" : "tickets"} from{" "}
@@ -372,7 +372,7 @@ function Empty({
       <h2 className="dr-h">Who is in?</h2>
       <p className="dr-note">
         One name per line. Paste straight from a group chat if you have it there.
-        Add <code className="font-[family-name:var(--font-geist-mono)]">x3</code> after
+        Add <code className="font-(family-name:--font-geist-mono)">x3</code> after
         a name to give them three tickets, or leave it off for one.
       </p>
       <label className="sr-only" htmlFor="dr-bulk">
@@ -464,7 +464,7 @@ function Roster({
       <div className="dr-section-head">
         <h2 className="dr-h">
           On the wheel{" "}
-          <span className="font-normal text-[var(--dr-ink-dim)]">
+          <span className="font-normal text-(--dr-ink-dim)">
             ({state.entrants.length}, {ticketsIn(state.entrants)} tickets)
           </span>
         </h2>
@@ -485,7 +485,7 @@ function Roster({
           <textarea
             id="dr-manual"
             readOnly
-            className="dr-field h-28 font-[family-name:var(--font-geist-mono)] text-sm"
+            className="dr-field h-28 font-(family-name:--font-geist-mono) text-sm"
             value={formatRoster(state.entrants)}
             onFocus={(event) => event.currentTarget.select()}
           />
@@ -571,7 +571,7 @@ function Roster({
       {open ? (
         <div className="flex flex-col gap-2">
           <label className="dr-label" htmlFor="dr-bulk-more">
-            One name per line, <code className="font-[family-name:var(--font-geist-mono)]">x3</code>{" "}
+            One name per line, <code className="font-(family-name:--font-geist-mono)">x3</code>{" "}
             after a name for three tickets
           </label>
           <textarea
@@ -731,7 +731,7 @@ function HouseRule({
         <input
           type="checkbox"
           id="dr-one-each"
-          className="mt-1 size-4 accent-[var(--dr-accent)]"
+          className="mt-1 size-4 accent-(--dr-accent)"
           checked={state.onePrizePerPerson}
           onChange={(event) =>
             append({ type: "ONE_PRIZE_PER_PERSON_SET", value: event.target.checked })

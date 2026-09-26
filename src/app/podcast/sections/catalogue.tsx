@@ -21,7 +21,7 @@ export function Catalogue({ episodes }: { episodes: Episode[] }) {
           href={siteConfig.links.youtube}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-[var(--bx-ink)] underline"
+          className="font-semibold text-(--bx-ink) underline"
         >
           YouTube
         </a>{" "}

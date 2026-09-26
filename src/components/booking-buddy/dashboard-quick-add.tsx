@@ -58,7 +58,7 @@ export function DashboardQuickActions({
             <Button
               size="sm"
               variant="secondary"
-              className="h-10 gap-2 rounded-sm border border-[var(--bb-cork-edge)]/25 px-3.5 font-bb-sign text-[0.68rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="h-10 gap-2 rounded-sm border border-(--bb-cork-edge)/25 px-3.5 font-bb-sign text-[0.68rem] tracking-widest uppercase shadow-(--bb-contact-shadow) hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
             />
           }
         >
@@ -84,7 +84,7 @@ export function DashboardQuickActions({
         size="sm"
         variant="secondary"
         onClick={onAddBooking}
-        className="relative h-10 gap-2 rounded-sm border border-[var(--bb-cork-edge)]/25 px-4 font-bb-sign text-[0.7rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
+        className="relative h-10 gap-2 rounded-sm border border-(--bb-cork-edge)/25 px-4 font-bb-sign text-[0.7rem] tracking-widest uppercase shadow-(--bb-contact-shadow) hover:-translate-y-0.5 active:translate-y-0 motion-reduce:hover:translate-y-0"
       >
         <span
           aria-hidden

@@ -61,7 +61,7 @@ export default function ToolsPage() {
                 href={app.href}
                 className="bx-panel group flex w-full flex-col p-6 sm:p-8"
               >
-                <h2 className="bx-h2 text-lg transition-colors duration-200 group-hover:text-[var(--bx-muted)] sm:text-xl">
+                <h2 className="bx-h2 text-lg transition-colors duration-200 group-hover:text-(--bx-muted) sm:text-xl">
                   {app.title}
                 </h2>
                 <p className="bx-meta mt-2.5">
@@ -72,7 +72,7 @@ export default function ToolsPage() {
                     </span>
                   ))}
                 </p>
-                <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+                <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
                   {app.description}
                 </p>
 
@@ -80,7 +80,7 @@ export default function ToolsPage() {
                   {app.highlights.map((highlight) => (
                     <li
                       key={highlight}
-                      className="flex gap-3 border-t border-[var(--bx-line-soft)] pt-2.5 text-[0.9375rem] leading-snug text-[var(--bx-muted)]"
+                      className="flex gap-3 border-t border-(--bx-line-soft) pt-2.5 text-[0.9375rem] leading-snug text-(--bx-muted)"
                     >
                       {highlight}
                     </li>
@@ -98,10 +98,10 @@ export default function ToolsPage() {
           ))}
         </ul>
 
-        <p className="mt-8 max-w-[46ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+        <p className="mt-8 max-w-[46ch] text-[0.9375rem] leading-relaxed text-(--bx-muted)">
           More on the way. If there&apos;s something you keep doing by hand
           before a game,{" "}
-          <Link href="/contact" className="font-semibold text-[var(--bx-ink)] underline">
+          <Link href="/contact" className="font-semibold text-(--bx-ink) underline">
             tell us
           </Link>{" "}
           and we&apos;ll look at building it.

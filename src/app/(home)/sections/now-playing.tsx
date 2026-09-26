@@ -51,7 +51,7 @@ export function NowPlaying({ episode }: { episode: Episode }) {
             <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.75rem,3.4vw,2.125rem)]">
               <Link
                 href={`/podcast/${episode.slug}`}
-                className="transition-colors duration-200 hover:text-[var(--bx-muted)]"
+                className="transition-colors duration-200 hover:text-(--bx-muted)"
               >
                 {episodeMetaTitle(episode.title)}
               </Link>
@@ -67,13 +67,13 @@ export function NowPlaying({ episode }: { episode: Episode }) {
               {runtime && <span className="sr-only">, {runtime}</span>}
             </p>
             {hook && (
-              <p className="mt-3.5 max-w-[48ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+              <p className="mt-3.5 max-w-[48ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
                 {hook}
               </p>
             )}
             <Link
               href={`/podcast/${episode.slug}`}
-              className="group mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              className="group mt-6 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-(--bx-muted)"
             >
               Watch the episode
               <span aria-hidden className="ml-1.5 inline-block transition-transform duration-200 group-hover:translate-x-0.5">

@@ -35,7 +35,7 @@ export function OnTheRoad() {
         <h2 className="bx-h2 text-lg sm:text-xl">On the road</h2>
         <Link
           href="/appearances"
-          className="text-sm text-[var(--bx-muted)] transition-colors duration-200 hover:text-[var(--bx-ink)]"
+          className="text-sm text-(--bx-muted) transition-colors duration-200 hover:text-(--bx-ink)"
         >
           All appearances
         </Link>
@@ -51,13 +51,13 @@ export function OnTheRoad() {
         <div>
           <h3 className="bx-h2 max-w-[26ch] text-base sm:text-lg">{next.name}</h3>
           <p className="bx-meta mt-2">{formatAppearanceDates(next)}</p>
-          <p className="mt-2 text-[0.9375rem] text-[var(--bx-muted)]">{next.location}</p>
+          <p className="mt-2 text-[0.9375rem] text-(--bx-muted)">{next.location}</p>
           {next.url && (
             <a
               href={next.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group mt-4 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-[var(--bx-muted)]"
+              className="group mt-4 inline-flex text-sm font-semibold transition-colors duration-200 hover:text-(--bx-muted)"
             >
               Tournament details
               <span
@@ -77,7 +77,7 @@ export function OnTheRoad() {
               {divisions.map((division) => (
                 <li
                   key={division.name}
-                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-[var(--bx-line-soft)] py-2 last:border-b-0"
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-(--bx-line-soft) py-2 last:border-b-0"
                 >
                   <span className="text-[0.9375rem] leading-snug">{division.name}</span>
                   <span className="bx-meta shrink-0">

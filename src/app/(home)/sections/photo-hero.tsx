@@ -61,7 +61,7 @@ export function PhotoHero() {
         <h1 className="bx-display max-w-[18ch] text-[clamp(2.25rem,5.4vw,3.5rem)]">
           Pickleball, from two guys still trying to get good at it.
         </h1>
-        <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+        <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
           {siteConfig.description}
         </p>
 

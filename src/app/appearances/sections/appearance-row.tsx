@@ -69,7 +69,7 @@ export function AppearanceRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-            <h3 className="bx-h2 max-w-[34ch] text-base transition-colors duration-200 group-hover:text-[var(--bx-muted)] sm:text-lg">
+            <h3 className="bx-h2 max-w-[34ch] text-base transition-colors duration-200 group-hover:text-(--bx-muted) sm:text-lg">
               {appearance.name}
             </h3>
             {appearance.status === "tentative" && (
@@ -84,7 +84,7 @@ export function AppearanceRow({
             <span aria-hidden> &middot; </span>
             {describePlayers(appearance.players)}
           </p>
-          <p className="mt-2 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+          <p className="mt-2 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
             {appearance.location}
           </p>
 

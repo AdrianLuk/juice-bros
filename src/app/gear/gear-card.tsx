@@ -44,7 +44,7 @@ function GearImage({ item }: { item: GearItem }) {
   // a broken frame or a stock placeholder.
   return (
     <div className="bx-tile flex aspect-4/3 items-center justify-center">
-      <span className="text-4xl font-bold text-[var(--bx-line-2)]">
+      <span className="text-4xl font-bold text-(--bx-line-2)">
         {item.name.charAt(0)}
       </span>
     </div>
@@ -74,11 +74,11 @@ export function GearCard({ item }: { item: GearItem }) {
     >
       <GearImage item={item} />
 
-      <h4 className="mt-4 text-[1.0625rem] leading-snug font-semibold transition-colors duration-200 group-hover:text-[var(--bx-muted)]">
+      <h4 className="mt-4 text-[1.0625rem] leading-snug font-semibold transition-colors duration-200 group-hover:text-(--bx-muted)">
         {item.name}
       </h4>
       <p className="bx-meta mt-1.5">{item.category}</p>
-      <p className="mt-2.5 flex-1 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+      <p className="mt-2.5 flex-1 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
         {item.blurb}
       </p>
 

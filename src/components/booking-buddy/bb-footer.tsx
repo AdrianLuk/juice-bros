@@ -15,7 +15,7 @@ export function BbFooter({ className }: { className?: string }) {
   return (
     <nav
       className={cn(
-        "mt-16 flex flex-wrap items-center gap-4 border-t border-[var(--bb-cork-edge)]/30 pt-4 font-bb-sign text-[0.68rem] tracking-widest uppercase",
+        "mt-16 flex flex-wrap items-center gap-4 border-t border-(--bb-cork-edge)/30 pt-4 font-bb-sign text-[0.68rem] tracking-widest uppercase",
         className,
       )}
       aria-label="Booking Buddy footer"

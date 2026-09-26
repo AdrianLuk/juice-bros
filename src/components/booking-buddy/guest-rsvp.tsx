@@ -107,7 +107,7 @@ export function GuestResponseList({
   }
 
   return (
-    <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+    <ul className="divide-y divide-(--bb-rule) overflow-hidden rounded-sm border border-(--bb-rule)">
       {responses.map((response) => (
         <li
           key={response.key}

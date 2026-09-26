@@ -72,7 +72,7 @@ export function MatchSetup({ onStart }: { onStart: (config: MatchConfig) => void
       </p>
 
       {/* Landscape is the reffing view — call it out hard, not as a footnote. */}
-      <p className="mt-3 flex items-start gap-2.5 rounded-(--pp-radius) border-2 border-[var(--pp-signal)] bg-pp-signal-wash px-3.5 py-2.5 text-sm font-semibold text-pp-ink ref-landscape:hidden [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-pp-signal">
+      <p className="mt-3 flex items-start gap-2.5 rounded-(--pp-radius) border-2 border-(--pp-signal) bg-pp-signal-wash px-3.5 py-2.5 text-sm font-semibold text-pp-ink ref-landscape:hidden [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-pp-signal">
         <RotateDeviceIcon />
         Turn your phone sideways before you start. Scoring is built for
         landscape, and the &ldquo;standing at the net&rdquo; layout only shows
@@ -281,7 +281,7 @@ function RadioRow({
               "min-h-12 truncate rounded-md px-2 text-sm font-semibold ref-landscape:min-h-9 ref-landscape:text-xs",
               selected
                 ? "bg-pp-frame text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]"
-                : "text-pp-ink-dim hover:bg-[var(--pp-panel-sink)]"
+                : "text-pp-ink-dim hover:bg-(--pp-panel-sink)"
             )}
             style={{ touchAction: "manipulation" }}
           >
@@ -311,7 +311,7 @@ function NameInput({
         placeholder={label}
         onChange={(e) => onChange(e.target.value)}
         autoComplete="off"
-        className="w-full rounded-(--pp-radius) border border-pp-hairline bg-white px-3 py-3 text-base text-pp-ink outline-none placeholder:text-pp-ink-dim focus:border-[var(--pp-signal)] ref-landscape:py-2"
+        className="w-full rounded-(--pp-radius) border border-pp-hairline bg-white px-3 py-3 text-base text-pp-ink outline-none placeholder:text-pp-ink-dim focus:border-(--pp-signal) ref-landscape:py-2"
       />
     </label>
   );

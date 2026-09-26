@@ -55,7 +55,7 @@ export function SlotProposalPreview() {
       </ul>
 
       <div className="mt-4 flex gap-2" aria-hidden>
-        <span className={`${pill} bg-[var(--bb-pin-in)] text-white`}>Yes</span>
+        <span className={`${pill} bg-(--bb-pin-in) text-white`}>Yes</span>
         <span className={`${pill} border border-border bg-background`}>
           Maybe
         </span>
@@ -108,7 +108,7 @@ export function SlotResponsesPreview() {
       </ul>
 
       <div className="mt-4 flex gap-2" aria-hidden>
-        <span className={`${pill} bg-[var(--bb-pin-in)] text-white`}>Yes</span>
+        <span className={`${pill} bg-(--bb-pin-in) text-white`}>Yes</span>
         <span className={`${pill} border border-border bg-background`}>
           Maybe
         </span>
@@ -215,7 +215,7 @@ export function OverlapPreview() {
                   <span className="text-xs text-muted-foreground">
                     {window}
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-[var(--bb-ink-pen)]">
+                  <span className="shrink-0 text-xs font-semibold text-(--bb-ink-pen)">
                     Propose a game
                   </span>
                 </li>
@@ -284,9 +284,9 @@ export function WeekPreview() {
               className={
                 "mt-1 h-full w-1 shrink-0 self-stretch rounded-full " +
                 (row.kind === "game"
-                  ? "bg-[var(--bb-ink-pen)]"
+                  ? "bg-(--bb-ink-pen)"
                   : row.kind === "proposed"
-                    ? "bg-[var(--bb-ink-pen)]/40"
+                    ? "bg-(--bb-ink-pen)/40"
                     : "bg-muted-foreground/40")
               }
               aria-hidden
@@ -297,7 +297,7 @@ export function WeekPreview() {
                 (row.kind === "game"
                   ? "bg-[color-mix(in_oklch,var(--bb-ink-pen),transparent_88%)]"
                   : row.kind === "proposed"
-                    ? "border border-dashed border-[var(--bb-ink-pen)]/40"
+                    ? "border border-dashed border-(--bb-ink-pen)/40"
                     : "bg-muted/50")
               }
               style={

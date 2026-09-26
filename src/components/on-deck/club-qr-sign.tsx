@@ -108,7 +108,7 @@ export function ClubQrSign({
                 value={option.value}
                 checked={paper === option.value}
                 onChange={() => setPaper(option.value)}
-                className="size-4 accent-[var(--arena-next)]"
+                className="size-4 accent-(--arena-next)"
               />
               <span>{option.label}</span>
               <span className="sr-only">{option.hint}</span>

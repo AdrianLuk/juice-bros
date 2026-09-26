@@ -40,7 +40,7 @@ export function JoinIn() {
         <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
           This only works if you&apos;re part of it
         </h2>
-        <p className="mt-5 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+        <p className="mt-5 text-[1.0625rem] leading-relaxed text-(--bx-muted)">
           Got a story from your local courts? A club we should know about? A hot
           take you need to get off your chest? We want to hear it. Follow along,
           send us a message, or just show up in the comments. That&apos;s half

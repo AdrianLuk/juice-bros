@@ -72,7 +72,7 @@ export function DashboardGreeting({
           {timeWord}
         </span>
       </h1>
-      <p className="max-w-xl text-[0.98rem] text-[var(--bb-on-cork-dim)]">
+      <p className="max-w-xl text-[0.98rem] text-(--bb-on-cork-dim)">
         {status}
       </p>
     </div>

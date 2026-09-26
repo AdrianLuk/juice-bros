@@ -47,7 +47,7 @@ const WEEKDAY_LABEL = new Intl.DateTimeFormat("en-US", { weekday: "short" });
 // enough room for 7 columns, so they shrink-to-fit instead of forcing a
 // horizontal scrollbar.
 const DAY_GRID_COLS =
-  "grid-cols-[repeat(7,minmax(7rem,1fr))] lg:grid-cols-[repeat(7,minmax(0,1fr))]";
+  "grid-cols-[repeat(7,minmax(7rem,1fr))] lg:grid-cols-7";
 
 /**
  * Pixels from the top of a day column for an instant `dayStartMs` +
@@ -248,7 +248,7 @@ export function DashboardWeekView<T extends CalendarEvent>({
                     className={cn(
                       "flex size-6 items-center justify-center rounded-full text-sm font-medium",
                       isSameDay(day, today) &&
-                        "bg-foreground text-[color:var(--card)]",
+                        "bg-foreground text-(--card)",
                     )}
                   >
                     {day.getDate()}
@@ -411,7 +411,7 @@ function DayColumn<T extends CalendarEvent>({
             >
               <span
                 aria-hidden
-                className="bb-week-quick-add-mark flex size-5 items-center justify-center rounded-full bg-foreground/85 text-[color:var(--card)] shadow-sm"
+                className="bb-week-quick-add-mark flex size-5 items-center justify-center rounded-full bg-foreground/85 text-(--card) shadow-sm"
               >
                 <PlusIcon className="size-3.5" />
               </span>

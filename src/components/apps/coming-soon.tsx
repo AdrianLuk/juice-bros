@@ -15,7 +15,7 @@ export function ComingSoon() {
     <div className="bx-panel mt-10 max-w-2xl p-8 sm:p-10">
       <h2 className="bx-h2 text-lg sm:text-xl">Still building this one</h2>
       <p className="bx-meta mt-2.5">Not ready yet</p>
-      <p className="mt-4 max-w-[46ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+      <p className="mt-4 max-w-[46ch] text-[0.9375rem] leading-relaxed text-(--bx-muted)">
         It&apos;s on the bench while we finish it. The tools that are ready to
         use are all free and open right now.
       </p>

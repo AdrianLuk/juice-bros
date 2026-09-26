@@ -72,7 +72,7 @@ export function Pillars() {
           <li key={pillar.name} className="flex">
             <div className="bx-panel flex w-full flex-col p-6">
               <h3 className="bx-h2 text-base sm:text-lg">{pillar.name}</h3>
-              <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+              <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
                 {pillar.blurb}
               </p>
             </div>

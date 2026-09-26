@@ -23,7 +23,7 @@ export function OnSpotify() {
               Rather just listen?
             </h2>
             <p className="bx-meta mt-3">Full show &middot; Free &middot; No account needed</p>
-            <p className="mt-3.5 max-w-[46ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+            <p className="mt-3.5 max-w-[46ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
               Every episode is on Spotify as audio, so you can put one on for
               the drive to the courts and leave your phone in your bag.
             </p>

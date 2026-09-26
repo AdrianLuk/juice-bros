@@ -51,7 +51,7 @@ function Beat({
           <h2 className="bb-h text-[1.9rem] leading-[0.95] sm:text-[2.3rem]">
             {title}
           </h2>
-          <p className="mt-4 max-w-md text-[1.02rem] text-[var(--bb-on-cork-dim)]">
+          <p className="mt-4 max-w-md text-[1.02rem] text-(--bb-on-cork-dim)">
             {children}
           </p>
         </Reveal>
@@ -89,7 +89,7 @@ export function BookingBuddyLanding() {
             <h1 className="jb-in bb-h text-[2.6rem] leading-[0.92] sm:text-[3.9rem]">
               Sort out the next game without the group-chat spiral
             </h1>
-            <p className="jb-in jb-in-2 max-w-md text-[1.05rem] text-[var(--bb-on-cork-dim)] text-balance">
+            <p className="jb-in jb-in-2 max-w-md text-[1.05rem] text-(--bb-on-cork-dim) text-balance">
               Poll the group on a time and keep everyone&apos;s court bookings
               in one place. Free, and built by two rec players who got tired of
               running the Tuesday-night &ldquo;who can play?&rdquo; thread.
@@ -98,7 +98,7 @@ export function BookingBuddyLanding() {
               <Button
                 size="lg"
                 nativeButton={false}
-                className="relative h-12 rounded-sm px-7 font-bb-sign text-[0.85rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
+                className="relative h-12 rounded-sm px-7 font-bb-sign text-[0.85rem] tracking-widest uppercase shadow-(--bb-contact-shadow) hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
                 render={<Link href={SIGN_IN_PATH} />}
               >
                 <span
@@ -112,7 +112,7 @@ export function BookingBuddyLanding() {
                 size="lg"
                 variant="secondary"
                 nativeButton={false}
-                className="h-12 rounded-sm border border-[var(--bb-cork-edge)]/25 px-6 font-bb-sign text-[0.8rem] tracking-widest uppercase"
+                className="h-12 rounded-sm border border-(--bb-cork-edge)/25 px-6 font-bb-sign text-[0.8rem] tracking-widest uppercase"
                 render={<a href="#how" />}
               >
                 See how it works
@@ -210,7 +210,7 @@ export function BookingBuddyLanding() {
           <h2 className="bb-h text-[2rem] leading-[0.95] sm:text-[2.6rem]">
             Get your group on the same page
           </h2>
-          <p className="max-w-sm text-[0.98rem] text-[var(--bb-on-cork-dim)]">
+          <p className="max-w-sm text-[0.98rem] text-(--bb-on-cork-dim)">
             Free to use. Your friends will want accounts too, since that&apos;s
             kind of the whole point.
           </p>
@@ -218,7 +218,7 @@ export function BookingBuddyLanding() {
             <Button
               size="lg"
               nativeButton={false}
-              className="relative h-12 rounded-sm px-8 font-bb-sign text-[0.85rem] tracking-widest uppercase shadow-[var(--bb-contact-shadow)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
+              className="relative h-12 rounded-sm px-8 font-bb-sign text-[0.85rem] tracking-widest uppercase shadow-(--bb-contact-shadow) hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
               render={<Link href={SIGN_IN_PATH} />}
             >
               <span
@@ -230,7 +230,7 @@ export function BookingBuddyLanding() {
             </Button>
             <Link
               href={PRIVACY_PATH}
-              className="text-sm text-[var(--bb-on-cork-dim)] underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
+              className="text-sm text-(--bb-on-cork-dim) underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
             >
               Read the privacy policy
             </Link>
@@ -243,7 +243,7 @@ export function BookingBuddyLanding() {
         <div className="mx-auto w-full max-w-2xl">
           <RevealGroup
             as="dl"
-            className="bb-card flex flex-col divide-y divide-[var(--bb-rule)] p-6"
+            className="bb-card flex flex-col divide-y divide-(--bb-rule) p-6"
           >
             {landingFaqs.map((faq) => (
               <div key={faq.question} className="py-5 first:pt-0 last:pb-0">

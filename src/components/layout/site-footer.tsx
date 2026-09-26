@@ -39,7 +39,7 @@ export function SiteFooter() {
             <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
               New episode every week. Come argue with us.
             </h2>
-            <p className="mt-2.5 text-[0.9375rem] text-[var(--bx-muted)]">
+            <p className="mt-2.5 text-[0.9375rem] text-(--bx-muted)">
               Free on YouTube, or audio only on Spotify.
             </p>
           </div>

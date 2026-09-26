@@ -212,7 +212,7 @@ export function BbAppShell() {
       {/* Mobile: a kraft tab strip pinned along the bottom edge of the board. */}
       <nav
         style={{ viewTransitionName: "bb-chrome-tabs" }}
-        className="bb-app-chrome fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-[var(--bb-cork-edge)] bg-[var(--card)] pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_18px_-10px_oklch(0.3_0.05_45/0.4)] sm:hidden"
+        className="bb-app-chrome fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-(--bb-cork-edge) bg-(--card) pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_18px_-10px_oklch(0.3_0.05_45/0.4)] sm:hidden"
         aria-label="Booking Buddy"
       >
         {/* The active-tab fill is one persistent element that slides across the

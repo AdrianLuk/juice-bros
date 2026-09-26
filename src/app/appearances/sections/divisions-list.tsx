@@ -24,7 +24,7 @@ export function DivisionsList({ divisions }: { divisions: AppearanceDivision[] }
         {byDay.map((division) => (
           <li
             key={division.name}
-            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-[var(--bx-line-soft)] py-2 last:border-b-0"
+            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-b border-(--bx-line-soft) py-2 last:border-b-0"
           >
             <span className="text-[0.9375rem] leading-snug">{division.name}</span>
             <span className="bx-meta shrink-0">

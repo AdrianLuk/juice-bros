@@ -31,7 +31,7 @@ export function ContactInfo() {
   return (
     <aside className="bx-panel h-fit p-6 sm:p-7">
       <h2 className="bx-h2 text-lg sm:text-xl">Or just say it on Instagram</h2>
-      <p className="mt-3.5 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+      <p className="mt-3.5 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
         Our DMs are open, and so are the comments. Both hosts are on there too.
       </p>
 
