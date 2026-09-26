@@ -4,6 +4,7 @@ import { hosts, partnerCodes } from "@/data/gear";
 import { pageMetadata } from "@/lib/metadata";
 import { buildGearJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
+import { Picture } from "@/components/picture";
 import { HostGearSection } from "./sections/host-gear-section";
 import { PartnerCodesSection } from "./sections/partner-codes-section";
 
@@ -43,6 +44,20 @@ export default function GearPage() {
             Some links below are ambassador codes. They take a bit off your
             order and earn us a commission at no extra cost to you.
           </>
+        }
+        // The only person-shaped thing on a page of product plates: the two
+        // of them at the net with the paddles the sections below list, so
+        // "what we actually play with" is shown in play before it is listed.
+        media={
+          <figure className="bx-tile aspect-4/3">
+            <Picture
+              src="/pictures/adrian-dav-at-net-ball-incoming.jpg"
+              alt="Daven and Adrian at the net, paddles up, ready for the return"
+              sizes="(min-width: 1024px) 30rem, 100vw"
+              fetchPriority="high"
+              className="object-center"
+            />
+          </figure>
         }
       />
 
