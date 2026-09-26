@@ -49,7 +49,7 @@ export default function GearPage() {
         // of them at the net with the paddles the sections below list, so
         // "what we actually play with" is shown in play before it is listed.
         media={
-          <figure className="bx-tile aspect-[4/3]">
+          <figure className="bx-tile aspect-4/3">
             <Picture
               src="/pictures/adrian-dav-at-net-ball-incoming.jpg"
               alt="Daven and Adrian at the net, paddles up, ready for the return"
