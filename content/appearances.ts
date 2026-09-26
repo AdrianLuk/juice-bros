@@ -113,10 +113,12 @@ export const appearances: Appearance[] = [
     ],
   },
   {
-    name: "PPA Tour Toronto",
+    name: "PPA Canada Toronto 125",
     startDate: "2026-11-26",
     endDate: "2026-11-29",
     location: "Pickleplex Downsview, Toronto, ON",
+    url: "https://pickleballtournaments.com/tournaments/ppa-canada-toronto-125",
+    image: "/appearances/ppa-canada-toronto-2026.png",
     organizer: "PPA Tour",
     status: "tentative",
     players: "both",
