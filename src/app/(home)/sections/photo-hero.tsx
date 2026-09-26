@@ -28,7 +28,7 @@ import { HeroBackdrop } from "./hero-backdrop";
  */
 export function PhotoHero() {
   return (
-    <section className="relative isolate flex flex-col sm:min-h-[100svh] sm:justify-end sm:overflow-hidden">
+    <section className="relative isolate flex flex-col sm:min-h-svh sm:justify-end sm:overflow-hidden">
       {/* Narrow: an in-flow banner block. Wide: the background of the section,
           with the copy laid over it. */}
       <div className="relative sm:absolute sm:inset-0 sm:-z-10">
@@ -53,7 +53,7 @@ export function PhotoHero() {
             ramp plus an even wash. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[6] h-20 bg-[linear-gradient(to_top,var(--bx-bg),transparent)] sm:inset-0 sm:h-auto sm:bg-[linear-gradient(to_top,var(--bx-bg)_0%,var(--bx-bg)_14%,color-mix(in_oklch,var(--bx-bg),transparent_22%)_42%,color-mix(in_oklch,var(--bx-bg),transparent_65%)_100%)]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-6 h-20 bg-[linear-gradient(to_top,var(--bx-bg),transparent)] sm:inset-0 sm:h-auto sm:bg-[linear-gradient(to_top,var(--bx-bg)_0%,var(--bx-bg)_14%,color-mix(in_oklch,var(--bx-bg),transparent_22%)_42%,color-mix(in_oklch,var(--bx-bg),transparent_65%)_100%)]"
         />
       </div>
 
