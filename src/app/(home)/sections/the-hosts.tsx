@@ -31,14 +31,10 @@ export function TheHosts() {
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear on Home. It is a different shot from About's
-          on purpose: tournament play at the net, with the crowd on the rail
-          behind them, which is the "rec players" claim shown rather than said. */}
+          on purpose: the two of them at the net mid-tournament, which is the
+          "rec players" claim shown rather than said. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
-<<<<<<< HEAD
-        <figure className="bx-tile aspect-[7/6]">
-=======
-        <figure className="bx-tile aspect-4/3">
->>>>>>> origin/master
+        <figure className="bx-tile aspect-7/6">
           <Picture
             src="/pictures/adrian-dav-at-net-crowd.jpg"
             alt="Daven and Adrian at the net in matching Juice Bros shirts, paddles up"
