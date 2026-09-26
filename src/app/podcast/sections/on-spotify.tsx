@@ -33,7 +33,7 @@ export function OnSpotify() {
               rel="noopener noreferrer"
               className="bx-btn bx-btn-sp mt-7"
             >
-              <SpotifyIcon className="size-[1.125rem]" />
+              <SpotifyIcon className="size-4.5" />
               Follow on Spotify
             </a>
           </div>
@@ -49,7 +49,7 @@ export function OnSpotify() {
               allowFullScreen
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
               loading="lazy"
-              className="block h-[351px] w-full"
+              className="block h-87.75 w-full"
             />
           </div>
         </div>
