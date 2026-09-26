@@ -40,7 +40,7 @@ export function TheHosts() {
             alt="Daven and Adrian at the net in matching Juice Bros shirts, with a crowd watching from the rail"
             sizes="(min-width: 1024px) 26rem, 100vw"
             loading="lazy"
-            className="object-[50%_55%]"
+            className="object-center"
           />
         </figure>
 
