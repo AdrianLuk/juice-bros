@@ -144,7 +144,7 @@ export function CreateClubForm({
             <input
               id="od-club-courts"
               name="courtCount"
-              className="od-field max-w-[7.5rem]"
+              className="od-field max-w-30"
               type="number"
               inputMode="numeric"
               min={COURT_COUNT_RANGE.min}

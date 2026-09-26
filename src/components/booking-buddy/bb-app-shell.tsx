@@ -94,7 +94,7 @@ function DesktopSectionItem({
         <span
           aria-hidden
           style={{ viewTransitionName: "bb-nav-pill" }}
-          className="absolute inset-x-1 -bottom-px h-[3px] rounded-full bg-brand-orange shadow-[0_0_10px_oklch(0.68_0.19_40/0.6)]"
+          className="absolute inset-x-1 -bottom-px h-0.75 rounded-full bg-brand-orange shadow-[0_0_10px_oklch(0.68_0.19_40/0.6)]"
         />
       )}
       {section.label}
@@ -241,7 +241,7 @@ export function BbAppShell() {
               href={section.primary}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-[0.1em] uppercase transition-colors",
+                "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 font-bb-sign text-[0.6rem] tracking-widest uppercase transition-colors",
                 active ? "text-white" : "text-muted-foreground",
               )}
             >

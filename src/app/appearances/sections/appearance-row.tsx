@@ -64,7 +64,7 @@ export function AppearanceRow({
       <RowShell target={target}>
         <AppearanceArt
           image={appearance.image}
-          className="aspect-[16/10] w-full shrink-0 sm:w-40"
+          className="aspect-16/10 w-full shrink-0 sm:w-40"
         />
 
         <div className="min-w-0 flex-1">

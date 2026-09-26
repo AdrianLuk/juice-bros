@@ -109,7 +109,7 @@ export default async function BookingBuddyPage() {
           <Board className="order-3 mt-8 flex flex-col gap-x-8 gap-y-9 rounded-lg p-3 sm:p-6 lg:order-2 lg:flex-row lg:items-start">
             <BoardRegion
               label="This week"
-              className="lg:w-[37.5rem] lg:shrink-0"
+              className="lg:w-150 lg:shrink-0"
             >
               {/* The orchestrated pin-drop cascade is armed for the first
                   dashboard render of the session only — a return visit gets the
@@ -121,7 +121,7 @@ export default async function BookingBuddyPage() {
                   pin="commit"
                   pinLabel="Post a game — your move"
                   interactive
-                  className="flex w-full flex-col items-center gap-1 border-2 border-dashed border-[color-mix(in_oklch,var(--brand-orange),transparent_45%)] bg-[repeating-linear-gradient(-45deg,var(--card),var(--card)_9px,var(--bb-kraft-deep)_9px,var(--bb-kraft-deep)_18px)] py-6 text-center no-underline shadow-none sm:w-[15.5rem]"
+                  className="flex w-full flex-col items-center gap-1 border-2 border-dashed border-[color-mix(in_oklch,var(--brand-orange),transparent_45%)] bg-[repeating-linear-gradient(-45deg,var(--card),var(--card)_9px,var(--bb-kraft-deep)_9px,var(--bb-kraft-deep)_18px)] py-6 text-center no-underline shadow-none sm:w-62"
                 >
                   <span className="font-bb-sign text-[2rem] leading-none text-brand-orange">
                     +

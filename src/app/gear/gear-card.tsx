@@ -28,7 +28,7 @@ function GearImage({ item }: { item: GearItem }) {
     // five cards, and a stack of white slabs at 390.
     const ground = item.imageHasOwnGround ? "" : " bx-plate";
     return (
-      <div className={`bx-tile aspect-[4/3]${ground}`}>
+      <div className={`bx-tile aspect-4/3${ground}`}>
         {/* eslint-disable-next-line @next/next/no-img-element -- remote brand CDN asset, no next/image optimization needed */}
         <img
           src={item.image}
@@ -43,7 +43,7 @@ function GearImage({ item }: { item: GearItem }) {
   // No photograph from the brand: the initial on the raised fill, rather than
   // a broken frame or a stock placeholder.
   return (
-    <div className="bx-tile flex aspect-[4/3] items-center justify-center">
+    <div className="bx-tile flex aspect-4/3 items-center justify-center">
       <span className="text-4xl font-bold text-[var(--bx-line-2)]">
         {item.name.charAt(0)}
       </span>

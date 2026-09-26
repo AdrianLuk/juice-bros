@@ -36,7 +36,7 @@ import { InstagramIcon } from "@/components/icons";
 export function JoinIn() {
   return (
     <section className="bx-measure py-12 sm:py-16">
-      <div className="max-w-[34rem]">
+      <div className="max-w-136">
         <h2 className="bx-h2 max-w-[20ch] text-[clamp(1.375rem,3.2vw,1.875rem)]">
           This only works if you&apos;re part of it
         </h2>
@@ -54,7 +54,7 @@ export function JoinIn() {
             rel="noopener noreferrer"
             className="bx-btn bx-btn-ig"
           >
-            <InstagramIcon className="size-[1.125rem]" />
+            <InstagramIcon className="size-4.5" />
             Follow on Instagram
           </a>
           <Link href="/contact" className="bx-btn bx-btn-ghost">

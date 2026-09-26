@@ -95,7 +95,7 @@ export function SessionForm({
             id="on-deck-session-date"
             name="scheduledFor"
             type="date"
-            className="od-field w-[12rem]"
+            className="od-field w-48"
             value={date}
             onChange={(event) => setDate(event.target.value)}
             required
@@ -130,7 +130,7 @@ export function SessionForm({
           <input
             id="on-deck-session-courts"
             name="courtCount"
-            className="od-field w-[6.5rem]"
+            className="od-field w-26"
             type="number"
             inputMode="numeric"
             min={1}

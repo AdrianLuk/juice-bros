@@ -42,7 +42,7 @@ export function ContactInfo() {
           rel="noopener noreferrer"
           className="bx-btn bx-btn-ig"
         >
-          <InstagramIcon className="size-[1.125rem]" />
+          <InstagramIcon className="size-4.5" />
           The show
         </a>
         {accounts.map((account) => (
@@ -53,7 +53,7 @@ export function ContactInfo() {
             rel="noopener noreferrer"
             className="bx-btn bx-btn-ghost"
           >
-            <InstagramIcon className="size-[1.125rem]" />
+            <InstagramIcon className="size-4.5" />
             {account.name}
           </a>
         ))}

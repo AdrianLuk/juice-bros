@@ -125,7 +125,7 @@ export function ClubDefaultsForm({
             <input
               id="on-deck-court-count"
               name="courtCount"
-              className="od-field w-[6.5rem]"
+              className="od-field w-26"
               type="number"
               inputMode="numeric"
               min={1}
@@ -145,7 +145,7 @@ export function ClubDefaultsForm({
             <input
               id="on-deck-group-cap"
               name="groupCap"
-              className="od-field w-[6.5rem]"
+              className="od-field w-26"
               type="number"
               inputMode="numeric"
               min={2}

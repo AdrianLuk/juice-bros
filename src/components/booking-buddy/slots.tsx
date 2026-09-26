@@ -296,7 +296,7 @@ export function CreateSlotForm({
 export function SlotStatusBadge({ courtCount }: { courtCount: number }) {
   const booked = courtCount > 0;
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 font-bb-sign text-[0.66rem] tracking-[0.1em] text-muted-foreground uppercase">
+    <span className="inline-flex shrink-0 items-center gap-1.5 font-bb-sign text-[0.66rem] tracking-widest text-muted-foreground uppercase">
       <span
         aria-hidden
         className="size-2 rounded-full"

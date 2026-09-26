@@ -32,7 +32,7 @@ export function DashboardAvailabilitySidebar({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-bb-sign text-[0.82rem] tracking-[0.1em] text-foreground uppercase">
+        <h2 className="font-bb-sign text-[0.82rem] tracking-widest text-foreground uppercase">
           Your availability
         </h2>
         <Link

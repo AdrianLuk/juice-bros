@@ -227,7 +227,7 @@ function Draw({
 
           <Wheel ref={wheel} pool={shown} landedId={landed ? (spin?.winnerId ?? null) : null} />
 
-          <p aria-live="polite" className="min-h-[2.75rem] w-full">
+          <p aria-live="polite" className="min-h-11 w-full">
             {landed && winner ? (
               <span className="dr-result block text-[var(--dr-accent)]">{winner.name}</span>
             ) : (
@@ -539,7 +539,7 @@ function Roster({
       </ul>
 
       <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-[12rem] flex-1">
+        <div className="min-w-48 flex-1">
           <label className="dr-label" htmlFor="dr-add">
             Add someone
           </label>
@@ -651,7 +651,7 @@ function Prizes({
       ) : null}
 
       <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-[12rem] flex-1">
+        <div className="min-w-48 flex-1">
           <label className="dr-label" htmlFor="dr-prize">
             Prize
           </label>

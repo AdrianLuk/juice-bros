@@ -49,7 +49,7 @@ export function SiteFooter() {
             rel="noopener noreferrer"
             className="bx-btn bx-btn-yt shrink-0 self-start px-6 py-3.5 text-base sm:self-auto"
           >
-            <YoutubeIcon className="size-[1.125rem]" />
+            <YoutubeIcon className="size-4.5" />
             Subscribe on YouTube
           </a>
         </div>

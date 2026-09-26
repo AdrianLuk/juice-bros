@@ -84,7 +84,7 @@ export function ClubDraftTeaser({
           inputMode="numeric"
           min={COURT_COUNT_RANGE.min}
           max={COURT_COUNT_RANGE.max}
-          className="max-w-[7.5rem]"
+          className="max-w-30"
           value={draft.courtCount}
           onChange={(event) =>
             // Capped to the same length the cookie itself keeps, so what
