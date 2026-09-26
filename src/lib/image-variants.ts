@@ -69,6 +69,18 @@ export const IMAGE_MANIFEST = {
     widths: [640, 960],
     quality: { avif: 42, webp: 60 },
   },
+  "/pictures/adrian-dav-at-net-crowd.jpg": {
+    width: 700,
+    height: 600,
+    // The Home hosts tile: ~416px wide at lg, the full column below it. The
+    // master is pre-cropped to 7:6 from a 1600px WhatsApp export, centred on
+    // the two of them with as little of the crowd as keeps both fully in
+    // frame (Adrian's crop). 700px is all the resolution that leaves: soft on
+    // retina until the phone original replaces this WhatsApp copy. Busy,
+    // phone-compressed shot, so quality sits under the camera original's.
+    widths: [700],
+    quality: { avif: 42, webp: 60 },
+  },
   "/brand/JB_Banner.jpeg": {
     width: 1600,
     height: 900,
