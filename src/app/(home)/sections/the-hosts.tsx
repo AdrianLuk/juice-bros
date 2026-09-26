@@ -34,7 +34,7 @@ export function TheHosts() {
           on purpose: tournament play at the net, with the crowd on the rail
           behind them, which is the "rec players" claim shown rather than said. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
-        <figure className="bx-tile aspect-[4/3]">
+        <figure className="bx-tile aspect-[7/6]">
           <Picture
             src="/pictures/adrian-dav-at-net-crowd.jpg"
             alt="Daven and Adrian at the net in matching Juice Bros shirts, with a crowd watching from the rail"
