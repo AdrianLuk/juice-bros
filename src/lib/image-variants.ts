@@ -59,6 +59,16 @@ export const IMAGE_MANIFEST = {
     widths: [800, 1200, 1600],
     quality: { avif: 50, webp: 68 },
   },
+  "/pictures/adrian-dav-at-net-crowd.jpg": {
+    width: 1600,
+    height: 1450,
+    // The Home hosts tile: ~416px wide at lg, the full column below it. The
+    // master is a 1600px WhatsApp export, so 1600 is the ceiling.
+    // A busy crowd shot with phone-compression noise: q50 AVIF came out 3x
+    // the size of the camera-original host photo for no visible gain.
+    widths: [800, 1200, 1600],
+    quality: { avif: 42, webp: 60 },
+  },
   "/brand/JB_Banner.jpeg": {
     width: 1600,
     height: 900,
