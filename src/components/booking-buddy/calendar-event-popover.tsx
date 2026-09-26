@@ -73,13 +73,13 @@ export function CalendarEventPopover<T>({
 // grid allows rather than reaching for the 18.66px+bold "large text" AA
 // threshold, which the week grid's HOUR_HEIGHT can't accommodate without a
 // much bigger layout change (see the note on eventChipLineBudget below).
-const EVENT_TEXT_SHADOW = "[text-shadow:0_1px_1.5px_rgb(0_0_0_/_0.4)]";
+const EVENT_TEXT_SHADOW = "[text-shadow:0_1px_1.5px_rgb(0_0_0/0.4)]";
 
 // A booking is a court that's actually reserved — on the sign-up sheet it's
 // "penned in" in ballpoint blue (the sub-world's confirmed mark). Blue ink
 // clears WCAG AA against white, so this pairing is legible where the brand
 // orange fill never was.
-export const WEEK_EVENT_CLASS = `absolute block overflow-hidden rounded-[3px] bg-[var(--bb-ink-pen)] px-1.5 py-1 text-[13px] font-medium leading-tight text-white shadow-sm ${EVENT_TEXT_SHADOW}`;
+export const WEEK_EVENT_CLASS = `absolute block overflow-hidden rounded-[3px] bg-(--bb-ink-pen) px-1.5 py-1 text-[13px] font-medium leading-tight text-white shadow-sm ${EVENT_TEXT_SHADOW}`;
 
 // Each booking is its own penned-in card on the month grid — a full hairline
 // border + a slightly stronger fill so two in one day read as two entries,

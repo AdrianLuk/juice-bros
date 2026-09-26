@@ -33,7 +33,7 @@ export function UpNext({ appearance }: { appearance: Appearance }) {
               <span aria-hidden> &middot; </span>
               {formatAppearanceDates(appearance)}
             </p>
-            <p className="mt-3.5 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+            <p className="mt-3.5 text-[1.0625rem] leading-relaxed text-(--bx-muted)">
               {appearance.location}
             </p>
             {/* Who is playing is only stated here when there are no brackets to
@@ -41,7 +41,7 @@ export function UpNext({ appearance }: { appearance: Appearance }) {
                 the same two people the five rows below it already name, one per
                 row - six printings of "Adrian and Daven" inside one block. */}
             {divisions.length === 0 && (
-              <p className="mt-1 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+              <p className="mt-1 text-[1.0625rem] leading-relaxed text-(--bx-muted)">
                 Playing: {describePlayers(appearance.players)}
               </p>
             )}

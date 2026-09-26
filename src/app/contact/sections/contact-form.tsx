@@ -72,7 +72,7 @@ export function ContactForm() {
       <div className="bx-panel p-7 sm:p-9">
         <h2 className="bx-h2 text-lg sm:text-xl">Message sent</h2>
         <p className="bx-meta mt-2.5">We read everything</p>
-        <p className="mt-4 max-w-[46ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+        <p className="mt-4 max-w-[46ch] text-[0.9375rem] leading-relaxed text-(--bx-muted)">
           Thanks for reaching out. We&apos;ll get back to you soon.
         </p>
         <button
@@ -149,7 +149,7 @@ export function ContactForm() {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-[var(--bx-muted)]"
+              className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-(--bx-muted)"
             >
               <path d="m5 9 7 7 7-7" />
             </svg>
@@ -185,7 +185,7 @@ export function ContactForm() {
         {status === "error" && (
           <p
             role="alert"
-            className="rounded-lg px-4 py-3 text-[0.9375rem] leading-relaxed text-[var(--bx-ink)] shadow-[0_0_0_1px_var(--bx-line-2)]"
+            className="rounded-lg px-4 py-3 text-[0.9375rem] leading-relaxed text-(--bx-ink) shadow-[0_0_0_1px_var(--bx-line-2)]"
           >
             {errorMessage}
           </p>

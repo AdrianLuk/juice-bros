@@ -30,7 +30,7 @@ export function Mission() {
             To create the most relatable pickleball conversations on the
             internet.
           </h2>
-          <div className="mt-7 flex flex-col gap-5 text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+          <div className="mt-7 flex flex-col gap-5 text-[1.0625rem] leading-relaxed text-(--bx-muted)">
             <p>
               We&apos;re not here to fix your third shot drop or rank the best
               paddles. There are plenty of people already doing that, and doing
@@ -43,7 +43,7 @@ export function Mission() {
               happens before, during, and after every game, the stuff that
               actually makes this sport what it is.
             </p>
-            <p className="font-medium text-[var(--bx-ink)]">
+            <p className="font-medium text-(--bx-ink)">
               If pickleball content has ever felt like it was made for someone
               way more serious than you, this is the show that isn&apos;t.
             </p>

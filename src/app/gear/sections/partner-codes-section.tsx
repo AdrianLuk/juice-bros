@@ -14,7 +14,7 @@ export function PartnerCodesSection({ items }: { items: GearItem[] }) {
       <h2 className="bx-h2 text-[clamp(1.375rem,3.2vw,1.875rem)]">
         Codes we still have
       </h2>
-      <p className="mt-4 max-w-[52ch] text-[1.0625rem] leading-relaxed text-[var(--bx-muted)]">
+      <p className="mt-4 max-w-[52ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
         Brands we&apos;ve partnered with but don&apos;t currently game. The
         codes still work if you want to try them.
       </p>

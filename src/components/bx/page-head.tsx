@@ -37,7 +37,7 @@ export function PageHead({
       {meta && <p className="bx-meta mt-4">{meta}</p>}
       {lead && <p className="bx-lead mt-5">{lead}</p>}
       {actions && <div className="mt-8 flex flex-wrap gap-3">{actions}</div>}
-      {note && <p className="mt-8 max-w-[52ch] text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">{note}</p>}
+      {note && <p className="mt-8 max-w-[52ch] text-[0.9375rem] leading-relaxed text-(--bx-muted)">{note}</p>}
     </header>
   );
 }

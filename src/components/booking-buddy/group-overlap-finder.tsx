@@ -360,7 +360,7 @@ export function GroupOverlapFinder({
           availability with you show up here.
         </p>
 
-        <ul className="mt-4 divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+        <ul className="mt-4 divide-y divide-(--bb-rule) overflow-hidden rounded-sm border border-(--bb-rule)">
           {friends.map((friend) => {
             const checked = selected.has(friend.userId);
             return (
@@ -399,7 +399,7 @@ export function GroupOverlapFinder({
                 className={cn(
                   "rounded-[3px] px-2.5 py-1 font-bb-sign text-[0.68rem] tracking-[0.08em] uppercase transition-colors",
                   rangeChoice === option.id
-                    ? "bg-foreground text-[color:var(--card)]"
+                    ? "bg-foreground text-(--card)"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -458,7 +458,7 @@ export function GroupOverlapFinder({
                   who&apos;s marked themselves busy.
                 </p>
               ) : (
-                <ul className="divide-y divide-[var(--bb-rule)] overflow-hidden rounded-sm border border-[var(--bb-rule)]">
+                <ul className="divide-y divide-(--bb-rule) overflow-hidden rounded-sm border border-(--bb-rule)">
                   {freeDays.map((day) => (
                     <li key={day.dateKey} className="px-5 py-4">
                       <p className="font-medium">

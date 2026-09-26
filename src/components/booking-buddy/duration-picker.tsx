@@ -45,7 +45,7 @@ export function DurationPicker({
             onClick={() => onChange(choice)}
             className={
               value === choice
-                ? "border-transparent bg-foreground text-[color:var(--card)] hover:bg-foreground/90 hover:text-[color:var(--card)]"
+                ? "border-transparent bg-foreground text-(--card) hover:bg-foreground/90 hover:text-(--card)"
                 : undefined
             }
           >
@@ -61,7 +61,7 @@ export function DurationPicker({
         onClick={() => onChange("custom")}
         className={
           value === "custom"
-            ? "border-transparent bg-foreground text-[color:var(--card)] hover:bg-foreground/90 hover:text-[color:var(--card)]"
+            ? "border-transparent bg-foreground text-(--card) hover:bg-foreground/90 hover:text-(--card)"
             : undefined
         }
       >

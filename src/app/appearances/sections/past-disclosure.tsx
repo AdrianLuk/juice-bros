@@ -35,7 +35,7 @@ export function PastDisclosure({
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-controls={panelId}
-          className="group -mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors duration-200 hover:text-[var(--bx-muted)]"
+          className="group -mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors duration-200 hover:text-(--bx-muted)"
         >
           <svg
             aria-hidden
@@ -46,7 +46,7 @@ export function PastDisclosure({
             strokeLinecap="round"
             strokeLinejoin="round"
             className={cn(
-              "size-[0.875em] shrink-0 text-[var(--bx-muted)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+              "size-[0.875em] shrink-0 text-(--bx-muted) transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
               open && "rotate-90",
             )}
           >
@@ -55,7 +55,7 @@ export function PastDisclosure({
           Already played
           {/* Not `.bx-meta`: at 11px beside a 30px heading the count read as a
               footnote marker rather than as part of the label. */}
-          <span className="text-base font-medium text-[var(--bx-muted)]">
+          <span className="text-base font-medium text-(--bx-muted)">
             ({count})
           </span>
         </button>

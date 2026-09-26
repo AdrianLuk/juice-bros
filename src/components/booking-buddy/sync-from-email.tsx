@@ -466,7 +466,7 @@ function SuggestedMatch({
     // itself an <li>, and a second listitem inside one makes "the card with
     // this button" ambiguous to anything selecting by role — the e2e suite
     // reads the review list that way throughout.
-    <div className="rounded-sm border border-[var(--bb-rule)] p-3">
+    <div className="rounded-sm border border-(--bb-rule) p-3">
       <p className="text-sm font-medium">
         {formatCandidateDate(suggestion.date)} ·{" "}
         {formatTimeLabel(suggestion.startTime)}–

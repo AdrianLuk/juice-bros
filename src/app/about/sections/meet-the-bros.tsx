@@ -41,10 +41,10 @@ export function MeetTheBros() {
           <div key={member.name} className="bx-panel flex flex-col p-6 sm:p-7">
             <h3 className="bx-h2 text-lg sm:text-xl">{member.name}</h3>
             <p className="bx-meta mt-2">{member.role}</p>
-            <p className="mt-4 text-[0.9375rem] leading-relaxed text-[var(--bx-muted)]">
+            <p className="mt-4 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
               {member.bio}
             </p>
-            <p className="mt-4 border-t border-[var(--bx-line-soft)] pt-4 text-[0.9375rem] leading-relaxed">
+            <p className="mt-4 border-t border-(--bx-line-soft) pt-4 text-[0.9375rem] leading-relaxed">
               {member.funFact}
             </p>
             <a
