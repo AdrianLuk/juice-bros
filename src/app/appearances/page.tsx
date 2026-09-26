@@ -5,6 +5,7 @@ import { nextConfirmedAppearance, splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
+import { Picture } from "@/components/picture";
 import { UpNext } from "./sections/up-next";
 import { UpcomingAppearances } from "./sections/upcoming-appearances";
 import { PastAppearances } from "./sections/past-appearances";
@@ -45,6 +46,19 @@ export default function AppearancesPage() {
         // in Ontario.
         meta={upcoming.length > 0 ? `${upcoming.length} coming up` : undefined}
         lead="The tournaments we're actually signed up for, with the brackets we're in. If you're playing one of these, come say hi between matches."
+        // Shot from behind, names on their backs: the view from the rail,
+        // and exactly what someone looking for them at a venue will see.
+        media={
+          <figure className="bx-tile aspect-4/3">
+            <Picture
+              src="/pictures/adrian-dav-backs-rally.jpg"
+              alt="Daven and Adrian from behind mid-rally, their names on the backs of their Juice Bros shirts"
+              sizes="(min-width: 1024px) 30rem, 100vw"
+              fetchPriority="high"
+              className="object-center"
+            />
+          </figure>
+        }
       />
 
       {featured && <UpNext appearance={featured} />}

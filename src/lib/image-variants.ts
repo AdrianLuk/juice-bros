@@ -69,6 +69,16 @@ export const IMAGE_MANIFEST = {
     widths: [640, 960],
     quality: { avif: 42, webp: 60 },
   },
+  "/pictures/adrian-dav-backs-rally.jpg": {
+    width: 1480,
+    height: 1110,
+    // The Appearances header photo: 30rem beside the copy at lg, the full
+    // column below it. Pre-cropped to 4:3 from a 1600px WhatsApp export
+    // (the original is `adrian-dav-backs-rally-uncropped.jpg`). Busy,
+    // phone-compressed shot, so quality sits under the camera original's.
+    widths: [640, 960],
+    quality: { avif: 42, webp: 60 },
+  },
   "/pictures/adrian-dav-at-net-crowd.jpg": {
     width: 700,
     height: 600,
