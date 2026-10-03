@@ -8,6 +8,7 @@ import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
 import { Picture } from "@/components/picture";
 import { EventRecaps } from "./sections/event-recaps";
+import { SpotUs } from "./sections/spot-us";
 import { UpNext } from "./sections/up-next";
 import { UpcomingAppearances } from "./sections/upcoming-appearances";
 import { PastAppearances } from "./sections/past-appearances";
@@ -68,6 +69,7 @@ export default function AppearancesPage() {
 
       <div className="bx-measure pb-6">
         <UpcomingAppearances appearances={rest} standalone={!featured} />
+        <SpotUs />
         <EventRecaps recaps={eventRecaps} />
         <PastAppearances appearances={past} />
       </div>

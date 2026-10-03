@@ -96,18 +96,6 @@ export const IMAGE_MANIFEST = {
   // above they hold up on a retina screen. The header and tile boxes top out
   // at 30rem, so 960 is a 2x there and 1280 covers the single-column layout
   // below `lg`. Same quality as the other camera original (adrian-dav.jpg).
-  "/pictures/creator-night-adrian-backhand-daven-watching.jpg": {
-    width: 2000,
-    height: 1333,
-    widths: [640, 960, 1280],
-    quality: { avif: 50, webp: 68 },
-  },
-  "/pictures/creator-night-adrian-lunging-daven-at-net.jpg": {
-    width: 1333,
-    height: 2000,
-    widths: [640, 960, 1280],
-    quality: { avif: 50, webp: 68 },
-  },
   "/pictures/creator-night-adrian-daven-net-handshake.jpg": {
     width: 1600,
     height: 2000,
