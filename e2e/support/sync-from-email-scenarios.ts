@@ -26,6 +26,8 @@ export type SyncMailMessage = {
   subject: string;
   html: string;
   receivedAt?: number;
+  /** The sender a search filters on — CourtReserve's when unset. */
+  from?: string;
 };
 
 export type SyncMock = {
@@ -80,6 +82,24 @@ export function confirmationEmail(fields: {
       `<h4>Details</h4><h5>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
       `<h4>Player(s)</h4><h5>${players}</h5>` +
       `<h4>Court(s)</h4><h5>${court}</h5>` +
+      `</body></html>`,
+  };
+}
+
+/**
+ * Backyard Club's own "You're in" template (see backyard-club-email.ts) —
+ * its own sender, an event name in a `<strong>`, and a box of date / time /
+ * courts lines. Always for the Org named "Backyard Club", since the sender,
+ * not the body, says which facility it is.
+ */
+export function backyardClubEventEmail(fields: { id: string }): SyncMailMessage {
+  return {
+    id: fields.id,
+    from: "bookings@thebkydclub.com",
+    subject: "You're in — Advanced Open Play 4.0+, Mar 17 11:00 AM",
+    html:
+      `<html><body><p>You've joined <strong>Advanced Open Play 4.0+</strong>:</p>` +
+      `<div><p>Wednesday, March 17, 2027</p><p>11:00 AM – 2:00 PM</p><p>Courts 6, 7, 8, 9</p></div>` +
       `</body></html>`,
   };
 }
@@ -212,6 +232,35 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await expect(row(page, "Court 3")).toContainText(facility);
 
       await removePlace(page, facility);
+    });
+
+    test("a Backyard Club email syncs alongside a CourtReserve one, each read by its own sender's parser", async ({
+      page,
+      accounts,
+    }) => {
+      const facility = placeName();
+      await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
+      await addPlace(page, facility);
+      await addPlace(page, "Backyard Club");
+
+      await connectAndSeed(page, [
+        confirmationEmail({ id: messageId(), facility }),
+        backyardClubEventEmail({ id: messageId() }),
+      ]);
+
+      await page.goto("/booking-buddy/bookings");
+      await page.getByRole("button", { name: "Sync bookings" }).click();
+
+      const backyardCard = page
+        .getByRole("listitem")
+        .filter({ hasText: "Advanced Open Play 4.0+" })
+        .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
+      await expect(backyardCard).toBeVisible();
+      await expect(page.getByRole("listitem").filter({ hasText: facility })).toBeVisible();
+
+      await backyardCard.getByRole("button", { name: "Add to my bookings" }).click();
+      await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
+      await expect(row(page, "Court 6, 7, 8, 9")).toContainText("Backyard Club");
     });
 
     test("dismissing a candidate means a second sync never shows it again", async ({ page, accounts }) => {

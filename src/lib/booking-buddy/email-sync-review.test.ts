@@ -118,6 +118,7 @@ function email(
   seq += 1;
   return {
     gmailMessageId: opts.id ?? `msg-${seq}`,
+    source: "courtreserve",
     subject,
     html,
     receivedAt: opts.receivedAt ?? seq * 1000,
@@ -580,4 +581,62 @@ test("an update whose facility matched no Org offers nothing — there is no Org
   const update = updatesOf(result)[0];
   assert.equal(update.matched, false);
   assert.deepEqual(update.matched === false ? update.suggestions : null, []);
+});
+
+// --- Backyard Club (its own template, see backyard-club-email.ts) ---------
+
+const BACKYARD_ORG = { orgId: "org-byc", displayName: "Backyard Club", timeZone: "America/Toronto" };
+
+function backyardHtml(intro: string, lines: string[]): string {
+  const box = lines.map((line) => `<p style="margin:0 0 4px;">${line}</p>`).join("");
+  return `<html><body><p style="margin:0 0 14px;">${intro}</p><div>${box}</div></body></html>`;
+}
+
+function backyardEmail(subject: string, html: string, opts: { id?: string; receivedAt?: number } = {}) {
+  return { ...email(subject, html, opts), source: "backyard_club" as const };
+}
+
+test("a Backyard Club \"You're in\" email becomes an import candidate for the Backyard Club Org", () => {
+  const result = review(
+    [
+      backyardEmail(
+        "You're in — Advanced Open Play 4.0+, Jul 1 11:00 AM",
+        backyardHtml("You've joined <strong>Advanced Open Play 4.0+</strong>:", [
+          "Wednesday, July 1, 2026",
+          "11:00 AM – 2:00 PM",
+          "Courts 6, 7, 8, 9",
+        ]),
+      ),
+    ],
+    { orgs: [ORG, BACKYARD_ORG] },
+  );
+
+  const [candidate] = importsOf(result);
+  assert.equal(candidate.matchedOrgId, "org-byc");
+  assert.equal(candidate.name, "Advanced Open Play 4.0+");
+  assert.equal(candidate.courtLabel, "6, 7, 8, 9");
+  assert.equal(candidate.endTime, "14:00");
+});
+
+test("a Backyard Club update in the same batch as its \"You're in\" folds into one import with the new courts", () => {
+  const event = "You've joined <strong>Advanced Open Play 4.0+</strong>:";
+  const update = "The details for <strong>Advanced Open Play 4.0+</strong> have changed.";
+  const result = review(
+    [
+      backyardEmail(
+        "You're in — Advanced Open Play 4.0+, Jul 1 11:00 AM",
+        backyardHtml(event, ["Wednesday, July 1, 2026", "11:00 AM – 2:00 PM", "Courts 6, 7, 8, 9"]),
+        { id: "m-in", receivedAt: 1000 },
+      ),
+      backyardEmail(
+        "Updated — Advanced Open Play 4.0+, Jul 1 11:00 AM",
+        backyardHtml(update, ["Wednesday, July 1, 2026", "11:00 AM – 2:00 PM", "Courts 6, 7, 8, 9, 10"]),
+        { id: "m-updated", receivedAt: 2000 },
+      ),
+    ],
+    { orgs: [BACKYARD_ORG] },
+  );
+
+  assert.equal(result.items.length, 1);
+  assert.equal(importsOf(result)[0].courtLabel, "6, 7, 8, 9, 10");
 });

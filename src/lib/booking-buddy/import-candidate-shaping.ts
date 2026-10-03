@@ -47,14 +47,15 @@ export function splitOverlongCourtLabel(
  * (issue #64) — without this, `formatCourtLabel` re-adding its own "Court "
  * prefix at display time would double up to "Court Court #6 - Hard". A
  * facility's own free text after that word (like "#6 - Hard") is kept as-is;
- * only the word CourtReserve's template itself always prepends is removed.
+ * only the word the template itself always prepends is removed — "Court", or
+ * "Courts" for a Backyard Club event spread over several ("Courts 6, 7, 8").
  */
 export function stripCourtLabelPrefix(courtLabel: string | null): string | null {
   if (!courtLabel) {
     return null;
   }
 
-  const stripped = courtLabel.replace(/^court\s*/i, "").trim();
+  const stripped = courtLabel.replace(/^courts?\s*/i, "").trim();
   return stripped || null;
 }
 

@@ -24,10 +24,8 @@
  * bearing on how a fetched one is parsed or matched.
  */
 
-import {
-  parseCourtReserveEmail,
-  type CourtReserveConfirmation,
-} from "./courtreserve-email.ts";
+import { parseBookingEmail, type BookingEmailSource } from "./booking-email.ts";
+import type { CourtReserveConfirmation } from "./courtreserve-email.ts";
 import type { BookingFormat } from "./capacity.ts";
 import {
   isDismissedReservation,
@@ -189,6 +187,8 @@ export type ReviewedCourtReserveEmails = {
 /** One raw Gmail message body, exactly what `fetchGmailMessage` returns plus its own id — the only thing the action has to fetch before this module can run. */
 export type RawCourtReserveEmail = {
   gmailMessageId: string;
+  /** Which sender's search found it — decides which parser reads it. */
+  source: BookingEmailSource;
   subject: string;
   html: string;
   receivedAt: number;
@@ -280,7 +280,7 @@ function toReconciliationEvents(
   const events: ReconciliationEvent<ConfirmedEmail>[] = [];
 
   for (const email of emails) {
-    const parsed = parseCourtReserveEmail({ subject: email.subject, html: email.html });
+    const parsed = parseBookingEmail(email);
 
     if (parsed.kind === "cancellation") {
       const { cancellation } = parsed;

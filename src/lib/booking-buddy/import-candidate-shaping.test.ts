@@ -205,3 +205,7 @@ test("two real reservations in the same slot at different courts both stay", () 
   const ten = { ...SAME_SLOT, courtLabel: "#10" };
   assert.deepEqual(dedupeReservations([nine, ten]), [nine, ten]);
 });
+
+test("a Backyard Club event's plural 'Courts' word is stripped the same way", () => {
+  assert.equal(stripCourtLabelPrefix("Courts 6, 7, 8, 9"), "6, 7, 8, 9");
+});
