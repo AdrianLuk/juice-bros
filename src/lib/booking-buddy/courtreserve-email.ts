@@ -162,7 +162,7 @@ const NAMED_HTML_ENTITIES: Record<string, string> = {
 };
 
 /** Named, decimal (`&#39;`) and hex (`&#x27;`) entities — not just the handful this parser's own fixtures happen to use. */
-function decodeHtmlEntities(text: string): string {
+export function decodeHtmlEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-zA-Z]+);/gi, (entity, code: string) => {
     if (code.startsWith("#")) {
       const codePoint = code[1]?.toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
@@ -304,7 +304,7 @@ function parseClockTime(text: string): string | null {
  * treated as the whole field being malformed (`null`) rather than silently
  * downgraded to "no end time" — the email did specify one, it just didn't parse.
  */
-function parseTimeRange(text: string): { start: string; end: string | null } | null {
+export function parseTimeRange(text: string): { start: string; end: string | null } | null {
   const parts = text.split(/[-–—]|\s+to\s+/i);
   const start = parts[0] ? parseClockTime(parts[0]) : null;
   if (!start) {

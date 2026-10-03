@@ -181,7 +181,7 @@ export function MailboxSyncSection({
                 <AlertDialogDescription>
                   Booking Buddy stops reading{" "}
                   <span className="font-medium">{mailboxLink.accountEmail}</span>{" "}
-                  for CourtReserve emails. Bookings already pulled in stay put.
+                  for booking emails. Bookings already pulled in stay put.
                   You can reconnect anytime.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -211,8 +211,8 @@ export function MailboxSyncSection({
   } else if (connectableProviders.length === 0) {
     body = (
       <p className="text-sm text-muted-foreground">
-        Email sync reads your CourtReserve confirmation emails and pulls those
-        bookings in for you. The Gmail option is invite-only right now.{" "}
+        Email sync reads your CourtReserve and The Backyard Club booking emails and
+        pulls those bookings in for you. The Gmail option is invite-only right now.{" "}
         <Link
           href="/contact"
           className="text-foreground underline underline-offset-2"
@@ -226,9 +226,9 @@ export function MailboxSyncSection({
     body = (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
-          Connect the inbox your CourtReserve confirmation emails go to, and
-          Booking Buddy can pull those reservations in without you typing them
-          by hand.
+          Connect the inbox your CourtReserve or The Backyard Club booking emails go
+          to, and Booking Buddy can pull those reservations in without you typing
+          them by hand.
         </p>
         <div className="flex flex-col gap-4">
           {connectableProviders.map((provider) => (

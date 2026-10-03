@@ -2,6 +2,13 @@ import http from "node:http";
 
 import { listenOnFixedPort } from "./mock-server.ts";
 
+const COURTRESERVE_SENDER = "notifications@courtreserve.com";
+
+/** The sender in a `/me/messages` `$filter` ("from/emailAddress/address eq 'x' and …"), or null when it names none. */
+function senderInFilter(url: URL): string | null {
+  return /address eq '([^']+)'/.exec(url.searchParams.get("$filter") ?? "")?.[1] ?? null;
+}
+
 /**
  * The Microsoft counterpart of `gmail-mock.ts` (spec #280). A fixture stand-in
  * for the Microsoft identity host (`login.microsoftonline.com`), collapsed onto
@@ -40,6 +47,8 @@ export type MockGraphMessage = {
   subject: string;
   html: string;
   receivedAt?: number;
+  /** The sender a search filters on. Defaults to CourtReserve's, which every pre-Backyard-Club spec assumes. */
+  from?: string;
 };
 
 type TokenFailure = "unreachable" | "invalid_grant";
@@ -103,6 +112,14 @@ export class MicrosoftMock {
   /** What a live "Sync from Email" Graph search finds (issue #284). */
   registerMessages(messages: MockGraphMessage[]): void {
     this.#messages = messages;
+  }
+
+  /** Sync runs one search per sender, so the list honours the `$filter`'s sender like real Graph. */
+  #messagesFrom(sender: string | null): MockGraphMessage[] {
+    if (!sender) {
+      return this.#messages;
+    }
+    return this.#messages.filter((message) => (message.from ?? COURTRESERVE_SENDER) === sender);
   }
 
   reset(): void {
@@ -205,7 +222,7 @@ export class MicrosoftMock {
       }
 
       // Newest-first, mirroring the adapter's own `$orderby=receivedDateTime desc`.
-      const ordered = [...this.#messages].sort(
+      const ordered = [...this.#messagesFrom(senderInFilter(url))].sort(
         (a, b) => (b.receivedAt ?? 0) - (a.receivedAt ?? 0),
       );
       res
