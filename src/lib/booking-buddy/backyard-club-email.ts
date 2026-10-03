@@ -42,7 +42,7 @@ export const BACKYARD_CLUB_SENDER = "bookings@thebkydclub.com";
  * which facility this is, so it isn't read off the body. Matched against the
  * User's own Orgs by name, same as a CourtReserve facility.
  */
-export const BACKYARD_CLUB_FACILITY_NAME = "Backyard Club";
+export const BACKYARD_CLUB_FACILITY_NAME = "The Backyard Club";
 
 /** An hourly booking names no event; this stands in as its display name. */
 const HOURLY_BOOKING_NAME = "Court booking";

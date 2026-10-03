@@ -89,7 +89,7 @@ export function confirmationEmail(fields: {
 /**
  * Backyard Club's own "You're in" template (see backyard-club-email.ts) —
  * its own sender, an event name in a `<strong>`, and a box of date / time /
- * courts lines. Always for the Org named "Backyard Club", since the sender,
+ * courts lines. Always for the Org named "The Backyard Club", since the sender,
  * not the body, says which facility it is.
  */
 export function backyardClubEventEmail(fields: { id: string }): SyncMailMessage {
@@ -205,7 +205,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await deleteOrgs(user);
       // The Backyard Club scenario's place has a fixed name, outside the
       // "Playwright" prefix the sweep above matches.
-      await deleteOrgs(user, "Backyard Club");
+      await deleteOrgs(user, "The Backyard Club");
     });
 
     test("syncing shows a candidate for a matched facility, and confirming it creates a real Booking", async ({
@@ -244,7 +244,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       const facility = placeName();
       await signIn(page, fixture.resolveUser(accounts), "/booking-buddy/orgs");
       await addPlace(page, facility);
-      await addPlace(page, "Backyard Club");
+      await addPlace(page, "The Backyard Club");
 
       await connectAndSeed(page, [
         confirmationEmail({ id: messageId(), facility }),
@@ -270,7 +270,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
 
       await backyardCard.getByRole("button", { name: "Add to my bookings" }).click();
       await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });
-      await expect(row(page, "Court 6, 7, 8, 9")).toContainText("Backyard Club");
+      await expect(row(page, "Court 6, 7, 8, 9")).toContainText("The Backyard Club");
     });
 
     test("dismissing a candidate means a second sync never shows it again", async ({ page, accounts }) => {

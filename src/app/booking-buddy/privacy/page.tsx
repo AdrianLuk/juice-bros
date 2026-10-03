@@ -71,7 +71,7 @@ export default async function BookingBuddyPrivacyPage() {
               to work, we don&apos;t sell or share it with advertisers, and the
               one feature that touches your email (&quot;Sync from Email&quot;)
               only ever reads booking notifications from CourtReserve and
-              Backyard Club, only when
+              The Backyard Club, only when
               you ask it to, and only after you&apos;ve reviewed and approved
               what it found.
             </p>
@@ -119,7 +119,7 @@ export default async function BookingBuddyPrivacyPage() {
                 Your account has access to &quot;Sync from Email&quot; &mdash; a
                 feature, still being built out, that reads your{" "}
                 {outlookConnected ? "Outlook" : "Gmail"} inbox for CourtReserve
-                and Backyard Club booking emails so you don&apos;t have to type bookings in by
+                and The Backyard Club booking emails so you don&apos;t have to type bookings in by
                 hand. Here&apos;s exactly what that means:
               </p>
               <ul className="list-disc space-y-2 pl-5">
@@ -156,7 +156,7 @@ export default async function BookingBuddyPrivacyPage() {
                   </code>{" "}
                   and{" "}
                   <code className="text-xs">bookings@thebkydclub.com</code>{" "}
-                  (Backyard Club) sent in the last 90 days &mdash; never a
+                  (The Backyard Club) sent in the last 90 days &mdash; never a
                   whole-inbox search, and never anything other than those two
                   senders. We never read
                   the rest of your inbox.

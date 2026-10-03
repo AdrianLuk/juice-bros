@@ -109,7 +109,7 @@ test("a real \"You're in\" email parses into a confirmation named after the even
   assert.deepEqual(parseBackyardClubEmail(YOURE_IN_EMAIL), {
     kind: "confirmation",
     confirmation: {
-      facilityName: "Backyard Club",
+      facilityName: "The Backyard Club",
       date: "2026-09-23",
       startTime: "11:00",
       endTime: "14:00",
@@ -125,7 +125,7 @@ test("a real \"Updated\" email parses into an update carrying the event's new co
   assert.deepEqual(parseBackyardClubEmail(UPDATED_EMAIL), {
     kind: "update",
     update: {
-      facilityName: "Backyard Club",
+      facilityName: "The Backyard Club",
       date: "2026-09-23",
       startTime: "11:00",
       endTime: "14:00",
@@ -141,7 +141,7 @@ test("a real hourly booking confirmation parses with its court read from the top
   assert.deepEqual(parseBackyardClubEmail(HOURLY_BOOKING_EMAIL), {
     kind: "confirmation",
     confirmation: {
-      facilityName: "Backyard Club",
+      facilityName: "The Backyard Club",
       date: "2026-10-01",
       startTime: "13:00",
       endTime: "15:00",

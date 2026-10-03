@@ -585,7 +585,7 @@ test("an update whose facility matched no Org offers nothing — there is no Org
 
 // --- Backyard Club (its own template, see backyard-club-email.ts) ---------
 
-const BACKYARD_ORG = { orgId: "org-byc", displayName: "Backyard Club", timeZone: "America/Toronto" };
+const BACKYARD_ORG = { orgId: "org-byc", displayName: "The Backyard Club", timeZone: "America/Toronto" };
 
 function backyardHtml(intro: string, lines: string[]): string {
   const box = lines.map((line) => `<p style="margin:0 0 4px;">${line}</p>`).join("");
