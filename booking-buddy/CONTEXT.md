@@ -113,6 +113,10 @@ _Avoid_: Recurring Slot, Series (a Slot never repeats; the Standing Game does)
 A Connection on a Standing Game's own list of the people who are told each time it posts a Slot. The organizer picks the list from their Connections (a Friend Group can fill it in one go) and edits it any time. Anyone who answers "yes" to one of the Standing Game's Slots joins the list on their own; nobody leaves it except by the organizer's hand, so missing a week never drops anyone. Being a Regular decides who is told, not who can see: every Connection with Slot Visibility still sees and can answer the posted Slot, Regular or not. Guests are never Regulars (there is no account to tell).
 _Avoid_: Member, Roster, Invitee (a Slot has no invite list; the Regulars list belongs to the Standing Game)
 
+**Weekly Invite**:
+The notification each Regular gets when a Standing Game posts a Slot: email, plus push for a Regular who has push on, sent the moment the Slot is posted. Carries Yes / No / Maybe links that set that Regular's Response to that one Slot with no sign-in (see [adr/0022-standing-game-invite-answers-need-no-session.md](docs/adr/0022-standing-game-invite-answers-need-no-session.md)); the links keep working until the Slot starts, so an answer can be changed. Governed by its own opt-in preference ("Weekly game invites"), independent of the Reminder's and the Booking Reminder's.
+_Avoid_: Invite Link (a User's personal connect URL, unrelated), Reminder (that one is for a confirmed game, close to start)
+
 **Response**:
 A Connection's (or Guest's) explicit yes/no/maybe answer to a Slot, replacing the implicit "silence means no" join model. Can be given whether or not the Slot has a Booking attached yet. A "yes" is always accepted — no organizer approval, and no block once Capacity is reached; going past it produces an over-capacity signal for the organizer, not a refusal (see Capacity, ADR 0001). Before a Booking exists there is no Capacity at all, so any number of "yes" Responses can accrue while gauging interest. "Maybe" never counts towards Capacity.
 _Avoid_: RSVP (used informally in product copy), Join, Vote
