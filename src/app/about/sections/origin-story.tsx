@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Reveal } from "@/components/motion/reveal";
+import { Picture } from "@/components/picture";
 
 /**
  * How the show started - now the notes for the episode playing above it.
@@ -71,7 +72,20 @@ export function OriginStory({ episodeSlug }: { episodeSlug?: string }) {
           )}
         </Reveal>
 
-        <Reveal variant="right" as="aside" className="bx-panel p-6 sm:p-7">
+        <Reveal variant="right" as="aside" className="bx-panel overflow-hidden p-6 sm:p-7">
+          {/* The photo is Daven watching Adrian get set to hit, which is the
+              scene the name story below describes. Flush to the panel's top
+              and side edges, the same way the host panels further down the
+              page carry their portraits. */}
+          <div className="-mx-6 -mt-6 mb-6 aspect-3/2 overflow-hidden sm:-mx-7 sm:-mt-7">
+            <Picture
+              src="/pictures/adrian-dav-daven-watching.jpg"
+              alt="Daven, his name across the back of his shirt, watching Adrian get set to hit from the other side of the court"
+              sizes="(min-width: 1024px) 23rem, 100vw"
+              loading="lazy"
+              className="h-full w-full object-cover object-[50%_60%]"
+            />
+          </div>
           <h3 className="bx-h2 text-lg sm:text-xl">How we got the name</h3>
           <div className="mt-4 flex flex-col gap-4 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
             <p>

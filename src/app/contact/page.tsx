@@ -4,6 +4,7 @@ import { getLatestInstagramPosts } from "@/lib/instagram";
 import { pageMetadata } from "@/lib/metadata";
 import { PageHead } from "@/components/bx/page-head";
 import { InstagramStrip } from "@/components/bx/instagram-strip";
+import { Picture } from "@/components/picture";
 import { ContactForm } from "./sections/contact-form";
 import { ContactInfo } from "./sections/contact-info";
 
@@ -46,6 +47,22 @@ export default async function ContactPage() {
             we&apos;ll get back to you fast. We&apos;re picky about who we work
             with. It has to be stuff we&apos;d actually use.
           </>
+        }
+        // The two of them grinning at the camera, which is the tone of "say
+        // hey". Wide screens only: this is the one task page on the site, and
+        // below `lg` the photo would stack between the heading and the form
+        // and push the fields off the first screen. Lazy, so a phone never
+        // fetches it.
+        media={
+          <figure className="bx-tile hidden aspect-4/3 lg:block">
+            <Picture
+              src="/pictures/creator-night-adrian-daven-group-photo-paddles.jpg"
+              alt="Daven and Adrian with two other players at The Backyard Club, paddles in hand, grinning at the camera"
+              sizes="30rem"
+              loading="lazy"
+              className="object-[50%_25%]"
+            />
+          </figure>
         }
       />
 
