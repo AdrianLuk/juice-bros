@@ -3,13 +3,56 @@ import { InstagramIcon } from "@/components/icons";
 import { Picture } from "@/components/picture";
 
 /**
+ * One portrait per host, from Creator Night at The Backyard Club. Keyed by
+ * `team` name so the panel stays a plain map over the roster; a host with no
+ * entry renders without a photo rather than failing. Both are tall camera
+ * originals cropped to 4:3 at the top of the panel, so `position` is what keeps
+ * the face and the paddle in frame.
+ */
+const portraits: Record<string, { src: string; alt: string; position: string }> = {
+  Daven: {
+    src: "/pictures/creator-night-daven-ready-position-portrait.jpg",
+    alt: "Daven in a cap and Juice Bros shirt, stepping in with his paddle low and ready",
+    position: "object-[50%_30%]",
+  },
+  Adrian: {
+    src: "/pictures/creator-night-adrian-forehand-portrait.jpg",
+    alt: "Adrian in glasses and a Juice Bros shirt, about to hit a forehand",
+    position: "object-[50%_28%]",
+  },
+};
+
+/**
+ * Flush to the panel's top and side edges, so the photo reads as the head of
+ * the panel rather than a picture sitting inside a card. The panel clips it to
+ * its own radius.
+ */
+function HostPortrait({ name }: { name: string }) {
+  const portrait = portraits[name];
+  if (!portrait) return null;
+
+  return (
+    <div className="-mx-6 -mt-6 mb-6 aspect-4/3 overflow-hidden sm:-mx-7 sm:-mt-7">
+      <Picture
+        src={portrait.src}
+        alt={portrait.alt}
+        sizes="(min-width: 1216px) 36rem, (min-width: 640px) 50vw, 100vw"
+        loading="lazy"
+        className={`h-full w-full object-cover ${portrait.position}`}
+      />
+    </div>
+  );
+}
+
+/**
  * The two hosts, with the on-court photograph at the size it deserves.
  *
  * The home page runs a different, smaller shot beside a two-line summary;
  * this is the page someone comes to when that summary wasn't enough, so the
- * photograph is full width and each host gets a panel of their own. It keeps
- * this one because it is the only camera-original at 2048px: the phone shots
- * top out at 1600px and go soft stretched across the 72rem measure.
+ * photograph is full width and each host gets a panel of their own, headed by
+ * their own portrait. The wide photo is a camera original at 2048px: the old
+ * phone shots top out at 1600px and go soft stretched across the 72rem
+ * measure.
  *
  * The `bio` strings in `content/team.ts` are interim by design - Adrian is
  * writing the real ones in each host's own words - so the layout doesn't
@@ -40,7 +83,8 @@ export function MeetTheBros() {
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
         {team.map((member) => (
-          <div key={member.name} className="bx-panel flex flex-col p-6 sm:p-7">
+          <div key={member.name} className="bx-panel flex flex-col overflow-hidden p-6 sm:p-7">
+            <HostPortrait name={member.name} />
             <h3 className="bx-h2 text-lg sm:text-xl">{member.name}</h3>
             <p className="bx-meta mt-2">{member.role}</p>
             <p className="mt-4 text-[0.9375rem] leading-relaxed text-(--bx-muted)">
