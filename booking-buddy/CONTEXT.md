@@ -107,6 +107,12 @@ Product copy is the deliberate exception, the same way the Orgs page reads "Faci
 
 **Standing Game**:
 An organizer's own template for a game that repeats ("Tuesday 8pm, every week") which posts ordinary Slots on its own, each one ahead of time: a week before the game, or earlier when its Intended Org's Booking Window opens sooner, so the Booking Reminder still has a Slot to fire for (which can mean two upcoming Slots from one Standing Game at once). Its first Slot is posted the moment it is created. It repeats weekly on one weekday at one time and nothing else: a group that plays Tuesdays and Thursdays has two Standing Games. It is not a Slot and is never seen by Connections or Guests: friends only ever see the Slots it posts, and each of those is a plain Slot in every respect (Responses, Capacity, Reminders, Slot Link, Bookings). Recurrence lives on the Standing Game alone, so nothing that reads Slots has to know a Slot came from one.
+
+A week can be **skipped** either side of its Slot being posted. Skipping a week that has not been posted yet marks the date on the Standing Game so it is never posted and its Regulars get no Weekly Invite for it. Skipping a week that has been posted deletes that Slot and tells everyone who had answered yes or maybe that it is off; this "it's off" message is particular to a Standing Game, and deleting an ordinary Slot still tells nobody. Either way the date stays skipped, and the following week posts as usual. This is the one respect in which a posted Slot behaves differently for having come from a Standing Game: it cannot be deleted silently, only skipped ("Skip this week" stands in for "Delete game").
+
+Editing a Standing Game (its day, time, division, Intended Org, notes, Regulars) only shapes Slots it has not posted yet. A Slot already posted keeps what it was posted with, because people answered for that, and is edited on its own like any other Slot; moving this week's game means skipping it and posting a one-off.
+
+**Ending** a Standing Game stops it posting Slots and sending Weekly Invites, for good; there is no restart, only a new Standing Game. Slots it already posted stay as real games (the last one usually should still happen) and can still be skipped one by one; past Slots are untouched.
 _Avoid_: Recurring Slot, Series (a Slot never repeats; the Standing Game does)
 
 **Regular**:
