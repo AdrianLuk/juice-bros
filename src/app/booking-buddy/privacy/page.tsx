@@ -70,7 +70,8 @@ export default async function BookingBuddyPrivacyPage() {
               friends. We collect the account and scheduling info the app needs
               to work, we don&apos;t sell or share it with advertisers, and the
               one feature that touches your email (&quot;Sync from Email&quot;)
-              only ever reads booking notifications from CourtReserve, only when
+              only ever reads booking notifications from CourtReserve and
+              The Backyard Club, only when
               you ask it to, and only after you&apos;ve reviewed and approved
               what it found.
             </p>
@@ -118,7 +119,7 @@ export default async function BookingBuddyPrivacyPage() {
                 Your account has access to &quot;Sync from Email&quot; &mdash; a
                 feature, still being built out, that reads your{" "}
                 {outlookConnected ? "Outlook" : "Gmail"} inbox for CourtReserve
-                booking emails so you don&apos;t have to type bookings in by
+                and The Backyard Club booking emails so you don&apos;t have to type bookings in by
                 hand. Here&apos;s exactly what that means:
               </p>
               <ul className="list-disc space-y-2 pl-5">
@@ -153,8 +154,11 @@ export default async function BookingBuddyPrivacyPage() {
                   <code className="text-xs">
                     notifications@courtreserve.com
                   </code>{" "}
-                  sent in the last 90 days &mdash; never a whole-inbox search,
-                  and never anything other than that one sender. We never read
+                  and{" "}
+                  <code className="text-xs">bookings@thebkydclub.com</code>{" "}
+                  (The Backyard Club) sent in the last 90 days &mdash; never a
+                  whole-inbox search, and never anything other than those two
+                  senders. We never read
                   the rest of your inbox.
                 </li>
                 <li>
@@ -165,7 +169,7 @@ export default async function BookingBuddyPrivacyPage() {
                 </li>
                 <li>
                   <span className="text-foreground">What we extract.</span> From
-                  each matching CourtReserve email we parse the booking details
+                  each matching booking email we parse the booking details
                   it already contains &mdash; facility name, date, time, court,
                   format, and the player names listed on the reservation. We
                   don&apos;t store the email itself, its subject line, or any

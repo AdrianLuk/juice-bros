@@ -2,6 +2,13 @@ import http from "node:http";
 
 import { listenOnFixedPort } from "./mock-server.ts";
 
+const COURTRESERVE_SENDER = "notifications@courtreserve.com";
+
+/** The sender in a `users.messages.list` `q` ("from:x after:y"), or null when it names none. */
+function senderInQuery(url: URL): string | null {
+  return /(?:^|\s)from:(\S+)/.exec(url.searchParams.get("q") ?? "")?.[1] ?? null;
+}
+
 /**
  * Fixed rather than OS-assigned, same reasoning as
  * `google-places-mock.ts`'s `GOOGLE_PLACES_MOCK_PORT`: `playwright.config.ts`
@@ -31,6 +38,8 @@ export type MockGmailMessage = {
   subject: string;
   html: string;
   receivedAt?: number;
+  /** The sender a search filters on. Defaults to CourtReserve's, which every pre-Backyard-Club spec assumes. */
+  from?: string;
 };
 
 type TokenFailure = "unreachable" | "invalid_grant";
@@ -97,6 +106,14 @@ export class GmailMock {
   /** What a live "Sync from Email" search finds (issue #64) — served back by the list/get endpoints below. */
   registerMessages(messages: MockGmailMessage[]): void {
     this.#messages = messages;
+  }
+
+  /** Sync runs one search per sender, so the list honours the query's `from:` like real Gmail. */
+  #messagesFrom(sender: string | null): MockGmailMessage[] {
+    if (!sender) {
+      return this.#messages;
+    }
+    return this.#messages.filter((message) => (message.from ?? COURTRESERVE_SENDER) === sender);
   }
 
   reset(): void {
@@ -212,7 +229,9 @@ export class GmailMock {
       }
 
       res.writeHead(200, { "Content-Type": "application/json" }).end(
-        JSON.stringify({ messages: this.#messages.map((message) => ({ id: message.id, threadId: message.id })) }),
+        JSON.stringify({
+          messages: this.#messagesFrom(senderInQuery(url)).map((message) => ({ id: message.id, threadId: message.id })),
+        }),
       );
       return;
     }

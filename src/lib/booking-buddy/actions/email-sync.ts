@@ -23,7 +23,11 @@ import { resolveMailboxAccessToken } from "../mailbox-token-lifecycle.ts";
 import type { MailboxProvider } from "../mailbox-provider.ts";
 import { MAILBOX_OAUTH_STATE_COOKIE, encodeMailboxOAuthState } from "../mailbox-oauth.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
-import { buildCourtReserveSearchCriteria } from "../courtreserve-email.ts";
+import {
+  BOOKING_EMAIL_SOURCES,
+  buildBookingEmailSearchCriteria,
+  type BookingEmailSource,
+} from "../booking-email.ts";
 import { connectionCandidatesFromFriends } from "../email-sync-matching.ts";
 import {
   reviewCourtReserveEmails,
@@ -238,8 +242,9 @@ export type SyncFromEmailResult =
   | { status: "error"; message: string };
 
 /**
- * Runs a live Gmail search for CourtReserve confirmations and cancellations
- * and returns the ones worth a User's review (issues #64/#65). A plain async
+ * Runs a live mailbox search for booking emails (CourtReserve's, plus
+ * Backyard Club's own — one search per sender, see `booking-email.ts`) and
+ * returns the ones worth a User's review (issues #64/#65). A plain async
  * function rather than a `useActionState`-bound one: the caller (a
  * click-triggered `useQuery`) wants a promise it can call by name, not a form
  * to submit.
@@ -313,12 +318,22 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     return { status: "error", message: "Couldn't reach your mailbox. Try again." };
   }
 
-  const searchResult = await adapter.searchMailbox(
-    token.accessToken,
-    buildCourtReserveSearchCriteria(new Date()),
+  // One search per sender, run together. The source a message came back
+  // under is what decides which parser reads it — never sniffed from the body.
+  const searchStartedAt = new Date();
+  const searchResults = await Promise.all(
+    BOOKING_EMAIL_SOURCES.map((source) =>
+      adapter.searchMailbox(token.accessToken, buildBookingEmailSearchCriteria(source, searchStartedAt)),
+    ),
   );
-  if (!searchResult.ok) {
-    return { status: "error", message: "Couldn't reach your mailbox. Try again." };
+  const sourceByMessageId = new Map<string, BookingEmailSource>();
+  for (const [index, searchResult] of searchResults.entries()) {
+    if (!searchResult.ok) {
+      return { status: "error", message: "Couldn't reach your mailbox. Try again." };
+    }
+    for (const messageId of searchResult.messageIds) {
+      sourceByMessageId.set(messageId, BOOKING_EMAIL_SOURCES[index]);
+    }
   }
 
   const { data: processedRows, error: processedError } = await supabase
@@ -333,7 +348,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   }
 
   const processedIds = new Set((processedRows ?? []).map((row) => row.provider_message_id));
-  const unseenIds = searchResult.messageIds.filter((id) => !processedIds.has(id));
+  const unseen = [...sourceByMessageId].filter(([id]) => !processedIds.has(id));
 
   // Captured once, ahead of every read and the per-message fetch, so every
   // past-date decision in this sync shares one "now" regardless of how long
@@ -360,13 +375,17 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   // message shouldn't sink the whole sync. Everything decidable from the
   // bodies down is `reviewCourtReserveEmails`.
   const rawEmails: RawCourtReserveEmail[] = [];
-  for (const messageId of unseenIds) {
+  for (const [messageId, source] of unseen) {
     const fetched = await adapter.fetchMessage(token.accessToken, messageId);
     if (!fetched.ok) {
       console.error("booking-buddy: fetching a mailbox message failed", messageId);
       continue;
     }
-    rawEmails.push({ gmailMessageId: messageId, ...fetched.email });
+    rawEmails.push({
+      gmailMessageId: messageId,
+      source,
+      ...fetched.email,
+    });
   }
 
   const { items, suppressed } = reviewCourtReserveEmails({
