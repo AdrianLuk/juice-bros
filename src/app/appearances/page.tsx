@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
 import { appearances } from "@/content/appearances";
+import { eventRecaps } from "@/content/event-recaps";
 import { nextConfirmedAppearance, splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
 import { Picture } from "@/components/picture";
+import { EventRecaps } from "./sections/event-recaps";
 import { UpNext } from "./sections/up-next";
 import { UpcomingAppearances } from "./sections/upcoming-appearances";
 import { PastAppearances } from "./sections/past-appearances";
@@ -46,16 +48,17 @@ export default function AppearancesPage() {
         // in Ontario.
         meta={upcoming.length > 0 ? `${upcoming.length} coming up` : undefined}
         lead="The tournaments we're actually signed up for, with the brackets we're in. If you're playing one of these, come say hi between matches."
-        // Shot from behind, names on their backs: the view from the rail,
-        // and exactly what someone looking for them at a venue will see.
+        // Adrian's name across his back as they shake hands at the net: the
+        // view from the rail, and exactly what someone looking for them at a
+        // venue will see. A camera original from Creator Night.
         media={
           <figure className="bx-tile aspect-4/3">
             <Picture
-              src="/pictures/adrian-dav-backs-rally.jpg"
-              alt="Daven and Adrian from behind mid-rally, their names on the backs of their Juice Bros shirts"
+              src="/pictures/creator-night-adrian-daven-net-handshake.jpg"
+              alt="Adrian and Daven shaking hands at the net after a game, Adrian's name across the back of his shirt"
               sizes="(min-width: 1024px) 30rem, 100vw"
               fetchPriority="high"
-              className="object-center"
+              className="object-[50%_62%]"
             />
           </figure>
         }
@@ -65,6 +68,7 @@ export default function AppearancesPage() {
 
       <div className="bx-measure pb-6">
         <UpcomingAppearances appearances={rest} standalone={!featured} />
+        <EventRecaps recaps={eventRecaps} />
         <PastAppearances appearances={past} />
       </div>
     </div>

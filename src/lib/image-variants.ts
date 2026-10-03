@@ -91,6 +91,78 @@ export const IMAGE_MANIFEST = {
     widths: [700],
     quality: { avif: 42, webp: 60 },
   },
+  // Creator Night at The Backyard Club (2026-09-29). Camera originals,
+  // downscaled to 2000px on the long edge, so unlike the WhatsApp exports
+  // above they hold up on a retina screen. The header and tile boxes top out
+  // at 30rem, so 960 is a 2x there and 1280 covers the single-column layout
+  // below `lg`. Same quality as the other camera original (adrian-dav.jpg).
+  "/pictures/creator-night-adrian-backhand-daven-watching.jpg": {
+    width: 2000,
+    height: 1333,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-adrian-lunging-daven-at-net.jpg": {
+    width: 1333,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-adrian-daven-net-handshake.jpg": {
+    width: 1600,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-adrian-daven-group-photo-paddles.jpg": {
+    width: 1600,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-adrian-forehand-portrait.jpg": {
+    width: 1600,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-daven-ready-position-portrait.jpg": {
+    width: 1333,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
+  // The Appearances recap grid: cells are ~23rem at `lg`, ~11rem on a phone.
+  "/pictures/creator-night-courts-overview-filming-setup.jpg": {
+    width: 1600,
+    height: 2000,
+    widths: [640, 960],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-players-lined-up-watching.jpg": {
+    width: 2000,
+    height: 1333,
+    widths: [640, 960],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-daven-lunging-forehand.jpg": {
+    width: 2000,
+    height: 1333,
+    widths: [640, 960],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-adrian-serving.jpg": {
+    width: 2000,
+    height: 1333,
+    widths: [640, 960],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-filming-phone-foreground.jpg": {
+    width: 2000,
+    height: 1333,
+    widths: [640, 960],
+    quality: { avif: 50, webp: 68 },
+  },
   "/brand/JB_Banner.jpeg": {
     width: 1600,
     height: 900,

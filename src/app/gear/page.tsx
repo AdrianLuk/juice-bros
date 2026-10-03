@@ -46,13 +46,15 @@ export default function GearPage() {
           </>
         }
         // The only person-shaped thing on a page of product plates: the two
-        // of them at the net with the paddles the sections below list, so
+        // of them mid-point with the paddles the sections below list, so
         // "what we actually play with" is shown in play before it is listed.
+        // A camera original from Creator Night; it replaced a 1160px WhatsApp
+        // crop that went soft at this size.
         media={
           <figure className="bx-tile aspect-4/3">
             <Picture
-              src="/pictures/adrian-dav-at-net-ball-incoming.jpg"
-              alt="Daven and Adrian at the net, paddles up, ready for the return"
+              src="/pictures/creator-night-adrian-backhand-daven-watching.jpg"
+              alt="Adrian hitting a backhand with Daven standing behind him, paddle in hand"
               sizes="(min-width: 1024px) 30rem, 100vw"
               fetchPriority="high"
               className="object-center"

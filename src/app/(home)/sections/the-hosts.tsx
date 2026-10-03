@@ -31,16 +31,18 @@ export function TheHosts() {
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear on Home. It is a different shot from About's
-          on purpose: the two of them at the net mid-tournament, which is the
-          "rec players" claim shown rather than said. */}
+          on purpose: the two of them mid-point, Adrian stretching for a low
+          ball, which is the "rec players" claim shown rather than said. It is
+          a tall camera original cropped to 7:6, so the crop is pinned low to
+          keep both of them and the ball in frame and the sponsor banner out. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
         <figure className="bx-tile aspect-7/6">
           <Picture
-            src="/pictures/adrian-dav-at-net-crowd.jpg"
-            alt="Daven and Adrian at the net in matching Juice Bros shirts, paddles up"
+            src="/pictures/creator-night-adrian-lunging-daven-at-net.jpg"
+            alt="Adrian stretching for a low ball while Daven stands ready beside him, mid-point at The Backyard Club"
             sizes="(min-width: 1024px) 26rem, 100vw"
             loading="lazy"
-            className="object-center"
+            className="object-[50%_66%]"
           />
         </figure>
 
