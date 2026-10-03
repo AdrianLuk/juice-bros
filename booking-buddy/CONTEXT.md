@@ -141,7 +141,7 @@ One of a small set of Vercel Analytics events marking a User's progress from sig
 
 ### Not built yet
 
-Specced for BB-1 (recurring games, #TBD) and not in the code yet. Each entry moves up into the list above, amended to match what shipped, when its ticket lands.
+Specced for BB-1 (recurring games, #576) and not in the code yet. Each entry moves up into the list above, amended to match what shipped, when its ticket lands.
 
 **Standing Game**:
 An organizer's own template for a game that repeats ("Tuesday 8pm, every week") which posts ordinary Slots on its own, each one ahead of time: a week before the game, or earlier when its Intended Org's Booking Window opens sooner, so the Booking Reminder still has a Slot to fire for (which can mean two upcoming Slots from one Standing Game at once). Its first Slot is posted the moment it is created. It repeats weekly on one weekday at one time and nothing else: a group that plays Tuesdays and Thursdays has two Standing Games. It is not a Slot and is never seen by Connections or Guests: friends only ever see the Slots it posts (marked with the day it repeats on, "Every Tuesday", so they can tell it is a regular game), and each of those is a plain Slot in every respect (Responses, Capacity, Reminders, Slot Link, Bookings). Recurrence lives on the Standing Game alone, so nothing that reads Slots has to know a Slot came from one (see [adr/0023-standing-game-posts-plain-slots.md](docs/adr/0023-standing-game-posts-plain-slots.md)).
