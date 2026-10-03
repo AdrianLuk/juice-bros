@@ -151,6 +151,14 @@ export const IMAGE_MANIFEST = {
     widths: [640, 960],
     quality: { avif: 50, webp: 68 },
   },
+  "/pictures/adrian-dav-daven-watching.jpg": {
+    width: 1600,
+    height: 1324,
+    // The About origin-story panel: ~23rem at `lg`, the full column below it.
+    // A 1600px phone export, so quality sits under the camera originals'.
+    widths: [640, 960],
+    quality: { avif: 42, webp: 60 },
+  },
   "/brand/JB_Banner.jpeg": {
     width: 1600,
     height: 900,
