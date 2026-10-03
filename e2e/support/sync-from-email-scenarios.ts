@@ -203,6 +203,9 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       const user = { email: fixture.resolveUser(accounts), password: accounts.password };
       await disconnectMailbox(user);
       await deleteOrgs(user);
+      // The Backyard Club scenario's place has a fixed name, outside the
+      // "Playwright" prefix the sweep above matches.
+      await deleteOrgs(user, "Backyard Club");
     });
 
     test("syncing shows a candidate for a matched facility, and confirming it creates a real Booking", async ({
@@ -256,7 +259,14 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
         .filter({ hasText: "Advanced Open Play 4.0+" })
         .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
       await expect(backyardCard).toBeVisible();
-      await expect(page.getByRole("listitem").filter({ hasText: facility })).toBeVisible();
+      await expect(
+        page
+          .getByRole("listitem")
+          // Not the facility name: the Backyard card's own Facility picker
+          // lists every place, that one included.
+          .filter({ hasText: "Court 3" })
+          .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) }),
+      ).toBeVisible();
 
       await backyardCard.getByRole("button", { name: "Add to my bookings" }).click();
       await expect(page.getByText("Added 1 booking.")).toBeVisible({ timeout: 15_000 });

@@ -433,7 +433,7 @@ export function SyncBookingsSection({
       <h2 className="bb-h text-[1.05rem]">Sync bookings</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Pull in the court reservations you&apos;ve made at CourtReserve-powered
-        facilities{" "}
+        facilities and Backyard Club{" "}
         {emailConnected && hasConfiguredFeed ? (
           <>
             from your connected mailbox and from facilities with a calendar feed
@@ -492,7 +492,7 @@ export function SyncBookingsSection({
         ) : (
           <p className="text-sm text-muted-foreground">
             Connect a mailbox in Settings to pull in bookings you&apos;ve made
-            at CourtReserve-powered facilities.
+            at CourtReserve-powered facilities and Backyard Club.
           </p>
         )}
 
