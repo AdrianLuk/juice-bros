@@ -84,3 +84,6 @@ next-env.d.ts
 # impeccable: ephemeral serve-question runtime logs + state (pid/port).
 # Kept outside the managed block above so it survives regeneration.
 .impeccable/questions/
+
+# PR screenshots go on refs/screenshots/pr-N, never in the repo (see CLAUDE.md)
+/docs/screenshots/

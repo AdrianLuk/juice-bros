@@ -98,8 +98,7 @@ you're willing to think about this:
 - **Cut deployment volume at the source** with an [Ignored Build
   Step](https://vercel.com/docs/deployments/ignored-build-step) (Project
   Settings → Git → Ignored Build Step) — e.g. skip building branches/commits
-  that only touch `docs/` or `docs/screenshots/`, which this repo generates a
-  lot of per the PR screenshot convention.
+  that only touch `docs/`.
 - **Upgrade to Pro.** Unlocks **Deployment Retention Policy** (Project
   Settings → General), which auto-expires Preview deployments after N days —
   turns this whole doc into a one-time setup instead of a recurring chore.
