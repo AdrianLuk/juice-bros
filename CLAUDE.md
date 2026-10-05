@@ -125,12 +125,41 @@ Multi-context layout: root `CONTEXT-MAP.md` indexes per-context `CONTEXT.md` fil
 
 ### PR screenshots
 
-Any PR touching a UI surface embeds desktop and mobile screenshots, committed to `docs/screenshots/` and referenced by raw URLs pinned to a commit SHA rather than a branch or `master`. See `docs/agents/pr-screenshots.md`.
+Any PR touching a UI surface embeds desktop and mobile screenshots stored on a hidden `refs/screenshots/pr-N` ref, never in a branch. The rules are in "Screenshots in pull requests" below; capture tips are in `docs/agents/pr-screenshots.md`.
 
 ## Git Workflow & Worktrees
 - Always perform code changes, feature development, or refactoring in an isolated Git worktree rather than the main working directory.
 - Use `.claude/worktrees/` for task isolation or spin up subagents with worktree isolation enabled.
 - Never commit directly or make destructive changes to the main checkout branch.
+
+## Screenshots in pull requests
+
+Every PR whose change is visible gets before/after screenshots (desktop and phone width) in its description, so it can be reviewed on GitHub without checking out the branch.
+
+Never commit screenshots to the PR branch or to the default branch, and never keep a branch just for screenshots: images in the default branch's history are downloaded by every clone, CI run and deploy forever. Instead, put each PR's images in a standalone, parentless commit on a hidden ref that is written once and never updated:
+
+```sh
+# From the repo root, after the PR exists. SHOTS is a folder of this PR's images only.
+N=123; SHOTS=/path/to/shots
+tree=$(
+  export GIT_INDEX_FILE="$(mktemp -u)"   # a scratch index: the working tree and real index stay untouched
+  git read-tree --empty
+  for f in "$SHOTS"/*; do
+    git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),$(basename "$f")"
+  done
+  git write-tree
+  rm -f "$GIT_INDEX_FILE"
+)
+c=$(git commit-tree "$tree" -m "Screenshots for PR #$N")
+git push origin "$c:refs/screenshots/pr-$N"
+echo "$c"
+```
+
+Embed each image as `https://github.com/<owner>/<repo>/blob/<c>/<file>?raw=true` (this works in private repos too), then load one link to check it before finishing.
+
+- Save screenshots as WebP (quality about 80) or JPEG, not PNG: about 6x smaller.
+- Take "before" from production when it matches the default branch, "after" from a local production build.
+- A `refs/screenshots/*` ref isn't a branch: it isn't listed in GitHub's branch list, a plain `git clone` doesn't fetch it, and branch-filtered CI never runs on it. Don't delete it while the PR description still links to it.
 
 ---
 name: i-have-adhd

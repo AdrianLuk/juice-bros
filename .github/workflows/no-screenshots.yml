@@ -1,0 +1,23 @@
+# PR screenshots live on hidden refs/screenshots/pr-N refs (see CLAUDE.md),
+# never in a branch. Anything under docs/screenshots/ ends up in every clone,
+# CI run and Vercel build forever, so fail the moment it reappears.
+name: no-screenshots
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docs/screenshots/ must stay empty
+        run: |
+          files=$(git ls-files docs/screenshots)
+          if [ -n "$files" ]; then
+            echo "::error::Screenshots go on refs/screenshots/pr-N, not in the repo (see CLAUDE.md). Remove:"
+            echo "$files"
+            exit 1
+          fi
