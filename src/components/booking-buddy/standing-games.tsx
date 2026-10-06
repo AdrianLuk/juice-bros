@@ -43,6 +43,7 @@ import {
   hourClock,
   standingGameTimeLabel,
 } from "@/lib/booking-buddy/standing-games";
+import { gameDateLabel } from "@/lib/booking-buddy/standing-game-skips";
 import { slotPath, standingGamePath } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -94,7 +95,9 @@ export function WeeklyGameRow({
             <p className="mt-0.5 text-xs text-muted-foreground">
               {game.nextGame
                 ? `Next game ${shortDay(game.nextGame.when)}`
-                : "Next game goes up within a day"}
+                : game.nextDate
+                  ? `Next game ${gameDateLabel(game.nextDate)}`
+                  : "Next game goes up within a day"}
             </p>
           </div>
         </div>
