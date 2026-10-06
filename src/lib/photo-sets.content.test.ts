@@ -75,3 +75,8 @@ test("a set that points at an Appearance names one that exists", () => {
     assert.ok(names.has(set.appearance), `"${set.title}" points at unknown Appearance "${set.appearance}"`);
   }
 });
+
+test("no Appearance has more than one set pointing at it", () => {
+  const pointers = photoSets.flatMap((set) => (set.appearance ? [set.appearance] : []));
+  assert.equal(new Set(pointers).size, pointers.length);
+});

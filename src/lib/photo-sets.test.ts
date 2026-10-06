@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { Photo, PhotoSet } from "../../content/photo-sets.ts";
-import { buildGallery, photoSetAddress, previewPhotos } from "./photo-sets.ts";
+import {
+  buildGallery,
+  photoSetAddress,
+  photoSetFor,
+  photoSetHref,
+  previewPhotos,
+} from "./photo-sets.ts";
 
 function photos(prefix: string, count: number): Photo[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -157,4 +163,23 @@ test("buildGallery gives every set its section address", () => {
   const { sets } = buildGallery([set]);
 
   assert.equal(sets[0].address, photoSetAddress(set));
+});
+
+test("photoSetFor finds the set that points at an Appearance", () => {
+  const cup = make({ title: "The Admiral Cup", appearance: "APA - The Admiral Cup" });
+  const night = make({ title: "Creator Night" });
+
+  assert.equal(photoSetFor([night, cup], "APA - The Admiral Cup"), cup);
+});
+
+test("photoSetFor finds nothing for an Appearance with no set", () => {
+  const night = make({ title: "Creator Night" });
+
+  assert.equal(photoSetFor([night], "Some Other Open"), undefined);
+});
+
+test("photoSetHref links to the set's section on the Photos page", () => {
+  const cup = make({ title: "The Admiral Cup", date: undefined, startDate: "2026-09-16", endDate: "2026-09-20" });
+
+  assert.equal(photoSetHref(cup), "/photos#the-admiral-cup-2026");
 });
