@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import { loosePhotos, photoSets } from "@/content/photo-sets";
 import { pageMetadata } from "@/lib/metadata";
-import { buildGallery, type LoosePhotosView, type PhotoSetView } from "@/lib/photo-sets";
+import {
+  buildGallery,
+  type GalleryPhoto,
+  type LoosePhotosView,
+  type PhotoSetView,
+} from "@/lib/photo-sets";
 import { PageHead } from "@/components/bx/page-head";
 import { PhotoRows } from "@/components/photo-rows";
 
@@ -44,16 +50,28 @@ export default function PhotosPage() {
 }
 
 /**
- * One Photo Set: heading, a meta line with its date and venue, one plain line,
- * then its photos. The section's id is the set's address, so a link elsewhere
- * can land on it; `scroll-mt` keeps the heading clear of the sticky nav.
+ * One section of the gallery: a heading, whatever sits under it, then its
+ * photos. The section's id is its address, so a link elsewhere can land on
+ * it; `scroll-mt` keeps the heading clear of the sticky nav.
  */
-function PhotoSetSection({ set, first }: { set: PhotoSetView; first: boolean }) {
-  const headingId = `${set.address}-title`;
+function GallerySection({
+  address,
+  title,
+  photos,
+  first,
+  children,
+}: {
+  address: string;
+  title: string;
+  photos: GalleryPhoto[];
+  first: boolean;
+  children?: ReactNode;
+}) {
+  const headingId = `${address}-title`;
 
   return (
     <section
-      id={set.address}
+      id={address}
       aria-labelledby={headingId}
       className="bx-hair scroll-mt-24 py-14 sm:py-20"
     >
@@ -61,8 +79,20 @@ function PhotoSetSection({ set, first }: { set: PhotoSetView; first: boolean }) 
         id={headingId}
         className="bx-h2 max-w-[28ch] text-[clamp(1.375rem,3.2vw,1.875rem)]"
       >
-        {set.title}
+        {title}
       </h2>
+      {children}
+
+      <PhotoRows photos={photos} eager={first} className="mt-8" />
+    </section>
+  );
+}
+
+/** A Photo Set: under its heading, a meta line with its date and venue, then
+ *  one plain line. */
+function PhotoSetSection({ set, first }: { set: PhotoSetView; first: boolean }) {
+  return (
+    <GallerySection address={set.address} title={set.title} photos={set.photos} first={first}>
       <p className="bx-meta mt-3">
         {set.dates}
         <span aria-hidden> &middot; </span>
@@ -71,9 +101,7 @@ function PhotoSetSection({ set, first }: { set: PhotoSetView; first: boolean }) 
       <p className="mt-3.5 max-w-[52ch] text-[1.0625rem] leading-relaxed text-(--bx-muted)">
         {set.note}
       </p>
-
-      <PhotoRows photos={set.photos} eager={first} className="mt-8" />
-    </section>
+    </GallerySection>
   );
 }
 
@@ -81,24 +109,16 @@ function PhotoSetSection({ set, first }: { set: PhotoSetView; first: boolean }) 
  * The Loose Photos: a plain heading and the photos, with no meta line or note,
  * because there is no date or venue to give and making one up would be a
  * guess. Rendered only when there are some (`gallery.loose` is null otherwise).
+ * The heading gives the reason they have no set rather than calling them the
+ * rest (see Loose Photo in CONTEXT.md).
  */
 function LoosePhotosSection({ loose, first }: { loose: LoosePhotosView; first: boolean }) {
-  const headingId = `${loose.address}-title`;
-
   return (
-    <section
-      id={loose.address}
-      aria-labelledby={headingId}
-      className="bx-hair scroll-mt-24 py-14 sm:py-20"
-    >
-      <h2
-        id={headingId}
-        className="bx-h2 max-w-[28ch] text-[clamp(1.375rem,3.2vw,1.875rem)]"
-      >
-        Other days on court
-      </h2>
-
-      <PhotoRows photos={loose.photos} eager={first} className="mt-8" />
-    </section>
+    <GallerySection
+      address={loose.address}
+      title="Days we can't put a date on"
+      photos={loose.photos}
+      first={first}
+    />
   );
 }

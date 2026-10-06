@@ -204,20 +204,15 @@ test("photoSetHrefsByAppearance maps only the Appearances that have a set", () =
   assert.deepEqual(hrefs, { "APA - The Admiral Cup": "/photos#the-admiral-cup-2026" });
 });
 
-test("Loose Photos come after every set, in written order", () => {
+test("Loose Photos come after every set, in written order (newest is written first)", () => {
   const night = make({ title: "Night", date: "2026-09-29", photos: photos("night", 2) });
   const loose = photos("loose", 3);
+  const expected = ["/pictures/loose-1.jpg", "/pictures/loose-2.jpg", "/pictures/loose-3.jpg"];
 
   const gallery = buildGallery([night], loose);
 
-  assert.deepEqual(
-    gallery.loose?.photos.map((photo) => photo.src),
-    ["/pictures/loose-1.jpg", "/pictures/loose-2.jpg", "/pictures/loose-3.jpg"],
-  );
-  assert.deepEqual(
-    gallery.photos.map((photo) => photo.src).slice(-3),
-    ["/pictures/loose-1.jpg", "/pictures/loose-2.jpg", "/pictures/loose-3.jpg"],
-  );
+  assert.deepEqual(gallery.loose?.photos.map((photo) => photo.src), expected);
+  assert.deepEqual(gallery.photos.map((photo) => photo.src).slice(-3), expected);
 });
 
 test("Loose Photos carry their place in the flat list and their own section", () => {

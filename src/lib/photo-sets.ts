@@ -37,8 +37,9 @@ export type LoosePhotosView = {
 export type Gallery = {
   /** Newest first by last day. */
   sets: PhotoSetView[];
-  /** After the sets, in written order. Null when there are none, so the page
-   *  renders no heading over an empty block. */
+  /** After the sets, in written order, which is newest first because new ones
+   *  are added at the top. Null when there are none, so the page renders no
+   *  heading over an empty block. */
   loose: LoosePhotosView | null;
   /** Every photo on the page, in the order it appears. */
   photos: GalleryPhoto[];
