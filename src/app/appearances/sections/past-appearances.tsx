@@ -4,11 +4,11 @@ import { PastDisclosure } from "./past-disclosure";
 
 export function PastAppearances({
   appearances,
-  photosHrefs = {},
+  photoSetHrefs = {},
 }: {
   appearances: Appearance[];
   /** Appearance name to the /photos section holding its Photo Set. */
-  photosHrefs?: Record<string, string>;
+  photoSetHrefs?: Record<string, string>;
 }) {
   if (appearances.length === 0) {
     return (
@@ -30,7 +30,7 @@ export function PastAppearances({
             key={appearance.name}
             appearance={appearance}
             tone="past"
-            photosHref={photosHrefs[appearance.name]}
+            photoSetHref={photoSetHrefs[appearance.name]}
           />
         ))}
       </ul>

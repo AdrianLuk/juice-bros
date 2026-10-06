@@ -7,6 +7,7 @@ import {
   photoSetAddress,
   photoSetFor,
   photoSetHref,
+  photoSetHrefsByAppearance,
   previewPhotos,
 } from "./photo-sets.ts";
 
@@ -182,4 +183,22 @@ test("photoSetHref links to the set's section on the Photos page", () => {
   const cup = make({ title: "The Admiral Cup", date: undefined, startDate: "2026-09-16", endDate: "2026-09-20" });
 
   assert.equal(photoSetHref(cup), "/photos#the-admiral-cup-2026");
+});
+
+test("photoSetHrefsByAppearance maps only the Appearances that have a set", () => {
+  const cup = make({
+    title: "The Admiral Cup",
+    date: undefined,
+    startDate: "2026-09-16",
+    endDate: "2026-09-20",
+    appearance: "APA - The Admiral Cup",
+  });
+  const night = make({ title: "Creator Night" });
+
+  const hrefs = photoSetHrefsByAppearance(
+    [cup, night],
+    [{ name: "APA - The Admiral Cup" }, { name: "Some Other Open" }],
+  );
+
+  assert.deepEqual(hrefs, { "APA - The Admiral Cup": "/photos#the-admiral-cup-2026" });
 });

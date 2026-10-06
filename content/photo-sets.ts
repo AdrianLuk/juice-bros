@@ -91,7 +91,7 @@ export const photoSets: PhotoSet[] = [
     photos: [
       {
         src: "/pictures/adrian-dav-backs-rally-uncropped.jpg",
-        alt: "Daven and Adrian from behind mid-rally, their names on the backs of their orange shirts, the ball in the air over the other pair",
+        alt: "Daven and Adrian from behind mid-rally, names on the backs of their orange shirts, as the ball floats over to the other pair",
       },
       {
         src: "/pictures/adrian-dav-daven-lunge.jpg",
@@ -115,7 +115,7 @@ export const photoSets: PhotoSet[] = [
       },
       {
         src: "/pictures/adrian-dav-at-net-closeup.jpg",
-        alt: "Daven and Adrian side by side at the kitchen line, knees bent and paddles up, waiting on the next ball",
+        alt: "Daven and Adrian crouched side by side at the kitchen line with their paddles up",
       },
     ],
   },
