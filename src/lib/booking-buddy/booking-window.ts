@@ -8,6 +8,7 @@
 
 import { isHourTime } from "./datetime.ts";
 import { formatTimeLabel } from "./bookings.ts";
+import { renderEmailLayout } from "./email-layout.ts";
 
 export const MIN_BOOKING_WINDOW_DAYS_BEFORE = 0;
 export const MAX_BOOKING_WINDOW_DAYS_BEFORE = 30;
@@ -84,46 +85,19 @@ export function bookingWindowLabel(window: BookingWindow | null): string {
   return `Opens ${dayLabel}, at ${formatTimeLabel(window.time)}.`;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/** Subject and body for one Booking Reminder email — pure string assembly, no I/O. */
+/** Subject and body for one Booking Reminder email: pure string assembly, no I/O. */
 export function formatBookingReminderEmail(params: {
   orgName: string;
   slotWhen: string;
   slotUrl: string;
 }): { subject: string; html: string } {
-  const safeOrgName = escapeHtml(params.orgName);
-  const safeWhen = escapeHtml(params.slotWhen);
-  const safeUrl = escapeHtml(params.slotUrl);
-
   return {
     subject: `Time to book: ${params.orgName}`,
-    html: `
-<!doctype html>
-<html>
-  <body style="margin:0;padding:32px 16px;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-      <tr>
-        <td style="padding:24px 28px 8px;">
-          <p style="margin:0;color:#18181b;font-size:16px;"><strong>${safeOrgName}</strong> just opened bookings for:</p>
-          <p style="margin:12px 0 0;color:#18181b;font-size:20px;font-weight:600;">${safeWhen}</p>
-          <p style="margin:12px 0 0;color:#71717a;font-size:14px;">Go grab a court before it fills up.</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:20px 28px 28px;">
-          <a href="${safeUrl}" style="display:inline-block;background-color:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 18px;border-radius:8px;">View the slot</a>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`,
+    html: renderEmailLayout({
+      heading: `Bookings just opened at ${params.orgName}`,
+      emphasis: params.slotWhen,
+      paragraphs: ["Grab a court for this game before they fill up."],
+      primaryAction: { label: "View the game", url: params.slotUrl },
+    }),
   };
 }
