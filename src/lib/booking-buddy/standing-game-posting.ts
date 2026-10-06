@@ -23,9 +23,11 @@ export type PostWeeksResult = {
  * transaction, so a week already recorded comes back as `null` and is simply
  * not in `posted`.
  *
- * Anything that must happen once a week is posted (the Weekly Invite, #579)
- * hangs off `posted` here or at its two callers, never off a Slot trigger: a
- * posted Slot is a plain Slot (ADR 0023).
+ * Anything that must happen once a week is posted hangs off `posted` at the
+ * callers, never off a Slot trigger: a posted Slot is a plain Slot (ADR 0023).
+ * Every caller sends the Weekly Invite (#579) for what it posted: the cron
+ * with `sendWeeklyInvites`, the server actions with
+ * `inviteRegularsAfterResponse` (both in `weekly-invite-sending.ts`).
  */
 export async function postStandingGameWeeks(
   supabase: SupabaseClient,

@@ -517,11 +517,14 @@ export async function deleteSlot(
 
   const supabase = await createClient();
   // Selected back for the same reason as every other delete here: RLS turns
-  // "that isn't yours" into an empty result, not an error.
+  // "that isn't yours" into an empty result, not an error. A Standing Game's
+  // posted Slot is never deleted silently, only skipped (`skipPostedWeek`,
+  // #578), so it is filtered out here the same way.
   const { data, error } = await supabase
     .from("slots")
     .delete()
     .eq("id", slotId)
+    .is("standing_game_id", null)
     .select("id");
 
   if (error || !data?.length) {
@@ -567,6 +570,9 @@ export async function attachBookingToSlot(
   }
 
   revalidatePath(slotPath(slotId));
+  // The Games page's Weekly games row offers this attach too (#582), and its
+  // rows show the court count, so it refreshes as well.
+  revalidatePath(SLOTS_PATH);
   return { ok: true };
 }
 
@@ -601,6 +607,7 @@ export async function detachBookingFromSlot(
   }
 
   revalidatePath(slotPath(slotId));
+  revalidatePath(SLOTS_PATH);
   return { ok: true };
 }
 

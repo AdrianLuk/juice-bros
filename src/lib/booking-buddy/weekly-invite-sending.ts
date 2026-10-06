@@ -1,10 +1,13 @@
 import "server-only";
 
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import webpush from "web-push";
 
 import { personOptionLabel } from "./connections.ts";
+import { absoluteAppUrl } from "./request-origin.ts";
+import { createAdminClient } from "./supabase/admin.ts";
 import type { StoredPushSubscription } from "./reminder-run.ts";
 import type { PostedWeek } from "./standing-game-posting.ts";
 import {
@@ -49,6 +52,29 @@ export async function sendWeeklyInvites(
     console.error("weekly-invites: the run failed", error);
     return { sent: 0, failed: posted.length };
   }
+}
+
+/**
+ * For a server action that just posted weeks through the organizer's own
+ * session (creating a Standing Game, putting a skipped week back on): send
+ * their Weekly Invites after the response, through the admin client. Every
+ * caller of `postStandingGameWeeks` outside the cron goes through this, so a
+ * week never posts without inviting its Regulars. The cron route, which
+ * already holds the admin client, calls `sendWeeklyInvites` directly.
+ */
+export async function inviteRegularsAfterResponse(posted: readonly PostedWeek[]): Promise<void> {
+  if (posted.length === 0) {
+    return;
+  }
+  // Read inside the request, before `after()`.
+  const origin = new URL(await absoluteAppUrl("/")).origin;
+  after(async () => {
+    try {
+      await sendWeeklyInvites(createAdminClient(), posted, origin);
+    } catch (error) {
+      console.error("weekly-invites: sending after posting failed", error);
+    }
+  });
 }
 
 async function sendWeeklyInvitesUnsafe(

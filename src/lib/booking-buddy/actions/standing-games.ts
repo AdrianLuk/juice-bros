@@ -5,8 +5,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "../supabase/server.ts";
-import { createAdminClient } from "../supabase/admin.ts";
-import { absoluteAppUrl } from "../request-origin.ts";
 import { verifySession } from "../dal.ts";
 import { trackFirstSlot, trackFirstStandingGame } from "../analytics.ts";
 import { SLOTS_PATH, standingGamePath } from "../routes.ts";
@@ -19,8 +17,9 @@ import {
   type StandingGameFields,
 } from "../standing-games.ts";
 import { postStandingGameWeeks } from "../standing-game-posting.ts";
-import { sendWeeklyInvites } from "../weekly-invite-sending.ts";
+import { inviteRegularsAfterResponse } from "../weekly-invite-sending.ts";
 import { parseRegularIds } from "../regulars.ts";
+import { nextGameDate } from "../standing-game-skips.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listOrgs, type Org } from "./orgs.ts";
 import type { CreateSlotResult } from "./slots.ts";
@@ -48,6 +47,8 @@ export type PostedGame = { id: string; when: string; proposedStart: string };
 export type StandingGameSummary = StandingGame & {
   /** The soonest posted Slot still to finish, or `null` before the cron has posted the next one. */
   nextGame: PostedGame | null;
+  /** The next week that will actually be played (`YYYY-MM-DD`), skipping skipped weeks, for when it isn't posted yet (#578). */
+  nextDate: string | null;
   /** How many Regulars it has (#579). */
   regularsCount: number;
 };
@@ -159,6 +160,38 @@ async function regularsByGame(
   return byGame;
 }
 
+/**
+ * Dates of these Standing Games' weeks that won't be played: recorded with no
+ * Slot, which is a skipped week (#578) or a posted one whose Slot is gone.
+ */
+async function skippedWeekDates(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  standingGameIds: string[],
+): Promise<Map<string, Set<string>>> {
+  const byGame = new Map<string, Set<string>>();
+  if (standingGameIds.length === 0) {
+    return byGame;
+  }
+
+  const { data, error } = await supabase
+    .from("standing_game_weeks")
+    .select("standing_game_id, game_date")
+    .in("standing_game_id", standingGameIds)
+    .is("slot_id", null)
+    .gte("game_date", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+
+  if (error) {
+    readFailed("your weekly games' skipped weeks", error);
+  }
+
+  for (const row of data ?? []) {
+    const dates = byGame.get(row.standing_game_id) ?? new Set<string>();
+    dates.add(row.game_date);
+    byGame.set(row.standing_game_id, dates);
+  }
+  return byGame;
+}
+
 /** The caller's live Standing Games, for the Weekly games section. Ended ones drop off. */
 export async function listStandingGames(): Promise<StandingGameSummary[]> {
   await verifySession();
@@ -179,16 +212,22 @@ export async function listStandingGames(): Promise<StandingGameSummary[]> {
 
   const rows = (data ?? []) as StandingGameRow[];
   const ids = rows.map((row) => row.id);
-  const [upcoming, regulars] = await Promise.all([
+  const [upcoming, skipped, regulars] = await Promise.all([
     upcomingPostedGames(supabase, ids),
+    skippedWeekDates(supabase, ids),
     regularsByGame(supabase, ids),
   ]);
+  const now = new Date();
 
-  return rows.map((row) => ({
-    ...toStandingGame(row, orgs),
-    nextGame: upcoming.get(row.id)?.[0] ?? null,
-    regularsCount: regulars.get(row.id)?.length ?? 0,
-  }));
+  return rows.map((row) => {
+    const game = toStandingGame(row, orgs);
+    return {
+      ...game,
+      nextGame: upcoming.get(row.id)?.[0] ?? null,
+      nextDate: nextGameDate(game, skipped.get(row.id) ?? new Set(), now),
+      regularsCount: regulars.get(row.id)?.length ?? 0,
+    };
+  });
 }
 
 /** Everything the Standing Game page renders, or `null` when it doesn't exist or isn't the caller's (RLS makes those the same). */
@@ -265,7 +304,7 @@ function standingGameColumns(fields: StandingGameFields, timeZone: string) {
  *
  * The Regulars ticked on the form (`regular_ids`, #579) are saved before
  * the first week posts, so its Weekly Invite reaches them; that send runs
- * after the response, through the admin client (`sendWeeklyInvites`).
+ * after the response (`inviteRegularsAfterResponse`).
  *
  * If not even the first week posts, or the Regulars won't save, the Standing
  * Game is removed again so a retry doesn't leave a second one behind.
@@ -334,16 +373,11 @@ export async function createStandingGame(
     return { error: "Couldn't post this week's game. Try again." };
   }
 
-  const origin = new URL(await absoluteAppUrl("/")).origin;
   after(async () => {
     await trackFirstStandingGame(session.userId);
     await trackFirstSlot(session.userId, posted.length);
-    try {
-      await sendWeeklyInvites(createAdminClient(), posted, origin);
-    } catch (inviteError) {
-      console.error("booking-buddy: sending a new weekly game's invites failed", inviteError);
-    }
   });
+  await inviteRegularsAfterResponse(posted);
 
   revalidatePath(SLOTS_PATH);
   return { ok: true, slotId: posted[0].slotId };

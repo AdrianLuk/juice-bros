@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import {
   hourClock,
   standingGameTimeLabel,
 } from "@/lib/booking-buddy/standing-games";
+import { gameDateLabel } from "@/lib/booking-buddy/standing-game-skips";
 import { slotPath, standingGamePath } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -62,11 +63,20 @@ function shortDay(when: string): string {
 
 /**
  * One Standing Game in the Weekly games section: its day and hours, where,
- * the next game it has posted, and how many Regulars it has. Opens the Standing Game's own page.
+ * the next game it has posted, and how many Regulars it has. Opens the
+ * Standing Game's own page.
+ * `notice` sits under the card, outside its link, for a to-do with its own
+ * button (#582's "Attach your court?").
  */
-export function WeeklyGameRow({ game }: { game: StandingGameSummary }) {
+export function WeeklyGameRow({
+  game,
+  notice,
+}: {
+  game: StandingGameSummary;
+  notice?: ReactNode;
+}) {
   return (
-    <li>
+    <li className="flex flex-col gap-3">
       <BoardCard
         as={Link}
         href={standingGamePath(game.id)}
@@ -86,12 +96,16 @@ export function WeeklyGameRow({ game }: { game: StandingGameSummary }) {
             <p className="mt-0.5 text-xs text-muted-foreground">
               {game.nextGame
                 ? `Next game ${shortDay(game.nextGame.when)}`
-                : "Next game goes up within a day"}
+                : game.nextDate
+                  ? `Next game ${gameDateLabel(game.nextDate)}`
+                  : "Next game goes up within a day"}
               {` · ${game.regularsCount} regular${game.regularsCount === 1 ? "" : "s"}`}
             </p>
           </div>
         </div>
       </BoardCard>
+      {/* Indented so it reads as this row's, not the next row. */}
+      {notice && <div className="ml-4 sm:ml-8">{notice}</div>}
     </li>
   );
 }

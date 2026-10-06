@@ -14,6 +14,8 @@ import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { listStandingGames } from "@/lib/booking-buddy/actions/standing-games";
 import { getRegularChoices } from "@/lib/booking-buddy/actions/regulars";
 import { WeeklyGameRow } from "@/components/booking-buddy/standing-games";
+import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
+import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
 export const metadata: Metadata = pageMetadata({
@@ -37,6 +39,7 @@ export default async function SlotsPage({
     lookingWindows,
     orgs,
     standingGames,
+    courtMatches,
     regularChoices,
     { date, start, end },
   ] = await Promise.all([
@@ -44,6 +47,7 @@ export default async function SlotsPage({
     listFriendsLookingToPlay(),
     listOrgs(),
     listStandingGames(),
+    listCourtMatches(),
     getRegularChoices(),
     searchParams,
   ]);
@@ -77,9 +81,22 @@ export default async function SlotsPage({
               <section>
                 <h2 className="bb-h text-[1.05rem]">Weekly games</h2>
                 <ul className="mt-4 flex flex-col gap-5">
-                  {standingGames.map((game) => (
-                    <WeeklyGameRow key={game.id} game={game} />
-                  ))}
+                  {standingGames.map((game) => {
+                    const matches = courtMatches.filter(
+                      (match) => match.standingGameId === game.id,
+                    );
+                    return (
+                      <WeeklyGameRow
+                        key={game.id}
+                        game={game}
+                        notice={
+                          matches.length > 0 ? (
+                            <CourtSuggestions matches={matches} showGameDay />
+                          ) : undefined
+                        }
+                      />
+                    );
+                  })}
                 </ul>
               </section>
             )}
