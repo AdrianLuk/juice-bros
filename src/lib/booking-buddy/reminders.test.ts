@@ -186,3 +186,20 @@ test("formatReminderPush carries the slot's own time and a target url", () => {
   assert.match(body, /Sat, Jan 1 at 9:00 AM/);
   assert.equal(url, "https://example.com/booking-buddy/slots/abc");
 });
+
+/** What a recipient reads: the HTML with every tag (and its attributes) removed. */
+function visibleText(html: string): string {
+  return html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+}
+
+test("formatReminderEmail has one button, View the game, and never says slot", () => {
+  const { html } = formatReminderEmail({
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+
+  assert.match(visibleText(html), /Sat, Jan 1 at 9:00 AM/);
+  assert.equal(html.match(/<a /g)?.length, 1);
+  assert.match(html, /href="https:\/\/example\.com\/booking-buddy\/slots\/abc"[^>]*>View the game</);
+  assert.doesNotMatch(visibleText(html), /slot/i);
+});

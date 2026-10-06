@@ -6,7 +6,7 @@
  * and you must change the other.
  */
 
-import { escapeHtml } from "./escape-html.ts";
+import { renderEmailLayout } from "./email-layout.ts";
 import type { ResponseAnswer } from "./responses.ts";
 
 export const DEFAULT_REMINDER_OFFSET_MINUTES = 60;
@@ -148,34 +148,18 @@ export function formatReminderPush(params: {
   };
 }
 
-/** Subject and body for one Reminder email — pure string assembly, no I/O. */
+/** Subject and body for one Reminder email: pure string assembly, no I/O. */
 export function formatReminderEmail(params: {
   slotWhen: string;
   slotUrl: string;
 }): { subject: string; html: string } {
-  const safeWhen = escapeHtml(params.slotWhen);
-  const safeUrl = escapeHtml(params.slotUrl);
-
   return {
     subject: `Reminder: ${params.slotWhen}`,
-    html: `
-<!doctype html>
-<html>
-  <body style="margin:0;padding:32px 16px;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-      <tr>
-        <td style="padding:24px 28px 8px;">
-          <p style="margin:0;color:#18181b;font-size:16px;">You're down as <strong>yes</strong> for:</p>
-          <p style="margin:12px 0 0;color:#18181b;font-size:20px;font-weight:600;">${safeWhen}</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:20px 28px 28px;">
-          <a href="${safeUrl}" style="display:inline-block;background-color:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 18px;border-radius:8px;">View the slot</a>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`,
+    html: renderEmailLayout({
+      heading: "You're down as yes",
+      emphasis: params.slotWhen,
+      paragraphs: ["Check who else is in before you head out."],
+      primaryAction: { label: "View the game", url: params.slotUrl },
+    }),
   };
 }
