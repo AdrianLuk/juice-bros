@@ -90,6 +90,8 @@ export function SiteHeader() {
             </span>
           </Link>
 
+          {/* Eight items fit a 768px tablet only with the tighter padding
+              below `lg`; at px-4 the pill overflows the viewport. */}
           <nav className="flex items-center gap-1">
             {siteConfig.nav.map((item) => {
               const active = pathname === item.href;
@@ -98,7 +100,7 @@ export function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative rounded-full px-4 py-2 text-sm font-medium text-white/70 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white",
+                    "relative rounded-full px-2.5 py-2 text-sm lg:px-4 font-medium text-white/70 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white",
                     active && "text-white"
                   )}
                 >

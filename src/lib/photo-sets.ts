@@ -58,7 +58,7 @@ export function photoSetAddress(set: PhotoSet): string {
 }
 
 /** The first five photos of a set, or all of them if it has fewer. */
-export function previewPhotos<T extends { photos: readonly P[] }, P>(set: T): P[] {
+export function previewPhotos<P>(set: { photos: readonly P[] }): P[] {
   return set.photos.slice(0, PREVIEW_COUNT);
 }
 

@@ -24,7 +24,7 @@ import { usePathname } from "next/navigation";
  * is what the browser shows past the end of the page on an elastic scroll.
  */
 
-const DARK_ROUTES = ["/", "/podcast", "/tools", "/gear", "/appearances", "/about", "/contact"];
+const DARK_ROUTES = ["/", "/podcast", "/tools", "/gear", "/appearances", "/photos", "/about", "/contact"];
 
 /**
  * The tools that live under /tools but paint their own surface: Pickle Point
