@@ -64,3 +64,21 @@ test("formatConnectionRequestEmail escapes an ampersand in a link", () => {
 
   assert.match(html, /a=accept&amp;ref=email/);
 });
+
+/** What a recipient reads: the HTML with every tag (and its attributes) removed. */
+function visibleText(html: string): string {
+  return html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+}
+
+test("formatConnectionRequestEmail offers exactly Accept and Decline, and never says slot", () => {
+  const { html } = formatConnectionRequestEmail({
+    requesterLabel: "Ben Johns (@benjohns)",
+    acceptUrl: "https://x.test/connect/tok?a=accept",
+    declineUrl: "https://x.test/connect/tok?a=decline",
+  });
+
+  assert.equal(html.match(/<a /g)?.length, 2);
+  assert.match(html, /href="https:\/\/x\.test\/connect\/tok\?a=accept"[^>]*>Accept</);
+  assert.match(html, /href="https:\/\/x\.test\/connect\/tok\?a=decline"[^>]*>Decline</);
+  assert.doesNotMatch(visibleText(html), /slot/i);
+});
