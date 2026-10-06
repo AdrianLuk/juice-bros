@@ -11,6 +11,8 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { listSlots } from "@/lib/booking-buddy/actions/slots";
 import { listFriendsLookingToPlay } from "@/lib/booking-buddy/actions/looking";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
+import { listStandingGames } from "@/lib/booking-buddy/actions/standing-games";
+import { WeeklyGameRow } from "@/components/booking-buddy/standing-games";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
 export const metadata: Metadata = pageMetadata({
@@ -29,13 +31,19 @@ export default async function SlotsPage({
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   await verifySession();
-  const [{ own, friends }, lookingWindows, orgs, { date, start, end }] =
-    await Promise.all([
-      listSlots(),
-      listFriendsLookingToPlay(),
-      listOrgs(),
-      searchParams,
-    ]);
+  const [
+    { own, friends },
+    lookingWindows,
+    orgs,
+    standingGames,
+    { date, start, end },
+  ] = await Promise.all([
+    listSlots(),
+    listFriendsLookingToPlay(),
+    listOrgs(),
+    listStandingGames(),
+    searchParams,
+  ]);
   // Just a shape check — a genuinely past date is caught by the form's own
   // submit validation and the `slots_not_in_the_past` trigger, and the tighter
   // "is it past" check here would need a time zone the deep-link doesn't carry.
@@ -62,6 +70,16 @@ export default async function SlotsPage({
           />
           <BbSectionNav />
           <div className="bb-sheet mt-8 flex flex-col gap-11 p-3.5 sm:p-8">
+            {standingGames.length > 0 && (
+              <section>
+                <h2 className="bb-h text-[1.05rem]">Weekly games</h2>
+                <ul className="mt-4 flex flex-col gap-5">
+                  {standingGames.map((game) => (
+                    <WeeklyGameRow key={game.id} game={game} />
+                  ))}
+                </ul>
+              </section>
+            )}
             <section>
               <h2 className="bb-h text-[1.05rem]">Your games</h2>
               {own.length === 0 ? (

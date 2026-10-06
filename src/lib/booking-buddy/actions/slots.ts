@@ -23,6 +23,7 @@ import {
   slotBookingWriteMessage,
 } from "../capacity.ts";
 import { crossesMidnight, nextCalendarDate } from "../datetime.ts";
+import { slotRepeatsLabel } from "../standing-games.ts";
 import { isDivision, type Division } from "../division.ts";
 import type { Gender } from "../gender.ts";
 import type { ResponseAnswer } from "../responses.ts";
@@ -64,6 +65,13 @@ export type Slot = {
    * it's identical for the owner and a friend.
    */
   courtCount: number;
+  /**
+   * "Every Tuesday" when a Standing Game posted this Slot, else `null`. Read
+   * off the Slot's own `standing_game_id` and its own date, never the
+   * owner-only `standing_games` table, so it is the same chip for the
+   * organizer and a friend (ADR 0023).
+   */
+  repeatsLabel: string | null;
 };
 
 export type SlotResponse = {
@@ -116,6 +124,8 @@ export type SlotDetail = {
   ownedOrgs: Org[];
   /** Null when the owner hasn't added one. Set at posting time or afterward via `setSlotNotes`; shown on the Slot's own detail page only. */
   notes: string | null;
+  /** The Standing Game that posted this Slot, for the owner's link to it. Always `null` for a friend. */
+  standingGameId: string | null;
 };
 
 export type SlotResponses = {
@@ -202,7 +212,7 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
 
   const { data: rows, error } = await supabase
     .from("slots")
-    .select("id, owner_id, proposed_start, proposed_end, time_zone, intended_org_name")
+    .select("id, owner_id, proposed_start, proposed_end, time_zone, intended_org_name, standing_game_id")
     .gte("proposed_end", new Date().toISOString())
     .order("proposed_start", { ascending: true });
 
@@ -265,6 +275,9 @@ export async function listSlots(): Promise<{ own: Slot[]; friends: Slot[] }> {
     facilityLabel:
       facilityLabel(orgNamesBySlotId.get(row.id) ?? []) ?? row.intended_org_name,
     courtCount: courtCountBySlotId.get(row.id) ?? 0,
+    repeatsLabel: row.standing_game_id
+      ? slotRepeatsLabel({ proposedStart: row.proposed_start, timeZone: row.time_zone })
+      : null,
   });
 
   const own: Slot[] = [];
@@ -359,7 +372,7 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
   const { data: slotRow, error: slotError } = await supabase
     .from("slots")
     .select(
-      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, intended_org_name, division, notes",
+      "id, owner_id, proposed_start, proposed_end, time_zone, rotation_buffer, reminder_offset_minutes, intended_org_id, intended_org_name, division, notes, standing_game_id",
     )
     .eq("id", slotId)
     .maybeSingle();
@@ -412,8 +425,13 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
       // Intended Org, same as `listSlots`.
       facilityLabel: capacity.facilityLabel ?? slotRow.intended_org_name,
       courtCount: capacity.courtCount,
+      repeatsLabel: slotRow.standing_game_id
+        ? slotRepeatsLabel({ proposedStart: slotRow.proposed_start, timeZone: slotRow.time_zone })
+        : null,
     },
     isOwner,
+    // Only the owner can open the Standing Game itself; a friend gets the chip alone.
+    standingGameId: isOwner ? slotRow.standing_game_id : null,
     responses,
     myAnswer,
     capacity,

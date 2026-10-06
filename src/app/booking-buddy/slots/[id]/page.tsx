@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { BbPageHeading } from "@/components/booking-buddy/bb/page-heading";
@@ -14,6 +15,8 @@ import { SlotLinkPanel } from "@/components/booking-buddy/slot-links";
 import { ReminderOffsetForm } from "@/components/booking-buddy/reminders";
 import { IntendedOrgForm } from "@/components/booking-buddy/booking-window";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
+import { RepeatsChip } from "@/components/booking-buddy/repeats-chip";
+import { standingGamePath } from "@/lib/booking-buddy/routes";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
@@ -48,6 +51,7 @@ export default async function SlotDetailPage({
     intendedOrgId,
     ownedOrgs,
     notes,
+    standingGameId,
   } = detail;
   const slotLink = isOwner ? await getSlotLink(slot.id) : null;
   return (
@@ -67,6 +71,15 @@ export default async function SlotDetailPage({
               <span className="bb-tape text-xs">{slot.facilityLabel}</span>
             )}
             <SlotStatusBadge courtCount={slot.courtCount} />
+            {slot.repeatsLabel && <RepeatsChip label={slot.repeatsLabel} />}
+            {standingGameId && (
+              <Link
+                href={standingGamePath(standingGameId)}
+                className="text-xs underline underline-offset-4"
+              >
+                Edit the weekly game
+              </Link>
+            )}
           </div>
           <div className="mt-10 flex flex-col gap-8">
             <section>

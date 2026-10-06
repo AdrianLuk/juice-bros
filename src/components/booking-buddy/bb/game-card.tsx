@@ -5,6 +5,7 @@ import { slotPath } from "@/lib/booking-buddy/routes";
 import type { Slot } from "@/lib/booking-buddy/actions/slots";
 import { BoardCard } from "./board-card";
 import { TapeLabel } from "./tape-label";
+import { RepeatsChip } from "../repeats-chip";
 
 /**
  * A game pinned to the board. A court booked reads "set" with a green pin; a
@@ -56,6 +57,9 @@ export function GameCard({
       >
         {time}
       </h3>
+      {slot.repeatsLabel && (
+        <RepeatsChip label={slot.repeatsLabel} className="mt-1.5" />
+      )}
 
       {slot.facilityLabel ? (
         <TapeLabel className="mt-2.5">{slot.facilityLabel}</TapeLabel>
