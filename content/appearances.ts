@@ -107,9 +107,11 @@ export const appearances: Appearance[] = [
     image: "/appearances/vaughan-fall-open-2026.png",
     organizer: "Vaughan Pickleball",
     status: "confirmed",
-    players: "adrian",
+    players: "both",
     divisions: [
       { name: "Mixed Doubles 4.0 & Under", date: "2026-10-03", players: "adrian" },
+      // A late call: they entered this one together on the spot.
+      { name: "Men's Doubles 4.5 & Under", players: "both" },
     ],
   },
   {

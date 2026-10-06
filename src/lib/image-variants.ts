@@ -91,6 +91,17 @@ export const IMAGE_MANIFEST = {
     widths: [700],
     quality: { avif: 42, webp: 60 },
   },
+  // Vaughan Pickleball Fall Open (2026-10). The posed shot of both hosts that
+  // heads the Home hosts section. A 1500px phone export at its true 3:4
+  // shape: the tile is capped at 26rem at every width, so 960 is a 2x there
+  // and 1280 covers a 3x phone. Phone-compressed, so quality matches the other
+  // phone shots rather than the camera originals.
+  "/pictures/vaughan-fall-open-adrian-daven-posed-thumbs-up.jpg": {
+    width: 1500,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 45, webp: 62 },
+  },
   // Creator Night at The Backyard Club (2026-09-29). Camera originals,
   // downscaled to 2000px on the long edge, so unlike the WhatsApp exports
   // above they hold up on a retina screen. The header and tile boxes top out
