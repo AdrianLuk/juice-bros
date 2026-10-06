@@ -226,6 +226,23 @@ export function connectLinkPath(
 }
 
 /**
+ * A Weekly Invite's answer link (issue #580, ADR 0022): `/answer/<token>`,
+ * where the token is a `weekly_invite_links` row scoped to one Regular and one
+ * Slot. Outside `BOOKING_BUDDY_ROOT` like `/s` and `/connect`, so it opens
+ * signed in or not. `answer` only preselects a choice on the page; the page
+ * never writes until its form is submitted.
+ */
+export const WEEKLY_INVITE_ANSWER_ROOT = "/answer";
+
+export function weeklyInviteAnswerPath(
+  token: string,
+  answer?: "yes" | "no" | "maybe",
+): string {
+  const base = `${WEEKLY_INVITE_ANSWER_ROOT}/${token}`;
+  return answer ? `${base}?a=${answer}` : base;
+}
+
+/**
  * Reachable while signed out, despite living under the Booking Buddy root.
  * "/privacy" is here alongside "/sign-in" so the policy can be linked from
  * the sign-in page itself, before there's a session to check. "/join" is a

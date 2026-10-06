@@ -13,6 +13,7 @@ import type { PostedWeek } from "./standing-game-posting.ts";
 import {
   connectedPairKey,
   planWeeklyInviteRun,
+  weeklyInviteLinkKey,
   weeklyInviteSendKey,
   type PostedSlotForInvite,
   type WeeklyInviteChannel,
@@ -75,6 +76,56 @@ export async function inviteRegularsAfterResponse(posted: readonly PostedWeek[])
       console.error("weekly-invites: sending after posting failed", error);
     }
   });
+}
+
+/**
+ * Each invited Regular's answer token for these Slots (issue #580, ADR 0022),
+ * by `weeklyInviteLinkKey`. Minted on first send and reused after (one
+ * `weekly_invite_links` row per Slot and Regular), so a rerun links to the
+ * same token. The database refuses a link for anyone who isn't a Regular.
+ *
+ * Best-effort: on a failed write or read this returns what it has, and a
+ * Regular without a token still gets the invite with "View the game".
+ */
+async function mintAnswerTokens(
+  supabase: SupabaseClient,
+  slots: readonly PostedSlotForInvite[],
+  regularsByGame: ReadonlyMap<string, readonly string[]>,
+  isInvited: (slot: PostedSlotForInvite, userId: string) => boolean,
+): Promise<Map<string, string>> {
+  const pairs = slots.flatMap((slot) =>
+    (regularsByGame.get(slot.standingGameId) ?? [])
+      .filter((userId) => isInvited(slot, userId))
+      .map((userId) => ({ slot_id: slot.slotId, user_id: userId })),
+  );
+  const tokens = new Map<string, string>();
+  if (pairs.length === 0) {
+    return tokens;
+  }
+
+  const { error: mintError } = await supabase
+    .from("weekly_invite_links")
+    .upsert(pairs, { onConflict: "slot_id,user_id", ignoreDuplicates: true });
+  if (mintError) {
+    console.error("weekly-invites: minting answer links failed", mintError);
+  }
+
+  const { data: linkRows, error: linksError } = await supabase
+    .from("weekly_invite_links")
+    .select("slot_id, user_id, token")
+    .in(
+      "slot_id",
+      slots.map((slot) => slot.slotId),
+    );
+  if (linksError) {
+    console.error("weekly-invites: reading answer links failed", linksError);
+    return tokens;
+  }
+
+  for (const row of linkRows ?? []) {
+    tokens.set(weeklyInviteLinkKey(row.slot_id, row.user_id), row.token);
+  }
+  return tokens;
 }
 
 async function sendWeeklyInvitesUnsafe(
@@ -203,13 +254,21 @@ async function sendWeeklyInvitesUnsafe(
     subscriptionsByUser.set(row.user_id, list);
   }
 
+  const inviteEnabledByUser = new Map(
+    (preferenceRows ?? []).map((row) => [row.user_id, row.weekly_invite_enabled]),
+  );
+  const answerTokens = await mintAnswerTokens(supabase, slots, regularsByGame, (slot, userId) =>
+    userId !== slot.ownerId &&
+    connectedPairs.has(connectedPairKey(slot.ownerId, userId)) &&
+    inviteEnabledByUser.get(userId) !== false,
+  );
+
   const { sends } = planWeeklyInviteRun({
     slots,
     regularsByGame,
     connectedPairs,
-    inviteEnabledByUser: new Map(
-      (preferenceRows ?? []).map((row) => [row.user_id, row.weekly_invite_enabled]),
-    ),
+    inviteEnabledByUser,
+    answerTokens,
     pushEnabledByUser: new Map(
       (preferenceRows ?? []).map((row) => [row.user_id, row.push_enabled]),
     ),

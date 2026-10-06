@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  isWeeklyInviteToken,
+  parseWeeklyInviteAnswer,
   planWeeklyInviteRun,
+  preselectedInviteAnswer,
   type PlanWeeklyInviteRunInput,
   type PostedSlotForInvite,
 } from "./weekly-invites.ts";
@@ -36,6 +39,7 @@ function input(overrides: Partial<PlanWeeklyInviteRunInput> = {}): PlanWeeklyInv
     alreadySent: new Set(),
     subscriptionsByUser: new Map(),
     pushConfigured: true,
+    answerTokens: new Map(),
     origin: ORIGIN,
     ...overrides,
   };
@@ -199,4 +203,87 @@ test("the invite copy says game, never slot, and carries no em-dash", () => {
   assert.doesNotMatch(read, /slot/i);
   assert.doesNotMatch(read, /\u2014/);
   assert.match(visibleText(email.html), /View the game/);
+});
+
+test("each Regular's email carries their own Yes, Maybe and No answer links, Yes first", () => {
+  const { sends } = planWeeklyInviteRun(
+    input({
+      regularsByGame: new Map([["weekly-1", [BEN, "cal"]]]),
+      connectedPairs: new Set([`${AMY}:${BEN}`, `${AMY}:cal`]),
+      answerTokens: new Map([
+        ["slot-1:ben", "token-ben"],
+        ["slot-1:cal", "token-cal"],
+      ]),
+    }),
+  );
+
+  const [ben, cal] = sends;
+  assert.ok(ben.channel === "email" && cal.channel === "email");
+  assert.equal(ben.userId, BEN);
+
+  const links = [...ben.html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+  const answerLinks = links.filter((link) => link.includes("/answer/"));
+  assert.deepEqual(answerLinks, [
+    `${ORIGIN}/answer/token-ben?a=yes`,
+    `${ORIGIN}/answer/token-ben?a=maybe`,
+    `${ORIGIN}/answer/token-ben?a=no`,
+  ]);
+  assert.doesNotMatch(ben.html, /token-cal/);
+  assert.match(cal.html, /\/answer\/token-cal\?a=yes/);
+  assert.doesNotMatch(cal.html, /token-ben/);
+
+  const text = visibleText(ben.html);
+  assert.match(text, /Yes/);
+  assert.match(text, /Maybe/);
+  assert.match(text, /No/);
+  assert.doesNotMatch(text, /slot/i);
+  assert.ok(!text.includes(String.fromCharCode(0x2014)));
+});
+
+test("with an answer link, the push opens the answer page rather than the game page", () => {
+  const { sends } = planWeeklyInviteRun(
+    input({
+      pushEnabledByUser: new Map([[BEN, true]]),
+      subscriptionsByUser: new Map([[BEN, [BEN_DEVICE]]]),
+      answerTokens: new Map([["slot-1:ben", "token-ben"]]),
+    }),
+  );
+
+  const push = sends.find((send) => send.channel === "push");
+  assert.ok(push && push.channel === "push");
+  assert.equal(push.payload.url, `${ORIGIN}/answer/token-ben`);
+});
+
+const TOKEN = "3f2b8c1e-7d4a-4e9b-9c2f-1a2b3c4d5e6f";
+
+test("only a well-formed token is looked up", () => {
+  assert.equal(isWeeklyInviteToken(TOKEN), true);
+  assert.equal(isWeeklyInviteToken(TOKEN.toUpperCase()), true);
+  assert.equal(isWeeklyInviteToken("not-a-token"), false);
+  assert.equal(isWeeklyInviteToken(`${TOKEN}x`), false);
+  assert.equal(isWeeklyInviteToken(""), false);
+});
+
+test("confirming needs a well-formed token and one of yes, no or maybe", () => {
+  const form = (entries: Record<string, string>) => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(entries)) data.set(key, value);
+    return data;
+  };
+
+  assert.deepEqual(parseWeeklyInviteAnswer(form({ token: TOKEN, answer: "maybe" })), {
+    token: TOKEN,
+    answer: "maybe",
+  });
+  assert.ok("error" in parseWeeklyInviteAnswer(form({ token: TOKEN })));
+  assert.ok("error" in parseWeeklyInviteAnswer(form({ token: TOKEN, answer: "sure" })));
+  assert.ok("error" in parseWeeklyInviteAnswer(form({ token: "nope", answer: "yes" })));
+});
+
+test("the page preselects the link's answer, else the Regular's current one", () => {
+  assert.equal(preselectedInviteAnswer("no", "yes"), "no");
+  assert.equal(preselectedInviteAnswer(undefined, "maybe"), "maybe");
+  assert.equal(preselectedInviteAnswer("whatever", "maybe"), "maybe");
+  assert.equal(preselectedInviteAnswer(undefined, null), null);
+  assert.equal(preselectedInviteAnswer(["yes", "no"], null), "yes");
 });

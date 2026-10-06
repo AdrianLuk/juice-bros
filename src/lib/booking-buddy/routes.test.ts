@@ -8,6 +8,7 @@ import {
   safeRedirectTarget,
   sectionForPath,
   siblingsForPath,
+  weeklyInviteAnswerPath,
 } from "./routes.ts";
 
 test("proposeGameHref: a date and start hour become a prefilled deep link to the form", () => {
@@ -95,6 +96,13 @@ test("connectLinkPath adds the action only when given one", () => {
   assert.equal(connectLinkPath("tok"), "/connect/tok");
   assert.equal(connectLinkPath("tok", "accept"), "/connect/tok?a=accept");
   assert.equal(connectLinkPath("tok", "decline"), "/connect/tok?a=decline");
+});
+
+test("a Weekly Invite answer link preselects its answer and needs no session", () => {
+  assert.equal(weeklyInviteAnswerPath("tok"), "/answer/tok");
+  assert.equal(weeklyInviteAnswerPath("tok", "yes"), "/answer/tok?a=yes");
+  assert.equal(weeklyInviteAnswerPath("tok", "maybe"), "/answer/tok?a=maybe");
+  assert.equal(requiresSession(weeklyInviteAnswerPath("tok", "no")), false);
 });
 
 test("a personal invite link is reachable without a session", () => {

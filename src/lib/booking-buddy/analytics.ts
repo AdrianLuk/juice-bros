@@ -33,7 +33,10 @@ export type FunnelEvent =
   // posts, so "do Standing Games keep running past week 3" reads off its
   // count. Neither carries PII.
   | "bb_first_standing_game"
-  | "bb_standing_game_week_posted";
+  | "bb_standing_game_week_posted"
+  // Fires on each answer confirmed from a Weekly Invite link (issue #580),
+  // with `{ answer: "yes" | "no" | "maybe" }` and nothing else.
+  | "bb_weekly_invite_answered";
 
 /**
  * "Sync from Email" events (spec #280). Not funnel steps — these measure how
