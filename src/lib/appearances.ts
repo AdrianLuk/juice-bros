@@ -8,18 +8,22 @@ export type {
   AppearanceStatus,
 } from "../../content/appearances.ts";
 
+/** The date fields an Appearance shares with a Photo Set: a single `date`, or
+ *  a `startDate`/`endDate` range. The helpers below read only these. */
+export type DateSpan = Pick<Appearance, "date" | "startDate" | "endDate">;
+
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
 /** The day an appearance begins (single `date` or range `startDate`), `yyyy-mm-dd`. */
-export function appearanceStartDate(appearance: Appearance): string {
+export function appearanceStartDate(appearance: DateSpan): string {
   return appearance.startDate ?? appearance.date ?? "";
 }
 
 /** The day an appearance ends (range `endDate` or the single `date`), `yyyy-mm-dd`. */
-export function appearanceEndDate(appearance: Appearance): string {
+export function appearanceEndDate(appearance: DateSpan): string {
   return appearance.endDate ?? appearance.date ?? appearance.startDate ?? "";
 }
 
@@ -65,7 +69,7 @@ export function nextConfirmedAppearance(
  * Human date for a row: "Sep 26, 2026" for a single day, "Aug 28-29, 2026"
  * for a same-month range, "Sep 30 - Oct 4, 2026" across months.
  */
-export function formatAppearanceDates(appearance: Appearance): string {
+export function formatAppearanceDates(appearance: DateSpan): string {
   const startIso = appearanceStartDate(appearance);
   const endIso = appearanceEndDate(appearance);
   const [sy, sm, sd] = startIso.split("-").map(Number);

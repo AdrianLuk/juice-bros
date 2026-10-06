@@ -30,6 +30,7 @@ export const siteConfig = {
     { title: 'Tools', href: '/tools' },
     { title: 'Gear', href: '/gear' },
     { title: 'Appearances', href: '/appearances' },
+    { title: 'Photos', href: '/photos' },
     { title: 'About', href: '/about' },
     { title: 'Contact', href: '/contact' },
   ],

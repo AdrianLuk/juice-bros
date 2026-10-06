@@ -3304,6 +3304,35 @@ html:has(.bb-app-chrome) {
 
   .bx-hair { border-top: 1px solid var(--bx-line-soft); }
 
+  /* ---- Photo rows ----------------------------------------------------------
+     Rows of photos that fill the width and keep every photo's true shape, in
+     CSS alone so nothing is measured in script and nothing jumps.
+
+     Each tile starts at the row height times its aspect ratio (`--ar`) and
+     grows in proportion to that ratio, so every tile on a line ends up the
+     same height and none is cropped. The `::after` spacer on the last line
+     soaks up the space that would otherwise stretch a short last row into
+     two giant photos. `--max-w` is half the master's width: a tile never gets
+     wider than the source can fill on a 2x screen. `flex-start` stops a
+     capped tile being stretched to its neighbours' height, which would crop
+     it. */
+  .bx-rows {
+    --row-h: 8rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px) { .bx-rows { --row-h: 11rem; gap: 1rem; } }
+  @media (min-width: 1024px) { .bx-rows { --row-h: 16rem; } }
+  .bx-rows > * {
+    flex-grow: calc(var(--ar) * 100);
+    flex-basis: calc(var(--ar) * var(--row-h));
+    aspect-ratio: var(--ar);
+    max-width: var(--max-w);
+  }
+  .bx-rows::after { content: ""; flex-grow: 1000000; }
+
   /* A full-bleed passage on the raised surface. The page's one peak below
      the hero: Now Playing sits on it so the newest episode is a place the
      scroll arrives at, not another row on the same black. */

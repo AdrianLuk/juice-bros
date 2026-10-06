@@ -107,22 +107,28 @@ export const IMAGE_MANIFEST = {
   // above they hold up on a retina screen. The header and tile boxes top out
   // at 30rem, so 960 is a 2x there and 1280 covers the single-column layout
   // below `lg`. Same quality as the other camera original (adrian-dav.jpg).
+  //
+  // Every one of them is also a Photo on /photos (content/photo-sets.ts).
+  // There, 640 and 960 are the grid widths (a tile is at most ~34rem wide)
+  // and the largest width is the lightbox's: 1600 for the 1600px and 2000px
+  // wide masters, 1280 for the 1333px wide portraits (as near their full
+  // width as the existing 1280 step gets).
   "/pictures/creator-night-adrian-daven-net-handshake.jpg": {
     width: 1600,
     height: 2000,
-    widths: [640, 960, 1280],
+    widths: [640, 960, 1280, 1600],
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/creator-night-adrian-daven-group-photo-paddles.jpg": {
     width: 1600,
     height: 2000,
-    widths: [640, 960, 1280],
+    widths: [640, 960, 1280, 1600],
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/creator-night-adrian-forehand-portrait.jpg": {
     width: 1600,
     height: 2000,
-    widths: [640, 960, 1280],
+    widths: [640, 960, 1280, 1600],
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/creator-night-daven-ready-position-portrait.jpg": {
@@ -131,7 +137,21 @@ export const IMAGE_MANIFEST = {
     widths: [640, 960, 1280],
     quality: { avif: 50, webp: 68 },
   },
+  // Only on /photos.
+  "/pictures/creator-night-adrian-backhand-daven-watching.jpg": {
+    width: 2000,
+    height: 1333,
+    widths: [640, 960, 1600],
+    quality: { avif: 50, webp: 68 },
+  },
+  "/pictures/creator-night-adrian-lunging-daven-at-net.jpg": {
+    width: 1333,
+    height: 2000,
+    widths: [640, 960, 1280],
+    quality: { avif: 50, webp: 68 },
+  },
   // The Appearances recap grid: cells are ~23rem at `lg`, ~11rem on a phone.
+  // The two that are also Photos on /photos add the lightbox width.
   "/pictures/creator-night-courts-overview-filming-setup.jpg": {
     width: 1600,
     height: 2000,
@@ -147,13 +167,13 @@ export const IMAGE_MANIFEST = {
   "/pictures/creator-night-daven-lunging-forehand.jpg": {
     width: 2000,
     height: 1333,
-    widths: [640, 960],
+    widths: [640, 960, 1600],
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/creator-night-adrian-serving.jpg": {
     width: 2000,
     height: 1333,
-    widths: [640, 960],
+    widths: [640, 960, 1600],
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/creator-night-filming-phone-foreground.jpg": {
