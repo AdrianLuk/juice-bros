@@ -9,7 +9,9 @@ import {
   PostedGamesList,
   StandingGameEditForm,
 } from "@/components/booking-buddy/standing-games";
+import { StandingGameRegularsForm } from "@/components/booking-buddy/regulars-picker";
 import { verifySession } from "@/lib/booking-buddy/dal";
+import { getRegularChoices } from "@/lib/booking-buddy/actions/regulars";
 import { getStandingGame } from "@/lib/booking-buddy/actions/standing-games";
 import { getStandingGameSkips } from "@/lib/booking-buddy/actions/standing-game-skips";
 import { SkipDatesPanel } from "@/components/booking-buddy/standing-game-skips";
@@ -27,7 +29,8 @@ export const metadata: Metadata = pageMetadata({
 
 /**
  * A Standing Game's own page (issue #577): what it posts, the games it has
- * posted that are still to come, an edit form for every field, and End.
+ * posted that are still to come, its Regulars (#579), an edit form for every
+ * field, and End.
  * Owner-only like the table behind it; anyone else gets the same not-found a
  * missing row does.
  */
@@ -40,14 +43,15 @@ export default async function StandingGamePage({
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   await verifySession();
-  const [detail, skips] = await Promise.all([
+  const [detail, skips, regularChoices] = await Promise.all([
     getStandingGame(id),
     getStandingGameSkips(id),
+    getRegularChoices(),
   ]);
   if (!detail) {
     notFound();
   }
-  const { game, upcoming, ownedOrgs } = detail;
+  const { game, upcoming, ownedOrgs, regularIds } = detail;
   const ended = game.endedAt !== null;
 
   return (
@@ -77,6 +81,18 @@ export default async function StandingGamePage({
                 <PostedGamesList games={upcoming} />
               </div>
             </section>
+            {!ended && (
+              <section>
+                <h2 className="bb-h text-[1.05rem]">Regulars</h2>
+                <div className="bb-card mt-4 p-4 sm:p-6">
+                  <StandingGameRegularsForm
+                    standingGameId={game.id}
+                    choices={regularChoices}
+                    regularIds={regularIds}
+                  />
+                </div>
+              </section>
+            )}
             {!ended && (
               <section>
                 <h2 className="bb-h text-[1.05rem]">Skip a week</h2>

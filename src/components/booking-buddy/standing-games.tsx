@@ -63,7 +63,8 @@ function shortDay(when: string): string {
 
 /**
  * One Standing Game in the Weekly games section: its day and hours, where,
- * and the next game it has posted. Opens the Standing Game's own page.
+ * the next game it has posted, and how many Regulars it has. Opens the
+ * Standing Game's own page.
  * `notice` sits under the card, outside its link, for a to-do with its own
  * button (#582's "Attach your court?").
  */
@@ -98,6 +99,7 @@ export function WeeklyGameRow({
                 : game.nextDate
                   ? `Next game ${gameDateLabel(game.nextDate)}`
                   : "Next game goes up within a day"}
+              {` · ${game.regularsCount} regular${game.regularsCount === 1 ? "" : "s"}`}
             </p>
           </div>
         </div>

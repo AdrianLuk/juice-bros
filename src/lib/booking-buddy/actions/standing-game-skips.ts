@@ -17,6 +17,7 @@ import {
   skippableGameDates,
 } from "../standing-game-skips.ts";
 import { postStandingGameWeeks } from "../standing-game-posting.ts";
+import { inviteRegularsAfterResponse } from "../weekly-invite-sending.ts";
 import { notifyGameOff } from "../game-off-notify.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listOrgs } from "./orgs.ts";
@@ -265,10 +266,13 @@ export async function unskipStandingGameDate(
     new Date(),
   );
   if (due.includes(target.gameDate)) {
-    const { failed } = await postStandingGameWeeks(supabase, [target]);
+    const { posted, failed } = await postStandingGameWeeks(supabase, [target]);
     if (failed.length > 0) {
       console.error("booking-buddy: posting an un-skipped week failed", failed);
     }
+    // A week put back on inside the posting window posts now, so its
+    // Regulars hear about it now too (#579).
+    await inviteRegularsAfterResponse(posted);
   }
 
   revalidatePath(SLOTS_PATH);

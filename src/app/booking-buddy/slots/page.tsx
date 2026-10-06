@@ -12,6 +12,7 @@ import { listSlots } from "@/lib/booking-buddy/actions/slots";
 import { listFriendsLookingToPlay } from "@/lib/booking-buddy/actions/looking";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { listStandingGames } from "@/lib/booking-buddy/actions/standing-games";
+import { getRegularChoices } from "@/lib/booking-buddy/actions/regulars";
 import { WeeklyGameRow } from "@/components/booking-buddy/standing-games";
 import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
@@ -39,6 +40,7 @@ export default async function SlotsPage({
     orgs,
     standingGames,
     courtMatches,
+    regularChoices,
     { date, start, end },
   ] = await Promise.all([
     listSlots(),
@@ -46,6 +48,7 @@ export default async function SlotsPage({
     listOrgs(),
     listStandingGames(),
     listCourtMatches(),
+    getRegularChoices(),
     searchParams,
   ]);
   // Just a shape check — a genuinely past date is caught by the form's own
@@ -159,6 +162,7 @@ export default async function SlotsPage({
                   defaultDate={prefillDate}
                   defaultStartTime={prefillStart}
                   defaultEndTime={prefillEnd}
+                  regularChoices={regularChoices}
                 />
               </div>
             </section>

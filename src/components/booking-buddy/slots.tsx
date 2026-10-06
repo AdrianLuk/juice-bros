@@ -45,6 +45,8 @@ import {
 import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
 import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { RepeatsChip } from "@/components/booking-buddy/repeats-chip";
+import { RegularsPicker } from "@/components/booking-buddy/regulars-picker";
+import type { RegularChoices } from "@/lib/booking-buddy/regulars";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   DEFAULT_DIVISION,
@@ -148,6 +150,8 @@ export function CreateSlotForm({
   defaultDate,
   defaultStartTime,
   defaultEndTime,
+  regularChoices,
+  initialRegularIds,
   onPosted,
 }: {
   orgs: Org[];
@@ -157,6 +161,10 @@ export function CreateSlotForm({
   defaultStartTime?: string;
   /** Pre-fills the Duration to match a free window's length (#272). Ignored unless it's an on-the-hour `"HH:00"` 1–3 hours past the start. */
   defaultEndTime?: string;
+  /** The organizer's friends and Friend Groups for the Regulars picker under "Repeats weekly" (#579). Without it the picker isn't shown. */
+  regularChoices?: RegularChoices;
+  /** Regulars ticked when the picker first shows, e.g. a game's yes answerers for "Make this weekly" (#581). */
+  initialRegularIds?: readonly string[];
   /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
   onPosted?: (slotId: string) => void;
 }) {
@@ -226,6 +234,15 @@ export function CreateSlotForm({
             opens bookings sooner. Friends see it marked{" "}
             {everyWeekdayLabel(weekday)}.
           </p>
+        )}
+        {repeats && regularChoices && (
+          <div className="mt-3">
+            <RegularsPicker
+              choices={regularChoices}
+              initialRegularIds={initialRegularIds}
+              idPrefix="post"
+            />
+          </div>
         )}
       </div>
 
