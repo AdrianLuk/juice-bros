@@ -53,6 +53,8 @@ export type NotificationPreferences = {
   connectionRequestEmailEnabled: boolean;
   /** Governs the email the requester gets when their friend request is accepted. */
   connectionAcceptedEmailEnabled: boolean;
+  /** "Weekly game invites" (#579): off stops the Weekly Invite on both channels. Push also needs `pushEnabled`. */
+  weeklyInviteEnabled: boolean;
 };
 
 /**
@@ -66,6 +68,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   bookingWindowEmailEnabled: true,
   connectionRequestEmailEnabled: true,
   connectionAcceptedEmailEnabled: true,
+  weeklyInviteEnabled: true,
 };
 
 /** The signed-in User's own notification preferences, defaulted if they've never set any. */
@@ -76,7 +79,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   const { data, error } = await supabase
     .from("notification_preferences")
     .select(
-      "email_enabled, push_enabled, booking_window_email_enabled, connection_request_email_enabled, connection_accepted_email_enabled",
+      "email_enabled, push_enabled, booking_window_email_enabled, connection_request_email_enabled, connection_accepted_email_enabled, weekly_invite_enabled",
     )
     .eq("user_id", session.userId)
     .maybeSingle();
@@ -94,14 +97,15 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
     bookingWindowEmailEnabled: data.booking_window_email_enabled,
     connectionRequestEmailEnabled: data.connection_request_email_enabled,
     connectionAcceptedEmailEnabled: data.connection_accepted_email_enabled,
+    weeklyInviteEnabled: data.weekly_invite_enabled,
   };
 }
 
 /**
  * Save all three email notification opt-ins in one write — the Settings page's
  * "Notifications" card has a single Save button covering every email toggle
- * (issues #11, #36, #228, plus the "request accepted" email), so this action
- * reads and upserts all four columns at once. An unchecked checkbox sends no
+ * (issues #11, #36, #228, the "request accepted" email, and the Weekly Invite
+ * from #579), so this action reads and upserts all five columns at once. An unchecked checkbox sends no
  * field at all — its absence, not a value, is what "off" means here.
  *
  * Push has no control on this form (`PushNotificationsForm` manages the
@@ -121,6 +125,7 @@ export async function updateNotificationPreferences(
     formData.get("connection_request_email_enabled") === "on";
   const connectionAcceptedEmailEnabled =
     formData.get("connection_accepted_email_enabled") === "on";
+  const weeklyInviteEnabled = formData.get("weekly_invite_enabled") === "on";
 
   const supabase = await createClient();
   const { error } = await supabase.from("notification_preferences").upsert(
@@ -130,6 +135,7 @@ export async function updateNotificationPreferences(
       booking_window_email_enabled: bookingWindowEmailEnabled,
       connection_request_email_enabled: connectionRequestEmailEnabled,
       connection_accepted_email_enabled: connectionAcceptedEmailEnabled,
+      weekly_invite_enabled: weeklyInviteEnabled,
     },
     { onConflict: "user_id" },
   );

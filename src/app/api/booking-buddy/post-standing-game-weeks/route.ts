@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/booking-buddy/supabase/admin";
 import { trackFunnelEvent } from "@/lib/booking-buddy/analytics";
 import { postStandingGameWeeks } from "@/lib/booking-buddy/standing-game-posting";
+import { sendWeeklyInvites } from "@/lib/booking-buddy/weekly-invite-sending";
 import {
   planStandingGamePostingRun,
   type StandingGameSchedule,
@@ -22,6 +23,10 @@ export const runtime = "nodejs";
  * tested; this route is the I/O around it. Each week goes through
  * `post_standing_game_week`, whose unique key on (Standing Game, date) is what
  * makes a rerun, or a race with the creation action, post a week at most once.
+ *
+ * Each week posted in this run sends its Weekly Invite to the Standing Game's
+ * Regulars in the same run (#579, `sendWeeklyInvites`). A missing Resend or
+ * VAPID config skips that channel there; it never stops the posting.
  *
  * `vercel.json` runs this daily at 12:00 UTC, an hour before
  * `send-booking-window-reminders`, so a week posted the day before its
@@ -99,10 +104,14 @@ export async function GET(request: NextRequest) {
     await trackFunnelEvent("bb_standing_game_week_posted");
   }
 
+  const invites = await sendWeeklyInvites(supabase, posted, request.nextUrl.origin);
+
   return NextResponse.json({
     ok: true,
     checked: plan.checked,
     posted: posted.length,
     failed: failed.length,
+    invitesSent: invites.sent,
+    invitesFailed: invites.failed,
   });
 }
