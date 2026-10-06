@@ -26,9 +26,9 @@ export default function PhotosPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
       <PageHead
-        title="Proof we actually play"
+        title="The photo wall"
         meta={`${gallery.photos.length} photos`}
-        lead="Every event we've got photos from, newest at the top. Mostly mid-swing, plus a few where somebody told us to smile."
+        lead="Whenever someone points a camera at us at an event, the good ones end up here. Newest first."
       />
 
       <div className="bx-measure pb-6">
