@@ -20,7 +20,7 @@ import { escapeHtml, escapeHtmlText } from "./escape-html.ts";
  * DESIGN.md's oklch tokens, converted to hex once for email clients that
  * don't parse oklch. Change a token there, change it here.
  */
-export const EMAIL_COLORS = {
+const EMAIL_COLORS = {
   cork: "#b99575",
   corkEdge: "#694b39",
   kraft: "#f8efde",
@@ -41,7 +41,11 @@ const FONTS_HREF =
 export type EmailAction = { label: string; url: string };
 
 export type EmailContent = {
-  /** The notice line: what happened, or what the reader has to do. */
+  /**
+   * The notice line: what happened, or what the reader has to do. Shown in
+   * the case it is written in, never uppercased, because it can carry a
+   * person's name and handle or a facility's name.
+   */
   heading: string;
   /** Set large under the heading, e.g. the game's date and time. */
   emphasis?: string;
@@ -54,36 +58,40 @@ export type EmailContent = {
   smallPrint?: string;
 };
 
-function button(action: EmailAction, primary: boolean): string {
+/** "commit" is the one orange button; "ink" is the quieter outlined one. */
+type ButtonVariant = "commit" | "ink";
+
+function button(action: EmailAction, variant: ButtonVariant): string {
   const { commit, onCommit, ink, kraft } = EMAIL_COLORS;
-  const style = primary
-    ? `background-color:${commit};border:2px solid ${commit};color:${onCommit};`
-    : `background-color:${kraft};border:2px solid ${ink};color:${ink};`;
+  const style =
+    variant === "commit"
+      ? `background-color:${commit};border:2px solid ${commit};color:${onCommit};`
+      : `background-color:${kraft};border:2px solid ${ink};color:${ink};`;
   return `<a href="${escapeHtml(action.url)}" style="display:inline-block;${style}font-family:${NOTICE_FONT};font-size:16px;font-weight:400;line-height:20px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;padding:13px 22px;border-radius:4px;margin:0 8px 8px 0;">${escapeHtmlText(action.label)}</a>`;
 }
 
 /** The full HTML document for one Booking Buddy email. */
 export function renderEmailLayout(content: EmailContent): string {
-  const c = EMAIL_COLORS;
+  const { cork, corkEdge, kraft, tape, tapeInk, ink, mutedInk, rule } = EMAIL_COLORS;
 
   const emphasis = content.emphasis
-    ? `<p style="margin:14px 0 0;color:${c.ink};font-family:${BODY_FONT};font-size:20px;line-height:28px;font-weight:700;">${escapeHtmlText(content.emphasis)}</p>`
+    ? `<p style="margin:14px 0 0;color:${ink};font-family:${BODY_FONT};font-size:20px;line-height:28px;font-weight:700;">${escapeHtmlText(content.emphasis)}</p>`
     : "";
 
   const paragraphs = content.paragraphs
     .map(
       (text) =>
-        `<p style="margin:14px 0 0;color:${c.ink};font-family:${BODY_FONT};font-size:16px;line-height:24px;">${escapeHtmlText(text)}</p>`,
+        `<p style="margin:14px 0 0;color:${ink};font-family:${BODY_FONT};font-size:16px;line-height:24px;">${escapeHtmlText(text)}</p>`,
     )
     .join("\n              ");
 
   const actions = [
-    button(content.primaryAction, true),
-    ...(content.secondaryActions ?? []).map((action) => button(action, false)),
+    button(content.primaryAction, "commit"),
+    ...(content.secondaryActions ?? []).map((action) => button(action, "ink")),
   ].join("");
 
   const smallPrint = content.smallPrint
-    ? `<p style="margin:8px 0 0;color:${c.mutedInk};font-family:${BODY_FONT};font-size:13px;line-height:20px;">${escapeHtmlText(content.smallPrint)}</p>`
+    ? `<p style="margin:8px 0 0;color:${mutedInk};font-family:${BODY_FONT};font-size:13px;line-height:20px;">${escapeHtmlText(content.smallPrint)}</p>`
     : "";
 
   return `<!doctype html>
@@ -97,23 +105,23 @@ export function renderEmailLayout(content: EmailContent): string {
     <title>${escapeHtmlText(content.heading)}</title>
     <style>:root { color-scheme: light; supported-color-schemes: light; }</style>
   </head>
-  <body style="margin:0;padding:0;background-color:${c.cork};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${c.cork}" style="background-color:${c.cork};">
+  <body style="margin:0;padding:0;background-color:${cork};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${cork}" style="background-color:${cork};">
       <tr>
         <td align="center" style="padding:28px 12px 40px;">
           <!--[if mso]><table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
             <tr>
               <td style="padding:0 0 12px;">
-                <span style="display:inline-block;background-color:${c.tape};color:${c.tapeInk};font-family:${NOTICE_FONT};font-size:15px;line-height:20px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;">Booking Buddy</span>
+                <span style="display:inline-block;background-color:${tape};color:${tapeInk};font-family:${NOTICE_FONT};font-size:15px;line-height:20px;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;">Booking Buddy</span>
               </td>
             </tr>
             <tr>
-              <td bgcolor="${c.kraft}" style="background-color:${c.kraft};border:1px solid ${c.corkEdge};border-radius:4px;padding:28px 24px 24px;">
-              <h1 style="margin:0;color:${c.ink};font-family:${NOTICE_FONT};font-size:32px;line-height:36px;font-weight:400;text-transform:uppercase;letter-spacing:2px;">${escapeHtmlText(content.heading)}</h1>
+              <td bgcolor="${kraft}" style="background-color:${kraft};border:1px solid ${corkEdge};border-radius:4px;padding:28px 24px 24px;">
+              <h1 style="margin:0;color:${ink};font-family:${NOTICE_FONT};font-size:32px;line-height:36px;font-weight:400;letter-spacing:0.5px;">${escapeHtmlText(content.heading)}</h1>
               ${emphasis}
               ${paragraphs}
-              <div style="margin:24px 0 0;padding:20px 0 0;border-top:1px solid ${c.rule};">${actions}</div>
+              <div style="margin:24px 0 0;padding:20px 0 0;border-top:1px solid ${rule};">${actions}</div>
               ${smallPrint}
               </td>
             </tr>

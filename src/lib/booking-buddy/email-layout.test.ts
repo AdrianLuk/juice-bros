@@ -53,7 +53,7 @@ test("renderEmailLayout renders secondary actions only when given", () => {
 
 test("renderEmailLayout carries the Booking Buddy wordmark as text, with no images", () => {
   const html = renderEmailLayout({
-    heading: "You're down as yes",
+    heading: "Your game is coming up",
     paragraphs: [],
     primaryAction: { label: "View the game", url: "https://x.test/g" },
   });
