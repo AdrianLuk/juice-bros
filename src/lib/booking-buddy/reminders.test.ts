@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import {
   MAX_REMINDER_OFFSET_MINUTES,
   MIN_REMINDER_OFFSET_MINUTES,
@@ -185,4 +187,28 @@ test("formatReminderPush carries the slot's own time and a target url", () => {
   assert.equal(title, "Booking Buddy");
   assert.match(body, /Sat, Jan 1 at 9:00 AM/);
   assert.equal(url, "https://example.com/booking-buddy/slots/abc");
+});
+
+test("formatReminderEmail has one button, View the game, and never says slot", () => {
+  const { html } = formatReminderEmail({
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+
+  assert.match(visibleText(html), /Sat, Jan 1 at 9:00 AM/);
+  assert.equal(html.match(/<a /g)?.length, 1);
+  assert.match(html, /href="https:\/\/example\.com\/booking-buddy\/slots\/abc"[^>]*>View the game</);
+  assert.doesNotMatch(visibleText(html), /slot/i);
+});
+
+test("formatReminderEmail leads with the game coming up, then names its time", () => {
+  const { html } = formatReminderEmail({
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+  const text = visibleText(html);
+
+  const lead = text.indexOf("Your game is coming up");
+  assert.ok(lead >= 0, "the first line says the game is coming up");
+  assert.ok(text.indexOf("Sat, Jan 1 at 9:00 AM") > lead, "the game's time follows it");
 });

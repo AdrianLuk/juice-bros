@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import {
   MAX_BOOKING_WINDOW_DAYS_BEFORE,
   MIN_BOOKING_WINDOW_DAYS_BEFORE,
@@ -107,4 +109,40 @@ test("formatBookingReminderEmail carries the org, the slot's own time, and a lin
   assert.ok(!html.includes("<script>"), "the org's own name must not inject markup");
   assert.match(html, /Sat, Jan 1 at 9:00 AM/);
   assert.match(html, /https:\/\/example\.com\/booking-buddy\/slots\/abc/);
+});
+
+test("formatBookingReminderEmail leads with bookings opening, then names the game's time", () => {
+  const { html } = formatBookingReminderEmail({
+    orgName: "Pickleplex Mississauga",
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+  const text = visibleText(html);
+
+  const opened = text.indexOf("Bookings just opened at Pickleplex Mississauga");
+  assert.ok(opened >= 0, "the first line says bookings just opened at the facility");
+  assert.ok(text.indexOf("Sat, Jan 1 at 9:00 AM") > opened, "the game's time follows it");
+});
+
+test("formatBookingReminderEmail has one button, View the game, and never says slot", () => {
+  const { html } = formatBookingReminderEmail({
+    orgName: "Pickleplex Mississauga",
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+
+  assert.equal(html.match(/<a /g)?.length, 1);
+  assert.match(html, /href="https:\/\/example\.com\/booking-buddy\/slots\/abc"[^>]*>View the game</);
+  assert.doesNotMatch(visibleText(html), /slot/i);
+});
+
+test("formatBookingReminderEmail shows a facility name with & escaped, not broken", () => {
+  const { subject, html } = formatBookingReminderEmail({
+    orgName: "Ace & Dink Club",
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+
+  assert.equal(subject, "Time to book: Ace & Dink Club");
+  assert.match(html, /Ace &amp; Dink Club/);
 });

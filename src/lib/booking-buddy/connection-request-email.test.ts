@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import {
   formatConnectionRequestEmail,
   parseConnectionRequestAction,
@@ -63,4 +65,27 @@ test("formatConnectionRequestEmail escapes an ampersand in a link", () => {
   });
 
   assert.match(html, /a=accept&amp;ref=email/);
+});
+
+test("formatConnectionRequestEmail offers exactly Accept and Decline, and never says slot", () => {
+  const { html } = formatConnectionRequestEmail({
+    requesterLabel: "Ben Johns (@benjohns)",
+    acceptUrl: "https://x.test/connect/tok?a=accept",
+    declineUrl: "https://x.test/connect/tok?a=decline",
+  });
+
+  assert.equal(html.match(/<a /g)?.length, 2);
+  assert.match(html, /href="https:\/\/x\.test\/connect\/tok\?a=accept"[^>]*>Accept</);
+  assert.match(html, /href="https:\/\/x\.test\/connect\/tok\?a=decline"[^>]*>Decline</);
+  assert.doesNotMatch(visibleText(html), /slot/i);
+});
+
+test("formatConnectionRequestEmail shows the requester's name and handle in their own case", () => {
+  const { html } = formatConnectionRequestEmail({
+    requesterLabel: "Ben Johns (@benjohns)",
+    acceptUrl: "https://x.test/connect/tok?a=accept",
+    declineUrl: "https://x.test/connect/tok?a=decline",
+  });
+
+  assert.match(visibleText(html), /Ben Johns \(@benjohns\) wants to connect/);
 });

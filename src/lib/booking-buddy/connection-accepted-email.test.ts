@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
 
 test("formatConnectionAcceptedEmail names the accepter in the subject and body", () => {
@@ -41,4 +43,24 @@ test("formatConnectionAcceptedEmail escapes an ampersand in the link", () => {
   });
 
   assert.match(html, /friends\?ref=email&amp;x=1/);
+});
+
+test("formatConnectionAcceptedEmail has one link, to the Friends page, and never says slot", () => {
+  const { html } = formatConnectionAcceptedEmail({
+    accepterLabel: "Anna Leigh Waters (@alw)",
+    friendsUrl: "https://x.test/booking-buddy/friends",
+  });
+
+  assert.equal(html.match(/<a /g)?.length, 1);
+  assert.match(html, /href="https:\/\/x\.test\/booking-buddy\/friends"[^>]*>Open your Friends page</);
+  assert.doesNotMatch(visibleText(html), /slot/i);
+});
+
+test("formatConnectionAcceptedEmail shows the accepter's name and handle in their own case", () => {
+  const { html } = formatConnectionAcceptedEmail({
+    accepterLabel: "Anna Leigh Waters (@annaleigh)",
+    friendsUrl: "https://x.test/booking-buddy/friends",
+  });
+
+  assert.match(visibleText(html), /Anna Leigh Waters \(@annaleigh\) accepted your friend request/);
 });
