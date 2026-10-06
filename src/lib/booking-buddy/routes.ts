@@ -56,6 +56,14 @@ export function slotPath(slotId: string): string {
 }
 
 /**
+ * A Standing Game's own page (issue #577), under Games so the Plan section
+ * stays lit. `weekly` is a static segment, so it wins over `slots/[id]`.
+ */
+export function standingGamePath(standingGameId: string): string {
+  return `${SLOTS_PATH}/weekly/${standingGameId}`;
+}
+
+/**
  * Availability Windows — Plan's second child. The user-facing label is
  * "Availability" (it holds `busy` blocks too, so the old "Open time" always
  * mislabelled it; issue #229 reframed the `open` type as "Looking to play").

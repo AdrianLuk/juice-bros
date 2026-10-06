@@ -27,7 +27,13 @@ export type FunnelEvent =
   | "bb_first_booking"
   | "bb_first_slot"
   | "bb_first_friend"
-  | "bb_slot_first_response";
+  | "bb_slot_first_response"
+  // Standing Games (spec #576). `bb_first_standing_game` is a 0→1 like the
+  // rest; `bb_standing_game_week_posted` fires once per week the daily cron
+  // posts, so "do Standing Games keep running past week 3" reads off its
+  // count. Neither carries PII.
+  | "bb_first_standing_game"
+  | "bb_standing_game_week_posted";
 
 /**
  * "Sync from Email" events (spec #280). Not funnel steps — these measure how
@@ -167,7 +173,7 @@ export async function trackSignupOnce(userId: string): Promise<void> {
  */
 async function countOwned(
   supabase: SupabaseClient,
-  table: "orgs" | "bookings" | "slots",
+  table: "orgs" | "bookings" | "slots" | "standing_games",
   ownerId: string,
 ): Promise<number | null> {
   const { count, error } = await supabase
@@ -203,11 +209,24 @@ export async function trackFirstBooking(ownerId: string): Promise<void> {
  * `after()` helper: emit `bb_first_slot` if this Slot is the caller's first.
  * `slots` RLS also returns friends' visible Slots, hence the `owner_id`
  * filter in `countOwned` rather than trusting the row set.
+ *
+ * `postedNow` is how many Slots the calling action just posted: one for Post
+ * a game, but a new Standing Game can post two weeks at once when its
+ * facility's Booking Window is long, and those two are still the caller's
+ * first Slot.
  */
-export async function trackFirstSlot(ownerId: string): Promise<void> {
+export async function trackFirstSlot(ownerId: string, postedNow = 1): Promise<void> {
   const supabase = await createClient();
-  if ((await countOwned(supabase, "slots", ownerId)) === 1) {
+  if ((await countOwned(supabase, "slots", ownerId)) === postedNow) {
     await trackFunnelEvent("bb_first_slot");
+  }
+}
+
+/** `after()` helper: emit `bb_first_standing_game` if this Standing Game is the caller's first. */
+export async function trackFirstStandingGame(ownerId: string): Promise<void> {
+  const supabase = await createClient();
+  if ((await countOwned(supabase, "standing_games", ownerId)) === 1) {
+    await trackFunnelEvent("bb_first_standing_game");
   }
 }
 

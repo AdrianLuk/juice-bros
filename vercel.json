@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/booking-buddy/post-standing-game-weeks",
+      "schedule": "0 12 * * *"
+    },
+    {
       "path": "/api/booking-buddy/send-reminders",
       "schedule": "0 13 * * *"
     },
