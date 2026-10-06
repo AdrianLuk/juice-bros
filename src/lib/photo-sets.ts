@@ -157,9 +157,10 @@ export function buildGallery(
  * first, each cut to its first five photos. A set with an Appearance gets
  * "See photos" on that Appearance's row instead.
  */
-export function photoSetPreviews(sets: readonly PhotoSet[]): PhotoSetView[] {
-  return buildGallery(sets.filter((set) => !set.appearance)).sets.map((set) => ({
-    ...set,
-    photos: previewPhotos(set),
-  }));
+export function setsToPreview(sets: readonly PhotoSet[]): PhotoSetView[] {
+  // Built from the whole gallery and then filtered, not the other way round,
+  // so each previewed photo keeps its index in the /photos order.
+  return buildGallery(sets)
+    .sets.filter((set) => !set.appearance)
+    .map((set) => ({ ...set, photos: previewPhotos(set) }));
 }

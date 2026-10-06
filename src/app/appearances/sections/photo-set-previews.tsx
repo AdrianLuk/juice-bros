@@ -13,8 +13,8 @@ import { PhotoRows } from "@/components/photo-rows";
  * closed, so anything under it is something a visitor has to ask for, and these
  * are the only photographs on the page below the header. They are not
  * tournaments (no brackets, no registration link), so they are not rows: the
- * heading names the occasion and one plain line says why it is on a page about
- * where to find the hosts.
+ * heading names the occasion, then the set's meta line and its one plain line,
+ * the same as on /photos.
  *
  * The photos are the set's first five, in the same rows as /photos, so a photo
  * looks the same here as in the gallery the link leads to.

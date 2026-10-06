@@ -138,7 +138,8 @@ export const IMAGE_MANIFEST = {
     widths: [640, 960, 1280],
     quality: { avif: 50, webp: 68 },
   },
-  // Only on /photos.
+  // On /photos. Creator Night's first five photos (content/photo-sets.ts)
+  // also make up its preview on Appearances.
   "/pictures/creator-night-adrian-backhand-daven-watching.jpg": {
     width: 2000,
     height: 1333,

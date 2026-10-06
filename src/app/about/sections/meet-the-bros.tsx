@@ -108,7 +108,7 @@ export function MeetTheBros() {
         ))}
       </div>
 
-      {/* The way on from "who are these two" to watching them play. A quiet
+      {/* The way on from "who are these two" to more photos of them. A quiet
           link, because it leaves the section rather than acting inside it. */}
       <Link href="/photos" className="bx-quietlink group mt-8 inline-flex items-center">
         More photos

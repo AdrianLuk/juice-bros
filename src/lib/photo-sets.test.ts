@@ -9,7 +9,7 @@ import {
   photoSetFor,
   photoSetHref,
   photoSetHrefsByAppearance,
-  photoSetPreviews,
+  setsToPreview,
   previewPhotos,
 } from "./photo-sets.ts";
 
@@ -245,12 +245,12 @@ test("the Loose Photos address can't collide with a set's", () => {
   assert.notEqual(photoSetAddress(set), LOOSE_PHOTOS_ADDRESS);
 });
 
-test("photoSetPreviews shows only sets with no Appearance, newest first", () => {
+test("setsToPreview shows only sets with no Appearance, newest first", () => {
   const cup = make({ title: "Cup", date: "2026-09-20", appearance: "APA - The Admiral Cup" });
   const older = make({ title: "Older Night", date: "2026-08-01" });
   const newer = make({ title: "Newer Night", date: "2026-09-29" });
 
-  const previews = photoSetPreviews([older, cup, newer]);
+  const previews = setsToPreview([older, cup, newer]);
 
   assert.deepEqual(
     previews.map((set) => set.title),
@@ -258,15 +258,29 @@ test("photoSetPreviews shows only sets with no Appearance, newest first", () => 
   );
 });
 
-test("photoSetPreviews keeps the first five photos of each set", () => {
+test("setsToPreview keeps the first five photos of each set", () => {
   const big = make({ title: "Big", photos: photos("big", 8) });
   const small = make({ title: "Small", date: "2026-08-01", photos: photos("small", 3) });
 
-  const [bigPreview, smallPreview] = photoSetPreviews([big, small]);
+  const [bigPreview, smallPreview] = setsToPreview([big, small]);
 
   assert.deepEqual(
     bigPreview.photos.map((photo) => photo.src),
     [1, 2, 3, 4, 5].map((n) => `/pictures/big-${n}.jpg`),
   );
   assert.equal(smallPreview.photos.length, 3);
+});
+
+test("a previewed photo keeps its place in the /photos order", () => {
+  // A newer set tied to an Appearance comes first on /photos, so the preview's
+  // photos are not first there even though they lead the preview.
+  const cup = make({ title: "Cup", date: "2026-10-04", appearance: "Some Open", photos: photos("cup", 3) });
+  const night = make({ title: "Night", date: "2026-09-29", photos: photos("night", 2) });
+
+  const [preview] = setsToPreview([cup, night]);
+  const gallery = buildGallery([cup, night]);
+
+  for (const photo of preview.photos) {
+    assert.equal(gallery.photos[photo.index].src, photo.src);
+  }
 });

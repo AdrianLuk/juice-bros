@@ -4,7 +4,7 @@ import { appearances } from "@/content/appearances";
 import { photoSets } from "@/content/photo-sets";
 import { nextConfirmedAppearance, splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
-import { photoSetHrefsByAppearance, photoSetPreviews } from "@/lib/photo-sets";
+import { photoSetHrefsByAppearance, setsToPreview } from "@/lib/photo-sets";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
 import { Picture } from "@/components/picture";
@@ -72,7 +72,7 @@ export default function AppearancesPage() {
       <div className="bx-measure pb-6">
         <UpcomingAppearances appearances={rest} standalone={!featured} />
         <SpotUs />
-        <PhotoSetPreviews sets={photoSetPreviews(photoSets)} />
+        <PhotoSetPreviews sets={setsToPreview(photoSets)} />
         <PastAppearances appearances={past} photoSetHrefs={photoSetHrefs} />
       </div>
     </div>
