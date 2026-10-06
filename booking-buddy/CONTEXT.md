@@ -145,6 +145,10 @@ In product copy it is a **"weekly game"**: "Repeats weekly" on the Post a game f
 
 Editing a Standing Game (its day, time, division, Intended Org, notes, rotation buffer, reminder offset) only shapes Slots it has not posted yet. A Slot already posted keeps what it was posted with, because people answered for that, and is edited on its own like any other Slot; moving this week's game means skipping it and posting a one-off.
 
+A week can be **skipped** either side of its Slot being posted. Skipping a week that has not been posted yet marks the date on the Standing Game so it is never posted and its Regulars get no Weekly Invite for it; until the date comes it can be put back on. Skipping a week that has been posted deletes that Slot and tells everyone who had answered yes or maybe that it is off; this "it's off" message is particular to a Standing Game, and deleting an ordinary Slot still tells nobody. Either way the date stays skipped, and the following week posts as usual. This is the one respect in which a posted Slot behaves differently for having come from a Standing Game: it cannot be deleted silently, only skipped ("Skip this week" stands in for "Delete game").
+
+In the code (issue #578): a skipped week is a `standing_game_weeks` row with `skipped_at` set and no Slot, so `post_standing_game_week`'s unique key already keeps it from posting. `skip_standing_game_date` / `unskip_standing_game_date` handle weeks not yet posted, `skip_posted_standing_game_week` marks the week and deletes the Slot in one transaction (the same cascade as deleting any Slot). The app reads the yes and maybe answerers first and sends the "it's off" email from `after()` (`game-off-notify.ts`); Guests, "no" answerers and the organizer get nothing, and nobody does once the game has started.
+
 **Ending** a Standing Game stops it posting Slots, for good; there is no restart, only a new Standing Game. Slots it already posted stay as real games (the last one usually should still happen); past Slots are untouched. An ended Standing Game leaves the Weekly games section.
 _Avoid_: Recurring Slot, Series (a Slot never repeats; the Standing Game does)
 
@@ -156,8 +160,6 @@ One of a small set of Vercel Analytics events marking a User's progress from sig
 Specced for BB-1 (recurring games, #576) and not in the code yet. Each entry moves up into the list above, amended to match what shipped, when its ticket lands.
 
 **Standing Game** (the parts still to come; the entity itself is above):
-A week can be **skipped** either side of its Slot being posted. Skipping a week that has not been posted yet marks the date on the Standing Game so it is never posted and its Regulars get no Weekly Invite for it. Skipping a week that has been posted deletes that Slot and tells everyone who had answered yes or maybe that it is off; this "it's off" message is particular to a Standing Game, and deleting an ordinary Slot still tells nobody. Either way the date stays skipped, and the following week posts as usual. This is the one respect in which a posted Slot behaves differently for having come from a Standing Game: it cannot be deleted silently, only skipped ("Skip this week" stands in for "Delete game").
-
 Bookings never carry over between weeks: each week's court is its own Booking, imported or logged as usual, and attaching it stays the organizer's deliberate act. Because an unbooked Slot gets no Reminders, the app points out the obvious match (an unattached Booking of the organizer's at the same Org, overlapping the posted Slot's time) and offers to attach it in one tap, but never attaches on its own.
 
 Ending will also stop Weekly Invites, once Regulars exist.

@@ -11,6 +11,8 @@ import {
 } from "@/components/booking-buddy/standing-games";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getStandingGame } from "@/lib/booking-buddy/actions/standing-games";
+import { getStandingGameSkips } from "@/lib/booking-buddy/actions/standing-game-skips";
+import { SkipDatesPanel } from "@/components/booking-buddy/standing-game-skips";
 import { SLOTS_PATH } from "@/lib/booking-buddy/routes";
 import {
   everyWeekdayLabel,
@@ -19,7 +21,7 @@ import {
 
 export const metadata: Metadata = pageMetadata({
   title: "Weekly game",
-  description: "Edit or end a game that repeats every week.",
+  description: "Edit, skip a week of, or end a game that repeats every week.",
   path: "/booking-buddy/slots",
 });
 
@@ -38,7 +40,10 @@ export default async function StandingGamePage({
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
   await verifySession();
-  const detail = await getStandingGame(id);
+  const [detail, skips] = await Promise.all([
+    getStandingGame(id),
+    getStandingGameSkips(id),
+  ]);
   if (!detail) {
     notFound();
   }
@@ -72,6 +77,19 @@ export default async function StandingGamePage({
                 <PostedGamesList games={upcoming} />
               </div>
             </section>
+            {!ended && (
+              <section>
+                <h2 className="bb-h text-[1.05rem]">Skip a week</h2>
+                <div className="bb-card mt-4 p-4 sm:p-6">
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Away for a holiday? Skip that week now and it never goes
+                    up. To skip a game that&apos;s already posted, open it
+                    above.
+                  </p>
+                  <SkipDatesPanel standingGameId={game.id} skips={skips} />
+                </div>
+              </section>
+            )}
             {!ended && (
               <section>
                 <h2 className="bb-h text-[1.05rem]">Edit weekly game</h2>
