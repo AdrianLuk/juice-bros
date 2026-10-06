@@ -57,6 +57,35 @@ export function photoSetAddress(set: PhotoSet): string {
   return `${slugify(set.title)}-${appearanceStartDate(set).slice(0, 4)}`;
 }
 
+/** Where a set lives on the Photos page, e.g. "/photos#the-admiral-cup-2026". */
+export function photoSetHref(set: PhotoSet): string {
+  return `/photos#${photoSetAddress(set)}`;
+}
+
+/** The set that points at the Appearance with this name, if there is one. */
+export function photoSetFor(
+  sets: readonly PhotoSet[],
+  appearanceName: string,
+): PhotoSet | undefined {
+  return sets.find((set) => set.appearance === appearanceName);
+}
+
+/**
+ * Appearance name to its set's link on the Photos page, for the Appearances
+ * that have a set. The Appearances page gives those rows "See photos".
+ */
+export function photoSetHrefsByAppearance(
+  sets: readonly PhotoSet[],
+  appearances: readonly { name: string }[],
+): Record<string, string> {
+  const hrefs: Record<string, string> = {};
+  for (const { name } of appearances) {
+    const set = photoSetFor(sets, name);
+    if (set) hrefs[name] = photoSetHref(set);
+  }
+  return hrefs;
+}
+
 /** The first five photos of a set, or all of them if it has fewer. */
 export function previewPhotos<P>(set: { photos: readonly P[] }): P[] {
   return set.photos.slice(0, PREVIEW_COUNT);

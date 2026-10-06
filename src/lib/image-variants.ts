@@ -187,7 +187,49 @@ export const IMAGE_MANIFEST = {
     height: 1324,
     // The About origin-story panel: ~23rem at `lg`, the full column below it.
     // A 1600px phone export, so quality sits under the camera originals'.
-    widths: [640, 960],
+    // Also a Photo in The Admiral Cup set on /photos, which adds the
+    // lightbox width.
+    widths: [640, 960, 1600],
+    quality: { avif: 42, webp: 60 },
+  },
+  // The Admiral Cup (2026-09-16 to 20). Phone exports at 1600px on the long
+  // edge, only on /photos. Grid widths 640 and 960, then the master's own
+  // width for the lightbox. The uncropped masters, not the crops on Gear and
+  // Appearances: the gallery shows every photo at its true shape.
+  "/pictures/adrian-dav-backs-rally-uncropped.jpg": {
+    width: 1600,
+    height: 1348,
+    widths: [640, 960, 1600],
+    quality: { avif: 42, webp: 60 },
+  },
+  "/pictures/adrian-dav-daven-lunge.jpg": {
+    width: 1600,
+    height: 1200,
+    widths: [640, 960, 1600],
+    quality: { avif: 42, webp: 60 },
+  },
+  "/pictures/adrian-dav-at-net-ball-incoming-uncropped.jpg": {
+    width: 1600,
+    height: 1438,
+    widths: [640, 960, 1600],
+    quality: { avif: 42, webp: 60 },
+  },
+  "/pictures/adrian-dav-backs-wide.jpg": {
+    width: 1600,
+    height: 1200,
+    widths: [640, 960, 1600],
+    quality: { avif: 42, webp: 60 },
+  },
+  "/pictures/adrian-dav-adrian-forehand.jpg": {
+    width: 1412,
+    height: 1600,
+    widths: [640, 960, 1412],
+    quality: { avif: 42, webp: 60 },
+  },
+  "/pictures/adrian-dav-at-net-closeup.jpg": {
+    width: 1600,
+    height: 1200,
+    widths: [640, 960, 1600],
     quality: { avif: 42, webp: 60 },
   },
   "/brand/JB_Banner.jpeg": {

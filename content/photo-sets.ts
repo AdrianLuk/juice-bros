@@ -78,4 +78,45 @@ export const photoSets: PhotoSet[] = [
       },
     ],
   },
+  {
+    title: "The Admiral Cup",
+    startDate: "2026-09-16",
+    endDate: "2026-09-20",
+    venue: "The Backyard Club, Vaughan, ON",
+    note: "We played in the orange shirts, names on the back so you can tell us apart.",
+    appearance: "APA - The Admiral Cup - Powered By Dink Monsters",
+    // Phone exports from a friend. `adrian-dav-at-net-crowd-uncropped.jpg` is
+    // left out: it was taken a few frames from the ball-incoming shot and
+    // reads as the same photo twice.
+    photos: [
+      {
+        src: "/pictures/adrian-dav-backs-rally-uncropped.jpg",
+        alt: "Daven and Adrian from behind mid-rally, names on the backs of their orange shirts, as the ball floats over to the other pair",
+      },
+      {
+        src: "/pictures/adrian-dav-daven-lunge.jpg",
+        alt: "Daven lunging wide for a ball in the foreground, Adrian behind him with his paddle ready",
+      },
+      {
+        src: "/pictures/adrian-dav-at-net-ball-incoming-uncropped.jpg",
+        alt: "Daven and Adrian at the net, paddles up, ready for the return",
+      },
+      {
+        src: "/pictures/adrian-dav-backs-wide.jpg",
+        alt: "Daven and Adrian from behind on the baseline, names across their orange shirts, waiting on the next shot",
+      },
+      {
+        src: "/pictures/adrian-dav-adrian-forehand.jpg",
+        alt: "Adrian chasing down a ball with his paddle low while Daven holds the baseline",
+      },
+      {
+        src: "/pictures/adrian-dav-daven-watching.jpg",
+        alt: "Daven, his name across the back of his shirt, watching Adrian get set to hit from the other side of the court",
+      },
+      {
+        src: "/pictures/adrian-dav-at-net-closeup.jpg",
+        alt: "Daven and Adrian crouched side by side at the kitchen line with their paddles up",
+      },
+    ],
+  },
 ];
