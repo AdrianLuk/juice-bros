@@ -16,10 +16,12 @@ import { ReminderOffsetForm } from "@/components/booking-buddy/reminders";
 import { IntendedOrgForm } from "@/components/booking-buddy/booking-window";
 import { BbFooter } from "@/components/booking-buddy/bb-footer";
 import { RepeatsChip } from "@/components/booking-buddy/repeats-chip";
+import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { standingGamePath } from "@/lib/booking-buddy/routes";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
+import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 export const metadata: Metadata = pageMetadata({
   title: "Game",
   description: "See who's in, and add your own response.",
@@ -53,7 +55,11 @@ export default async function SlotDetailPage({
     notes,
     standingGameId,
   } = detail;
-  const slotLink = isOwner ? await getSlotLink(slot.id) : null;
+  const [slotLink, courtMatches] = await Promise.all([
+    isOwner ? getSlotLink(slot.id) : null,
+    // Only a Standing Game's posted game gets "Attach your court?" (#582).
+    standingGameId ? listCourtMatches() : [],
+  ]);
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
@@ -81,6 +87,11 @@ export default async function SlotDetailPage({
               </Link>
             )}
           </div>
+          {/* The game's notice spot: owner-only to-dos about this game. */}
+          <CourtSuggestions
+            matches={courtMatches.filter((match) => match.slotId === slot.id)}
+            className="mt-8 flex flex-col gap-4"
+          />
           <div className="mt-10 flex flex-col gap-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your response</h2>
