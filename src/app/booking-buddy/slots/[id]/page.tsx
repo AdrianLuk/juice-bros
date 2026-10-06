@@ -21,10 +21,12 @@ import {
   gameOffRecipients,
   skipWeekNotice,
 } from "@/lib/booking-buddy/standing-game-skips";
+import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { standingGamePath } from "@/lib/booking-buddy/routes";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
+import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 export const metadata: Metadata = pageMetadata({
   title: "Game",
   description: "See who's in, and add your own response.",
@@ -58,7 +60,11 @@ export default async function SlotDetailPage({
     notes,
     standingGameId,
   } = detail;
-  const slotLink = isOwner ? await getSlotLink(slot.id) : null;
+  const [slotLink, courtMatches] = await Promise.all([
+    isOwner ? getSlotLink(slot.id) : null,
+    // Only a Standing Game's posted game gets "Attach your court?" (#582).
+    standingGameId ? listCourtMatches() : [],
+  ]);
   // A Standing Game's posted game is skipped, not deleted (#578): the confirm
   // says who hears it's off.
   const gameStarted = new Date(slot.proposedStart) <= new Date();
@@ -94,6 +100,11 @@ export default async function SlotDetailPage({
               </Link>
             )}
           </div>
+          {/* The game's notice spot: owner-only to-dos about this game. */}
+          <CourtSuggestions
+            matches={courtMatches.filter((match) => match.slotId === slot.id)}
+            className="mt-8 flex flex-col gap-4"
+          />
           <div className="mt-10 flex flex-col gap-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your response</h2>

@@ -149,6 +149,8 @@ A week can be **skipped** either side of its Slot being posted. Skipping a week 
 
 In the code (issue #578): a skipped week is a `standing_game_weeks` row with `skipped_at` set and no Slot, so `post_standing_game_week`'s unique key already keeps it from posting. `skip_standing_game_date` / `unskip_standing_game_date` handle weeks not yet posted, `skip_posted_standing_game_week` marks the week and deletes the Slot in one transaction (the same cascade as deleting any Slot). The app reads the yes and maybe answerers first and sends the "it's off" email from `after()` (`game-off-notify.ts`); Guests, "no" answerers and the organizer get nothing, and nobody does once the game has started.
 
+Bookings never carry over between weeks: each week's court is its own Booking, imported or logged as usual, and attaching it stays the organizer's deliberate act. Because an unbooked Slot gets no Reminders, the app points out the obvious match and offers to attach it in one tap, but never attaches on its own (issue #582). A match is a Booking of the organizer's attached to no Slot, at the posted Slot's Intended Org, overlapping its time (touching end to start is not overlap); a Slot that already has a Booking, or has no Intended Org, gets none, and several matches are each offered. It shows as "Attach your 8:00 PM court at X?" on the posted Slot's page and under its Weekly games row, and its button is the ordinary `attachBookingToSlot`. The matcher is `courtMatches` (`src/lib/booking-buddy/court-match.ts`, pure); `listCourtMatches` reads the inputs.
+
 **Ending** a Standing Game stops it posting Slots, for good; there is no restart, only a new Standing Game. Slots it already posted stay as real games (the last one usually should still happen); past Slots are untouched. An ended Standing Game leaves the Weekly games section.
 _Avoid_: Recurring Slot, Series (a Slot never repeats; the Standing Game does)
 
@@ -160,8 +162,6 @@ One of a small set of Vercel Analytics events marking a User's progress from sig
 Specced for BB-1 (recurring games, #576) and not in the code yet. Each entry moves up into the list above, amended to match what shipped, when its ticket lands.
 
 **Standing Game** (the parts still to come; the entity itself is above):
-Bookings never carry over between weeks: each week's court is its own Booking, imported or logged as usual, and attaching it stays the organizer's deliberate act. Because an unbooked Slot gets no Reminders, the app points out the obvious match (an unattached Booking of the organizer's at the same Org, overlapping the posted Slot's time) and offers to attach it in one tap, but never attaches on its own.
-
 Ending will also stop Weekly Invites, once Regulars exist.
 
 **Regular**:
