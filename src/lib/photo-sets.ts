@@ -150,3 +150,17 @@ export function buildGallery(
 
   return { sets: views, loose, photos };
 }
+
+/**
+ * The sets the Appearances page previews: those tied to no Appearance (an
+ * occasion the hosts attended rather than played, like Creator Night), newest
+ * first, each cut to its first five photos. A set with an Appearance gets
+ * "See photos" on that Appearance's row instead.
+ */
+export function setsToPreview(sets: readonly PhotoSet[]): PhotoSetView[] {
+  // Built from the whole gallery and then filtered, not the other way round,
+  // so each previewed photo keeps its index in the /photos order.
+  return buildGallery(sets)
+    .sets.filter((set) => !set.appearance)
+    .map((set) => ({ ...set, photos: previewPhotos(set) }));
+}

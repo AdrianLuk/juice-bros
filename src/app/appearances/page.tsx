@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 
 import { appearances } from "@/content/appearances";
-import { eventRecaps } from "@/content/event-recaps";
 import { photoSets } from "@/content/photo-sets";
 import { nextConfirmedAppearance, splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
-import { photoSetHrefsByAppearance } from "@/lib/photo-sets";
+import { photoSetHrefsByAppearance, setsToPreview } from "@/lib/photo-sets";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
 import { Picture } from "@/components/picture";
-import { EventRecaps } from "./sections/event-recaps";
+import { PhotoSetPreviews } from "./sections/photo-set-previews";
 import { SpotUs } from "./sections/spot-us";
 import { UpNext } from "./sections/up-next";
 import { UpcomingAppearances } from "./sections/upcoming-appearances";
@@ -73,7 +72,7 @@ export default function AppearancesPage() {
       <div className="bx-measure pb-6">
         <UpcomingAppearances appearances={rest} standalone={!featured} />
         <SpotUs />
-        <EventRecaps recaps={eventRecaps} />
+        <PhotoSetPreviews sets={setsToPreview(photoSets)} />
         <PastAppearances appearances={past} photoSetHrefs={photoSetHrefs} />
       </div>
     </div>
