@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { team } from "@/content/team";
 import { InstagramIcon } from "@/components/icons";
 import { Picture } from "@/components/picture";
@@ -105,6 +107,15 @@ export function MeetTheBros() {
           </div>
         ))}
       </div>
+
+      {/* The way on from "who are these two" to watching them play. A quiet
+          link, because it leaves the section rather than acting inside it. */}
+      <Link href="/photos" className="bx-quietlink group mt-8 inline-flex items-center">
+        More photos
+        <span aria-hidden className="bx-arrow">
+          &rarr;
+        </span>
+      </Link>
     </section>
   );
 }

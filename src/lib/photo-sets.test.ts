@@ -9,6 +9,7 @@ import {
   photoSetFor,
   photoSetHref,
   photoSetHrefsByAppearance,
+  photoSetPreviews,
   previewPhotos,
 } from "./photo-sets.ts";
 
@@ -242,4 +243,30 @@ test("the Loose Photos address can't collide with a set's", () => {
   const set = make({ title: "Loose Photos", date: "2026-09-01" });
 
   assert.notEqual(photoSetAddress(set), LOOSE_PHOTOS_ADDRESS);
+});
+
+test("photoSetPreviews shows only sets with no Appearance, newest first", () => {
+  const cup = make({ title: "Cup", date: "2026-09-20", appearance: "APA - The Admiral Cup" });
+  const older = make({ title: "Older Night", date: "2026-08-01" });
+  const newer = make({ title: "Newer Night", date: "2026-09-29" });
+
+  const previews = photoSetPreviews([older, cup, newer]);
+
+  assert.deepEqual(
+    previews.map((set) => set.title),
+    ["Newer Night", "Older Night"],
+  );
+});
+
+test("photoSetPreviews keeps the first five photos of each set", () => {
+  const big = make({ title: "Big", photos: photos("big", 8) });
+  const small = make({ title: "Small", date: "2026-08-01", photos: photos("small", 3) });
+
+  const [bigPreview, smallPreview] = photoSetPreviews([big, small]);
+
+  assert.deepEqual(
+    bigPreview.photos.map((photo) => photo.src),
+    [1, 2, 3, 4, 5].map((n) => `/pictures/big-${n}.jpg`),
+  );
+  assert.equal(smallPreview.photos.length, 3);
 });

@@ -151,20 +151,6 @@ export const IMAGE_MANIFEST = {
     widths: [640, 960, 1280],
     quality: { avif: 50, webp: 68 },
   },
-  // The Appearances recap grid: cells are ~23rem at `lg`, ~11rem on a phone.
-  // The two that are also Photos on /photos add the lightbox width.
-  "/pictures/creator-night-courts-overview-filming-setup.jpg": {
-    width: 1600,
-    height: 2000,
-    widths: [640, 960],
-    quality: { avif: 50, webp: 68 },
-  },
-  "/pictures/creator-night-players-lined-up-watching.jpg": {
-    width: 2000,
-    height: 1333,
-    widths: [640, 960],
-    quality: { avif: 50, webp: 68 },
-  },
   "/pictures/creator-night-daven-lunging-forehand.jpg": {
     width: 2000,
     height: 1333,
@@ -175,12 +161,6 @@ export const IMAGE_MANIFEST = {
     width: 2000,
     height: 1333,
     widths: [640, 960, 1600],
-    quality: { avif: 50, webp: 68 },
-  },
-  "/pictures/creator-night-filming-phone-foreground.jpg": {
-    width: 2000,
-    height: 1333,
-    widths: [640, 960],
     quality: { avif: 50, webp: 68 },
   },
   "/pictures/adrian-dav-daven-watching.jpg": {
