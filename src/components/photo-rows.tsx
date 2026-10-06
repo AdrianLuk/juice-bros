@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { GalleryPhoto, Photo } from "@/lib/photo-sets";
-import { IMAGE_MANIFEST, isManagedImage, largestVariantPath } from "@/lib/image-variants";
+import { IMAGE_MANIFEST, imageRatio, isManagedImage, largestVariantPath } from "@/lib/image-variants";
 import { Picture } from "@/components/picture";
 
 /**
@@ -16,8 +16,7 @@ const FIRST_LINE_CAPACITY = 68 / 16;
 const GAP = 1 / 16;
 
 function shapeOf(src: string) {
-  const spec = isManagedImage(src) ? IMAGE_MANIFEST[src] : null;
-  return spec ? { ratio: spec.width / spec.height, width: spec.width } : { ratio: 1, width: 1600 };
+  return { ratio: imageRatio(src), width: isManagedImage(src) ? IMAGE_MANIFEST[src].width : 1600 };
 }
 
 /** How many photos land on the first line at `lg`. Always at least one. */
@@ -91,7 +90,10 @@ export function PhotoRows({
             {linked ? (
               <a
                 href={isManagedImage(photo.src) ? largestVariantPath(photo.src, "webp") : photo.src}
-                data-photo-index={"index" in photo ? photo.index : i}
+                // Only a gallery photo knows its place in the page's order. A
+                // plain Photo gets no index, so the lightbox leaves its link
+                // alone rather than opening the wrong photo.
+                data-photo-index={"index" in photo ? photo.index : undefined}
                 className="bx-tile-link"
               >
                 {picture}
