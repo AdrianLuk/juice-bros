@@ -79,3 +79,13 @@ test("formatConnectionRequestEmail offers exactly Accept and Decline, and never 
   assert.match(html, /href="https:\/\/x\.test\/connect\/tok\?a=decline"[^>]*>Decline</);
   assert.doesNotMatch(visibleText(html), /slot/i);
 });
+
+test("formatConnectionRequestEmail shows the requester's name and handle in their own case", () => {
+  const { html } = formatConnectionRequestEmail({
+    requesterLabel: "Ben Johns (@benjohns)",
+    acceptUrl: "https://x.test/connect/tok?a=accept",
+    declineUrl: "https://x.test/connect/tok?a=decline",
+  });
+
+  assert.match(visibleText(html), /Ben Johns \(@benjohns\) wants to connect/);
+});

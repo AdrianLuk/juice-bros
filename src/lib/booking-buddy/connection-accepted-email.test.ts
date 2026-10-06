@@ -55,3 +55,12 @@ test("formatConnectionAcceptedEmail has one link, to the Friends page, and never
   assert.match(html, /href="https:\/\/x\.test\/booking-buddy\/friends"[^>]*>Open your Friends page</);
   assert.doesNotMatch(visibleText(html), /slot/i);
 });
+
+test("formatConnectionAcceptedEmail shows the accepter's name and handle in their own case", () => {
+  const { html } = formatConnectionAcceptedEmail({
+    accepterLabel: "Anna Leigh Waters (@annaleigh)",
+    friendsUrl: "https://x.test/booking-buddy/friends",
+  });
+
+  assert.match(visibleText(html), /Anna Leigh Waters \(@annaleigh\) accepted your friend request/);
+});

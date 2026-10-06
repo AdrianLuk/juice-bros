@@ -96,7 +96,7 @@ export function formatBookingReminderEmail(params: {
     html: renderEmailLayout({
       heading: `Bookings just opened at ${params.orgName}`,
       emphasis: params.slotWhen,
-      paragraphs: ["Grab a court for this game before they fill up."],
+      paragraphs: ["Grab a court for this game before the courts fill up."],
       primaryAction: { label: "View the game", url: params.slotUrl },
     }),
   };

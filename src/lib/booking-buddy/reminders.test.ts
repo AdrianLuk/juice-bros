@@ -200,3 +200,15 @@ test("formatReminderEmail has one button, View the game, and never says slot", (
   assert.match(html, /href="https:\/\/example\.com\/booking-buddy\/slots\/abc"[^>]*>View the game</);
   assert.doesNotMatch(visibleText(html), /slot/i);
 });
+
+test("formatReminderEmail leads with the game coming up, then names its time", () => {
+  const { html } = formatReminderEmail({
+    slotWhen: "Sat, Jan 1 at 9:00 AM",
+    slotUrl: "https://example.com/booking-buddy/slots/abc",
+  });
+  const text = visibleText(html);
+
+  const lead = text.indexOf("Your game is coming up");
+  assert.ok(lead >= 0, "the first line says the game is coming up");
+  assert.ok(text.indexOf("Sat, Jan 1 at 9:00 AM") > lead, "the game's time follows it");
+});

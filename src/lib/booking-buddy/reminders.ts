@@ -156,9 +156,9 @@ export function formatReminderEmail(params: {
   return {
     subject: `Reminder: ${params.slotWhen}`,
     html: renderEmailLayout({
-      heading: "You're down as yes",
+      heading: "Your game is coming up",
       emphasis: params.slotWhen,
-      paragraphs: ["Check who else is in before you head out."],
+      paragraphs: ["You're down as yes for this one."],
       primaryAction: { label: "View the game", url: params.slotUrl },
     }),
   };
