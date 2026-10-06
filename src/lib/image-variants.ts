@@ -55,7 +55,8 @@ export const IMAGE_MANIFEST = {
     width: 2048,
     height: 1365,
     // 800 covers the ~416px Home column at 2x; 1600 covers the About page's
-    // max-w-3xl figure at 2x.
+    // max-w-3xl figure at 2x. Also the first Loose Photo on /photos, where 800
+    // and 1200 serve the grid and 1600 the lightbox.
     widths: [800, 1200, 1600],
     quality: { avif: 50, webp: 68 },
   },

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { appearances } from "../../content/appearances.ts";
-import { photoSets } from "../../content/photo-sets.ts";
+import { loosePhotos, photoSets } from "../../content/photo-sets.ts";
 import { IMAGE_MANIFEST, VARIANT_FORMATS, variantPath } from "./image-variants.ts";
 import { buildGallery } from "./photo-sets.ts";
 
@@ -14,7 +14,12 @@ import { buildGallery } from "./photo-sets.ts";
 const publicFile = (path: string) =>
   fileURLToPath(new URL(`../../public${path}`, import.meta.url));
 
-const allPhotos = photoSets.flatMap((set) => set.photos.map((photo) => ({ set, photo })));
+// Every Photo on the page, set photos and Loose Photos alike, with where it
+// lives for the failure message.
+const allPhotos = [
+  ...photoSets.flatMap((set) => set.photos.map((photo) => ({ where: `"${set.title}"`, photo }))),
+  ...loosePhotos.map((photo) => ({ where: "Loose Photos", photo })),
+];
 
 test("every Photo Set has at least one photo", () => {
   for (const set of photoSets) {
@@ -23,8 +28,8 @@ test("every Photo Set has at least one photo", () => {
 });
 
 test("every photo has alt text", () => {
-  for (const { set, photo } of allPhotos) {
-    assert.ok(photo.alt.trim().length > 0, `${photo.src} in "${set.title}" has no alt text`);
+  for (const { where, photo } of allPhotos) {
+    assert.ok(photo.alt.trim().length > 0, `${photo.src} in ${where} has no alt text`);
   }
 });
 
@@ -56,7 +61,8 @@ test("no photo appears twice", () => {
 });
 
 test("section addresses are unique", () => {
-  const addresses = buildGallery(photoSets).sets.map((set) => set.address);
+  const gallery = buildGallery(photoSets, loosePhotos);
+  const addresses = [...gallery.sets.map((set) => set.address), gallery.loose?.address].filter(Boolean);
   assert.equal(new Set(addresses).size, addresses.length);
 });
 

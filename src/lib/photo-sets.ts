@@ -11,8 +11,8 @@ export type { Photo, PhotoSet } from "../../content/photo-sets.ts";
 export type GalleryPhoto = Photo & {
   /** Position in `Gallery.photos`, the on-page order a lightbox walks. */
   index: number;
-  /** The section address of the set it belongs to. */
-  setAddress: string;
+  /** The address of the section it is in: its set's, or the Loose Photos'. */
+  sectionAddress: string;
 };
 
 /** A Photo Set as the page shows it. */
@@ -28,12 +28,25 @@ export type PhotoSetView = {
   photos: GalleryPhoto[];
 };
 
+/** The closing section of Photos that belong to no set. No date or venue. */
+export type LoosePhotosView = {
+  address: typeof LOOSE_PHOTOS_ADDRESS;
+  photos: GalleryPhoto[];
+};
+
 export type Gallery = {
   /** Newest first by last day. */
   sets: PhotoSetView[];
+  /** After the sets, in written order. Null when there are none, so the page
+   *  renders no heading over an empty block. */
+  loose: LoosePhotosView | null;
   /** Every photo on the page, in the order it appears. */
   photos: GalleryPhoto[];
 };
+
+/** The Loose Photos section's address. A set's address always ends in a
+ *  year, so the two can't collide. */
+export const LOOSE_PHOTOS_ADDRESS = "loose-photos";
 
 /** How many photos a set shows where it is previewed outside the gallery. */
 export const PREVIEW_COUNT = 5;
@@ -93,22 +106,27 @@ export function previewPhotos<P>(set: { photos: readonly P[] }): P[] {
 
 /**
  * The display model for the Photos page: sets newest first by their last day
- * (sets that end on the same day keep their written order), and one flat list
- * of every photo in on-page order.
+ * (sets that end on the same day keep their written order), then the Loose
+ * Photos in written order, and one flat list of every photo in on-page order.
  */
-export function buildGallery(sets: readonly PhotoSet[]): Gallery {
+export function buildGallery(
+  sets: readonly PhotoSet[],
+  loosePhotos: readonly Photo[] = [],
+): Gallery {
   const ordered = [...sets].sort((a, b) =>
     appearanceEndDate(b).localeCompare(appearanceEndDate(a)),
   );
 
   const photos: GalleryPhoto[] = [];
+  const place = (photo: Photo, sectionAddress: string): GalleryPhoto => {
+    const galleryPhoto: GalleryPhoto = { ...photo, index: photos.length, sectionAddress };
+    photos.push(galleryPhoto);
+    return galleryPhoto;
+  };
+
   const views = ordered.map((set): PhotoSetView => {
     const address = photoSetAddress(set);
-    const setPhotos = set.photos.map((photo) => {
-      const galleryPhoto: GalleryPhoto = { ...photo, index: photos.length, setAddress: address };
-      photos.push(galleryPhoto);
-      return galleryPhoto;
-    });
+    const setPhotos = set.photos.map((photo) => place(photo, address));
 
     return {
       address,
@@ -121,5 +139,13 @@ export function buildGallery(sets: readonly PhotoSet[]): Gallery {
     };
   });
 
-  return { sets: views, photos };
+  const loose: LoosePhotosView | null =
+    loosePhotos.length > 0
+      ? {
+          address: LOOSE_PHOTOS_ADDRESS,
+          photos: loosePhotos.map((photo) => place(photo, LOOSE_PHOTOS_ADDRESS)),
+        }
+      : null;
+
+  return { sets: views, loose, photos };
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { photoSets } from "@/content/photo-sets";
+import { loosePhotos, photoSets } from "@/content/photo-sets";
 import { pageMetadata } from "@/lib/metadata";
-import { buildGallery, type PhotoSetView } from "@/lib/photo-sets";
+import { buildGallery, type LoosePhotosView, type PhotoSetView } from "@/lib/photo-sets";
 import { PageHead } from "@/components/bx/page-head";
 import { PhotoRows } from "@/components/photo-rows";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = pageMetadata({
  * photos, and a picture beside the title would just be the first one twice.
  */
 export default function PhotosPage() {
-  const gallery = buildGallery(photoSets);
+  const gallery = buildGallery(photoSets, loosePhotos);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -35,6 +35,9 @@ export default function PhotosPage() {
         {gallery.sets.map((set, index) => (
           <PhotoSetSection key={set.address} set={set} first={index === 0} />
         ))}
+        {gallery.loose && (
+          <LoosePhotosSection loose={gallery.loose} first={gallery.sets.length === 0} />
+        )}
       </div>
     </div>
   );
@@ -70,6 +73,32 @@ function PhotoSetSection({ set, first }: { set: PhotoSetView; first: boolean }) 
       </p>
 
       <PhotoRows photos={set.photos} eager={first} className="mt-8" />
+    </section>
+  );
+}
+
+/**
+ * The Loose Photos: a plain heading and the photos, with no meta line or note,
+ * because there is no date or venue to give and making one up would be a
+ * guess. Rendered only when there are some (`gallery.loose` is null otherwise).
+ */
+function LoosePhotosSection({ loose, first }: { loose: LoosePhotosView; first: boolean }) {
+  const headingId = `${loose.address}-title`;
+
+  return (
+    <section
+      id={loose.address}
+      aria-labelledby={headingId}
+      className="bx-hair scroll-mt-24 py-14 sm:py-20"
+    >
+      <h2
+        id={headingId}
+        className="bx-h2 max-w-[28ch] text-[clamp(1.375rem,3.2vw,1.875rem)]"
+      >
+        Other days on court
+      </h2>
+
+      <PhotoRows photos={loose.photos} eager={first} className="mt-8" />
     </section>
   );
 }
