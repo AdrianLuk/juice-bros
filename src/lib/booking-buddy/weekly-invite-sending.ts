@@ -2,21 +2,24 @@ import "server-only";
 
 import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
 import webpush from "web-push";
 
 import { personOptionLabel } from "./connections.ts";
+import { emailToUserFromEnv } from "./email-to-user.ts";
+import { groupRegularsByGame } from "./regulars.ts";
 import { absoluteAppUrl } from "./request-origin.ts";
 import { createAdminClient } from "./supabase/admin.ts";
 import type { StoredPushSubscription } from "./reminder-run.ts";
 import type { PostedWeek } from "./standing-game-posting.ts";
 import {
   connectedPairKey,
+  isInvitedRegular,
   planWeeklyInviteRun,
   weeklyInviteLinkKey,
   weeklyInviteSendKey,
   type PostedSlotForInvite,
   type WeeklyInviteChannel,
+  type WeeklyInviteRules,
 } from "./weekly-invites.ts";
 
 export type WeeklyInviteRunResult = { sent: number; failed: number };
@@ -25,8 +28,9 @@ const NOTHING_SENT: WeeklyInviteRunResult = { sent: 0, failed: 0 };
 
 /**
  * Sends the Weekly Invite for Slots a Standing Game just posted (issue #579).
- * Called with `postStandingGameWeeks`' `posted` from both places a week
- * posts: the daily cron and the creation action (from its `after()`).
+ * Called by `postDueWeeks` (`standing-game-posting.ts`) with what it just
+ * posted: directly for the daily cron, through
+ * `sendWeeklyInvitesInBackground` for the server actions.
  *
  * Takes the admin (`service_role`) client: the creation action runs as the
  * organizer, whose session can't read a Regular's preferences, devices or
@@ -58,12 +62,13 @@ export async function sendWeeklyInvites(
 /**
  * For a server action that just posted weeks through the organizer's own
  * session (creating a Standing Game, putting a skipped week back on): send
- * their Weekly Invites after the response, through the admin client. Every
- * caller of `postStandingGameWeeks` outside the cron goes through this, so a
- * week never posts without inviting its Regulars. The cron route, which
- * already holds the admin client, calls `sendWeeklyInvites` directly.
+ * their Weekly Invites after the response, through the admin client.
+ * `postDueWeeks` picks this for the actions; the cron, which already holds
+ * the admin client, sends in the request with `sendWeeklyInvites`.
  */
-export async function inviteRegularsAfterResponse(posted: readonly PostedWeek[]): Promise<void> {
+export async function sendWeeklyInvitesInBackground(
+  posted: readonly PostedWeek[],
+): Promise<void> {
   if (posted.length === 0) {
     return;
   }
@@ -91,11 +96,11 @@ async function mintAnswerTokens(
   supabase: SupabaseClient,
   slots: readonly PostedSlotForInvite[],
   regularsByGame: ReadonlyMap<string, readonly string[]>,
-  isInvited: (slot: PostedSlotForInvite, userId: string) => boolean,
+  rules: WeeklyInviteRules,
 ): Promise<Map<string, string>> {
   const pairs = slots.flatMap((slot) =>
     (regularsByGame.get(slot.standingGameId) ?? [])
-      .filter((userId) => isInvited(slot, userId))
+      .filter((userId) => isInvitedRegular(slot, userId, rules))
       .map((userId) => ({ slot_id: slot.slotId, user_id: userId })),
   );
   const tokens = new Map<string, string>();
@@ -133,12 +138,8 @@ async function sendWeeklyInvitesUnsafe(
   posted: readonly PostedWeek[],
   origin: string,
 ): Promise<WeeklyInviteRunResult> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.REMINDER_FROM_EMAIL;
-  const emailConfigured = Boolean(apiKey && from);
-  if (!emailConfigured) {
-    console.error("weekly-invites: missing RESEND_API_KEY or REMINDER_FROM_EMAIL, skipping email.");
-  }
+  // `null` (logged) without Resend config: the email channel is skipped, push still goes.
+  const emailToUser = emailToUserFromEnv(supabase, "weekly-invites");
 
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -167,12 +168,7 @@ async function sendWeeklyInvitesUnsafe(
     return { sent: 0, failed: posted.length };
   }
 
-  const regularsByGame = new Map<string, string[]>();
-  for (const row of regularRows ?? []) {
-    const list = regularsByGame.get(row.standing_game_id) ?? [];
-    list.push(row.user_id);
-    regularsByGame.set(row.standing_game_id, list);
-  }
+  const regularsByGame = groupRegularsByGame(regularRows ?? []);
 
   const regularIds = [...new Set((regularRows ?? []).map((row) => row.user_id))];
   if (regularIds.length === 0) {
@@ -257,11 +253,10 @@ async function sendWeeklyInvitesUnsafe(
   const inviteEnabledByUser = new Map(
     (preferenceRows ?? []).map((row) => [row.user_id, row.weekly_invite_enabled]),
   );
-  const answerTokens = await mintAnswerTokens(supabase, slots, regularsByGame, (slot, userId) =>
-    userId !== slot.ownerId &&
-    connectedPairs.has(connectedPairKey(slot.ownerId, userId)) &&
-    inviteEnabledByUser.get(userId) !== false,
-  );
+  const answerTokens = await mintAnswerTokens(supabase, slots, regularsByGame, {
+    connectedPairs,
+    inviteEnabledByUser,
+  });
 
   const { sends } = planWeeklyInviteRun({
     slots,
@@ -282,7 +277,6 @@ async function sendWeeklyInvitesUnsafe(
     origin,
   });
 
-  const resend = emailConfigured ? new Resend(apiKey) : null;
   let sent = 0;
   let failed = 0;
 
@@ -299,27 +293,10 @@ async function sendWeeklyInvitesUnsafe(
 
   for (const send of sends) {
     if (send.channel === "email") {
-      if (!resend) {
+      if (!emailToUser) {
         continue;
       }
-      // The admin API: no table in this schema exposes an email column.
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-        send.userId,
-      );
-      if (userError || !userData?.user?.email) {
-        console.error("weekly-invites: no email for recipient", send.userId, userError);
-        failed += 1;
-        continue;
-      }
-
-      const { error: sendError } = await resend.emails.send({
-        from: from!,
-        to: userData.user.email,
-        subject: send.subject,
-        html: send.html,
-      });
-      if (sendError) {
-        console.error("weekly-invites: Resend error", sendError);
+      if (!(await emailToUser(send.userId, { subject: send.subject, html: send.html }))) {
         failed += 1;
         continue;
       }

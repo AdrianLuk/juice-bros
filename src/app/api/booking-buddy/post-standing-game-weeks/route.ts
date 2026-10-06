@@ -1,13 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/booking-buddy/supabase/admin";
-import { trackFunnelEvent } from "@/lib/booking-buddy/analytics";
-import { postStandingGameWeeks } from "@/lib/booking-buddy/standing-game-posting";
-import { sendWeeklyInvites } from "@/lib/booking-buddy/weekly-invite-sending";
-import {
-  planStandingGamePostingRun,
-  type StandingGameSchedule,
-} from "@/lib/booking-buddy/standing-games";
+import { postDueWeeks } from "@/lib/booking-buddy/standing-game-posting";
+import { standingGameSchedule } from "@/lib/booking-buddy/standing-games";
 
 export const runtime = "nodejs";
 
@@ -19,14 +14,13 @@ export const runtime = "nodejs";
  * job. It also must not share their early exit when Resend isn't configured,
  * since posting a game needs no email.
  *
- * Which weeks post is `planStandingGamePostingRun` (`standing-games.ts`), unit
- * tested; this route is the I/O around it. Each week goes through
- * `post_standing_game_week`, whose unique key on (Standing Game, date) is what
- * makes a rerun, or a race with the creation action, post a week at most once.
- *
- * Each week posted in this run sends its Weekly Invite to the Standing Game's
- * Regulars in the same run (#579, `sendWeeklyInvites`). A missing Resend or
- * VAPID config skips that channel there; it never stops the posting.
+ * The posting itself is `postDueWeeks` (`standing-game-posting.ts`), the same
+ * path creating a Standing Game and un-skipping a week take: it plans the due
+ * weeks, posts each through `post_standing_game_week` (whose unique key on
+ * (Standing Game, date) makes a rerun, or a race with an action, post a week
+ * at most once), fires the week-posted Funnel Event, and sends the Weekly
+ * Invites in this same run. A missing Resend or VAPID config skips that
+ * channel there; it never stops the posting.
  *
  * `vercel.json` runs this daily at 12:00 UTC, an hour before
  * `send-booking-window-reminders`, so a week posted the day before its
@@ -57,61 +51,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Read failed." }, { status: 502 });
   }
 
-  const games: StandingGameSchedule[] = (scheduleRows ?? []).map((row) => ({
-    id: row.id,
-    weekday: row.weekday,
-    startHour: row.start_hour,
-    timeZone: row.time_zone,
-    endedAt: row.ended_at,
-    bookingWindowDaysBefore: row.booking_window_days_before,
-  }));
+  const games = (scheduleRows ?? []).map((row) =>
+    standingGameSchedule(row, row.booking_window_days_before),
+  );
 
-  if (games.length === 0) {
-    return NextResponse.json({ ok: true, checked: 0, posted: 0, failed: 0 });
-  }
-
-  // Only weeks from yesterday (UTC) on can still be due in any zone; older
-  // rows can't affect this run.
-  const since = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const { data: weekRows, error: weeksError } = await supabase
-    .from("standing_game_weeks")
-    .select("standing_game_id, game_date")
-    .in(
-      "standing_game_id",
-      games.map((game) => game.id),
-    )
-    .gte("game_date", since);
-
-  if (weeksError) {
-    console.error("post-standing-game-weeks: reading posted weeks failed", weeksError);
+  let result;
+  try {
+    result = await postDueWeeks(supabase, games, {
+      now,
+      invites: { origin: request.nextUrl.origin },
+    });
+  } catch (error) {
+    console.error("post-standing-game-weeks: reading posted weeks failed", error);
     return NextResponse.json({ error: "Read failed." }, { status: 502 });
   }
 
-  const postedDatesByGame = new Map<string, Set<string>>();
-  for (const row of weekRows ?? []) {
-    const dates = postedDatesByGame.get(row.standing_game_id) ?? new Set<string>();
-    dates.add(row.game_date);
-    postedDatesByGame.set(row.standing_game_id, dates);
-  }
-
-  const plan = planStandingGamePostingRun({ games, postedDatesByGame, now });
-  const { posted, failed } = await postStandingGameWeeks(supabase, plan.posts);
-
-  for (const week of failed) {
-    console.error("post-standing-game-weeks: posting a week failed", week);
-  }
-  for (let index = 0; index < posted.length; index += 1) {
-    await trackFunnelEvent("bb_standing_game_week_posted");
-  }
-
-  const invites = await sendWeeklyInvites(supabase, posted, request.nextUrl.origin);
-
   return NextResponse.json({
     ok: true,
-    checked: plan.checked,
-    posted: posted.length,
-    failed: failed.length,
-    invitesSent: invites.sent,
-    invitesFailed: invites.failed,
+    checked: result.checked,
+    posted: result.posted.length,
+    failed: result.failed.length,
+    invitesSent: result.invites?.sent ?? 0,
+    invitesFailed: result.invites?.failed ?? 0,
   });
 }

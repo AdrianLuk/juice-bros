@@ -10,7 +10,13 @@
  * reads and writes, this module decides.
  */
 
-import { clockInZone, formatTimeLabel, isHourTime, todayInZone } from "./datetime.ts";
+import {
+  clockInZone,
+  formatTimeLabel,
+  isHourTime,
+  shiftCalendarDate,
+  todayInZone,
+} from "./datetime.ts";
 import { parseDivision, type Division } from "./division.ts";
 import { MAX_ROTATION_BUFFER } from "./capacity.ts";
 import {
@@ -37,11 +43,70 @@ export type StandingGameSchedule = {
   bookingWindowDaysBefore: number | null;
 };
 
-/** `date` shifted by whole calendar days. UTC-based, since this is date-only arithmetic, not an instant. */
-function shiftDate(date: string, days: number): string {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  parsed.setUTCDate(parsed.getUTCDate() + days);
-  return parsed.toISOString().slice(0, 10);
+/** The `standing_games` columns a schedule is read from (the cron's `standing_game_schedules` view has the same names). */
+export type StandingGameScheduleRow = {
+  id: string;
+  weekday: number;
+  start_hour: number;
+  time_zone: string;
+  ended_at: string | null;
+};
+
+/**
+ * A Standing Game's row as the planner reads it. The Booking Window lead
+ * comes from the Intended Org, which the caller resolves (the cron's view
+ * carries it; the actions look it up in the owner's own Orgs).
+ */
+export function standingGameSchedule(
+  row: StandingGameScheduleRow,
+  bookingWindowDaysBefore: number | null,
+): StandingGameSchedule {
+  return {
+    id: row.id,
+    weekday: row.weekday,
+    startHour: row.start_hour,
+    timeZone: row.time_zone,
+    endedAt: row.ended_at,
+    bookingWindowDaysBefore,
+  };
+}
+
+/**
+ * The oldest `standing_game_weeks.game_date` that can still be today or later
+ * on some Standing Game's wall clock: two UTC calendar days before `now`. One
+ * day would cover every zone behind UTC; the second is margin. Reads of week
+ * rows filter on it, since an older row can't change what is due or upcoming.
+ */
+export function stillUpcomingCutoffDate(now: Date): string {
+  return shiftCalendarDate(now.toISOString().slice(0, 10), -2);
+}
+
+/**
+ * Which week of its Standing Game each just-posted week is: 1 for the first
+ * one posted, 3 for the third. `postedDatesByGame` is every date with a Slot
+ * in `standing_game_weeks` per Standing Game, so skipped weeks don't count;
+ * a week in `posted` the read missed counts anyway. Carried by the
+ * `bb_standing_game_week_posted` Funnel Event, which is how "do Standing
+ * Games keep running past week 3" gets answered.
+ */
+export function postedWeekNumbers(
+  posted: readonly StandingGamePost[],
+  postedDatesByGame: ReadonlyMap<string, ReadonlySet<string>>,
+): number[] {
+  const datesByGame = new Map<string, Set<string>>();
+  for (const [id, dates] of postedDatesByGame) {
+    datesByGame.set(id, new Set(dates));
+  }
+  for (const week of posted) {
+    const dates = datesByGame.get(week.standingGameId) ?? new Set<string>();
+    dates.add(week.gameDate);
+    datesByGame.set(week.standingGameId, dates);
+  }
+  return posted.map(
+    (week) =>
+      [...(datesByGame.get(week.standingGameId) ?? [])].filter((date) => date <= week.gameDate)
+        .length,
+  );
 }
 
 /** The weekday (0 = Sunday) a `YYYY-MM-DD` calendar date falls on. */
@@ -88,7 +153,7 @@ export function dueStandingGameWeeks(
   const due: string[] = [];
 
   for (let offset = 0; offset <= postingLeadDays(game.bookingWindowDaysBefore); offset += 1) {
-    const date = shiftDate(today, offset);
+    const date = shiftCalendarDate(today, offset);
     if (weekdayOfDate(date) !== game.weekday) {
       continue;
     }

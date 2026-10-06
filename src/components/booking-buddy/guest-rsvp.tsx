@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionError } from "@/components/booking-buddy/action-error";
-import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
+import {
+  RESPONSE_ANSWER_LABEL,
+  type ResponseAnswer,
+} from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   guestRespondViaLink,
@@ -15,12 +18,6 @@ import {
 } from "@/lib/booking-buddy/actions/guest-rsvp";
 
 const EMPTY: ActionResult = {};
-
-const ANSWER_LABEL: Record<ResponseAnswer, string> = {
-  yes: "Yes",
-  no: "No",
-  maybe: "Maybe",
-};
 
 const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
 
@@ -84,7 +81,7 @@ export function GuestRsvpForm({ token }: { token: string }) {
               disabled={pending}
               onClick={() => setChosen(answer)}
             >
-              {pending ? "Sending…" : ANSWER_LABEL[answer]}
+              {pending ? "Sending…" : RESPONSE_ANSWER_LABEL[answer]}
             </Button>
           ))}
         </div>
@@ -115,7 +112,7 @@ export function GuestResponseList({
         >
           <span>{response.label}</span>
           <span className="text-muted-foreground">
-            {ANSWER_LABEL[response.answer]}
+            {RESPONSE_ANSWER_LABEL[response.answer]}
           </span>
         </li>
       ))}

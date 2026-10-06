@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  isInvitedRegular,
   isWeeklyInviteToken,
   parseWeeklyInviteAnswer,
   planWeeklyInviteRun,
@@ -286,4 +287,17 @@ test("the page preselects the link's answer, else the Regular's current one", ()
   assert.equal(preselectedInviteAnswer("whatever", "maybe"), "maybe");
   assert.equal(preselectedInviteAnswer(undefined, null), null);
   assert.equal(preselectedInviteAnswer(["yes", "no"], null), "yes");
+});
+
+test("isInvitedRegular: a connected Regular with the preference on or unset, never the organizer", () => {
+  const slot = postedSlot();
+  const rules = {
+    connectedPairs: new Set([`${AMY}:${BEN}`, `${AMY}:cal`]),
+    inviteEnabledByUser: new Map([["cal", false]]),
+  };
+
+  assert.equal(isInvitedRegular(slot, BEN, rules), true);
+  assert.equal(isInvitedRegular(slot, AMY, rules), false, "the organizer");
+  assert.equal(isInvitedRegular(slot, "dee", rules), false, "not a Connection");
+  assert.equal(isInvitedRegular(slot, "cal", rules), false, "weekly game invites off");
 });

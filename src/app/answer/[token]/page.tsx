@@ -8,7 +8,10 @@ import { GuestResponseList } from "@/components/booking-buddy/guest-rsvp";
 import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
 import { buttonVariants } from "@/components/ui/button";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
-import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
+import {
+  RESPONSE_ANSWER_LABEL,
+  type ResponseAnswer,
+} from "@/lib/booking-buddy/responses";
 import { preselectedInviteAnswer } from "@/lib/booking-buddy/weekly-invites";
 import { getWeeklyInviteByToken } from "@/lib/booking-buddy/weekly-invite-answers";
 import { answerWeeklyInvite } from "@/lib/booking-buddy/actions/weekly-invite-answers";
@@ -33,17 +36,8 @@ export async function generateMetadata({
   };
 }
 
-const ANSWERS: readonly { value: ResponseAnswer; label: string }[] = [
-  { value: "yes", label: "Yes" },
-  { value: "maybe", label: "Maybe" },
-  { value: "no", label: "No" },
-];
-
-const ANSWER_LABEL: Record<ResponseAnswer, string> = {
-  yes: "Yes",
-  maybe: "Maybe",
-  no: "No",
-};
+/** The order the choices sit in, matching the email's Yes, then Maybe, then No. */
+const ANSWER_ORDER: readonly ResponseAnswer[] = ["yes", "maybe", "no"];
 
 const SAVED_COPY: Record<ResponseAnswer, string> = {
   yes: "You're in. See you on the court.",
@@ -180,11 +174,11 @@ export default async function WeeklyInviteAnswerPage({
                 </legend>
                 {currentAnswer && (
                   <p className="text-sm text-muted-foreground">
-                    Your answer now: {ANSWER_LABEL[currentAnswer]}
+                    Your answer now: {RESPONSE_ANSWER_LABEL[currentAnswer]}
                   </p>
                 )}
                 <div className="mt-1 flex flex-wrap gap-2">
-                  {ANSWERS.map(({ value, label }, index) => (
+                  {ANSWER_ORDER.map((value, index) => (
                     <label
                       key={value}
                       className="inline-flex h-11 min-w-20 cursor-pointer items-center justify-center rounded-lg border border-border bg-background px-5 text-sm font-medium transition-colors select-none hover:bg-muted has-[:checked]:border-[var(--foreground)] has-[:checked]:bg-[var(--foreground)] has-[:checked]:text-[var(--background)] has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-[var(--ring)]"
@@ -197,7 +191,7 @@ export default async function WeeklyInviteAnswerPage({
                         required={index === 0}
                         className="sr-only"
                       />
-                      {label}
+                      {RESPONSE_ANSWER_LABEL[value]}
                     </label>
                   ))}
                 </div>

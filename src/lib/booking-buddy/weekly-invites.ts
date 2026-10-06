@@ -14,8 +14,7 @@ import { formatSlotWhen } from "./slots.ts";
 import { renderEmailLayout } from "./email-layout.ts";
 import type { ReminderSend, StoredPushSubscription } from "./reminder-run.ts";
 import { isResponseAnswer, type ResponseAnswer } from "./responses.ts";
-
-const TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from "./uuid.ts";
 
 /**
  * A `weekly_invite_links` token is a uuid. Anything else is turned away
@@ -23,7 +22,7 @@ const TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
  * rather than "this link isn't valid".
  */
 export function isWeeklyInviteToken(value: string): boolean {
-  return TOKEN_PATTERN.test(value);
+  return isUuid(value);
 }
 
 /** The answer page's confirm form: the token and the chosen answer. */
@@ -94,7 +93,7 @@ export function weeklyInviteLinkKey(slotId: string, userId: string): string {
 export type WeeklyInviteAnswerLinks = { yes: string; maybe: string; no: string };
 
 export function weeklyInviteAnswerLinks(token: string, origin: string): WeeklyInviteAnswerLinks {
-  const at = (answer: "yes" | "maybe" | "no") =>
+  const at = (answer: ResponseAnswer) =>
     new URL(weeklyInviteAnswerPath(token, answer), origin).toString();
   return { yes: at("yes"), maybe: at("maybe"), no: at("no") };
 }
@@ -183,6 +182,30 @@ export type PlanWeeklyInviteRunInput = {
   origin: string;
 };
 
+/** What decides whether a Regular is invited to a posted Slot at all. */
+export type WeeklyInviteRules = Pick<
+  PlanWeeklyInviteRunInput,
+  "connectedPairs" | "inviteEnabledByUser"
+>;
+
+/**
+ * The one rule for who a posted Slot's Weekly Invite goes to, shared by the
+ * planner and the answer-link minting: one of its Regulars (the caller's
+ * loop), not the organizer, still an accepted Connection, and "Weekly game
+ * invites" not turned off. Channels and already-sent markers come after.
+ */
+export function isInvitedRegular(
+  slot: Pick<PostedSlotForInvite, "ownerId">,
+  userId: string,
+  rules: WeeklyInviteRules,
+): boolean {
+  return (
+    userId !== slot.ownerId &&
+    rules.connectedPairs.has(connectedPairKey(slot.ownerId, userId)) &&
+    rules.inviteEnabledByUser.get(userId) !== false
+  );
+}
+
 /**
  * Every Weekly Invite to send for the Slots just posted: one email per
  * Regular with the preference on, plus a push to each with push on and a
@@ -200,13 +223,7 @@ export function planWeeklyInviteRun(input: PlanWeeklyInviteRunInput): {
     const copy = { organizerName: slot.organizerName, slotWhen, slotUrl };
 
     for (const userId of input.regularsByGame.get(slot.standingGameId) ?? []) {
-      if (userId === slot.ownerId) {
-        continue;
-      }
-      if (!input.connectedPairs.has(connectedPairKey(slot.ownerId, userId))) {
-        continue;
-      }
-      if (input.inviteEnabledByUser.get(userId) === false) {
+      if (!isInvitedRegular(slot, userId, input)) {
         continue;
       }
 

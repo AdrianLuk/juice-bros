@@ -11,17 +11,11 @@
  * Relative imports only, so `node --test` can load it.
  */
 
-import { clockInZone, isRealDate, todayInZone } from "./datetime.ts";
+import { clockInZone, isRealDate, shiftCalendarDate, todayInZone } from "./datetime.ts";
 import type { ResponseAnswer } from "./responses.ts";
 import { hourClock, weekdayOfDate, type StandingGameSchedule } from "./standing-games.ts";
 
 type GameDay = Pick<StandingGameSchedule, "weekday" | "startHour" | "timeZone">;
-
-function shiftDate(date: string, days: number): string {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  parsed.setUTCDate(parsed.getUTCDate() + days);
-  return parsed.toISOString().slice(0, 10);
-}
 
 /**
  * Whether `date` is one of this game's weeks that hasn't started yet: on its
@@ -42,11 +36,11 @@ export function isUpcomingGameDate(game: GameDay, date: string, now: Date): bool
 /** The next `count` game dates (`YYYY-MM-DD`, the game's own zone), soonest first, posted or not. */
 export function upcomingGameDates(game: GameDay, now: Date, count: number): string[] {
   const today = todayInZone(game.timeZone, now);
-  let first = shiftDate(today, (game.weekday - weekdayOfDate(today) + 7) % 7);
+  let first = shiftCalendarDate(today, (game.weekday - weekdayOfDate(today) + 7) % 7);
   if (!isUpcomingGameDate(game, first, now)) {
-    first = shiftDate(first, 7);
+    first = shiftCalendarDate(first, 7);
   }
-  return Array.from({ length: count }, (_, index) => shiftDate(first, index * 7));
+  return Array.from({ length: count }, (_, index) => shiftCalendarDate(first, index * 7));
 }
 
 /**
@@ -124,14 +118,4 @@ export function skipWeekNotice(recipientCount: number, options: { started?: bool
     return "The 1 person who said yes or maybe gets an email saying it's off.";
   }
   return `The ${recipientCount} people who said yes or maybe get an email saying it's off.`;
-}
-
-/** `"2026-10-20"` → `"Tue, Oct 20"`, the way a posted game's day reads on the Weekly games row. */
-export function gameDateLabel(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
 }

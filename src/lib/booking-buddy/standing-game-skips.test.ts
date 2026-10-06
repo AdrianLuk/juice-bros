@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  gameDateLabel,
   gameOffRecipients,
   isUpcomingGameDate,
   nextGameDate,
@@ -150,9 +149,4 @@ test("the skip confirm says how many people get told", () => {
 test("a game that has already started tells nobody", () => {
   assert.equal(gameOffRecipients([{ userId: "ben", answer: "yes" }], "amy", { started: true }).length, 0);
   assert.equal(skipWeekNotice(3, { started: true }), "This game has already started, so nobody gets an email.");
-});
-
-test("a game date reads the way the app writes a day", () => {
-  assert.equal(gameDateLabel("2026-10-20"), "Tue, Oct 20");
-  assert.equal(gameDateLabel("2026-12-29"), "Tue, Dec 29");
 });

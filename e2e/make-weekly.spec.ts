@@ -15,7 +15,9 @@ import {
  * Post a game with "Repeats weekly" ticked and the form filled from that game,
  * the friends who said yes ticked as Regulars. A second link seeds the form
  * again, even when it only changes the query string. The original game is
- * left alone.
+ * left alone, and while it's still to come its date counts as covered: the
+ * new weekly game starts posting the week after, so there's no second game
+ * that day.
  *
  * Games are made straight at PostgREST, at hours no other weekly-game spec
  * uses (6am and 9am), so concurrent runs on the same seeded account don't
@@ -32,6 +34,16 @@ function daysOut(days: number): { date: string; weekday: number } {
   const day = new Date(`${today}T00:00:00Z`);
   day.setUTCDate(day.getUTCDate() + days);
   return { date: day.toISOString().slice(0, 10), weekday: day.getUTCDay() };
+}
+
+/** `"2026-10-13"` as the app writes a game's day: `"Tue, Oct 13"`. */
+function dayLabel(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
 }
 
 async function rest(user: FixtureUser, path: string, init: RequestInit = {}): Promise<unknown> {
@@ -194,9 +206,15 @@ test.describe("Make this weekly", () => {
     await expect(regular(form, accounts.ben2.username)).not.toBeChecked();
 
     await form.getByRole("button", { name: "Post weekly game" }).click();
-    await expect(
-      section(page, "Weekly games").getByRole("listitem").filter({ hasText: `Every ${DAYS[weekdayA]} · 6:00 AM` }),
-    ).toContainText("1 regular");
+    // Game A is 5 days out, so its date is covered and the weekly game's
+    // first game is the week after: nothing posts yet.
+    const coveredDate = daysOut(gameA.days).date;
+    const weekAfter = daysOut(gameA.days + 7).date;
+    const row = section(page, "Weekly games")
+      .getByRole("listitem")
+      .filter({ hasText: `Every ${DAYS[weekdayA]} · 6:00 AM` });
+    await expect(row).toContainText("1 regular");
+    await expect(row).toContainText(`Next game ${dayLabel(weekAfter)}`);
 
     // The new weekly game carries everything over, the fields this form has
     // no inputs for included.
@@ -223,6 +241,20 @@ test.describe("Make this weekly", () => {
     });
     expect(created.standing_game_regulars.map((row) => row.user_id)).toEqual([await fixtureUserId(ben)]);
 
+    // No second game on the original's date: the week is recorded with no
+    // Slot and no skip mark, and nothing was posted.
+    expect(await rest(amy, `slots?standing_game_id=eq.${created.id}&select=id`)).toEqual([]);
+    expect(
+      await rest(amy, `standing_game_weeks?standing_game_id=eq.${created.id}&select=game_date,slot_id,skipped_at`),
+    ).toEqual([{ game_date: coveredDate, slot_id: null, skipped_at: null }]);
+
+    // The covered date isn't a skipped week.
+    await row.getByRole("link").click();
+    await page.waitForURL(new RegExp(`/booking-buddy/slots/weekly/${created.id}`));
+    const skips = section(page, "Skip a week");
+    await expect(skips.getByRole("button", { name: "Skip that week" })).toBeVisible();
+    await expect(skips).not.toContainText(dayLabel(coveredDate));
+
     // The original game is untouched: not adopted, same time, no chip.
     const [original] = (await rest(amy, `slots?id=eq.${slotA.id}&select=standing_game_id,proposed_start`)) as {
       standing_game_id: string | null;
@@ -234,9 +266,12 @@ test.describe("Make this weekly", () => {
     await expect(page.getByText(`Every ${DAYS[weekdayA]}`, { exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Make this weekly" })).toBeVisible();
 
-    // A game the weekly game posted has no "Make this weekly" of its own.
-    const [posted] = (await rest(amy, `slots?standing_game_id=eq.${created.id}&select=id`)) as { id: string }[];
-    await page.goto(`/booking-buddy/slots/${posted.id}`);
+    // A game the weekly game posts has no "Make this weekly" of its own.
+    const postedId = (await rest(amy, "rpc/post_standing_game_week", {
+      method: "POST",
+      body: JSON.stringify({ target_standing_game: created.id, target_game_date: weekAfter }),
+    })) as string;
+    await page.goto(`/booking-buddy/slots/${postedId}`);
     await expect(page.getByRole("heading", { name: "Skip this week" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Make this weekly" })).toHaveCount(0);
   });

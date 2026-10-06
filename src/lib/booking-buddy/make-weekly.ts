@@ -3,7 +3,9 @@
  * Game. It is a link, not a second form. The game's page builds a Games page
  * link whose search params carry everything the Post a game form needs, with
  * "Repeats weekly" ticked, and the Games page reads them back. The original
- * game is never touched.
+ * game is never touched: it stays a one-off. The link does carry its id,
+ * though, so the new Standing Game can treat that game's date as covered and
+ * start posting from the week after (no second game that day).
  *
  * Free of Next.js and Supabase imports on purpose, and relative imports only,
  * so `node --test` can load it.
@@ -20,6 +22,7 @@ import {
 import { parseSlotNotes } from "./slots.ts";
 import { SLOTS_PATH } from "./routes.ts";
 import { hourClock, weekdayOfDate } from "./standing-games.ts";
+import { isUuid } from "./uuid.ts";
 
 /** Everything the Post a game form is seeded with when it opens from "Make this weekly". */
 export type WeeklyPrefill = {
@@ -36,10 +39,22 @@ export type WeeklyPrefill = {
   reminderOffsetMinutes: number;
   /** Users ticked as Regulars. */
   regularIds: string[];
+  /** The one-off game this came from, whose date the new Standing Game won't post again. */
+  sourceSlotId: string | null;
 };
+
+/** The Post a game field that carries `sourceSlotId` to `createStandingGame`. */
+export const SOURCE_SLOT_FIELD = "source_slot_id";
+
+/** The source game's id off the submitted form, or `null` when there is none or it isn't an id. */
+export function parseSourceSlotId(formData: FormData): string | null {
+  const value = String(formData.get(SOURCE_SLOT_FIELD) ?? "").trim();
+  return isUuid(value) ? value : null;
+}
 
 /** What "Make this weekly" reads off the game it starts from. */
 export type WeeklySourceSlot = {
+  id: string;
   proposedStart: string;
   proposedEnd: string;
   timeZone: string;
@@ -97,6 +112,7 @@ export function weeklyPrefillFromSlot(
     rotationBuffer: slot.rotationBuffer,
     reminderOffsetMinutes: slot.reminderOffsetMinutes,
     regularIds,
+    sourceSlotId: slot.id,
   };
 }
 
@@ -118,6 +134,9 @@ function weeklySearch(prefill: WeeklyPrefill): string {
   params.set("reminder", String(prefill.reminderOffsetMinutes));
   if (prefill.regularIds.length > 0) {
     params.set("regulars", prefill.regularIds.join(","));
+  }
+  if (prefill.sourceSlotId) {
+    params.set("from", prefill.sourceSlotId);
   }
   return params.toString();
 }
@@ -174,6 +193,7 @@ export function parseWeeklyPrefill(
   }
 
   const orgId = single(params, "org");
+  const from = single(params, "from");
   const notesResult = parseSlotNotes(single(params, "notes"));
 
   const regularIds: string[] = [];
@@ -195,5 +215,7 @@ export function parseWeeklyPrefill(
       wholeNumberIn(single(params, "reminder"), MIN_REMINDER_OFFSET_MINUTES, MAX_REMINDER_OFFSET_MINUTES) ??
       DEFAULT_REMINDER_OFFSET_MINUTES,
     regularIds,
+    // Ownership is the database's check, when the Standing Game is created.
+    sourceSlotId: isUuid(from) ? from : null,
   };
 }

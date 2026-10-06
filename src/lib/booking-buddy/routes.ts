@@ -6,6 +6,8 @@
  * each carrying their own copy.
  */
 
+import type { ResponseAnswer } from "./responses.ts";
+
 export const BOOKING_BUDDY_ROOT = "/booking-buddy";
 
 export const SIGN_IN_PATH = `${BOOKING_BUDDY_ROOT}/sign-in`;
@@ -236,7 +238,7 @@ export const WEEKLY_INVITE_ANSWER_ROOT = "/answer";
 
 export function weeklyInviteAnswerPath(
   token: string,
-  answer?: "yes" | "no" | "maybe",
+  answer?: ResponseAnswer,
 ): string {
   const base = `${WEEKLY_INVITE_ANSWER_ROOT}/${token}`;
   return answer ? `${base}?a=${answer}` : base;

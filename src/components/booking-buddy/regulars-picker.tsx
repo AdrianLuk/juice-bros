@@ -8,6 +8,7 @@ import { ActionError } from "@/components/booking-buddy/action-error";
 import { FRIENDS_PATH } from "@/lib/booking-buddy/routes";
 import {
   REGULAR_IDS_FIELD,
+  regularsCountLabel,
   withGroupMembers,
   type RegularChoices,
 } from "@/lib/booking-buddy/regulars";
@@ -16,11 +17,8 @@ import { setStandingGameRegulars } from "@/lib/booking-buddy/actions/regulars";
 
 const EMPTY: ActionResult = {};
 
-function regularsCountLabel(count: number): string {
-  if (count === 0) {
-    return "Nobody picked yet";
-  }
-  return `${count} regular${count === 1 ? "" : "s"}`;
+function pickedCountLabel(count: number): string {
+  return count === 0 ? "Nobody picked yet" : regularsCountLabel(count);
 }
 
 /**
@@ -114,7 +112,7 @@ export function RegularsPicker({
         })}
       </ul>
       <p className="text-xs text-muted-foreground" aria-live="polite">
-        {regularsCountLabel(selected.length)}
+        {pickedCountLabel(selected.length)}
       </p>
     </fieldset>
   );

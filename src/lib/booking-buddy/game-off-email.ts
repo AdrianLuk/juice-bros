@@ -11,6 +11,7 @@
  * it runs under `node --test`.
  */
 
+import { formatShortDateLabel } from "./datetime.ts";
 import { renderEmailLayout } from "./email-layout.ts";
 
 export function formatGameOffEmail(params: {
@@ -18,23 +19,28 @@ export function formatGameOffEmail(params: {
   organizerLabel: string;
   /** The skipped game's full date and time (`formatSlotWhen`). */
   slotWhen: string;
-  /** Its day alone, for the subject: "Tue, Oct 13". */
-  shortDay: string;
+  /**
+   * The skipped week's date (`YYYY-MM-DD`). Named outright, since with a long
+   * Booking Window the game can be two weeks out and the week after it
+   * already posted: "this week" and "next week" would both be wrong.
+   */
+  gameDate: string;
   gamesUrl: string;
-  /** False once the Standing Game has ended, when there is no next week to promise. */
+  /** False once the Standing Game has ended, when there is nothing to carry on. */
   weeklyGameContinues: boolean;
 }): { subject: string; html: string } {
+  const day = formatShortDateLabel(params.gameDate);
   const paragraphs = [
-    `${params.organizerLabel} skipped this week, so there's no game. You're getting this because you'd said yes or maybe.`,
+    `${params.organizerLabel} skipped the weekly game on ${day}. You're getting this because you'd said yes or maybe.`,
   ];
   if (params.weeklyGameContinues) {
-    paragraphs.push("Next week's game goes up as usual.");
+    paragraphs.push("Only that week is off. The weekly game itself carries on.");
   }
 
   return {
-    subject: `This week's game is off (${params.shortDay})`,
+    subject: `The game on ${day} is off`,
     html: renderEmailLayout({
-      heading: "This week's game is off",
+      heading: `The game on ${day} is off`,
       emphasis: params.slotWhen,
       paragraphs,
       primaryAction: { label: "See your games", url: params.gamesUrl },
