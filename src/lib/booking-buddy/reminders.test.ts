@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import {
   MAX_REMINDER_OFFSET_MINUTES,
   MIN_REMINDER_OFFSET_MINUTES,
@@ -186,11 +188,6 @@ test("formatReminderPush carries the slot's own time and a target url", () => {
   assert.match(body, /Sat, Jan 1 at 9:00 AM/);
   assert.equal(url, "https://example.com/booking-buddy/slots/abc");
 });
-
-/** What a recipient reads: the HTML with every tag (and its attributes) removed. */
-function visibleText(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-}
 
 test("formatReminderEmail has one button, View the game, and never says slot", () => {
   const { html } = formatReminderEmail({

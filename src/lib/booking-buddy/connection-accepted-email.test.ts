@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
 
 test("formatConnectionAcceptedEmail names the accepter in the subject and body", () => {
@@ -42,11 +44,6 @@ test("formatConnectionAcceptedEmail escapes an ampersand in the link", () => {
 
   assert.match(html, /friends\?ref=email&amp;x=1/);
 });
-
-/** What a recipient reads: the HTML with every tag (and its attributes) removed. */
-function visibleText(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-}
 
 test("formatConnectionAcceptedEmail has one link, to the Friends page, and never says slot", () => {
   const { html } = formatConnectionAcceptedEmail({

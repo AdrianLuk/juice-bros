@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import {
   MAX_BOOKING_WINDOW_DAYS_BEFORE,
   MIN_BOOKING_WINDOW_DAYS_BEFORE,
@@ -108,11 +110,6 @@ test("formatBookingReminderEmail carries the org, the slot's own time, and a lin
   assert.match(html, /Sat, Jan 1 at 9:00 AM/);
   assert.match(html, /https:\/\/example\.com\/booking-buddy\/slots\/abc/);
 });
-
-/** What a recipient reads: the HTML with every tag (and its attributes) removed. */
-function visibleText(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-}
 
 test("formatBookingReminderEmail leads with bookings opening, then names the game's time", () => {
   const { html } = formatBookingReminderEmail({

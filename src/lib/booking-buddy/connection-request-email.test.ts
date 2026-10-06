@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { visibleText } from "./email-test-text.ts";
+
 import {
   formatConnectionRequestEmail,
   parseConnectionRequestAction,
@@ -64,11 +66,6 @@ test("formatConnectionRequestEmail escapes an ampersand in a link", () => {
 
   assert.match(html, /a=accept&amp;ref=email/);
 });
-
-/** What a recipient reads: the HTML with every tag (and its attributes) removed. */
-function visibleText(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-}
 
 test("formatConnectionRequestEmail offers exactly Accept and Decline, and never says slot", () => {
   const { html } = formatConnectionRequestEmail({
