@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { BbPageHeading } from "@/components/booking-buddy/bb/page-heading";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   DeleteSlotButton,
   NotesForm,
@@ -23,6 +25,11 @@ import {
 } from "@/lib/booking-buddy/standing-game-skips";
 import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { standingGamePath } from "@/lib/booking-buddy/routes";
+import {
+  makeWeeklyHref,
+  weeklyPrefillFromSlot,
+} from "@/lib/booking-buddy/make-weekly";
+import { WEEKDAY_NAMES } from "@/lib/booking-buddy/standing-games";
 import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
@@ -59,6 +66,8 @@ export default async function SlotDetailPage({
     ownedOrgs,
     notes,
     standingGameId,
+    proposedEnd,
+    timeZone,
   } = detail;
   const [slotLink, courtMatches] = await Promise.all([
     isOwner ? getSlotLink(slot.id) : null,
@@ -73,6 +82,25 @@ export default async function SlotDetailPage({
       .length,
     { started: gameStarted },
   );
+  // "Make this weekly" (#581): only on the organizer's own one-off game. It
+  // links to Post a game prefilled from this game; this game stays as it is.
+  const weeklyPrefill =
+    isOwner && !standingGameId
+      ? weeklyPrefillFromSlot(
+          {
+            proposedStart: slot.proposedStart,
+            proposedEnd,
+            timeZone,
+            division: capacity.division,
+            intendedOrgId,
+            notes,
+            rotationBuffer: capacity.rotationBuffer,
+            reminderOffsetMinutes,
+          },
+          responses,
+          session.userId,
+        )
+      : null;
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
@@ -200,6 +228,29 @@ export default async function SlotDetailPage({
                     when={slot.when}
                     notice={skipNotice}
                   />
+                </div>
+              </section>
+            )}
+            {weeklyPrefill && (
+              <section>
+                <h2 className="bb-h text-[1.05rem]">Make this weekly</h2>
+                <div className="bb-card mt-4 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Want this game every{" "}
+                    {WEEKDAY_NAMES[weeklyPrefill.weekday]}? Set it up as a
+                    weekly game, with the friends who said yes already picked
+                    as regulars. This game stays as it is.
+                  </p>
+                  {/* A link styled as a button: it navigates, it doesn't act. */}
+                  <Link
+                    href={makeWeeklyHref(weeklyPrefill)}
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "shrink-0 no-underline",
+                    )}
+                  >
+                    Make this weekly
+                  </Link>
                 </div>
               </section>
             )}
