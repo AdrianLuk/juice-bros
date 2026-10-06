@@ -139,6 +139,18 @@ test("photoSetAddress tells the same occasion apart across years", () => {
   assert.notEqual(photoSetAddress(thisYear), photoSetAddress(nextYear));
 });
 
+test("sets with different titles in the same year get different addresses", () => {
+  const sets = [
+    make({ title: "Creator Night", date: "2026-09-29" }),
+    make({ title: "The Admiral Cup", date: undefined, startDate: "2026-09-16", endDate: "2026-09-20" }),
+    make({ title: "Vaughan Fall Open", date: "2026-10-04" }),
+  ];
+
+  const addresses = buildGallery(sets).sets.map((set) => set.address);
+
+  assert.equal(new Set(addresses).size, sets.length);
+});
+
 test("buildGallery gives every set its section address", () => {
   const set = make({ title: "Creator Night", date: "2026-09-29" });
 

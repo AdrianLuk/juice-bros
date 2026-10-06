@@ -110,8 +110,9 @@ export const IMAGE_MANIFEST = {
   //
   // Every one of them is also a Photo on /photos (content/photo-sets.ts).
   // There, 640 and 960 are the grid widths (a tile is at most ~34rem wide)
-  // and the largest width is the lightbox's: 1600, or the master's own width
-  // where the master is narrower than that.
+  // and the largest width is the lightbox's: 1600 for the 1600px and 2000px
+  // wide masters, 1280 for the 1333px wide portraits (as near their full
+  // width as the existing 1280 step gets).
   "/pictures/creator-night-adrian-daven-net-handshake.jpg": {
     width: 1600,
     height: 2000,

@@ -100,7 +100,7 @@ export function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative rounded-full px-2.5 py-2 text-sm lg:px-4 font-medium text-white/70 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white",
+                    "relative rounded-full px-2.5 py-2 text-sm font-medium text-white/70 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white lg:px-4",
                     active && "text-white"
                   )}
                 >
