@@ -567,6 +567,9 @@ export async function attachBookingToSlot(
   }
 
   revalidatePath(slotPath(slotId));
+  // The Games page's Weekly games row offers this attach too (#582), and its
+  // rows show the court count, so it refreshes as well.
+  revalidatePath(SLOTS_PATH);
   return { ok: true };
 }
 
@@ -601,6 +604,7 @@ export async function detachBookingFromSlot(
   }
 
   revalidatePath(slotPath(slotId));
+  revalidatePath(SLOTS_PATH);
   return { ok: true };
 }
 

@@ -13,6 +13,8 @@ import { listFriendsLookingToPlay } from "@/lib/booking-buddy/actions/looking";
 import { listOrgs } from "@/lib/booking-buddy/actions/orgs";
 import { listStandingGames } from "@/lib/booking-buddy/actions/standing-games";
 import { WeeklyGameRow } from "@/components/booking-buddy/standing-games";
+import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
+import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
 export const metadata: Metadata = pageMetadata({
@@ -36,12 +38,14 @@ export default async function SlotsPage({
     lookingWindows,
     orgs,
     standingGames,
+    courtMatches,
     { date, start, end },
   ] = await Promise.all([
     listSlots(),
     listFriendsLookingToPlay(),
     listOrgs(),
     listStandingGames(),
+    listCourtMatches(),
     searchParams,
   ]);
   // Just a shape check — a genuinely past date is caught by the form's own
@@ -74,9 +78,22 @@ export default async function SlotsPage({
               <section>
                 <h2 className="bb-h text-[1.05rem]">Weekly games</h2>
                 <ul className="mt-4 flex flex-col gap-5">
-                  {standingGames.map((game) => (
-                    <WeeklyGameRow key={game.id} game={game} />
-                  ))}
+                  {standingGames.map((game) => {
+                    const matches = courtMatches.filter(
+                      (match) => match.standingGameId === game.id,
+                    );
+                    return (
+                      <WeeklyGameRow
+                        key={game.id}
+                        game={game}
+                        notice={
+                          matches.length > 0 ? (
+                            <CourtSuggestions matches={matches} showGameDay />
+                          ) : undefined
+                        }
+                      />
+                    );
+                  })}
                 </ul>
               </section>
             )}

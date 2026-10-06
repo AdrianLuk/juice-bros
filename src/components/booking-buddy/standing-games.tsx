@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -63,10 +63,18 @@ function shortDay(when: string): string {
 /**
  * One Standing Game in the Weekly games section: its day and hours, where,
  * and the next game it has posted. Opens the Standing Game's own page.
+ * `notice` sits under the card, outside its link, for a to-do with its own
+ * button (#582's "Attach your court?").
  */
-export function WeeklyGameRow({ game }: { game: StandingGameSummary }) {
+export function WeeklyGameRow({
+  game,
+  notice,
+}: {
+  game: StandingGameSummary;
+  notice?: ReactNode;
+}) {
   return (
-    <li>
+    <li className="flex flex-col gap-3">
       <BoardCard
         as={Link}
         href={standingGamePath(game.id)}
@@ -91,6 +99,8 @@ export function WeeklyGameRow({ game }: { game: StandingGameSummary }) {
           </div>
         </div>
       </BoardCard>
+      {/* Indented so it reads as this row's, not the next row. */}
+      {notice && <div className="ml-4 sm:ml-8">{notice}</div>}
     </li>
   );
 }
