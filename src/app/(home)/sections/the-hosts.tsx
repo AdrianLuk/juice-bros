@@ -31,16 +31,20 @@ export function TheHosts() {
       {/* The photograph belongs here in this variant. The hero above runs the
           brand banner rather than the on-court shot, so this is the only place
           the two of them appear on Home. It is a different shot from About's
-          on purpose: the two of them at the net mid-tournament, which is the
-          "rec players" claim shown rather than said. */}
+          on purpose: the one posed photo of the two of them together, at a
+          tournament they entered on a whim, so the section introducing them by
+          name shows their faces. Square rather than the photo's 3:4: that
+          trims the hall ceiling and lands the tile about level with the text
+          beside it. Capped at 26rem and centred below `lg`, so a tablet
+          doesn't get a full-width square taller than the screen. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-16">
-        <figure className="bx-tile aspect-7/6">
+        <figure className="bx-tile mx-auto aspect-square w-full max-w-[26rem]">
           <Picture
-            src="/pictures/adrian-dav-at-net-crowd.jpg"
-            alt="Daven and Adrian at the net in matching Juice Bros shirts, paddles up"
-            sizes="(min-width: 1024px) 26rem, 100vw"
+            src="/pictures/vaughan-fall-open-adrian-daven-posed-thumbs-up.jpg"
+            alt="Adrian and Daven in matching Juice Bros shirts, Daven's arm around Adrian's shoulders, both giving a thumbs up"
+            sizes="(min-width: 448px) 26rem, 100vw"
             loading="lazy"
-            className="object-center"
+            className="object-[50%_75%]"
           />
         </figure>
 
