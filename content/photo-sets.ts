@@ -120,3 +120,13 @@ export const photoSets: PhotoSet[] = [
     ],
   },
 ];
+
+// Photos whose occasion nobody can name (see Loose Photo in CONTEXT.md). Newest
+// added at the top: the page shows them in the order written. Once a photo's
+// occasion is worked out, move it into that occasion's set.
+export const loosePhotos: Photo[] = [
+  {
+    src: "/pictures/adrian-dav.jpg",
+    alt: "Daven and Adrian courtside, mid-match",
+  },
+];

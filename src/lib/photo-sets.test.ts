@@ -3,6 +3,7 @@ import test from "node:test";
 
 import type { Photo, PhotoSet } from "../../content/photo-sets.ts";
 import {
+  LOOSE_PHOTOS_ADDRESS,
   buildGallery,
   photoSetAddress,
   photoSetFor,
@@ -106,7 +107,7 @@ test("a set's photos carry the same position as in the flat list", () => {
   for (const set of gallery.sets) {
     for (const photo of set.photos) {
       assert.equal(gallery.photos[photo.index], photo);
-      assert.equal(photo.setAddress, set.address);
+      assert.equal(photo.sectionAddress, set.address);
     }
   }
 });
@@ -201,4 +202,44 @@ test("photoSetHrefsByAppearance maps only the Appearances that have a set", () =
   );
 
   assert.deepEqual(hrefs, { "APA - The Admiral Cup": "/photos#the-admiral-cup-2026" });
+});
+
+test("Loose Photos come after every set, in written order (newest is written first)", () => {
+  const night = make({ title: "Night", date: "2026-09-29", photos: photos("night", 2) });
+  const loose = photos("loose", 3);
+  const expected = ["/pictures/loose-1.jpg", "/pictures/loose-2.jpg", "/pictures/loose-3.jpg"];
+
+  const gallery = buildGallery([night], loose);
+
+  assert.deepEqual(gallery.loose?.photos.map((photo) => photo.src), expected);
+  assert.deepEqual(gallery.photos.map((photo) => photo.src).slice(-3), expected);
+});
+
+test("Loose Photos carry their place in the flat list and their own section", () => {
+  const night = make({ title: "Night", date: "2026-09-29", photos: photos("night", 2) });
+
+  const gallery = buildGallery([night], photos("loose", 2));
+
+  assert.equal(gallery.loose?.address, LOOSE_PHOTOS_ADDRESS);
+  for (const photo of gallery.loose?.photos ?? []) {
+    assert.equal(gallery.photos[photo.index], photo);
+    assert.equal(photo.sectionAddress, LOOSE_PHOTOS_ADDRESS);
+  }
+  assert.deepEqual(
+    gallery.loose?.photos.map((photo) => photo.index),
+    [2, 3],
+  );
+});
+
+test("with no Loose Photos there is no Loose Photos section", () => {
+  const night = make({ title: "Night" });
+
+  assert.equal(buildGallery([night], []).loose, null);
+  assert.equal(buildGallery([night]).loose, null);
+});
+
+test("the Loose Photos address can't collide with a set's", () => {
+  const set = make({ title: "Loose Photos", date: "2026-09-01" });
+
+  assert.notEqual(photoSetAddress(set), LOOSE_PHOTOS_ADDRESS);
 });
