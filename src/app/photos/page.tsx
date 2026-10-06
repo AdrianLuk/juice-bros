@@ -10,6 +10,7 @@ import {
   type PhotoSetView,
 } from "@/lib/photo-sets";
 import { PageHead } from "@/components/bx/page-head";
+import { PhotoLightbox } from "@/components/photo-lightbox";
 import { PhotoRows } from "@/components/photo-rows";
 
 export const metadata: Metadata = pageMetadata({
@@ -37,14 +38,17 @@ export default function PhotosPage() {
         lead="Whenever someone points a camera at us at an event, the good ones end up here. Newest first."
       />
 
-      <div className="bx-measure pb-6">
-        {gallery.sets.map((set, index) => (
-          <PhotoSetSection key={set.address} set={set} first={index === 0} />
-        ))}
-        {gallery.loose && (
-          <LoosePhotosSection loose={gallery.loose} first={gallery.sets.length === 0} />
-        )}
-      </div>
+      {/* One lightbox for the whole page, so it steps across every section. */}
+      <PhotoLightbox photos={gallery.photos}>
+        <div className="bx-measure pb-6">
+          {gallery.sets.map((set, index) => (
+            <PhotoSetSection key={set.address} set={set} first={index === 0} />
+          ))}
+          {gallery.loose && (
+            <LoosePhotosSection loose={gallery.loose} first={gallery.sets.length === 0} />
+          )}
+        </div>
+      </PhotoLightbox>
     </div>
   );
 }
@@ -83,7 +87,7 @@ function GallerySection({
       </h2>
       {children}
 
-      <PhotoRows photos={photos} eager={first} className="mt-8" />
+      <PhotoRows photos={photos} eager={first} linked className="mt-8" />
     </section>
   );
 }
