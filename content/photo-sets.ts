@@ -42,7 +42,7 @@ export const photoSets: PhotoSet[] = [
     title: "Creator Night at The Backyard Club",
     date: "2026-09-29",
     venue: "The Backyard Club, Vaughan, ON",
-    note: "The same courts we're back on for The Backyard Club Open on Nov 14.",
+    note: "An evening of games with other pickleball creators, and a lot of phones out.",
     photos: [
       {
         src: "/pictures/creator-night-adrian-backhand-daven-watching.jpg",

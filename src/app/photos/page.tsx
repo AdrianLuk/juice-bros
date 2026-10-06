@@ -9,7 +9,7 @@ import { PhotoRows } from "@/components/photo-rows";
 export const metadata: Metadata = pageMetadata({
   title: "Photos",
   description:
-    "Photos of Juice Bros hosts Adrian and Daven on court, grouped by event with the newest first.",
+    "Photos of Juice Bros hosts Adrian and Daven playing pickleball, sorted by event with the newest first.",
   path: "/photos",
 });
 
@@ -26,9 +26,9 @@ export default function PhotosPage() {
   return (
     <div className="flex w-full flex-1 flex-col">
       <PageHead
-        title="What we look like on court"
+        title="Proof we actually play"
         meta={`${gallery.photos.length} photos`}
-        lead="Photos from the courts we've turned up to, newest event at the top. Most of them catch one of us mid-swing."
+        lead="Every event we've got photos from, newest at the top. Mostly mid-swing, plus a few where somebody told us to smile."
       />
 
       <div className="bx-measure pb-6">
