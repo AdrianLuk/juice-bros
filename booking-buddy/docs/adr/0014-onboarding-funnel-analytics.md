@@ -57,3 +57,21 @@ request time, and it is not a security boundary (migration
   segmented by intent; every other step is live.
 - The read itself is a manual activity in the Vercel Analytics console — see
   `booking-buddy/docs/onboarding-funnel.md`. No dashboard UI (explicitly out of scope).
+
+## Amendment (spec #576, 2026-10-06)
+
+Not every Funnel Event has to be a 0→1. A **per-occurrence** Funnel Event, one that fires
+each time something happens rather than once per User, is allowed when it carries no PII
+and the question it answers is about volume or retention rather than a User's first step.
+Spec #576 (Standing Games) adds two:
+
+- `bb_standing_game_week_posted`, once per week a Standing Game posts, from every path
+  that posts one (the daily cron, creating a Standing Game, putting a skipped week back
+  on), with `{ week }`: the nth week posted for that Standing Game, counted from its
+  `standing_game_weeks` rows that have a Slot. It answers "do Standing Games keep running
+  past week 3".
+- `bb_weekly_invite_answered`, once per answer confirmed from a Weekly Invite link, with
+  `{ answer }` (yes / no / maybe) and nothing else.
+
+Both still fire server-side from `after()` through `trackFunnelEvent`. The 0→1 events
+above keep their count gate; `bb_first_standing_game` is one of those.

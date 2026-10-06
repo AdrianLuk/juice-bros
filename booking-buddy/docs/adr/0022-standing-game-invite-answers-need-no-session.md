@@ -14,3 +14,13 @@ The link also opens that one Slot to its Regular regardless of Visibility, the s
 
 - **A "View the game" button behind sign-in.** Safest, and the drop-off point we are trying to remove.
 - **A link that answers on GET.** One tap fewer, but mail scanners follow links, so Regulars would find themselves marked "yes" to games they never opened.
+
+## Amendment (spec #576 review, 2026-10-06)
+
+"Usable until the Slot starts" is the longest a token lives, not a promise. It also dies
+the moment its Regular stops being the organizer's Connection, or is taken off the
+Standing Game's Regulars list (`read_weekly_invite`, migration `20261006160000`). Without
+the second rule, an un-ticked Regular's old link still answered, and a yes through it put
+them back on the list by way of the yes-joins-Regulars trigger, undoing the organizer's
+removal. The dead link gets the same friendly "This link isn't working" page as an
+unknown token.

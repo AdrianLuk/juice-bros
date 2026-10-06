@@ -6,6 +6,8 @@ import {
   addHoursToTime,
   crossesMidnight,
   formatDateLabel,
+  formatShortDateLabel,
+  hourSpan,
   formatInstantDateAndTime,
   formatInstantRange,
   formatCompactTimeRangeFromMs,
@@ -16,6 +18,7 @@ import {
   isRealDate,
   nextCalendarDate,
   previousCalendarDate,
+  shiftCalendarDate,
   todayInZone,
 } from "./datetime.ts";
 
@@ -185,4 +188,24 @@ test("formatInstantRange joins formatInstantDateAndTime's own date and time with
     formatInstantRange(args),
     `${formatInstantDateAndTime(args).date} · ${formatInstantDateAndTime(args).time}`,
   );
+});
+
+test("shiftCalendarDate moves a date by whole days, across months and years", () => {
+  assert.equal(shiftCalendarDate("2026-12-29", 7), "2027-01-05");
+  assert.equal(shiftCalendarDate("2026-03-01", -1), "2026-02-28");
+  assert.equal(shiftCalendarDate("2026-10-20", 0), "2026-10-20");
+});
+
+test("hourSpan counts the hours of a game, wrapping once past midnight", () => {
+  assert.equal(hourSpan(20, 22), 2);
+  assert.equal(hourSpan(21, 1), 4);
+  assert.equal(hourSpan(23, 0), 1);
+  // Same start and end is a whole day, never zero.
+  assert.equal(hourSpan(8, 8), 24);
+});
+
+test("formatShortDateLabel reads a calendar date the way a game's day is written", () => {
+  assert.equal(formatShortDateLabel("2026-10-20"), "Tue, Oct 20");
+  assert.equal(formatShortDateLabel("2026-12-29"), "Tue, Dec 29");
+  assert.equal(formatShortDateLabel("2027-01-03"), "Sun, Jan 3");
 });

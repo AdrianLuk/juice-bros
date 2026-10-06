@@ -6,6 +6,8 @@
  * each carrying their own copy.
  */
 
+import type { ResponseAnswer } from "./responses.ts";
+
 export const BOOKING_BUDDY_ROOT = "/booking-buddy";
 
 export const SIGN_IN_PATH = `${BOOKING_BUDDY_ROOT}/sign-in`;
@@ -53,6 +55,14 @@ export function proposeGameHref(prefill: {
 
 export function slotPath(slotId: string): string {
   return `${SLOTS_PATH}/${slotId}`;
+}
+
+/**
+ * A Standing Game's own page (issue #577), under Games so the Plan section
+ * stays lit. `weekly` is a static segment, so it wins over `slots/[id]`.
+ */
+export function standingGamePath(standingGameId: string): string {
+  return `${SLOTS_PATH}/weekly/${standingGameId}`;
 }
 
 /**
@@ -215,6 +225,23 @@ export function connectLinkPath(
 ): string {
   const base = `${CONNECT_LINK_ROOT}/${token}`;
   return action ? `${base}?a=${action}` : base;
+}
+
+/**
+ * A Weekly Invite's answer link (issue #580, ADR 0022): `/answer/<token>`,
+ * where the token is a `weekly_invite_links` row scoped to one Regular and one
+ * Slot. Outside `BOOKING_BUDDY_ROOT` like `/s` and `/connect`, so it opens
+ * signed in or not. `answer` only preselects a choice on the page; the page
+ * never writes until its form is submitted.
+ */
+export const WEEKLY_INVITE_ANSWER_ROOT = "/answer";
+
+export function weeklyInviteAnswerPath(
+  token: string,
+  answer?: ResponseAnswer,
+): string {
+  const base = `${WEEKLY_INVITE_ANSWER_ROOT}/${token}`;
+  return answer ? `${base}?a=${answer}` : base;
 }
 
 /**

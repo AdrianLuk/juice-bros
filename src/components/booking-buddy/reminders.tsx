@@ -114,8 +114,9 @@ function PreferenceCheckbox({
 /**
  * The signed-in User's own email notification opt-ins — the Settings page's
  * "Notifications" card. Every toggle (the attendee Reminder from issue #11, the
- * Booking Window Reminder from #36, the friend-request email from #228, and the
- * "request accepted" email) is an independent preference with its own column,
+ * Booking Window Reminder from #36, the friend-request email from #228, the
+ * "request accepted" email, and the Weekly Invite from #579, which covers push
+ * too) is an independent preference with its own column,
  * but they share one Save button: the form submits every checkbox's current
  * state on each save, so flipping one and saving leaves the others exactly as
  * they sit.
@@ -158,6 +159,12 @@ export function NotificationPreferencesForm({
           name="connection_accepted_email_enabled"
           defaultChecked={preferences.connectionAcceptedEmailEnabled}
           label="Email me when someone accepts a friend request I sent, so I know we're connected"
+        />
+        <PreferenceCheckbox
+          id="weekly-invite-enabled"
+          name="weekly_invite_enabled"
+          defaultChecked={preferences.weeklyInviteEnabled}
+          label="Weekly game invites: tell me when a weekly game I'm a regular in goes up (by email, and push if it's on)"
         />
       </div>
 

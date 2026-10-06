@@ -132,6 +132,7 @@ export async function resetNotificationPreferences(user: FixtureUser): Promise<v
       booking_window_email_enabled: true,
       connection_request_email_enabled: true,
       connection_accepted_email_enabled: true,
+      weekly_invite_enabled: true,
     }),
   });
 }

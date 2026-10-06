@@ -33,6 +33,7 @@ import {
   formatCourtLabel,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
+import { hourSpan } from "@/lib/booking-buddy/datetime";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -44,6 +45,13 @@ import {
 } from "@/lib/booking-buddy/capacity";
 import { SpotsMeter } from "@/components/booking-buddy/spots-meter";
 import { BoardCard } from "@/components/booking-buddy/bb/board-card";
+import { RepeatsChip } from "@/components/booking-buddy/repeats-chip";
+import { RegularsPicker } from "@/components/booking-buddy/regulars-picker";
+import type { RegularChoices } from "@/lib/booking-buddy/regulars";
+import {
+  SOURCE_SLOT_FIELD,
+  type WeeklyPrefill,
+} from "@/lib/booking-buddy/make-weekly";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   DEFAULT_DIVISION,
@@ -52,7 +60,10 @@ import {
 } from "@/lib/booking-buddy/division";
 import { NOTES_MAX_LENGTH } from "@/lib/booking-buddy/slots";
 import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
-import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
+import {
+  RESPONSE_ANSWER_LABEL,
+  type ResponseAnswer,
+} from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   attachBookingToSlot,
@@ -69,10 +80,16 @@ import {
   type SlotResponses,
 } from "@/lib/booking-buddy/actions/slots";
 import { respondToSlot } from "@/lib/booking-buddy/actions/responses";
+import { createStandingGame } from "@/lib/booking-buddy/actions/standing-games";
+import {
+  WEEKDAY_NAMES,
+  everyWeekdayLabel,
+  weekdayOfDate,
+} from "@/lib/booking-buddy/standing-games";
 
 const EMPTY: ActionResult = {};
 
-function HourTimeSelect({
+export function HourTimeSelect({
   id,
   name,
   ...props
@@ -93,6 +110,29 @@ function HourTimeSelect({
 
 const DEFAULT_START_TIME = "20:00";
 
+/** The day "Repeats weekly" starts on when nothing seeds one: Tuesday (0 is Sunday). */
+const DEFAULT_WEEKLY_WEEKDAY = 2;
+
+/** The day a weekly game repeats on, Sunday first to match `weekday`'s 0–6. */
+export function WeekdaySelect({
+  id,
+  name = "weekday",
+  ...props
+}: { id: string; name?: string } & Omit<
+  React.ComponentProps<"select">,
+  "id" | "name" | "children"
+>) {
+  return (
+    <FormSelect id={id} name={name} required {...props}>
+      {WEEKDAY_NAMES.map((dayName, index) => (
+        <option key={dayName} value={index}>
+          {dayName}
+        </option>
+      ))}
+    </FormSelect>
+  );
+}
+
 /**
  * The Duration to seed from a deep link's start/end pair — the span between
  * them, but only when both are on the hour and it's a sensible single-game
@@ -110,9 +150,10 @@ function initialDurationHours(
   ) {
     return DEFAULT_DURATION_HOURS;
   }
-  const hours =
-    (Number(endTime.slice(0, 2)) - Number(startTime.slice(0, 2)) + 24) % 24 ||
-    24;
+  const hours = hourSpan(
+    Number(startTime.slice(0, 2)),
+    Number(endTime.slice(0, 2)),
+  );
   return hours >= 1 && hours <= 3 ? hours : DEFAULT_DURATION_HOURS;
 }
 
@@ -121,6 +162,8 @@ export function CreateSlotForm({
   defaultDate,
   defaultStartTime,
   defaultEndTime,
+  regularChoices,
+  weekly,
   onPosted,
 }: {
   orgs: Org[];
@@ -130,24 +173,55 @@ export function CreateSlotForm({
   defaultStartTime?: string;
   /** Pre-fills the Duration to match a free window's length (#272). Ignored unless it's an on-the-hour `"HH:00"` 1–3 hours past the start. */
   defaultEndTime?: string;
+  /** The organizer's friends and Friend Groups for the Regulars picker under "Repeats weekly" (#579). Without it the picker isn't shown. */
+  regularChoices?: RegularChoices;
+  /**
+   * "Make this weekly" (#581): opens with "Repeats weekly" ticked and every
+   * field, the Regulars included, seeded from an existing game. Wins over the
+   * date and time defaults. Like them it's read only at mount, so the caller
+   * keys the form on it.
+   */
+  weekly?: WeeklyPrefill;
   /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
   onPosted?: (slotId: string) => void;
 }) {
+  // "Repeats weekly" (issue #577) sends the same form to `createStandingGame`
+  // instead, which posts this week's game itself and leaves the rest to the
+  // daily cron.
   const [state, formAction, pending] = useActionState<
     CreateSlotResult,
     FormData
-  >(createSlot, EMPTY);
-  const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
+  >(
+    (prev, formData) =>
+      formData.get("repeats_weekly")
+        ? createStandingGame(prev, formData)
+        : createSlot(prev, formData),
+    EMPTY,
+  );
+  const [repeats, setRepeats] = useState(weekly !== undefined);
+  const [weekday, setWeekday] = useState(
+    weekly?.weekday ?? DEFAULT_WEEKLY_WEEKDAY,
+  );
+  const defaultOrgId = weekly
+    ? (weekly.orgId ?? "")
+    : (orgs.find((org) => org.isDefault)?.id ?? "");
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, same as the Booking form's own duration picker.
-  const initialStartTime =
-    defaultStartTime && HOUR_TIMES.includes(defaultStartTime)
+  const initialStartTime = weekly
+    ? weekly.startTime
+    : defaultStartTime && HOUR_TIMES.includes(defaultStartTime)
       ? defaultStartTime
       : DEFAULT_START_TIME;
   const duration = useDurationInput(
     initialStartTime,
-    initialDurationHours(initialStartTime, defaultEndTime),
+    weekly
+      ? // The game's own length, however long: past 3 hours it's a custom one.
+        hourSpan(
+          Number(weekly.startTime.slice(0, 2)),
+          Number(weekly.endTime.slice(0, 2)),
+        )
+      : initialDurationHours(initialStartTime, defaultEndTime),
   );
   const dateInput = useDateField(defaultDate ?? "");
 
@@ -159,16 +233,68 @@ export function CreateSlotForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label htmlFor="slot-date">Date</Label>
-          <DateField
-            id="slot-date"
-            name="date"
-            value={dateInput.date}
-            onChange={dateInput.setDate}
+      <div className="flex flex-col gap-1">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="repeats_weekly"
+            checked={repeats}
+            onChange={(event) => {
+              const checked = event.target.checked;
+              if (checked) {
+                // Starts on the day already picked, or today's.
+                setWeekday(
+                  dateInput.date
+                    ? weekdayOfDate(dateInput.date)
+                    : new Date().getDay(),
+                );
+              }
+              setRepeats(checked);
+            }}
+            className="h-5 w-5 rounded border-input accent-primary"
           />
-        </div>
+          Repeats weekly
+        </label>
+        {repeats && (
+          <p className="text-xs text-muted-foreground">
+            The next {WEEKDAY_NAMES[weekday]} game posts now. After that each
+            week&apos;s game goes up a week ahead, or earlier if your facility
+            opens bookings sooner. Friends see it marked{" "}
+            {everyWeekdayLabel(weekday)}.
+          </p>
+        )}
+        {repeats && regularChoices && (
+          <div className="mt-3">
+            <RegularsPicker
+              choices={regularChoices}
+              initialRegularIds={weekly?.regularIds}
+              idPrefix="post"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {repeats ? (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <Label htmlFor="slot-weekday">Day</Label>
+            <WeekdaySelect
+              id="slot-weekday"
+              value={weekday}
+              onChange={(event) => setWeekday(Number(event.target.value))}
+            />
+          </div>
+        ) : (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <Label htmlFor="slot-date">Date</Label>
+            <DateField
+              id="slot-date"
+              name="date"
+              value={dateInput.date}
+              onChange={dateInput.setDate}
+            />
+          </div>
+        )}
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor="slot-start">Start</Label>
@@ -234,7 +360,7 @@ export function CreateSlotForm({
           <FormSelect
             id="slot-division"
             name="division"
-            defaultValue={DEFAULT_DIVISION}
+            defaultValue={weekly?.division ?? DEFAULT_DIVISION}
           >
             {DIVISIONS.map((division) => (
               <option key={division} value={division}>
@@ -273,15 +399,44 @@ export function CreateSlotForm({
           name="notes"
           placeholder="Need 2 more players, bring your own paddle…"
           maxLength={NOTES_MAX_LENGTH}
+          defaultValue={weekly?.notes ?? undefined}
         />
       </div>
+
+      {/* This form has no fields for these. A weekly game made from an
+          existing one keeps that game's, instead of the Slot defaults. */}
+      {repeats && weekly && (
+        <>
+          <input
+            type="hidden"
+            name="rotation_buffer"
+            value={weekly.rotationBuffer}
+          />
+          <input
+            type="hidden"
+            name="reminder_offset_minutes"
+            value={weekly.reminderOffsetMinutes}
+          />
+          {weekly.sourceSlotId && (
+            <input
+              type="hidden"
+              name={SOURCE_SLOT_FIELD}
+              value={weekly.sourceSlotId}
+            />
+          )}
+        </>
+      )}
 
       <div className="flex flex-col items-end gap-1">
         <Button
           type="submit"
-          disabled={pending || duration.endTime === null || !dateInput.date}
+          disabled={
+            pending ||
+            duration.endTime === null ||
+            (!repeats && !dateInput.date)
+          }
         >
-          {pending ? "Posting…" : "Post game"}
+          {pending ? "Posting…" : repeats ? "Post weekly game" : "Post game"}
         </Button>
         <ActionError state={state} />
       </div>
@@ -337,18 +492,15 @@ export function SlotRow({ slot, href }: { slot: Slot; href: string }) {
               Proposed by {slot.ownerName}
             </p>
           </div>
-          <SlotStatusBadge courtCount={slot.courtCount} />
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <SlotStatusBadge courtCount={slot.courtCount} />
+            {slot.repeatsLabel && <RepeatsChip label={slot.repeatsLabel} />}
+          </div>
         </div>
       </BoardCard>
     </li>
   );
 }
-
-const ANSWER_LABEL: Record<ResponseAnswer, string> = {
-  yes: "Yes",
-  no: "No",
-  maybe: "Maybe",
-};
 
 const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
 
@@ -493,7 +645,7 @@ export function ResponseButtons({
             }}
             onAnimationEnd={() => setPressed((c) => (c === answer ? null : c))}
           >
-            {ANSWER_LABEL[answer]}
+            {RESPONSE_ANSWER_LABEL[answer]}
           </Button>
         ))}
       </div>
@@ -528,7 +680,7 @@ export function ResponseButtons({
               </span>
             ) : (
               <span className="text-muted-foreground">
-                {ANSWER_LABEL[response.answer]}
+                {RESPONSE_ANSWER_LABEL[response.answer]}
               </span>
             )}
           </li>

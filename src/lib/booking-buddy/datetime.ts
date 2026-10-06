@@ -39,7 +39,7 @@ export function isHourTime(time: string): boolean {
  * own round-trip check, since this is calendar-day arithmetic on a date-only
  * string, not an instant.
  */
-function shiftCalendarDate(date: string, deltaDays: number): string {
+export function shiftCalendarDate(date: string, deltaDays: number): string {
   const parsed = new Date(`${date}T00:00:00Z`);
   parsed.setUTCDate(parsed.getUTCDate() + deltaDays);
   return parsed.toISOString().slice(0, 10);
@@ -82,6 +82,28 @@ export function formatDateLabel(date: string): string {
   const weekday = WEEKDAYS_SHORT[parsed.getUTCDay()];
   const month = MONTHS_SHORT[parsed.getUTCMonth()];
   return `${weekday} ${month} ${day}, ${year}`;
+}
+
+/**
+ * `"2026-10-20"` → `"Tue, Oct 20"`: a game's day without its year, the way the
+ * Weekly games row, the skip controls, court suggestions and the "it's off"
+ * email write it. For an instant, pass its calendar date in the game's own
+ * zone (`todayInZone(timeZone, new Date(proposedStart))`).
+ */
+export function formatShortDateLabel(date: string): string {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  const weekday = WEEKDAYS_SHORT[parsed.getUTCDay()];
+  const month = MONTHS_SHORT[parsed.getUTCMonth()];
+  return `${weekday}, ${month} ${parsed.getUTCDate()}`;
+}
+
+/**
+ * How many hours a game from `startHour` to `endHour` (0–23) runs. An end at
+ * or before the start is the next day, as for any game, so `21 → 1` is 4 and
+ * the same hour both ends is a whole day, never zero.
+ */
+export function hourSpan(startHour: number, endHour: number): number {
+  return (endHour - startHour + 24) % 24 || 24;
 }
 
 /** "Today" as a `YYYY-MM-DD` string in `zone`, at instant `now` — `en-CA` happens to format that way natively. */
