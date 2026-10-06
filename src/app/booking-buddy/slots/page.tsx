@@ -18,6 +18,10 @@ import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
+import {
+  parseWeeklyPrefill,
+  weeklyPrefillKey,
+} from "@/lib/booking-buddy/make-weekly";
 export const metadata: Metadata = pageMetadata({
   title: "Games",
   description:
@@ -28,8 +32,9 @@ export default async function SlotsPage({
   searchParams,
 }: {
   // "Find a time" (#195) and "Friends looking to play" (#230) deep-link here
-  // with a free window to prefill.
-  searchParams: Promise<{ date?: string; start?: string; end?: string }>;
+  // with a free window to prefill; "Make this weekly" (#581) with a whole
+  // weekly game (`weekly=1`, see make-weekly.ts).
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
@@ -41,7 +46,7 @@ export default async function SlotsPage({
     standingGames,
     courtMatches,
     regularChoices,
-    { date, start, end },
+    params,
   ] = await Promise.all([
     listSlots(),
     listFriendsLookingToPlay(),
@@ -51,6 +56,13 @@ export default async function SlotsPage({
     getRegularChoices(),
     searchParams,
   ]);
+  const weeklyPrefill = parseWeeklyPrefill(params, {
+    orgIds: orgs.map((org) => org.id),
+    friendIds: regularChoices.friends.map((friend) => friend.userId),
+  });
+  const date = typeof params.date === "string" ? params.date : undefined;
+  const start = typeof params.start === "string" ? params.start : undefined;
+  const end = typeof params.end === "string" ? params.end : undefined;
   // Just a shape check — a genuinely past date is caught by the form's own
   // submit validation and the `slots_not_in_the_past` trigger, and the tighter
   // "is it past" check here would need a time zone the deep-link doesn't carry.
@@ -64,9 +76,11 @@ export default async function SlotsPage({
   // Empty on a plain visit; a stable signature of the deep link otherwise —
   // re-seeds the form and re-runs the scroll whenever a "Propose a game" click
   // changes the target, even when it only changes the query string.
-  const prefillKey = prefillDate
-    ? `${prefillDate}|${prefillStart ?? ""}|${prefillEnd ?? ""}`
-    : "";
+  const prefillKey = weeklyPrefill
+    ? weeklyPrefillKey(weeklyPrefill)
+    : prefillDate
+      ? `${prefillDate}|${prefillStart ?? ""}|${prefillEnd ?? ""}`
+      : "";
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
@@ -159,9 +173,10 @@ export default async function SlotsPage({
                 <CreateSlotForm
                   key={prefillKey}
                   orgs={orgs}
-                  defaultDate={prefillDate}
-                  defaultStartTime={prefillStart}
-                  defaultEndTime={prefillEnd}
+                  defaultDate={weeklyPrefill ? undefined : prefillDate}
+                  defaultStartTime={weeklyPrefill ? undefined : prefillStart}
+                  defaultEndTime={weeklyPrefill ? undefined : prefillEnd}
+                  weekly={weeklyPrefill ?? undefined}
                   regularChoices={regularChoices}
                 />
               </div>

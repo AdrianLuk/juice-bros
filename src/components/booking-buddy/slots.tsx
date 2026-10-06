@@ -47,6 +47,7 @@ import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { RepeatsChip } from "@/components/booking-buddy/repeats-chip";
 import { RegularsPicker } from "@/components/booking-buddy/regulars-picker";
 import type { RegularChoices } from "@/lib/booking-buddy/regulars";
+import type { WeeklyPrefill } from "@/lib/booking-buddy/make-weekly";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   DEFAULT_DIVISION,
@@ -151,7 +152,7 @@ export function CreateSlotForm({
   defaultStartTime,
   defaultEndTime,
   regularChoices,
-  initialRegularIds,
+  weekly,
   onPosted,
 }: {
   orgs: Org[];
@@ -163,8 +164,13 @@ export function CreateSlotForm({
   defaultEndTime?: string;
   /** The organizer's friends and Friend Groups for the Regulars picker under "Repeats weekly" (#579). Without it the picker isn't shown. */
   regularChoices?: RegularChoices;
-  /** Regulars ticked when the picker first shows, e.g. a game's yes answerers for "Make this weekly" (#581). */
-  initialRegularIds?: readonly string[];
+  /**
+   * "Make this weekly" (#581): opens with "Repeats weekly" ticked and every
+   * field, the Regulars included, seeded from an existing game. Wins over the
+   * date and time defaults. Like them it's read only at mount, so the caller
+   * keys the form on it.
+   */
+  weekly?: WeeklyPrefill;
   /** Called with the new Slot's id once it actually posts — e.g. to move the onboarding modal to its share step. */
   onPosted?: (slotId: string) => void;
 }) {
@@ -181,19 +187,28 @@ export function CreateSlotForm({
         : createSlot(prev, formData),
     EMPTY,
   );
-  const [repeats, setRepeats] = useState(false);
-  const [weekday, setWeekday] = useState(2);
-  const defaultOrgId = orgs.find((org) => org.isDefault)?.id ?? "";
+  const [repeats, setRepeats] = useState(weekly !== undefined);
+  const [weekday, setWeekday] = useState(weekly?.weekday ?? 2);
+  const defaultOrgId = weekly
+    ? (weekly.orgId ?? "")
+    : (orgs.find((org) => org.isDefault)?.id ?? "");
 
   // Start and Duration are controlled — the End field is computed from them
   // rather than picked, same as the Booking form's own duration picker.
-  const initialStartTime =
-    defaultStartTime && HOUR_TIMES.includes(defaultStartTime)
+  const initialStartTime = weekly
+    ? weekly.startTime
+    : defaultStartTime && HOUR_TIMES.includes(defaultStartTime)
       ? defaultStartTime
       : DEFAULT_START_TIME;
   const duration = useDurationInput(
     initialStartTime,
-    initialDurationHours(initialStartTime, defaultEndTime),
+    weekly
+      ? // The game's own length, however long: past 3 hours it's a custom one.
+        (Number(weekly.endTime.slice(0, 2)) -
+          Number(weekly.startTime.slice(0, 2)) +
+          24) %
+          24 || 24
+      : initialDurationHours(initialStartTime, defaultEndTime),
   );
   const dateInput = useDateField(defaultDate ?? "");
 
@@ -239,7 +254,7 @@ export function CreateSlotForm({
           <div className="mt-3">
             <RegularsPicker
               choices={regularChoices}
-              initialRegularIds={initialRegularIds}
+              initialRegularIds={weekly?.regularIds}
               idPrefix="post"
             />
           </div>
@@ -332,7 +347,7 @@ export function CreateSlotForm({
           <FormSelect
             id="slot-division"
             name="division"
-            defaultValue={DEFAULT_DIVISION}
+            defaultValue={weekly?.division ?? DEFAULT_DIVISION}
           >
             {DIVISIONS.map((division) => (
               <option key={division} value={division}>
@@ -371,8 +386,26 @@ export function CreateSlotForm({
           name="notes"
           placeholder="Need 2 more players, bring your own paddle…"
           maxLength={NOTES_MAX_LENGTH}
+          defaultValue={weekly?.notes ?? undefined}
         />
       </div>
+
+      {/* This form has no fields for these. A weekly game made from an
+          existing one keeps that game's, instead of the Slot defaults. */}
+      {repeats && weekly && (
+        <>
+          <input
+            type="hidden"
+            name="rotation_buffer"
+            value={weekly.rotationBuffer}
+          />
+          <input
+            type="hidden"
+            name="reminder_offset_minutes"
+            value={weekly.reminderOffsetMinutes}
+          />
+        </>
+      )}
 
       <div className="flex flex-col items-end gap-1">
         <Button

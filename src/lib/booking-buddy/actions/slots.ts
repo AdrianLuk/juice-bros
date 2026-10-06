@@ -126,6 +126,9 @@ export type SlotDetail = {
   notes: string | null;
   /** The Standing Game that posted this Slot, for the owner's link to it. Always `null` for a friend. */
   standingGameId: string | null;
+  /** The game's end and its own zone, for "Make this weekly" (#581) to read its weekday and hours off. */
+  proposedEnd: string;
+  timeZone: string;
 };
 
 export type SlotResponses = {
@@ -439,6 +442,8 @@ export async function getSlotDetail(slotId: string): Promise<SlotDetail | null> 
     intendedOrgId: slotRow.intended_org_id,
     ownedOrgs,
     notes: slotRow.notes,
+    proposedEnd: slotRow.proposed_end,
+    timeZone: slotRow.time_zone,
   };
 }
 
