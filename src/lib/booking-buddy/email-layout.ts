@@ -59,7 +59,7 @@ function button(action: EmailAction, primary: boolean): string {
   const style = primary
     ? `background-color:${commit};border:2px solid ${commit};color:${onCommit};`
     : `background-color:${kraft};border:2px solid ${ink};color:${ink};`;
-  return `<a href="${escapeHtml(action.url)}" style="display:inline-block;${style}font-family:${BODY_FONT};font-size:16px;font-weight:700;line-height:20px;text-decoration:none;padding:12px 22px;border-radius:6px;margin:0 8px 8px 0;">${escapeHtmlText(action.label)}</a>`;
+  return `<a href="${escapeHtml(action.url)}" style="display:inline-block;${style}font-family:${NOTICE_FONT};font-size:16px;font-weight:400;line-height:20px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;padding:13px 22px;border-radius:4px;margin:0 8px 8px 0;">${escapeHtmlText(action.label)}</a>`;
 }
 
 /** The full HTML document for one Booking Buddy email. */
@@ -110,7 +110,7 @@ export function renderEmailLayout(content: EmailContent): string {
             </tr>
             <tr>
               <td bgcolor="${c.kraft}" style="background-color:${c.kraft};border:1px solid ${c.corkEdge};border-radius:4px;padding:28px 24px 24px;">
-              <h1 style="margin:0;color:${c.ink};font-family:${NOTICE_FONT};font-size:30px;line-height:36px;font-weight:400;text-transform:uppercase;letter-spacing:0.5px;">${escapeHtmlText(content.heading)}</h1>
+              <h1 style="margin:0;color:${c.ink};font-family:${NOTICE_FONT};font-size:32px;line-height:36px;font-weight:400;text-transform:uppercase;letter-spacing:2px;">${escapeHtmlText(content.heading)}</h1>
               ${emphasis}
               ${paragraphs}
               <div style="margin:24px 0 0;padding:20px 0 0;border-top:1px solid ${c.rule};">${actions}</div>
