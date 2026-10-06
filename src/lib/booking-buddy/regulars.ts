@@ -9,6 +9,8 @@
  * only, so it runs under `node --test`.
  */
 
+import { isUuid } from "./uuid.ts";
+
 /** A friend the organizer can pick as a Regular. */
 export type RegularChoice = { userId: string; label: string };
 
@@ -24,8 +26,6 @@ export type RegularChoices = {
 /** The form field every ticked Regular is submitted under, one value per Regular. */
 export const REGULAR_IDS_FIELD = "regular_ids";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Every ticked Regular, once each, in the order ticked. Anything that isn't a
  * user id is dropped; whether an id is really the organizer's Connection is
@@ -35,7 +35,7 @@ export function parseRegularIds(formData: FormData): string[] {
   const ids = formData
     .getAll(REGULAR_IDS_FIELD)
     .map((value) => String(value).trim())
-    .filter((value) => UUID.test(value));
+    .filter(isUuid);
   return [...new Set(ids)];
 }
 
@@ -58,4 +58,22 @@ export function withGroupMembers(
   memberIds: readonly string[],
 ): string[] {
   return [...new Set([...selected, ...memberIds])];
+}
+
+/** `standing_game_regulars` rows grouped into each Standing Game's list of user ids. */
+export function groupRegularsByGame(
+  rows: readonly { standing_game_id: string; user_id: string }[],
+): Map<string, string[]> {
+  const byGame = new Map<string, string[]>();
+  for (const row of rows) {
+    const list = byGame.get(row.standing_game_id) ?? [];
+    list.push(row.user_id);
+    byGame.set(row.standing_game_id, list);
+  }
+  return byGame;
+}
+
+/** `"1 regular"`, `"3 regulars"`: the picker's count line and the Weekly games row. */
+export function regularsCountLabel(count: number): string {
+  return `${count} regular${count === 1 ? "" : "s"}`;
 }

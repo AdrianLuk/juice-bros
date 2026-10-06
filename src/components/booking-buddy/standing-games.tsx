@@ -29,7 +29,11 @@ import {
   HourTimeSelect,
   WeekdaySelect,
 } from "@/components/booking-buddy/slots";
-import { formatTimeLabel } from "@/lib/booking-buddy/datetime";
+import {
+  formatShortDateLabel,
+  formatTimeLabel,
+  hourSpan,
+} from "@/lib/booking-buddy/datetime";
 import { DIVISIONS, DIVISION_LABEL } from "@/lib/booking-buddy/division";
 import { MAX_ROTATION_BUFFER } from "@/lib/booking-buddy/capacity";
 import {
@@ -43,7 +47,7 @@ import {
   hourClock,
   standingGameTimeLabel,
 } from "@/lib/booking-buddy/standing-games";
-import { gameDateLabel } from "@/lib/booking-buddy/standing-game-skips";
+import { regularsCountLabel } from "@/lib/booking-buddy/regulars";
 import { slotPath, standingGamePath } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
@@ -55,11 +59,6 @@ import {
 } from "@/lib/booking-buddy/actions/standing-games";
 
 const EMPTY: ActionResult = {};
-
-/** "Tue, Oct 13" out of a posted game's full `when`. */
-function shortDay(when: string): string {
-  return when.split(" · ")[0]?.replace(/,\s*\d{4}$/, "") ?? when;
-}
 
 /**
  * One Standing Game in the Weekly games section: its day and hours, where,
@@ -95,11 +94,11 @@ export function WeeklyGameRow({
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {game.nextGame
-                ? `Next game ${shortDay(game.nextGame.when)}`
+                ? `Next game ${formatShortDateLabel(game.nextGame.gameDate)}`
                 : game.nextDate
-                  ? `Next game ${gameDateLabel(game.nextDate)}`
+                  ? `Next game ${formatShortDateLabel(game.nextDate)}`
                   : "Next game goes up within a day"}
-              {` · ${game.regularsCount} regular${game.regularsCount === 1 ? "" : "s"}`}
+              {` · ${regularsCountLabel(game.regularsCount)}`}
             </p>
           </div>
         </div>
@@ -108,10 +107,6 @@ export function WeeklyGameRow({
       {notice && <div className="ml-4 sm:ml-8">{notice}</div>}
     </li>
   );
-}
-
-function hoursBetween(startHour: number, endHour: number): number {
-  return (endHour - startHour + 24) % 24 || 24;
 }
 
 /**
@@ -131,7 +126,7 @@ export function StandingGameEditForm({
   );
   const duration = useDurationInput(
     hourClock(game.startHour),
-    hoursBetween(game.startHour, game.endHour),
+    hourSpan(game.startHour, game.endHour),
   );
 
   const reminderOptions = REMINDER_OFFSET_PRESETS.includes(

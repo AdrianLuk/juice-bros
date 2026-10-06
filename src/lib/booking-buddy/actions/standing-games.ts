@@ -10,15 +10,17 @@ import { trackFirstSlot, trackFirstStandingGame } from "../analytics.ts";
 import { SLOTS_PATH, standingGamePath } from "../routes.ts";
 import { DEFAULT_HAND_NAMED_TIME_ZONE } from "../orgs.ts";
 import { formatSlotWhen } from "../slots.ts";
+import { todayInZone } from "../datetime.ts";
 import { isDivision, type Division } from "../division.ts";
 import {
-  dueStandingGameWeeks,
   parseStandingGameForm,
+  standingGameSchedule,
+  stillUpcomingCutoffDate,
   type StandingGameFields,
 } from "../standing-games.ts";
-import { postStandingGameWeeks } from "../standing-game-posting.ts";
-import { inviteRegularsAfterResponse } from "../weekly-invite-sending.ts";
-import { parseRegularIds } from "../regulars.ts";
+import { postDueWeeks, type PostedWeek } from "../standing-game-posting.ts";
+import { groupRegularsByGame, parseRegularIds } from "../regulars.ts";
+import { parseSourceSlotId } from "../make-weekly.ts";
 import { nextGameDate } from "../standing-game-skips.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listOrgs, type Org } from "./orgs.ts";
@@ -42,7 +44,13 @@ export type StandingGame = {
 };
 
 /** One posted, not-yet-finished week of a Standing Game. */
-export type PostedGame = { id: string; when: string; proposedStart: string };
+export type PostedGame = {
+  id: string;
+  when: string;
+  proposedStart: string;
+  /** Its calendar date (`YYYY-MM-DD`) on the game's own wall clock. */
+  gameDate: string;
+};
 
 export type StandingGameSummary = StandingGame & {
   /** The soonest posted Slot still to finish, or `null` before the cron has posted the next one. */
@@ -122,6 +130,7 @@ async function upcomingPostedGames(
     list.push({
       id: row.id,
       proposedStart: row.proposed_start,
+      gameDate: todayInZone(row.time_zone, new Date(row.proposed_start)),
       when: formatSlotWhen({
         proposedStart: row.proposed_start,
         proposedEnd: row.proposed_end,
@@ -138,9 +147,8 @@ async function regularsByGame(
   supabase: Awaited<ReturnType<typeof createClient>>,
   standingGameIds: string[],
 ): Promise<Map<string, string[]>> {
-  const byGame = new Map<string, string[]>();
   if (standingGameIds.length === 0) {
-    return byGame;
+    return new Map();
   }
 
   const { data, error } = await supabase
@@ -151,18 +159,13 @@ async function regularsByGame(
   if (error) {
     readFailed("your weekly games' regulars", error);
   }
-
-  for (const row of data ?? []) {
-    const list = byGame.get(row.standing_game_id) ?? [];
-    list.push(row.user_id);
-    byGame.set(row.standing_game_id, list);
-  }
-  return byGame;
+  return groupRegularsByGame(data ?? []);
 }
 
 /**
  * Dates of these Standing Games' weeks that won't be played: recorded with no
- * Slot, which is a skipped week (#578) or a posted one whose Slot is gone.
+ * Slot, which is a skipped week (#578), a posted one whose Slot is gone, or
+ * the date a "Make this weekly" original already covers (#581).
  */
 async function skippedWeekDates(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -178,7 +181,7 @@ async function skippedWeekDates(
     .select("standing_game_id, game_date")
     .in("standing_game_id", standingGameIds)
     .is("slot_id", null)
-    .gte("game_date", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+    .gte("game_date", stillUpcomingCutoffDate(new Date()));
 
   if (error) {
     readFailed("your weekly games' skipped weeks", error);
@@ -304,10 +307,16 @@ function standingGameColumns(fields: StandingGameFields, timeZone: string) {
  *
  * The Regulars ticked on the form (`regular_ids`, #579) are saved before
  * the first week posts, so its Weekly Invite reaches them; that send runs
- * after the response (`inviteRegularsAfterResponse`).
+ * after the response (`postDueWeeks`, "in-background").
  *
- * If not even the first week posts, or the Regulars won't save, the Standing
- * Game is removed again so a retry doesn't leave a second one behind.
+ * From "Make this weekly" (#581) the form carries the original game's id.
+ * While that game is still to come, its date counts as covered: the new
+ * Standing Game posts from the week after, so there's no second game that
+ * day and no invite to one. The original stays a plain one-off Slot.
+ *
+ * If not even the first week posts (and no original covers it), or the
+ * Regulars won't save, the Standing Game is removed again so a retry doesn't
+ * leave a second one behind.
  */
 export async function createStandingGame(
   _prev: CreateSlotResult,
@@ -349,38 +358,72 @@ export async function createStandingGame(
     }
   }
 
-  const dueDates = dueStandingGameWeeks(
-    {
-      id: created.id,
-      weekday: fields.weekday,
-      startHour: fields.startHour,
-      timeZone: schedule.timeZone,
-      endedAt: null,
-      bookingWindowDaysBefore: schedule.bookingWindowDaysBefore,
-    },
-    new Set(),
-    new Date(),
-  );
+  const coveredDate = await coverSourceGameDate(supabase, created.id, parseSourceSlotId(formData));
 
-  const { posted, failed } = await postStandingGameWeeks(
-    supabase,
-    dueDates.map((gameDate) => ({ standingGameId: created.id, gameDate })),
-  );
+  let posted: PostedWeek[] = [];
+  try {
+    ({ posted } = await postDueWeeks(
+      supabase,
+      [
+        standingGameSchedule(
+          {
+            id: created.id,
+            weekday: fields.weekday,
+            start_hour: fields.startHour,
+            time_zone: schedule.timeZone,
+            ended_at: null,
+          },
+          schedule.bookingWindowDaysBefore,
+        ),
+      ],
+      { now: new Date(), invites: "in-background" },
+    ));
+  } catch (postError) {
+    console.error("booking-buddy: posting a new Standing Game's weeks failed", postError);
+  }
 
-  if (posted.length === 0) {
-    console.error("booking-buddy: a new Standing Game posted no week", failed);
+  if (posted.length === 0 && coveredDate === null) {
+    console.error("booking-buddy: a new Standing Game posted no week");
     await supabase.from("standing_games").delete().eq("id", created.id);
     return { error: "Couldn't post this week's game. Try again." };
   }
 
   after(async () => {
     await trackFirstStandingGame(session.userId);
-    await trackFirstSlot(session.userId, posted.length);
+    if (posted.length > 0) {
+      await trackFirstSlot(session.userId, posted.length);
+    }
   });
-  await inviteRegularsAfterResponse(posted);
 
   revalidatePath(SLOTS_PATH);
-  return { ok: true, slotId: posted[0].slotId };
+  // Nothing posted yet when the original game covers the only week due.
+  return { ok: true, slotId: posted[0]?.slotId };
+}
+
+/**
+ * Record a "Make this weekly" original's date as covered on the new Standing
+ * Game (`cover_standing_game_date_with_slot`). The covered date, or `null`
+ * when there's no original, it has started, it's on another weekday now, or
+ * the call fails (a tampered id, say): then the Standing Game simply posts
+ * as if made from scratch.
+ */
+async function coverSourceGameDate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  standingGameId: string,
+  sourceSlotId: string | null,
+): Promise<string | null> {
+  if (!sourceSlotId) {
+    return null;
+  }
+  const { data, error } = await supabase.rpc("cover_standing_game_date_with_slot", {
+    target_standing_game: standingGameId,
+    original_slot: sourceSlotId,
+  });
+  if (error) {
+    console.error("booking-buddy: covering the original game's date failed", error);
+    return null;
+  }
+  return typeof data === "string" ? data : null;
 }
 
 /**

@@ -8,26 +8,29 @@ import { formatGameOffEmail } from "./game-off-email.ts";
 const BASE = {
   organizerLabel: "Amy (@amy)",
   slotWhen: "Tue, Oct 13, 2026 · 8:00 PM – 10:00 PM",
-  shortDay: "Tue, Oct 13",
+  gameDate: "2026-10-13",
   gamesUrl: "https://x.test/booking-buddy/slots",
   weeklyGameContinues: true,
 };
 
-test("formatGameOffEmail says this week's game is off, with its date, in the subject and body", () => {
+test("formatGameOffEmail names the game's date in the subject and body, never \"this week\"", () => {
   const { subject, html } = formatGameOffEmail(BASE);
 
-  assert.equal(subject, "This week's game is off (Tue, Oct 13)");
+  assert.equal(subject, "The game on Tue, Oct 13 is off");
   const text = visibleText(html);
-  assert.match(text, /This week's game is off/);
+  assert.match(text, /The game on Tue, Oct 13 is off/);
   assert.match(text, /Tue, Oct 13, 2026 · 8:00 PM – 10:00 PM/);
-  assert.match(text, /Amy \(@amy\) skipped this week/);
+  assert.match(text, /Amy \(@amy\) skipped the weekly game on Tue, Oct 13/);
+  // With a long Booking Window the skipped game can be weeks out, so neither
+  // "this week" nor "next week" is safe to say.
+  assert.doesNotMatch(`${subject} ${text}`, /this week|next week/i);
 });
 
 test("formatGameOffEmail says the weekly game carries on, unless it has ended", () => {
-  assert.match(visibleText(formatGameOffEmail(BASE).html), /Next week's game goes up as usual/);
+  assert.match(visibleText(formatGameOffEmail(BASE).html), /Only that week is off/);
   assert.doesNotMatch(
     visibleText(formatGameOffEmail({ ...BASE, weeklyGameContinues: false }).html),
-    /next week/i,
+    /carries on/i,
   );
 });
 

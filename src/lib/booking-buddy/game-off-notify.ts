@@ -1,8 +1,7 @@
 import "server-only";
 
-import { Resend } from "resend";
-
 import { createAdminClient } from "./supabase/admin.ts";
+import { emailToUserFromEnv } from "./email-to-user.ts";
 import { personOptionLabel } from "./connections.ts";
 import { formatGameOffEmail } from "./game-off-email.ts";
 
@@ -22,6 +21,8 @@ export async function notifyGameOff(params: {
   ownerId: string;
   standingGameId: string;
   slotWhen: string;
+  /** The skipped week's date (`YYYY-MM-DD`), named in the email. */
+  gameDate: string;
   gamesUrl: string;
 }): Promise<void> {
   if (params.recipientIds.length === 0) {
@@ -29,14 +30,11 @@ export async function notifyGameOff(params: {
   }
 
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.REMINDER_FROM_EMAIL;
-    if (!apiKey || !from) {
-      console.error("game-off-notify: missing RESEND_API_KEY or REMINDER_FROM_EMAIL.");
+    const supabase = createAdminClient();
+    const emailToUser = emailToUserFromEnv(supabase, "game-off-notify");
+    if (!emailToUser) {
       return;
     }
-
-    const supabase = createAdminClient();
 
     const [{ data: owner }, { data: standingGame }] = await Promise.all([
       supabase.from("profiles").select("display_name, username").eq("id", params.ownerId).maybeSingle(),
@@ -49,24 +47,13 @@ export async function notifyGameOff(params: {
         username: owner?.username ?? null,
       }),
       slotWhen: params.slotWhen,
-      shortDay: params.slotWhen.split(" · ")[0]?.replace(/,\s*\d{4}$/, "") ?? params.slotWhen,
+      gameDate: params.gameDate,
       gamesUrl: params.gamesUrl,
       weeklyGameContinues: Boolean(standingGame) && standingGame?.ended_at === null,
     });
 
-    const resend = new Resend(apiKey);
     for (const userId of params.recipientIds) {
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
-      const to = userData?.user?.email;
-      if (userError || !to) {
-        console.error("game-off-notify: no email for recipient", userId, userError);
-        continue;
-      }
-
-      const { error: sendError } = await resend.emails.send({ from, to, subject, html });
-      if (sendError) {
-        console.error("game-off-notify: Resend error", sendError);
-      }
+      await emailToUser(userId, { subject, html });
     }
   } catch (error) {
     console.error("game-off-notify: unexpected failure", error);

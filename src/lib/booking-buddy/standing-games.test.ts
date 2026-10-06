@@ -6,8 +6,11 @@ import {
   everyWeekdayLabel,
   parseStandingGameForm,
   planStandingGamePostingRun,
+  postedWeekNumbers,
   slotRepeatsLabel,
+  standingGameSchedule,
   standingGameTimeLabel,
+  stillUpcomingCutoffDate,
   type StandingGameSchedule,
 } from "./standing-games.ts";
 
@@ -186,4 +189,55 @@ test("an out-of-range rotation buffer or reminder timing is refused", () => {
   assert.ok("error" in parseStandingGameForm(form({ ...base, rotation_buffer: "-1" })));
   assert.ok("error" in parseStandingGameForm(form({ ...base, rotation_buffer: "21" })));
   assert.ok("error" in parseStandingGameForm(form({ ...base, reminder_offset_minutes: "99999" })));
+});
+
+test("stillUpcomingCutoffDate goes back two UTC calendar days, so no zone's today is missed", () => {
+  // 3am UTC on Oct 6 is still Oct 5 in Toronto and Oct 5 in Honolulu.
+  assert.equal(stillUpcomingCutoffDate(new Date("2026-10-06T03:00:00.000Z")), "2026-10-04");
+  assert.equal(stillUpcomingCutoffDate(new Date("2027-01-01T23:00:00.000Z")), "2026-12-30");
+});
+
+test("postedWeekNumbers counts each posted week among its Standing Game's posted weeks", () => {
+  const recorded = new Map([
+    ["sg-1", new Set(["2026-10-06", "2026-10-13", "2026-10-20"])],
+    ["sg-2", new Set(["2026-10-08"])],
+  ]);
+
+  assert.deepEqual(
+    postedWeekNumbers(
+      [
+        { standingGameId: "sg-1", gameDate: "2026-10-20" },
+        { standingGameId: "sg-2", gameDate: "2026-10-08" },
+      ],
+      recorded,
+    ),
+    [3, 1],
+  );
+});
+
+test("postedWeekNumbers counts a just-posted week the read hasn't seen yet", () => {
+  assert.deepEqual(
+    postedWeekNumbers(
+      [
+        { standingGameId: "sg-1", gameDate: "2026-10-13" },
+        { standingGameId: "sg-1", gameDate: "2026-10-20" },
+      ],
+      new Map([["sg-1", new Set(["2026-10-06"])]]),
+    ),
+    [2, 3],
+  );
+  assert.deepEqual(
+    postedWeekNumbers([{ standingGameId: "sg-9", gameDate: "2026-10-13" }], new Map()),
+    [1],
+  );
+});
+
+test("standingGameSchedule reads a standing_games row the way the planner wants it", () => {
+  assert.deepEqual(
+    standingGameSchedule(
+      { id: "sg-1", weekday: 2, start_hour: 20, time_zone: "America/Toronto", ended_at: null },
+      14,
+    ),
+    tuesday8pm({ bookingWindowDaysBefore: 14 }),
+  );
 });

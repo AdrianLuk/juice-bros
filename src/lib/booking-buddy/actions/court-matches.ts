@@ -2,7 +2,7 @@
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { clockInZone, formatTimeLabel } from "../datetime.ts";
+import { clockInZone, formatShortDateLabel, formatTimeLabel, todayInZone } from "../datetime.ts";
 import { courtMatches, type MatchableBooking } from "../court-match.ts";
 import type { BookingFormat } from "../capacity.ts";
 import { readFailed } from "./result.ts";
@@ -25,15 +25,6 @@ export type CourtMatch = {
   /** The Booking's own start in its own zone: "8:00 PM". */
   startLabel: string;
 };
-
-function gameDayLabel(proposedStart: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(proposedStart));
-}
 
 /**
  * Every court suggestion across the caller's own upcoming Standing Game
@@ -115,7 +106,7 @@ export async function listCourtMatches(): Promise<CourtMatch[]> {
     ).map((booking) => ({
       slotId: slot.id,
       standingGameId: slot.standing_game_id as string,
-      gameDay: gameDayLabel(slot.proposed_start, slot.time_zone),
+      gameDay: formatShortDateLabel(todayInZone(slot.time_zone, new Date(slot.proposed_start))),
       bookingId: booking.id,
       orgName: booking.orgName,
       courtLabel: booking.courtLabel,

@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   makeWeeklyHref,
+  parseSourceSlotId,
   parseWeeklyPrefill,
+  SOURCE_SLOT_FIELD,
   weeklyPrefillFromSlot,
   weeklyPrefillKey,
   type WeeklyPrefill,
@@ -14,9 +16,11 @@ const BEN = "bbbbbbbb-0000-4000-8000-000000000001";
 const CAL = "cccccccc-0000-4000-8000-000000000002";
 const DEE = "dddddddd-0000-4000-8000-000000000003";
 const ORG = "eeeeeeee-0000-4000-8000-000000000004";
+const GAME = "ffffffff-0000-4000-8000-000000000005";
 
 // Tue Oct 13 2026, 8pm to 10pm in Toronto (EDT, UTC-4).
 const TUESDAY_GAME = {
+  id: GAME,
   proposedStart: "2026-10-14T00:00:00Z",
   proposedEnd: "2026-10-14T02:00:00Z",
   timeZone: "America/Toronto",
@@ -80,6 +84,7 @@ const PREFILL: WeeklyPrefill = {
   rotationBuffer: 2,
   reminderOffsetMinutes: 120,
   regularIds: [BEN, CAL],
+  sourceSlotId: GAME,
 };
 
 function paramsOf(href: string): Record<string, string> {
@@ -135,4 +140,22 @@ test("two different games give two different form keys", () => {
   assert.notEqual(weeklyPrefillKey(PREFILL), weeklyPrefillKey({ ...PREFILL, weekday: 4 }));
   assert.notEqual(weeklyPrefillKey(PREFILL), weeklyPrefillKey({ ...PREFILL, regularIds: [BEN] }));
   assert.equal(weeklyPrefillKey(PREFILL), weeklyPrefillKey({ ...PREFILL }));
+});
+
+test("the prefill remembers which game it came from, so that game's date isn't posted twice", () => {
+  assert.equal(weeklyPrefillFromSlot(TUESDAY_GAME, [], OWNER).sourceSlotId, GAME);
+});
+
+test("a tampered source game id drops out of the prefill and the form field", () => {
+  const params = paramsOf(makeWeeklyHref(PREFILL));
+  assert.equal(parseWeeklyPrefill({ ...params, from: "not-a-game" }, KNOWN)?.sourceSlotId, null);
+  const { from: _from, ...withoutSource } = params;
+  assert.equal(parseWeeklyPrefill(withoutSource, KNOWN)?.sourceSlotId, null);
+
+  const form = new FormData();
+  assert.equal(parseSourceSlotId(form), null);
+  form.set(SOURCE_SLOT_FIELD, "nope");
+  assert.equal(parseSourceSlotId(form), null);
+  form.set(SOURCE_SLOT_FIELD, ` ${GAME} `);
+  assert.equal(parseSourceSlotId(form), GAME);
 });

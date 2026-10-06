@@ -9,15 +9,14 @@ import { verifySession } from "../dal.ts";
 import { absoluteAppUrl } from "../request-origin.ts";
 import { SLOTS_PATH, standingGamePath } from "../routes.ts";
 import { formatSlotWhen } from "../slots.ts";
-import { dueStandingGameWeeks } from "../standing-games.ts";
+import { formatShortDateLabel, todayInZone } from "../datetime.ts";
+import { standingGameSchedule, stillUpcomingCutoffDate } from "../standing-games.ts";
 import {
-  gameDateLabel,
   gameOffRecipients,
   isUpcomingGameDate,
   skippableGameDates,
 } from "../standing-game-skips.ts";
-import { postStandingGameWeeks } from "../standing-game-posting.ts";
-import { inviteRegularsAfterResponse } from "../weekly-invite-sending.ts";
+import { postDueWeeks } from "../standing-game-posting.ts";
 import { notifyGameOff } from "../game-off-notify.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import { listOrgs } from "./orgs.ts";
@@ -64,7 +63,7 @@ function toGameDay(row: ScheduleRow) {
 }
 
 function week(date: string): GameWeek {
-  return { date, label: gameDateLabel(date) };
+  return { date, label: formatShortDateLabel(date) };
 }
 
 /** The Standing Game page's skip section: skipped dates to come, and dates that can still be skipped. */
@@ -81,7 +80,7 @@ export async function getStandingGameSkips(standingGameId: string): Promise<Stan
     .from("standing_game_weeks")
     .select("game_date, skipped_at")
     .eq("standing_game_id", standingGameId)
-    .gte("game_date", new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+    .gte("game_date", stillUpcomingCutoffDate(new Date()))
     .order("game_date", { ascending: true });
   if (error) {
     readFailed("your weekly game's skipped weeks", error);
@@ -149,18 +148,26 @@ export async function skipPostedWeek(_prev: ActionResult, formData: FormData): P
     timeZone: slot.time_zone,
   });
 
-  const { error } = await supabase.rpc("skip_posted_standing_game_week", { target_slot: slotId });
+  const { data: skippedDate, error } = await supabase.rpc("skip_posted_standing_game_week", {
+    target_slot: slotId,
+  });
   if (error) {
     console.error("booking-buddy: skipping a posted week failed", error);
     return { error: "Couldn't skip that week. Try again." };
   }
 
+  // The RPC returns the week's date; the Slot's own wall clock is the same day.
+  const gameDate =
+    typeof skippedDate === "string"
+      ? skippedDate
+      : todayInZone(slot.time_zone, new Date(slot.proposed_start));
   after(() =>
     notifyGameOff({
       recipientIds,
       ownerId: session.userId,
       standingGameId: slot.standing_game_id,
       slotWhen,
+      gameDate,
       gamesUrl,
     }),
   );
@@ -253,26 +260,16 @@ export async function unskipStandingGameDate(
   const org = schedule.intended_org_id
     ? (await listOrgs()).find((candidate) => candidate.id === schedule.intended_org_id)
     : undefined;
-  const due = dueStandingGameWeeks(
-    {
-      id: schedule.id,
-      weekday: schedule.weekday,
-      startHour: schedule.start_hour,
-      timeZone: schedule.time_zone,
-      endedAt: null,
-      bookingWindowDaysBefore: org?.bookingWindow?.daysBefore ?? null,
-    },
-    new Set(),
-    new Date(),
-  );
-  if (due.includes(target.gameDate)) {
-    const { posted, failed } = await postStandingGameWeeks(supabase, [target]);
-    if (failed.length > 0) {
-      console.error("booking-buddy: posting an un-skipped week failed", failed);
-    }
-    // A week put back on inside the posting window posts now, so its
-    // Regulars hear about it now too (#579).
-    await inviteRegularsAfterResponse(posted);
+  // A week put back on inside the posting window posts now, invites and
+  // all (#579); one further out waits for the daily run like any other.
+  try {
+    await postDueWeeks(
+      supabase,
+      [standingGameSchedule(schedule, org?.bookingWindow?.daysBefore ?? null)],
+      { now: new Date(), invites: "in-background" },
+    );
+  } catch (postError) {
+    console.error("booking-buddy: posting an un-skipped week failed", postError);
   }
 
   revalidatePath(SLOTS_PATH);

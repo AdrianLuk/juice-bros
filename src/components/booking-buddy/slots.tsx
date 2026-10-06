@@ -33,6 +33,7 @@ import {
   formatCourtLabel,
   formatTimeLabel,
 } from "@/lib/booking-buddy/bookings";
+import { hourSpan } from "@/lib/booking-buddy/datetime";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
@@ -47,7 +48,10 @@ import { BoardCard } from "@/components/booking-buddy/bb/board-card";
 import { RepeatsChip } from "@/components/booking-buddy/repeats-chip";
 import { RegularsPicker } from "@/components/booking-buddy/regulars-picker";
 import type { RegularChoices } from "@/lib/booking-buddy/regulars";
-import type { WeeklyPrefill } from "@/lib/booking-buddy/make-weekly";
+import {
+  SOURCE_SLOT_FIELD,
+  type WeeklyPrefill,
+} from "@/lib/booking-buddy/make-weekly";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
   DEFAULT_DIVISION,
@@ -56,7 +60,10 @@ import {
 } from "@/lib/booking-buddy/division";
 import { NOTES_MAX_LENGTH } from "@/lib/booking-buddy/slots";
 import { GENDER_LABEL } from "@/lib/booking-buddy/gender";
-import type { ResponseAnswer } from "@/lib/booking-buddy/responses";
+import {
+  RESPONSE_ANSWER_LABEL,
+  type ResponseAnswer,
+} from "@/lib/booking-buddy/responses";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import {
   attachBookingToSlot,
@@ -103,6 +110,9 @@ export function HourTimeSelect({
 
 const DEFAULT_START_TIME = "20:00";
 
+/** The day "Repeats weekly" starts on when nothing seeds one: Tuesday (0 is Sunday). */
+const DEFAULT_WEEKLY_WEEKDAY = 2;
+
 /** The day a weekly game repeats on, Sunday first to match `weekday`'s 0–6. */
 export function WeekdaySelect({
   id,
@@ -140,9 +150,10 @@ function initialDurationHours(
   ) {
     return DEFAULT_DURATION_HOURS;
   }
-  const hours =
-    (Number(endTime.slice(0, 2)) - Number(startTime.slice(0, 2)) + 24) % 24 ||
-    24;
+  const hours = hourSpan(
+    Number(startTime.slice(0, 2)),
+    Number(endTime.slice(0, 2)),
+  );
   return hours >= 1 && hours <= 3 ? hours : DEFAULT_DURATION_HOURS;
 }
 
@@ -188,7 +199,9 @@ export function CreateSlotForm({
     EMPTY,
   );
   const [repeats, setRepeats] = useState(weekly !== undefined);
-  const [weekday, setWeekday] = useState(weekly?.weekday ?? 2);
+  const [weekday, setWeekday] = useState(
+    weekly?.weekday ?? DEFAULT_WEEKLY_WEEKDAY,
+  );
   const defaultOrgId = weekly
     ? (weekly.orgId ?? "")
     : (orgs.find((org) => org.isDefault)?.id ?? "");
@@ -204,10 +217,10 @@ export function CreateSlotForm({
     initialStartTime,
     weekly
       ? // The game's own length, however long: past 3 hours it's a custom one.
-        (Number(weekly.endTime.slice(0, 2)) -
-          Number(weekly.startTime.slice(0, 2)) +
-          24) %
-          24 || 24
+        hourSpan(
+          Number(weekly.startTime.slice(0, 2)),
+          Number(weekly.endTime.slice(0, 2)),
+        )
       : initialDurationHours(initialStartTime, defaultEndTime),
   );
   const dateInput = useDateField(defaultDate ?? "");
@@ -404,6 +417,13 @@ export function CreateSlotForm({
             name="reminder_offset_minutes"
             value={weekly.reminderOffsetMinutes}
           />
+          {weekly.sourceSlotId && (
+            <input
+              type="hidden"
+              name={SOURCE_SLOT_FIELD}
+              value={weekly.sourceSlotId}
+            />
+          )}
         </>
       )}
 
@@ -481,12 +501,6 @@ export function SlotRow({ slot, href }: { slot: Slot; href: string }) {
     </li>
   );
 }
-
-const ANSWER_LABEL: Record<ResponseAnswer, string> = {
-  yes: "Yes",
-  no: "No",
-  maybe: "Maybe",
-};
 
 const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
 
@@ -631,7 +645,7 @@ export function ResponseButtons({
             }}
             onAnimationEnd={() => setPressed((c) => (c === answer ? null : c))}
           >
-            {ANSWER_LABEL[answer]}
+            {RESPONSE_ANSWER_LABEL[answer]}
           </Button>
         ))}
       </div>
@@ -666,7 +680,7 @@ export function ResponseButtons({
               </span>
             ) : (
               <span className="text-muted-foreground">
-                {ANSWER_LABEL[response.answer]}
+                {RESPONSE_ANSWER_LABEL[response.answer]}
               </span>
             )}
           </li>

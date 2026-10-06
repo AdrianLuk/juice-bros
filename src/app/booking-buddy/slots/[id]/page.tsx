@@ -88,6 +88,7 @@ export default async function SlotDetailPage({
     isOwner && !standingGameId
       ? weeklyPrefillFromSlot(
           {
+            id: slot.id,
             proposedStart: slot.proposedStart,
             proposedEnd,
             timeZone,

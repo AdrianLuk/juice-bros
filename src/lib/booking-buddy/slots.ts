@@ -9,6 +9,7 @@ import { isKnownTimeZone } from "./timezone.ts";
 import {
   clockInZone,
   formatInstantRange,
+  hourSpan,
   isHourTime,
   isPastDate,
   isRealDate,
@@ -126,9 +127,7 @@ function gameHoursBetween(startClock: string, endClock: string): number | null {
   if (!startClock.endsWith(":00") || !endClock.endsWith(":00")) {
     return null;
   }
-  const startHour = Number(startClock.slice(0, 2));
-  const endHour = Number(endClock.slice(0, 2));
-  const hours = ((endHour - startHour + 24) % 24) || 24;
+  const hours = hourSpan(Number(startClock.slice(0, 2)), Number(endClock.slice(0, 2)));
   return hours >= 1 && hours <= 3 ? hours : null;
 }
 

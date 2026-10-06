@@ -9,6 +9,13 @@ export type ResponseAnswer = "yes" | "no" | "maybe";
 
 const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
 
+/** How each answer reads on a button or a "Your answer" line, everywhere one is shown. */
+export const RESPONSE_ANSWER_LABEL: Record<ResponseAnswer, string> = {
+  yes: "Yes",
+  no: "No",
+  maybe: "Maybe",
+};
+
 export function isResponseAnswer(value: unknown): value is ResponseAnswer {
   return ANSWERS.includes(value as ResponseAnswer);
 }
