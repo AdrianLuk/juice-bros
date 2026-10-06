@@ -2,7 +2,14 @@ import type { Appearance } from "@/lib/appearances";
 import { AppearanceRow } from "./appearance-row";
 import { PastDisclosure } from "./past-disclosure";
 
-export function PastAppearances({ appearances }: { appearances: Appearance[] }) {
+export function PastAppearances({
+  appearances,
+  photosHrefs = {},
+}: {
+  appearances: Appearance[];
+  /** Appearance name to the /photos section holding its Photo Set. */
+  photosHrefs?: Record<string, string>;
+}) {
   if (appearances.length === 0) {
     return (
       <section className="bx-hair py-14 sm:py-20">
@@ -19,7 +26,12 @@ export function PastAppearances({ appearances }: { appearances: Appearance[] }) 
     <PastDisclosure count={appearances.length}>
       <ul className="mt-7 flex flex-col gap-4">
         {appearances.map((appearance) => (
-          <AppearanceRow key={appearance.name} appearance={appearance} tone="past" />
+          <AppearanceRow
+            key={appearance.name}
+            appearance={appearance}
+            tone="past"
+            photosHref={photosHrefs[appearance.name]}
+          />
         ))}
       </ul>
     </PastDisclosure>

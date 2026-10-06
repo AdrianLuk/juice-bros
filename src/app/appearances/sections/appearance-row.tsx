@@ -8,10 +8,15 @@ import { DivisionsList } from "./divisions-list";
 
 type Target = { href: string; external: boolean };
 
-function rowTarget(appearance: Appearance, isPast: boolean): Target | null {
+function rowTarget(
+  appearance: Appearance,
+  isPast: boolean,
+  photosHref: string | undefined,
+): Target | null {
   if (isPast) {
     if (appearance.recapUrl) return { href: appearance.recapUrl, external: true };
     if (appearance.recapSlug) return { href: `/appearances/${appearance.recapSlug}`, external: false };
+    if (photosHref) return { href: photosHref, external: false };
   }
   if (appearance.url) return { href: appearance.url, external: true };
   return null;
@@ -50,14 +55,20 @@ function RowShell({
 export function AppearanceRow({
   appearance,
   tone = "upcoming",
+  photosHref,
 }: {
   appearance: Appearance;
   tone?: "upcoming" | "past";
+  /** The section of /photos holding this Appearance's Photo Set, if it has
+   *  one. A past row with no recap links there instead of the tournament
+   *  page, the same way a recap takes over the row. */
+  photosHref?: string;
 }) {
   const isPast = tone === "past";
-  const target = rowTarget(appearance, isPast);
+  const target = rowTarget(appearance, isPast, photosHref);
   const divisions = isPast ? [] : (appearance.divisions ?? []);
   const showRecap = isPast && Boolean(appearance.recapUrl || appearance.recapSlug);
+  const showPhotos = isPast && !showRecap && Boolean(photosHref);
 
   return (
     <li>
@@ -100,9 +111,9 @@ export function AppearanceRow({
             </div>
           )}
 
-          {(target?.external || showRecap) && (
+          {(target?.external || showRecap || showPhotos) && (
             <p className="bx-actionlink mt-5">
-              {showRecap ? "Read our recap" : "Tournament details"}
+              {showRecap ? "Read our recap" : showPhotos ? "See photos" : "Tournament details"}
               <span aria-hidden className="bx-arrow">
                 &rarr;
               </span>

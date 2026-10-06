@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { appearances } from "@/content/appearances";
 import { eventRecaps } from "@/content/event-recaps";
+import { photoSets } from "@/content/photo-sets";
 import { nextConfirmedAppearance, splitAppearances } from "@/lib/appearances";
 import { pageMetadata } from "@/lib/metadata";
+import { photoSetFor, photoSetHref } from "@/lib/photo-sets";
 import { buildAppearancesJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { PageHead } from "@/components/bx/page-head";
 import { Picture } from "@/components/picture";
@@ -34,6 +36,12 @@ export default function AppearancesPage() {
   const { upcoming, past } = splitAppearances(appearances);
   const featured = nextConfirmedAppearance(appearances);
   const rest = featured ? upcoming.filter((entry) => entry !== featured) : upcoming;
+  const photosHrefs = Object.fromEntries(
+    past.flatMap((entry) => {
+      const set = photoSetFor(photoSets, entry.name);
+      return set ? [[entry.name, photoSetHref(set)]] : [];
+    }),
+  );
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -71,7 +79,7 @@ export default function AppearancesPage() {
         <UpcomingAppearances appearances={rest} standalone={!featured} />
         <SpotUs />
         <EventRecaps recaps={eventRecaps} />
-        <PastAppearances appearances={past} />
+        <PastAppearances appearances={past} photosHrefs={photosHrefs} />
       </div>
     </div>
   );
