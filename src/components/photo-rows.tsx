@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
-import type { Photo } from "@/lib/photo-sets";
-import { IMAGE_MANIFEST, isManagedImage } from "@/lib/image-variants";
+import type { GalleryPhoto, Photo } from "@/lib/photo-sets";
+import { IMAGE_MANIFEST, isManagedImage, largestVariantPath } from "@/lib/image-variants";
 import { Picture } from "@/components/picture";
 
 /**
@@ -43,14 +43,20 @@ const rem = (n: number) => `${Math.round(n * 10) / 10}rem`;
  *
  * `eager` loads the first line up front and gives its first photo fetch
  * priority, for the rows at the top of a page. Everything else is lazy.
+ *
+ * `linked` makes every tile a real link to the photo's large file, carrying
+ * its place in the page's photo order. `PhotoLightbox` turns those clicks
+ * into its viewer; without scripts they still open the photo on its own.
  */
 export function PhotoRows({
   photos,
   eager = false,
+  linked = false,
   className = "",
 }: {
-  photos: readonly Photo[];
+  photos: readonly (Photo | GalleryPhoto)[];
   eager?: boolean;
+  linked?: boolean;
   className?: string;
 }) {
   const shapes = photos.map((photo) => shapeOf(photo.src));
@@ -70,15 +76,29 @@ export function PhotoRows({
           `min(${rem(ratio * 14)}, 100vw)`,
         ].join(", ");
 
+        const picture = (
+          <Picture
+            src={photo.src}
+            alt={photo.alt}
+            sizes={sizes}
+            loading={i < eagerCount ? "eager" : "lazy"}
+            fetchPriority={eager && i === 0 ? "high" : undefined}
+          />
+        );
+
         return (
           <li key={photo.src} className="bx-tile" style={style}>
-            <Picture
-              src={photo.src}
-              alt={photo.alt}
-              sizes={sizes}
-              loading={i < eagerCount ? "eager" : "lazy"}
-              fetchPriority={eager && i === 0 ? "high" : undefined}
-            />
+            {linked ? (
+              <a
+                href={isManagedImage(photo.src) ? largestVariantPath(photo.src, "webp") : photo.src}
+                data-photo-index={"index" in photo ? photo.index : i}
+                className="bx-tile-link"
+              >
+                {picture}
+              </a>
+            ) : (
+              picture
+            )}
           </li>
         );
       })}

@@ -286,6 +286,15 @@ export function variantPath(src: string, width: number, format: VariantFormat): 
   return `${src.replace(/\.[^./]+$/, "")}-${width}.${format}`;
 }
 
+/**
+ * The widest encoded variant in one format, e.g. `/x-1600.webp`. A gallery
+ * tile links here, so with scripts off a photo still opens at its lightbox
+ * size rather than as the full master.
+ */
+export function largestVariantPath(src: ManagedImage, format: VariantFormat): string {
+  return variantPath(src, Math.max(...IMAGE_MANIFEST[src].widths), format);
+}
+
 /** The `srcSet` for one format, e.g. `"/x-800.webp 800w, /x-1200.webp 1200w"`. */
 export function variantSrcSet(src: ManagedImage, format: VariantFormat): string {
   return IMAGE_MANIFEST[src].widths
