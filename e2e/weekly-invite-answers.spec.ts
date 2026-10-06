@@ -243,3 +243,38 @@ test("the link is done once the game starts, and once the game is deleted", asyn
   await expect(inbox.getByRole("heading", { name: "This link isn't working" })).toBeVisible();
   await inbox.context().close();
 });
+
+test("taking a Regular off the list kills their link, so a yes can't put them back", async ({
+  page,
+  accounts,
+}) => {
+  const amy = { email: accounts.amy.email, password: accounts.password };
+  const ben = { email: accounts.ben.email, password: accounts.password };
+  const benId = await fixtureUserId(ben);
+  const { slotId } = await postWeeklyGame(amy, ben);
+  const token = await mintWeeklyInviteLink(slotId, benId);
+  const [{ id: gameId }] = createdGames.slice(-1);
+  const inbox = await signedOutPage(page);
+
+  // Ben has the answer page open when Amy un-ticks him.
+  await inbox.goto(`/answer/${token}?a=yes`);
+  await expect(inbox.getByRole("button", { name: "Confirm" })).toBeVisible();
+  await rest(amy, `standing_game_regulars?standing_game_id=eq.${gameId}&user_id=eq.${benId}`, {
+    method: "DELETE",
+  });
+
+  // His yes goes nowhere: no Response, and he stays off the list.
+  await inbox.getByRole("button", { name: "Confirm" }).click();
+  await expect(inbox.getByRole("heading", { name: "This link isn't working" })).toBeVisible();
+  expect(await myAnswer(ben, slotId)).toBeNull();
+  const regulars = await rest<{ user_id: string }[]>(
+    amy,
+    `standing_game_regulars?standing_game_id=eq.${gameId}&select=user_id`,
+  );
+  expect(regulars).toEqual([]);
+
+  // Opening the link again shows the same dead-link page.
+  await inbox.goto(`/answer/${token}?a=yes`);
+  await expect(inbox.getByRole("heading", { name: "This link isn't working" })).toBeVisible();
+  await inbox.context().close();
+});

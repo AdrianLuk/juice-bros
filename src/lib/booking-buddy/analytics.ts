@@ -7,8 +7,8 @@ import { createClient } from "./supabase/server.ts";
 import type { MailboxProvider } from "./mailbox-provider.ts";
 
 /**
- * The onboarding-funnel events (issue #179). Emitted server-side — every one
- * is gated on a database check ("is this the caller's first Facility?") that
+ * The onboarding-funnel events (issue #179). Emitted server-side — every 0→1
+ * one is gated on a database check ("is this the caller's first Facility?") that
  * can't be trusted from the client — via `@vercel/analytics/server`, which
  * reads the current request's context for session attribution.
  *
@@ -29,9 +29,11 @@ export type FunnelEvent =
   | "bb_first_friend"
   | "bb_slot_first_response"
   // Standing Games (spec #576). `bb_first_standing_game` is a 0→1 like the
-  // rest; `bb_standing_game_week_posted` fires once per week the daily cron
-  // posts, so "do Standing Games keep running past week 3" reads off its
-  // count. Neither carries PII.
+  // rest; `bb_standing_game_week_posted` is per-occurrence (ADR 0014's
+  // amendment): once per week a Standing Game posts, from any path
+  // (`postDueWeeks`), with `{ week }`, the nth week posted for that Standing
+  // Game, so "do Standing Games keep running past week 3" reads off it.
+  // Neither carries PII.
   | "bb_first_standing_game"
   | "bb_standing_game_week_posted"
   // Fires on each answer confirmed from a Weekly Invite link (issue #580),

@@ -149,8 +149,7 @@ test("the prefill remembers which game it came from, so that game's date isn't p
 test("a tampered source game id drops out of the prefill and the form field", () => {
   const params = paramsOf(makeWeeklyHref(PREFILL));
   assert.equal(parseWeeklyPrefill({ ...params, from: "not-a-game" }, KNOWN)?.sourceSlotId, null);
-  const { from: _from, ...withoutSource } = params;
-  assert.equal(parseWeeklyPrefill(withoutSource, KNOWN)?.sourceSlotId, null);
+  assert.equal(parseWeeklyPrefill({ ...params, from: undefined }, KNOWN)?.sourceSlotId, null);
 
   const form = new FormData();
   assert.equal(parseSourceSlotId(form), null);
