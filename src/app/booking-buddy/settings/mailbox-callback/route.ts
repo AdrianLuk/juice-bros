@@ -6,7 +6,7 @@ import {
   MAILBOX_OAUTH_STATE_COOKIE,
   parseMailboxOAuthState,
 } from "@/lib/booking-buddy/mailbox-oauth";
-import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
+import { canConnectMailboxForCaller } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
 import { requireMailboxLinkEncryptionKey } from "@/lib/booking-buddy/env";
 import { mailAdapterFor } from "@/lib/booking-buddy/mail-adapters";
 import { encryptRefreshToken } from "@/lib/booking-buddy/token-encryption";
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
   // replayed by hand, must not still be able to complete a Gmail connection.
   // Microsoft has no allowlist — its consumer identity platform has no
   // equivalent of Google's capped Testing mode.
-  if (!(await getEmailSyncEntitlement()).canConnect[provider]) {
+  if (!(await canConnectMailboxForCaller(provider))) {
     return NextResponse.redirect(new URL(`${SETTINGS_PATH}?error=email_sync_not_allowed`, origin));
   }
 

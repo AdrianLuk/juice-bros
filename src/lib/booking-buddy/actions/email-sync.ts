@@ -11,7 +11,10 @@ import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, SETTINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
-import { getEmailSyncEntitlement } from "../email-sync-entitlement-for-caller.ts";
+import {
+  canConnectMailboxForCaller,
+  getEmailSyncEntitlementForCaller,
+} from "../email-sync-entitlement-for-caller.ts";
 import {
   readMicrosoftOAuthClientId,
   requireMailboxLinkEncryptionKey,
@@ -99,21 +102,33 @@ export async function getMailboxLink(): Promise<MailboxLink> {
 }
 
 /**
- * Whether the signed-in User may act on a review candidate, and under which
- * provider to record the `processed_messages` row — the entitlement module's
- * answer (`email-sync-entitlement.ts`), shaped for the candidate actions. A
- * failed read of the Mailbox Link refuses rather than throws: these actions
- * return an `ActionResult`, not an error boundary.
+ * The candidate actions' gate: the provider to record the `processed_messages`
+ * row under when the signed-in User may act on a review candidate (the
+ * entitlement module's answer, `email-sync-entitlement.ts`), otherwise the
+ * `ActionResult` to hand straight back.
+ *
+ * Only a failed read of the Mailbox Link refuses: these actions return an
+ * `ActionResult`, not an error boundary. Anything else (a failed profile read,
+ * or `verifySession`'s redirect) propagates, as it did before the entitlement
+ * module, rather than telling a User their account isn't approved.
  */
 async function authorizeEmailSyncForCaller(): Promise<
-  { ok: true; provider: MailboxProvider } | { ok: false }
+  { provider: MailboxProvider } | { error: string }
 > {
+  const notApproved = { error: "Your account isn't approved for email sync." };
+
+  // Signed in first, outside the try, so a redirect can't read as a refusal.
+  await verifySession();
+
+  let link: MailboxLink;
   try {
-    const entitlement = await getEmailSyncEntitlement();
-    return entitlement.canSync ? { ok: true, provider: entitlement.provider } : { ok: false };
+    link = await getMailboxLink();
   } catch {
-    return { ok: false };
+    return notApproved;
   }
+
+  const entitlement = await getEmailSyncEntitlementForCaller(link);
+  return entitlement.canSync ? { provider: entitlement.provider } : notApproved;
 }
 
 /**
@@ -130,7 +145,7 @@ async function authorizeEmailSyncForCaller(): Promise<
 export async function connectMailbox(provider: MailboxProvider): Promise<void> {
   await verifySession();
 
-  if (!(await getEmailSyncEntitlement()).canConnect[provider]) {
+  if (!(await canConnectMailboxForCaller(provider))) {
     redirect(`${SETTINGS_PATH}?error=email_sync_not_allowed`);
   }
   if (provider === "microsoft" && !readMicrosoftOAuthClientId()) {
@@ -239,7 +254,7 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
   // Authoritative re-check (ADR-0009's addendum) — the Bookings page asks the
   // same entitlement; a User removed from the allowlist after connecting
   // Gmail must not keep syncing off a stale page. Gmail-only by design.
-  if (!(await getEmailSyncEntitlement({ link })).canSync) {
+  if (!(await getEmailSyncEntitlementForCaller(link)).canSync) {
     return { status: "error", message: "Your account isn't approved for email sync." };
   }
 
@@ -412,9 +427,7 @@ export async function confirmImportCandidate(
   const session = await verifySession();
 
   const gate = await authorizeEmailSyncForCaller();
-  if (!gate.ok) {
-    return { error: "Your account isn't approved for email sync." };
-  }
+  if ("error" in gate) return gate;
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
   if (!gmailMessageId) {
@@ -554,9 +567,7 @@ export async function confirmMergedCandidate(
   const session = await verifySession();
 
   const gate = await authorizeEmailSyncForCaller();
-  if (!gate.ok) {
-    return { error: "Your account isn't approved for email sync." };
-  }
+  if ("error" in gate) return gate;
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
   const feed = readMergedFeedFields(formData);
@@ -652,9 +663,7 @@ export async function dismissMergedCandidate(
   const session = await verifySession();
 
   const gate = await authorizeEmailSyncForCaller();
-  if (!gate.ok) {
-    return { error: "Your account isn't approved for email sync." };
-  }
+  if ("error" in gate) return gate;
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
   const orgId = String(formData.get("org_id") ?? "").trim();
@@ -753,9 +762,7 @@ export async function confirmCancellationCandidate(
   const session = await verifySession();
 
   const gate = await authorizeEmailSyncForCaller();
-  if (!gate.ok) {
-    return { error: "Your account isn't approved for email sync." };
-  }
+  if ("error" in gate) return gate;
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
   const bookingId = String(formData.get("booking_id") ?? "").trim();
@@ -836,9 +843,7 @@ export async function confirmUpdateCandidate(
   const session = await verifySession();
 
   const gate = await authorizeEmailSyncForCaller();
-  if (!gate.ok) {
-    return { error: "Your account isn't approved for email sync." };
-  }
+  if ("error" in gate) return gate;
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
   if (!gmailMessageId) {
@@ -903,9 +908,7 @@ export async function dismissReviewItem(
   const session = await verifySession();
 
   const gate = await authorizeEmailSyncForCaller();
-  if (!gate.ok) {
-    return { error: "Your account isn't approved for email sync." };
-  }
+  if ("error" in gate) return gate;
 
   const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
   if (!gmailMessageId) {

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
-import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
+import { canConnectMailboxForCaller } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
@@ -40,15 +40,16 @@ function Section({
 export default async function BookingBuddyPrivacyPage() {
   const session = await getOptionalSession();
   const mailboxLink = session ? await getMailboxLink() : null;
-  const entitlement = session
-    ? await getEmailSyncEntitlement({ link: mailboxLink })
-    : null;
-  // The section renders for a User who may sync email (the entitlement:
-  // allowlisted for Gmail, or holding an Outlook link) or who already has any
-  // Mailbox Link. The disclosure is about what's stored, not what's allowed, so
-  // a Gmail link holder who has dropped off the allowlist still sees it: their
-  // refresh token stays on file until they disconnect.
-  const showEmailSync = !!entitlement?.canSync || mailboxLink !== null;
+  const gmailConnectAllowed = session
+    ? await canConnectMailboxForCaller("google")
+    : false;
+  // The section renders for a User who could connect Gmail (the allowlist) or
+  // who holds any Mailbox Link. Outlook needs no allowlist, so the only way an
+  // Outlook User gets here is by holding a link. The disclosure is about what
+  // is stored, not what is allowed, so a Gmail link holder who has dropped off
+  // the allowlist still sees it: their refresh token stays on file until they
+  // disconnect.
+  const showEmailSync = gmailConnectAllowed || mailboxLink !== null;
   const outlookConnected = mailboxLink?.provider === "microsoft";
   return (
     <div className="flex w-full flex-1 flex-col">

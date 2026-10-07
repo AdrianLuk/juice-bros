@@ -19,7 +19,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
 import { notEndedBefore } from "@/lib/booking-buddy/calendar";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
-import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
+import { getEmailSyncEntitlementForCaller } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 export const metadata: Metadata = pageMetadata({
   title: "Your bookings",
@@ -55,9 +55,8 @@ export default async function BookingsPage({
   // dismiss actions re-check authoritatively, asking the same entitlement
   // (issue #607), so a Gmail link holder who has dropped off the allowlist
   // sees no email section rather than one whose actions refuse them.
-  const { canSync: canSyncFromEmail } = await getEmailSyncEntitlement({
-    link: mailboxLink,
-  });
+  const { canSync: canSyncFromEmail } =
+    await getEmailSyncEntitlementForCaller(mailboxLink);
   // A Calendar Feed isn't allowlist-gated (ADR-0019) — feed sync is available
   // whenever the User has at least one feed-configured Facility. The unified
   // "Sync bookings" section (issue #336) shows if either source is available.

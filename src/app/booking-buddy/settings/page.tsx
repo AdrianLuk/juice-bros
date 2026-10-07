@@ -14,7 +14,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
-import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
+import { canConnectMailboxForCaller } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
 import { readMicrosoftOAuthClientId } from "@/lib/booking-buddy/env";
 export const metadata: Metadata = pageMetadata({
   title: "Settings",
@@ -43,9 +43,8 @@ export default async function SettingsPage({
   // rather than reading it a second time.
   const outlookConnectConfigured = readMicrosoftOAuthClientId() !== undefined;
   const mailboxLink = await getMailboxLink();
-  const { canConnect } = await getEmailSyncEntitlement({
+  const gmailConnectAllowed = await canConnectMailboxForCaller("google", {
     username: profile.username,
-    link: mailboxLink,
   });
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -97,7 +96,7 @@ export default async function SettingsPage({
             <div className="bb-card mt-4 p-4 sm:p-6">
               <MailboxSyncSection
                 mailboxLink={mailboxLink}
-                gmailConnectAllowed={canConnect.google}
+                gmailConnectAllowed={gmailConnectAllowed}
                 outlookConnectConfigured={outlookConnectConfigured}
                 error={error}
                 justConnected={justConnected === "1"}
