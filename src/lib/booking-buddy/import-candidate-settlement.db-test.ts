@@ -405,7 +405,7 @@ test("a feed cancellation whose event is no longer linked to that Booking remove
     provider: null,
   });
 
-  assert.deepEqual(outcome, { status: "not_found", message: "That booking has already changed. Sync again." });
+  assert.deepEqual(outcome, { status: "error", message: "That booking has already changed. Sync again." });
   assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
   assert.deepEqual(await bookingsOn(other.booking.date), [otherBookingId]);
   assert.deepEqual(await feedEventFor(r), { status: "imported", booking_id: bookingId, sequence: r.feed.sequence });

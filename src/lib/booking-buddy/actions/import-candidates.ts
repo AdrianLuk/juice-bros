@@ -118,7 +118,7 @@ export async function confirmImportCandidate(
     ...request,
   });
 
-  if (outcome.status === "error" || outcome.status === "not_found") {
+  if (outcome.status === "error") {
     return { error: outcome.message };
   }
 

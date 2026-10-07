@@ -55,8 +55,11 @@ export type ConfirmOutcome =
   | { status: "settled"; bookingId: string; playersError: string | null }
   /** A Booking already covered this reservation; the sources were linked to it and nothing new was made. */
   | { status: "duplicate"; bookingId: string }
-  /** The Booking a feed cancellation names is no longer the one its feed event is linked to. Nothing was written. */
-  | { status: "not_found"; message: string }
+  /**
+   * Nothing to show for it but `message`, for the User. That includes a feed
+   * cancellation whose event is no longer linked to the Booking it names,
+   * which writes nothing.
+   */
   | { status: "error"; message: string };
 
 export type DismissOutcome = { status: "settled" } | { status: "error"; message: string };
@@ -314,8 +317,8 @@ async function confirmImport(
  *
  * A feed cancellation's link is re-checked first rather than trusted from the
  * card: only a feed event still `imported` and linked to this same Booking is
- * one the review resolved. A link that has moved since is `not_found`, and
- * nothing is written.
+ * one the review matched. A link that has moved since is an error that says
+ * so, and nothing is written.
  *
  * Each source's record of the Booking is read before the delete, while the
  * links still hold, because the delete breaks them:
@@ -359,7 +362,7 @@ async function confirmCancellation(
       .maybeSingle();
 
     if (!seenRow || seenRow.status !== "imported" || seenRow.booking_id !== bookingId) {
-      return { status: "not_found", message: LINK_CHANGED };
+      return { status: "error", message: LINK_CHANGED };
     }
   }
 
