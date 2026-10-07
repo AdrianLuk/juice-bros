@@ -40,8 +40,8 @@ import { findSameReservation } from "./import-candidate-shaping.ts";
 import type {
   CancellationCandidate,
   Candidate,
-  FeedEventKey,
   ImportCandidate,
+  KnownFeedEvent,
   UpdateCandidate,
 } from "./import-candidate-token.ts";
 import type { MailboxProvider } from "./mailbox-provider.ts";
@@ -202,30 +202,65 @@ async function recordImportSources(
 }
 
 /**
- * Mark feed events already on file `dismissed` and unlinked, so a later sync
- * neither offers a still-listed event as an import nor diffs a vanished one as
- * a cancellation. An update, not an upsert: each row is one a sync already
- * wrote, and its `sequence` and `starts_at` stay as that sync recorded them.
- * `last_seen_at` is stamped as every manual settle stamps it. Returns whether
- * any write failed; each failure is logged here.
+ * Leave one feed event a sync already recorded `dismissed` and unlinked, so a
+ * later sync neither offers a still-listed event as an import nor diffs a
+ * vanished one as a cancellation. Returns the write's error, or null.
+ *
+ * An update first, not an upsert: the row is one a sync wrote, and its
+ * `sequence` stays as that sync recorded it rather than being overwritten with
+ * a number this card never knew. Only when no row matched (pruned, or purged
+ * with the Facility's feed URL since the review) is a fresh one inserted, with
+ * the column's default `sequence` and the start the card carried. A sync that
+ * writes the row between the two leaves a unique violation, and the update is
+ * simply run again against its row. `last_seen_at` is stamped as every manual
+ * settle stamps it.
+ */
+async function dismissFeedEvent(
+  supabase: SupabaseClient,
+  ownerId: string,
+  event: KnownFeedEvent,
+): Promise<unknown> {
+  const dismissed = { status: "dismissed", booking_id: null, last_seen_at: new Date().toISOString() };
+  const update = () =>
+    supabase
+      .from("org_feed_events")
+      .update(dismissed)
+      .eq("owner_id", ownerId)
+      .eq("org_id", event.orgId)
+      .eq("uid", event.uid)
+      .select("uid");
+
+  const updated = await update();
+  if (updated.error || updated.data.length > 0) {
+    return updated.error;
+  }
+
+  const { error } = await supabase.from("org_feed_events").insert({
+    owner_id: ownerId,
+    org_id: event.orgId,
+    uid: event.uid,
+    starts_at: event.startsAt,
+    ...dismissed,
+  });
+  if (!isUniqueViolation(error)) {
+    return error;
+  }
+  return (await update()).error;
+}
+
+/**
+ * Dismiss each feed event (`dismissFeedEvent`). Returns whether any write
+ * failed; each failure is logged here.
  */
 async function dismissFeedEvents(
   supabase: SupabaseClient,
   ownerId: string,
-  events: readonly FeedEventKey[],
+  events: readonly KnownFeedEvent[],
 ): Promise<{ failed: boolean }> {
-  const results = await Promise.all(
-    events.map((event) =>
-      supabase
-        .from("org_feed_events")
-        .update({ status: "dismissed", booking_id: null, last_seen_at: new Date().toISOString() })
-        .eq("owner_id", ownerId)
-        .eq("org_id", event.orgId)
-        .eq("uid", event.uid),
-    ),
-  );
+  const errors = (
+    await Promise.all(events.map((event) => dismissFeedEvent(supabase, ownerId, event)))
+  ).filter(Boolean);
 
-  const errors = results.map((result) => result.error).filter(Boolean);
   for (const error of errors) {
     console.error("booking-buddy: dismissing a settled feed event failed", error);
   }
@@ -332,7 +367,7 @@ async function confirmCancellation(
       .eq("booking_id", bookingId),
     supabase
       .from("org_feed_events")
-      .select("org_id, uid")
+      .select("org_id, uid, starts_at")
       .eq("owner_id", caller.ownerId)
       .eq("booking_id", bookingId),
   ]);
@@ -364,10 +399,14 @@ async function confirmCancellation(
 
   // The feed cancellation's own event is among the linked ones (its link was
   // just checked), so the keys are de-duplicated rather than written twice.
-  const feedEvents = new Map<string, FeedEventKey>();
+  const feedEvents = new Map<string, KnownFeedEvent>();
   for (const event of [
     ...(candidate.feed !== null ? [candidate.feed] : []),
-    ...(linkedFeedEvents ?? []).map((row) => ({ orgId: row.org_id as string, uid: row.uid as string })),
+    ...(linkedFeedEvents ?? []).map((row) => ({
+      orgId: row.org_id as string,
+      uid: row.uid as string,
+      startsAt: row.starts_at as string,
+    })),
   ]) {
     feedEvents.set(`${event.orgId}\n${event.uid}`, event);
   }

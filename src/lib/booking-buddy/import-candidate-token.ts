@@ -36,12 +36,19 @@ export type FeedEventKey = {
   uid: string;
 };
 
-/** One VEVENT as its `org_feed_events` row is keyed and stamped. */
-export type FeedEventIdentity = FeedEventKey & {
-  /** `SEQUENCE`, a whole number. */
-  sequence: number;
+/**
+ * One VEVENT a sync already recorded: its key, and the start a fresh row is
+ * stamped with should that row be gone by the time the User answers.
+ */
+export type KnownFeedEvent = FeedEventKey & {
   /** Start instant, ISO 8601. */
   startsAt: string;
+};
+
+/** One VEVENT as its `org_feed_events` row is keyed and stamped. */
+export type FeedEventIdentity = KnownFeedEvent & {
+  /** `SEQUENCE`, a whole number. */
+  sequence: number;
 };
 
 /**
@@ -73,10 +80,11 @@ export type CancellationCandidate = {
   messageId: string | null;
   /**
    * The feed event's row, already on file: a feed cancellation is a row the
-   * last sync left `imported`, so it is found by key, not stamped afresh.
+   * last sync left `imported`, so it is found by key and its `sequence` is
+   * never rewritten. The start is only for a row that has gone since.
    * Null for an email cancellation.
    */
-  feed: FeedEventKey | null;
+  feed: KnownFeedEvent | null;
   /**
    * The Booking the review matched it to, which confirming removes. Null for
    * an email cancellation that matched none, which can only be dismissed.
@@ -138,25 +146,28 @@ function readFeedKey(value: unknown): FeedEventKey | null | undefined {
   return orgId && uid ? { orgId, uid } : undefined;
 }
 
-function readFeed(value: unknown): FeedEventIdentity | null | undefined {
+function readKnownFeed(value: unknown): KnownFeedEvent | null | undefined {
   const key = readFeedKey(value);
   if (!key || !isObject(value)) {
     return key === null ? null : undefined;
   }
 
-  const { sequence } = value;
   const startsAt = typeof value.startsAt === "string" ? Date.parse(value.startsAt) : NaN;
+  return Number.isNaN(startsAt) ? undefined : { ...key, startsAt: new Date(startsAt).toISOString() };
+}
 
-  if (
-    typeof sequence !== "number" ||
-    !Number.isInteger(sequence) ||
-    sequence < 0 ||
-    Number.isNaN(startsAt)
-  ) {
+function readFeed(value: unknown): FeedEventIdentity | null | undefined {
+  const known = readKnownFeed(value);
+  if (!known || !isObject(value)) {
+    return known;
+  }
+
+  const { sequence } = value;
+  if (typeof sequence !== "number" || !Number.isInteger(sequence) || sequence < 0) {
     return undefined;
   }
 
-  return { ...key, sequence, startsAt: new Date(startsAt).toISOString() };
+  return { ...known, sequence };
 }
 
 function readSlot(value: unknown): BookingIdentity | null | undefined {
@@ -226,7 +237,7 @@ export function decodeCandidate(formData: FormData): Candidate | null {
       return { kind: "import", messageId, feed, slot };
     }
     case "cancellation": {
-      const feed = readFeedKey(parsed.feed);
+      const feed = readKnownFeed(parsed.feed);
       const bookingId = readNullableId(parsed.bookingId);
       if (feed === undefined || bookingId === undefined || (messageId === null && feed === null)) {
         return null;

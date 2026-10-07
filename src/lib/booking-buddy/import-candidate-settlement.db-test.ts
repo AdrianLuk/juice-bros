@@ -355,7 +355,7 @@ function feedCancellation(r: Reservation, bookingId: string) {
   return {
     kind: "cancellation" as const,
     messageId: null,
-    feed: { orgId: r.feed.orgId, uid: r.feed.uid },
+    feed: { orgId: r.feed.orgId, uid: r.feed.uid, startsAt: r.feed.startsAt },
     bookingId,
   };
 }
@@ -537,6 +537,27 @@ test("Keep booking on a feed cancellation dismisses the feed event, keeps the Bo
   assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
   assert.deepEqual(await feedEventFor(r), { status: "dismissed", booking_id: null, sequence: r.feed.sequence });
   assert.deepEqual((await ledger(r)).slots, []);
+});
+
+// A row can be gone by the time the User answers (the prune, or the Facility's
+// feed URL cleared and re-pasted). The dismissal still has to land, or the
+// next sync flags the same vanished event again.
+test("Keep booking on a feed cancellation whose event row is gone still records it dismissed", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { email: true });
+
+  const outcome = await dismissCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: feedCancellation(r, bookingId),
+    provider: null,
+  });
+
+  assert.deepEqual(outcome, { status: "settled" });
+  assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
+  assert.deepEqual(
+    (await ledger(r)).feedEvents,
+    [{ org_id: orgId, sequence: 0, starts_at: r.feed.startsAt, status: "dismissed", booking_id: null }],
+  );
 });
 
 test("an email candidate with no provider to record it under is refused", async () => {

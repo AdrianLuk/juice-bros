@@ -105,7 +105,7 @@ const EMAIL_CANCELLATION: Candidate = { kind: "cancellation", messageId: "msg-2"
 const FEED_CANCELLATION: Candidate = {
   kind: "cancellation",
   messageId: null,
-  feed: { orgId: "org-1", uid: "evt-1@courtreserve" },
+  feed: { orgId: "org-1", uid: "evt-1@courtreserve", startsAt: "2026-10-01T22:00:00.000Z" },
   bookingId: "booking-1",
 };
 const EMAIL_UPDATE: Candidate = { kind: "update", messageId: "msg-3" };
@@ -136,7 +136,9 @@ test("a cancellation whose Booking or feed event is malformed is refused", () =>
   for (const candidate of [
     { ...EMAIL_CANCELLATION, bookingId: " " },
     { ...EMAIL_CANCELLATION, bookingId: 7 },
-    { ...FEED_CANCELLATION, feed: { orgId: "org-1", uid: "" } },
+    { ...FEED_CANCELLATION, feed: { orgId: "org-1", uid: "", startsAt: "2026-10-01T22:00:00.000Z" } },
+    { ...FEED_CANCELLATION, feed: { orgId: "org-1", uid: "evt-1@courtreserve" } },
+    { ...FEED_CANCELLATION, feed: { orgId: "org-1", uid: "evt-1@courtreserve", startsAt: "soon" } },
     { ...FEED_CANCELLATION, feed: "evt-1@courtreserve" },
   ]) {
     assert.equal(decodeCandidate(posted(JSON.stringify(candidate))), null, JSON.stringify(candidate));

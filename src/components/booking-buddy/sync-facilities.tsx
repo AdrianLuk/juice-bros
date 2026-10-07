@@ -188,7 +188,11 @@ export function FeedCancellationCard({
   const candidate = encodeCandidate({
     kind: "cancellation",
     messageId: null,
-    feed: { orgId: item.orgId, uid: item.feedEventUid },
+    feed: {
+      orgId: item.orgId,
+      uid: item.feedEventUid,
+      startsAt: item.startsAt,
+    },
     bookingId: item.bookingId,
   });
 
