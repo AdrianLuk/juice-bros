@@ -17,6 +17,10 @@ import {
   selectDuration,
 } from "./support/places.ts";
 import { pickDate } from "./support/date-field.ts";
+import { dayLabel, monthDayLabel, torontoDate } from "./support/dates.ts";
+
+/** Each test posts on its own day, a year or more out, so its rows never collide. */
+const DAY = (n: number) => torontoDate(400 + n);
 
 /**
  * The Slot poll journey: post a bare proposal, a friend with slots Visibility
@@ -128,14 +132,14 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
   accounts,
 }) => {
   const slotId = await createSlot(page, {
-    date: "2031-03-03",
+    date: DAY(1),
     start: "13:00",
     end: "14:00",
-    label: "Mar 3, 2031",
+    label: dayLabel(DAY(1)),
   });
 
   try {
-    await expect(page.getByRole("heading", { name: /Mar 3 ·/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: new RegExp(`${monthDayLabel(DAY(1))} ·`) })).toBeVisible();
     await expect(page.getByText("Proposed by you")).toBeVisible();
     await expect(page.getByText("Gathering", { exact: true })).toBeVisible();
     await expect(
@@ -143,9 +147,9 @@ test("a bare-proposal slot can be posted and shows up for its owner", async ({
     ).toHaveCount(3);
 
     await page.goto("/booking-buddy/slots");
-    await expect(row(page, "Mar 3, 2031")).toBeVisible();
+    await expect(row(page, dayLabel(DAY(1)))).toBeVisible();
     await expect(
-      row(page, "Mar 3, 2031").getByText("Gathering", { exact: true }),
+      row(page, dayLabel(DAY(1))).getByText("Gathering", { exact: true }),
     ).toBeVisible();
   } finally {
     await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
@@ -156,17 +160,17 @@ test("a game that runs past midnight can be proposed", async ({ page, accounts }
   // A 10pm–1am proposal — the End clock reads earlier than the Start, and the
   // form marks it "Next day" rather than refusing it.
   const slotId = await createSlot(page, {
-    date: "2031-03-04",
+    date: DAY(2),
     start: "22:00",
     end: "01:00",
-    label: "Mar 4, 2031",
+    label: dayLabel(DAY(2)),
   });
 
   try {
-    await expect(page.getByRole("heading", { name: /Mar 4 ·/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: new RegExp(`${monthDayLabel(DAY(2))} ·`) })).toBeVisible();
 
     await page.goto("/booking-buddy/slots");
-    const posted = row(page, "Mar 4, 2031");
+    const posted = row(page, dayLabel(DAY(2)));
     await expect(posted).toContainText("10:00");
     await expect(posted).toContainText("1:00");
   } finally {
@@ -179,13 +183,13 @@ test("a slot's notes can be set at posting time, and edited afterward", async ({
   const updatedNotes = "Playwright bring your own paddle";
 
   await page.goto("/booking-buddy/slots");
-  await pickDate(page, "2031-11-11");
+  await pickDate(page, DAY(3));
   await page.getByLabel("Start").selectOption("13:00");
   await selectDuration(page, "13:00", "14:00");
   await page.getByLabel("Notes").fill(originalNotes);
   await page.getByRole("button", { name: "Post game" }).click();
 
-  await row(page, "Nov 11, 2031").getByRole("link").click();
+  await row(page, dayLabel(DAY(3))).getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
   const slotId = page.url().split("/").pop()!;
 
@@ -229,10 +233,10 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
   await grantBen2SlotsVisibility(page, accounts.ben2.username);
 
   const slotId = await createSlot(page, {
-    date: "2031-04-04",
+    date: DAY(4),
     start: "10:00",
     end: "11:00",
-    label: "Apr 4, 2031",
+    label: dayLabel(DAY(4)),
   });
 
   try {
@@ -242,7 +246,7 @@ test("a friend with slots Visibility can respond, and the owner sees it", async 
 
     try {
       await signIn(ben2, accounts.ben2.email, "/booking-buddy/slots");
-      await expect(row(ben2, "Apr 4, 2031")).toBeVisible();
+      await expect(row(ben2, dayLabel(DAY(4)))).toBeVisible();
 
       await ben2.goto(`/booking-buddy/slots/${slotId}`);
       await expect(ben2.getByText(/Proposed by/)).toBeVisible();
@@ -290,10 +294,10 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
   );
 
   const slotId = await createSlot(page, {
-    date: "2031-06-06",
+    date: DAY(5),
     start: "08:00",
     end: "09:00",
-    label: "Jun 6, 2031",
+    label: dayLabel(DAY(5)),
   });
 
   try {
@@ -302,7 +306,7 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
 
     try {
       await signIn(ben2, accounts.ben2.email, "/booking-buddy/slots");
-      await expect(row(ben2, "Jun 6, 2031")).toHaveCount(0);
+      await expect(row(ben2, dayLabel(DAY(5)))).toHaveCount(0);
 
       // RLS filters the row itself, so `getSlotDetail` returns null and the
       // page calls `notFound()` — Ben2 gets the not-found screen, never the
@@ -314,7 +318,7 @@ test("a Connection with no slots Visibility cannot see or reach the slot", async
       await expect(
         ben2.getByRole("heading", { name: "This page could not be found." }),
       ).toBeVisible();
-      await expect(ben2.getByText("Jun 6, 2031")).toHaveCount(0);
+      await expect(ben2.getByText(dayLabel(DAY(5)))).toHaveCount(0);
       await expect(ben2.getByText(/Proposed by/)).toHaveCount(0);
     } finally {
       await ben2Context.close();
@@ -335,14 +339,14 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
     // formatCourtLabel prepends "Court " for display — the field itself is
     // numbers-only (type="number"), so the row/option text is still "Court 7".
     court: "7",
-    date: "2031-07-07",
+    date: DAY(6),
     start: "09:00",
     end: "10:00",
   });
   await logBooking(page, {
     place,
     court: "8",
-    date: "2031-07-07",
+    date: DAY(6),
     start: "09:00",
     end: "10:00",
     format: "Singles",
@@ -353,10 +357,10 @@ test("attaching a booking gives a proposal real capacity, and detaching takes it
   await expect(row(page, "Court 8")).toBeVisible();
 
   const slotId = await createSlot(page, {
-    date: "2031-07-07",
+    date: DAY(6),
     start: "09:00",
     end: "10:00",
-    label: "Jul 7, 2031",
+    label: dayLabel(DAY(6)),
   });
 
   try {
@@ -418,10 +422,10 @@ test("the reminder timing defaults to 60 minutes and the owner can change it", a
   accounts,
 }) => {
   const slotId = await createSlot(page, {
-    date: "2031-08-08",
+    date: DAY(7),
     start: "09:00",
     end: "10:00",
-    label: "Aug 8, 2031",
+    label: dayLabel(DAY(7)),
   });
 
   try {
@@ -450,10 +454,10 @@ test("the organizer can set an intended org for a still-bare-proposal slot", asy
   await addPlace(page, place);
 
   const slotId = await createSlot(page, {
-    date: "2031-09-09",
+    date: DAY(8),
     start: "09:00",
     end: "10:00",
-    label: "Sep 9, 2031",
+    label: dayLabel(DAY(8)),
   });
 
   try {
@@ -486,7 +490,7 @@ test("a facility picked at creation is already the slot's intended org", async (
   await addPlace(page, place);
 
   await page.goto("/booking-buddy/slots");
-  await pickDate(page, "2031-10-10");
+  await pickDate(page, DAY(9));
   await page.getByLabel("Start").selectOption("09:00");
   await selectDuration(page, "09:00", "10:00");
   await page.getByLabel("Facility").selectOption({ label: place });
@@ -494,7 +498,7 @@ test("a facility picked at creation is already the slot's intended org", async (
 
   // The facility shows in the game's row title even though no court is booked
   // — it's still a bare proposal, but a proposal has a destination.
-  const proposalRow = row(page, "Oct 10, 2031");
+  const proposalRow = row(page, dayLabel(DAY(9)));
   await expect(proposalRow).toContainText(place);
   await expect(proposalRow).toContainText("Gathering");
 
@@ -521,10 +525,10 @@ test("tapping a response shows an optimistic update before the server confirms i
   accounts,
 }) => {
   const slotId = await createSlot(page, {
-    date: "2031-05-05",
+    date: DAY(10),
     start: "15:00",
     end: "16:00",
-    label: "May 5, 2031",
+    label: dayLabel(DAY(10)),
   });
 
   try {
@@ -577,7 +581,7 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
   await logBooking(page, {
     place,
     court: "9",
-    date: "2031-10-10",
+    date: DAY(9),
     start: "09:00",
     end: "10:00",
     format: "Singles",
@@ -585,10 +589,10 @@ test("a mixed-division slot with a real capacity breaks the signal down by gende
   await expect(row(page, "Court 9")).toBeVisible();
 
   const slotId = await createSlot(page, {
-    date: "2031-10-10",
+    date: DAY(9),
     start: "09:00",
     end: "10:00",
-    label: "Oct 10, 2031",
+    label: dayLabel(DAY(9)),
     division: "mixed",
   });
 

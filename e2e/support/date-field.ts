@@ -22,7 +22,7 @@ function monthDelta(
  * react-day-picker's own keyboard nav (PageUp/PageDown for months, with Shift
  * for years — far fewer hops than the chevrons for a date years out), then
  * clicks the day. The day match is on RDP's `aria-label` (date-fns `PPPP`,
- * e.g. `"Wednesday, September 16th, 2026"`, sometimes prefixed `"Today, "` or
+ * e.g. `"Wednesday, September 16th"` and the year, sometimes prefixed `"Today, "` or
  * suffixed `", selected"`).
  *
  * `scope` is a `Page` for the inline forms (Post a game) or a dialog `Locator`

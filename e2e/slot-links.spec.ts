@@ -5,6 +5,10 @@ import { signIn } from "./support/sign-in.ts";
 import { deleteSlots } from "./support/slot-cleanup.ts";
 import { addPlace, placeName, removePlace, selectDuration } from "./support/places.ts";
 import { pickDate } from "./support/date-field.ts";
+import { dayLabel, torontoDate } from "./support/dates.ts";
+
+/** Each test posts on its own day, a year or more out, so its rows never collide. */
+const DAY = (n: number) => torontoDate(400 + n);
 
 /**
  * The Slot Link + Guest RSVP journey (issue #10): the owner generates a
@@ -46,10 +50,10 @@ test("the owner can create an invite link and a guest can RSVP through it with n
   accounts,
 }) => {
   const slotId = await createSlot(page, {
-    date: "2031-04-04",
+    date: DAY(1),
     start: "18:00",
     end: "19:00",
-    label: "Apr 4, 2031",
+    label: dayLabel(DAY(1)),
   });
 
   try {
@@ -66,7 +70,7 @@ test("the owner can create an invite link and a guest can RSVP through it with n
     const guestPage = await guestContext.newPage();
 
     await guestPage.goto(url);
-    await expect(guestPage.getByRole("heading", { name: "Apr 4, 2031" })).toBeVisible();
+    await expect(guestPage.getByRole("heading", { name: dayLabel(DAY(1)) })).toBeVisible();
 
     await guestPage.getByLabel("Your name").fill("Priya Guest");
     await guestPage.getByRole("button", { name: "Yes" }).click();
@@ -100,13 +104,13 @@ test("a guest sees which facility the slot is for, even for a bare proposal", as
   await addPlace(page, place);
 
   await page.goto("/booking-buddy/slots");
-  await pickDate(page, "2031-04-06");
+  await pickDate(page, DAY(2));
   await page.getByLabel("Start").selectOption("18:00");
   await selectDuration(page, "18:00", "19:00");
   await page.getByLabel("Facility").selectOption({ label: place });
   await page.getByRole("button", { name: "Post game" }).click();
 
-  await row(page, "Apr 6, 2031").getByRole("link").click();
+  await row(page, dayLabel(DAY(2))).getByRole("link").click();
   await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
   const slotId = page.url().split("/").pop()!;
 
@@ -122,7 +126,7 @@ test("a guest sees which facility the slot is for, even for a bare proposal", as
     // the organizer is planning to book, so a guest arriving from WhatsApp
     // knows where the game would be.
     await expect(guestPage.getByRole("heading", { level: 1 })).toContainText(place);
-    await expect(guestPage.getByRole("heading", { level: 1 })).toContainText("Apr 6, 2031");
+    await expect(guestPage.getByRole("heading", { level: 1 })).toContainText(dayLabel(DAY(2)));
     await expect(guestPage.getByText("still a proposal")).toBeVisible();
 
     await guestContext.close();
@@ -134,10 +138,10 @@ test("a guest sees which facility the slot is for, even for a bare proposal", as
 
 test("generating an invite link twice reuses the same one", async ({ page, accounts }) => {
   const slotId = await createSlot(page, {
-    date: "2031-04-05",
+    date: DAY(3),
     start: "09:00",
     end: "10:00",
-    label: "Apr 5, 2031",
+    label: dayLabel(DAY(3)),
   });
 
   try {

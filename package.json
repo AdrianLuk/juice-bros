@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.ts\"",
+    "test": "node scripts/check-e2e-dates.mts && node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.ts\"",
     "test:rls": "supabase test db",
     "snapshot:videos": "node scripts/snapshot-videos.mts",
     "optimize:images": "node scripts/optimize-images.mts",
@@ -15,7 +15,8 @@
     "seed:on-deck": "node scripts/seed-on-deck.mts",
     "db:reset": "supabase db reset && npm run seed:users",
     "pretest:e2e": "npm run seed:users",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:e2e-dates": "node scripts/check-e2e-dates.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -36,7 +36,7 @@ function daysOut(days: number): { date: string; weekday: number } {
   return { date: day.toISOString().slice(0, 10), weekday: day.getUTCDay() };
 }
 
-/** `"2026-10-13"` as the app writes a game's day: `"Tue, Oct 13"`. */
+/** A `YYYY-MM-DD` date as the app writes a game's day: `"Tue, Oct 13"`. */
 function dayLabel(date: string): string {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",

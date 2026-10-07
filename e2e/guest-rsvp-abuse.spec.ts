@@ -7,6 +7,7 @@ import { deleteSlots } from "./support/slot-cleanup.ts";
 import { guestRsvpLogForSlotLink, slotLinkIdForToken } from "./support/guest-rsvp-log.ts";
 import { selectDuration } from "./support/places.ts";
 import { pickDate } from "./support/date-field.ts";
+import { dayLabel, torontoDate } from "./support/dates.ts";
 
 /**
  * Issue #13's 10.2: confirm the Guest-abuse soft-threshold logging (7.6) is
@@ -53,11 +54,12 @@ test("repeated guest RSVPs from the same IP past the soft threshold are flagged 
   browser,
   accounts,
 }) => {
+  const date = torontoDate(400);
   const slotId = await createSlot(page, {
-    date: "2031-04-06",
+    date,
     start: "20:00",
     end: "21:00",
-    label: "Apr 6, 2031",
+    label: dayLabel(date),
   });
 
   try {

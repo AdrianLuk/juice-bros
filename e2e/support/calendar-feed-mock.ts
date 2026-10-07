@@ -153,7 +153,7 @@ export function icsBody(
     summary: string;
     description: string;
     location: string;
-    /** ISO instant, e.g. `2026-10-01T22:00:00Z`. */
+    /** ISO instant, e.g. from `torontoInstant` (support/dates.ts). */
     start: string;
     end: string;
     sequence?: number;

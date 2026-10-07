@@ -3,6 +3,7 @@ import { expect, test } from "./support/accounts.ts";
 import { signIn } from "./support/sign-in.ts";
 import { row } from "./support/places.ts";
 import { CalendarFeedMock, icsBody } from "./support/calendar-feed-mock.ts";
+import { candidateLabel, shiftDate, torontoDate, torontoInstant } from "./support/dates.ts";
 import {
   bookingsForOrg,
   clearFeedUrlViaForm,
@@ -47,26 +48,29 @@ test.afterEach(async ({ accounts }) => {
   await deleteFacilities({ email: accounts.amy.email, password: accounts.password }, PREFIX);
 });
 
-/** A future-dated doubles reservation, 6-8pm Toronto on 2026-10-01. */
+/** The day the feed's reservations start from: a month out, so always upcoming. */
+const FEED_DAY = torontoDate(30);
+
+/** A future doubles reservation, 6-8pm Toronto on `FEED_DAY`. */
 const FUTURE_EVENT = {
   uid: "feed-evt-1",
   summary: "Doubles",
   description: "Court #6",
   location: CLUB,
-  start: "2026-10-01T22:00:00Z", // 18:00 EDT
-  end: "2026-10-02T00:00:00Z", // 20:00 EDT
+  start: torontoInstant(FEED_DAY, "18:00"),
+  end: torontoInstant(FEED_DAY, "20:00"),
 };
 
-/** A distinct future reservation on 2026-10-`n` (n = 2..20), Court #n, 6-8pm EDT. */
+/** A distinct future reservation `n` days after `FEED_DAY` (n = 2..20), Court #n, 6-7pm Toronto. */
 function futureEvent(n: number) {
-  const day = String(n).padStart(2, "0");
+  const day = shiftDate(FEED_DAY, n);
   return {
     uid: `feed-evt-${n}`,
     summary: "Doubles",
     description: `Court #${n}`,
     location: CLUB,
-    start: `2026-10-${day}T22:00:00Z`,
-    end: `2026-10-${day}T23:00:00Z`,
+    start: torontoInstant(day, "18:00"),
+    end: torontoInstant(day, "19:00"),
   };
 }
 
@@ -123,7 +127,7 @@ test("paste → Sync bookings → confirm → a Booking with facility / date / t
     .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(card).toBeVisible();
   await expect(card).toContainText(CLUB);
-  await expect(card).toContainText("Thu Oct 01, 2026");
+  await expect(card).toContainText(candidateLabel(FEED_DAY));
   await expect(card).toContainText("6:00 PM");
   await expect(card).toContainText("8:00 PM");
   await expect(card).toContainText("Court #6");
@@ -332,7 +336,7 @@ test("a reservation that vanishes from the feed becomes a cancellation candidate
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Remove booking" }) });
   await expect(cancelCard).toBeVisible();
-  await expect(cancelCard).toContainText("Fri Oct 09, 2026");
+  await expect(cancelCard).toContainText(candidateLabel(shiftDate(FEED_DAY, 9)));
 
   await cancelCard.getByRole("button", { name: "Remove booking" }).click();
   await expect(section.getByText("Removed 1 booking.")).toBeVisible({ timeout: 15_000 });
