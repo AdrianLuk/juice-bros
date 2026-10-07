@@ -11,7 +11,6 @@ import {
   CandidateSource,
   ReviewActions,
 } from "@/components/booking-buddy/sync-from-email";
-import { DismissedSlotFields } from "@/components/booking-buddy/dismissed-slot-fields";
 import type { ReviewOutcome } from "@/components/booking-buddy/review-outcome";
 import {
   formatCandidateDate,
@@ -23,11 +22,18 @@ import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
   confirmFeedCancellation,
-  confirmFeedCandidate,
   dismissFeedCandidate,
   type CalendarFeedCancellationItem,
   type CalendarFeedReviewItem,
 } from "@/lib/booking-buddy/actions/calendar-feed";
+import {
+  dismissImportCandidate,
+  settleImportCandidate,
+} from "@/lib/booking-buddy/actions/import-candidates";
+import {
+  CANDIDATE_FIELD,
+  encodeCandidate,
+} from "@/lib/booking-buddy/import-candidate-token";
 
 const EMPTY: ActionResult = {};
 
@@ -46,8 +52,9 @@ const EMPTY: ActionResult = {};
  * VEVENT UID. A Calendar Feed is per-Org, so
  * the Facility select is prefilled to the owning Org and stays editable only
  * as a safety valve; every other field rides through as a hidden input so
- * `confirmFeedCandidate` re-runs `parseNewBooking` over the same field names
- * `CreateBookingForm` posts.
+ * `settleImportCandidate` re-runs `parseNewBooking` over the same field names
+ * `CreateBookingForm` posts. The feed event it settles travels in the
+ * `candidate` token.
  */
 export function FeedCandidateCard({
   item,
@@ -59,16 +66,35 @@ export function FeedCandidateCard({
   onResolved: (feedEventUid: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    confirmFeedCandidate,
+    settleImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    dismissFeedCandidate,
+    dismissImportCandidate,
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
   const facilityFieldId = `feed-facility-${item.feedEventUid}`;
   const dismissFormId = `feed-dismiss-${item.feedEventUid}`;
+
+  // The slot is the feed's own Org, not whatever the Facility select below
+  // shows: a dismissal always names the Org the review matched (issue #437).
+  const candidate = encodeCandidate({
+    kind: "import",
+    messageId: null,
+    feed: {
+      orgId: item.orgId,
+      uid: item.feedEventUid,
+      sequence: item.sequence,
+      startsAt: item.startsAt,
+    },
+    slot: {
+      orgId: item.orgId,
+      date: item.date,
+      startTime: item.startTime,
+      courtLabel: item.courtLabel,
+    },
+  });
 
   useResolveOnSuccess(confirmState, () =>
     onResolved(item.feedEventUid, "added"),
@@ -106,9 +132,7 @@ export function FeedCandidateCard({
           />
         </div>
 
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="sequence" value={item.sequence} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="date" value={item.date} />
@@ -128,15 +152,10 @@ export function FeedCandidateCard({
       <ActionError state={confirmState} />
 
       <form id={dismissFormId} action={dismissAction} className="self-start">
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="org_id" value={item.orgId} />
-        <input type="hidden" name="sequence" value={item.sequence} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
-        {/* The Facility select above belongs to the confirm form; a
-            dismissal always names the feed's own Org (issue #437). Button-less
-            for the same reason the email import card's form is: it lives in
-            `ReviewActions` above and reaches this form by `id` (issue #464). */}
-        <DismissedSlotFields slot={item} />
+        {/* Button-less for the same reason the email import card's form is:
+            it lives in `ReviewActions` above and reaches this form by `id`
+            (issue #464). */}
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
       </form>
       <ActionError state={dismissState} />
     </li>
@@ -203,11 +222,10 @@ export function FeedCancellationCard({
       </form>
       <ActionError state={confirmState} />
 
-      {/* Deliberately renders no `DismissedSlotFields`, unlike the import
-          card above: "Keep booking" means keep this Booking, not "I don't want
-          this reservation", so it must never record a dismissal that
-          suppresses a future import of a slot the User is still playing
-          (issue #437). */}
+      {/* Deliberately posts no slot, unlike the import card above: "Keep
+          booking" means keep this Booking, not "I don't want this
+          reservation", so it must never record a dismissal that suppresses a
+          future import of a slot the User is still playing (issue #437). */}
       <form action={dismissAction} className="self-start">
         <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
         <input type="hidden" name="org_id" value={item.orgId} />

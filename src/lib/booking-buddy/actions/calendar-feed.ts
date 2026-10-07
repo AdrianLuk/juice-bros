@@ -33,9 +33,8 @@ import {
   pruneExpiredDismissedReservations,
   recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
-import { parseNewBooking } from "../bookings.ts";
-import { findSameReservation, type BookingIdentity } from "../import-candidate-shaping.ts";
-import { insertValidatedBooking, deleteOwnedBooking } from "./bookings.ts";
+import type { BookingIdentity } from "../import-candidate-shaping.ts";
+import { deleteOwnedBooking } from "./bookings.ts";
 import { trackFacilitySyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
@@ -515,110 +514,6 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
 /* -------------------------------------------------------------------------- */
 /* Confirm / dismiss a feed candidate                                          */
 /* -------------------------------------------------------------------------- */
-
-/**
- * Confirming a feed Import Candidate creates a real Booking (developer story
- * 12) — the form posts the same field names `CreateBookingForm` does plus
- * `org_id` and `feed_event_uid`, so it reuses `parseNewBooking`'s validation
- * as-is rather than trusting the candidate's already-parsed fields.
- *
- * The confirm-time duplicate guard (ADR-0019's "Consequences"): before the
- * insert, the parsed slot is checked against the caller's existing Bookings.
- * The review list already filters duplicates when it's shaped, but confirming
- * an email candidate and then a feed candidate for the same slot in the same
- * session would otherwise slip past — the feed review ran before the email
- * confirm created its Booking. On a hit the feed event is recorded `imported`
- * + linked to the Booking that already exists, and no second Booking is made.
- */
-export async function confirmFeedCandidate(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const feedEventUid = String(formData.get("feed_event_uid") ?? "").trim();
-  const orgId = String(formData.get("org_id") ?? "").trim();
-  if (!feedEventUid || !orgId) {
-    return { error: "Couldn't confirm that booking. Try again." };
-  }
-
-  const parsed = parseNewBooking(formData);
-  if ("error" in parsed) {
-    return parsed;
-  }
-
-  const sequenceRaw = Number(formData.get("sequence"));
-  const sequence = Number.isInteger(sequenceRaw) && sequenceRaw >= 0 ? sequenceRaw : 0;
-  const startsAtRaw = String(formData.get("starts_at") ?? "").trim();
-  const startsAt = startsAtRaw && !Number.isNaN(Date.parse(startsAtRaw))
-    ? new Date(startsAtRaw).toISOString()
-    : null;
-
-  const supabase = await createClient();
-
-  // The confirm-time duplicate guard. Read the caller's Bookings for this Org
-  // in the Org's zone, exactly the shape `isDuplicateBooking` compares.
-  const { data: orgRow } = await supabase
-    .from("orgs")
-    .select("time_zone")
-    .eq("id", orgId)
-    .eq("owner_id", session.userId)
-    .maybeSingle();
-  const zone = orgRow?.time_zone && isKnownTimeZone(orgRow.time_zone) ? orgRow.time_zone : "UTC";
-
-  const { data: bookingRows } = await supabase
-    .from("bookings")
-    .select("id, org_id, court_label, starts_at")
-    .eq("owner_id", session.userId)
-    .eq("org_id", orgId);
-
-  const existing = (bookingRows ?? []).map((row) => ({
-    id: row.id,
-    orgId: row.org_id,
-    courtLabel: row.court_label,
-    date: todayInZone(zone, new Date(row.starts_at)),
-    startTime: clockInZone(zone, new Date(row.starts_at)),
-  }));
-
-  // Cross-source, so court is compared by number: the Booking covering this
-  // slot may have come from the confirmation email, which writes the court as
-  // `"#9 - Hard"` where this feed candidate says `"#9"` (issue #432).
-  const alreadyBooked = findSameReservation(parsed, existing);
-
-  if (alreadyBooked) {
-    // No second Booking — link the feed event to the one that already exists
-    // and report success; the User's intent ("this slot is on my calendar")
-    // is satisfied. This and the review's own filter run the same
-    // `findSameReservation`, so the one check covers the whole duplicate case.
-    await recordFeedEvent(supabase, session.userId, {
-      orgId,
-      uid: feedEventUid,
-      sequence,
-      startsAt: startsAt ?? new Date(0).toISOString(),
-      status: "imported",
-      bookingId: alreadyBooked.id,
-    });
-    return { ok: true };
-  }
-
-  const result = await insertValidatedBooking(session.userId, parsed);
-  if (!result.ok) {
-    return result;
-  }
-
-  await recordFeedEvent(supabase, session.userId, {
-    orgId,
-    uid: feedEventUid,
-    sequence,
-    startsAt: startsAt ?? new Date(0).toISOString(),
-    status: "imported",
-    bookingId: result.bookingId ?? null,
-  });
-
-  after(() => trackFacilitySyncEvent("bb_facility_sync_import"));
-
-  return { ok: true };
-}
 
 /**
  * Dismissing a feed candidate never touches a Booking (CONTEXT.md's Import

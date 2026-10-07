@@ -14,8 +14,11 @@ import {
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ActionError } from "@/components/booking-buddy/action-error";
-import { DismissedSlotFields } from "@/components/booking-buddy/dismissed-slot-fields";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
+import {
+  CANDIDATE_FIELD,
+  encodeCandidate,
+} from "@/lib/booking-buddy/import-candidate-token";
 import {
   formatCandidateDate,
   formatCourtLabel,
@@ -29,15 +32,16 @@ import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
 import {
   confirmCancellationCandidate,
-  confirmImportCandidate,
-  confirmMergedCandidate,
   confirmUpdateCandidate,
-  dismissMergedCandidate,
   dismissReviewItem,
   type MergedImportCandidate,
   type ReviewItem,
   type UpdateTargetBooking,
 } from "@/lib/booking-buddy/actions/email-sync";
+import {
+  dismissImportCandidate,
+  settleImportCandidate,
+} from "@/lib/booking-buddy/actions/import-candidates";
 
 const EMPTY: ActionResult = {};
 
@@ -119,12 +123,40 @@ export function ReviewActions({
 /** The three kinds, in the order the review screen groups them for display. */
 const REVIEW_KINDS = ["import", "cancellation", "update"] as const;
 
-/** Confirming each kind stays its own action — the three re-validate down completely different paths (see `email-sync.ts`). */
+/** Confirming each kind stays its own action — the three re-validate down completely different paths (see `email-sync.ts` and `import-candidates.ts`). */
 const CONFIRM_ACTION = {
-  import: confirmImportCandidate,
+  import: settleImportCandidate,
   cancellation: confirmCancellationCandidate,
   update: confirmUpdateCandidate,
 } as const;
+
+/** An import's Dismiss settles it like its confirm does (`import-candidates.ts`); the other two only record the message. */
+const DISMISS_ACTION = {
+  import: dismissImportCandidate,
+  cancellation: dismissReviewItem,
+  update: dismissReviewItem,
+} as const;
+
+/**
+ * The `candidate` token an email import card posts. The slot rides along for
+ * its Dismiss, and only when the facility matched an Org: the slot is keyed
+ * on one (issue #437).
+ */
+function emailImportToken(item: Extract<ReviewItem, { kind: "import" }>): string {
+  return encodeCandidate({
+    kind: "import",
+    messageId: item.gmailMessageId,
+    feed: null,
+    slot: item.matchedOrgId
+      ? {
+          orgId: item.matchedOrgId,
+          date: item.date,
+          startTime: item.startTime,
+          courtLabel: item.courtLabel,
+        }
+      : null,
+  });
+}
 
 /** The read-only detail lines under the facility name — the one part of the card that varies per kind but carries no form. */
 function ReviewItemDetails({ item }: { item: ReviewItem }) {
@@ -251,9 +283,10 @@ function FacilityFieldHint() {
 /**
  * The Import Candidate's Confirm form — the only kind with a field the User
  * still edits (`<OrgSelect>` when the facility matched no Org). Every other
- * value rides through as a hidden input so `confirmImportCandidate` re-runs
+ * value rides through as a hidden input so `settleImportCandidate` re-runs
  * `parseNewBooking` over the same field names `CreateBookingForm` posts,
- * rather than trusting the already-parsed item a second time.
+ * rather than trusting the already-parsed item a second time. Which message
+ * it settles travels in the `candidate` token.
  */
 function ImportBody({
   item,
@@ -288,8 +321,8 @@ function ImportBody({
 
         <input
           type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
+          name={CANDIDATE_FIELD}
+          value={emailImportToken(item)}
         />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
@@ -584,7 +617,7 @@ export function ReviewItemCard({
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    dismissReviewItem,
+    DISMISS_ACTION[item.kind],
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
@@ -644,23 +677,20 @@ export function ReviewItemCard({
       )}
 
       <form id={dismissFormId} action={dismissAction} className="self-start">
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        {/* Only an import, and only one whose facility matched an Org —
-            the slot is keyed on one (issue #437). A cancellation or update
-            renders none: those mean "leave this Booking alone", not "I don't
-            want this reservation". */}
-        {item.kind === "import" && item.matchedOrgId && (
-          <DismissedSlotFields
-            slot={{
-              orgId: item.matchedOrgId,
-              date: item.date,
-              startTime: item.startTime,
-              courtLabel: item.courtLabel,
-            }}
+        {/* An import posts its candidate, slot included (issue #437). A
+            cancellation or update posts only the message: those mean "leave
+            this Booking alone", not "I don't want this reservation". */}
+        {item.kind === "import" ? (
+          <input
+            type="hidden"
+            name={CANDIDATE_FIELD}
+            value={emailImportToken(item)}
+          />
+        ) : (
+          <input
+            type="hidden"
+            name="gmail_message_id"
+            value={item.gmailMessageId}
           />
         )}
         {/* An import's Dismiss button lives in `ReviewActions`, beside the one
@@ -684,13 +714,14 @@ export function ReviewItemCard({
  * One consolidated review card (issue #348) — a single reservation that came
  * in from both the mailbox and a calendar feed, shown once instead of twice.
  * Looks like the email `import` card (it carries the Player(s), which the feed
- * never has), but confirming it runs `confirmMergedCandidate`, which creates
- * one Booking and settles both sources. Keyed on `mergeKey` (both source ids)
- * and resolved out of both query caches by the parent's `onResolved`.
+ * never has), but its `candidate` token carries both sources, so confirming it
+ * creates one Booking and settles both, and dismissing it settles both. Keyed
+ * on `mergeKey` (both source ids) and resolved out of both query caches by the
+ * parent's `onResolved`.
  *
  * The Facility select is prefilled to the matched Org and stays editable as a
  * safety valve, same as the two single-source import cards; every other field
- * rides through as a hidden input so `confirmMergedCandidate` re-runs
+ * rides through as a hidden input so `settleImportCandidate` re-runs
  * `parseNewBooking` over the same field names `CreateBookingForm` posts.
  */
 export function MergedCandidateCard({
@@ -703,16 +734,36 @@ export function MergedCandidateCard({
   onResolved: (item: MergedImportCandidate, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    confirmMergedCandidate,
+    settleImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    dismissMergedCandidate,
+    dismissImportCandidate,
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
   const facilityFieldId = `merged-facility-${item.mergeKey}`;
   const dismissFormId = `merged-dismiss-${item.mergeKey}`;
+
+  // Both sources, and the slot either single-source card carries (issue
+  // #437): redundant while both source rows land, and what still holds if a
+  // source hands this reservation back under a new key later.
+  const candidate = encodeCandidate({
+    kind: "import",
+    messageId: item.gmailMessageId,
+    feed: {
+      orgId: item.orgId,
+      uid: item.feedEventUid,
+      sequence: item.sequence,
+      startsAt: item.startsAt,
+    },
+    slot: {
+      orgId: item.orgId,
+      date: item.date,
+      startTime: item.startTime,
+      courtLabel: item.courtLabel,
+    },
+  });
 
   useResolveOnSuccess(confirmState, () => onResolved(item, "added"));
   useResolveOnSuccess(dismissState, () => onResolved(item, "skipped"));
@@ -758,14 +809,7 @@ export function MergedCandidateCard({
           />
         </div>
 
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="sequence" value={item.sequence} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="date" value={item.date} />
@@ -785,21 +829,9 @@ export function MergedCandidateCard({
       <ActionError state={confirmState} />
 
       <form id={dismissFormId} action={dismissAction} className="self-start">
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="org_id" value={item.orgId} />
-        <input type="hidden" name="sequence" value={item.sequence} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
-        {/* Same slot either single-source card carries (issue #437) —
-            redundant while both source rows land, and what still holds if a
-            source hands this reservation back under a new key later. */}
         {/* Button-less, same as the single-source import card: it lives in
             `ReviewActions` above and reaches this form by `id` (issue #464). */}
-        <DismissedSlotFields slot={item} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
       </form>
       <ActionError state={dismissState} />
     </li>

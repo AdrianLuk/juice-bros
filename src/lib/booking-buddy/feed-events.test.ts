@@ -40,7 +40,7 @@ test("a row the feed still shows survives, however old its start (#452)", () => 
 });
 
 test("a settled row whose starts_at is the epoch is kept by its last sighting", () => {
-  // `confirmFeedCandidate` / `dismissFeedCandidate` record the epoch when the
+  // `dismissFeedCandidate` (and before #608 the feed confirm) records the epoch when the
   // posted `starts_at` is missing or unparseable. Pruning on `starts_at` alone
   // would forget that decision on the very next sync and offer the event
   // again; `last_seen_at` is the honest column on such a row.

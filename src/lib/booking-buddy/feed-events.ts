@@ -1,9 +1,9 @@
 /**
  * The `org_feed_events` writes that aren't a sync's own bulk upsert: the
- * single-row upsert shared by the Calendar Feed's confirm/dismiss actions
- * (`actions/calendar-feed.ts`) and the merged email+feed confirm
- * (`actions/email-sync.ts`, issue #348) — both settle the feed side of an
- * import the same way, one mutable row per seen VEVENT UID keyed on
+ * single-row upsert that settling a feed or merged Import Candidate makes
+ * (`import-candidate-settlement.ts`) and the "Keep booking" action
+ * (`actions/calendar-feed.ts`) — every one settles the feed side the same
+ * way, one mutable row per seen VEVENT UID keyed on
  * `(owner_id, org_id, uid)`, carrying its `status` and the `booking_id` it
  * settled to — and the age-out prune each sync run makes (issue #452).
  *

@@ -122,8 +122,8 @@ function SettledTally({ counts }: { counts: Record<ReviewOutcome, number> }) {
  * prompt, and one banner per un-fetchable Facility feed all render together,
  * and one source failing never hides the other's candidates.
  *
- * The confirm-time duplicate guard (`confirmImportCandidate` /
- * `confirmFeedCandidate`) still holds when both lists render together — email
+ * The confirm-time duplicate guard (`settleCandidate`,
+ * `import-candidate-settlement.ts`) still holds when both lists render together — email
  * and feed candidates for the same slot resolve to one Booking on confirm,
  * in either order — because that check runs server-side against the live
  * Bookings, not against what's on screen.

@@ -9,9 +9,10 @@ import { after } from "next/server";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, SETTINGS_PATH } from "../routes.ts";
+import { SETTINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
 import {
+  authorizeEmailSyncForCaller,
   canConnectMailboxForCaller,
   getEmailSyncEntitlementForCaller,
 } from "../email-sync-entitlement-for-caller.ts";
@@ -36,25 +37,22 @@ import {
   type ReviewItem,
   type UpdateTargetBooking,
 } from "../email-sync-review.ts";
-import { upsertFeedEventRow } from "../feed-events.ts";
 import {
   listDismissedReservations,
   pruneExpiredDismissedReservations,
   recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
-import { findSameReservation, type BookingIdentity } from "../import-candidate-shaping.ts";
+import type { BookingIdentity } from "../import-candidate-shaping.ts";
 import type { MergedImportCandidate } from "../merge-import-candidates.ts";
-import { parseNewBooking, parseUpdateApplication } from "../bookings.ts";
+import { parseUpdateApplication } from "../bookings.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
-import { isKnownTimeZone } from "../timezone.ts";
 import {
   applyUpdateToOwnedBooking,
   deleteOwnedBooking,
   getBookingsPageData,
-  insertValidatedBooking,
 } from "./bookings.ts";
 import { listConnections } from "./connections.ts";
-import { trackEmailSyncEvent, trackFacilitySyncEvent } from "../analytics.ts";
+import { trackEmailSyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
 export type { ReviewItem };
@@ -99,36 +97,6 @@ export async function getMailboxLink(): Promise<MailboxLink> {
     status: data.status,
     connectedAt: data.connected_at,
   };
-}
-
-/**
- * The candidate actions' gate: the provider to record the `processed_messages`
- * row under when the signed-in User may act on a review candidate (the
- * entitlement module's answer, `email-sync-entitlement.ts`), otherwise the
- * `ActionResult` to hand straight back.
- *
- * Only a failed read of the Mailbox Link refuses: these actions return an
- * `ActionResult`, not an error boundary. Anything else (a failed profile read,
- * or `verifySession`'s redirect) propagates, as it did before the entitlement
- * module, rather than telling a User their account isn't approved.
- */
-async function authorizeEmailSyncForCaller(): Promise<
-  { provider: MailboxProvider } | { error: string }
-> {
-  const notApproved = { error: "Your account isn't approved for email sync." };
-
-  // Signed in first, outside the try, so a redirect can't read as a refusal.
-  await verifySession();
-
-  let link: MailboxLink;
-  try {
-    link = await getMailboxLink();
-  } catch {
-    return notApproved;
-  }
-
-  const entitlement = await getEmailSyncEntitlementForCaller(link);
-  return entitlement.canSync ? { provider: entitlement.provider } : notApproved;
 }
 
 /**
@@ -396,352 +364,6 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
 }
 
 /**
- * Confirming an Import Candidate creates a real Booking (issue #64) — the
- * form posts the exact same field names `CreateBookingForm` does (`org_id`,
- * `name`, `format`, `date`, `start_time`, `end_time`, `court_label`,
- * `players`), plus `gmail_message_id`, so it reuses `parseNewBooking`'s
- * validation as-is rather than trusting the candidate's already-parsed
- * fields a second time. `players` rides through as the same raw,
- * comma-joined names `matchedPlayers` was built from — `insertValidatedBooking`
- * re-runs the match against the caller's *current* Connections at this,
- * the actual add-time (ADR 0011), rather than trusting the stale match
- * computed back when the review screen was rendered (issue #100).
- *
- * The `processed_messages` row records `booking_id` (issue #286) so that
- * deleting this Booking later cascades the row away and a future sync
- * re-offers the email — the realistic "deleted a confirmed booking, want it
- * back" path is recovery.
- *
- * Confirm-time duplicate guard (issue #294 / ADR-0019): the duplicate-Booking
- * check the review list already applies when it's shaped also runs here,
- * against the caller's Bookings as they are at confirm time. Without it,
- * confirming a feed candidate first and then this email candidate for the same
- * slot in one session would create a second Booking — the email review ran
- * before the feed confirm existed. On a hit the message is recorded settled
- * and no Booking is created.
- */
-export async function confirmImportCandidate(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const gate = await authorizeEmailSyncForCaller();
-  if ("error" in gate) return gate;
-
-  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
-  if (!gmailMessageId) {
-    return { error: "Couldn't confirm that booking. Try again." };
-  }
-
-  const parsed = parseNewBooking(formData);
-  if ("error" in parsed) {
-    return parsed;
-  }
-
-  const supabase = await createClient();
-
-  const { data: guardOrg } = await supabase
-    .from("orgs")
-    .select("time_zone")
-    .eq("id", parsed.orgId)
-    .eq("owner_id", session.userId)
-    .maybeSingle();
-  const guardZone =
-    guardOrg?.time_zone && isKnownTimeZone(guardOrg.time_zone) ? guardOrg.time_zone : "UTC";
-
-  const { data: guardBookings } = await supabase
-    .from("bookings")
-    .select("id, org_id, court_label, starts_at")
-    .eq("owner_id", session.userId)
-    .eq("org_id", parsed.orgId);
-
-  // Cross-source, so court is compared by number, not by text: the Booking
-  // covering this slot may have come from the calendar feed, which writes the
-  // court as `"#9"` where this email's Court(s) says `"#9 - Hard"` (#432).
-  const alreadyBookedRow = findSameReservation(
-    parsed,
-    (guardBookings ?? []).map((row) => ({
-      id: row.id,
-      orgId: row.org_id,
-      courtLabel: row.court_label,
-      date: todayInZone(guardZone, new Date(row.starts_at)),
-      startTime: clockInZone(guardZone, new Date(row.starts_at)),
-    })),
-  );
-
-  if (alreadyBookedRow) {
-    // Record the message as settled, tied to the Booking that already covers
-    // this slot (issue #286) — so deleting *that* Booking later still cascades
-    // the ledger row away and a future sync re-offers the email, exactly as if
-    // this confirm had created it. A null `booking_id` here would suppress the
-    // email permanently, reintroducing the bug #286's FK fixed.
-    const { error } = await supabase.from("processed_messages").insert({
-      owner_id: session.userId,
-      provider: gate.provider,
-      provider_message_id: gmailMessageId,
-      outcome: "confirmed",
-      booking_id: alreadyBookedRow.id,
-    });
-    if (error && (error as { code?: string }).code !== "23505") {
-      console.error("booking-buddy: recording a duplicate-skipped Gmail message failed", error);
-    }
-    return { ok: true };
-  }
-
-  const result = await insertValidatedBooking(session.userId, parsed);
-  if (!result.ok) {
-    return result;
-  }
-
-  const { error } = await supabase.from("processed_messages").insert({
-    owner_id: session.userId,
-    provider: gate.provider,
-    provider_message_id: gmailMessageId,
-    outcome: "confirmed",
-    // Ties this ledger row to the Booking just created (issue #286): the FK
-    // cascades, so deleting that Booking in the UI removes this row and a
-    // later sync re-offers the email. `result.ok` guarantees `bookingId` here.
-    booking_id: result.bookingId ?? null,
-  });
-
-  if (error) {
-    // Not fatal — the Booking is real either way. Even if this record never
-    // lands, a later sync's own `isDuplicateBooking` filter catches a
-    // re-parse of the same email against the Booking just created.
-    console.error("booking-buddy: recording a confirmed Gmail message failed", error);
-  }
-
-  after(() => trackEmailSyncEvent("bb_email_sync_import", gate.provider));
-
-  return { ok: true };
-}
-
-/**
- * Reads the four `org_feed_events` fields the merged review card carries as
- * hidden inputs, defensively (a tampered or stale post shouldn't 500). `uid`
- * missing is fatal — there's no feed row to settle without it; a bad
- * `sequence` / `starts_at` degrades to a safe default, same as
- * `confirmFeedCandidate`.
- */
-function readMergedFeedFields(formData: FormData):
-  | { ok: true; uid: string; sequence: number; startsAt: string }
-  | { ok: false } {
-  const uid = String(formData.get("feed_event_uid") ?? "").trim();
-  if (!uid) {
-    return { ok: false };
-  }
-
-  const sequenceRaw = Number(formData.get("sequence"));
-  const sequence = Number.isInteger(sequenceRaw) && sequenceRaw >= 0 ? sequenceRaw : 0;
-
-  const startsAtRaw = String(formData.get("starts_at") ?? "").trim();
-  const startsAt =
-    startsAtRaw && !Number.isNaN(Date.parse(startsAtRaw))
-      ? new Date(startsAtRaw).toISOString()
-      : new Date(0).toISOString();
-
-  return { ok: true, uid, sequence, startsAt };
-}
-
-/**
- * Confirming a *merged* Import Candidate (issue #348) — one reservation that
- * came in from both the mailbox and a calendar feed, shown as a single
- * consolidated card. Creates one Booking (the email path — it carries the
- * Player(s)) and settles **both** sources: a `processed_messages` row *and* an
- * `imported` `org_feed_events` row, both tied to that Booking.
- *
- * The union of `confirmImportCandidate` and `confirmFeedCandidate`: the form
- * posts the same booking field names `CreateBookingForm` does (so
- * `parseNewBooking` re-validates as-is) plus `gmail_message_id`,
- * `feed_event_uid`, `sequence` and `starts_at`. The confirm-time duplicate
- * guard runs exactly as it does for the other two — if a Booking already
- * covers the slot (e.g. the User confirmed the email or feed card for it in
- * another tab), no second Booking is made and both source rows are pointed at
- * the one that exists.
- */
-export async function confirmMergedCandidate(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const gate = await authorizeEmailSyncForCaller();
-  if ("error" in gate) return gate;
-
-  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
-  const feed = readMergedFeedFields(formData);
-  if (!gmailMessageId || !feed.ok) {
-    return { error: "Couldn't confirm that booking. Try again." };
-  }
-
-  const parsed = parseNewBooking(formData);
-  if ("error" in parsed) {
-    return parsed;
-  }
-
-  const supabase = await createClient();
-
-  const { data: guardOrg } = await supabase
-    .from("orgs")
-    .select("time_zone")
-    .eq("id", parsed.orgId)
-    .eq("owner_id", session.userId)
-    .maybeSingle();
-  const guardZone =
-    guardOrg?.time_zone && isKnownTimeZone(guardOrg.time_zone) ? guardOrg.time_zone : "UTC";
-
-  const { data: guardBookings } = await supabase
-    .from("bookings")
-    .select("id, org_id, court_label, starts_at")
-    .eq("owner_id", session.userId)
-    .eq("org_id", parsed.orgId);
-
-  // Cross-source, so court is compared by number, not by text: the Booking
-  // covering this slot may have come from the calendar feed, which writes the
-  // court as `"#9"` where this email's Court(s) says `"#9 - Hard"` (#432).
-  const alreadyBookedRow = findSameReservation(
-    parsed,
-    (guardBookings ?? []).map((row) => ({
-      id: row.id,
-      orgId: row.org_id,
-      courtLabel: row.court_label,
-      date: todayInZone(guardZone, new Date(row.starts_at)),
-      startTime: clockInZone(guardZone, new Date(row.starts_at)),
-    })),
-  );
-
-  const bookingId = alreadyBookedRow?.id ?? null;
-
-  if (!bookingId) {
-    const result = await insertValidatedBooking(session.userId, parsed);
-    if (!result.ok) {
-      return result;
-    }
-    await settleMergedSources(supabase, session.userId, {
-      provider: gate.provider,
-      gmailMessageId,
-      feed,
-      orgId: parsed.orgId,
-      bookingId: result.bookingId ?? null,
-      outcome: "confirmed",
-    });
-    after(() => trackFacilitySyncEvent("bb_sync_merged_import"));
-    return { ok: true };
-  }
-
-  // A Booking already covers this slot — link both sources to it, make nothing new.
-  await settleMergedSources(supabase, session.userId, {
-    provider: gate.provider,
-    gmailMessageId,
-    feed,
-    orgId: parsed.orgId,
-    bookingId,
-    outcome: "confirmed",
-  });
-  return { ok: true };
-}
-
-/**
- * Dismissing a merged Import Candidate (issue #348) settles **both** sources
- * without touching a Booking: a `dismissed` `processed_messages` row (so a
- * later email sync skips the message) and a `dismissed` `org_feed_events` row
- * (so a later feed sync skips the still-present event). Mirrors
- * `dismissReviewItem` + `dismissFeedCandidate` run together.
- *
- * And, like both of them, records the reservation's slot
- * (`dismissed_reservations`, issue #437). Redundant on the happy path — both
- * source rows are already written here — but it keeps one rule with no
- * exceptions ("dismissing an import candidate records its slot"), and it is
- * what still holds if a source later hands the same reservation back under a
- * new key: a re-issued VEVENT UID, or a message id this sync never saw.
- */
-export async function dismissMergedCandidate(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const gate = await authorizeEmailSyncForCaller();
-  if ("error" in gate) return gate;
-
-  const gmailMessageId = String(formData.get("gmail_message_id") ?? "").trim();
-  const orgId = String(formData.get("org_id") ?? "").trim();
-  const feed = readMergedFeedFields(formData);
-  if (!gmailMessageId || !orgId || !feed.ok) {
-    return { error: "Couldn't dismiss that. Try again." };
-  }
-
-  const supabase = await createClient();
-  const outcome = await settleMergedSources(supabase, session.userId, {
-    provider: gate.provider,
-    gmailMessageId,
-    feed,
-    orgId,
-    bookingId: null,
-    outcome: "dismissed",
-  });
-
-  if (outcome.hardError) {
-    return { error: "Couldn't dismiss that. Try again." };
-  }
-
-  await recordDismissedSlotFromForm(supabase, session.userId, formData);
-
-  return { ok: true };
-}
-
-/**
- * Write the email-side `processed_messages` row and the feed-side
- * `org_feed_events` row for one merged card. A `processed_messages` unique
- * violation (double-submit / already settled from another tab) is not an error
- * — the goal, "this is handled," is already true. Any other write failure on
- * the confirm path is non-fatal (the Booking is real; a later sync's own
- * dedupe recovers), same posture as `confirmImportCandidate`; on the dismiss
- * path a real feed-row failure is surfaced so the User can retry.
- */
-async function settleMergedSources(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  ownerId: string,
-  input: {
-    provider: MailboxProvider;
-    gmailMessageId: string;
-    feed: { uid: string; sequence: number; startsAt: string };
-    orgId: string;
-    bookingId: string | null;
-    outcome: "confirmed" | "dismissed";
-  },
-): Promise<{ hardError: boolean }> {
-  const { error: messageError } = await supabase.from("processed_messages").insert({
-    owner_id: ownerId,
-    provider: input.provider,
-    provider_message_id: input.gmailMessageId,
-    outcome: input.outcome,
-    booking_id: input.bookingId,
-  });
-  if (messageError && (messageError as { code?: string }).code !== "23505") {
-    console.error("booking-buddy: recording a merged-candidate Gmail message failed", messageError);
-  }
-
-  const { error: feedError } = await upsertFeedEventRow(supabase, ownerId, {
-    orgId: input.orgId,
-    uid: input.feed.uid,
-    sequence: input.feed.sequence,
-    startsAt: input.feed.startsAt,
-    status: input.outcome === "confirmed" ? "imported" : "dismissed",
-    bookingId: input.bookingId,
-  });
-  if (feedError) {
-    console.error("booking-buddy: recording a merged-candidate feed event failed", feedError);
-  }
-
-  revalidatePath(BOOKINGS_PATH);
-  revalidatePath(BOOKING_BUDDY_ROOT);
-
-  return { hardError: Boolean(feedError) };
-}
-
-/**
  * Confirming a matched cancellation candidate removes the Booking it refers
  * to (issue #65) — `bookingId` comes from the review screen's own hidden
  * field, which only ever holds what `syncFromEmail`'s own
@@ -821,7 +443,7 @@ export async function confirmCancellationCandidate(
  * Applying an update candidate edits the Booking it refers to in place
  * (issue #91, widened by #458) — the whole reservation as the email now
  * describes it, re-validated through `parseUpdateApplication` the same way
- * `confirmImportCandidate` re-runs `parseNewBooking` rather than trusting the
+ * `settleImportCandidate` re-runs `parseNewBooking` rather than trusting the
  * already-parsed candidate a second time.
  *
  * `booking_id` is either the Booking `matchUpdateToBooking` resolved
