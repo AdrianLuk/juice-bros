@@ -183,7 +183,7 @@ export type BookingUpdateApplication = Omit<NewBooking, "orgId" | "name"> & {
  * way a Booking form is (issue #458).
  *
  * Every field is re-validated here rather than trusted from the already-parsed
- * candidate, the same posture `settleImportCandidate` takes with
+ * candidate, the same posture `confirmImportCandidate` takes with
  * `parseNewBooking` — the values crossed a network boundary and came back.
  */
 export function parseUpdateApplication(

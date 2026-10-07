@@ -37,7 +37,7 @@ import type {
 } from "@/lib/booking-buddy/actions/email-sync";
 import {
   dismissImportCandidate,
-  settleImportCandidate,
+  confirmImportCandidate,
 } from "@/lib/booking-buddy/actions/import-candidates";
 
 const EMPTY: ActionResult = {};
@@ -283,7 +283,7 @@ function FacilityFieldHint() {
 /**
  * The Import Candidate's Confirm form — the only kind with a field the User
  * still edits (`<OrgSelect>` when the facility matched no Org). Every other
- * value rides through as a hidden input so `settleImportCandidate` re-runs
+ * value rides through as a hidden input so `confirmImportCandidate` re-runs
  * `parseNewBooking` over the same field names `CreateBookingForm` posts,
  * rather than trusting the already-parsed item a second time. Which message
  * it settles travels in the `candidate` token.
@@ -613,7 +613,7 @@ export function ReviewItemCard({
   onResolved: (gmailMessageId: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    settleImportCandidate,
+    confirmImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
@@ -713,7 +713,7 @@ export function ReviewItemCard({
  *
  * The Facility select is prefilled to the matched Org and stays editable as a
  * safety valve, same as the two single-source import cards; every other field
- * rides through as a hidden input so `settleImportCandidate` re-runs
+ * rides through as a hidden input so `confirmImportCandidate` re-runs
  * `parseNewBooking` over the same field names `CreateBookingForm` posts.
  */
 export function MergedCandidateCard({
@@ -726,7 +726,7 @@ export function MergedCandidateCard({
   onResolved: (item: MergedImportCandidate, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    settleImportCandidate,
+    confirmImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(

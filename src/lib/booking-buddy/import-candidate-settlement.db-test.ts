@@ -5,7 +5,7 @@ import { after, before, test } from "node:test";
 
 import type { NewBooking } from "./bookings.ts";
 import { createOrg, createTestUser, dateInDays, deleteTestUser, type TestUser } from "./db-test-support.ts";
-import { dismissCandidate, settleCandidate } from "./import-candidate-settlement.ts";
+import { confirmCandidate, dismissCandidate } from "./import-candidate-settlement.ts";
 import type { ImportCandidate } from "./import-candidate-token.ts";
 
 let owner: TestUser;
@@ -133,7 +133,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
 
   test(`confirming ${LABEL[source]} candidate creates one Booking and settles its sources against it`, async () => {
     const r = reservation();
-    const outcome = await settleCandidate(owner.supabase, {
+    const outcome = await confirmCandidate(owner.supabase, {
       ownerId: owner.userId,
       candidate: candidate(r),
       booking: r.booking,
@@ -152,7 +152,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
   test(`confirming ${LABEL[source]} candidate a Booking already covers links it instead of inserting`, async () => {
     const r = reservation();
     // Already on file from the other source, which writes the court as "#9".
-    const onFile = await settleCandidate(owner.supabase, {
+    const onFile = await confirmCandidate(owner.supabase, {
       ownerId: owner.userId,
       candidate: { kind: "import", messageId: `msg-${randomUUID()}`, feed: null, slot: r.slot },
       booking: { ...r.booking, courtLabel: "#9", players: [] },
@@ -160,7 +160,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
     });
     assert.ok(onFile.status === "settled", JSON.stringify(onFile));
 
-    const outcome = await settleCandidate(owner.supabase, {
+    const outcome = await confirmCandidate(owner.supabase, {
       ownerId: owner.userId,
       candidate: candidate(r),
       booking: r.booking,
@@ -178,8 +178,8 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
   test(`confirming ${LABEL[source]} candidate twice makes one Booking and one set of rows`, async () => {
     const r = reservation();
     const input = { ownerId: owner.userId, candidate: candidate(r), booking: r.booking, provider };
-    const first = await settleCandidate(owner.supabase, input);
-    const second = await settleCandidate(owner.supabase, input);
+    const first = await confirmCandidate(owner.supabase, input);
+    const second = await confirmCandidate(owner.supabase, input);
 
     assert.ok(first.status === "settled", JSON.stringify(first));
     assert.deepEqual(second, { status: "duplicate", bookingId: first.bookingId });
@@ -234,7 +234,7 @@ test("dismissing an email whose facility matched no Org records the message and 
 test("a feed event confirmed under another Facility is recorded under that Facility, linked", async () => {
   const r = reservation();
   const otherOrg = await createOrg(owner);
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: SOURCES.feed.candidate(r),
     booking: { ...r.booking, orgId: otherOrg },
@@ -251,7 +251,7 @@ test("a feed event confirmed under another Facility is recorded under that Facil
 
 test("confirming a candidate whose Booking fields are refused writes nothing", async () => {
   const r = reservation();
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: SOURCES.merged.candidate(r),
     booking: { ...r.booking, date: dateInDays(-2) },
@@ -271,7 +271,7 @@ test("confirming a candidate whose Booking fields are refused writes nothing", a
 
 /** A Booking on file for the reservation, confirmed from the given sources the way a sync would leave it. */
 async function confirmedFrom(r: Reservation, sources: { email?: boolean; feed?: boolean }) {
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: {
       kind: "import",
@@ -322,7 +322,7 @@ test("confirming an email cancellation removes the Booking and records it and th
   const bookingId = await confirmedFrom(r, { email: true });
   const cancellationId = `msg-${randomUUID()}`;
 
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: { kind: "cancellation", messageId: cancellationId, feed: null, bookingId },
     provider: "google",
@@ -342,7 +342,7 @@ test("confirming an email cancellation also dismisses the feed event linked to t
   const r = reservation();
   const bookingId = await confirmedFrom(r, { email: true, feed: true });
 
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: { kind: "cancellation", messageId: `msg-${randomUUID()}`, feed: null, bookingId },
     provider: "google",
@@ -365,7 +365,7 @@ test("confirming a feed cancellation removes the Booking and dismisses the feed 
   const r = reservation();
   const bookingId = await confirmedFrom(r, { feed: true });
 
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: feedCancellation(r, bookingId),
     provider: null,
@@ -383,7 +383,7 @@ test("confirming a feed cancellation keeps the email's confirmation suppressed",
   const r = reservation();
   const bookingId = await confirmedFrom(r, { email: true, feed: true });
 
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: feedCancellation(r, bookingId),
     provider: null,
@@ -399,7 +399,7 @@ test("a feed cancellation whose event is no longer linked to that Booking remove
   const other = reservation();
   const otherBookingId = await confirmedFrom(other, { email: true });
 
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: feedCancellation(r, otherBookingId),
     provider: null,
@@ -452,7 +452,7 @@ for (const table of ["processed_messages", "org_feed_events"]) {
     const r = reservation();
     const bookingId = await confirmedFrom(r, { email: true, feed: true });
 
-    const outcome = await settleCandidate(withFailingReads(owner.supabase, table), {
+    const outcome = await confirmCandidate(withFailingReads(owner.supabase, table), {
       ownerId: owner.userId,
       candidate: { kind: "cancellation", messageId: `msg-${randomUUID()}`, feed: null, bookingId },
       provider: "google",
@@ -489,7 +489,7 @@ for (const match of ["exact", "suggested"] as const) {
     // is the update that moved it.
     const startTime = match === "exact" ? "18:00" : "19:00";
 
-    const outcome = await settleCandidate(owner.supabase, {
+    const outcome = await confirmCandidate(owner.supabase, {
       ownerId: owner.userId,
       candidate: { kind: "update", messageId: updateId },
       update: {
@@ -523,7 +523,7 @@ test("an update for a Booking that is gone records nothing", async () => {
   const r = reservation();
   const updateId = `msg-${randomUUID()}`;
 
-  const outcome = await settleCandidate(owner.supabase, {
+  const outcome = await confirmCandidate(owner.supabase, {
     ownerId: owner.userId,
     candidate: { kind: "update", messageId: updateId },
     update: { ...r.booking, bookingId: randomUUID() },
@@ -617,7 +617,7 @@ test("an email candidate with no provider to record it under is refused", async 
   const r = reservation();
   const input = { ownerId: owner.userId, candidate: SOURCES.email.candidate(r), provider: null };
 
-  assert.deepEqual(await settleCandidate(owner.supabase, { ...input, booking: r.booking }), {
+  assert.deepEqual(await confirmCandidate(owner.supabase, { ...input, booking: r.booking }), {
     status: "error",
     message: "Couldn't confirm that booking. Try again.",
   });

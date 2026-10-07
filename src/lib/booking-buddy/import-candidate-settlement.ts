@@ -5,7 +5,7 @@
  * One module owns the whole rule, which used to be spread over eleven Server
  * Actions with three copies of the duplicate guard:
  *
- *  - **Confirm** (`settleCandidate`), by kind:
+ *  - **Confirm** (`confirmCandidate`), by kind:
  *     - an import: the confirm-time duplicate guard, then the Booking insert,
  *       then one ledger row per source, all tied to the Booking:
  *       `processed_messages` `confirmed` for an email, `org_feed_events`
@@ -47,7 +47,7 @@ import type {
 import type { MailboxProvider } from "./mailbox-provider.ts";
 import { isKnownTimeZone } from "./timezone.ts";
 
-export type SettleOutcome =
+export type ConfirmOutcome =
   /**
    * The candidate's Booking was created, removed or updated. `playersError` is
    * set when an insert or update committed but its Players didn't.
@@ -72,7 +72,7 @@ type Caller = {
 };
 
 /** What confirming each kind needs besides the candidate: the Booking fields an import or an update re-validated. */
-export type SettleRequest =
+export type ConfirmRequest =
   | { candidate: ImportCandidate; booking: NewBooking }
   | { candidate: CancellationCandidate }
   | { candidate: UpdateCandidate; update: BookingUpdateApplication };
@@ -83,7 +83,7 @@ const UPDATE_FAILED = "Couldn't update that booking. Try again.";
 const DISMISS_FAILED = "Couldn't dismiss that. Try again.";
 const LINK_CHANGED = "That booking has already changed. Sync again.";
 
-const SETTLE_FAILED: Record<Candidate["kind"], string> = {
+const CONFIRM_FAILED_BY_KIND: Record<Candidate["kind"], string> = {
   import: CONFIRM_FAILED,
   cancellation: REMOVE_FAILED,
   update: UPDATE_FAILED,
@@ -284,10 +284,10 @@ async function confirmImport(
   candidate: ImportCandidate,
   booking: NewBooking,
   now: Date | undefined,
-): Promise<SettleOutcome> {
+): Promise<ConfirmOutcome> {
   const onFile = await findBookingOnFile(supabase, caller.ownerId, booking);
 
-  let outcome: SettleOutcome & { bookingId: string };
+  let outcome: ConfirmOutcome & { bookingId: string };
   if (onFile) {
     outcome = { status: "duplicate", bookingId: onFile.id };
   } else {
@@ -343,7 +343,7 @@ async function confirmCancellation(
   supabase: SupabaseClient,
   caller: Caller,
   candidate: CancellationCandidate,
-): Promise<SettleOutcome> {
+): Promise<ConfirmOutcome> {
   const { bookingId } = candidate;
   if (bookingId === null) {
     return { status: "error", message: REMOVE_FAILED };
@@ -447,7 +447,7 @@ async function applyUpdate(
   candidate: UpdateCandidate,
   update: BookingUpdateApplication,
   now: Date | undefined,
-): Promise<SettleOutcome> {
+): Promise<ConfirmOutcome> {
   const written = await applyBookingUpdate(supabase, caller.ownerId, update, now);
   if ("error" in written) {
     return { status: "error", message: written.error };
@@ -471,13 +471,13 @@ async function applyUpdate(
  * Confirm an Import Candidate of any kind: "Add to my bookings", "Remove
  * booking", "Apply update" (or a suggested match's "Yes, update it").
  */
-export async function settleCandidate(
+export async function confirmCandidate(
   supabase: SupabaseClient,
-  input: Caller & SettleRequest & { now?: Date },
-): Promise<SettleOutcome> {
+  input: Caller & ConfirmRequest & { now?: Date },
+): Promise<ConfirmOutcome> {
   const { ownerId, provider } = input;
   if (input.candidate.messageId !== null && provider === null) {
-    return { status: "error", message: SETTLE_FAILED[input.candidate.kind] };
+    return { status: "error", message: CONFIRM_FAILED_BY_KIND[input.candidate.kind] };
   }
 
   if ("booking" in input) {

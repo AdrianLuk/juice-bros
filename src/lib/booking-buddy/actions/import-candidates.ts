@@ -16,8 +16,8 @@ import {
 } from "../import-candidate-token.ts";
 import {
   dismissCandidate,
-  settleCandidate,
-  type SettleRequest,
+  confirmCandidate,
+  type ConfirmRequest,
 } from "../import-candidate-settlement.ts";
 import type { MailboxProvider } from "../mailbox-provider.ts";
 import {
@@ -68,10 +68,10 @@ function trackImport(candidate: ImportCandidate, provider: MailboxProvider | nul
 }
 
 /** The candidate with the Booking fields its kind re-validates from the form, or the reason it can't be confirmed. */
-function settleRequestFor(
+function confirmRequestFor(
   candidate: Candidate,
   formData: FormData,
-): SettleRequest | { error: string } {
+): ConfirmRequest | { error: string } {
   switch (candidate.kind) {
     case "import": {
       const booking = parseNewBooking(formData);
@@ -92,7 +92,7 @@ function revalidateBookings() {
 }
 
 /** Confirm an Import Candidate: "Add to my bookings", "Remove booking" or "Apply update". */
-export async function settleImportCandidate(
+export async function confirmImportCandidate(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
@@ -106,13 +106,13 @@ export async function settleImportCandidate(
   const gate = await providerFor(candidate);
   if ("error" in gate) return gate;
 
-  const request = settleRequestFor(candidate, formData);
+  const request = confirmRequestFor(candidate, formData);
   if ("error" in request) {
     return request;
   }
 
   const supabase = await createClient();
-  const outcome = await settleCandidate(supabase, {
+  const outcome = await confirmCandidate(supabase, {
     ownerId: session.userId,
     provider: gate.provider,
     ...request,

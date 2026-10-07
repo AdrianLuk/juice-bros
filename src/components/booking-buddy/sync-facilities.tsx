@@ -26,7 +26,7 @@ import type {
 } from "@/lib/booking-buddy/actions/calendar-feed";
 import {
   dismissImportCandidate,
-  settleImportCandidate,
+  confirmImportCandidate,
 } from "@/lib/booking-buddy/actions/import-candidates";
 import {
   CANDIDATE_FIELD,
@@ -50,7 +50,7 @@ const EMPTY: ActionResult = {};
  * VEVENT UID. A Calendar Feed is per-Org, so
  * the Facility select is prefilled to the owning Org and stays editable only
  * as a safety valve; every other field rides through as a hidden input so
- * `settleImportCandidate` re-runs `parseNewBooking` over the same field names
+ * `confirmImportCandidate` re-runs `parseNewBooking` over the same field names
  * `CreateBookingForm` posts. The feed event it settles travels in the
  * `candidate` token.
  */
@@ -64,7 +64,7 @@ export function FeedCandidateCard({
   onResolved: (feedEventUid: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    settleImportCandidate,
+    confirmImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
@@ -176,7 +176,7 @@ export function FeedCancellationCard({
   onResolved: (feedEventUid: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    settleImportCandidate,
+    confirmImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
