@@ -16,6 +16,8 @@ import { getRegularChoices } from "@/lib/booking-buddy/actions/regulars";
 import { WeeklyGameRow } from "@/components/booking-buddy/standing-games";
 import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
+import { BookACourtNotes } from "@/components/booking-buddy/book-a-court";
+import { listBookACourtNotes } from "@/lib/booking-buddy/actions/book-a-court";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
 import {
@@ -45,6 +47,7 @@ export default async function SlotsPage({
     orgs,
     standingGames,
     courtMatches,
+    bookACourtNotes,
     regularChoices,
     params,
   ] = await Promise.all([
@@ -53,6 +56,7 @@ export default async function SlotsPage({
     listOrgs(),
     listStandingGames(),
     listCourtMatches(),
+    listBookACourtNotes(),
     getRegularChoices(),
     searchParams,
   ]);
@@ -99,13 +103,23 @@ export default async function SlotsPage({
                     const matches = courtMatches.filter(
                       (match) => match.standingGameId === game.id,
                     );
+                    // A week with a matching Booking gets "Attach your
+                    // court?" (#582) instead of "Book a court" (#573).
+                    const toBook = bookACourtNotes.filter(
+                      (note) =>
+                        note.standingGameId === game.id &&
+                        !matches.some((match) => match.slotId === note.slotId),
+                    );
                     return (
                       <WeeklyGameRow
                         key={game.id}
                         game={game}
                         notice={
-                          matches.length > 0 ? (
-                            <CourtSuggestions matches={matches} showGameDay />
+                          matches.length > 0 || toBook.length > 0 ? (
+                            <div className="flex flex-col gap-4">
+                              <BookACourtNotes notes={toBook} />
+                              <CourtSuggestions matches={matches} showGameDay />
+                            </div>
                           ) : undefined
                         }
                       />

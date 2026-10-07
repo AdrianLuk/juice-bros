@@ -24,6 +24,7 @@ import {
   skipWeekNotice,
 } from "@/lib/booking-buddy/standing-game-skips";
 import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
+import { BookACourtNotes } from "@/components/booking-buddy/book-a-court";
 import { standingGamePath } from "@/lib/booking-buddy/routes";
 import {
   makeWeeklyHref,
@@ -34,6 +35,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
+import { listBookACourtNotes } from "@/lib/booking-buddy/actions/book-a-court";
 export const metadata: Metadata = pageMetadata({
   title: "Game",
   description: "See who's in, and add your own response.",
@@ -69,11 +71,16 @@ export default async function SlotDetailPage({
     proposedEnd,
     timeZone,
   } = detail;
-  const [slotLink, courtMatches] = await Promise.all([
+  const [slotLink, allCourtMatches, bookACourtNotes] = await Promise.all([
     isOwner ? getSlotLink(slot.id) : null,
     // Only a Standing Game's posted game gets "Attach your court?" (#582).
     standingGameId ? listCourtMatches() : [],
+    // "Book a court" (#573) is the organizer's own to-do, never a friend's.
+    isOwner ? listBookACourtNotes() : [],
   ]);
+  const courtMatches = allCourtMatches.filter(
+    (match) => match.slotId === slot.id,
+  );
   // A Standing Game's posted game is skipped, not deleted (#578): the confirm
   // says who hears it's off.
   const gameStarted = new Date(slot.proposedStart) <= new Date();
@@ -129,11 +136,21 @@ export default async function SlotDetailPage({
               </Link>
             )}
           </div>
-          {/* The game's notice spot: owner-only to-dos about this game. */}
-          <CourtSuggestions
-            matches={courtMatches.filter((match) => match.slotId === slot.id)}
-            className="mt-8 flex flex-col gap-4"
-          />
+          {/* The game's notice spot: owner-only to-dos about this game.
+              "Attach your court?" wins over "Book a court": a matching Booking
+              means the booking is done and attaching is the next step. */}
+          {courtMatches.length > 0 ? (
+            <CourtSuggestions
+              matches={courtMatches}
+              className="mt-8 flex flex-col gap-4"
+            />
+          ) : (
+            <BookACourtNotes
+              notes={bookACourtNotes.filter((note) => note.slotId === slot.id)}
+              onGamePage
+              className="mt-8 flex flex-col gap-4"
+            />
+          )}
           <div className="mt-10 flex flex-col gap-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your response</h2>
@@ -174,7 +191,7 @@ export default async function SlotDetailPage({
               </div>
             </section>
             {isOwner && (
-              <section>
+              <section id="courts" className="scroll-mt-24">
                 <h2 className="bb-h text-[1.05rem]">Courts</h2>
                 <div className="bb-card mt-4 p-4 sm:p-6">
                   <SlotCourts

@@ -20,6 +20,10 @@ import { listSlots, getSlotResponses } from "@/lib/booking-buddy/actions/slots";
 import { upcomingBookings } from "@/lib/booking-buddy/calendar";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
+import { listBookACourtNotes } from "@/lib/booking-buddy/actions/book-a-court";
+import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
+import { BookACourtNotes } from "@/components/booking-buddy/book-a-court";
+import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { proposeGameHref } from "@/lib/booking-buddy/routes";
 
 export const metadata: Metadata = pageMetadata({
@@ -77,6 +81,20 @@ export default async function BookingBuddyPage() {
     }),
   );
 
+  // "Book a court" (#573), one note per game whose facility has opened
+  // bookings, soonest first. A weekly game's week with a matching Booking
+  // gets "Attach your court?" (#582) in its place, so the court matcher only
+  // runs when a weekly game is among them.
+  const bookACourtNotes = await listBookACourtNotes();
+  const courtMatches = bookACourtNotes.some((note) => note.standingGameId)
+    ? (await listCourtMatches()).filter((match) =>
+        bookACourtNotes.some((note) => note.slotId === match.slotId),
+      )
+    : [];
+  const notesToBook = bookACourtNotes.filter(
+    (note) => !courtMatches.some((match) => match.slotId === note.slotId),
+  );
+
   const onboardingCanShow = !hasBooking && !hasSlot;
   const gender = onboardingCanShow ? (await getOwnProfile()).gender : null;
   const inviteUrl = onboardingCanShow ? await getOwnInviteUrl() : null;
@@ -103,6 +121,12 @@ export default async function BookingBuddyPage() {
               nextBookingDate={nextBookingDate}
               hasAnyBooking={hasBooking}
             />
+            {(notesToBook.length > 0 || courtMatches.length > 0) && (
+              <div className="mt-8 flex flex-col gap-4 lg:max-w-150">
+                <BookACourtNotes notes={notesToBook} />
+                <CourtSuggestions matches={courtMatches} showGameDay />
+              </div>
+            )}
           </div>
 
           {/* ── The board: this week, pinned up ──────────────────────────── */}
