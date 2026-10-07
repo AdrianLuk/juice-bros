@@ -42,6 +42,13 @@ also the one outstanding pick from the month's original three. Nothing else in t
 moves. RR-2 is no longer waiting on a shape; the Schedule it builds on is now a list of
 pools, and that adds one question to its section.
 
+**Ninth pass, 2026-10-07.** BB-1 shipped: grilled into #576 and ADRs 0022 and 0023 on
+2026-10-02, built as six tickets (#577 to #582) and merged on 2026-10-06 as PR #598. Two
+tickets the grill raised alongside it landed the same week: one branded layout for every
+email (#572) and the in-app "Book a court" notice (#573). Row 7 is done, and **all three of
+the month's original picks are now met**. **RR-2 is the first unstarted row.** BB-3 loses
+its only blocker. Nothing else in the table moves.
+
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
 until it survives a grilling session.
@@ -149,9 +156,9 @@ order they already held relative to each other.
 | 4 | ✅ | **Correct the landing page** | Shipped 2026-09-13 (#504, PR #505). The page no longer names the club anywhere in its copy — naming it was the part that implied the relationship — and the two illustrations use a stand-in the way the PPA pro names beside them already do. "Talk to us about your club" stays, because self-serve is row 5 and not yet real. Half a day, blocking nothing, taken first because shipping an adoption release off a page making a claim that stopped being true is worse than the day it costs |
 | 5 | ✅ | **OD-6 The adoption release** (demo night, self-serve Club, first-night kit, landing flip, funnel) | Shipped 2026-09-14 to 2026-09-18 (#512; tickets #514 to #524). Specced out of a grilling session that cut co-owners, dropped the one-release rule in favour of shipping continuously, and narrowed the target user. **#512 is the authority on what this is, not the OD-6 section below.** The front door exists: demo night at `/on-deck/demo`, self-serve Club creation, a first-night kit, a landing page that claims nothing it cannot show, a Session that closes itself, and six funnel counters live before anyone is told |
 | 6 | ✅ | **RR-6 Pools (#392)** | Shipped 2026-09-23 to 2026-09-24 (#392; tickets #552, #553, #554). Grilled, built and closed inside two days. A Pool count deals the Roster, `---` lines in the Roster declare the pools instead, courts are allocated once for the night, and the board is one field with a band per pool. The Impeccable pass it was still waiting on happened inside RR-6.1 (sticky band names, summary lines stacked where the one line always sat). `GENERATOR_VERSION` stayed at 1, and `unchanged-boards.test.ts` pins twelve pre-pools boards to prove a one-pool link still draws what it drew |
-| 7 |  | **BB-1 Recurring games** | **Specced 2026-10-02 as #576** (tickets #577 to #582) out of a `/grill-with-docs` pass; #576 and ADRs 0022 and 0023 are the authority now, not the BB-1 section below. **First unstarted row as of the eighth pass**, 2026-09-24. The month's other goal and now the only one of the original three picks still outstanding. It needs no user we do not have: Booking Buddy has people using it, On Deck does not. The one L on the table, unchanged in importance, and not waiting on anything |
-| 8 |  | RR-2 Courtside mode | Turns the generator into the thing that stays open on the bench. The Schedule shape it was held behind is settled and shipped, so nothing ahead of it is Match Mixer work any more. Grill it against the pooled shape (see RR-2's new question 6) |
-| 9 |  | BB-3 Slot Link as the growth surface | Needs BB-1 to have a "next week" to hook onto |
+| 7 | ✅ | **BB-1 Standing Games (#576)** | Shipped 2026-10-06 (#576; tickets #577 to #582, PR #598), with #572 and #573 from the same grill landing alongside. A game can repeat weekly. Each week posts 7 days ahead, or earlier when the Booking Window opens sooner. Regulars get a Weekly Invite they can answer without signing in (ADR 0022). An organizer can skip a week, turn a one-off into a weekly game, and attach this week's court with one tap. #576, ADRs 0022 and 0023 and `booking-buddy/CONTEXT.md` are the authority; the BB-1 section below is a pointer |
+| 8 |  | **RR-2 Courtside mode** | **First unstarted row as of the ninth pass**, 2026-10-07. Turns the generator into the thing that stays open on the bench. The Schedule shape it was held behind is settled and shipped, so nothing ahead of it is Match Mixer work any more. Grill it against the pooled shape (see RR-2's new question 6) |
+| 9 |  | BB-3 Slot Link as the growth surface | Unblocked 2026-10-06: BB-1 gave it a "next week" to hook onto. Grill it against what shipped, since Regulars and the Weekly Invite already cover part of its question 2 |
 | 10 |  | BB-4 Copy for group chat | Small, high-use |
 | 11 | ✅ | **RR-4 Constraint toggles (#391)** | Shipped 2026-09-19 to 2026-09-20 (#391; tickets #543, #544, #545). Three of the four features specced, and skill balance cut rather than deferred — a lopsided skill pairing comes out in the wash over eight rounds, which is the argument mixed doubles cannot make and is why that one got a hard constraint instead. Three of the four also turned out not to be Formats at all (ADR 0003): the row holds rotating, fixed partners and singles, and mixed doubles is a checkbox under rotating. Still orthogonal to RR-6 — each pool runs whichever Format is picked |
 | 12 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
@@ -170,7 +177,8 @@ goal met by substitution. That leaves BB-1, and it is the only one of the three 
 picks still outstanding — worth noticing, because it has been unblocked and un-started for
 the whole month while three other things overtook it. As of 2026-09-24 it is four: RR-6
 went past it too, legitimately, and it is now the top of the table with nothing left above
-it to overtake it by default.
+it to overtake it by default. **It shipped 2026-10-06** (#576), a week into the next
+month, so all three picks are met: two as planned and On Deck's by substitution.
 
 The uncomfortable version, updated 2026-09-18 and still uncomfortable: **On Deck is a
 feature-complete v1 with a front door that nobody has ever used.** The "no way in" half is
@@ -265,6 +273,15 @@ home and this doc is not it.
   to be mostly built already by 6.1 and 6.2, and shipped as the find-me line naming the
   pool plus the CONTEXT.md entries that described none of it. `match-mixer/CONTEXT.md`
   is the authority now; the RR-6 section below is a pointer.
+- **BB-1 Standing Games — complete 2026-10-06** (#576; #577 to #582, PR #598). Row 7.
+  Grilled on 2026-10-02 into ADRs 0022 (a Weekly Invite is answered with no sign-in) and
+  0023 (a Standing Game posts plain Slots), which kept the Slot the unit everything
+  understands. The grill changed two of the section's draft answers: weeks post earlier
+  than 7 days when the Booking Window needs it, and Regulars are a list the organizer owns
+  that a yes joins, not last week's yeses. Two tickets the grill raised shipped with it:
+  every email on one branded layout (#572, PR #597) and an in-app "Book a court" notice
+  for an unbooked game whose Booking Window is open (#573, PR #599).
+  `booking-buddy/CONTEXT.md` is the authority now; the BB-1 section below is a pointer.
 
 **Off the table, and larger than it.**
 
@@ -298,6 +315,15 @@ home and this doc is not it.
   prerendered with 1h ISR, a server-rendered h1 on Pickle Point Pal). Its manual follow-up
   is done too: sitemap resubmitted and indexing requested on `/contact`, the part-2 mixed
   doubles episode and `/tools/pickle-point-pal`, 2026-09-24.
+- **Marketing photos, Appearances and a Photos page — 2026-09-26 to 2026-10-06.** New host
+  photos across Home, Gear and Appearances (#561 to #570), the Creator Night set (#574),
+  then a `/photos` gallery with Photo Sets, Loose Photos and a lightbox (#584 to #596).
+  Itemised in git.
+- **Booking Buddy imports Backyard Club booking emails — 2026-10-02** (#571).
+- **Repo and test hygiene — 2026-10-05 to 2026-10-07.** PR screenshots moved out of the
+  repo onto hidden `refs/screenshots/pr-N` refs, with history rewritten to drop the old
+  ones (#590). e2e fixture dates now count from today, and `npm test` plus CI fail on a
+  hard-coded one (#600). Mock-server specs no longer clash on ports under two workers (#601).
 
 **The lesson the log actually produced.** Of everything built between this doc being
 written and 2026-09-07, only row 2 came from the table — the rest was marketing polish and
@@ -342,53 +368,25 @@ reason or removes friction on the path to it.
   go to email and die.
 - Anything from the "Explicitly out of scope" list in the differentiation roadmap.
 
-### BB-1 · Recurring games
+### BB-1 · Standing Games — shipped
 
-**Specced 2026-10-02 as #576** (tickets #577 to #582). The grill changed two of the draft answers below: posting is a week ahead *or earlier when the Booking Window needs it*, and Regulars are an organizer-owned list that yeses join, not a list derived from last week. Where this section and #576 disagree, #576 is later.
+**Shipped 2026-10-06** (#576; tickets #577 to #582, PR #598). Row 7.
 
-**Size:** L. **Blocked by:** nothing. **Needs:** `/grill-with-docs` (new glossary term,
-likely an ADR on template-vs-rule).
+The draft questions that used to sit here are gone: the grill settled them and changed
+two of the answers. #576 is the record, ADRs 0022 and 0023 carry the reasoning,
+and `booking-buddy/CONTEXT.md` (Standing Game, Regular, Weekly Invite) describes what
+shipped. The short version, because BB-3 and BB-5 lean on it:
 
-**Claim.** "Tuesday 8pm, every week" is the single biggest retention lever and it's still
-unbuilt. Until it exists every Slot is a one-off and the app is a poll tool.
-
-**Already decided.**
-- The Slot stays the unit everything else understands (Responses, Capacity, Reminders,
-  Slot Links, Bookings all hang off a Slot). Recurrence must not fork that.
-- Bookings do not carry over between instances. Each week's court is imported or logged
-  as today (ADR 0002 holds). The Intended Org does carry over.
-- Reuses the existing pure-planner-plus-cron pattern (`planAttendeeReminderRun` shape) for
-  minting instances and pinging regulars.
-
-**Open questions (first frontier).**
-1. Is a recurring game a **template entity that mints ordinary Slots**, or a Slot with a
-   recurrence rule on it?
-   ➡️ Template entity. A new glossary term (working name: **Standing Game**) that owns
-   cadence, default time, Intended Org, division, notes, and the regulars list, and mints a
-   plain Slot N days ahead. A Slot-with-a-rule makes every Slot query recurrence-aware.
-2. How far ahead is the next instance minted?
-   ➡️ One instance at a time, minted seven days before start, via cron. Configurable per
-   Standing Game later if anyone asks.
-3. Who are the "regulars" who get pinged?
-   ➡️ Derived: everyone who responded yes to the previous instance, unioned with an
-   optional Friend Group the organizer attaches. First instance uses the Friend Group
-   alone. No separate invite list to maintain.
-4. Do regulars auto-RSVP yes, or get asked?
-   ➡️ Asked. Auto-yes creates ghost Capacity and turns no-shows into a data problem. The
-   ping is the "reason to open the app between games."
-5. Skip a week vs end the series vs edit one instance?
-   ➡️ All three, and they're different actions. Editing an instance edits that Slot only.
-   Skipping deletes the minted Slot and mints the next. Ending stops minting and leaves
-   history alone.
-6. Where does it live in the UI?
-   ➡️ Games page. A "repeats weekly" chip on the Slot, a Standing Games section (or filter)
-   above one-offs, and "make this a standing game" on an existing Slot's detail page.
-7. What does the Guest (non-account) experience look like on a recurring Slot Link?
-   ➡️ Defer to BB-3. The Slot Link is per Slot, so v1 is unchanged: a new link per week.
-
-**Constraints.** ADR 0001 (bare-proposal Slots), ADR 0016 (two-tier nav), Reminder and
-Booking Reminder semantics unchanged. `bb_first_slot` analytics: decide whether a minted
-instance counts.
+- A **Standing Game** is a template that posts plain Slots (ADR 0023), so nothing that
+  hangs off a Slot had to learn about recurrence. Each week posts 7 days ahead, or earlier
+  when the Booking Window opens sooner.
+- **Regulars** are a list the organizer owns, picked from Connections or a Friend Group. A
+  yes to any posted game joins it. Each Regular gets a **Weekly Invite** they answer
+  without signing in (ADR 0022).
+- An organizer can skip a week, end the series, turn a one-off into a weekly game ("Make
+  this weekly"), and attach this week's court with one tap.
+- Two tickets the grill raised shipped alongside: one branded layout for every email
+  (#572) and the in-app "Book a court" notice (#573).
 
 ### BB-2 · Visibility defaults to `calendar` on accept — shipped
 
@@ -403,7 +401,8 @@ the primary nav behind an "advanced" affordance on Friends.
 
 ### BB-3 · The Slot Link page is the growth surface
 
-**Size:** M. **Blocked by:** BB-1 (the "next week" hook needs a Standing Game to point at).
+**Size:** M. **Blocked by:** nothing. BB-1 was the blocker, because the "next week" hook
+needed a Standing Game to point at, and it shipped 2026-10-06.
 
 **Claim.** The Guest who opens a share link and RSVPs is the whole growth loop. Today they
 RSVP, get no Reminder (Guests are excluded in v1), and get no reason to sign up. Make this
@@ -422,6 +421,11 @@ the best page in the app.
    ➡️ After a yes: "This game repeats every Tuesday. Want next week's automatically?" →
    sign up → auto-created request to the organizer via their invite token → on accept,
    they're a regular (BB-1 Q3).
+   **Revisit against what shipped (2026-10-07).** "Next week's automatically" now exists:
+   it is the Weekly Invite, sent to Regulars. But a Regular has to be a Connection, so the
+   hook's last step is "on accept, their next yes makes them a Regular" (or the organizer
+   adds them), not a direct jump. The grill should decide whether that one-week gap is
+   fine.
 3. Does the Slot Link page show who else is in?
    ➡️ Yes, first names of yes responders, count of maybes. Organizer toggle to hide.
    Organizers already paste this into the chat, so it's not new exposure.
@@ -453,6 +457,12 @@ app. Meet the chat, don't fight it.
 ### BB-5 · Booker jobs and booking-window countdown
 
 **Size:** L. **Blocked by:** nothing (BB-6 makes the nudges better but isn't required).
+
+**A piece of it already shipped (2026-10-07).** The in-app "Book a court" notice (#573)
+tells the organizer, on the dashboard and the game, that an unbooked game's Booking Window
+is open and how long ago it opened. It covers one organizer and one game, with no jobs, so
+it is the single-booker case of the countdown rather than the countdown. The v1 cut should
+build on it or replace it, not run a second notice beside it.
 
 **Claim.** Twelve people need three courts, one account holds one, everyone races at 7am,
 half of them sleep through it. Nobody else models that. It's the moat. The differentiation
