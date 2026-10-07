@@ -14,8 +14,12 @@ import {
 import { OrgSelect } from "@/components/booking-buddy/org-select";
 import { useResolveOnSuccess } from "@/components/booking-buddy/use-resolve-on-success";
 import { ActionError } from "@/components/booking-buddy/action-error";
-import { DismissedSlotFields } from "@/components/booking-buddy/dismissed-slot-fields";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
+import {
+  CANDIDATE_FIELD,
+  candidateSlot,
+  encodeCandidate,
+} from "@/lib/booking-buddy/import-candidate-token";
 import {
   formatCandidateDate,
   formatCourtLabel,
@@ -27,17 +31,15 @@ import { describeUpdateChanges } from "@/lib/booking-buddy/update-diff";
 import type { ReviewOutcome } from "@/components/booking-buddy/review-outcome";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
-import {
-  confirmCancellationCandidate,
-  confirmImportCandidate,
-  confirmMergedCandidate,
-  confirmUpdateCandidate,
-  dismissMergedCandidate,
-  dismissReviewItem,
-  type MergedImportCandidate,
-  type ReviewItem,
-  type UpdateTargetBooking,
+import type {
+  MergedImportCandidate,
+  ReviewItem,
+  UpdateTargetBooking,
 } from "@/lib/booking-buddy/actions/email-sync";
+import {
+  dismissImportCandidate,
+  confirmImportCandidate,
+} from "@/lib/booking-buddy/actions/import-candidates";
 
 const EMPTY: ActionResult = {};
 
@@ -119,12 +121,36 @@ export function ReviewActions({
 /** The three kinds, in the order the review screen groups them for display. */
 const REVIEW_KINDS = ["import", "cancellation", "update"] as const;
 
-/** Confirming each kind stays its own action — the three re-validate down completely different paths (see `email-sync.ts`). */
-const CONFIRM_ACTION = {
-  import: confirmImportCandidate,
-  cancellation: confirmCancellationCandidate,
-  update: confirmUpdateCandidate,
-} as const;
+/**
+ * The `candidate` token an email card posts, to both of its actions
+ * (`import-candidates.ts`).
+ *
+ * An import's slot rides along for its Dismiss, and only when the facility
+ * matched an Org: the slot is keyed on one (issue #437). A cancellation
+ * carries the Booking it was matched to, if any. An update carries only the
+ * message: which Booking it applies to is each confirm form's own
+ * `booking_id`, since a suggested match is the User's pick.
+ */
+function reviewItemToken(item: ReviewItem): string {
+  switch (item.kind) {
+    case "import":
+      return encodeCandidate({
+        kind: "import",
+        messageId: item.gmailMessageId,
+        feed: null,
+        slot: item.matchedOrgId ? candidateSlot(item.matchedOrgId, item) : null,
+      });
+    case "cancellation":
+      return encodeCandidate({
+        kind: "cancellation",
+        messageId: item.gmailMessageId,
+        feed: null,
+        bookingId: item.matched ? item.bookingId : null,
+      });
+    case "update":
+      return encodeCandidate({ kind: "update", messageId: item.gmailMessageId });
+  }
+}
 
 /** The read-only detail lines under the facility name — the one part of the card that varies per kind but carries no form. */
 function ReviewItemDetails({ item }: { item: ReviewItem }) {
@@ -210,6 +236,8 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
 
 type BodyProps<K extends ReviewItem["kind"]> = {
   item: Extract<ReviewItem, { kind: K }>;
+  /** The card's `candidate` token, encoded once by `ReviewItemCard`. */
+  candidate: string;
   confirmAction: (payload: FormData) => void;
   confirmState: ActionResult;
   confirmPending: boolean;
@@ -253,10 +281,12 @@ function FacilityFieldHint() {
  * still edits (`<OrgSelect>` when the facility matched no Org). Every other
  * value rides through as a hidden input so `confirmImportCandidate` re-runs
  * `parseNewBooking` over the same field names `CreateBookingForm` posts,
- * rather than trusting the already-parsed item a second time.
+ * rather than trusting the already-parsed item a second time. Which message
+ * it settles travels in the `candidate` token.
  */
 function ImportBody({
   item,
+  candidate,
   orgs,
   confirmAction,
   confirmState,
@@ -286,11 +316,7 @@ function ImportBody({
           />
         </div>
 
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="date" value={item.date} />
@@ -335,6 +361,7 @@ function ImportBody({
  */
 function CancellationBody({
   item,
+  candidate,
   confirmAction,
   confirmState,
   confirmPending,
@@ -347,12 +374,7 @@ function CancellationBody({
   return (
     <>
       <form action={confirmAction} className="self-start">
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        <input type="hidden" name="booking_id" value={item.bookingId} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <Button type="submit" variant="destructive" disabled={busy}>
           {confirmPending ? "Removing…" : "Remove booking"}
         </Button>
@@ -368,18 +390,21 @@ function CancellationBody({
  * trust the candidate twice" shape the import card uses, now carrying the
  * slot as well, since an update can move it (issue #458). `bookingId` is
  * whichever Booking this particular form applies to: the exact match, or the
- * suggestion the User is confirming.
+ * suggestion the User is confirming. Which message it settles travels in the
+ * `candidate` token.
  */
 function UpdateFields({
   item,
+  candidate,
   bookingId,
 }: {
   item: Extract<ReviewItem, { kind: "update" }>;
+  candidate: string;
   bookingId: string;
 }) {
   return (
     <>
-      <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+      <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
       <input type="hidden" name="booking_id" value={bookingId} />
       <input type="hidden" name="date" value={item.date} />
       <input type="hidden" name="start_time" value={item.startTime} />
@@ -448,6 +473,7 @@ function UpdateChanges({
  */
 function SuggestedMatch({
   item,
+  candidate,
   suggestion,
   confirmAction,
   confirmPending,
@@ -455,6 +481,7 @@ function SuggestedMatch({
   buttonLabel,
 }: {
   item: Extract<ReviewItem, { kind: "update" }>;
+  candidate: string;
   suggestion: UpdateTargetBooking;
   confirmAction: (payload: FormData) => void;
   confirmPending: boolean;
@@ -476,7 +503,11 @@ function SuggestedMatch({
       </p>
       <UpdateChanges before={suggestion} after={item} />
       <form action={confirmAction} className="mt-2.5">
-        <UpdateFields item={item} bookingId={suggestion.bookingId} />
+        <UpdateFields
+          item={item}
+          candidate={candidate}
+          bookingId={suggestion.bookingId}
+        />
         <Button type="submit" size="sm" disabled={busy}>
           {confirmPending ? "Applying…" : buttonLabel}
         </Button>
@@ -501,6 +532,7 @@ function SuggestedMatch({
  */
 function UpdateBody({
   item,
+  candidate,
   confirmAction,
   confirmState,
   confirmPending,
@@ -517,7 +549,11 @@ function UpdateBody({
           <UpdateChanges before={item.booking} after={item} />
         </div>
         <form action={confirmAction} className="self-start">
-          <UpdateFields item={item} bookingId={item.booking.bookingId} />
+          <UpdateFields
+            item={item}
+            candidate={candidate}
+            bookingId={item.booking.bookingId}
+          />
           <Button type="submit" disabled={busy}>
             {confirmPending ? "Applying…" : "Apply update"}
           </Button>
@@ -544,6 +580,7 @@ function UpdateBody({
             <SuggestedMatch
               key={suggestion.bookingId}
               item={item}
+              candidate={candidate}
               suggestion={suggestion}
               confirmAction={confirmAction}
               confirmPending={confirmPending}
@@ -566,9 +603,9 @@ function UpdateBody({
  * One review item on the "Sync from Email" screen (issues #64/#65/#91). Owns
  * the card shell every kind shares — the `bb-card` wrapper, the facility line,
  * the Dismiss form, and the resolve-on-success effects — and switches on
- * `item.kind` for the detail lines and the kind-specific confirm form. The
- * confirm action reference is picked by kind but bound through a single
- * `useActionState` call so the shared `busy` gating stays in one place.
+ * `item.kind` for the detail lines and the kind-specific confirm form. Every
+ * kind posts to the same two actions, which read the kind off the `candidate`
+ * token, so the shared `busy` gating stays in one place.
  */
 export function ReviewItemCard({
   item,
@@ -580,15 +617,16 @@ export function ReviewItemCard({
   onResolved: (gmailMessageId: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    CONFIRM_ACTION[item.kind],
+    confirmImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    dismissReviewItem,
+    dismissImportCandidate,
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
   const dismissFormId = `sync-dismiss-${item.gmailMessageId}`;
+  const candidate = reviewItemToken(item);
 
   // What confirming this kind did, in the section's own tally. Each kind's
   // button already names its own outcome, and the tally repeats it rather than
@@ -617,6 +655,7 @@ export function ReviewItemCard({
       {item.kind === "import" ? (
         <ImportBody
           item={item}
+          candidate={candidate}
           orgs={orgs}
           confirmAction={confirmAction}
           confirmState={confirmState}
@@ -628,6 +667,7 @@ export function ReviewItemCard({
       ) : item.kind === "cancellation" ? (
         <CancellationBody
           item={item}
+          candidate={candidate}
           confirmAction={confirmAction}
           confirmState={confirmState}
           confirmPending={confirmPending}
@@ -636,6 +676,7 @@ export function ReviewItemCard({
       ) : (
         <UpdateBody
           item={item}
+          candidate={candidate}
           confirmAction={confirmAction}
           confirmState={confirmState}
           confirmPending={confirmPending}
@@ -644,25 +685,10 @@ export function ReviewItemCard({
       )}
 
       <form id={dismissFormId} action={dismissAction} className="self-start">
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        {/* Only an import, and only one whose facility matched an Org —
-            the slot is keyed on one (issue #437). A cancellation or update
-            renders none: those mean "leave this Booking alone", not "I don't
-            want this reservation". */}
-        {item.kind === "import" && item.matchedOrgId && (
-          <DismissedSlotFields
-            slot={{
-              orgId: item.matchedOrgId,
-              date: item.date,
-              startTime: item.startTime,
-              courtLabel: item.courtLabel,
-            }}
-          />
-        )}
+        {/* Every kind posts its candidate. Only an import's carries a slot
+            (issue #437): dismissing a cancellation or update means "leave
+            this Booking alone", not "I don't want this reservation". */}
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         {/* An import's Dismiss button lives in `ReviewActions`, beside the one
             it is the alternative to (issue #464), and reaches this form by
             `id`. The other two kinds keep a standalone button: a cancellation
@@ -684,13 +710,14 @@ export function ReviewItemCard({
  * One consolidated review card (issue #348) — a single reservation that came
  * in from both the mailbox and a calendar feed, shown once instead of twice.
  * Looks like the email `import` card (it carries the Player(s), which the feed
- * never has), but confirming it runs `confirmMergedCandidate`, which creates
- * one Booking and settles both sources. Keyed on `mergeKey` (both source ids)
- * and resolved out of both query caches by the parent's `onResolved`.
+ * never has), but its `candidate` token carries both sources, so confirming it
+ * creates one Booking and settles both, and dismissing it settles both. Keyed
+ * on `mergeKey` (both source ids) and resolved out of both query caches by the
+ * parent's `onResolved`.
  *
  * The Facility select is prefilled to the matched Org and stays editable as a
  * safety valve, same as the two single-source import cards; every other field
- * rides through as a hidden input so `confirmMergedCandidate` re-runs
+ * rides through as a hidden input so `confirmImportCandidate` re-runs
  * `parseNewBooking` over the same field names `CreateBookingForm` posts.
  */
 export function MergedCandidateCard({
@@ -703,16 +730,31 @@ export function MergedCandidateCard({
   onResolved: (item: MergedImportCandidate, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    confirmMergedCandidate,
+    confirmImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    dismissMergedCandidate,
+    dismissImportCandidate,
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
   const facilityFieldId = `merged-facility-${item.mergeKey}`;
   const dismissFormId = `merged-dismiss-${item.mergeKey}`;
+
+  // Both sources, and the slot either single-source card carries (issue
+  // #437): redundant while both source rows land, and what still holds if a
+  // source hands this reservation back under a new key later.
+  const candidate = encodeCandidate({
+    kind: "import",
+    messageId: item.gmailMessageId,
+    feed: {
+      orgId: item.orgId,
+      uid: item.feedEventUid,
+      sequence: item.sequence,
+      startsAt: item.startsAt,
+    },
+    slot: candidateSlot(item.orgId, item),
+  });
 
   useResolveOnSuccess(confirmState, () => onResolved(item, "added"));
   useResolveOnSuccess(dismissState, () => onResolved(item, "skipped"));
@@ -758,14 +800,7 @@ export function MergedCandidateCard({
           />
         </div>
 
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="sequence" value={item.sequence} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="date" value={item.date} />
@@ -785,21 +820,9 @@ export function MergedCandidateCard({
       <ActionError state={confirmState} />
 
       <form id={dismissFormId} action={dismissAction} className="self-start">
-        <input
-          type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
-        />
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="org_id" value={item.orgId} />
-        <input type="hidden" name="sequence" value={item.sequence} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
-        {/* Same slot either single-source card carries (issue #437) —
-            redundant while both source rows land, and what still holds if a
-            source hands this reservation back under a new key later. */}
         {/* Button-less, same as the single-source import card: it lives in
             `ReviewActions` above and reaches this form by `id` (issue #464). */}
-        <DismissedSlotFields slot={item} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
       </form>
       <ActionError state={dismissState} />
     </li>

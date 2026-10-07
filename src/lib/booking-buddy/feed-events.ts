@@ -1,11 +1,11 @@
 /**
  * The `org_feed_events` writes that aren't a sync's own bulk upsert: the
- * single-row upsert shared by the Calendar Feed's confirm/dismiss actions
- * (`actions/calendar-feed.ts`) and the merged email+feed confirm
- * (`actions/email-sync.ts`, issue #348) — both settle the feed side of an
- * import the same way, one mutable row per seen VEVENT UID keyed on
- * `(owner_id, org_id, uid)`, carrying its `status` and the `booking_id` it
- * settled to — and the age-out prune each sync run makes (issue #452).
+ * single-row upsert that settling a feed or merged import makes
+ * (`import-candidate-settlement.ts`, which also marks rows already on file
+ * `dismissed` for a cancellation or "Keep booking") — one mutable row per
+ * seen VEVENT UID keyed on `(owner_id, org_id, uid)`, carrying its `status`
+ * and the `booking_id` it settled to — and the age-out prune each sync run
+ * makes (issue #452).
  *
  * Takes the Supabase client as a parameter and imports nothing from Next.js —
  * a `"use server"` module can't export a non-action helper, so the caller owns
@@ -125,10 +125,10 @@ export function feedEventPruneCutoff(now: Date): string {
  * re-upsert it — so on the rows that make up the table's bulk the second
  * condition changes nothing and simply says what the first one means. Where it
  * earns its place is the row whose `starts_at` is not the reservation's start
- * at all: a confirm or dismiss whose form carried no readable `starts_at`
- * records the epoch (`actions/calendar-feed.ts`), and pruning on `starts_at`
- * alone would forget that decision on the very next sync and offer the event
- * again. `last_seen_at` is honest on every row, so pairing them makes the rule
+ * at all: before #608 a confirm or dismiss whose form carried no readable
+ * `starts_at` recorded the epoch, those rows are still on file, and pruning on
+ * `starts_at` alone would forget that decision on the very next sync and offer
+ * the event again. `last_seen_at` is honest on every row, so pairing them makes the rule
  * "gone once both the reservation and our last sight of it are 90 days old".
  *
  * Where it runs, and why there: the feed sync is the only thing that reads

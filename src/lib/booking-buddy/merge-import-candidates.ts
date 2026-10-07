@@ -15,7 +15,7 @@
  * Pure, and free of Next.js / Supabase imports — same discipline as
  * `import-candidate-shaping.ts`. Runs client-side in `sync-bookings.tsx`, the
  * one place both source lists are in hand at once. Confirming the merged card
- * settles *both* sources (`confirmMergedCandidate`, `actions/email-sync.ts`).
+ * settles *both* sources (`confirmCandidate`, `import-candidate-settlement.ts`).
  *
  * The match is Org + date + start time, deliberately **not** court — the two
  * sources genuinely disagree on court text (`"#5 - Hard"` against `"#5"`).

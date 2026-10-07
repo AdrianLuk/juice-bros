@@ -85,8 +85,8 @@ export function SuppressedReservations({
  *
  * Its own component because each row runs its own Server Action, and
  * `useActionState` is per-form. The slot posts back through
- * `DismissedSlotFields`, the very same four hidden inputs the Dismiss that
- * recorded it posted, so what can be dismissed can always be taken back.
+ * `DismissedSlotFields`, the same four values the Dismiss that recorded it
+ * carried in its candidate, so what can be dismissed can always be taken back.
  *
  * "Offer this again" rather than "Undismiss" or "Restore": nothing is
  * restored, and no Booking appears. All that happens is the next sync stops

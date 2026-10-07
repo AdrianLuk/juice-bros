@@ -1,15 +1,25 @@
 # Testing Booking Buddy
 
-Three suites, deliberately separate because they need different things running.
+Four suites, deliberately separate because they need different things running.
 
 | Command | What it covers | Needs |
 | --- | --- | --- |
 | `npm test` | Pure logic — visibility resolution, username rules, form parsing, Connection grouping, routes | nothing |
 | `npm run test:rls` | Schema, constraints, triggers and RLS policies (pgTAP) | Docker + `supabase start` |
+| `npm run test:db` | Modules that take a `SupabaseClient` (Booking writes, settling an Import Candidate), run against the real local database as a signed-in User | Docker + `supabase start` |
 | `npm run test:e2e` | The real pages in a real browser (Playwright) | Docker + `supabase start` + test accounts |
 
 `npm test` is the one to run constantly — it is a second or two and has no
-dependencies. The other two need the local stack up.
+dependencies. The other three need the local stack up.
+
+**`test:db`** runs `node --test` over `src/**/*.db-test.ts`, a glob `npm test`
+never matches. Each file makes its own throwaway Users through the Auth admin
+API (`src/lib/booking-buddy/db-test-support.ts`) and deletes them when it's
+done, so it needs no `seed:users` and leaves nothing behind. It can't borrow a
+seeded account: `processed_messages` is insert-only to every role the app has,
+and deleting the User is the only thing that clears its rows. Like everything
+`node --test` loads, a module under test uses relative imports only and nothing
+from `next/*` or `server-only`.
 
 **Where a new test goes.** If it can be decided without a database, it belongs
 in `npm test` — and if the logic is currently stuck inside a Server Action,

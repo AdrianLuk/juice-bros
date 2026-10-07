@@ -227,7 +227,7 @@ export type ReviewCourtReserveEmailsInput = {
   /** Unseen messages only — the caller has already filtered out anything in `processed_messages`. */
   emails: readonly RawCourtReserveEmail[];
   orgs: readonly OrgForReview[];
-  /** The caller's existing Bookings, each with the id `confirmCancellationCandidate`/`confirmUpdateCandidate` will act on. */
+  /** The caller's existing Bookings, each with the id confirming a cancellation or an update will act on. */
   existingBookings: readonly ExistingBookingForReview[];
   /**
    * Reservations this User has already dismissed, from either import source

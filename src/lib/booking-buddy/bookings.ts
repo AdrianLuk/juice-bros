@@ -39,6 +39,13 @@ export const PLAYER_NAME_MAX_LENGTH = 40;
 
 export const DEFAULT_BOOKING_FORMAT: BookingFormat = "doubles";
 
+/**
+ * A remove or an update that reached no Booking, said once for every write
+ * that can fail that way (`booking-writes.ts`, settling an Import Candidate).
+ */
+export const REMOVE_FAILED = "Couldn't remove that booking. Try again.";
+export const UPDATE_FAILED = "Couldn't update that booking. Try again.";
+
 export type NewBooking = {
   orgId: string;
   /** Null when the User didn't note one down — not every facility labels its courts. */
@@ -200,7 +207,7 @@ export function parseUpdateApplication(
   // format to the default on the strength of a garbled hidden field nobody
   // chose. The field is never a User's own input on this card.
   if (!isBookingFormat(formData.get("format"))) {
-    return { error: "Couldn't update that booking. Try again." };
+    return { error: UPDATE_FAILED };
   }
 
   const reservation = parseReservationFields(formData);

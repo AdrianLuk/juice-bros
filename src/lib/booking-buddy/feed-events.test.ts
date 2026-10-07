@@ -40,10 +40,11 @@ test("a row the feed still shows survives, however old its start (#452)", () => 
 });
 
 test("a settled row whose starts_at is the epoch is kept by its last sighting", () => {
-  // `confirmFeedCandidate` / `dismissFeedCandidate` record the epoch when the
-  // posted `starts_at` is missing or unparseable. Pruning on `starts_at` alone
-  // would forget that decision on the very next sync and offer the event
-  // again; `last_seen_at` is the honest column on such a row.
+  // Before #608 and #609 a feed confirm or dismiss recorded the epoch when the
+  // posted `starts_at` was missing or unparseable, and rows written then are
+  // still on file. Pruning on `starts_at` alone would forget that decision on
+  // the very next sync and offer the event again; `last_seen_at` is the honest
+  // column on such a row.
   const settledNow = { startsAt: "1970-01-01T00:00:00.000Z", lastSeenAt: "2026-09-30T12:00:00.000Z" };
 
   assert.equal(pruned(settledNow, "2026-10-01T00:00:00.000Z"), false);
