@@ -7,7 +7,10 @@ import type http from "node:http";
  * The mocks bind fixed ports (5602 Places, 5603 Gmail, 5604 Microsoft) because
  * `playwright.config.ts` bakes their URLs into `webServer.env` before the app
  * boots — the port has to be known ahead of time, not discovered after
- * listening. The cost of that: a `playwright test` run killed mid-flight
+ * listening. Two specs that start the same one would fight over its port, so
+ * `playwright.config.ts` runs every spec that starts one in its own
+ * one-at-a-time project. (The calendar-feed mock takes an OS-assigned port
+ * instead; its URL is never baked in.) The cost of that: a `playwright test` run killed mid-flight
  * (Ctrl-C, a CI timeout) never runs the mock's `afterAll` `stop()`, so the
  * port is still held by a stray `node` process on the next run, and the raw
  * error names neither the cause nor the fix.

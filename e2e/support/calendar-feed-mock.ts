@@ -1,6 +1,6 @@
 import http from "node:http";
 
-import { listenOnFixedPort } from "./mock-server.ts";
+import type { AddressInfo } from "node:net";
 
 /**
  * A fixture ICS feed server for the Calendar Feed suite (issue #294) — the
@@ -9,11 +9,12 @@ import { listenOnFixedPort } from "./mock-server.ts";
  * survive: a 5xx, an empty body, a malformed body, an oversized body, and a
  * redirect.
  *
- * Fixed port rather than OS-assigned, same reasoning as the other mocks:
- * `playwright.config.ts` bakes `CALENDAR_FEED_ALLOWED_HOSTS=127.0.0.1` and the
- * feeds' base URL into `webServer.env` before the app boots. A different port
- * from Places (5602) / Gmail (5603) / Microsoft (5604) so every mock can run
- * in one Playwright process.
+ * OS-assigned port, unlike the Places / Gmail / Microsoft mocks. Those ports
+ * are baked into the app's env before it boots; this one never is. The app
+ * only allows the host (`CALENDAR_FEED_ALLOWED_HOSTS=127.0.0.1` in
+ * `playwright.config.ts`), and each test pastes the full feed URL, port and
+ * all. So every spec gets its own server, and calendar-feed and sync-bookings
+ * can run on two workers at once without fighting over a port.
  *
  * Unlike the OAuth mocks there is no auth here — a CourtReserve feed URL is a
  * bare GET carrying its member token in the path, and the SSRF guard's whole
@@ -21,9 +22,7 @@ import { listenOnFixedPort } from "./mock-server.ts";
  * that: a request arriving with a `Cookie` or `Authorization` header is a test
  * failure, surfaced as a 400 so the spec sees it.
  */
-export const CALENDAR_FEED_MOCK_PORT = 5605;
 export const CALENDAR_FEED_MOCK_HOST = "127.0.0.1";
-export const CALENDAR_FEED_MOCK_URL = `http://${CALENDAR_FEED_MOCK_HOST}:${CALENDAR_FEED_MOCK_PORT}`;
 
 type FeedResponse =
   | { kind: "ics"; body: string }
@@ -52,7 +51,16 @@ export class CalendarFeedMock {
   }
 
   async start(): Promise<void> {
-    await listenOnFixedPort(this.#server, CALENDAR_FEED_MOCK_PORT, "calendar-feed-mock");
+    await new Promise<void>((resolve, reject) => {
+      this.#server.once("error", reject);
+      this.#server.listen(0, CALENDAR_FEED_MOCK_HOST, () => resolve());
+    });
+  }
+
+  /** `http://127.0.0.1:<port>`, once `start()` has bound a port. */
+  get #baseUrl(): string {
+    const { port } = this.#server.address() as AddressInfo;
+    return `http://${CALENDAR_FEED_MOCK_HOST}:${port}`;
   }
 
   async stop(): Promise<void> {
@@ -73,7 +81,7 @@ export class CalendarFeedMock {
    * `GMAIL_API_BASE_URL` carries for the Gmail mock.
    */
   urlFor(path: string): string {
-    return `${CALENDAR_FEED_MOCK_URL}${path}`;
+    return `${this.#baseUrl}${path}`;
   }
 
   registerFeed(path: string, response: FeedResponse): void {
@@ -88,7 +96,7 @@ export class CalendarFeedMock {
       return;
     }
 
-    const url = new URL(req.url ?? "/", CALENDAR_FEED_MOCK_URL);
+    const url = new URL(req.url ?? "/", this.#baseUrl);
     const feed = this.#feeds.get(url.pathname);
 
     if (!feed) {

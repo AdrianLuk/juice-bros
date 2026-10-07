@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
 
 import { GOOGLE_PLACES_MOCK_URL } from "./e2e/support/google-places-mock.ts";
@@ -5,6 +8,21 @@ import { GMAIL_MOCK_URL } from "./e2e/support/gmail-mock.ts";
 import { MICROSOFT_MOCK_URL } from "./e2e/support/microsoft-mock.ts";
 import { CALENDAR_FEED_MOCK_HOST } from "./e2e/support/calendar-feed-mock.ts";
 import { TEST_WORKER_COUNT, allWorkerBenHandles } from "./e2e/support/account-sets.ts";
+
+/**
+ * Spec files that start a fixed-port mock (Places 5602, Gmail 5603,
+ * Microsoft 5604). Those ports are baked into the app's env before it boots,
+ * so two such specs on two workers at once would fight over the port and the
+ * second would fail with EADDRINUSE (email-sync and sync-bookings both start
+ * Gmail). Found by reading the specs rather than listed by hand, so a new one
+ * is covered without anyone remembering to add it.
+ */
+const FIXED_PORT_MOCK = /\bnew (?:GooglePlacesMock|GmailMock|MicrosoftMock)\(/;
+const E2E_DIR = join(__dirname, "e2e");
+const FIXED_PORT_MOCK_SPECS = readdirSync(E2E_DIR)
+  .filter((name) => name.endsWith(".spec.ts"))
+  .filter((name) => FIXED_PORT_MOCK.test(readFileSync(join(E2E_DIR, name), "utf8")))
+  .map((name) => `**/${name}`);
 
 /**
  * Browser tests, kept apart from `npm test`.
@@ -54,7 +72,21 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: FIXED_PORT_MOCK_SPECS,
+    },
+    // The fixed-port mock specs, one at a time. They still run alongside the
+    // main project on the other worker; only they wait for each other.
+    {
+      name: "chromium-fixed-port-mocks",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: FIXED_PORT_MOCK_SPECS,
+      workers: 1,
+    },
+  ],
   webServer: {
     // A production build (`next build` + `next start`), not `next dev`: the dev
     // server compiles each route on its first request, and across ~120 tests
