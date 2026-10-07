@@ -98,6 +98,20 @@ export async function recordDismissedSlotFromForm(
     return;
   }
 
+  await recordDismissedSlot(supabase, ownerId, slot);
+}
+
+/**
+ * Record one dismissed slot — what dismissing an Import Candidate writes
+ * (`import-candidate-settlement.ts`), and what a dismiss form's own slot
+ * fields write. Failures are logged, never surfaced, for the reason
+ * `recordDismissedSlotFromForm` gives.
+ */
+export async function recordDismissedSlot(
+  supabase: SupabaseClient,
+  ownerId: string,
+  slot: BookingIdentity,
+): Promise<void> {
   const { error } = await supabase.from("dismissed_reservations").insert({
     owner_id: ownerId,
     org_id: slot.orgId,
