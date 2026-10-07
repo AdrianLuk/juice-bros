@@ -159,7 +159,7 @@ function readKnownFeed(value: unknown): KnownFeedEvent | null | undefined {
 function readFeed(value: unknown): FeedEventIdentity | null | undefined {
   const known = readKnownFeed(value);
   if (!known || !isObject(value)) {
-    return known;
+    return known === null ? null : undefined;
   }
 
   const { sequence } = value;
