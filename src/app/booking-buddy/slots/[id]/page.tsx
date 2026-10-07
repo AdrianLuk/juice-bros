@@ -205,7 +205,21 @@ export default async function SlotDetailPage({
               <section>
                 <h2 className="bb-h text-[1.05rem]">Invite link</h2>
                 <div className="bb-card mt-4 p-4 sm:p-6">
-                  <SlotLinkPanel slotId={slot.id} slotLink={slotLink} />
+                  <SlotLinkPanel
+                    slotId={slot.id}
+                    slotLink={slotLink}
+                    groupChat={{
+                      initialResponses: { responses, myAnswer },
+                      game: {
+                        when: slot.when,
+                        facilityLabel: slot.facilityLabel,
+                        courtLabels: capacity.attached.map(
+                          (booking) => booking.courtLabel,
+                        ),
+                        repeatsLabel: slot.repeatsLabel,
+                      },
+                    }}
+                  />
                 </div>
               </section>
             )}

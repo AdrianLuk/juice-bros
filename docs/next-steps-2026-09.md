@@ -159,7 +159,7 @@ order they already held relative to each other.
 | 7 | ✅ | **BB-1 Standing Games (#576)** | Shipped 2026-10-06 (#576; tickets #577 to #582, PR #598), with #572 and #573 from the same grill landing alongside. A game can repeat weekly. Each week posts 7 days ahead, or earlier when the Booking Window opens sooner. Regulars get a Weekly Invite they can answer without signing in (ADR 0022). An organizer can skip a week, turn a one-off into a weekly game, and attach this week's court with one tap. #576, ADRs 0022 and 0023 and `booking-buddy/CONTEXT.md` are the authority; the BB-1 section below is a pointer |
 | 8 |  | **RR-2 Courtside mode** | **First unstarted row as of the ninth pass**, 2026-10-07. Turns the generator into the thing that stays open on the bench. The Schedule shape it was held behind is settled and shipped, so nothing ahead of it is Match Mixer work any more. Grill it against the pooled shape (see RR-2's new question 6) |
 | 9 |  | BB-3 Slot Link as the growth surface | Unblocked 2026-10-06: BB-1 gave it a "next week" to hook onto. Grill it against what shipped, since Regulars and the Weekly Invite already cover part of its question 2 |
-| 10 |  | BB-4 Copy for group chat | Small, high-use |
+| 10 | ✅ | **BB-4 Copy for group chat** | Shipped 2026-10-07, taken ahead of rows 8 and 9 as the small one. The organizer's game page builds a plain-text message (day and time, weekly or not, facility and courts, "N in, M maybe", the invite link): the share sheet on a phone, the clipboard elsewhere. Owner-only, because the invite link is. The dashboard card never got the button, because the whole card is a link and a button can't sit inside one |
 | 11 | ✅ | **RR-4 Constraint toggles (#391)** | Shipped 2026-09-19 to 2026-09-20 (#391; tickets #543, #544, #545). Three of the four features specced, and skill balance cut rather than deferred — a lopsided skill pairing comes out in the wash over eight rounds, which is the argument mixed doubles cannot make and is why that one got a hard constraint instead. Three of the four also turned out not to be Formats at all (ADR 0003): the row holds rotating, fixed partners and singles, and mixed doubles is a checkbox under rotating. Still orthogonal to RR-6 — each pool runs whichever Format is picked |
 | 12 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
 | 13 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
@@ -433,7 +433,12 @@ the best page in the app.
    ➡️ Yes, same name on the same link, no auth. Accept the small spoofing risk; it's a
    pickleball RSVP.
 
-### BB-4 · "Copy for group chat"
+### BB-4 · "Copy for group chat" — shipped
+
+**Shipped 2026-10-07.** Built on the recommended answers below with no grill, and two
+changes: the message lives in the game page's Invite link card and not on the dashboard
+row (that card is a link, so it can't hold a button), and the message has no game name
+because a Slot has none. `src/lib/booking-buddy/group-chat-message.ts` is the template.
 
 **Size:** S. **Blocked by:** nothing.
 

@@ -136,6 +136,58 @@ test("a guest sees which facility the slot is for, even for a bare proposal", as
   }
 });
 
+test("the owner copies a group chat message with the game, the tally and the invite link (BB-4)", async ({
+  page,
+  context,
+  accounts,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  const place = placeName();
+  await addPlace(page, place);
+
+  await page.goto("/booking-buddy/slots");
+  await pickDate(page, DAY(4));
+  await page.getByLabel("Start").selectOption("18:00");
+  await selectDuration(page, "18:00", "19:00");
+  await page.getByLabel("Facility").selectOption({ label: place });
+  await page.getByRole("button", { name: "Post game" }).click();
+
+  await row(page, dayLabel(DAY(4))).getByRole("link").click();
+  await page.waitForURL(/\/booking-buddy\/slots\/[0-9a-f-]+$/);
+  const slotId = page.url().split("/").pop()!;
+
+  try {
+    await page.getByRole("button", { name: "Create invite link" }).click();
+    const url = await page.getByLabel("Invite link").inputValue();
+
+    // The message reads the live tally, so the owner's own yes counts
+    // without a reload.
+    await page
+      .getByRole("group", { name: "Your response" })
+      .getByRole("button", { name: "Yes" })
+      .click();
+    await expect(page.getByLabel("Group chat message")).toContainText("1 in");
+
+    await page.getByRole("button", { name: "Copy for group chat" }).click();
+    await expect(
+      page.getByRole("button", { name: "Copied. Paste it in your group chat." }),
+    ).toBeVisible();
+
+    const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+    // The Windows clipboard hands line breaks back as \r\n.
+    const lines = clipboard.split(/\r?\n/);
+    expect(lines[0]).toMatch(/^Pickleball \w{3}, .+, 6:00 PM – 7:00 PM$/);
+    expect(lines.slice(1)).toEqual([
+      `${place}, court not booked yet`,
+      "1 in",
+      `In or out? ${url}`,
+    ]);
+  } finally {
+    await deleteSlots([slotId], { email: accounts.amy.email, password: accounts.password });
+    await removePlace(page, place);
+  }
+});
+
 test("generating an invite link twice reuses the same one", async ({ page, accounts }) => {
   const slotId = await createSlot(page, {
     date: DAY(3),
