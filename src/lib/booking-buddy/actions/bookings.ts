@@ -11,12 +11,10 @@ import { readFailed, type ActionResult } from "./result.ts";
 import {
   formatBookingWhen,
   parseNewBooking,
-  type BookingUpdateApplication,
   type NewBooking,
 } from "../bookings.ts";
 import type { BookingFormat } from "../capacity.ts";
 import {
-  applyBookingUpdate,
   editBooking,
   insertBooking,
   removeBooking,
@@ -241,50 +239,10 @@ export async function updateBooking(
 }
 
 /**
- * `removeBooking` (`booking-writes.ts`) plus revalidation — shared by
- * `deleteBooking`'s own form-parsed path and the two cancellation actions
- * (`confirmCancellationCandidate`, `confirmFeedCancellation`), which already
- * know the exact `bookingId`.
+ * Remove a Booking from the Bookings page or the dashboard calendar's (#23)
+ * Booking popover. A confirmed cancellation removes one through
+ * `import-candidate-settlement.ts` instead, which settles its sources too.
  */
-export async function deleteOwnedBooking(bookingId: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const result = await removeBooking(supabase, bookingId);
-  if ("error" in result) {
-    return result;
-  }
-
-  revalidatePath(BOOKINGS_PATH);
-  // The dashboard calendar's (#23) Booking popover can remove one too.
-  revalidatePath(BOOKING_BUDDY_ROOT);
-  return { ok: true };
-}
-
-/**
- * `applyBookingUpdate` (`booking-writes.ts`) plus revalidation, for
- * `confirmUpdateCandidate` (issue #91, widened by #458).
- */
-export async function applyUpdateToOwnedBooking(
-  ownerId: string,
-  parsed: BookingUpdateApplication,
-): Promise<ActionResult> {
-  const supabase = await createClient();
-  const result = await applyBookingUpdate(supabase, ownerId, parsed);
-  if ("error" in result) {
-    return result;
-  }
-
-  revalidatePath(BOOKINGS_PATH);
-  revalidatePath(BOOKING_BUDDY_ROOT);
-
-  // The Booking itself already committed — same "still revalidate, but report
-  // the Players-only failure" posture the other two write paths take.
-  if (result.playersError) {
-    return { error: result.playersError };
-  }
-
-  return { ok: true };
-}
-
 export async function deleteBooking(
   _prev: ActionResult,
   formData: FormData,
@@ -296,5 +254,13 @@ export async function deleteBooking(
     return { error: "Pick a booking to remove." };
   }
 
-  return deleteOwnedBooking(bookingId);
+  const supabase = await createClient();
+  const result = await removeBooking(supabase, bookingId);
+  if ("error" in result) {
+    return result;
+  }
+
+  revalidatePath(BOOKINGS_PATH);
+  revalidatePath(BOOKING_BUDDY_ROOT);
+  return { ok: true };
 }

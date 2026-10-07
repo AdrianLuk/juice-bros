@@ -118,9 +118,9 @@ select is(
   'deleting the Booking cascades away its confirmed ledger row, re-opening the email to a later sync'
 );
 
--- `confirmCancellationCandidate` deletes the matched Booking too (issue #65),
+-- Confirming a cancellation (`import-candidate-settlement.ts`) deletes the matched Booking too (issue #65),
 -- which would cascade its confirmed row away and re-open the confirmation email
--- — wrong when the reservation was cancelled. The action captures that row's
+-- — wrong when the reservation was cancelled. Settlement captures that row's
 -- message id before the delete and re-records it as `cancelled` afterwards
 -- (issue #286). The same capture -> cascade-delete -> re-insert sequence:
 insert into public.bookings (id, org_id, owner_id, court_label, starts_at, ends_at)

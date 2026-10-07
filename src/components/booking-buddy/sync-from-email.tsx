@@ -30,13 +30,10 @@ import { describeUpdateChanges } from "@/lib/booking-buddy/update-diff";
 import type { ReviewOutcome } from "@/components/booking-buddy/review-outcome";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
-import {
-  confirmCancellationCandidate,
-  confirmUpdateCandidate,
-  dismissReviewItem,
-  type MergedImportCandidate,
-  type ReviewItem,
-  type UpdateTargetBooking,
+import type {
+  MergedImportCandidate,
+  ReviewItem,
+  UpdateTargetBooking,
 } from "@/lib/booking-buddy/actions/email-sync";
 import {
   dismissImportCandidate,
@@ -123,39 +120,42 @@ export function ReviewActions({
 /** The three kinds, in the order the review screen groups them for display. */
 const REVIEW_KINDS = ["import", "cancellation", "update"] as const;
 
-/** Confirming each kind stays its own action — the three re-validate down completely different paths (see `email-sync.ts` and `import-candidates.ts`). */
-const CONFIRM_ACTION = {
-  import: settleImportCandidate,
-  cancellation: confirmCancellationCandidate,
-  update: confirmUpdateCandidate,
-} as const;
-
-/** An import's Dismiss settles it like its confirm does (`import-candidates.ts`); the other two only record the message. */
-const DISMISS_ACTION = {
-  import: dismissImportCandidate,
-  cancellation: dismissReviewItem,
-  update: dismissReviewItem,
-} as const;
-
 /**
- * The `candidate` token an email import card posts. The slot rides along for
- * its Dismiss, and only when the facility matched an Org: the slot is keyed
- * on one (issue #437).
+ * The `candidate` token an email card posts, to both of its actions
+ * (`import-candidates.ts`).
+ *
+ * An import's slot rides along for its Dismiss, and only when the facility
+ * matched an Org: the slot is keyed on one (issue #437). A cancellation
+ * carries the Booking it was matched to, if any. An update carries only the
+ * message: which Booking it applies to is each confirm form's own
+ * `booking_id`, since a suggested match is the User's pick.
  */
-function emailImportToken(item: Extract<ReviewItem, { kind: "import" }>): string {
-  return encodeCandidate({
-    kind: "import",
-    messageId: item.gmailMessageId,
-    feed: null,
-    slot: item.matchedOrgId
-      ? {
-          orgId: item.matchedOrgId,
-          date: item.date,
-          startTime: item.startTime,
-          courtLabel: item.courtLabel,
-        }
-      : null,
-  });
+function reviewItemToken(item: ReviewItem): string {
+  switch (item.kind) {
+    case "import":
+      return encodeCandidate({
+        kind: "import",
+        messageId: item.gmailMessageId,
+        feed: null,
+        slot: item.matchedOrgId
+          ? {
+              orgId: item.matchedOrgId,
+              date: item.date,
+              startTime: item.startTime,
+              courtLabel: item.courtLabel,
+            }
+          : null,
+      });
+    case "cancellation":
+      return encodeCandidate({
+        kind: "cancellation",
+        messageId: item.gmailMessageId,
+        feed: null,
+        bookingId: item.matched ? item.bookingId : null,
+      });
+    case "update":
+      return encodeCandidate({ kind: "update", messageId: item.gmailMessageId });
+  }
 }
 
 /** The read-only detail lines under the facility name — the one part of the card that varies per kind but carries no form. */
@@ -322,7 +322,7 @@ function ImportBody({
         <input
           type="hidden"
           name={CANDIDATE_FIELD}
-          value={emailImportToken(item)}
+          value={reviewItemToken(item)}
         />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
@@ -382,10 +382,9 @@ function CancellationBody({
       <form action={confirmAction} className="self-start">
         <input
           type="hidden"
-          name="gmail_message_id"
-          value={item.gmailMessageId}
+          name={CANDIDATE_FIELD}
+          value={reviewItemToken(item)}
         />
-        <input type="hidden" name="booking_id" value={item.bookingId} />
         <Button type="submit" variant="destructive" disabled={busy}>
           {confirmPending ? "Removing…" : "Remove booking"}
         </Button>
@@ -401,7 +400,8 @@ function CancellationBody({
  * trust the candidate twice" shape the import card uses, now carrying the
  * slot as well, since an update can move it (issue #458). `bookingId` is
  * whichever Booking this particular form applies to: the exact match, or the
- * suggestion the User is confirming.
+ * suggestion the User is confirming. Which message it settles travels in the
+ * `candidate` token.
  */
 function UpdateFields({
   item,
@@ -412,7 +412,7 @@ function UpdateFields({
 }) {
   return (
     <>
-      <input type="hidden" name="gmail_message_id" value={item.gmailMessageId} />
+      <input type="hidden" name={CANDIDATE_FIELD} value={reviewItemToken(item)} />
       <input type="hidden" name="booking_id" value={bookingId} />
       <input type="hidden" name="date" value={item.date} />
       <input type="hidden" name="start_time" value={item.startTime} />
@@ -599,9 +599,9 @@ function UpdateBody({
  * One review item on the "Sync from Email" screen (issues #64/#65/#91). Owns
  * the card shell every kind shares — the `bb-card` wrapper, the facility line,
  * the Dismiss form, and the resolve-on-success effects — and switches on
- * `item.kind` for the detail lines and the kind-specific confirm form. The
- * confirm action reference is picked by kind but bound through a single
- * `useActionState` call so the shared `busy` gating stays in one place.
+ * `item.kind` for the detail lines and the kind-specific confirm form. Every
+ * kind posts to the same two actions, which read the kind off the `candidate`
+ * token, so the shared `busy` gating stays in one place.
  */
 export function ReviewItemCard({
   item,
@@ -613,11 +613,11 @@ export function ReviewItemCard({
   onResolved: (gmailMessageId: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    CONFIRM_ACTION[item.kind],
+    settleImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    DISMISS_ACTION[item.kind],
+    dismissImportCandidate,
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
@@ -677,22 +677,14 @@ export function ReviewItemCard({
       )}
 
       <form id={dismissFormId} action={dismissAction} className="self-start">
-        {/* An import posts its candidate, slot included (issue #437). A
-            cancellation or update posts only the message: those mean "leave
+        {/* Every kind posts its candidate. Only an import's carries a slot
+            (issue #437): dismissing a cancellation or update means "leave
             this Booking alone", not "I don't want this reservation". */}
-        {item.kind === "import" ? (
-          <input
-            type="hidden"
-            name={CANDIDATE_FIELD}
-            value={emailImportToken(item)}
-          />
-        ) : (
-          <input
-            type="hidden"
-            name="gmail_message_id"
-            value={item.gmailMessageId}
-          />
-        )}
+        <input
+          type="hidden"
+          name={CANDIDATE_FIELD}
+          value={reviewItemToken(item)}
+        />
         {/* An import's Dismiss button lives in `ReviewActions`, beside the one
             it is the alternative to (issue #464), and reaches this form by
             `id`. The other two kinds keep a standalone button: a cancellation

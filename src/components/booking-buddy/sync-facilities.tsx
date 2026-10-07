@@ -20,11 +20,9 @@ import {
 import { BOOKING_FORMAT_LABEL } from "@/lib/booking-buddy/capacity";
 import type { ActionResult } from "@/lib/booking-buddy/actions/result";
 import type { Org } from "@/lib/booking-buddy/actions/orgs";
-import {
-  confirmFeedCancellation,
-  dismissFeedCandidate,
-  type CalendarFeedCancellationItem,
-  type CalendarFeedReviewItem,
+import type {
+  CalendarFeedCancellationItem,
+  CalendarFeedReviewItem,
 } from "@/lib/booking-buddy/actions/calendar-feed";
 import {
   dismissImportCandidate,
@@ -167,7 +165,8 @@ export function FeedCandidateCard({
  * in the feed on a previous sync and has vanished, or now carries a cancelled
  * status, and maps to a logged future Booking. Confirming removes that
  * Booking. Mirrors the email sync's `CancellationBody` — no Org picker, no
- * editable fields, just Remove / Dismiss.
+ * editable fields, just Remove / Keep booking, both posting the same
+ * `candidate` token.
  */
 export function FeedCancellationCard({
   item,
@@ -177,14 +176,21 @@ export function FeedCancellationCard({
   onResolved: (feedEventUid: string, outcome: ReviewOutcome) => void;
 }) {
   const [confirmState, confirmAction, confirmPending] = useActionState(
-    confirmFeedCancellation,
+    settleImportCandidate,
     EMPTY,
   );
   const [dismissState, dismissAction, dismissPending] = useActionState(
-    dismissFeedCandidate,
+    dismissImportCandidate,
     EMPTY,
   );
   const busy = confirmPending || dismissPending;
+
+  const candidate = encodeCandidate({
+    kind: "cancellation",
+    messageId: null,
+    feed: { orgId: item.orgId, uid: item.feedEventUid },
+    bookingId: item.bookingId,
+  });
 
   // "Keep booking" is not a skip: it leaves a Booking standing, which is the
   // opposite outcome to the Remove beside it, and the tally says so.
@@ -213,24 +219,20 @@ export function FeedCancellationCard({
       </div>
 
       <form action={confirmAction} className="self-start">
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="org_id" value={item.orgId} />
-        <input type="hidden" name="booking_id" value={item.bookingId} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <Button type="submit" variant="destructive" disabled={busy}>
           {confirmPending ? "Removing…" : "Remove booking"}
         </Button>
       </form>
       <ActionError state={confirmState} />
 
-      {/* Deliberately posts no slot, unlike the import card above: "Keep
-          booking" means keep this Booking, not "I don't want this
-          reservation", so it must never record a dismissal that suppresses a
-          future import of a slot the User is still playing (issue #437). */}
+      {/* A cancellation's token carries no slot, unlike the import card
+          above: "Keep booking" means keep this Booking, not "I don't want
+          this reservation", so it must never record a dismissal that
+          suppresses a future import of a slot the User is still playing
+          (issue #437). */}
       <form action={dismissAction} className="self-start">
-        <input type="hidden" name="feed_event_uid" value={item.feedEventUid} />
-        <input type="hidden" name="org_id" value={item.orgId} />
-        <input type="hidden" name="sequence" value={0} />
-        <input type="hidden" name="starts_at" value={item.startsAt} />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <Button type="submit" variant="ghost" size="sm" disabled={busy}>
           {dismissPending ? "Dismissing…" : "Keep booking"}
         </Button>

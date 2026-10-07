@@ -503,7 +503,7 @@ export async function createSlot(
  * Response, attached slot_booking, Slot Link, and Reminder send cascades with
  * it (the migration's `on delete cascade`). The Bookings it was attached to
  * are untouched, same "this app's records vs. the real reservation" split
- * `detachBookingFromSlot` and `deleteOwnedBooking` already draw.
+ * `detachBookingFromSlot` and `deleteBooking` already draw.
  *
  * The detail page this is called from stops existing the moment this
  * succeeds, so unlike every other delete in this file there's nowhere left to

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
-import { ORGS_PATH, BOOKINGS_PATH, BOOKING_BUDDY_ROOT } from "../routes.ts";
+import { ORGS_PATH, BOOKINGS_PATH } from "../routes.ts";
 import { type ActionResult } from "./result.ts";
 import {
   readCalendarFeedAllowedHosts,
@@ -23,18 +23,12 @@ import {
   type SeenFeedEvent,
 } from "../calendar-feed-review.ts";
 import { todayInZone, clockInZone } from "../datetime.ts";
-import {
-  pruneExpiredFeedEvents,
-  upsertFeedEventRow,
-  type FeedEventUpsert,
-} from "../feed-events.ts";
+import { pruneExpiredFeedEvents } from "../feed-events.ts";
 import {
   listDismissedReservations,
   pruneExpiredDismissedReservations,
-  recordDismissedSlotFromForm,
 } from "../dismissed-reservations.ts";
 import type { BookingIdentity } from "../import-candidate-shaping.ts";
-import { deleteOwnedBooking } from "./bookings.ts";
 import { trackFacilitySyncEvent } from "../analytics.ts";
 
 export type { ActionResult } from "./result.ts";
@@ -509,162 +503,4 @@ async function runFeedSync(onlyOrgId: string | null): Promise<SyncFacilityFeedsR
   );
 
   return { status: "ok", feeds };
-}
-
-/* -------------------------------------------------------------------------- */
-/* Confirm / dismiss a feed candidate                                          */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Dismissing a feed candidate never touches a Booking (CONTEXT.md's Import
- * Candidate entry) — it writes the `org_feed_events` row `status = 'dismissed'`
- * so a later sync skips this event even though it's still in the feed (issue
- * #294 acceptance criteria).
- *
- * The "From facility feeds" section reuses this for the "Keep booking" control
- * on a cancellation candidate (issue #296): the User has seen that the
- * reservation left the feed and wants to keep the record anyway, so the same
- * `dismissed` row is what stops the vanished event being re-flagged on every
- * future sync. That does clear the Booking link (`booking_id` -> null), which
- * is the intended effect — the feed is no longer tracking this reservation.
- *
- * An *import* candidate's Dismiss also records the reservation's slot
- * (`dismissed_reservations`, issue #437) so the email side honours it too —
- * the `org_feed_events` row above is keyed on a VEVENT UID the email review
- * knows nothing about, and a dismissal leaves no Booking behind for it to
- * recognise either. A cancellation candidate's "Keep booking" posts no slot
- * and records none: it means "keep this Booking", not "I don't want this
- * reservation", and suppressing a future import of a slot the User is still
- * playing would be the opposite of what they asked for.
- */
-export async function dismissFeedCandidate(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const feedEventUid = String(formData.get("feed_event_uid") ?? "").trim();
-  const orgId = String(formData.get("org_id") ?? "").trim();
-  if (!feedEventUid || !orgId) {
-    return { error: "Couldn't dismiss that. Try again." };
-  }
-
-  const sequenceRaw = Number(formData.get("sequence"));
-  const sequence = Number.isInteger(sequenceRaw) && sequenceRaw >= 0 ? sequenceRaw : 0;
-  const startsAtRaw = String(formData.get("starts_at") ?? "").trim();
-  const startsAt = startsAtRaw && !Number.isNaN(Date.parse(startsAtRaw))
-    ? new Date(startsAtRaw).toISOString()
-    : new Date(0).toISOString();
-
-  const supabase = await createClient();
-  const error = await recordFeedEvent(supabase, session.userId, {
-    orgId,
-    uid: feedEventUid,
-    sequence,
-    startsAt,
-    status: "dismissed",
-    bookingId: null,
-  });
-
-  if (error) {
-    return { error: "Couldn't dismiss that. Try again." };
-  }
-
-  await recordDismissedSlotFromForm(supabase, session.userId, formData);
-
-  return { ok: true };
-}
-
-/**
- * Confirming a feed-diff cancellation candidate (issue #296) removes the
- * Booking it maps to. `booking_id` and `feed_event_uid` come from the review
- * screen's own hidden fields — the same posture as
- * `confirmCancellationCandidate` (email) — but this action does not trust
- * them: it re-reads the `org_feed_events` row and only proceeds if that row is
- * `imported` and still linked to the same Booking the form names. That link
- * is what `reviewCalendarFeed` resolved server-side.
- *
- * After the delete, the seen-event row is marked `dismissed` with its
- * `booking_id` cleared, so a later sync neither re-flags the (still-present,
- * explicitly-cancelled) event nor offers the vanished one again.
- */
-export async function confirmFeedCancellation(
-  _prev: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await verifySession();
-
-  const feedEventUid = String(formData.get("feed_event_uid") ?? "").trim();
-  const orgId = String(formData.get("org_id") ?? "").trim();
-  const bookingId = String(formData.get("booking_id") ?? "").trim();
-  if (!feedEventUid || !orgId || !bookingId) {
-    return { error: "Couldn't remove that booking. Try again." };
-  }
-
-  const supabase = await createClient();
-
-  // Re-verify the link server-side — the review already resolved it, but the
-  // form field must not be trusted to still hold.
-  const { data: seenRow } = await supabase
-    .from("org_feed_events")
-    .select("status, booking_id")
-    .eq("owner_id", session.userId)
-    .eq("org_id", orgId)
-    .eq("uid", feedEventUid)
-    .maybeSingle();
-
-  if (!seenRow || seenRow.status !== "imported" || seenRow.booking_id !== bookingId) {
-    return { error: "That booking has already changed. Sync again." };
-  }
-
-  const deleteResult = await deleteOwnedBooking(bookingId);
-  if (!deleteResult.ok) {
-    return deleteResult;
-  }
-
-  // `on delete set null` has already nulled `booking_id`; mark it dismissed so
-  // the intent ("this reservation is gone") sticks across future syncs.
-  const { error: markError } = await supabase
-    .from("org_feed_events")
-    .update({ status: "dismissed", booking_id: null, last_seen_at: new Date().toISOString() })
-    .eq("owner_id", session.userId)
-    .eq("org_id", orgId)
-    .eq("uid", feedEventUid);
-
-  if (markError) {
-    // Not fatal — the Booking is gone, which is what the User asked for. A
-    // stale `imported`/null row is already excluded from the cancellation diff
-    // (it needs a non-null `booking_id`), so the worst case is the event
-    // re-surfacing once as an import candidate the User can dismiss.
-    console.error("booking-buddy: marking a confirmed feed cancellation dismissed failed", markError);
-  }
-
-  after(() => trackFacilitySyncEvent("bb_facility_sync_cancellation"));
-
-  revalidatePath(BOOKINGS_PATH);
-  revalidatePath(BOOKING_BUDDY_ROOT);
-  return { ok: true };
-}
-
-/**
- * Upsert one `org_feed_events` row and revalidate the Bookings surface.
- * Returns an error string or null. The row shape and conflict key live in the
- * shared `upsertFeedEventRow` (`feed-events.ts`), reused by the merged
- * email+feed confirm (issue #348).
- */
-async function recordFeedEvent(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  ownerId: string,
-  event: FeedEventUpsert,
-): Promise<string | null> {
-  const { error } = await upsertFeedEventRow(supabase, ownerId, event);
-
-  if (error) {
-    console.error("booking-buddy: recording an org_feed_events row failed", error);
-    return "record failed";
-  }
-
-  revalidatePath(BOOKINGS_PATH);
-  revalidatePath(BOOKING_BUDDY_ROOT);
-  return null;
 }

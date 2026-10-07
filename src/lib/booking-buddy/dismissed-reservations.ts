@@ -36,8 +36,8 @@
  *
  * Takes the Supabase client as a parameter and imports nothing from Next.js,
  * for the same reason `feed-events.ts` does: a `"use server"` module can't
- * export a non-action helper, and all three dismiss actions — two in
- * `actions/email-sync.ts`, one in `actions/calendar-feed.ts` — need these.
+ * export a non-action helper, and both settling an Import Candidate
+ * (`import-candidate-settlement.ts`) and the syncs need these.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -50,20 +50,13 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^\d{2}:\d{2}$/;
 
 /**
- * Read the dismissed slot off a dismiss form's `FormData`
- * (`DismissedSlotFields`), or `null` when it posted none.
+ * Read a slot off a form's `FormData` (`DismissedSlotFields`), or `null` when
+ * it posted none or a malformed one. "Offer this again" posts the suppressed
+ * reservation this way (issue #444); a dismissal's own slot travels in the
+ * Import Candidate's `candidate` token instead (`import-candidate-token.ts`).
  *
- * "No slot posted" is an ordinary case, not an error, so this never throws and
- * never reports: only an *import* candidate's Dismiss carries a slot. A
- * cancellation candidate's "Keep booking" posts to the same feed action and
- * deliberately does not — it means "keep this Booking", not "I don't want this
- * reservation" — and neither does an email import whose facility matched no
- * Org, since there is no Org to key the slot on.
- *
- * The values are the candidate's own, posted back as hidden inputs the same
- * way every confirm form on this screen posts the fields it re-validates. A
- * tampered post can only suppress one of the caller's own future candidates,
- * which is strictly less than what the confirm forms already accept.
+ * The values are the reservation's own, posted back as hidden inputs. A
+ * tampered post can only touch the caller's own dismissals.
  */
 export function readDismissedSlotPost(formData: FormData): BookingIdentity | null {
   const orgId = String(formData.get("org_id") ?? "").trim();
@@ -80,32 +73,14 @@ export function readDismissedSlotPost(formData: FormData): BookingIdentity | nul
 }
 
 /**
- * Record the dismissed slot a dismiss form carried, if it carried one — the
- * whole of what each of the three dismiss actions does about #437.
+ * Record one dismissed slot — what dismissing an import writes
+ * (`import-candidate-settlement.ts`), the whole of what a dismissal does about
+ * #437.
  *
  * Failures are logged, never surfaced: the dismissal of the candidate's *own*
  * source has already happened, which is what the User asked for, and a lost
  * row here degrades to exactly the behaviour before #437 — the other source
  * offers the reservation once more and one extra Dismiss settles it.
- */
-export async function recordDismissedSlotFromForm(
-  supabase: SupabaseClient,
-  ownerId: string,
-  formData: FormData,
-): Promise<void> {
-  const slot = readDismissedSlotPost(formData);
-  if (!slot) {
-    return;
-  }
-
-  await recordDismissedSlot(supabase, ownerId, slot);
-}
-
-/**
- * Record one dismissed slot — what dismissing an Import Candidate writes
- * (`import-candidate-settlement.ts`), and what a dismiss form's own slot
- * fields write. Failures are logged, never surfaced, for the reason
- * `recordDismissedSlotFromForm` gives.
  */
 export async function recordDismissedSlot(
   supabase: SupabaseClient,

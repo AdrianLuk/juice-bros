@@ -95,7 +95,7 @@ export type CalendarFeedReviewItem = {
 /**
  * A previously-seen, Booking-linked feed event that has vanished from the feed
  * or now carries a cancelled status — a cancellation candidate the review
- * screen renders. Confirming it removes the linked Booking (`confirmFeedCancellation`).
+ * screen renders. Confirming it removes the linked Booking (`import-candidate-settlement.ts`).
  * Matched by the `booking_id` on the seen-event row, so it works for a Booking
  * imported from email or entered by hand, not only feed-imported ones.
  */

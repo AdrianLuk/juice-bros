@@ -8,9 +8,17 @@ import { verifySession } from "../dal.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH } from "../routes.ts";
 import type { ActionResult } from "./result.ts";
 import { authorizeEmailSyncForCaller } from "../email-sync-entitlement-for-caller.ts";
-import { parseNewBooking } from "../bookings.ts";
-import { decodeCandidate, type Candidate } from "../import-candidate-token.ts";
-import { dismissCandidate, settleCandidate } from "../import-candidate-settlement.ts";
+import { parseNewBooking, parseUpdateApplication } from "../bookings.ts";
+import {
+  decodeCandidate,
+  type Candidate,
+  type ImportCandidate,
+} from "../import-candidate-token.ts";
+import {
+  dismissCandidate,
+  settleCandidate,
+  type SettleRequest,
+} from "../import-candidate-settlement.ts";
 import type { MailboxProvider } from "../mailbox-provider.ts";
 import {
   trackEmailSyncEvent,
@@ -22,10 +30,11 @@ export type { ActionResult } from "./result.ts";
 
 /**
  * The two Server Actions every Import Candidate card posts to (issue #606):
- * confirm and dismiss, for an email, a Calendar Feed event, or both merged
- * into one card. The card posts its `candidate` token
- * (`import-candidate-token.ts`) and, to confirm, the Booking fields
- * `parseNewBooking` re-validates, the same names `CreateBookingForm` posts.
+ * confirm and dismiss, for an import, a cancellation or an update, from an
+ * email, a Calendar Feed event, or both merged into one card. The card posts
+ * its `candidate` token (`import-candidate-token.ts`) and, to confirm an
+ * import or an update, the Booking fields `parseNewBooking` or
+ * `parseUpdateApplication` re-validates.
  *
  * Everything about settling is `import-candidate-settlement.ts`. What stays
  * here is what only a Server Action can do: the session, the email sync
@@ -48,7 +57,7 @@ async function providerFor(
 }
 
 /** The import event for where the candidate came from. Only a Booking this confirm created counts. */
-function trackImport(candidate: Candidate, provider: MailboxProvider | null) {
+function trackImport(candidate: ImportCandidate, provider: MailboxProvider | null) {
   if (candidate.messageId !== null && candidate.feed !== null) {
     return trackFacilitySyncEvent("bb_sync_merged_import");
   }
@@ -58,12 +67,31 @@ function trackImport(candidate: Candidate, provider: MailboxProvider | null) {
   return trackFacilitySyncEvent("bb_facility_sync_import");
 }
 
+/** The candidate with the Booking fields its kind re-validates from the form, or the reason it can't be confirmed. */
+function settleRequestFor(
+  candidate: Candidate,
+  formData: FormData,
+): SettleRequest | { error: string } {
+  switch (candidate.kind) {
+    case "import": {
+      const booking = parseNewBooking(formData);
+      return "error" in booking ? booking : { candidate, booking };
+    }
+    case "update": {
+      const update = parseUpdateApplication(formData);
+      return "error" in update ? update : { candidate, update };
+    }
+    case "cancellation":
+      return { candidate };
+  }
+}
+
 function revalidateBookings() {
   revalidatePath(BOOKINGS_PATH);
   revalidatePath(BOOKING_BUDDY_ROOT);
 }
 
-/** Confirm an Import Candidate: "Add to my bookings". */
+/** Confirm an Import Candidate: "Add to my bookings", "Remove booking" or "Apply update". */
 export async function settleImportCandidate(
   _prev: ActionResult,
   formData: FormData,
@@ -78,30 +106,32 @@ export async function settleImportCandidate(
   const gate = await providerFor(candidate);
   if ("error" in gate) return gate;
 
-  const parsed = parseNewBooking(formData);
-  if ("error" in parsed) {
-    return parsed;
+  const request = settleRequestFor(candidate, formData);
+  if ("error" in request) {
+    return request;
   }
 
   const supabase = await createClient();
   const outcome = await settleCandidate(supabase, {
     ownerId: session.userId,
-    candidate,
-    booking: parsed,
     provider: gate.provider,
+    ...request,
   });
 
-  if (outcome.status === "error") {
+  if (outcome.status === "error" || outcome.status === "not_found") {
     return { error: outcome.message };
   }
 
-  if (outcome.status === "settled") {
+  if (outcome.status === "settled" && candidate.kind === "import") {
     // `bb_first_booking` (#179) counts the Booking even when its Players
     // failed below: it has committed.
     after(() => trackFirstBooking(session.userId));
     if (!outcome.playersError) {
       after(() => trackImport(candidate, gate.provider));
     }
+  }
+  if (candidate.kind === "cancellation" && candidate.feed !== null) {
+    after(() => trackFacilitySyncEvent("bb_facility_sync_cancellation"));
   }
 
   revalidateBookings();
@@ -115,7 +145,7 @@ export async function settleImportCandidate(
   return { ok: true };
 }
 
-/** Dismiss an Import Candidate. Never touches a Booking. */
+/** Dismiss an Import Candidate, or "Keep booking" on a cancellation. Never touches a Booking. */
 export async function dismissImportCandidate(
   _prev: ActionResult,
   formData: FormData,
