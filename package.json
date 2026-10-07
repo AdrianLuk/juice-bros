@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "node scripts/check-e2e-dates.mts && node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.test.ts\"",
     "test:rls": "supabase test db",
+    "test:db": "node --test --test-concurrency=1 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.db-test.ts\"",
     "snapshot:videos": "node scripts/snapshot-videos.mts",
     "optimize:images": "node scripts/optimize-images.mts",
     "seed:users": "node scripts/seed-booking-buddy-users.mts",
