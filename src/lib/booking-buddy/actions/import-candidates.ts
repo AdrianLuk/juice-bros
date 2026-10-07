@@ -106,7 +106,9 @@ export async function confirmImportCandidate(
   }
 
   const gate = await providerFor(candidate);
-  if ("error" in gate) return gate;
+  if ("error" in gate) {
+    return gate;
+  }
 
   const request = confirmRequestFor(candidate, formData);
   if ("error" in request) {
@@ -160,7 +162,9 @@ export async function dismissImportCandidate(
   }
 
   const gate = await providerFor(candidate);
-  if ("error" in gate) return gate;
+  if ("error" in gate) {
+    return gate;
+  }
 
   const supabase = await createClient();
   const outcome = await dismissCandidate(supabase, {
