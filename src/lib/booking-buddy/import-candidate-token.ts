@@ -9,9 +9,11 @@
  * Now the card encodes the candidate once and the Server Action decodes it
  * once, and a post that doesn't decode is refused rather than patched up.
  *
- * Source identities only. The Booking fields the User sees on the card (the
- * Facility select, name, date, times, court, notes, Players) stay ordinary
- * named inputs that `parseNewBooking` re-validates, exactly as before.
+ * Source identities only, plus the Booking a cancellation was matched to. The
+ * Booking fields the User sees on the card (the Facility select, name, date,
+ * times, court, notes, Players, and which Booking an update applies to) stay
+ * ordinary named inputs that `parseNewBooking` or `parseUpdateApplication`
+ * re-validates, exactly as before.
  *
  * Unsigned on purpose: every write it leads to is RLS-scoped to the caller's
  * own rows, so a tampered token can only settle the caller's own candidates,
@@ -26,12 +28,16 @@ import type { BookingIdentity } from "./import-candidate-shaping.ts";
 /** The form field the token travels in. */
 export const CANDIDATE_FIELD = "candidate";
 
-/** One VEVENT as its `org_feed_events` row is keyed and stamped. */
-export type FeedEventIdentity = {
+/** One VEVENT's `org_feed_events` key: enough to find a row already on file. */
+export type FeedEventKey = {
   /** The Org whose feed listed the event, not whatever a card's Facility select shows. */
   orgId: string;
   /** The VEVENT UID, verbatim. */
   uid: string;
+};
+
+/** One VEVENT as its `org_feed_events` row is keyed and stamped. */
+export type FeedEventIdentity = FeedEventKey & {
   /** `SEQUENCE`, a whole number. */
   sequence: number;
   /** Start instant, ISO 8601. */
@@ -56,8 +62,41 @@ export type ImportCandidate = {
   slot: BookingIdentity | null;
 };
 
-/** Every candidate kind a card can post. Cancellations and updates join in #609. */
-export type Candidate = ImportCandidate;
+/**
+ * A cancellation from the mailbox (a cancellation email) or a Calendar Feed
+ * (an event that vanished or now says cancelled). Exactly the source it came
+ * from is set; the two are never merged into one card.
+ */
+export type CancellationCandidate = {
+  kind: "cancellation";
+  /** The cancellation email's provider message id. Null for a feed cancellation. */
+  messageId: string | null;
+  /**
+   * The feed event's row, already on file: a feed cancellation is a row the
+   * last sync left `imported`, so it is found by key, not stamped afresh.
+   * Null for an email cancellation.
+   */
+  feed: FeedEventKey | null;
+  /**
+   * The Booking the review matched it to, which confirming removes. Null for
+   * an email cancellation that matched none, which can only be dismissed.
+   */
+  bookingId: string | null;
+};
+
+/**
+ * A Reservation Update Notice from the mailbox. Which Booking it applies to is
+ * not part of the token: on a suggested match the User picks it, so it travels
+ * as the card's `booking_id` field with the rest of what
+ * `parseUpdateApplication` re-validates.
+ */
+export type UpdateCandidate = {
+  kind: "update";
+  messageId: string;
+};
+
+/** Every candidate kind a card can post. */
+export type Candidate = ImportCandidate | CancellationCandidate | UpdateCandidate;
 
 export function encodeCandidate(candidate: Candidate): string {
   return JSON.stringify(candidate);
@@ -78,7 +117,15 @@ function nonBlankString(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 }
 
-function readFeed(value: unknown): FeedEventIdentity | null | undefined {
+/** A nullable id: `null` when the token says null, `undefined` when it holds anything but a non-blank string. */
+function readNullableId(value: unknown): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return nonBlankString(value) ?? undefined;
+}
+
+function readFeedKey(value: unknown): FeedEventKey | null | undefined {
   if (value === null) {
     return null;
   }
@@ -88,12 +135,19 @@ function readFeed(value: unknown): FeedEventIdentity | null | undefined {
 
   const orgId = nonBlankString(value.orgId);
   const uid = nonBlankString(value.uid);
+  return orgId && uid ? { orgId, uid } : undefined;
+}
+
+function readFeed(value: unknown): FeedEventIdentity | null | undefined {
+  const key = readFeedKey(value);
+  if (!key || !isObject(value)) {
+    return key === null ? null : undefined;
+  }
+
   const { sequence } = value;
   const startsAt = typeof value.startsAt === "string" ? Date.parse(value.startsAt) : NaN;
 
   if (
-    !orgId ||
-    !uid ||
     typeof sequence !== "number" ||
     !Number.isInteger(sequence) ||
     sequence < 0 ||
@@ -102,7 +156,7 @@ function readFeed(value: unknown): FeedEventIdentity | null | undefined {
     return undefined;
   }
 
-  return { orgId, uid, sequence, startsAt: new Date(startsAt).toISOString() };
+  return { ...key, sequence, startsAt: new Date(startsAt).toISOString() };
 }
 
 function readSlot(value: unknown): BookingIdentity | null | undefined {
@@ -153,22 +207,35 @@ export function decodeCandidate(formData: FormData): Candidate | null {
     return null;
   }
 
-  if (!isObject(parsed) || parsed.kind !== "import") {
+  if (!isObject(parsed)) {
     return null;
   }
 
-  const messageId = parsed.messageId === null ? null : nonBlankString(parsed.messageId);
-  const feed = readFeed(parsed.feed);
-  const slot = readSlot(parsed.slot);
-
-  if (
-    (messageId === null && parsed.messageId !== null) ||
-    feed === undefined ||
-    slot === undefined ||
-    (messageId === null && feed === null)
-  ) {
+  const messageId = readNullableId(parsed.messageId);
+  if (messageId === undefined) {
     return null;
   }
 
-  return { kind: "import", messageId, feed, slot };
+  switch (parsed.kind) {
+    case "import": {
+      const feed = readFeed(parsed.feed);
+      const slot = readSlot(parsed.slot);
+      if (feed === undefined || slot === undefined || (messageId === null && feed === null)) {
+        return null;
+      }
+      return { kind: "import", messageId, feed, slot };
+    }
+    case "cancellation": {
+      const feed = readFeedKey(parsed.feed);
+      const bookingId = readNullableId(parsed.bookingId);
+      if (feed === undefined || bookingId === undefined || (messageId === null && feed === null)) {
+        return null;
+      }
+      return { kind: "cancellation", messageId, feed, bookingId };
+    }
+    case "update":
+      return messageId === null ? null : { kind: "update", messageId };
+    default:
+      return null;
+  }
 }
