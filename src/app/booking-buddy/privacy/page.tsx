@@ -5,10 +5,8 @@ import { BbPageHeading } from "@/components/booking-buddy/bb/page-heading";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { getOptionalSession } from "@/lib/booking-buddy/dal";
-import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
-import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
-import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
+import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
 import { BOOKING_BUDDY_ROOT } from "@/lib/booking-buddy/routes";
 export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
@@ -37,24 +35,20 @@ function Section({
  * sign-in page links here before there's a session. `getOptionalSession`
  * rather than `verifySession` so it renders instead of redirecting when
  * signed out; the Gmail section below simply stays hidden in that case,
- * consistent with `isGmailConnectAllowed`'s own fail-closed default.
+ * consistent with the entitlement's own fail-closed default.
  */
 export default async function BookingBuddyPrivacyPage() {
   const session = await getOptionalSession();
-  const profile = session ? await getOwnProfile() : null;
-  const gmailEligible =
-    profile && session
-      ? isGmailConnectAllowed(
-          profile.username,
-          session.email,
-          readEmailSyncAllowlist(),
-        )
-      : false;
-  // The section renders for a User who could connect Gmail (allowlist) or who
-  // already has any Mailbox Link — an Outlook link has no allowlist (spec
-  // #280), so its owner would otherwise never see this disclosure.
   const mailboxLink = session ? await getMailboxLink() : null;
-  const showEmailSync = gmailEligible || mailboxLink !== null;
+  const entitlement = session
+    ? await getEmailSyncEntitlement({ link: mailboxLink })
+    : null;
+  // The section renders for a User who may sync email (the entitlement:
+  // allowlisted for Gmail, or holding an Outlook link) or who already has any
+  // Mailbox Link. The disclosure is about what's stored, not what's allowed, so
+  // a Gmail link holder who has dropped off the allowlist still sees it: their
+  // refresh token stays on file until they disconnect.
+  const showEmailSync = !!entitlement?.canSync || mailboxLink !== null;
   const outlookConnected = mailboxLink?.provider === "microsoft";
   return (
     <div className="flex w-full flex-1 flex-col">

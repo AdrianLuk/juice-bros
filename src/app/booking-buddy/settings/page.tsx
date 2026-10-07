@@ -14,11 +14,8 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getNotificationPreferences } from "@/lib/booking-buddy/actions/reminders";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
-import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
-import {
-  readEmailSyncAllowlist,
-  readMicrosoftOAuthClientId,
-} from "@/lib/booking-buddy/env";
+import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
+import { readMicrosoftOAuthClientId } from "@/lib/booking-buddy/env";
 export const metadata: Metadata = pageMetadata({
   title: "Settings",
   description: "Change the username friends use to find you on Booking Buddy.",
@@ -31,7 +28,7 @@ export default async function SettingsPage({
 }) {
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
-  const session = await verifySession();
+  await verifySession();
   const { error, mailbox_connected: justConnected } = await searchParams;
   const [profile, notificationPreferences] = await Promise.all([
     getOwnProfile(),
@@ -42,16 +39,14 @@ export default async function SettingsPage({
   // Google's Testing-mode cap) and the Outlook option self-gates on whether the
   // Microsoft OAuth client is configured, the same shape the optional Google
   // sign-in button uses. `connectMailbox` and the callback re-check both
-  // authoritatively. The allowlist check reuses the profile/session already
-  // fetched above rather than calling isGmailConnectAllowedForCaller, which
-  // would fetch them a second time.
-  const gmailConnectAllowed = isGmailConnectAllowed(
-    profile.username,
-    session.email,
-    readEmailSyncAllowlist(),
-  );
+  // authoritatively. The entitlement reuses the profile Username fetched above
+  // rather than reading it a second time.
   const outlookConnectConfigured = readMicrosoftOAuthClientId() !== undefined;
   const mailboxLink = await getMailboxLink();
+  const { canConnect } = await getEmailSyncEntitlement({
+    username: profile.username,
+    link: mailboxLink,
+  });
   return (
     <div className="flex w-full flex-1 flex-col">
       <section className="w-full px-2.5 pt-6 pb-16 sm:px-6 sm:pt-16 lg:px-8">
@@ -102,7 +97,7 @@ export default async function SettingsPage({
             <div className="bb-card mt-4 p-4 sm:p-6">
               <MailboxSyncSection
                 mailboxLink={mailboxLink}
-                gmailConnectAllowed={gmailConnectAllowed}
+                gmailConnectAllowed={canConnect.google}
                 outlookConnectConfigured={outlookConnectConfigured}
                 error={error}
                 justConnected={justConnected === "1"}

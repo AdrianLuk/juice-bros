@@ -11,10 +11,8 @@ import { createClient } from "../supabase/server.ts";
 import { verifySession } from "../dal.ts";
 import { BOOKING_BUDDY_ROOT, BOOKINGS_PATH, SETTINGS_PATH } from "../routes.ts";
 import { readFailed, type ActionResult } from "./result.ts";
-import { getOwnProfile } from "./profile.ts";
-import { isGmailConnectAllowed } from "../email-sync-allowlist.ts";
+import { getEmailSyncEntitlement } from "../email-sync-entitlement-for-caller.ts";
 import {
-  readEmailSyncAllowlist,
   readMicrosoftOAuthClientId,
   requireMailboxLinkEncryptionKey,
 } from "../env.ts";
@@ -73,22 +71,6 @@ function mailboxCallbackUrl(): Promise<string> {
   return absoluteAppUrl("/booking-buddy/settings/mailbox-callback");
 }
 
-/**
- * Whether the signed-in User is allowed to see/use email sync at all
- * (ADR-0009's addendum) — the optimistic half. `connectMailbox` below re-checks
- * this authoritatively.
- *
- * Fetches the profile itself rather than taking a `username` param: the one
- * caller that already has a profile in hand (the Settings page) calls
- * `isGmailConnectAllowed` directly instead of going through here, so this
- * stays the "I don't already have one" convenience path, not a second query
- * on top of one a caller already ran.
- */
-export async function isGmailConnectAllowedForCaller(): Promise<boolean> {
-  const [profile, session] = await Promise.all([getOwnProfile(), verifySession()]);
-  return isGmailConnectAllowed(profile.username, session.email, readEmailSyncAllowlist());
-}
-
 /** The signed-in User's own Mailbox Link, or `null` if no mailbox is connected. */
 export async function getMailboxLink(): Promise<MailboxLink> {
   const session = await verifySession();
@@ -117,48 +99,21 @@ export async function getMailboxLink(): Promise<MailboxLink> {
 }
 
 /**
- * The one provider-authorization rule, shared by `syncFromEmail` and the
- * candidate actions so it can't drift between "run a sync" and "act on its
- * results" (spec #280): a Gmail link still needs the caller on the allowlist
- * (ADR-0009's addendum — a User removed from it after connecting must not
- * keep syncing); a Microsoft link needs nothing more, its consumer identity
- * platform has no equivalent of Google's capped Testing mode.
- */
-async function providerSyncAllowed(provider: MailboxProvider): Promise<boolean> {
-  return provider === "google" ? isGmailConnectAllowedForCaller() : true;
-}
-
-/**
  * Whether the signed-in User may act on a review candidate, and under which
- * provider to record the `processed_messages` row.
- *
- * Reads the Mailbox Link's provider when there is one. When there isn't — the
- * User disconnected their mailbox while a review screen was still open — a
- * Gmail-allowlisted caller is still allowed (confirming just re-validates a
- * Booking form; dismissing just records an outcome), recorded under `google`,
- * exactly the pre-#284 behaviour. A non-allowlisted caller with no link has
- * nothing to act on.
+ * provider to record the `processed_messages` row — the entitlement module's
+ * answer (`email-sync-entitlement.ts`), shaped for the candidate actions. A
+ * failed read of the Mailbox Link refuses rather than throws: these actions
+ * return an `ActionResult`, not an error boundary.
  */
-async function authorizeEmailSyncForCaller(
-  userId: string,
-): Promise<{ ok: true; provider: MailboxProvider } | { ok: false }> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("mailbox_links")
-    .select("provider")
-    .eq("owner_id", userId)
-    .maybeSingle();
-
-  if (error) {
+async function authorizeEmailSyncForCaller(): Promise<
+  { ok: true; provider: MailboxProvider } | { ok: false }
+> {
+  try {
+    const entitlement = await getEmailSyncEntitlement();
+    return entitlement.canSync ? { ok: true, provider: entitlement.provider } : { ok: false };
+  } catch {
     return { ok: false };
   }
-
-  const provider: MailboxProvider = data?.provider ?? "google";
-  if (!(await providerSyncAllowed(provider))) {
-    return { ok: false };
-  }
-
-  return { ok: true, provider };
 }
 
 /**
@@ -175,12 +130,10 @@ async function authorizeEmailSyncForCaller(
 export async function connectMailbox(provider: MailboxProvider): Promise<void> {
   await verifySession();
 
-  if (provider === "google") {
-    const allowed = await isGmailConnectAllowedForCaller();
-    if (!allowed) {
-      redirect(`${SETTINGS_PATH}?error=email_sync_not_allowed`);
-    }
-  } else if (!readMicrosoftOAuthClientId()) {
+  if (!(await getEmailSyncEntitlement()).canConnect[provider]) {
+    redirect(`${SETTINGS_PATH}?error=email_sync_not_allowed`);
+  }
+  if (provider === "microsoft" && !readMicrosoftOAuthClientId()) {
     redirect(`${SETTINGS_PATH}?error=mailbox_connect_failed`);
   }
 
@@ -283,11 +236,10 @@ export async function syncFromEmail(): Promise<SyncFromEmailResult> {
     return { status: "reconnect_required" };
   }
 
-  // Authoritative re-check (ADR-0009's addendum) — the Bookings page not
-  // rendering this section for a disallowed User is the optimistic half; a
-  // User removed from the allowlist after connecting Gmail must not keep
-  // syncing off a stale page. `providerSyncAllowed` is Gmail-only by design.
-  if (!(await providerSyncAllowed(link.provider))) {
+  // Authoritative re-check (ADR-0009's addendum) — the Bookings page asks the
+  // same entitlement; a User removed from the allowlist after connecting
+  // Gmail must not keep syncing off a stale page. Gmail-only by design.
+  if (!(await getEmailSyncEntitlement({ link })).canSync) {
     return { status: "error", message: "Your account isn't approved for email sync." };
   }
 
@@ -459,7 +411,7 @@ export async function confirmImportCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const gate = await authorizeEmailSyncForCaller(session.userId);
+  const gate = await authorizeEmailSyncForCaller();
   if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -601,7 +553,7 @@ export async function confirmMergedCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const gate = await authorizeEmailSyncForCaller(session.userId);
+  const gate = await authorizeEmailSyncForCaller();
   if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -699,7 +651,7 @@ export async function dismissMergedCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const gate = await authorizeEmailSyncForCaller(session.userId);
+  const gate = await authorizeEmailSyncForCaller();
   if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -800,7 +752,7 @@ export async function confirmCancellationCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const gate = await authorizeEmailSyncForCaller(session.userId);
+  const gate = await authorizeEmailSyncForCaller();
   if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -883,7 +835,7 @@ export async function confirmUpdateCandidate(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const gate = await authorizeEmailSyncForCaller(session.userId);
+  const gate = await authorizeEmailSyncForCaller();
   if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }
@@ -950,7 +902,7 @@ export async function dismissReviewItem(
 ): Promise<ActionResult> {
   const session = await verifySession();
 
-  const gate = await authorizeEmailSyncForCaller(session.userId);
+  const gate = await authorizeEmailSyncForCaller();
   if (!gate.ok) {
     return { error: "Your account isn't approved for email sync." };
   }

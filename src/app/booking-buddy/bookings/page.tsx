@@ -19,9 +19,7 @@ import { verifySession } from "@/lib/booking-buddy/dal";
 import { getBookingsPageData } from "@/lib/booking-buddy/actions/bookings";
 import { notEndedBefore } from "@/lib/booking-buddy/calendar";
 import { getMailboxLink } from "@/lib/booking-buddy/actions/email-sync";
-import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
-import { isGmailConnectAllowed } from "@/lib/booking-buddy/email-sync-allowlist";
-import { readEmailSyncAllowlist } from "@/lib/booking-buddy/env";
+import { getEmailSyncEntitlement } from "@/lib/booking-buddy/email-sync-entitlement-for-caller";
 import { ORGS_PATH } from "@/lib/booking-buddy/routes";
 export const metadata: Metadata = pageMetadata({
   title: "Your bookings",
@@ -38,10 +36,10 @@ export default async function BookingsPage({
   const { sync } = await searchParams;
   // Authoritative check. The proxy already bounced signed-out visitors, but
   // that check is optimistic and must not be relied on alone.
-  const session = await verifySession();
-  const [{ orgs, bookings }, profile] = await Promise.all([
+  await verifySession();
+  const [{ orgs, bookings }, mailboxLink] = await Promise.all([
     getBookingsPageData(),
-    getOwnProfile(),
+    getMailboxLink(),
   ]);
   // `bookings` comes back soonest-first (see `getBookingsPageData`), so an
   // in-progress booking (started, not yet ended) still counts as "Booked" —
@@ -54,17 +52,12 @@ export default async function BookingsPage({
     .filter((booking) => !upcomingBookings.includes(booking))
     .reverse();
   // Optimistic half of ADR-0009's addendum — syncFromEmail and the confirm/
-  // dismiss actions re-check authoritatively. The Gmail allowlist gates
-  // *connecting* Gmail; an Outlook link has no allowlist (spec #280), so email
-  // sync is available to a Gmail-allowlisted User (with or without a link yet,
-  // to point them at Settings) or to anyone who already has a Mailbox Link.
-  const gmailConnectAllowed = isGmailConnectAllowed(
-    profile.username,
-    session.email,
-    readEmailSyncAllowlist(),
-  );
-  const mailboxLink = await getMailboxLink();
-  const canSyncFromEmail = gmailConnectAllowed || mailboxLink !== null;
+  // dismiss actions re-check authoritatively, asking the same entitlement
+  // (issue #607), so a Gmail link holder who has dropped off the allowlist
+  // sees no email section rather than one whose actions refuse them.
+  const { canSync: canSyncFromEmail } = await getEmailSyncEntitlement({
+    link: mailboxLink,
+  });
   // A Calendar Feed isn't allowlist-gated (ADR-0019) — feed sync is available
   // whenever the User has at least one feed-configured Facility. The unified
   // "Sync bookings" section (issue #336) shows if either source is available.
