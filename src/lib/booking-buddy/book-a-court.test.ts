@@ -5,6 +5,7 @@ import {
   bookACourtHeading,
   bookingsOpenedLabel,
   slotsNeedingACourt,
+  withoutCourtMatches,
   type CourtlessSlot,
 } from "./book-a-court.ts";
 
@@ -135,4 +136,12 @@ test("the notice says how long bookings have been open", () => {
 test("the notice names the game's day and start time in the game's own zone", () => {
   const notice = slotsNeedingACourt([slot()], new Date("2026-10-18T16:00:00Z"))[0];
   assert.equal(bookACourtHeading(notice), "Book a court for Tue, Oct 20 at 8:00 PM");
+});
+
+test("a game with a court to attach drops its Book a court notice; the others keep theirs", () => {
+  const notes = [{ slotId: "tue" }, { slotId: "thu" }];
+  assert.deepEqual(withoutCourtMatches(notes, [{ slotId: "tue" }, { slotId: "elsewhere" }]), [
+    { slotId: "thu" },
+  ]);
+  assert.deepEqual(withoutCourtMatches(notes, []), notes);
 });

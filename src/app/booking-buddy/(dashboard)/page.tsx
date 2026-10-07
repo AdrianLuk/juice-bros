@@ -21,6 +21,7 @@ import { upcomingBookings } from "@/lib/booking-buddy/calendar";
 import { getOwnProfile } from "@/lib/booking-buddy/actions/profile";
 import { getOwnInviteUrl } from "@/lib/booking-buddy/actions/invite-links";
 import { listBookACourtNotes } from "@/lib/booking-buddy/actions/book-a-court";
+import { withoutCourtMatches } from "@/lib/booking-buddy/book-a-court";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 import { BookACourtNotes } from "@/components/booking-buddy/book-a-court";
 import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
@@ -91,9 +92,7 @@ export default async function BookingBuddyPage() {
         bookACourtNotes.some((note) => note.slotId === match.slotId),
       )
     : [];
-  const notesToBook = bookACourtNotes.filter(
-    (note) => !courtMatches.some((match) => match.slotId === note.slotId),
-  );
+  const notesToBook = withoutCourtMatches(bookACourtNotes, courtMatches);
 
   const onboardingCanShow = !hasBooking && !hasSlot;
   const gender = onboardingCanShow ? (await getOwnProfile()).gender : null;

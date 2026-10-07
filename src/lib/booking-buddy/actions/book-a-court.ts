@@ -22,7 +22,7 @@ export type BookACourtNote = {
   /** "Book a court for Tue, Oct 20 at 8:00 PM" */
   heading: string;
   /** "Pickle Palace opened bookings yesterday." */
-  opened: string;
+  openedLabel: string;
 };
 
 /**
@@ -89,6 +89,6 @@ export async function listBookACourtNotes(): Promise<BookACourtNote[]> {
     slotId: notice.slot.id,
     standingGameId: notice.slot.standingGameId,
     heading: bookACourtHeading(notice),
-    opened: bookingsOpenedLabel(notice),
+    openedLabel: bookingsOpenedLabel(notice),
   }));
 }

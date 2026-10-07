@@ -18,6 +18,7 @@ import { CourtSuggestions } from "@/components/booking-buddy/court-suggestion";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 import { BookACourtNotes } from "@/components/booking-buddy/book-a-court";
 import { listBookACourtNotes } from "@/lib/booking-buddy/actions/book-a-court";
+import { withoutCourtMatches } from "@/lib/booking-buddy/book-a-court";
 import { slotPath } from "@/lib/booking-buddy/routes";
 import { isHourTime, isRealDate } from "@/lib/booking-buddy/datetime";
 import {
@@ -105,10 +106,11 @@ export default async function SlotsPage({
                     );
                     // A week with a matching Booking gets "Attach your
                     // court?" (#582) instead of "Book a court" (#573).
-                    const toBook = bookACourtNotes.filter(
-                      (note) =>
-                        note.standingGameId === game.id &&
-                        !matches.some((match) => match.slotId === note.slotId),
+                    const toBook = withoutCourtMatches(
+                      bookACourtNotes.filter(
+                        (note) => note.standingGameId === game.id,
+                      ),
+                      matches,
                     );
                     return (
                       <WeeklyGameRow

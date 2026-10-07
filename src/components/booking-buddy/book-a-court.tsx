@@ -42,7 +42,7 @@ export function BookACourtNotes({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <p className="font-medium text-foreground">{note.heading}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{note.opened}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{note.openedLabel}</p>
               </div>
               <Link
                 href={onGamePage ? "#courts" : slotPath(note.slotId)}

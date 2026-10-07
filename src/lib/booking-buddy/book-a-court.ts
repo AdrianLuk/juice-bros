@@ -10,7 +10,9 @@
  * comparison in the facility's own zone: the game's local start date, minus
  * the window's days before, at the window's time of day. Comparing wall
  * clocks rather than instants is what keeps the window at the facility's
- * stated local time across a daylight-saving change.
+ * stated local time across a daylight-saving change. One edge differs from
+ * the view: a window time inside a change's skipped or repeated hour (1 to 3
+ * AM) can show the notice up to an hour before the email goes.
  */
 
 import type { BookingWindow } from "./booking-window.ts";
@@ -99,6 +101,19 @@ export function bookingsOpenedLabel(notice: BookACourtNotice): string {
         ? "yesterday"
         : `${notice.openedDaysAgo} days ago`;
   return `${notice.orgName} opened bookings ${when}.`;
+}
+
+/**
+ * "Attach your court?" (#582) wins over "Book a court": a game with a
+ * matching unattached Booking is past booking, so its notice drops and every
+ * other game keeps its own. Every surface showing both goes through this.
+ */
+export function withoutCourtMatches<N extends { slotId: string }>(
+  notices: readonly N[],
+  matches: readonly { slotId: string }[],
+): N[] {
+  const matched = new Set(matches.map((match) => match.slotId));
+  return notices.filter((notice) => !matched.has(notice.slotId));
 }
 
 function calendarDaysBetween(from: string, to: string): number {

@@ -36,6 +36,7 @@ import { getSlotDetail } from "@/lib/booking-buddy/actions/slots";
 import { getSlotLink } from "@/lib/booking-buddy/actions/slot-links";
 import { listCourtMatches } from "@/lib/booking-buddy/actions/court-matches";
 import { listBookACourtNotes } from "@/lib/booking-buddy/actions/book-a-court";
+import { withoutCourtMatches } from "@/lib/booking-buddy/book-a-court";
 export const metadata: Metadata = pageMetadata({
   title: "Game",
   description: "See who's in, and add your own response.",
@@ -136,21 +137,19 @@ export default async function SlotDetailPage({
               </Link>
             )}
           </div>
-          {/* The game's notice spot: owner-only to-dos about this game.
-              "Attach your court?" wins over "Book a court": a matching Booking
-              means the booking is done and attaching is the next step. */}
-          {courtMatches.length > 0 ? (
-            <CourtSuggestions
-              matches={courtMatches}
-              className="mt-8 flex flex-col gap-4"
-            />
-          ) : (
-            <BookACourtNotes
-              notes={bookACourtNotes.filter((note) => note.slotId === slot.id)}
-              onGamePage
-              className="mt-8 flex flex-col gap-4"
-            />
-          )}
+          {/* The game's notice spot: owner-only to-dos about this game. */}
+          <BookACourtNotes
+            notes={withoutCourtMatches(
+              bookACourtNotes.filter((note) => note.slotId === slot.id),
+              courtMatches,
+            )}
+            onGamePage
+            className="mt-8 flex flex-col gap-4"
+          />
+          <CourtSuggestions
+            matches={courtMatches}
+            className="mt-8 flex flex-col gap-4"
+          />
           <div className="mt-10 flex flex-col gap-8">
             <section>
               <h2 className="bb-h text-[1.05rem]">Your response</h2>
