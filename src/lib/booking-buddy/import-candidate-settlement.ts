@@ -32,7 +32,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { applyBookingUpdate, insertBooking, removeBooking } from "./booking-writes.ts";
-import type { BookingUpdateApplication, NewBooking } from "./bookings.ts";
+import { REMOVE_FAILED, UPDATE_FAILED, type BookingUpdateApplication, type NewBooking } from "./bookings.ts";
 import { clockInZone, todayInZone } from "./datetime.ts";
 import { recordDismissedSlot } from "./dismissed-reservations.ts";
 import { upsertFeedEventRow } from "./feed-events.ts";
@@ -85,10 +85,9 @@ export type ConfirmRequest =
   | { kind: "cancellation"; candidate: CancellationCandidate }
   | { kind: "update"; candidate: UpdateCandidate; update: BookingUpdateApplication };
 
-const CONFIRM_FAILED = "Couldn't confirm that booking. Try again.";
-const REMOVE_FAILED = "Couldn't remove that booking. Try again.";
-const UPDATE_FAILED = "Couldn't update that booking. Try again.";
-const DISMISS_FAILED = "Couldn't dismiss that. Try again.";
+/** What a confirm or a dismiss says when it can't go ahead. The Server Actions say the same for a post that doesn't decode. */
+export const CONFIRM_FAILED = "Couldn't confirm that booking. Try again.";
+export const DISMISS_FAILED = "Couldn't dismiss that. Try again.";
 const LINK_CHANGED = "That booking has already changed. Sync again.";
 
 const CONFIRM_FAILED_BY_KIND: Record<Candidate["kind"], string> = {

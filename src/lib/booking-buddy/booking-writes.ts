@@ -16,6 +16,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { readFailed } from "./actions/result.ts";
 import {
   bookingWriteMessage,
+  REMOVE_FAILED,
+  UPDATE_FAILED,
   type BookingUpdateApplication,
   type NewBooking,
 } from "./bookings.ts";
@@ -328,7 +330,7 @@ export async function editBooking(
     return { error: bookingWriteMessage(error) };
   }
   if (!data?.length) {
-    return { error: "Couldn't update that booking. Try again." };
+    return { error: UPDATE_FAILED };
   }
 
   const playersError = await replaceBookingPlayers(supabase, ownerId, bookingId, parsed.players);
@@ -352,7 +354,7 @@ export async function removeBooking(
     .select("id");
 
   if (error || !data?.length) {
-    return { error: "Couldn't remove that booking. Try again." };
+    return { error: REMOVE_FAILED };
   }
 
   return { ok: true };
@@ -410,7 +412,7 @@ export async function applyBookingUpdate(
     .maybeSingle();
 
   if (!booking) {
-    return { error: "Couldn't update that booking. Try again." };
+    return { error: UPDATE_FAILED };
   }
 
   const org = await resolveValidatedOrg(supabase, ownerId, { orgId: booking.org_id, date: parsed.date }, now);
@@ -433,7 +435,7 @@ export async function applyBookingUpdate(
     return { error: bookingWriteMessage(error) };
   }
   if (!data?.length) {
-    return { error: "Couldn't update that booking. Try again." };
+    return { error: UPDATE_FAILED };
   }
 
   const playersError =

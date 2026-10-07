@@ -15,8 +15,10 @@ import {
   type ImportCandidate,
 } from "../import-candidate-token.ts";
 import {
-  dismissCandidate,
+  CONFIRM_FAILED,
+  DISMISS_FAILED,
   confirmCandidate,
+  dismissCandidate,
   type ConfirmRequest,
 } from "../import-candidate-settlement.ts";
 import type { MailboxProvider } from "../mailbox-provider.ts";
@@ -100,7 +102,7 @@ export async function confirmImportCandidate(
 
   const candidate = decodeCandidate(formData);
   if (!candidate) {
-    return { error: "Couldn't confirm that booking. Try again." };
+    return { error: CONFIRM_FAILED };
   }
 
   const gate = await providerFor(candidate);
@@ -154,7 +156,7 @@ export async function dismissImportCandidate(
 
   const candidate = decodeCandidate(formData);
   if (!candidate) {
-    return { error: "Couldn't dismiss that. Try again." };
+    return { error: DISMISS_FAILED };
   }
 
   const gate = await providerFor(candidate);
