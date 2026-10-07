@@ -97,6 +97,38 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
+ * Record one mailbox message settled, in `processed_messages`. Returns whether
+ * the write failed; a failure is logged here.
+ *
+ * A unique violation is not a failure: the message was already settled (a
+ * double-submit, another tab), and "this is handled" is already true.
+ *
+ * `bookingId` ties a confirmed or updated message to its Booking (issue #286):
+ * the FK cascades, so deleting that Booking later removes this row and the
+ * next sync re-offers the email. A null there would suppress the email for
+ * good, which is only right for a dismissal.
+ */
+async function recordMessage(
+  supabase: SupabaseClient,
+  caller: Caller & { provider: MailboxProvider },
+  messageId: string,
+  settled: { outcome: "confirmed" | "updated" | "dismissed"; bookingId: string | null },
+): Promise<{ failed: boolean }> {
+  const { error } = await supabase.from("processed_messages").insert({
+    owner_id: caller.ownerId,
+    provider: caller.provider,
+    provider_message_id: messageId,
+    outcome: settled.outcome,
+    booking_id: settled.bookingId,
+  });
+  if (error && !isUniqueViolation(error)) {
+    console.error(`booking-buddy: recording a mailbox message ${settled.outcome} failed`, error);
+    return { failed: true };
+  }
+  return { failed: false };
+}
+
+/**
  * The Booking already on file for this reservation, if any: the confirm-time
  * duplicate guard (issue #294, ADR-0019).
  *
@@ -148,10 +180,9 @@ async function findBookingOnFile(
  * Write the ledger row for each source an import carries. Returns whether
  * any of them failed; each failure is logged here.
  *
- * A `processed_messages` unique violation is not a failure: the message was
- * already settled (a double-submit, another tab), and "this is handled" is
- * already true. `org_feed_events` is an upsert on its own key, so a repeat is
- * simply the same row again.
+ * A repeat is safe for both: `recordMessage` takes an email already on file
+ * as handled, and `org_feed_events` is an upsert on its own key, so a repeat
+ * is simply the same row again.
  *
  * A confirmed feed row is keyed on the Booking's Org, which is the feed's own
  * unless the User changed the card's Facility select: Postgres only lets a
@@ -169,21 +200,9 @@ async function recordImportSources(
   let failed = false;
 
   if (candidate.messageId !== null && caller.provider !== null) {
-    const { error } = await supabase.from("processed_messages").insert({
-      owner_id: caller.ownerId,
-      provider: caller.provider,
-      provider_message_id: candidate.messageId,
-      outcome: settlement.outcome,
-      // Ties a confirmed message to its Booking (issue #286): the FK cascades,
-      // so deleting that Booking later removes this row and the next sync
-      // re-offers the email. A null here on a confirm would suppress the
-      // email for good.
-      booking_id: settlement.bookingId,
-    });
-    if (error && !isUniqueViolation(error)) {
-      console.error("booking-buddy: recording a settled mailbox message failed", error);
-      failed = true;
-    }
+    failed = (
+      await recordMessage(supabase, { ...caller, provider: caller.provider }, candidate.messageId, settlement)
+    ).failed;
   }
 
   if (candidate.feed !== null) {
@@ -456,16 +475,10 @@ async function applyUpdate(
     return { status: "error", message: written.error };
   }
 
-  const { error } = await supabase.from("processed_messages").insert({
-    owner_id: caller.ownerId,
-    provider: caller.provider,
-    provider_message_id: candidate.messageId,
+  await recordMessage(supabase, caller, candidate.messageId, {
     outcome: "updated",
-    booking_id: written.bookingId,
+    bookingId: written.bookingId,
   });
-  if (error && !isUniqueViolation(error)) {
-    console.error("booking-buddy: recording an updated mailbox message failed", error);
-  }
 
   return { status: "settled", bookingId: written.bookingId, playersError: written.playersError };
 }
@@ -511,16 +524,12 @@ async function keepBooking(
   let failed = false;
 
   if (candidate.messageId !== null && caller.provider !== null) {
-    const { error } = await supabase.from("processed_messages").insert({
-      owner_id: caller.ownerId,
-      provider: caller.provider,
-      provider_message_id: candidate.messageId,
-      outcome: "dismissed",
-    });
-    if (error && !isUniqueViolation(error)) {
-      console.error("booking-buddy: recording a dismissed mailbox message failed", error);
-      failed = true;
-    }
+    failed = (
+      await recordMessage(supabase, { ...caller, provider: caller.provider }, candidate.messageId, {
+        outcome: "dismissed",
+        bookingId: null,
+      })
+    ).failed;
   }
 
   if (candidate.kind === "cancellation" && candidate.feed !== null) {
