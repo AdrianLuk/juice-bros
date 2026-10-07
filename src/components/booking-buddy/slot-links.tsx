@@ -6,10 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionError } from "@/components/booking-buddy/action-error";
 import {
+  GroupChatCopy,
+  type GroupChatGameDetails,
+} from "@/components/booking-buddy/group-chat-copy";
+import {
   generateSlotLink,
   type GenerateSlotLinkResult,
   type SlotLink,
 } from "@/lib/booking-buddy/actions/slot-links";
+import type { SlotResponses } from "@/lib/booking-buddy/actions/slots";
 
 const EMPTY: GenerateSlotLinkResult = {};
 
@@ -49,13 +54,21 @@ function CopyLinkButton({ url }: { url: string }) {
  * after `generateSlotLink`). Where there's no page re-render to bring it back
  * — the onboarding "coordinate" branch's share step (#176) — the URL from the
  * action's own result is used instead, so the link still shows.
+ *
+ * With `groupChat`, the link also comes as a whole message for the group
+ * chat (BB-4), since the link is what turns the message into an invite.
  */
 export function SlotLinkPanel({
   slotId,
   slotLink,
+  groupChat,
 }: {
   slotId: string;
   slotLink: SlotLink | null;
+  groupChat?: {
+    initialResponses: SlotResponses;
+    game: GroupChatGameDetails;
+  };
 }) {
   const [state, formAction, pending] = useActionState(generateSlotLink, EMPTY);
 
@@ -93,6 +106,16 @@ export function SlotLinkPanel({
         />
         <CopyLinkButton url={url} />
       </div>
+      {groupChat && (
+        <div className="mt-4 border-t border-border pt-4">
+          <GroupChatCopy
+            slotId={slotId}
+            initialResponses={groupChat.initialResponses}
+            game={groupChat.game}
+            slotLinkUrl={url}
+          />
+        </div>
+      )}
     </div>
   );
 }

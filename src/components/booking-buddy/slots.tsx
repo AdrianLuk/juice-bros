@@ -511,7 +511,7 @@ const ANSWERS: readonly ResponseAnswer[] = ["yes", "no", "maybe"];
  * cache moves the over-capacity signal at the same moment — the count and the
  * thing it's counted against can't disagree if they read the same cache entry.
  */
-function slotResponsesQuery(slotId: string, initial: SlotResponses) {
+export function slotResponsesQuery(slotId: string, initial: SlotResponses) {
   return {
     queryKey: ["booking-buddy", "slot", slotId, "responses"],
     queryFn: () => getSlotResponses(slotId),
