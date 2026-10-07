@@ -242,6 +242,8 @@ function ReviewItemDetails({ item }: { item: ReviewItem }) {
 
 type BodyProps<K extends ReviewItem["kind"]> = {
   item: Extract<ReviewItem, { kind: K }>;
+  /** The card's `candidate` token, encoded once by `ReviewItemCard`. */
+  candidate: string;
   confirmAction: (payload: FormData) => void;
   confirmState: ActionResult;
   confirmPending: boolean;
@@ -290,6 +292,7 @@ function FacilityFieldHint() {
  */
 function ImportBody({
   item,
+  candidate,
   orgs,
   confirmAction,
   confirmState,
@@ -319,11 +322,7 @@ function ImportBody({
           />
         </div>
 
-        <input
-          type="hidden"
-          name={CANDIDATE_FIELD}
-          value={reviewItemToken(item)}
-        />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <input type="hidden" name="name" value={item.name} />
         <input type="hidden" name="format" value={item.format} />
         <input type="hidden" name="date" value={item.date} />
@@ -368,6 +367,7 @@ function ImportBody({
  */
 function CancellationBody({
   item,
+  candidate,
   confirmAction,
   confirmState,
   confirmPending,
@@ -380,11 +380,7 @@ function CancellationBody({
   return (
     <>
       <form action={confirmAction} className="self-start">
-        <input
-          type="hidden"
-          name={CANDIDATE_FIELD}
-          value={reviewItemToken(item)}
-        />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         <Button type="submit" variant="destructive" disabled={busy}>
           {confirmPending ? "Removing…" : "Remove booking"}
         </Button>
@@ -405,14 +401,16 @@ function CancellationBody({
  */
 function UpdateFields({
   item,
+  candidate,
   bookingId,
 }: {
   item: Extract<ReviewItem, { kind: "update" }>;
+  candidate: string;
   bookingId: string;
 }) {
   return (
     <>
-      <input type="hidden" name={CANDIDATE_FIELD} value={reviewItemToken(item)} />
+      <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
       <input type="hidden" name="booking_id" value={bookingId} />
       <input type="hidden" name="date" value={item.date} />
       <input type="hidden" name="start_time" value={item.startTime} />
@@ -481,6 +479,7 @@ function UpdateChanges({
  */
 function SuggestedMatch({
   item,
+  candidate,
   suggestion,
   confirmAction,
   confirmPending,
@@ -488,6 +487,7 @@ function SuggestedMatch({
   buttonLabel,
 }: {
   item: Extract<ReviewItem, { kind: "update" }>;
+  candidate: string;
   suggestion: UpdateTargetBooking;
   confirmAction: (payload: FormData) => void;
   confirmPending: boolean;
@@ -509,7 +509,11 @@ function SuggestedMatch({
       </p>
       <UpdateChanges before={suggestion} after={item} />
       <form action={confirmAction} className="mt-2.5">
-        <UpdateFields item={item} bookingId={suggestion.bookingId} />
+        <UpdateFields
+          item={item}
+          candidate={candidate}
+          bookingId={suggestion.bookingId}
+        />
         <Button type="submit" size="sm" disabled={busy}>
           {confirmPending ? "Applying…" : buttonLabel}
         </Button>
@@ -534,6 +538,7 @@ function SuggestedMatch({
  */
 function UpdateBody({
   item,
+  candidate,
   confirmAction,
   confirmState,
   confirmPending,
@@ -550,7 +555,11 @@ function UpdateBody({
           <UpdateChanges before={item.booking} after={item} />
         </div>
         <form action={confirmAction} className="self-start">
-          <UpdateFields item={item} bookingId={item.booking.bookingId} />
+          <UpdateFields
+            item={item}
+            candidate={candidate}
+            bookingId={item.booking.bookingId}
+          />
           <Button type="submit" disabled={busy}>
             {confirmPending ? "Applying…" : "Apply update"}
           </Button>
@@ -577,6 +586,7 @@ function UpdateBody({
             <SuggestedMatch
               key={suggestion.bookingId}
               item={item}
+              candidate={candidate}
               suggestion={suggestion}
               confirmAction={confirmAction}
               confirmPending={confirmPending}
@@ -622,6 +632,7 @@ export function ReviewItemCard({
   );
   const busy = confirmPending || dismissPending;
   const dismissFormId = `sync-dismiss-${item.gmailMessageId}`;
+  const candidate = reviewItemToken(item);
 
   // What confirming this kind did, in the section's own tally. Each kind's
   // button already names its own outcome, and the tally repeats it rather than
@@ -650,6 +661,7 @@ export function ReviewItemCard({
       {item.kind === "import" ? (
         <ImportBody
           item={item}
+          candidate={candidate}
           orgs={orgs}
           confirmAction={confirmAction}
           confirmState={confirmState}
@@ -661,6 +673,7 @@ export function ReviewItemCard({
       ) : item.kind === "cancellation" ? (
         <CancellationBody
           item={item}
+          candidate={candidate}
           confirmAction={confirmAction}
           confirmState={confirmState}
           confirmPending={confirmPending}
@@ -669,6 +682,7 @@ export function ReviewItemCard({
       ) : (
         <UpdateBody
           item={item}
+          candidate={candidate}
           confirmAction={confirmAction}
           confirmState={confirmState}
           confirmPending={confirmPending}
@@ -680,11 +694,7 @@ export function ReviewItemCard({
         {/* Every kind posts its candidate. Only an import's carries a slot
             (issue #437): dismissing a cancellation or update means "leave
             this Booking alone", not "I don't want this reservation". */}
-        <input
-          type="hidden"
-          name={CANDIDATE_FIELD}
-          value={reviewItemToken(item)}
-        />
+        <input type="hidden" name={CANDIDATE_FIELD} value={candidate} />
         {/* An import's Dismiss button lives in `ReviewActions`, beside the one
             it is the alternative to (issue #464), and reaches this form by
             `id`. The other two kinds keep a standalone button: a cancellation
