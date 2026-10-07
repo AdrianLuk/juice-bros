@@ -103,3 +103,21 @@ needs its own rule.
   neither a pure email nor a pure feed import, so it gets its own event rather
   than double-firing both families' `_import` events.
 - CONTEXT.md's **Import Candidate** entry records the consolidation.
+
+## Addendum: the merged confirm no longer has to live in `email-sync.ts`
+
+The Decisions above place `confirmMergedCandidate` in `email-sync.ts` because it
+needed that module's private email sync allowlist gate and provider resolution.
+That reason is gone (issue #607). The entitlement questions (may this User
+connect a Mailbox Link per provider, may they sync, which provider a
+`processed_messages` row is recorded under) are answered by one plain module,
+`email-sync-entitlement.ts`, that the pages, the OAuth callback and every email
+sync action ask. Nothing about the gate is private to `email-sync.ts` any more,
+so a settlement that touches both ledgers can live anywhere that can call it.
+
+One rule changed with the extraction. A Gmail Mailbox Link holder who has
+dropped off the allowlist used to see the email section on the Bookings page and
+then get "isn't approved" from the action. The pages now follow the actions'
+rule, which was already the authoritative one, so that User no longer sees the
+section. Their Mailbox Link is untouched and the Privacy disclosure still shows
+for as long as it is stored.
