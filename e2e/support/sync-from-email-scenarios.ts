@@ -5,6 +5,25 @@ import { expect, test, type Accounts } from "./accounts.ts";
 import { signIn } from "./sign-in.ts";
 import { addPlace, deleteBooking, logBooking, placeName, removePlace, row } from "./places.ts";
 import { deleteOrgs, disconnectMailbox } from "./db-reset.ts";
+import {
+  courtReserveDate,
+  longDateLabel,
+  monthDayLabel,
+  shiftDate,
+  torontoDate,
+  weekdayName,
+} from "./dates.ts";
+
+/**
+ * The day every CourtReserve fixture email books, 6-7pm Toronto. Months out,
+ * counted from today, so the past-date filter never has to be
+ * timing-sensitive and the date never goes stale.
+ */
+export const EMAIL_GAME_DAY = torontoDate(160);
+/** That day as a CourtReserve email body writes it: the weekday, then M-D-YYYY. */
+const EMAIL_BODY_DAY = `${weekdayName(EMAIL_GAME_DAY)}, ${courtReserveDate(EMAIL_GAME_DAY)}`;
+/** The Backyard Club event, two days after it. */
+const BACKYARD_DAY = shiftDate(EMAIL_GAME_DAY, 2);
 
 /**
  * The full "Sync from Email" scenario set (issues #64/#65/#88/#91), factored
@@ -60,9 +79,8 @@ export type SyncProviderFixture = {
 /**
  * CourtReserve's real template shape (see courtreserve-email.ts's own header
  * comment) — an `<img alt>` logo for the facility name, and an `<h4>` heading
- * immediately followed by an `<h5>` value per field group. A fixed future
- * date well past the suite's own "today" so the past-date filter never has to
- * be timing-sensitive.
+ * immediately followed by an `<h5>` value per field group, booking
+ * `EMAIL_GAME_DAY`.
  */
 export function confirmationEmail(fields: {
   id: string;
@@ -75,11 +93,11 @@ export function confirmationEmail(fields: {
   return {
     id,
     receivedAt,
-    subject: "Booking Confirmation for Monday, 2027-03-15 6:00 PM - 7:00 PM",
+    subject: `Booking Confirmation for ${weekdayName(EMAIL_GAME_DAY)}, ${EMAIL_GAME_DAY} 6:00 PM - 7:00 PM`,
     html:
       `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
       `<h1>Confirmation</h1>` +
-      `<h4>Details</h4><h5>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
+      `<h4>Details</h4><h5>Doubles<br>${EMAIL_BODY_DAY}<br>6:00 PM - 7:00 PM</h5>` +
       `<h4>Player(s)</h4><h5>${players}</h5>` +
       `<h4>Court(s)</h4><h5>${court}</h5>` +
       `</body></html>`,
@@ -96,10 +114,10 @@ export function backyardClubEventEmail(fields: { id: string }): SyncMailMessage 
   return {
     id: fields.id,
     from: "bookings@thebkydclub.com",
-    subject: "You're in — Advanced Open Play 4.0+, Mar 17 11:00 AM",
+    subject: `You're in — Advanced Open Play 4.0+, ${monthDayLabel(BACKYARD_DAY)} 11:00 AM`,
     html:
       `<html><body><p>You've joined <strong>Advanced Open Play 4.0+</strong>:</p>` +
-      `<div><p>Wednesday, March 17, 2027</p><p>11:00 AM – 2:00 PM</p><p>Courts 6, 7, 8, 9</p></div>` +
+      `<div><p>${weekdayName(BACKYARD_DAY)}, ${longDateLabel(BACKYARD_DAY)}</p><p>11:00 AM – 2:00 PM</p><p>Courts 6, 7, 8, 9</p></div>` +
       `</body></html>`,
   };
 }
@@ -122,7 +140,7 @@ export function cancellationEmail(fields: {
     html:
       `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
       `<h1>Reservation Cancellation</h1>` +
-      `<h4>Cancellation Details</h4><h5>Amy Ace<br>Doubles<br>Monday, 3-15-2027<br>6:00 PM - 7:00 PM</h5>` +
+      `<h4>Cancellation Details</h4><h5>Amy Ace<br>Doubles<br>${EMAIL_BODY_DAY}<br>6:00 PM - 7:00 PM</h5>` +
       `</body></html>`,
   };
 }
@@ -158,7 +176,7 @@ export function updateEmail(fields: {
     html:
       `<html><body><img border="0" src="https://example.com/logo.jpg" alt="${facility}">` +
       `<h1>Reservation Update</h1>` +
-      `<h4>Reservation Details</h4><h5>${format}<br>Monday, 3-15-2027<br>${time}<br>${court}</h5>` +
+      `<h4>Reservation Details</h4><h5>${format}<br>${EMAIL_BODY_DAY}<br>${time}<br>${court}</h5>` +
       `<h4>Player(s)</h4><h5>${players}</h5>` +
       `</body></html>`,
   };
@@ -388,7 +406,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await logBooking(page, {
         place: facility,
         court: "3",
-        date: "2027-03-15",
+        date: EMAIL_GAME_DAY,
         start: "18:00",
         end: "19:00",
       });
@@ -481,7 +499,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await logBooking(page, {
         place: facility,
         court: "3",
-        date: "2027-03-15",
+        date: EMAIL_GAME_DAY,
         start: "18:00",
         end: "19:00",
         format: "Singles",
@@ -527,7 +545,7 @@ export function defineSyncFromEmailScenarios(fixture: SyncProviderFixture) {
       await logBooking(page, {
         place: facility,
         court: "3",
-        date: "2027-03-15",
+        date: EMAIL_GAME_DAY,
         start: "18:00",
         end: "19:00",
         format: "Singles",

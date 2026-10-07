@@ -4,7 +4,8 @@ import { signIn } from "./support/sign-in.ts";
 import { addPlace, placeName } from "./support/places.ts";
 import { GmailMock } from "./support/gmail-mock.ts";
 import { CalendarFeedMock, icsBody } from "./support/calendar-feed-mock.ts";
-import { confirmationEmail, messageId } from "./support/sync-from-email-scenarios.ts";
+import { EMAIL_GAME_DAY, confirmationEmail, messageId } from "./support/sync-from-email-scenarios.ts";
+import { candidateLabel, torontoDate, torontoInstant } from "./support/dates.ts";
 import {
   bookingsForOrg,
   dismissedReservationsForOrg,
@@ -66,14 +67,21 @@ async function connectGmail(page: import("@playwright/test").Page) {
   await page.waitForURL((url) => url.searchParams.get("mailbox_connected") === "1");
 }
 
-/** A future-dated feed reservation on 2026-10-01, Court #6, 6-8pm EDT. */
+/** A feed reservation a month out, Court #6, 6-8pm Toronto. */
+const FEED_DAY = torontoDate(30);
 const FEED_EVENT = {
   uid: "sync-feed-evt-1",
   summary: "Doubles",
   description: "Court #6",
   location: FEED_CLUB,
-  start: "2026-10-01T22:00:00Z",
-  end: "2026-10-02T00:00:00Z",
+  start: torontoInstant(FEED_DAY, "18:00"),
+  end: torontoInstant(FEED_DAY, "20:00"),
+};
+
+/** The fixture emails' 6-7pm Toronto slot, as a feed event writes it. */
+const EMAIL_SLOT = {
+  start: torontoInstant(EMAIL_GAME_DAY, "18:00"),
+  end: torontoInstant(EMAIL_GAME_DAY, "19:00"),
 };
 
 test("one section, one button — replaces the two old sync sections", async ({ page, accounts }) => {
@@ -101,13 +109,13 @@ test("one section, one button — replaces the two old sync sections", async ({ 
   await page.getByRole("button", { name: "Sync bookings" }).click();
 
   // Both sources' candidates land in the one list. The email candidate carries
-  // the confirmation's date; the feed candidate carries its Court #6 / Oct 1.
+  // the confirmation's date; the feed candidate carries its Court #6 / FEED_DAY.
   const cards = feedSection(page)
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Add to my bookings" }) });
   await expect(cards).toHaveCount(2, { timeout: 15_000 });
-  await expect(cards.filter({ hasText: "Mon Mar 15, 2027" })).toHaveCount(1);
-  await expect(cards.filter({ hasText: "Thu Oct 01, 2026" })).toHaveCount(1);
+  await expect(cards.filter({ hasText: candidateLabel(EMAIL_GAME_DAY) })).toHaveCount(1);
+  await expect(cards.filter({ hasText: candidateLabel(FEED_DAY) })).toHaveCount(1);
 });
 
 test("one source failing still shows the other's candidates, failure named", async ({ page, accounts }) => {
@@ -150,11 +158,11 @@ test("email + feed candidates for the same reservation consolidate into one card
   await signIn(page, accounts.ben.email, "/booking-buddy/orgs");
 
   await connectGmail(page);
-  // Email confirmation: Doubles, 2027-03-15 18:00-19:00, Court 3, with players.
+  // Email confirmation: Doubles, EMAIL_GAME_DAY 18:00-19:00, Court 3, with players.
   gmail.registerMessages([confirmationEmail({ id: messageId(), facility })]);
   await page.goto("/booking-buddy/orgs");
   await setFeedUrlViaForm(page, facility, feed.urlFor("/feed/same"));
-  // A feed event for the *same* slot: 2027-03-15 18:00-19:00 EDT, Court #3.
+  // A feed event for the *same* slot: EMAIL_GAME_DAY 18:00-19:00 Toronto, Court #3.
   feed.registerFeed("/feed/same", {
     kind: "ics",
     body: icsBody([
@@ -163,8 +171,8 @@ test("email + feed candidates for the same reservation consolidate into one card
         summary: "Doubles",
         description: "Court #3",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });
@@ -251,8 +259,8 @@ test("a feed doesn't re-offer a reservation already imported from email, whateve
         summary: "Doubles",
         description: "Court #9",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });
@@ -294,8 +302,8 @@ test("dismissing a consolidated card settles both sources — neither re-offers 
         summary: "Doubles",
         description: "Court #3",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });
@@ -359,8 +367,8 @@ test("dismissing an email candidate settles the feed too — it never re-offers 
         summary: "Doubles",
         description: "Court #9",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });
@@ -403,8 +411,8 @@ test("dismissing a feed candidate settles the mailbox too — the email never re
         summary: "Doubles",
         description: "Court #9",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });
@@ -535,8 +543,8 @@ test("a sync prunes a dismissal whose slot has passed, and leaves a live one (#4
         summary: "Doubles",
         description: "Court #1",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });
@@ -610,8 +618,8 @@ test("a sync prunes a long-past feed event, and keeps one the feed still touches
         summary: "Doubles",
         description: "Court #1",
         location: facility,
-        start: "2027-03-15T22:00:00Z",
-        end: "2027-03-15T23:00:00Z",
+        start: EMAIL_SLOT.start,
+        end: EMAIL_SLOT.end,
       },
     ]),
   });

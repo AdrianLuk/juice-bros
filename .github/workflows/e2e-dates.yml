@@ -1,0 +1,20 @@
+# e2e fixtures count their dates from today (e2e/support/dates.ts). A date
+# typed in by hand turns from future to past one day and breaks every spec
+# that leaned on it at once, so fail the moment one is added.
+name: e2e-dates
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: No hard-coded dates in e2e/
+        run: node scripts/check-e2e-dates.mts

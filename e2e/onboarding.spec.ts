@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { signUp } from "./support/sign-in.ts";
 import { pickDate } from "./support/date-field.ts";
+import { torontoDate } from "./support/dates.ts";
 
 /**
  * The intent-branched Onboarding modal (issue #176, reshaping #103) — shown on
@@ -219,7 +220,7 @@ test("track branch: logging a booking confirms, and the modal stays gone after",
   ).toBeVisible();
 
   // Facility is preselected (first Org is auto-default). Just a future date.
-  await pickDate(page, "2030-06-03");
+  await pickDate(page, torontoDate(365));
   await page.getByRole("button", { name: "Log booking" }).click();
 
   await expect(
