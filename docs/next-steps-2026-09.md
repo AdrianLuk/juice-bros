@@ -49,6 +49,10 @@ email (#572) and the in-app "Book a court" notice (#573). Row 7 is done, and **a
 the month's original picks are now met**. **RR-2 is the first unstarted row.** BB-3 loses
 its only blocker. Nothing else in the table moves.
 
+**Later the same day**, BB-4 shipped out of order (PR #604) as the small row, and On Deck
+went onto the `/tools` shelf it had been missing from since #240 (#603). Row 10 is ticked.
+**RR-2 is still the first unstarted row.**
+
 This doc is the raw material for the grill → spec → tickets → build pipeline. It is
 deliberately opinionated so there is something to push against. Nothing here is settled
 until it survives a grilling session.
@@ -159,7 +163,7 @@ order they already held relative to each other.
 | 7 | ✅ | **BB-1 Standing Games (#576)** | Shipped 2026-10-06 (#576; tickets #577 to #582, PR #598), with #572 and #573 from the same grill landing alongside. A game can repeat weekly. Each week posts 7 days ahead, or earlier when the Booking Window opens sooner. Regulars get a Weekly Invite they can answer without signing in (ADR 0022). An organizer can skip a week, turn a one-off into a weekly game, and attach this week's court with one tap. #576, ADRs 0022 and 0023 and `booking-buddy/CONTEXT.md` are the authority; the BB-1 section below is a pointer |
 | 8 |  | **RR-2 Courtside mode** | **First unstarted row as of the ninth pass**, 2026-10-07. Turns the generator into the thing that stays open on the bench. The Schedule shape it was held behind is settled and shipped, so nothing ahead of it is Match Mixer work any more. Grill it against the pooled shape (see RR-2's new question 6) |
 | 9 |  | BB-3 Slot Link as the growth surface | Unblocked 2026-10-06: BB-1 gave it a "next week" to hook onto. Grill it against what shipped, since Regulars and the Weekly Invite already cover part of its question 2 |
-| 10 | ✅ | **BB-4 Copy for group chat** | Shipped 2026-10-07, taken ahead of rows 8 and 9 as the small one. The organizer's game page builds a plain-text message (day and time, weekly or not, facility and courts, "N in, M maybe", the invite link): the share sheet on a phone, the clipboard elsewhere. Owner-only, because the invite link is. The dashboard card never got the button, because the whole card is a link and a button can't sit inside one |
+| 10 | ✅ | **BB-4 Copy for group chat** | Shipped 2026-10-07 (PR #604), taken ahead of rows 8 and 9 as the small one. The organizer's game page builds a plain-text message (day and time, weekly or not, facility and courts, "N in, M maybe", the invite link): the share sheet on a phone, the clipboard elsewhere. Owner-only, because the invite link is. The dashboard card never got the button, because the whole card is a link and a button can't sit inside one |
 | 11 | ✅ | **RR-4 Constraint toggles (#391)** | Shipped 2026-09-19 to 2026-09-20 (#391; tickets #543, #544, #545). Three of the four features specced, and skill balance cut rather than deferred — a lopsided skill pairing comes out in the wash over eight rounds, which is the argument mixed doubles cannot make and is why that one got a hard constraint instead. Three of the four also turned out not to be Formats at all (ADR 0003): the row holds rotating, fixed partners and singles, and mixed doubles is a checkbox under rotating. Still orthogonal to RR-6 — each pool runs whichever Format is picked |
 | 12 |  | BB-5 Booker jobs + countdown | The moat, and the roadmap already has most of the spec |
 | 13 |  | BB-6 PWA + push | Makes every time-sensitive nudge above actually land |
@@ -282,6 +286,11 @@ home and this doc is not it.
   every email on one branded layout (#572, PR #597) and an in-app "Book a court" notice
   for an unbooked game whose Booking Window is open (#573, PR #599).
   `booking-buddy/CONTEXT.md` is the authority now; the BB-1 section below is a pointer.
+- **BB-4 Copy for group chat — complete 2026-10-07** (PR #604). Row 10, taken ahead of
+  rows 8 and 9 because it was half a day. "Copy for group chat" in the Invite link card on
+  the organizer's game page: the share sheet on a phone, the clipboard elsewhere. It is
+  not on the dashboard row, because that card is a link and can't hold a button. See the
+  BB-4 section.
 
 **Off the table, and larger than it.**
 
@@ -324,6 +333,10 @@ home and this doc is not it.
   repo onto hidden `refs/screenshots/pr-N` refs, with history rewritten to drop the old
   ones (#590). e2e fixture dates now count from today, and `npm test` plus CI fail on a
   hard-coded one (#600). Mock-server specs no longer clash on ports under two workers (#601).
+- **On Deck on the Tools shelf — 2026-10-07** (#603). On Deck had been missing from
+  `/tools` and the home page's "Free tools we built" since its landing page shipped (#240).
+  It now sits before Drum Roll on both. Not OD-A: it makes On Deck findable from the site,
+  but it tells nobody outside the site that On Deck exists.
 
 **The lesson the log actually produced.** Of everything built between this doc being
 written and 2026-09-07, only row 2 came from the table — the rest was marketing polish and
@@ -557,7 +570,9 @@ OD-0′, and through it every remaining On Deck initiative.
 On Deck, not a deploy.* By that definition On Deck has not been released. It is deployed,
 the demo works, the Club form works, the first-night kit works, the six funnel counters are
 live, and the number of people who know any of it exists is zero. Every counter reads zero
-and will keep reading zero for reasons that have nothing to do with the product.
+and will keep reading zero for reasons that have nothing to do with the product. (Since
+2026-10-07 it is at least on the site's own Tools shelf, #603. That helps a visitor who
+is already on the site, not a stranger, so this row still stands.)
 
 **Already decided** (all of it in #512, restated because this row is where it gets used).
 - **The audience is one specific person**: an informal organizer running a Saturday social
