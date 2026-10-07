@@ -37,7 +37,8 @@ test("an availability window can be blocked off, listed, and removed again", asy
   // reads as "Jun 1 – Jun 7" (en dash) once saved.
   const from = torontoDate(365);
   const to = shiftDate(from, 6);
-  const windowText = new RegExp(`${monthDayLabel(from)}\\b.*${monthDayLabel(to)}\\b`);
+  // `(?!\d)`, not `\b`: the row's text runs straight on into "Busy".
+  const windowText = new RegExp(`${monthDayLabel(from)}(?!\\d).*${monthDayLabel(to)}(?!\\d)`);
   await page.getByLabel("From", { exact: true }).fill(from);
   await page.getByLabel("To", { exact: true }).fill(to);
   await page.getByRole("button", { name: "Save" }).click();
