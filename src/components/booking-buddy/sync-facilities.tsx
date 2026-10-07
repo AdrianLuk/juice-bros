@@ -30,6 +30,7 @@ import {
 } from "@/lib/booking-buddy/actions/import-candidates";
 import {
   CANDIDATE_FIELD,
+  candidateSlot,
   encodeCandidate,
 } from "@/lib/booking-buddy/import-candidate-token";
 
@@ -86,12 +87,7 @@ export function FeedCandidateCard({
       sequence: item.sequence,
       startsAt: item.startsAt,
     },
-    slot: {
-      orgId: item.orgId,
-      date: item.date,
-      startTime: item.startTime,
-      courtLabel: item.courtLabel,
-    },
+    slot: candidateSlot(item.orgId, item),
   });
 
   useResolveOnSuccess(confirmState, () =>

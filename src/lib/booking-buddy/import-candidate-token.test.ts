@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   CANDIDATE_FIELD,
+  candidateSlot,
   decodeCandidate,
   encodeCandidate,
   type Candidate,
@@ -37,6 +38,11 @@ test("a feed Import Candidate survives the round trip", () => {
 
 test("a merged Import Candidate survives the round trip", () => {
   assert.deepEqual(decodeCandidate(posted(encodeCandidate(MERGED_IMPORT))), MERGED_IMPORT);
+});
+
+test("a card's slot is the matched Org and the reservation's date, start and court, nothing else", () => {
+  const card = { orgId: "org-2", name: "Doubles", date: "2026-10-01", startTime: "18:00", courtLabel: "#9 - Hard" };
+  assert.deepEqual(candidateSlot("org-1", card), SLOT);
 });
 
 test("an email whose facility matched no Org carries no slot", () => {

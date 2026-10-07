@@ -106,6 +106,22 @@ export type UpdateCandidate = {
 /** Every candidate kind a card can post. */
 export type Candidate = ImportCandidate | CancellationCandidate | UpdateCandidate;
 
+/**
+ * An import's `slot`: the reservation's date, start and court under `orgId`,
+ * which is always the Org the review matched, never a card's Facility select.
+ */
+export function candidateSlot(
+  orgId: string,
+  reservation: { date: string; startTime: string; courtLabel: string | null },
+): BookingIdentity {
+  return {
+    orgId,
+    date: reservation.date,
+    startTime: reservation.startTime,
+    courtLabel: reservation.courtLabel,
+  };
+}
+
 export function encodeCandidate(candidate: Candidate): string {
   return JSON.stringify(candidate);
 }
