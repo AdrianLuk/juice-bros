@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ClipboardList, Grid3x3, Ticket } from "lucide-react";
+import { CalendarCheck, ClipboardList, Grid3x3, ListOrdered, Ticket } from "lucide-react";
 
 export type AppStatus = "coming-soon" | "live";
 
@@ -70,6 +70,21 @@ export const apps: AppItem[] = [
       "Nobody partners the same person twice, and byes rotate evenly",
     ],
     terms: ["Free", "No sign-up", "Open now"],
+  },
+  {
+    slug: "on-deck",
+    title: "On Deck",
+    href: "/on-deck",
+    description:
+      "Run the court rotation at a busy social. Players scan a sign to join the queue, and the next four walk on as each court frees up.",
+    icon: ListOrdered,
+    status: "live",
+    highlights: [
+      "Players join from their phones, with no app and no sign-up",
+      "Calls the next foursome as soon as a court frees up",
+      "Keeps court time fair and mixes up who plays with whom",
+    ],
+    terms: ["Free", "Account for organizers only", "Open now"],
   },
   {
     slug: "drum-roll",

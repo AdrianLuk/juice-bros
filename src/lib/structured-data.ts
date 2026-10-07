@@ -288,11 +288,13 @@ export function buildToolsJsonLd(apps: AppItem[]) {
 }
 
 /**
- * BreadcrumbList + SoftwareApplication for the On Deck landing page. On Deck
- * is not on the /tools shelf, so the breadcrumb runs Home > On Deck and there
- * is no `apps.ts` entry to pull from. The zero-price `offers` node is asserted
- * because the page itself now says plainly that On Deck is free (issue #523);
- * withholding it here would leave search results contradicting the page.
+ * BreadcrumbList + SoftwareApplication for the On Deck landing page. Like
+ * Booking Buddy it's reachable via /tools, so the breadcrumb runs Home > Tools
+ * > On Deck even though the page sits at /on-deck. The landing keeps its own
+ * longer description rather than the shelf card's. The zero-price `offers`
+ * node is asserted because the page itself now says plainly that On Deck is
+ * free (issue #523); withholding it here would leave search results
+ * contradicting the page.
  */
 export function buildOnDeckLandingJsonLd() {
   const pageUrl = `${siteConfig.url}/on-deck`;
@@ -304,7 +306,8 @@ export function buildOnDeckLandingJsonLd() {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
-          { "@type": "ListItem", position: 2, name: "On Deck", item: pageUrl },
+          { "@type": "ListItem", position: 2, name: "Tools", item: `${siteConfig.url}/tools` },
+          { "@type": "ListItem", position: 3, name: "On Deck", item: pageUrl },
         ],
       },
       softwareApplicationNode({
