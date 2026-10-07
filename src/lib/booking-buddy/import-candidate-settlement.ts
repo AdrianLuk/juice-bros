@@ -331,6 +331,10 @@ async function confirmImport(
  *    an import. So each linked event, and the feed cancellation's own, is
  *    marked `dismissed`.
  *
+ * A read that fails stops the cancellation before the delete, reported as the
+ * same failure as a delete that didn't happen: the Booking is still there, and
+ * trying again reads afresh.
+ *
  * A record that fails after the delete is logged, not reported: the Booking is
  * gone, which is what the User asked for. The worst case is that source
  * offering the reservation once more, for one Dismiss to settle.
@@ -359,7 +363,10 @@ async function confirmCancellation(
     }
   }
 
-  const [{ data: linkedMessages }, { data: linkedFeedEvents }] = await Promise.all([
+  const [
+    { data: linkedMessages, error: messagesError },
+    { data: linkedFeedEvents, error: feedEventsError },
+  ] = await Promise.all([
     supabase
       .from("processed_messages")
       .select("provider, provider_message_id")
@@ -371,6 +378,16 @@ async function confirmCancellation(
       .eq("owner_id", caller.ownerId)
       .eq("booking_id", bookingId),
   ]);
+
+  // Without both lists there is no knowing which records the delete is about
+  // to break, so nothing is deleted: the User tries again.
+  if (messagesError || feedEventsError) {
+    console.error(
+      "booking-buddy: reading a cancelled Booking's sources failed",
+      messagesError ?? feedEventsError,
+    );
+    return { status: "error", message: REMOVE_FAILED };
+  }
 
   const removed = await removeBooking(supabase, bookingId);
   if ("error" in removed) {

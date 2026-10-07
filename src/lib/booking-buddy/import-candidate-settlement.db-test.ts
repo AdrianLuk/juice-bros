@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { after, before, test } from "node:test";
 
 import type { NewBooking } from "./bookings.ts";
@@ -409,6 +410,58 @@ test("a feed cancellation whose event is no longer linked to that Booking remove
   assert.deepEqual(await bookingsOn(other.booking.date), [otherBookingId]);
   assert.deepEqual(await feedEventFor(r), { status: "imported", booking_id: bookingId, sequence: r.feed.sequence });
 });
+
+/**
+ * The caller's real client, except that every read of `table` fails the way a
+ * dropped connection or a timeout would. Writes and every other table go to
+ * the database as usual.
+ */
+function withFailingReads(supabase: SupabaseClient, table: string): SupabaseClient {
+  const failed = { data: null, error: { message: `reading ${table} failed (test)`, code: "57014" } };
+  const failedQuery: object = new Proxy(() => {}, {
+    get: (_target, prop) =>
+      prop === "then"
+        ? (resolve: (value: typeof failed) => unknown) => Promise.resolve(failed).then(resolve)
+        : () => failedQuery,
+  });
+
+  return new Proxy(supabase, {
+    get(target, prop, receiver) {
+      if (prop !== "from") {
+        return Reflect.get(target, prop, receiver);
+      }
+      return (name: string) => {
+        const builder = target.from(name);
+        if (name !== table) {
+          return builder;
+        }
+        return new Proxy(builder, {
+          get: (inner, innerProp, innerReceiver) =>
+            innerProp === "select" ? () => failedQuery : Reflect.get(inner, innerProp, innerReceiver),
+        });
+      };
+    },
+  });
+}
+
+// Each source's record of the Booking is read before the delete because the
+// delete breaks the links. A read that fails can't say which records to
+// settle, so the Booking stays and the User is asked to try again.
+for (const table of ["processed_messages", "org_feed_events"]) {
+  test(`a cancellation whose ${table} read fails keeps the Booking`, async () => {
+    const r = reservation();
+    const bookingId = await confirmedFrom(r, { email: true, feed: true });
+
+    const outcome = await settleCandidate(withFailingReads(owner.supabase, table), {
+      ownerId: owner.userId,
+      candidate: { kind: "cancellation", messageId: `msg-${randomUUID()}`, feed: null, bookingId },
+      provider: "google",
+    });
+
+    assert.deepEqual(outcome, { status: "error", message: "Couldn't remove that booking. Try again." });
+    assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
+  });
+}
 
 /** The Booking as an update would rewrite it: slot in Toronto wall-clock, court, format and Players. */
 async function bookingAsUpdated(bookingId: string) {
