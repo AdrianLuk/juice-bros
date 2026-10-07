@@ -74,11 +74,16 @@ type Caller = {
   provider: MailboxProvider | null;
 };
 
-/** What confirming each kind needs besides the candidate: the Booking fields an import or an update re-validated. */
+/**
+ * What confirming each kind needs besides the candidate: the Booking fields an
+ * import or an update re-validated. `kind` repeats `candidate.kind` because
+ * TypeScript narrows a union only by a discriminant at its own top level, so
+ * a switch on `candidate.kind` would leave `booking` and `update` out of reach.
+ */
 export type ConfirmRequest =
-  | { candidate: ImportCandidate; booking: NewBooking }
-  | { candidate: CancellationCandidate }
-  | { candidate: UpdateCandidate; update: BookingUpdateApplication };
+  | { kind: "import"; candidate: ImportCandidate; booking: NewBooking }
+  | { kind: "cancellation"; candidate: CancellationCandidate }
+  | { kind: "update"; candidate: UpdateCandidate; update: BookingUpdateApplication };
 
 const CONFIRM_FAILED = "Couldn't confirm that booking. Try again.";
 const REMOVE_FAILED = "Couldn't remove that booking. Try again.";
@@ -493,17 +498,22 @@ export async function confirmCandidate(
 ): Promise<ConfirmOutcome> {
   const { ownerId, provider } = input;
   if (input.candidate.messageId !== null && provider === null) {
-    return { status: "error", message: CONFIRM_FAILED_BY_KIND[input.candidate.kind] };
+    return { status: "error", message: CONFIRM_FAILED_BY_KIND[input.kind] };
   }
 
-  if ("booking" in input) {
-    return confirmImport(supabase, { ownerId, provider }, input.candidate, input.booking, input.now);
+  switch (input.kind) {
+    case "import":
+      return confirmImport(supabase, { ownerId, provider }, input.candidate, input.booking, input.now);
+    case "cancellation":
+      return confirmCancellation(supabase, { ownerId, provider }, input.candidate);
+    case "update":
+      // An update always has an email source, so the guard above already
+      // refused this; checked again here so the type says so too.
+      if (provider === null) {
+        return { status: "error", message: UPDATE_FAILED };
+      }
+      return applyUpdate(supabase, { ownerId, provider }, input.candidate, input.update, input.now);
   }
-  if ("update" in input) {
-    // An update always has an email source, so the guard above means a provider.
-    return applyUpdate(supabase, { ownerId, provider: provider! }, input.candidate, input.update, input.now);
-  }
-  return confirmCancellation(supabase, { ownerId, provider }, input.candidate);
 }
 
 /**

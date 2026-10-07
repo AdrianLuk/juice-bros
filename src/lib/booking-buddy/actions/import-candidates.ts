@@ -75,14 +75,14 @@ function confirmRequestFor(
   switch (candidate.kind) {
     case "import": {
       const booking = parseNewBooking(formData);
-      return "error" in booking ? booking : { candidate, booking };
+      return "error" in booking ? booking : { kind: "import", candidate, booking };
     }
     case "update": {
       const update = parseUpdateApplication(formData);
-      return "error" in update ? update : { candidate, update };
+      return "error" in update ? update : { kind: "update", candidate, update };
     }
     case "cancellation":
-      return { candidate };
+      return { kind: "cancellation", candidate };
   }
 }
 

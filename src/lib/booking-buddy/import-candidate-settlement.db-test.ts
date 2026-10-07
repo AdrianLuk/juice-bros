@@ -134,6 +134,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
   test(`confirming ${LABEL[source]} candidate creates one Booking and settles its sources against it`, async () => {
     const r = reservation();
     const outcome = await confirmCandidate(owner.supabase, {
+      kind: "import",
       ownerId: owner.userId,
       candidate: candidate(r),
       booking: r.booking,
@@ -153,6 +154,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
     const r = reservation();
     // Already on file from the other source, which writes the court as "#9".
     const onFile = await confirmCandidate(owner.supabase, {
+      kind: "import",
       ownerId: owner.userId,
       candidate: { kind: "import", messageId: `msg-${randomUUID()}`, feed: null, slot: r.slot },
       booking: { ...r.booking, courtLabel: "#9", players: [] },
@@ -161,6 +163,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
     assert.ok(onFile.status === "settled", JSON.stringify(onFile));
 
     const outcome = await confirmCandidate(owner.supabase, {
+      kind: "import",
       ownerId: owner.userId,
       candidate: candidate(r),
       booking: r.booking,
@@ -177,7 +180,7 @@ for (const source of Object.keys(SOURCES) as (keyof typeof SOURCES)[]) {
 
   test(`confirming ${LABEL[source]} candidate twice makes one Booking and one set of rows`, async () => {
     const r = reservation();
-    const input = { ownerId: owner.userId, candidate: candidate(r), booking: r.booking, provider };
+    const input = { kind: "import" as const, ownerId: owner.userId, candidate: candidate(r), booking: r.booking, provider };
     const first = await confirmCandidate(owner.supabase, input);
     const second = await confirmCandidate(owner.supabase, input);
 
@@ -235,6 +238,7 @@ test("a feed event confirmed under another Facility is recorded under that Facil
   const r = reservation();
   const otherOrg = await createOrg(owner);
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "import",
     ownerId: owner.userId,
     candidate: SOURCES.feed.candidate(r),
     booking: { ...r.booking, orgId: otherOrg },
@@ -252,6 +256,7 @@ test("a feed event confirmed under another Facility is recorded under that Facil
 test("confirming a candidate whose Booking fields are refused writes nothing", async () => {
   const r = reservation();
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "import",
     ownerId: owner.userId,
     candidate: SOURCES.merged.candidate(r),
     booking: { ...r.booking, date: dateInDays(-2) },
@@ -272,6 +277,7 @@ test("confirming a candidate whose Booking fields are refused writes nothing", a
 /** A Booking on file for the reservation, confirmed from the given sources the way a sync would leave it. */
 async function confirmedFrom(r: Reservation, sources: { email?: boolean; feed?: boolean }) {
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "import",
     ownerId: owner.userId,
     candidate: {
       kind: "import",
@@ -323,6 +329,7 @@ test("confirming an email cancellation removes the Booking and records it and th
   const cancellationId = `msg-${randomUUID()}`;
 
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "cancellation",
     ownerId: owner.userId,
     candidate: { kind: "cancellation", messageId: cancellationId, feed: null, bookingId },
     provider: "google",
@@ -343,6 +350,7 @@ test("confirming an email cancellation also dismisses the feed event linked to t
   const bookingId = await confirmedFrom(r, { email: true, feed: true });
 
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "cancellation",
     ownerId: owner.userId,
     candidate: { kind: "cancellation", messageId: `msg-${randomUUID()}`, feed: null, bookingId },
     provider: "google",
@@ -366,6 +374,7 @@ test("confirming a feed cancellation removes the Booking and dismisses the feed 
   const bookingId = await confirmedFrom(r, { feed: true });
 
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "cancellation",
     ownerId: owner.userId,
     candidate: feedCancellation(r, bookingId),
     provider: null,
@@ -384,6 +393,7 @@ test("confirming a feed cancellation keeps the email's confirmation suppressed",
   const bookingId = await confirmedFrom(r, { email: true, feed: true });
 
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "cancellation",
     ownerId: owner.userId,
     candidate: feedCancellation(r, bookingId),
     provider: null,
@@ -400,6 +410,7 @@ test("a feed cancellation whose event is no longer linked to that Booking remove
   const otherBookingId = await confirmedFrom(other, { email: true });
 
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "cancellation",
     ownerId: owner.userId,
     candidate: feedCancellation(r, otherBookingId),
     provider: null,
@@ -453,6 +464,7 @@ for (const table of ["processed_messages", "org_feed_events"]) {
     const bookingId = await confirmedFrom(r, { email: true, feed: true });
 
     const outcome = await confirmCandidate(withFailingReads(owner.supabase, table), {
+      kind: "cancellation",
       ownerId: owner.userId,
       candidate: { kind: "cancellation", messageId: `msg-${randomUUID()}`, feed: null, bookingId },
       provider: "google",
@@ -490,6 +502,7 @@ for (const match of ["exact", "suggested"] as const) {
     const startTime = match === "exact" ? "18:00" : "19:00";
 
     const outcome = await confirmCandidate(owner.supabase, {
+      kind: "update",
       ownerId: owner.userId,
       candidate: { kind: "update", messageId: updateId },
       update: {
@@ -524,6 +537,7 @@ test("an update for a Booking that is gone records nothing", async () => {
   const updateId = `msg-${randomUUID()}`;
 
   const outcome = await confirmCandidate(owner.supabase, {
+    kind: "update",
     ownerId: owner.userId,
     candidate: { kind: "update", messageId: updateId },
     update: { ...r.booking, bookingId: randomUUID() },
@@ -617,7 +631,7 @@ test("an email candidate with no provider to record it under is refused", async 
   const r = reservation();
   const input = { ownerId: owner.userId, candidate: SOURCES.email.candidate(r), provider: null };
 
-  assert.deepEqual(await confirmCandidate(owner.supabase, { ...input, booking: r.booking }), {
+  assert.deepEqual(await confirmCandidate(owner.supabase, { ...input, kind: "import", booking: r.booking }), {
     status: "error",
     message: "Couldn't confirm that booking. Try again.",
   });
