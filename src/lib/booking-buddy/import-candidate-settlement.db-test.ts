@@ -264,6 +264,281 @@ test("confirming a candidate whose Booking fields are refused writes nothing", a
   assert.deepEqual(await ledger(r), { messages: [], feedEvents: [], slots: [] });
 });
 
+/* -------------------------------------------------------------------------- */
+/* Cancellations, updates and Keep booking (issue #609)                        */
+/* -------------------------------------------------------------------------- */
+
+/** A Booking on file for the reservation, confirmed from the given sources the way a sync would leave it. */
+async function confirmedFrom(r: Reservation, sources: { email?: boolean; feed?: boolean }) {
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: {
+      kind: "import",
+      messageId: sources.email ? r.messageId : null,
+      feed: sources.feed ? r.feed : null,
+      slot: r.slot,
+    },
+    booking: r.booking,
+    provider: sources.email ? "google" : null,
+  });
+  assert.ok(outcome.status === "settled", JSON.stringify(outcome));
+  return outcome.bookingId;
+}
+
+type MessageRow = { provider_message_id: string; provider: string; outcome: string; booking_id: string | null };
+
+function byMessageId(a: MessageRow, b: MessageRow) {
+  return a.provider_message_id < b.provider_message_id ? -1 : 1;
+}
+
+/** Every `processed_messages` row for these message ids, in a comparable order. */
+async function messagesFor(...messageIds: string[]) {
+  const { data } = await owner.supabase
+    .from("processed_messages")
+    .select("provider_message_id, provider, outcome, booking_id")
+    .in("provider_message_id", messageIds);
+  return ((data ?? []) as MessageRow[]).sort(byMessageId);
+}
+
+/** These message ids, each recorded `cancelled` under Google with no Booking. */
+function cancelledMessages(...messageIds: string[]) {
+  return messageIds
+    .map((id): MessageRow => ({ provider_message_id: id, provider: "google", outcome: "cancelled", booking_id: null }))
+    .sort(byMessageId);
+}
+
+async function feedEventFor(r: Reservation) {
+  const { data } = await owner.supabase
+    .from("org_feed_events")
+    .select("status, booking_id, sequence")
+    .eq("uid", r.feed.uid)
+    .maybeSingle();
+  return data;
+}
+
+test("confirming an email cancellation removes the Booking and records it and the confirmation as cancelled", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { email: true });
+  const cancellationId = `msg-${randomUUID()}`;
+
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: { kind: "cancellation", messageId: cancellationId, feed: null, bookingId },
+    provider: "google",
+  });
+
+  assert.deepEqual(outcome, { status: "settled", bookingId, playersError: null });
+  assert.deepEqual(await bookingsOn(r.booking.date), []);
+  assert.deepEqual(
+    await messagesFor(r.messageId, cancellationId),
+    cancelledMessages(r.messageId, cancellationId),
+  );
+});
+
+// The cancellation gap, email side: the feed still listing the event must not
+// offer it again as an import once the Booking is gone.
+test("confirming an email cancellation also dismisses the feed event linked to the Booking", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { email: true, feed: true });
+
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: { kind: "cancellation", messageId: `msg-${randomUUID()}`, feed: null, bookingId },
+    provider: "google",
+  });
+
+  assert.equal(outcome.status, "settled");
+  assert.deepEqual(await feedEventFor(r), { status: "dismissed", booking_id: null, sequence: r.feed.sequence });
+});
+
+function feedCancellation(r: Reservation, bookingId: string) {
+  return {
+    kind: "cancellation" as const,
+    messageId: null,
+    feed: { orgId: r.feed.orgId, uid: r.feed.uid },
+    bookingId,
+  };
+}
+
+test("confirming a feed cancellation removes the Booking and dismisses the feed event", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { feed: true });
+
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: feedCancellation(r, bookingId),
+    provider: null,
+  });
+
+  assert.deepEqual(outcome, { status: "settled", bookingId, playersError: null });
+  assert.deepEqual(await bookingsOn(r.booking.date), []);
+  assert.deepEqual(await feedEventFor(r), { status: "dismissed", booking_id: null, sequence: r.feed.sequence });
+});
+
+// The cancellation gap, feed side: deleting the Booking cascades the email's
+// `confirmed` row away, and without a fresh record the next email sync would
+// offer the confirmation again.
+test("confirming a feed cancellation keeps the email's confirmation suppressed", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { email: true, feed: true });
+
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: feedCancellation(r, bookingId),
+    provider: null,
+  });
+
+  assert.equal(outcome.status, "settled");
+  assert.deepEqual(await messagesFor(r.messageId), cancelledMessages(r.messageId));
+});
+
+test("a feed cancellation whose event is no longer linked to that Booking removes nothing", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { feed: true });
+  const other = reservation();
+  const otherBookingId = await confirmedFrom(other, { email: true });
+
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: feedCancellation(r, otherBookingId),
+    provider: null,
+  });
+
+  assert.deepEqual(outcome, { status: "not_found", message: "That booking has already changed. Sync again." });
+  assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
+  assert.deepEqual(await bookingsOn(other.booking.date), [otherBookingId]);
+  assert.deepEqual(await feedEventFor(r), { status: "imported", booking_id: bookingId, sequence: r.feed.sequence });
+});
+
+/** The Booking as an update would rewrite it: slot in Toronto wall-clock, court, format and Players. */
+async function bookingAsUpdated(bookingId: string) {
+  const [{ data: booking }, { data: players }] = await Promise.all([
+    owner.supabase.from("bookings").select("starts_at, ends_at, court_label, format").eq("id", bookingId).single(),
+    owner.supabase.from("booking_players").select("name").eq("booking_id", bookingId),
+  ]);
+  const clock = (instant: string) =>
+    new Date(instant).toLocaleTimeString("en-GB", { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit" });
+  return {
+    startTime: clock(booking!.starts_at),
+    endTime: clock(booking!.ends_at),
+    courtLabel: booking!.court_label,
+    format: booking!.format,
+    players: (players ?? []).map((row) => row.name).sort(),
+  };
+}
+
+for (const match of ["exact", "suggested"] as const) {
+  test(`applying an update to its ${match} match rewrites the Booking and records the email against it`, async () => {
+    const r = reservation();
+    const bookingId = await confirmedFrom(r, { email: true });
+    const updateId = `msg-${randomUUID()}`;
+    // An exact match keeps the start time it was matched on; a suggested match
+    // is the update that moved it.
+    const startTime = match === "exact" ? "18:00" : "19:00";
+
+    const outcome = await settleCandidate(owner.supabase, {
+      ownerId: owner.userId,
+      candidate: { kind: "update", messageId: updateId },
+      update: {
+        bookingId,
+        courtLabel: "#4 - Clay",
+        notes: null,
+        date: r.booking.date,
+        startTime,
+        endTime: "21:00",
+        format: "singles",
+        players: ["Ben Johns"],
+      },
+      provider: "google",
+    });
+
+    assert.deepEqual(outcome, { status: "settled", bookingId, playersError: null });
+    assert.deepEqual(await bookingAsUpdated(bookingId), {
+      startTime,
+      endTime: "21:00",
+      courtLabel: "#4 - Clay",
+      format: "singles",
+      players: ["Ben Johns"],
+    });
+    assert.deepEqual(await messagesFor(updateId), [
+      { provider_message_id: updateId, provider: "google", outcome: "updated", booking_id: bookingId },
+    ]);
+  });
+}
+
+test("an update for a Booking that is gone records nothing", async () => {
+  const r = reservation();
+  const updateId = `msg-${randomUUID()}`;
+
+  const outcome = await settleCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: { kind: "update", messageId: updateId },
+    update: { ...r.booking, bookingId: randomUUID() },
+    provider: "google",
+  });
+
+  assert.deepEqual(outcome, { status: "error", message: "Couldn't update that booking. Try again." });
+  assert.deepEqual(await messagesFor(updateId), []);
+});
+
+// "Keep booking" means keep the Booking: every one of these leaves it standing
+// and records no slot, so a future import of that slot is still offered.
+const KEPT = {
+  "an email cancellation": (r: Reservation, bookingId: string, messageId: string) => ({
+    kind: "cancellation" as const,
+    messageId,
+    feed: null,
+    bookingId,
+  }),
+  "an email cancellation that matched no Booking": (_r: Reservation, _bookingId: string, messageId: string) => ({
+    kind: "cancellation" as const,
+    messageId,
+    feed: null,
+    bookingId: null,
+  }),
+  "an email update": (_r: Reservation, _bookingId: string, messageId: string) => ({
+    kind: "update" as const,
+    messageId,
+  }),
+};
+
+for (const [label, candidate] of Object.entries(KEPT)) {
+  test(`dismissing ${label} records the message, keeps the Booking and records no slot`, async () => {
+    const r = reservation();
+    const bookingId = await confirmedFrom(r, { feed: true });
+    const messageId = `msg-${randomUUID()}`;
+
+    const outcome = await dismissCandidate(owner.supabase, {
+      ownerId: owner.userId,
+      candidate: candidate(r, bookingId, messageId),
+      provider: "google",
+    });
+
+    assert.deepEqual(outcome, { status: "settled" });
+    assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
+    assert.deepEqual(await messagesFor(messageId), [
+      { provider_message_id: messageId, provider: "google", outcome: "dismissed", booking_id: null },
+    ]);
+    assert.deepEqual((await ledger(r)).slots, []);
+  });
+}
+
+test("Keep booking on a feed cancellation dismisses the feed event, keeps the Booking and records no slot", async () => {
+  const r = reservation();
+  const bookingId = await confirmedFrom(r, { feed: true });
+
+  const outcome = await dismissCandidate(owner.supabase, {
+    ownerId: owner.userId,
+    candidate: feedCancellation(r, bookingId),
+    provider: null,
+  });
+
+  assert.deepEqual(outcome, { status: "settled" });
+  assert.deepEqual(await bookingsOn(r.booking.date), [bookingId]);
+  assert.deepEqual(await feedEventFor(r), { status: "dismissed", booking_id: null, sequence: r.feed.sequence });
+  assert.deepEqual((await ledger(r)).slots, []);
+});
+
 test("an email candidate with no provider to record it under is refused", async () => {
   const r = reservation();
   const input = { ownerId: owner.userId, candidate: SOURCES.email.candidate(r), provider: null };

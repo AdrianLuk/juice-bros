@@ -2,50 +2,67 @@
  * Settling an Import Candidate (CONTEXT.md's **Settle**, issue #606): taking
  * it to its final state for every source it came from.
  *
- * One module owns the whole rule, which used to be spread over five Server
+ * One module owns the whole rule, which used to be spread over eleven Server
  * Actions with three copies of the duplicate guard:
  *
- *  - **Confirm** (`settleCandidate`): the confirm-time duplicate guard, then
- *    the Booking insert, then one ledger row per source, all tied to the
- *    Booking: `processed_messages` `confirmed` for an email, `org_feed_events`
- *    `imported` for a feed event. A merged card writes both.
- *  - **Dismiss** (`dismissCandidate`): no Booking. `processed_messages`
- *    `dismissed` and/or `org_feed_events` `dismissed`, then the slot in
- *    `dismissed_reservations` (issue #437) when the candidate carries one.
+ *  - **Confirm** (`settleCandidate`), by kind:
+ *     - an import: the confirm-time duplicate guard, then the Booking insert,
+ *       then one ledger row per source, all tied to the Booking:
+ *       `processed_messages` `confirmed` for an email, `org_feed_events`
+ *       `imported` for a feed event. A merged card writes both.
+ *     - a cancellation: the Booking is removed and **every** source's record
+ *       of it is settled, not only the one that reported the cancellation
+ *       (issue #609): each email linked to it is re-recorded `cancelled`, each
+ *       feed event linked to it is marked `dismissed`.
+ *     - an update: the Booking is edited in place and the email recorded
+ *       `updated`, tied to it.
+ *  - **Dismiss** (`dismissCandidate`): no Booking. Each source is recorded
+ *    `dismissed`, and an import's slot goes in `dismissed_reservations` (issue
+ *    #437). A cancellation's or an update's Dismiss ("Keep booking" on a feed
+ *    cancellation) records no slot: it means keep the Booking, not "I don't
+ *    want this reservation".
  *
  * Takes the caller's `SupabaseClient`, so every write is RLS-scoped to the
  * caller's own rows, and returns an outcome rather than revalidating: the
  * Server Actions in front of it (`actions/import-candidates.ts`) own the
  * session, the email sync entitlement, analytics and `revalidatePath`.
  * Relative imports only, so `npm run test:db` runs it against local Supabase.
- *
- * Cancellations, updates and "Keep booking" join in issue #609.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { insertBooking } from "./booking-writes.ts";
-import type { NewBooking } from "./bookings.ts";
+import { applyBookingUpdate, insertBooking, removeBooking } from "./booking-writes.ts";
+import type { BookingUpdateApplication, NewBooking } from "./bookings.ts";
 import { clockInZone, todayInZone } from "./datetime.ts";
 import { recordDismissedSlot } from "./dismissed-reservations.ts";
 import { upsertFeedEventRow } from "./feed-events.ts";
 import { findSameReservation } from "./import-candidate-shaping.ts";
-import type { Candidate } from "./import-candidate-token.ts";
+import type {
+  CancellationCandidate,
+  Candidate,
+  FeedEventKey,
+  ImportCandidate,
+  UpdateCandidate,
+} from "./import-candidate-token.ts";
 import type { MailboxProvider } from "./mailbox-provider.ts";
 import { isKnownTimeZone } from "./timezone.ts";
 
 export type SettleOutcome =
-  /** A new Booking was created. `playersError` is set when it committed but its Players didn't. */
+  /**
+   * The candidate's Booking was created, removed or updated. `playersError` is
+   * set when an insert or update committed but its Players didn't.
+   */
   | { status: "settled"; bookingId: string; playersError: string | null }
   /** A Booking already covered this reservation; the sources were linked to it and nothing new was made. */
   | { status: "duplicate"; bookingId: string }
+  /** The Booking a feed cancellation names is no longer the one its feed event is linked to. Nothing was written. */
+  | { status: "not_found"; message: string }
   | { status: "error"; message: string };
 
 export type DismissOutcome = { status: "settled" } | { status: "error"; message: string };
 
-type SettleInput = {
+type Caller = {
   ownerId: string;
-  candidate: Candidate;
   /**
    * Which provider an email source's `processed_messages` row is recorded
    * under (the email sync entitlement's answer). Null for a feed-only
@@ -54,8 +71,27 @@ type SettleInput = {
   provider: MailboxProvider | null;
 };
 
+/** What confirming each kind needs besides the candidate: the Booking fields an import or an update re-validated. */
+export type SettleRequest =
+  | { candidate: ImportCandidate; booking: NewBooking }
+  | { candidate: CancellationCandidate }
+  | { candidate: UpdateCandidate; update: BookingUpdateApplication };
+
 const CONFIRM_FAILED = "Couldn't confirm that booking. Try again.";
+const REMOVE_FAILED = "Couldn't remove that booking. Try again.";
+const UPDATE_FAILED = "Couldn't update that booking. Try again.";
 const DISMISS_FAILED = "Couldn't dismiss that. Try again.";
+const LINK_CHANGED = "That booking has already changed. Sync again.";
+
+const SETTLE_FAILED: Record<Candidate["kind"], string> = {
+  import: CONFIRM_FAILED,
+  cancellation: REMOVE_FAILED,
+  update: UPDATE_FAILED,
+};
+
+function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: string } | null)?.code === "23505";
+}
 
 /**
  * The Booking already on file for this reservation, if any: the confirm-time
@@ -106,7 +142,7 @@ async function findBookingOnFile(
 }
 
 /**
- * Write the ledger row for each source the candidate carries. Returns whether
+ * Write the ledger row for each source an import carries. Returns whether
  * any of them failed; each failure is logged here.
  *
  * A `processed_messages` unique violation is not a failure: the message was
@@ -119,21 +155,20 @@ async function findBookingOnFile(
  * feed event link to a Booking in its own Org. A dismissed one has no Booking
  * and stays under the feed's Org.
  */
-async function recordSources(
+async function recordImportSources(
   supabase: SupabaseClient,
-  ownerId: string,
-  input: SettleInput,
+  caller: Caller,
+  candidate: ImportCandidate,
   settlement:
     | { outcome: "confirmed"; bookingId: string; bookingOrgId: string }
     | { outcome: "dismissed"; bookingId: null },
 ): Promise<{ failed: boolean }> {
-  const { candidate, provider } = input;
   let failed = false;
 
-  if (candidate.messageId !== null && provider !== null) {
+  if (candidate.messageId !== null && caller.provider !== null) {
     const { error } = await supabase.from("processed_messages").insert({
-      owner_id: ownerId,
-      provider,
+      owner_id: caller.ownerId,
+      provider: caller.provider,
       provider_message_id: candidate.messageId,
       outcome: settlement.outcome,
       // Ties a confirmed message to its Booking (issue #286): the FK cascades,
@@ -142,14 +177,14 @@ async function recordSources(
       // email for good.
       booking_id: settlement.bookingId,
     });
-    if (error && (error as { code?: string }).code !== "23505") {
+    if (error && !isUniqueViolation(error)) {
       console.error("booking-buddy: recording a settled mailbox message failed", error);
       failed = true;
     }
   }
 
   if (candidate.feed !== null) {
-    const { error } = await upsertFeedEventRow(supabase, ownerId, {
+    const { error } = await upsertFeedEventRow(supabase, caller.ownerId, {
       orgId: settlement.outcome === "confirmed" ? settlement.bookingOrgId : candidate.feed.orgId,
       uid: candidate.feed.uid,
       sequence: candidate.feed.sequence,
@@ -167,8 +202,39 @@ async function recordSources(
 }
 
 /**
- * Confirm an Import Candidate: one Booking for the reservation, and every
- * source the candidate came from settled against it.
+ * Mark feed events already on file `dismissed` and unlinked, so a later sync
+ * neither offers a still-listed event as an import nor diffs a vanished one as
+ * a cancellation. An update, not an upsert: each row is one a sync already
+ * wrote, and its `sequence` and `starts_at` stay as that sync recorded them.
+ * `last_seen_at` is stamped as every manual settle stamps it. Returns whether
+ * any write failed; each failure is logged here.
+ */
+async function dismissFeedEvents(
+  supabase: SupabaseClient,
+  ownerId: string,
+  events: readonly FeedEventKey[],
+): Promise<{ failed: boolean }> {
+  const results = await Promise.all(
+    events.map((event) =>
+      supabase
+        .from("org_feed_events")
+        .update({ status: "dismissed", booking_id: null, last_seen_at: new Date().toISOString() })
+        .eq("owner_id", ownerId)
+        .eq("org_id", event.orgId)
+        .eq("uid", event.uid),
+    ),
+  );
+
+  const errors = results.map((result) => result.error).filter(Boolean);
+  for (const error of errors) {
+    console.error("booking-buddy: dismissing a settled feed event failed", error);
+  }
+  return { failed: errors.length > 0 };
+}
+
+/**
+ * Confirm an import: one Booking for the reservation, and every source the
+ * candidate came from settled against it.
  *
  * When a Booking already covers the slot, nothing new is made and the sources
  * are linked to that one, exactly as if this confirm had created it.
@@ -177,34 +243,232 @@ async function recordSources(
  * either way, and a later sync's own duplicate check recognises the
  * reservation against it.
  */
-export async function settleCandidate(
+async function confirmImport(
   supabase: SupabaseClient,
-  input: SettleInput & { booking: NewBooking; now?: Date },
+  caller: Caller,
+  candidate: ImportCandidate,
+  booking: NewBooking,
+  now: Date | undefined,
 ): Promise<SettleOutcome> {
-  if (input.candidate.messageId !== null && input.provider === null) {
-    return { status: "error", message: CONFIRM_FAILED };
-  }
+  const onFile = await findBookingOnFile(supabase, caller.ownerId, booking);
 
-  const onFile = await findBookingOnFile(supabase, input.ownerId, input.booking);
-
-  let outcome: SettleOutcome;
+  let outcome: SettleOutcome & { bookingId: string };
   if (onFile) {
     outcome = { status: "duplicate", bookingId: onFile.id };
   } else {
-    const written = await insertBooking(supabase, input.ownerId, input.booking, input.now);
+    const written = await insertBooking(supabase, caller.ownerId, booking, now);
     if ("error" in written) {
       return { status: "error", message: written.error };
     }
     outcome = { status: "settled", bookingId: written.bookingId, playersError: written.playersError };
   }
 
-  await recordSources(supabase, input.ownerId, input, {
+  await recordImportSources(supabase, caller, candidate, {
     outcome: "confirmed",
     bookingId: outcome.bookingId,
-    bookingOrgId: input.booking.orgId,
+    bookingOrgId: booking.orgId,
   });
 
   return outcome;
+}
+
+/**
+ * Confirm a cancellation: remove the Booking it was matched to (issue #65,
+ * #296), and settle every source that reservation came from, whichever one
+ * reported the cancellation (issue #609).
+ *
+ * A feed cancellation's link is re-checked first rather than trusted from the
+ * card: only a feed event still `imported` and linked to this same Booking is
+ * one the review resolved. A link that has moved since is `not_found`, and
+ * nothing is written.
+ *
+ * Each source's record of the Booking is read before the delete, while the
+ * links still hold, because the delete breaks them:
+ *
+ *  - `processed_messages.booking_id` cascades, which is right when the User
+ *    deletes a Booking from the Bookings page (that email should be offered
+ *    again) and wrong here: the reservation is cancelled, not something to
+ *    re-import. So each linked message is re-recorded `cancelled`, alongside
+ *    the cancellation email itself. `processed_messages` is insert-only, so
+ *    these are fresh rows where the cascade removed the old ones.
+ *  - `org_feed_events.booking_id` is set null, which would leave the event
+ *    `imported` with no link, and a feed still listing it offers it again as
+ *    an import. So each linked event, and the feed cancellation's own, is
+ *    marked `dismissed`.
+ *
+ * A record that fails after the delete is logged, not reported: the Booking is
+ * gone, which is what the User asked for. The worst case is that source
+ * offering the reservation once more, for one Dismiss to settle.
+ */
+async function confirmCancellation(
+  supabase: SupabaseClient,
+  caller: Caller,
+  candidate: CancellationCandidate,
+): Promise<SettleOutcome> {
+  const { bookingId } = candidate;
+  if (bookingId === null) {
+    return { status: "error", message: REMOVE_FAILED };
+  }
+
+  if (candidate.feed !== null) {
+    const { data: seenRow } = await supabase
+      .from("org_feed_events")
+      .select("status, booking_id")
+      .eq("owner_id", caller.ownerId)
+      .eq("org_id", candidate.feed.orgId)
+      .eq("uid", candidate.feed.uid)
+      .maybeSingle();
+
+    if (!seenRow || seenRow.status !== "imported" || seenRow.booking_id !== bookingId) {
+      return { status: "not_found", message: LINK_CHANGED };
+    }
+  }
+
+  const [{ data: linkedMessages }, { data: linkedFeedEvents }] = await Promise.all([
+    supabase
+      .from("processed_messages")
+      .select("provider, provider_message_id")
+      .eq("owner_id", caller.ownerId)
+      .eq("booking_id", bookingId),
+    supabase
+      .from("org_feed_events")
+      .select("org_id, uid")
+      .eq("owner_id", caller.ownerId)
+      .eq("booking_id", bookingId),
+  ]);
+
+  const removed = await removeBooking(supabase, bookingId);
+  if ("error" in removed) {
+    return { status: "error", message: removed.error };
+  }
+
+  const messages = [
+    ...(candidate.messageId !== null && caller.provider !== null
+      ? [{ provider: caller.provider, provider_message_id: candidate.messageId }]
+      : []),
+    ...(linkedMessages ?? []),
+  ];
+  if (messages.length > 0) {
+    const { error } = await supabase.from("processed_messages").insert(
+      messages.map((message) => ({
+        owner_id: caller.ownerId,
+        provider: message.provider,
+        provider_message_id: message.provider_message_id,
+        outcome: "cancelled" as const,
+      })),
+    );
+    if (error) {
+      console.error("booking-buddy: recording a cancelled mailbox message failed", error);
+    }
+  }
+
+  // The feed cancellation's own event is among the linked ones (its link was
+  // just checked), so the keys are de-duplicated rather than written twice.
+  const feedEvents = new Map<string, FeedEventKey>();
+  for (const event of [
+    ...(candidate.feed !== null ? [candidate.feed] : []),
+    ...(linkedFeedEvents ?? []).map((row) => ({ orgId: row.org_id as string, uid: row.uid as string })),
+  ]) {
+    feedEvents.set(`${event.orgId}\n${event.uid}`, event);
+  }
+  await dismissFeedEvents(supabase, caller.ownerId, [...feedEvents.values()]);
+
+  return { status: "settled", bookingId, playersError: null };
+}
+
+/**
+ * Confirm an update: apply it to the Booking the card names (issue #91,
+ * widened by #458), then record the email `updated`, tied to that Booking
+ * (issue #286), so deleting the Booking later re-offers the email.
+ *
+ * Recorded even when the Booking committed and only its Players didn't, the
+ * same as an import: the update is applied, and the Players-only failure is
+ * reported for the User to fix from Edit Booking.
+ */
+async function applyUpdate(
+  supabase: SupabaseClient,
+  caller: Caller & { provider: MailboxProvider },
+  candidate: UpdateCandidate,
+  update: BookingUpdateApplication,
+  now: Date | undefined,
+): Promise<SettleOutcome> {
+  const written = await applyBookingUpdate(supabase, caller.ownerId, update, now);
+  if ("error" in written) {
+    return { status: "error", message: written.error };
+  }
+
+  const { error } = await supabase.from("processed_messages").insert({
+    owner_id: caller.ownerId,
+    provider: caller.provider,
+    provider_message_id: candidate.messageId,
+    outcome: "updated",
+    booking_id: written.bookingId,
+  });
+  if (error && !isUniqueViolation(error)) {
+    console.error("booking-buddy: recording an updated mailbox message failed", error);
+  }
+
+  return { status: "settled", bookingId: written.bookingId, playersError: written.playersError };
+}
+
+/**
+ * Confirm an Import Candidate of any kind: "Add to my bookings", "Remove
+ * booking", "Apply update" (or a suggested match's "Yes, update it").
+ */
+export async function settleCandidate(
+  supabase: SupabaseClient,
+  input: Caller & SettleRequest & { now?: Date },
+): Promise<SettleOutcome> {
+  const { ownerId, provider } = input;
+  if (input.candidate.messageId !== null && provider === null) {
+    return { status: "error", message: SETTLE_FAILED[input.candidate.kind] };
+  }
+
+  if ("booking" in input) {
+    return confirmImport(supabase, { ownerId, provider }, input.candidate, input.booking, input.now);
+  }
+  if ("update" in input) {
+    // An update always has an email source, so the guard above means a provider.
+    return applyUpdate(supabase, { ownerId, provider: provider! }, input.candidate, input.update, input.now);
+  }
+  return confirmCancellation(supabase, { ownerId, provider }, input.candidate);
+}
+
+/**
+ * Dismiss a cancellation or an update ("Keep booking" on a feed
+ * cancellation): record its source `dismissed` and leave the Booking as it
+ * is. No slot: dismissing one means keep this Booking, not "I don't want this
+ * reservation", and suppressing a future import of a slot the User is still
+ * playing would be the opposite of what they asked for (issue #437).
+ *
+ * A feed event's link is cleared too: the feed no longer tracks this
+ * reservation, so a later sync doesn't flag the same vanished event again.
+ */
+async function keepBooking(
+  supabase: SupabaseClient,
+  caller: Caller,
+  candidate: CancellationCandidate | UpdateCandidate,
+): Promise<{ failed: boolean }> {
+  let failed = false;
+
+  if (candidate.messageId !== null && caller.provider !== null) {
+    const { error } = await supabase.from("processed_messages").insert({
+      owner_id: caller.ownerId,
+      provider: caller.provider,
+      provider_message_id: candidate.messageId,
+      outcome: "dismissed",
+    });
+    if (error && !isUniqueViolation(error)) {
+      console.error("booking-buddy: recording a dismissed mailbox message failed", error);
+      failed = true;
+    }
+  }
+
+  if (candidate.kind === "cancellation" && candidate.feed !== null) {
+    failed = (await dismissFeedEvents(supabase, caller.ownerId, [candidate.feed])).failed || failed;
+  }
+
+  return { failed };
 }
 
 /**
@@ -222,13 +486,19 @@ export async function settleCandidate(
  */
 export async function dismissCandidate(
   supabase: SupabaseClient,
-  input: SettleInput,
+  input: Caller & { candidate: Candidate },
 ): Promise<DismissOutcome> {
-  if (input.candidate.messageId !== null && input.provider === null) {
+  const { candidate, ownerId, provider } = input;
+  if (candidate.messageId !== null && provider === null) {
     return { status: "error", message: DISMISS_FAILED };
   }
 
-  const { failed } = await recordSources(supabase, input.ownerId, input, {
+  if (candidate.kind !== "import") {
+    const { failed } = await keepBooking(supabase, { ownerId, provider }, candidate);
+    return failed ? { status: "error", message: DISMISS_FAILED } : { status: "settled" };
+  }
+
+  const { failed } = await recordImportSources(supabase, { ownerId, provider }, candidate, {
     outcome: "dismissed",
     bookingId: null,
   });
@@ -236,8 +506,8 @@ export async function dismissCandidate(
     return { status: "error", message: DISMISS_FAILED };
   }
 
-  if (input.candidate.slot !== null) {
-    await recordDismissedSlot(supabase, input.ownerId, input.candidate.slot);
+  if (candidate.slot !== null) {
+    await recordDismissedSlot(supabase, ownerId, candidate.slot);
   }
 
   return { status: "settled" };
