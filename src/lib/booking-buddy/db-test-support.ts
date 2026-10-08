@@ -42,6 +42,16 @@ function adminHeaders() {
   };
 }
 
+/**
+ * A `service_role` client, for seeding what no app role may write (an On Deck
+ * Club has no INSERT grant for `authenticated`). Never for the code under test.
+ */
+export function serviceRoleClient(): SupabaseClient {
+  return createClient(API_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 /** A fresh User with this display name, signed in. Delete it with `deleteTestUser`. */
 export async function createTestUser(displayName: string): Promise<TestUser> {
   const email = `db-test-${randomUUID()}@example.com`;

@@ -17,7 +17,7 @@ import {
   DEMO_PLAYER_COUNT,
   demoNightEvents,
 } from "./night.ts";
-import { demoLoadedSession } from "./fold.ts";
+import { demoLoadedSession, demoLogOf } from "./fold.ts";
 import { finishCourtOutcome } from "../floor-ops.ts";
 import { SELECTION_WINDOW, selectFoursome } from "../session/match-me.ts";
 import { rotationViewFrom } from "../session/rotation-view.ts";
@@ -40,7 +40,7 @@ const NOW = 1_800_000_000_000;
 
 function openingNight(now = NOW) {
   const events = demoNightEvents(now);
-  const loaded = demoLoadedSession(DEMO_CONFIG, events);
+  const loaded = demoLoadedSession(DEMO_CONFIG, demoLogOf(events));
   return { events, loaded, view: rotationViewFrom(loaded, undefined, now) };
 }
 
@@ -183,11 +183,11 @@ test("whoever walks on is the card the board was showing", () => {
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
     if (event.type !== "COURT_FINISHED") continue;
-    const before = demoLoadedSession(DEMO_CONFIG, events.slice(0, i)).state;
+    const before = demoLoadedSession(DEMO_CONFIG, demoLogOf(events.slice(0, i))).state;
     const upNext = before.onDeck[0];
     if (!upNext || upNext.players.length < 4) continue;
 
-    const after = demoLoadedSession(DEMO_CONFIG, events.slice(0, i + 1)).state;
+    const after = demoLoadedSession(DEMO_CONFIG, demoLogOf(events.slice(0, i + 1))).state;
     const court = after.courts.find((c) => c.number === event.court)!;
     assert.deepEqual(court.foursome, upNext.players, `turnover ${i}`);
     seatings += 1;
@@ -212,8 +212,8 @@ test("the on deck foursomes in the log are Match Me's own picks", () => {
   let checked = 0;
 
   for (let i = 0; i < events.length; i++) {
-    const before = demoLoadedSession(DEMO_CONFIG, events.slice(0, i)).state;
-    const after = demoLoadedSession(DEMO_CONFIG, events.slice(0, i + 1)).state;
+    const before = demoLoadedSession(DEMO_CONFIG, demoLogOf(events.slice(0, i))).state;
+    const after = demoLoadedSession(DEMO_CONFIG, demoLogOf(events.slice(0, i + 1))).state;
     if (before.groups.length > 0 || after.groups.length > 0) continue;
     if (after.onDeck.length !== 2) continue;
 
@@ -307,7 +307,7 @@ test("game done sends the committed on-deck foursome onto the freed court", () =
     operator: { kind: "organizer", userId: "demo" },
   };
 
-  const after = demoLoadedSession(DEMO_CONFIG, [...events, event]);
+  const after = demoLoadedSession(DEMO_CONFIG, demoLogOf([...events, event]));
   const afterView = rotationViewFrom(after, undefined, NOW);
   const turned = afterView.courts.find((c) => c.number === court.number)!;
 
@@ -342,7 +342,7 @@ test("ten turnovers in a row leave the board whole", () => {
 
   for (let i = 0; i < 10; i++) {
     at += 90_000;
-    const loaded = demoLoadedSession(DEMO_CONFIG, events);
+    const loaded = demoLoadedSession(DEMO_CONFIG, demoLogOf(events));
     const court = loaded.state.courts[i % DEMO_CONFIG.courtCount];
     const outcome = finishCourtOutcome(loaded.state, court.number, court.since);
     assert.equal(outcome.kind, "event", `turnover ${i} produced no event`);
@@ -353,7 +353,7 @@ test("ten turnovers in a row leave the board whole", () => {
     };
     events = [...events, event];
 
-    const after = demoLoadedSession(DEMO_CONFIG, events);
+    const after = demoLoadedSession(DEMO_CONFIG, demoLogOf(events));
     assertNobodyDoubled(after.state);
     assert.equal(after.state.roster.length, DEMO_PLAYER_COUNT);
     const view = rotationViewFrom(after, undefined, at);
