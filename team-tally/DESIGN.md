@@ -310,11 +310,13 @@ Wherever a Team is assigned to a side outside a plate (the setup form's per-Team
 ### Themed browser surfaces
 The surface sets the scrollbar thumb to strong rule on transparent, the caret to Side Blue, and text selection to a pale blue (oklch(0.88 0.08 262)) under navy ink. The document behind the surface (the strip the pill nav floats in, and overscroll) is painted gym white so no other ground shows at the edges.
 
+### Game card and score entry (#623)
+A Game is a white sheet: a dim condensed label ("Captains' game"), then two rows, red over blue as the bug orders them, each a side bar, who plays ("Ben Johns + Collin Johns") over the Team name, and that side's score box. Score boxes are standard number inputs, 3rem square, condensed 800 numerals, strong-rule border empty and navy ink border once filled; an impossible score turns them Flag Amber with the reason beneath. Below the rows, the **"Entered by" lower third**: a small navy plate tag in condensed caps with a 4px bar in the editor's side colour ("Entered by Team Ben Johns"), or plate dim for "Edited by the organizer". The live Round leads under a "Round 2 · Live" slug whose ball-yellow dot is ringed in navy so it holds on white; every other Round folds to one line ("Round 1 · 11–8 · 11–9") with a **FINAL stamp** (ink border, condensed caps, rotated -3deg) once both Games are in. The roster sheet uses plain fields; a slot whose Round has a score turns read-only on a dashed ground fill.
+
 ### Owed by later tickets (not yet built)
-These belong to the world and are recorded so #623 to #625 build them inside it, not around it.
-- **Re-sort motion (signature interaction):** when a score lands, tower rows slide to their new positions and the move mark updates. Under reduced motion it is a hard cut to the new order. The surface already zeroes transition and animation durations under `prefers-reduced-motion`.
-- **FINAL state on the score bug:** a finished Round or Matchup is stamped FINAL; its numbers stay.
-- **"Entered by" lower third:** on Score Link Games, a small plate tag naming who entered the score.
+These belong to the world and are recorded so #624 and #625 build them inside it, not around it.
+- **Re-sort motion (signature interaction):** when a score lands, tower rows slide to their new positions and the move mark updates. Under reduced motion it is a hard cut to the new order. The surface already zeroes transition and animation durations under `prefers-reduced-motion`. (#623 marks the moves; the slide is still owed.)
+- **FINAL on a whole Matchup** once it is marked done (#624).
 - **TV layout:** the Public Link's big screen sets the tower full width in two columns (Flights A to C, then D to G) at large type; Matchup score bugs get their own screen; the TV hard-cuts between screens and never scrolls. More than 14 Teams cycle to another screen rather than shrinking.
 
 ### Named Rules

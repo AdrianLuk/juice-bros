@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 
 import { TtHead } from "@/components/team-tally/tt-head";
 import { CopyBriefButton } from "@/components/team-tally/copy-brief-button";
+import { OrganizerBoard } from "@/components/team-tally/organizer-board";
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { pageMetadata } from "@/lib/metadata";
 import { generateBrief } from "@/lib/team-tally/brief";
 import { verifyOrganizer } from "@/lib/team-tally/dal";
 import { briefInputFor, loadTeamEvent } from "@/lib/team-tally/events";
 import { eventDateLabel } from "@/lib/team-tally/format";
+import { loadOrganizerEvent } from "@/lib/team-tally/live-events";
 import { TEAM_TALLY_ROOT, editTeamEventPath, teamEventPath } from "@/lib/team-tally/routes";
 import { createClient } from "@/lib/team-tally/supabase/server";
 
@@ -29,13 +31,16 @@ export async function generateMetadata({
   };
 }
 
-/** One Team Event, for its Organizer: the Brief, ready to copy. */
+/** One Team Event, for its Organizer: the night's scores, every one editable, then the Brief, ready to copy. */
 export default async function TeamEventPage({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
   await verifyOrganizer();
   const supabase = await createClient();
-  const event = await loadTeamEvent(supabase, eventId);
-  if (!event) notFound();
+  const [event, live] = await Promise.all([
+    loadTeamEvent(supabase, eventId),
+    loadOrganizerEvent(supabase, eventId),
+  ]);
+  if (!event || !live) notFound();
 
   const origin = await absoluteAppUrl("");
   const brief = generateBrief(briefInputFor(event, origin));
@@ -54,6 +59,10 @@ export default async function TeamEventPage({ params }: { params: Promise<{ even
           </>
         }
       />
+
+      <section aria-label="Scores" className="tt-wrap pb-12 sm:pb-16">
+        <OrganizerBoard eventId={event.id} initial={{ event: live }} />
+      </section>
 
       <section className="tt-wrap pb-20 sm:pb-28">
         <div className="tt-sheet mx-auto max-w-3xl">
