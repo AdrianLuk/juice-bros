@@ -182,17 +182,23 @@ function screenNamed(screens: TvScreen[], id: string | undefined): TvScreen | un
  * Every screen stays mounted and only the current one is shown, so the
  * standings tower keeps its up and down marks and can slide its rows when it
  * comes back on screen.
+ *
+ * `framed` sets the stage inside a 16:9 box on the page instead of over the
+ * whole viewport, sized to the box (the demo night's TV, issue #631). It has
+ * no "Scrolling view" link: there is no other view of it to switch to.
  */
 export function TvStage({
   event,
   teams,
   view,
   pinned,
+  framed = false,
 }: {
   event: TeamEventDoc;
   teams: Map<string, DocTeam>;
   view: PublicView;
   pinned?: string;
+  framed?: boolean;
 }) {
   const screens = tvScreens(event);
   const screensKey = screens.map((screen) => screen.id).join(",");
@@ -214,12 +220,14 @@ export function TvStage({
   }, [visible, pin, screensKey, current.id, current.dwellMs]);
 
   const stage = stageOf(event);
+  // Framed, the stage sits under the page's own title.
+  const Title = framed ? "h2" : "h1";
 
   return (
-    <div className="tt-tv" aria-label="Big screen">
+    <div className={framed ? "tt-tv tt-tv-framed" : "tt-tv"} aria-label="Big screen">
       <header className="tt-tv-head">
         <div className="tt-tv-id">
-          <h1 className="tt-tv-title">{event.name}</h1>
+          <Title className="tt-tv-title">{event.name}</Title>
           <p className="tt-tv-meta">
             {eventDateLabel(event.date)} · {event.teams.length} Teams
           </p>
@@ -259,9 +267,11 @@ export function TvStage({
           <span />
         )}
         <div className="tt-tv-sign">
-          <a href="?view=scroll" className="tt-tv-link">
-            Scrolling view
-          </a>
+          {!framed && (
+            <a href="?view=scroll" className="tt-tv-link">
+              Scrolling view
+            </a>
+          )}
           <span className="tt-mark tt-tv-mark">
             <span aria-hidden className="tt-mark-blocks" />
             Team Tally

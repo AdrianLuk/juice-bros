@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { PublicBoard } from "@/components/team-tally/public-board";
+import { PublicBoard } from "@/components/team-tally/live-boards";
 import type { PublicView } from "@/components/team-tally/tv-stage";
 import { loadPublicEvent } from "@/lib/team-tally/live-events";
 import { createClient } from "@/lib/team-tally/supabase/server";

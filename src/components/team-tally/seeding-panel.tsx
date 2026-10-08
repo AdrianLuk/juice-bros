@@ -2,11 +2,11 @@
 
 import { useId, useState, useTransition, type FormEvent } from "react";
 
-import { orderTiedTeams, putTeamAhead, seedFlightsNow, swapFlightCourts } from "@/lib/team-tally/actions/live";
 import { flightMatchups, isScored, openingMatchups, type TeamEventDoc } from "@/lib/team-tally/event-doc";
+import type { OrganizerWrites, WriteResult } from "@/lib/team-tally/live-seam";
 import { computeStandings, standingsMoved, tieCalls, type TieCall } from "@/lib/team-tally/standings";
 
-type Result = { ok: true } | { ok: false; problem: string };
+type Result = WriteResult;
 
 /**
  * The Organizer's Flights sheet (issue #624). Before Seeding: how many
@@ -17,7 +17,7 @@ type Result = { ok: true } | { ok: false; problem: string };
  * moving since Seeding, and swapping two Flights' court pairs until a Flight
  * has a score.
  */
-export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved: () => Promise<unknown> }) {
+export function SeedingPanel({ event, writes }: { event: TeamEventDoc; writes: OrganizerWrites }) {
   const [confirming, setConfirming] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -30,7 +30,6 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
         setProblem(result.problem);
         return;
       }
-      await onSaved();
       after?.();
     });
   }
@@ -42,13 +41,13 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
 
   function putAhead(call: TieCall) {
     if (seeded) {
-      run(() => putTeamAhead(event.id, call.behindTeamId));
+      run(() => writes.putTeamAhead(call.behindTeamId));
       return;
     }
     const order = computeStandings(event).map((row) => row.teamId);
     const behind = order.indexOf(call.behindTeamId);
     [order[behind - 1], order[behind]] = [order[behind], order[behind - 1]];
-    run(() => orderTiedTeams(event.id, order));
+    run(() => writes.orderTiedTeams(order));
   }
 
   const callouts = tieCalls(event).map((call) => (
@@ -83,7 +82,7 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
                 The opening standings have moved since the Flights were placed. The Flights stay as they are.
               </p>
             )}
-            <SwapCourts event={event} pending={pending} run={run} />
+            <SwapCourts event={event} writes={writes} pending={pending} run={run} />
           </>
         ) : (
           <>
@@ -107,7 +106,7 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
                     type="button"
                     className="tt-btn"
                     disabled={pending}
-                    onClick={() => run(() => seedFlightsNow(event.id), () => setConfirming(false))}
+                    onClick={() => run(() => writes.seedFlightsNow(), () => setConfirming(false))}
                   >
                     {pending ? "Placing" : "Place the Flights"}
                   </button>
@@ -135,10 +134,12 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
 
 function SwapCourts({
   event,
+  writes,
   pending,
   run,
 }: {
   event: TeamEventDoc;
+  writes: OrganizerWrites;
   pending: boolean;
   run: (action: () => Promise<Result>) => void;
 }) {
@@ -160,7 +161,7 @@ function SwapCourts({
 
   function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
-    if (from && to && from !== to) run(() => swapFlightCourts(from, to));
+    if (from && to && from !== to) run(() => writes.swapFlightCourts(from, to));
   }
 
   return (

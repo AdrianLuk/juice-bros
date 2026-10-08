@@ -2,18 +2,16 @@
 
 import { useMemo, type CSSProperties } from "react";
 
-import type { LiveView } from "@/lib/team-tally/actions/live";
 import { flightMatchups, openingMatchups } from "@/lib/team-tally/event-doc";
 import { eventDateLabel } from "@/lib/team-tally/format";
+import type { LiveSeam } from "@/lib/team-tally/live-seam";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupGames } from "./matchup-games";
-import { QueryProvider } from "./query-provider";
 import { ResultsSummary } from "./results-summary";
 import { StandingsTower } from "./standings-tower";
 import { TtAppBar } from "./tt-head";
 import { TvStage, type PublicView } from "./tv-stage";
-import { useLiveEvent } from "./use-live-event";
 
 /**
  * The Public Link (issues #623, #624, #625). It lays itself out for whatever
@@ -42,37 +40,17 @@ function towerSpan(teamCount: number): number {
   return Math.max(1, Math.round(towerPx / 215)) + 1;
 }
 
-export function PublicBoard({
-  token,
-  initial,
-  view = "auto",
+export function PublicScreen({
+  live,
+  view: forced = "auto",
   screen,
 }: {
-  token: string;
-  initial: LiveView;
+  /** Read-only: the Public Link has no writes. */
+  live: Pick<LiveSeam, "view">;
   view?: PublicView;
   screen?: string;
 }) {
-  return (
-    <QueryProvider>
-      <PublicBoardInner token={token} initial={initial} view={view} screen={screen} />
-    </QueryProvider>
-  );
-}
-
-function PublicBoardInner({
-  token,
-  initial,
-  view: forced,
-  screen,
-}: {
-  token: string;
-  initial: LiveView;
-  view: PublicView;
-  screen?: string;
-}) {
-  const { view } = useLiveEvent({ kind: "public", token }, initial);
-  const { event } = view;
+  const { event } = live.view;
   const teams = useMemo(() => new Map(event.teams.map((team) => [team.id, team])), [event.teams]);
   const flights = flightMatchups(event);
   const opening = openingMatchups(event);

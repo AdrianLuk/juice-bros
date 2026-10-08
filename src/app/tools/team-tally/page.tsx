@@ -13,6 +13,7 @@ import { getOptionalOrganizer } from "@/lib/team-tally/dal";
 import { listTeamEvents } from "@/lib/team-tally/events";
 import { eventDateLabel, eventDateParts } from "@/lib/team-tally/format";
 import {
+  TEAM_TALLY_DEMO_PATH,
   TEAM_TALLY_NEW_EVENT_PATH,
   TEAM_TALLY_SIGN_IN_PATH,
   teamEventPath,
@@ -69,6 +70,9 @@ function Landing() {
           <div className="tt-actions">
             <Link href={TEAM_TALLY_SIGN_IN_PATH} className="tt-btn">
               Sign in to build a night
+            </Link>
+            <Link href={TEAM_TALLY_DEMO_PATH} className="tt-btn tt-btn-ghost">
+              Try a demo night
             </Link>
           </div>
         </div>

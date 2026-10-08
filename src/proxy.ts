@@ -11,6 +11,7 @@ import {
 import {
   TEAM_TALLY_ROOT,
   TEAM_TALLY_SIGN_IN_PATH,
+  isTeamTallyDemo,
   requiresOrganizerSession as requiresTeamTallyOrganizer,
 } from "@/lib/team-tally/routes";
 
@@ -32,9 +33,12 @@ const WWW_HOST = `www.${CANONICAL_HOST}`;
 //
 // Team Tally's whole subtree is in scope: its root page branches on the
 // session (landing or the Organizer's list), and its Team Events are gated.
+// Except the demo night (issue #631), which runs in the browser and has no
+// backend to refresh a session for.
 const SUPABASE_SCOPED_PREFIXES = ["/booking-buddy", "/on-deck/home", "/on-deck/dev", TEAM_TALLY_ROOT];
 
 function needsSupabaseRefresh(pathname: string) {
+  if (isTeamTallyDemo(pathname)) return false;
   return SUPABASE_SCOPED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

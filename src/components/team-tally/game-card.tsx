@@ -2,7 +2,6 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 
-import { saveGameScore, type LiveWriter } from "@/lib/team-tally/actions/live";
 import {
   captainTeamName,
   isScored,
@@ -15,6 +14,7 @@ import {
   type GameKind,
   type Round,
 } from "@/lib/team-tally/event-doc";
+import type { TeamWrites } from "@/lib/team-tally/live-seam";
 import { checkGameScore } from "@/lib/team-tally/score";
 
 export const KIND_LABEL: Record<GameKind, string> = {
@@ -80,15 +80,13 @@ export function GameCard({
   game,
   matchup,
   teams,
-  writer,
-  onSaved,
+  writes,
   locked = false,
 }: {
   game: DocGame;
   matchup: DocMatchup;
   teams: Map<string, DocTeam>;
-  writer: LiveWriter;
-  onSaved: () => Promise<unknown>;
+  writes: TeamWrites;
   locked?: boolean;
 }) {
   const red = teams.get(matchup.redTeamId)!;
@@ -123,12 +121,11 @@ export function GameCard({
       return;
     }
     startTransition(async () => {
-      const result = await saveGameScore(writer, game.id, redPoints, bluePoints);
+      const result = await writes.saveGameScore(game.id, redPoints, bluePoints);
       if (!result.ok) {
         setProblem(result.problem);
         return;
       }
-      await onSaved();
       setDraft(null);
     });
   }

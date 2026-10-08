@@ -2,21 +2,23 @@
 
 import { useMemo } from "react";
 
-import type { LiveView } from "@/lib/team-tally/actions/live";
 import { captainTeamName, type DocMatchup, flightMatchups, openingMatchups, scoredRoundsFor, sideOf, teamName } from "@/lib/team-tally/event-doc";
 import { finalPlaces, ordinal } from "@/lib/team-tally/final-places";
 import { eventDateLabel } from "@/lib/team-tally/format";
+import type { LiveSeam } from "@/lib/team-tally/live-seam";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
 import { MatchupGames } from "./matchup-games";
 import { MatchupRounds } from "./matchup-rounds";
-import { QueryProvider } from "./query-provider";
 import { ResultsSummary } from "./results-summary";
 import { RosterForm } from "./roster-form";
 import { StandingsTower } from "./standings-tower";
 import { TtAppBar } from "./tt-head";
-import { useLiveEvent } from "./use-live-event";
+
+function isMatchup(matchup: DocMatchup | undefined): matchup is DocMatchup {
+  return matchup !== undefined;
+}
 
 /**
  * A captain's Score Link (issues #623, #624): their Matchup's bug, the live
@@ -24,27 +26,16 @@ import { useLiveEvent } from "./use-live-event";
  * Matchup done once Round 3 is in; then the standings and their own roster.
  * Once the Flights are placed it switches to their Flight: the hand-off
  * (Flight and court pair, at display size) leads, every other Flight and the
- * opening record sit beside it. No account; the token is the credential.
+ * opening record sit beside it.
+ *
+ * Reads and writes through the live seam (issue #631): a real Score Link's
+ * adapter is `ScoreLinkBoard`, the demo night's is the demo stage.
  */
-export function ScoreLinkBoard({ token, initial }: { token: string; initial: LiveView }) {
-  return (
-    <QueryProvider>
-      <ScoreLinkBoardInner token={token} initial={initial} />
-    </QueryProvider>
-  );
-}
-
-function isMatchup(matchup: DocMatchup | undefined): matchup is DocMatchup {
-  return matchup !== undefined;
-}
-
-function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveView }) {
-  const { view, refresh } = useLiveEvent({ kind: "score", token }, initial);
+export function ScoreLinkScreen({ live, myTeamId }: { live: LiveSeam; myTeamId: string }) {
+  const { view, writes } = live;
   const { event } = view;
-  const myTeamId = view.myTeamId ?? initial.myTeamId!;
   const teams = useMemo(() => new Map(event.teams.map((team) => [team.id, team])), [event.teams]);
   const me = teams.get(myTeamId)!;
-  const writer = { kind: "score" as const, token };
 
   const myMatchups = event.matchups.filter((matchup) => sideOf(matchup, myTeamId));
   const opening = myMatchups.find((matchup) => matchup.stage === "opening");
@@ -130,12 +121,11 @@ function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveV
             {mine ? (
               <>
                 <MatchupBug matchup={mine} teams={teams} />
-                <MatchupRounds matchup={mine} teams={teams} writer={writer} onSaved={refresh} />
+                <MatchupRounds matchup={mine} teams={teams} writes={writes} />
                 <MatchupDonePanel
                   matchup={mine}
                   teams={teams}
-                  writer={writer}
-                  onSaved={refresh}
+                  writes={writes}
                   lastOpening={
                     mine.stage === "opening" &&
                     event.status === "opening" &&
@@ -176,8 +166,8 @@ function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveV
                       <b>Finish the opening Matchup</b>
                     </summary>
                     <div className="tt-round-body">
-                      <MatchupRounds matchup={opening} teams={teams} writer={writer} onSaved={refresh} />
-                      <MatchupDonePanel matchup={opening} teams={teams} writer={writer} onSaved={refresh} />
+                      <MatchupRounds matchup={opening} teams={teams} writes={writes} />
+                      <MatchupDonePanel matchup={opening} teams={teams} writes={writes} />
                     </div>
                   </details>
                 )}
@@ -187,8 +177,7 @@ function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveV
               team={me}
               title="Your roster"
               scoredRounds={scoredRoundsFor(event, myTeamId)}
-              writer={writer}
-              onSaved={refresh}
+              writes={writes}
             />
           </div>
         </div>

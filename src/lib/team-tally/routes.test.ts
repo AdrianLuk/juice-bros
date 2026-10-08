@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  TEAM_TALLY_DEMO_PATH,
   TEAM_TALLY_NEW_EVENT_PATH,
   TEAM_TALLY_ROOT,
   TEAM_TALLY_SIGN_IN_PATH,
   editTeamEventPath,
+  isTeamTallyDemo,
   publicLinkPath,
   requiresOrganizerSession,
   safeRedirectTarget,
@@ -43,4 +45,14 @@ test("a post-sign-in redirect stays inside Team Tally", () => {
   assert.equal(safeRedirectTarget("/on-deck/home"), TEAM_TALLY_ROOT);
   // Never back to sign-in, which would loop.
   assert.equal(safeRedirectTarget(`${TEAM_TALLY_SIGN_IN_PATH}?next=/x`), TEAM_TALLY_ROOT);
+});
+
+test("the demo night is public and needs no database", () => {
+  assert.equal(TEAM_TALLY_DEMO_PATH, "/tools/team-tally/demo");
+  assert.equal(requiresOrganizerSession(TEAM_TALLY_DEMO_PATH), false);
+  assert.equal(isTeamTallyDemo(TEAM_TALLY_DEMO_PATH), true);
+  assert.equal(isTeamTallyDemo(`${TEAM_TALLY_DEMO_PATH}/`), true);
+  assert.equal(isTeamTallyDemo(TEAM_TALLY_ROOT), false);
+  assert.equal(isTeamTallyDemo(scoreLinkPath("demo")), false);
+  assert.equal(isTeamTallyDemo("/tools/team-tally/demonstration"), false);
 });

@@ -17,6 +17,16 @@ const EVENTS_PATH = `${TEAM_TALLY_ROOT}/events`;
 /** Build a new Team Event. */
 export const TEAM_TALLY_NEW_EVENT_PATH = `${EVENTS_PATH}/new`;
 
+/**
+ * The demo night (issue #631): the real screens folded in the browser. Open
+ * to anyone, and it touches no database, so the proxy leaves it alone.
+ */
+export const TEAM_TALLY_DEMO_PATH = `${TEAM_TALLY_ROOT}/demo`;
+
+export function isTeamTallyDemo(pathname: string): boolean {
+  return pathname.replace(/\/$/, "") === TEAM_TALLY_DEMO_PATH;
+}
+
 /** One Team Event, for its Organizer: the Brief and what comes after it. */
 export function teamEventPath(eventId: string): string {
   return `${EVENTS_PATH}/${eventId}`;

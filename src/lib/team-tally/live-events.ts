@@ -13,9 +13,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { TeamEventDoc } from "./event-doc.ts";
+import type { WriteResult } from "./live-seam.ts";
 import type { Roster } from "./roster.ts";
 
-export type WriteResult = { ok: true } | { ok: false; problem: string };
+export type { WriteResult };
 
 export type ScoreLinkView = {
   event: TeamEventDoc;

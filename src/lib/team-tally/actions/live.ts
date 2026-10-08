@@ -3,7 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { verifyOrganizer } from "../dal.ts";
-import type { TeamEventDoc } from "../event-doc.ts";
+import type { LiveView } from "../live-seam.ts";
 import {
   loadOrganizerEvent,
   loadPublicEvent,
@@ -45,7 +45,7 @@ export type LiveReader =
  */
 export type LiveWriter = { kind: "score"; token: string } | { kind: "organizer" };
 
-export type LiveView = { event: TeamEventDoc; myTeamId?: string };
+export type { LiveView };
 
 /** The current Team Event for a live screen, or null when the link or event is gone. */
 export async function readLiveEvent(reader: LiveReader): Promise<LiveView | null> {
