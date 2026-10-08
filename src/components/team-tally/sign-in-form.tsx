@@ -41,7 +41,7 @@ export function TeamTallySignInForm({
 
   if (magicState.sent || signUpState.sent) {
     return (
-      <p className="text-[0.9375rem] leading-relaxed text-(--bx-muted)">
+      <p className="text-[0.9375rem] leading-relaxed text-(--tt-ink-dim)">
         Check your email. We&apos;ve sent you a sign-in link, and you can close this tab.
       </p>
     );
@@ -51,9 +51,9 @@ export function TeamTallySignInForm({
     mode === "magic-link" ? magicState.error : mode === "password" ? passwordState.error : signUpState.error;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       {error && (
-        <p role="alert" className="text-[0.9375rem] text-(--bx-ink)">
+        <p role="alert" className="text-[0.9375rem] text-(--tt-ink)">
           {ERRORS[error] ?? "Something went wrong signing you in. Try again."}
         </p>
       )}
@@ -62,7 +62,7 @@ export function TeamTallySignInForm({
         <form action={magicAction} className="flex flex-col gap-4">
           <input type="hidden" name="next" value={next} />
           <Field id="tt-magic-email" label="Email" name="email" type="email" autoComplete="email" />
-          <p className="text-sm text-(--bx-muted)">We&apos;ll email you a link. No password to remember.</p>
+          <p className="text-sm text-(--tt-ink-dim)">We&apos;ll email you a link. No password to remember.</p>
           <Submit pending={magicPending} idle="Email me a sign-in link" busy="Sending…" />
         </form>
       )}
@@ -99,13 +99,13 @@ export function TeamTallySignInForm({
       )}
 
       {formError && (
-        <p role="alert" className="text-[0.9375rem] text-(--bx-ink)">
+        <p role="alert" className="text-[0.9375rem] text-(--tt-ink)">
           {formError}
         </p>
       )}
 
       {googleClientId && (
-        <div className="flex flex-col gap-4 border-t border-(--bx-line-soft) pt-6">
+        <div className="flex min-w-0 flex-col gap-4 border-t border-(--tt-rule) pt-6">
           <GoogleSignInButton
             clientId={googleClientId}
             next={next}
@@ -115,19 +115,19 @@ export function TeamTallySignInForm({
         </div>
       )}
 
-      <div className="flex flex-col items-start gap-2 border-t border-(--bx-line-soft) pt-5">
+      <div className="flex flex-col items-start gap-2 border-t border-(--tt-rule) pt-5">
         {mode !== "magic-link" && (
-          <button type="button" className="bx-quietlink" onClick={() => setMode("magic-link")}>
+          <button type="button" className="tt-quietlink" onClick={() => setMode("magic-link")}>
             Email me a link instead
           </button>
         )}
         {mode !== "password" && (
-          <button type="button" className="bx-quietlink" onClick={() => setMode("password")}>
+          <button type="button" className="tt-quietlink" onClick={() => setMode("password")}>
             Sign in with a password
           </button>
         )}
         {mode !== "sign-up" && (
-          <button type="button" className="bx-quietlink" onClick={() => setMode("sign-up")}>
+          <button type="button" className="tt-quietlink" onClick={() => setMode("sign-up")}>
             Create an account with a password
           </button>
         )}
@@ -143,17 +143,17 @@ function Field({
 }: { id: string; label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="bx-label">
+      <label htmlFor={id} className="tt-label">
         {label}
       </label>
-      <input id={id} className="bx-field" required {...input} />
+      <input id={id} className="tt-field" required {...input} />
     </div>
   );
 }
 
 function Submit({ pending, idle, busy }: { pending: boolean; idle: string; busy: string }) {
   return (
-    <button type="submit" disabled={pending} className="bx-btn bx-btn-play w-fit disabled:opacity-60">
+    <button type="submit" disabled={pending} className="tt-btn w-fit">
       {pending ? busy : idle}
     </button>
   );

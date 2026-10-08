@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { PageHead } from "@/components/bx/page-head";
+import { TtHead } from "@/components/team-tally/tt-head";
 import { SetupForm } from "@/components/team-tally/setup-form";
 import { pageMetadata } from "@/lib/metadata";
 import { verifyOrganizer } from "@/lib/team-tally/dal";
@@ -20,13 +20,13 @@ export default async function NewTeamEventPage() {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <PageHead
+      <TtHead
         title="New Team Event"
         lead="Enter each Matchup's two Teams. A Matchup plays on its two Teams' home courts."
       />
-      <section className="bx-measure pb-20 sm:pb-28">
+      <section className="tt-wrap pb-20 sm:pb-28">
         <SetupForm defaultDate={comingTuesday(clubToday())} />
-        <Link href={TEAM_TALLY_ROOT} className="bx-quietlink mt-10 inline-block">
+        <Link href={TEAM_TALLY_ROOT} className="tt-quietlink mt-10 inline-block">
           Back to your Team Events
         </Link>
       </section>

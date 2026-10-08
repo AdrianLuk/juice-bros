@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { TeamTallySignInForm } from "@/components/team-tally/sign-in-form";
+import { TtAppBar } from "@/components/team-tally/tt-head";
 import { pageMetadata } from "@/lib/metadata";
 import { getOptionalOrganizer } from "@/lib/team-tally/dal";
 import { readGoogleSignInClientId } from "@/lib/team-tally/env";
@@ -27,13 +28,14 @@ export default async function TeamTallySignInPage({
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <section className="bx-measure pt-12 pb-20 sm:pt-16 sm:pb-28">
-        <div className="mx-auto max-w-md">
-          <h1 className="bx-display text-[clamp(2rem,5vw,2.75rem)]">Sign in to Team Tally</h1>
-          <p className="mt-4 text-[1.0625rem] leading-relaxed text-(--bx-muted)">
+      <TtAppBar />
+      <section className="tt-wrap pt-8 pb-20 sm:pt-12 sm:pb-28">
+        <div className="mx-auto grid max-w-md gap-5 [&>*]:min-w-0">
+          <h1 className="tt-title text-[clamp(2.25rem,6vw,3rem)]">Sign in to Team Tally</h1>
+          <p className="tt-lead text-[1.0625rem]">
             For organizers. Captains score from the link in the brief, no account needed.
           </p>
-          <div className="bx-panel mt-8 p-6 sm:p-8">
+          <div className="tt-sheet tt-section-body mt-3">
             <TeamTallySignInForm next={target} error={error} googleClientId={readGoogleSignInClientId()} />
           </div>
         </div>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { PageHead } from "@/components/bx/page-head";
+import { TtHead } from "@/components/team-tally/tt-head";
 import { CopyBriefButton } from "@/components/team-tally/copy-brief-button";
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { pageMetadata } from "@/lib/metadata";
@@ -42,28 +42,30 @@ export default async function TeamEventPage({ params }: { params: Promise<{ even
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <PageHead
+      <TtHead
         title={event.name}
         meta={`${eventDateLabel(event.date)} · ${event.teams.length} Teams · ${event.matchups.length} Matchups`}
         actions={
           <>
             <CopyBriefButton brief={brief} />
-            <Link href={editTeamEventPath(event.id)} className="bx-btn bx-btn-ghost">
+            <Link href={editTeamEventPath(event.id)} className="tt-btn tt-btn-ghost">
               Edit setup
             </Link>
           </>
         }
       />
 
-      <section className="bx-measure pb-20 sm:pb-28">
-        <h2 className="bx-meta">The brief</h2>
-        <pre
-          aria-label="The brief"
-          className="bx-panel mt-3 overflow-x-auto p-5 font-sans text-[0.9375rem] leading-relaxed whitespace-pre-wrap break-words text-(--bx-ink) sm:p-8"
-        >
-          {brief}
-        </pre>
-        <Link href={TEAM_TALLY_ROOT} className="bx-quietlink mt-10 inline-block">
+      <section className="tt-wrap pb-20 sm:pb-28">
+        <div className="tt-sheet mx-auto max-w-3xl">
+          <div className="tt-section-head">
+            <h2 className="tt-h2">The brief</h2>
+            <span className="tt-meta">For the group chat</span>
+          </div>
+          <pre aria-label="The brief" className="tt-brief">
+            {brief}
+          </pre>
+        </div>
+        <Link href={TEAM_TALLY_ROOT} className="tt-quietlink mx-auto mt-10 block w-fit">
           Back to your Team Events
         </Link>
       </section>

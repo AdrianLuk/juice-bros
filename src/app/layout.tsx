@@ -10,6 +10,8 @@ import {
   Libre_Franklin,
   Saira_Condensed,
   Schibsted_Grotesk,
+  Sofia_Sans,
+  Sofia_Sans_Extra_Condensed,
 } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -104,6 +106,22 @@ const schibstedGrotesk = Schibsted_Grotesk({
   subsets: ["latin"],
 });
 
+// Team Tally's world (direction seed fb8e9ead) — "the broadcast package":
+// every live number on a team night set as a sports-TV graphic. Sofia Sans
+// Extra Condensed is the graphics face: score-bug numerals, team names on the
+// timing tower, plate labels in tracked caps. Sofia Sans is everything read or
+// tapped. Not Archivo, which is Match Mixer's board. Scoped to `.tt-surface`
+// in globals.css.
+const sofiaSans = Sofia_Sans({
+  variable: "--font-tt",
+  subsets: ["latin"],
+});
+
+const sofiaSansExtraCondensed = Sofia_Sans_Extra_Condensed({
+  variable: "--font-tt-cond",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -146,7 +164,7 @@ export default function RootLayout({
       // Next to suspend it for the scroll-restoration jump on a route change
       // so it doesn't animate against the page/View Transition.
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} ${schibstedGrotesk.variable} h-full antialiased`}
+      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} ${schibstedGrotesk.variable} ${sofiaSans.variable} ${sofiaSansExtraCondensed.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>

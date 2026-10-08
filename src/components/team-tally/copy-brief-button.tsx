@@ -25,10 +25,10 @@ export function CopyBriefButton({ brief }: { brief: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <button type="button" onClick={copy} className="bx-btn bx-btn-play">
+      <button type="button" onClick={copy} className="tt-btn">
         Copy brief
       </button>
-      <p role="status" aria-live="polite" className="text-sm text-(--bx-muted)">
+      <p role="status" aria-live="polite" className="text-sm text-(--tt-ink-dim)">
         {state === "copied" && "Copied. Paste it into the group chat."}
         {state === "failed" && "Couldn't copy. Select the text below and copy it yourself."}
       </p>

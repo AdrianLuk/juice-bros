@@ -89,8 +89,8 @@ function toSetup(name: string, date: string, matchups: MatchupDraft[]): TeamEven
  * Teams. Building it Matchup by Matchup puts every Team in exactly one
  * Matchup by construction; `validateSetup` on the server checks the rest.
  *
- * Plain on the site's Broadcast Dark tokens until #627 gives Team Tally its
- * own look.
+ * Each Matchup is one sheet with its two Teams side by side, red then blue,
+ * the way the brief lists them.
  */
 export function SetupForm({
   eventId,
@@ -170,19 +170,19 @@ export function SetupForm({
       <input type="hidden" name="setup" value={JSON.stringify(toSetup(name, date, matchups))} />
       {eventId && <input type="hidden" name="eventId" value={eventId} />}
 
-      <div className="bx-panel flex flex-col gap-4 p-6 sm:p-8">
+      <div className="tt-sheet tt-section-body flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <label htmlFor={`${pasteId}-paste`} className="bx-label">
+          <label htmlFor={`${pasteId}-paste`} className="tt-label">
             Paste an old brief
-            <span className="font-normal text-(--bx-muted)"> (optional)</span>
+            <span className="font-normal text-(--tt-ink-dim)"> (optional)</span>
           </label>
-          <p className="text-sm text-(--bx-muted)">
+          <p className="text-sm text-(--tt-ink-dim)">
             Copy the brief you sent before and paste it here. The Teams, nicknames, home courts and
             court pairs fill the form below.
           </p>
           <textarea
             id={`${pasteId}-paste`}
-            className="bx-field min-h-32 font-mono text-sm"
+            className="tt-field min-h-32 text-sm"
             value={pasted}
             onChange={(event) => setPasted(event.target.value)}
             spellCheck={false}
@@ -191,7 +191,7 @@ export function SetupForm({
         <div className="flex flex-wrap items-center gap-4">
           <button
             type="button"
-            className="bx-btn bx-btn-ghost"
+            className="tt-btn tt-btn-ghost"
             disabled={pasted.trim() === ""}
             onClick={readPasted}
           >
@@ -199,35 +199,35 @@ export function SetupForm({
           </button>
         </div>
         {awaiting && (
-          <div role="alertdialog" aria-label="Replace the Teams in the form" className="bx-panel flex flex-col gap-4 p-4">
+          <div role="alertdialog" aria-label="Replace the Teams in the form" className="flex flex-col gap-4 rounded-lg border-[1.5px] border-(--tt-ink) p-4">
             <p className="text-[0.9375rem]">
               The form already has Teams in it. Replace them with the {awaiting.matchups.length} Matches
               from the pasted brief?
               {eventId && " Teams you replace get new Score Links, so the Score Links in the brief you already sent stop working."}
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <button type="button" className="bx-btn bx-btn-play" onClick={() => applyBrief(awaiting)}>
+              <button type="button" className="tt-btn" onClick={() => applyBrief(awaiting)}>
                 Replace the form
               </button>
-              <button type="button" className="bx-quietlink" onClick={() => setAwaiting(null)}>
+              <button type="button" className="tt-quietlink" onClick={() => setAwaiting(null)}>
                 Keep what is there
               </button>
             </div>
           </div>
         )}
-        <p role="status" className="text-sm text-(--bx-muted)">
+        <p role="status" className="text-sm text-(--tt-ink-dim)">
           {pasteNotice}
         </p>
       </div>
 
-      <div className="bx-panel grid gap-6 p-6 sm:grid-cols-[minmax(0,1fr)_14rem] sm:p-8">
+      <div className="tt-sheet tt-section-body grid gap-6 sm:grid-cols-[minmax(0,1fr)_14rem]">
         <div className="flex flex-col gap-2">
-          <label htmlFor="tt-event-name" className="bx-label">
+          <label htmlFor="tt-event-name" className="tt-label">
             Name of the night
           </label>
           <input
             id="tt-event-name"
-            className="bx-field"
+            className="tt-field"
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Tuesday Team Night"
@@ -235,13 +235,13 @@ export function SetupForm({
           />
         </div>
         <div className="flex flex-col gap-2">
-          <label htmlFor="tt-event-date" className="bx-label">
+          <label htmlFor="tt-event-date" className="tt-label">
             Date
           </label>
           <input
             id="tt-event-date"
             type="date"
-            className="bx-field"
+            className="tt-field"
             value={date}
             onChange={(event) => setDate(event.target.value)}
             required
@@ -251,23 +251,25 @@ export function SetupForm({
 
       <ol className="flex flex-col gap-6">
         {matchups.map((matchup, index) => (
-          <li key={matchup.key} className="bx-panel p-6 sm:p-8">
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="bx-h2 text-lg">Match {index + 1}</h2>
-              <p className="bx-meta">
+          <li key={matchup.key} className="tt-sheet">
+            <div className="tt-section-head">
+              <h2 className="tt-h2">Match {index + 1}</h2>
+              <p className="tt-meta m-0">
                 {matchup.red.homeCourt.trim() && matchup.blue.homeCourt.trim()
                   ? `Courts ${matchup.red.homeCourt.trim()} & ${matchup.blue.homeCourt.trim()}`
                   : "Courts from the two home courts"}
               </p>
             </div>
-            <div className="mt-6 grid gap-8 lg:grid-cols-2">
+            <div className="tt-section-body grid gap-8 lg:grid-cols-2">
               <TeamFields
                 legend={`Match ${index + 1}, team 1`}
+                side="red"
                 team={matchup.red}
                 onChange={(field, value) => updateTeam(matchup.key, "red", field, value)}
               />
               <TeamFields
                 legend={`Match ${index + 1}, team 2`}
+                side="blue"
                 team={matchup.blue}
                 onChange={(field, value) => updateTeam(matchup.key, "blue", field, value)}
               />
@@ -275,7 +277,7 @@ export function SetupForm({
             {matchups.length > MIN_MATCHUPS && (
               <button
                 type="button"
-                className="bx-quietlink mt-6"
+                className="tt-quietlink mx-5 mb-5 sm:mx-7 sm:mb-6"
                 onClick={() => setMatchups((current) => current.filter((item) => item.key !== matchup.key))}
               >
                 Remove Match {index + 1}
@@ -289,21 +291,21 @@ export function SetupForm({
         {matchups.length < MAX_MATCHUPS && (
           <button
             type="button"
-            className="bx-btn bx-btn-ghost"
+            className="tt-btn tt-btn-ghost"
             onClick={() => setMatchups((current) => [...current, blankMatchup()])}
           >
             Add a Matchup
           </button>
         )}
-        <p className="text-sm text-(--bx-muted)">
+        <p className="text-sm text-(--tt-ink-dim)">
           {matchups.length * 2} Teams, {matchups.length} Flights. Up to 14 Teams.
         </p>
       </div>
 
       {state.problems && state.problems.length > 0 && (
-        <div role="alert" className="bx-panel p-6">
-          <p className="bx-label">Fix these before saving:</p>
-          <ul className="mt-3 flex list-disc flex-col gap-1.5 pl-5 text-[0.9375rem] text-(--bx-muted)">
+        <div role="alert" className="tt-sheet tt-section-body border-(--tt-flag)">
+          <p className="tt-label">Fix these before saving:</p>
+          <ul className="mt-3 flex list-disc flex-col gap-1.5 pl-5 text-[0.9375rem] text-(--tt-ink-dim)">
             {state.problems.map((problem) => (
               <li key={problem}>{problem}</li>
             ))}
@@ -311,28 +313,31 @@ export function SetupForm({
         </div>
       )}
 
-      <button type="submit" disabled={pending} className="bx-btn bx-btn-play w-fit disabled:opacity-60">
+      <button type="submit" disabled={pending} className="tt-btn w-fit">
         {pending ? "Saving…" : eventId ? "Save changes" : "Save and write the brief"}
       </button>
     </form>
   );
 }
 
-const TEAM_FIELDS: { field: keyof SetupTeam; label: string; optional?: boolean; short?: boolean }[] = [
-  { field: "captain", label: "Captain" },
-  { field: "slotA", label: "Player A" },
-  { field: "slotB", label: "Player B" },
-  { field: "slotC", label: "Player C" },
+/** `wide` fields take the whole row on a phone, where two-up would cut a full name short. */
+const TEAM_FIELDS: { field: keyof SetupTeam; label: string; optional?: boolean; short?: boolean; wide?: boolean }[] = [
+  { field: "captain", label: "Captain", wide: true },
+  { field: "slotA", label: "Player A", wide: true },
+  { field: "slotB", label: "Player B", wide: true },
+  { field: "slotC", label: "Player C", wide: true },
   { field: "nickname", label: "Nickname", optional: true },
   { field: "homeCourt", label: "Home court", short: true },
 ];
 
 function TeamFields({
   legend,
+  side,
   team,
   onChange,
 }: {
   legend: string;
+  side: "red" | "blue";
   team: TeamDraft;
   onChange: (field: keyof SetupTeam, value: string) => void;
 }) {
@@ -340,23 +345,23 @@ function TeamFields({
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-4">
-      <legend className="bx-meta mb-4">{legend}</legend>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {TEAM_FIELDS.map(({ field, label, optional, short }) => {
+      <legend className="tt-legend mb-4">
+        <span aria-hidden className={`tt-side ${side === "red" ? "tt-side-red" : "tt-side-blue"}`} />
+        {legend}
+      </legend>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
+        {TEAM_FIELDS.map(({ field, label, optional, short, wide }) => {
           const flagged = team.flagged?.includes(field as TeamField) ?? false;
           return (
-            <div key={field} className="flex flex-col gap-2">
-              <label htmlFor={`${id}-${field}`} className="bx-label">
+            <div key={field} className={`flex min-w-0 flex-col gap-2 ${wide ? "col-span-2 sm:col-span-1" : ""}`}>
+              <label htmlFor={`${id}-${field}`} className="tt-label">
                 {label}
-                {optional && <span className="font-normal text-(--bx-muted)"> (optional)</span>}
-                {flagged && <span className="font-normal text-[var(--bx-accent)]"> (check this)</span>}
+                {optional && <span className="font-normal text-(--tt-ink-dim)"> (optional)</span>}
+                {flagged && <span className="tt-flag-note"> (check this)</span>}
               </label>
               <input
                 id={`${id}-${field}`}
-                className={[
-                  short ? "bx-field sm:max-w-[8rem]" : "bx-field",
-                  flagged ? "outline-2 outline-offset-0 outline-[var(--bx-accent)]" : "",
-                ].join(" ")}
+                className={short ? "tt-field max-w-[8rem]" : "tt-field"}
                 value={team[field] ?? ""}
                 onChange={(event) => onChange(field, event.target.value)}
                 required={!optional}
