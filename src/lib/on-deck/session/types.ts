@@ -399,6 +399,19 @@ export type EventBody = SessionEvent extends infer E
   : never;
 
 /**
+ * The newest event of a Session's log that decoded, with the `seq` its log
+ * stored it under: the seq/type/at/operator the fold discards but operator
+ * Undo (#247) needs. Built by `lastEventOf` (`codec.ts`).
+ */
+export type LastEvent = {
+  seq: number;
+  type: string;
+  /** epoch ms */
+  at: number;
+  operator: Operator;
+};
+
+/**
  * The one-line explainer of how a Queue Together Group's place in line works —
  * so a Group sitting mid-Queue doesn't read as line-jumping (issue #238 user
  * story 57, issue #251). Shown on the Display and the floor's Queue; kept here

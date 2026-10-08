@@ -16,13 +16,13 @@
  * Supabase client.
  */
 
-import type { LastEvent } from "../floor-ops.ts";
 import { reduceSession } from "./reduce.ts";
 import type { LoadedSession } from "./rotation-view.ts";
 import {
   isPauseReason,
   isSkillLevel,
   type EventBody,
+  type LastEvent,
   type Operator,
   type SessionConfig,
   type SessionEvent,
@@ -316,16 +316,32 @@ export type LoggedEvents = {
   lastEvent: LastEvent | null;
 };
 
+/** `lastEvent` for the event a log stored under `seq`. */
+export function lastEventOf(seq: number, event: SessionEvent): LastEvent {
+  return { seq, type: event.type, at: event.at, operator: event.operator };
+}
+
+/**
+ * What `SessionEventLog.load` hands back: the decoded log plus `lastRowAt`,
+ * the latest `at` over every stored row, decoded or not (null for an empty
+ * log). Auto-close's SQL compares `max(at)` over every row, a skipped one
+ * included, so the staleness pre-check reads this rather than `lastEvent.at`.
+ */
+export type LoadedLog = LoggedEvents & { lastRowAt: number | null };
+
 /**
  * One Session's event log, whatever holds it: Postgres
  * (`../supabase/event-log.ts`) on a real night, an array in the browser
  * (`../demo/fold.ts`) on the Demo night. `seq` is the log's own: a global
  * identity in the database, a per-log counter in memory — never reused, so a
  * stale Undo can't hit the event that replaced the one it saw.
+ *
+ * `append` takes the body and who fired it, never `at`: the log stamps it, as
+ * the database's `default now()` does.
  */
 export type SessionEventLog = {
-  append(sessionId: string, event: SessionEvent): Promise<void>;
-  load(sessionId: string): Promise<LoggedEvents>;
+  append(sessionId: string, body: EventBody, operator: Operator): Promise<void>;
+  load(sessionId: string): Promise<LoadedLog>;
 };
 
 /**
@@ -348,14 +364,8 @@ export function decodeLog(rows: readonly EventRow[]): LoggedEvents {
       });
       continue;
     }
-    const { event } = result;
-    events.push(event);
-    lastEvent = {
-      seq: row.seq,
-      type: event.type,
-      at: event.at,
-      operator: event.operator,
-    };
+    events.push(result.event);
+    lastEvent = lastEventOf(row.seq, result.event);
   }
   return { events, lastEvent };
 }

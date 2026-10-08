@@ -1,9 +1,11 @@
 /**
  * The `SessionEventLog` contract (issue #618), run against both adapters: the
- * Supabase one on the local database as a signed-in Organizer, and the
- * in-memory one the Demo night uses. Whatever holds the log, append then load
- * gives the same events back in the same order, and `lastEvent` carries the
- * `seq` the newest one was stored under.
+ * Supabase one on the local database as a signed-in Organizer (what the live
+ * loader and the Organizer's floor writes go through), and the in-memory one
+ * built from the same `DemoLog` functions the Demo night runs. Whatever holds
+ * the log, append then load gives the same events back in the same order,
+ * stamped by the log itself; `lastEvent` carries the `seq` the newest one was
+ * stored under; and `lastRowAt` is the newest row's `at`.
  */
 
 import assert from "node:assert/strict";
@@ -15,10 +17,10 @@ import {
   deleteTestUser,
   serviceRoleClient,
   type TestUser,
-} from "../../booking-buddy/db-test-support.ts";
+} from "../../db-test-support.ts";
 import { inMemoryEventLog } from "../demo/fold.ts";
 import type { SessionEventLog } from "../session/codec.ts";
-import type { Operator, SessionEvent } from "../session/types.ts";
+import type { EventBody, Operator } from "../session/types.ts";
 import { supabaseEventLog } from "./event-log.ts";
 
 type Subject = { log: SessionEventLog; sessionId: string; organizer: Operator };
@@ -94,51 +96,72 @@ const ADAPTERS: [string, () => Promise<Subject>][] = [
   ["in-memory", inMemorySubject],
 ];
 
-/** Whole milliseconds, a little apart: what `timestamptz` keeps exactly. */
-const T0 = Date.parse("2026-10-08T19:00:00.000Z");
+/** How far the database's clock may sit from this process's: same machine, but
+ * Docker's VM keeps its own. */
+const CLOCK_SLACK_MS = 60_000;
+
+/** An event less its stamp, to compare what was appended with what came back. */
+function unstamped<E extends { at: number }>(event: E): Omit<E, "at"> {
+  const { at, ...rest } = event;
+  void at;
+  return rest;
+}
 
 for (const [name, subject] of ADAPTERS) {
-  test(`${name}: append then load gives the events back in order`, async () => {
+  test(`${name}: append then load gives the events back in order, stamped by the log`, async () => {
     const { log, sessionId, organizer } = await subject();
-    const events: SessionEvent[] = [
-      { type: "SESSION_STARTED", at: T0, operator: organizer },
+    const bodies: EventBody[] = [
+      { type: "SESSION_STARTED" },
       {
         type: "PLAYER_JOINED",
-        at: T0 + 1_000,
-        operator: organizer,
         token: "walkup-1",
         firstName: "Ben",
         lastInitial: "J",
         skillLevel: "advanced",
         queueOnJoin: true,
       },
-      { type: "COURT_CONFIRMED", at: T0 + 2_000, operator: organizer, court: 1, since: null },
-      { type: "COURT_FINISHED", at: T0 + 3_000, operator: organizer, court: 1 },
+      { type: "COURT_CONFIRMED", court: 1, since: null },
+      { type: "COURT_FINISHED", court: 1 },
     ];
 
-    assert.deepEqual(await log.load(sessionId), { events: [], lastEvent: null });
+    assert.deepEqual(await log.load(sessionId), {
+      events: [],
+      lastEvent: null,
+      lastRowAt: null,
+    });
 
-    for (const event of events) await log.append(sessionId, event);
+    const before = Date.now();
+    for (const body of bodies) await log.append(sessionId, body, organizer);
+    const done = Date.now();
     const loaded = await log.load(sessionId);
 
-    assert.deepEqual(loaded.events, events);
+    assert.deepEqual(
+      loaded.events.map(unstamped),
+      bodies.map((body) => ({ ...body, operator: organizer })),
+    );
+    const stamps = loaded.events.map((event) => event.at);
+    for (const [i, at] of stamps.entries()) {
+      assert.ok(at >= before - CLOCK_SLACK_MS && at <= done + CLOCK_SLACK_MS, `at ${at}`);
+      if (i > 0) assert.ok(at >= stamps[i - 1], `stamps run forward: ${stamps}`);
+    }
+
     assert.ok(loaded.lastEvent);
     const { seq, ...newest } = loaded.lastEvent;
     assert.ok(Number.isInteger(seq), String(seq));
-    assert.deepEqual(newest, { type: "COURT_FINISHED", at: T0 + 3_000, operator: organizer });
+    assert.deepEqual(newest, {
+      type: "COURT_FINISHED",
+      at: stamps[stamps.length - 1],
+      operator: organizer,
+    });
+    assert.equal(loaded.lastRowAt, loaded.lastEvent.at);
   });
 
   test(`${name}: lastEvent's seq moves on with every append`, async () => {
     const { log, sessionId, organizer } = await subject();
-    await log.append(sessionId, { type: "SESSION_STARTED", at: T0, operator: organizer });
+    await log.append(sessionId, { type: "SESSION_STARTED" }, organizer);
     const first = (await log.load(sessionId)).lastEvent;
 
-    await log.append(sessionId, {
-      type: "COURT_FINISHED",
-      at: T0 + 1_000,
-      operator: organizer,
-      court: 2,
-    });
+    await log.append(sessionId, { type: "COURT_FINISHED", court: 2 }, organizer);
     const second = (await log.load(sessionId)).lastEvent;
 
     assert.ok(first && second);
@@ -148,21 +171,46 @@ for (const [name, subject] of ADAPTERS) {
 
   test(`${name}: loads all 1,001 events of a log past PostgREST's 1,000-row cap`, async () => {
     const { log, sessionId, organizer } = await subject();
-    const events: SessionEvent[] = [{ type: "SESSION_STARTED", at: T0, operator: organizer }];
+    const bodies: EventBody[] = [{ type: "SESSION_STARTED" }];
     for (let i = 1; i <= 1_000; i++) {
-      events.push({
-        type: "COURT_FINISHED",
-        at: T0 + i * 1_000,
-        operator: organizer,
-        court: (i % 4) + 1,
-      });
+      bodies.push({ type: "COURT_FINISHED", court: (i % 4) + 1 });
     }
 
-    for (const event of events) await log.append(sessionId, event);
+    for (const body of bodies) await log.append(sessionId, body, organizer);
     const loaded = await log.load(sessionId);
 
     assert.equal(loaded.events.length, 1_001);
-    assert.deepEqual(loaded.events, events);
-    assert.equal(loaded.lastEvent?.at, T0 + 1_000_000);
+    assert.deepEqual(
+      loaded.events.map(unstamped),
+      bodies.map((body) => ({ ...body, operator: organizer })),
+    );
+    assert.equal(loaded.lastRowAt, loaded.events[1_000].at);
   });
 }
+
+test("Supabase: a newest row that fails to decode is still the newest row for lastRowAt", async () => {
+  const { log, sessionId, organizer } = await supabaseSubject();
+  await log.append(sessionId, { type: "COURT_FINISHED", court: 1 }, organizer);
+  const good = (await log.load(sessionId)).lastEvent;
+  assert.ok(good);
+
+  // A COURT_FINISHED with no court: the decoder skips it, but auto-close's SQL
+  // still counts it in `max(at)`. Stamped well after the good row, so the two
+  // can't be confused.
+  const badAt = good.at + 120_000;
+  const { error } = await serviceRoleClient()
+    .from("on_deck_session_events")
+    .insert({
+      session_id: sessionId,
+      type: "COURT_FINISHED",
+      operator_kind: "organizer",
+      operator_user_id: organizer.kind === "organizer" ? organizer.userId : null,
+      payload: {},
+      at: new Date(badAt).toISOString(),
+    });
+  if (error) throw new Error(`writing the bad row failed: ${error.message}`);
+
+  const loaded = await log.load(sessionId);
+  assert.deepEqual(loaded.lastEvent, good, "Undo still targets the last event the fold applied");
+  assert.equal(loaded.lastRowAt, badAt);
+});

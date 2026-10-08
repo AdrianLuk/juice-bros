@@ -39,7 +39,7 @@ import {
   floorRosterFrom,
   rotationViewFrom,
 } from "@/lib/on-deck/session/rotation-view";
-import type { Operator, SessionEvent } from "@/lib/on-deck/session/types";
+import type { EventBody, Operator } from "@/lib/on-deck/session/types";
 import type { OnDeckFunnelEvent } from "@/lib/on-deck/analytics-events";
 import { trackWhenReady } from "@/lib/on-deck/analytics-browser";
 
@@ -188,19 +188,24 @@ export function DemoStage() {
     setError(null);
     if (outcome.kind === "noop") return { ok: true };
 
-    // The typed body is the event, less the stamp the database would add.
-    const event: SessionEvent = { ...outcome.body, at: Date.now(), operator };
-    setLog((prev) => appendToDemoLog(prev, event));
+    append(outcome.body, operator);
     // Every path that calls a new foursome onto a Court comes through here —
     // a tap on the Floor, a tap on the Kiosk, and "let it run" alike.
-    if (event.type === "COURT_FINISHED") countTurnover();
+    if (outcome.body.type === "COURT_FINISHED") countTurnover();
     return { ok: true };
   };
 
+  /** Append a body as `operator`, stamped now — what the in-memory event log's
+   * `append` does, and the database's `default now()` does for a live row. */
+  const append = (body: EventBody, operator: Operator): void => {
+    const at = Date.now();
+    setLog((prev) => appendToDemoLog(prev, body, operator, at));
+  };
+
   /** Append an event no floor decision produces — the two wrap-up taps. */
-  const appendRaw = (event: SessionEvent): void => {
+  const appendRaw = (body: EventBody): void => {
     setError(null);
-    setLog((prev) => appendToDemoLog(prev, event));
+    append(body, ORGANIZER);
   };
 
   /** Undo means the same thing it does in the database: drop the last event
@@ -250,10 +255,8 @@ export function DemoStage() {
       applyAs(ORGANIZER, lowerGroupCapOutcome(loaded.state, cap)),
     dissolveGroup: (groupId) =>
       applyAs(ORGANIZER, dissolveGroupOutcome(loaded.state, groupId)),
-    callLastCall: () =>
-      appendRaw({ type: "LAST_CALL", at: Date.now(), operator: ORGANIZER }),
-    closeSession: () =>
-      appendRaw({ type: "SESSION_CLOSED", at: Date.now(), operator: ORGANIZER }),
+    callLastCall: () => appendRaw({ type: "LAST_CALL" }),
+    closeSession: () => appendRaw({ type: "SESSION_CLOSED" }),
   };
 
   const kioskOps: KioskBoardOps = {

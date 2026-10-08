@@ -9,7 +9,7 @@ import { projectSummary } from "./session/summary.ts";
 import { isSessionStale } from "./session/stale.ts";
 import type { SessionConfig } from "./session/types.ts";
 import type { LoadedSession } from "./session/rotation-view.ts";
-import { loadEventLog } from "./supabase/event-log.ts";
+import { supabaseEventLog } from "./supabase/event-log.ts";
 
 export type { LoadedSession } from "./session/rotation-view.ts";
 
@@ -48,13 +48,15 @@ export async function getOpenSessionForClub(
   supabase: SupabaseClient,
   clubId: string,
 ): Promise<LoadedSession | null> {
-  return (await loadOpenSessionForClub(supabase, clubId))?.loaded ?? null;
+  return (await loadOpenSessionWithLastRowAt(supabase, clubId))?.loaded ?? null;
 }
 
-async function loadOpenSessionForClub(
+/** The open Session as `getOpenSessionForClub` returns it, plus the
+ * `lastRowAt` that `resolveOpenSessionForClub`'s auto-close check needs. */
+async function loadOpenSessionWithLastRowAt(
   supabase: SupabaseClient,
   clubId: string,
-): Promise<SessionWithActivity | null> {
+): Promise<SessionWithLastRowAt | null> {
   const { data, error } = await supabase
     .from("on_deck_sessions")
     .select(SESSION_COLUMNS)
@@ -105,7 +107,7 @@ export async function resolveOpenSessionForClub(
   supabase: SupabaseClient,
   clubId: string,
 ): Promise<LoadedSession | null> {
-  const open = await loadOpenSessionForClub(supabase, clubId);
+  const open = await loadOpenSessionWithLastRowAt(supabase, clubId);
   if (!open) return null;
   const { loaded: openSession, lastRowAt } = open;
 
@@ -183,17 +185,18 @@ export function venueNameOf(loaded: LoadedSession | null): string | null {
   return loaded?.config.venueName ?? null;
 }
 
-/** A folded Session, plus its newest row's `at` for the auto-close check. */
-type SessionWithActivity = { loaded: LoadedSession; lastRowAt: number | null };
+/** A folded Session, plus its log's `lastRowAt` for the auto-close check. */
+type SessionWithLastRowAt = { loaded: LoadedSession; lastRowAt: number | null };
 
+/** Fold a Session row with its log, read through the Supabase event log. */
 async function loadSession(
   supabase: SupabaseClient,
   row: SessionRow,
-): Promise<SessionWithActivity> {
-  const { lastRowAt, ...log } = await loadEventLog(supabase, row.id);
+): Promise<SessionWithLastRowAt> {
+  const log = await supabaseEventLog(supabase).load(row.id);
   return {
     loaded: assembleLoadedSession(toConfig(row), row.status, log),
-    lastRowAt,
+    lastRowAt: log.lastRowAt,
   };
 }
 

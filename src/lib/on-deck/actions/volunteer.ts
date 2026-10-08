@@ -22,6 +22,7 @@ import {
   swapNoShowOutcome,
   type FloorOpOutcome,
 } from "../floor-ops.ts";
+import { encode } from "../session/codec.ts";
 import type { SessionState } from "../session/types.ts";
 
 export type { FloorActionResult } from "../floor-commit.ts";
@@ -46,7 +47,8 @@ async function volunteerAppend(
   return commitFloorOutcome(
     sessionId,
     decide(loaded.state),
-    async (event) => {
+    async (body) => {
+      const event = encode(body);
       const supabase = await createClient();
       const { error } = await supabase.rpc("on_deck_volunteer_append", {
         p_session_id: sessionId,

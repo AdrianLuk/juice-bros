@@ -24,6 +24,7 @@ import {
   playerCourt,
   playerPaused,
   queueUnits,
+  type LastEvent,
   type PauseReason,
   type SessionConfig,
   type SessionEvent,
@@ -32,7 +33,7 @@ import {
 } from "./types.ts";
 import { bestReplacement } from "./match-me.ts";
 import { idleCourts } from "./idle-court.ts";
-import { describeUndo, type LastEvent, type UndoTarget } from "../floor-ops.ts";
+import { describeUndo, type UndoTarget } from "../floor-ops.ts";
 
 /**
  * A Session as loaded from the database and folded — the input every

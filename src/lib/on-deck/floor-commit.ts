@@ -6,8 +6,7 @@ import { revalidatePath } from "next/cache";
 import { sessionPath } from "./routes.ts";
 import { dispatchTurnNotifications } from "./turn-notify-dispatch.ts";
 import type { FloorOpOutcome } from "./floor-ops.ts";
-import { encode, type EncodedEvent } from "./session/codec.ts";
-import type { SessionState } from "./session/types.ts";
+import type { EventBody, SessionState } from "./session/types.ts";
 
 /** `{ ok: true }` on success (an appended event or a harmless no-op), or an
  * error string for the floor screen to show. */
@@ -16,14 +15,15 @@ export type FloorActionResult = { ok: true } | { ok?: false; error: string };
 /**
  * The tail every floor action shares once `floor-ops` has decided the outcome:
  * surface an `error`, treat a `noop` as success, otherwise run the caller's
- * write and revalidate. The write differs by Operator — a direct INSERT for the
- * Organizer, the `on_deck_volunteer_append` RPC for a link-authenticated
- * Volunteer (ADR 0005) — so it is passed in.
+ * write and revalidate. The write differs by Operator — the Supabase event
+ * log's `append` for the Organizer, the `on_deck_volunteer_append` /
+ * `on_deck_kiosk_append` RPC (the body `encode`d) for a link-authenticated
+ * Volunteer or a Kiosk (ADR 0005) — so it is passed in.
  */
 export async function commitFloorOutcome(
   sessionId: string,
   outcome: FloorOpOutcome,
-  write: (event: EncodedEvent) => Promise<{ error: unknown }>,
+  write: (body: EventBody) => Promise<{ error: unknown }>,
   /**
    * The folded `SessionState` from *before* this write. When given, a
    * successful append fires the opt-in turn notification (issue #260): the
@@ -36,7 +36,7 @@ export async function commitFloorOutcome(
   if (outcome.kind === "error") return { error: outcome.error };
   if (outcome.kind === "noop") return { ok: true };
 
-  const { error } = await write(encode(outcome.body));
+  const { error } = await write(outcome.body);
   if (error) {
     console.error("on-deck: floor action failed", outcome.body.type, error);
     return { error: "That didn't go through. Try again." };

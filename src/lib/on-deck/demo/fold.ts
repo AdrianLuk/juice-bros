@@ -20,11 +20,17 @@
 
 import {
   assembleLoadedSession,
-  type LoggedEvents,
+  lastEventOf,
+  type LoadedLog,
   type SessionEventLog,
 } from "../session/codec.ts";
 import type { LoadedSession } from "../session/rotation-view.ts";
-import type { SessionConfig, SessionEvent } from "../session/types.ts";
+import type {
+  EventBody,
+  Operator,
+  SessionConfig,
+  SessionEvent,
+} from "../session/types.ts";
 
 export type DemoLog = {
   readonly entries: readonly { seq: number; event: SessionEvent }[];
@@ -44,7 +50,18 @@ export function demoLogOf(events: readonly SessionEvent[]): DemoLog {
   };
 }
 
-export function appendToDemoLog(log: DemoLog, event: SessionEvent): DemoLog {
+/**
+ * Append a body as `operator` fired it at `at` — the stamp the database's
+ * `default now()` adds to a live row. Every demo tap and the in-memory
+ * adapter's `append` come through here.
+ */
+export function appendToDemoLog(
+  log: DemoLog,
+  body: EventBody,
+  operator: Operator,
+  at: number,
+): DemoLog {
+  const event = { ...body, at, operator } as SessionEvent;
   return {
     entries: [...log.entries, { seq: log.nextSeq, event }],
     nextSeq: log.nextSeq + 1,
@@ -62,19 +79,17 @@ export function undoInDemoLog(log: DemoLog, expectedSeq: number): DemoLog | null
   return { entries: log.entries.slice(0, -1), nextSeq: log.nextSeq };
 }
 
-/** The log as `load` hands it back: events in order, the newest with its seq. */
-export function readDemoLog(log: DemoLog): LoggedEvents {
+/**
+ * The log as `load` hands it back: events in order, the newest with its seq.
+ * Nothing in memory fails to decode, so the newest entry is also the newest
+ * row `lastRowAt` reads.
+ */
+export function readDemoLog(log: DemoLog): LoadedLog {
   const last = log.entries[log.entries.length - 1];
   return {
     events: log.entries.map((entry) => entry.event),
-    lastEvent: last
-      ? {
-          seq: last.seq,
-          type: last.event.type,
-          at: last.event.at,
-          operator: last.event.operator,
-        }
-      : null,
+    lastEvent: last ? lastEventOf(last.seq, last.event) : null,
+    lastRowAt: last ? last.event.at : null,
   };
 }
 
@@ -91,14 +106,19 @@ export function demoLoadedSession(
   return assembleLoadedSession(config, closed ? "closed" : "open", readDemoLog(log));
 }
 
-/** The in-memory adapter behind the `SessionEventLog` interface, one log per
- * Session id. */
-export function inMemoryEventLog(): SessionEventLog {
+/**
+ * The in-memory adapter behind the `SessionEventLog` interface, one log per
+ * Session id: nothing but `appendToDemoLog` and `readDemoLog`, the same two
+ * functions `demo-stage.tsx` commits and folds through, so the contract test
+ * runs the demo's own code. `now` stamps each append, as the database's clock
+ * does a live row.
+ */
+export function inMemoryEventLog(now: () => number = Date.now): SessionEventLog {
   const logs = new Map<string, DemoLog>();
   const logFor = (sessionId: string) => logs.get(sessionId) ?? demoLogOf([]);
   return {
-    async append(sessionId, event) {
-      logs.set(sessionId, appendToDemoLog(logFor(sessionId), event));
+    async append(sessionId, body, operator) {
+      logs.set(sessionId, appendToDemoLog(logFor(sessionId), body, operator, now()));
     },
     async load(sessionId) {
       return readDemoLog(logFor(sessionId));

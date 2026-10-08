@@ -14,7 +14,6 @@ import {
   decodeLog,
   encode,
   type EventRow,
-  type LoggedEvents,
   type SessionEventLog,
 } from "../session/codec.ts";
 
@@ -56,47 +55,41 @@ async function loadRows(
 }
 
 /**
- * The decoded log, plus `lastRowAt`: the newest row's `at` whether or not it
- * decoded. That is what auto-close's SQL compares (`max(at)` over every row),
- * so the staleness pre-check reads it rather than the last *decoded* event.
- */
-export async function loadEventLog(
-  supabase: SupabaseClient,
-  sessionId: string,
-): Promise<LoggedEvents & { lastRowAt: number | null }> {
-  const rows = await loadRows(supabase, sessionId);
-  const lastRow = rows[rows.length - 1];
-  return {
-    ...decodeLog(rows),
-    lastRowAt: lastRow ? new Date(lastRow.at).getTime() : null,
-  };
-}
-
-/**
- * `SessionEventLog` over a Supabase client. `append` is the Organizer's plain
- * INSERT under the foundation's "an Organizer appends events to their own
- * open Session" policy, so it takes only an organizer event from that
- * Organizer's own client; a Volunteer or Kiosk appends through its RPC
- * (`commitFloorOutcome`).
+ * `SessionEventLog` over a Supabase client: what the live loader
+ * (`../sessions.ts`) reads through and the Organizer's floor actions
+ * (`../actions/floor.ts`) write through.
+ *
+ * `append` is the Organizer's plain INSERT under the foundation's "an
+ * Organizer appends events to their own open Session" policy, so it takes only
+ * an organizer from that Organizer's own client; a Volunteer, Kiosk or Player
+ * appends through its RPC. It never sends `at`: the column's `default now()`
+ * stamps the row, on the database's clock, which auto-close's `max(at)` is
+ * measured against.
+ *
+ * `load` adds `lastRowAt`: the latest `at` over every row, decoded or not,
+ * which is exactly auto-close's SQL `max(at)`.
  */
 export function supabaseEventLog(supabase: SupabaseClient): SessionEventLog {
   return {
-    async append(sessionId, event) {
-      const { at, operator, ...body } = event;
+    async append(sessionId, body, operator) {
       const { error } = await supabase.from("on_deck_session_events").insert({
         session_id: sessionId,
         ...encode(body),
         operator_kind: operator.kind,
         operator_user_id: operator.kind === "organizer" ? operator.userId : null,
-        at: new Date(at).toISOString(),
       });
       if (error) {
-        throw new Error(`appending ${event.type} failed: ${error.message}`);
+        throw new Error(`appending ${body.type} failed: ${error.message}`);
       }
     },
     async load(sessionId) {
-      const { events, lastEvent } = await loadEventLog(supabase, sessionId);
-      return { events, lastEvent };
+      const rows = await loadRows(supabase, sessionId);
+      let lastRowAt: number | null = null;
+      for (const row of rows) {
+        const at = new Date(row.at).getTime();
+        if (lastRowAt === null || at > lastRowAt) lastRowAt = at;
+      }
+      return { ...decodeLog(rows), lastRowAt };
     },
   };
 }

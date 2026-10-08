@@ -18,6 +18,7 @@
 import {
   isSkillLevel,
   type EventBody,
+  type LastEvent,
   type Operator,
   type SessionState,
 } from "./session/types.ts";
@@ -88,16 +89,6 @@ const UNDO_LABEL: Record<FloorEventType, string> = {
   FOURSOME_MEMBER_SWAPPED: "the last no-show swap",
   GROUP_FORMED: "the last group",
   GROUP_DISSOLVED: "the last group break-up",
-};
-
-/** The most recent raw event of a Session — the seq/type/at/operator the fold
- * discards but operator Undo needs. */
-export type LastEvent = {
-  seq: number;
-  type: string;
-  /** epoch ms */
-  at: number;
-  operator: Operator;
 };
 
 /**
