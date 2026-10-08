@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, ClipboardList, Grid3x3, ListOrdered, Ticket } from "lucide-react";
+import { CalendarCheck, ClipboardList, Grid3x3, ListOrdered, Ticket, Users } from "lucide-react";
 
 export type AppStatus = "coming-soon" | "live";
 
@@ -100,5 +100,20 @@ export const apps: AppItem[] = [
       "Add a prize and it becomes a full raffle, drawn one prize at a time",
     ],
     terms: ["Free", "No sign-up", "Open now"],
+  },
+  {
+    slug: "team-tally",
+    title: "Team Tally",
+    href: "/tools/team-tally",
+    description:
+      "Run a captained team night. Set up the teams and Matchups once and Team Tally writes the brief for your group chat.",
+    icon: Users,
+    status: "live",
+    highlights: [
+      "Enter each team's captain, players and home court in one form",
+      "The brief lists every Matchup with its two courts and both rosters",
+      "Copy it and paste it straight into the group chat",
+    ],
+    terms: ["Free", "Account for organizers only", "Open now"],
   },
 ];

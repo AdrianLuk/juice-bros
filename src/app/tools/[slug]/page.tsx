@@ -12,6 +12,7 @@ const DEDICATED_ROUTE_SLUGS = new Set([
   "pickle-point-pal",
   "match-mixer",
   "drum-roll",
+  "team-tally",
 ]);
 
 // This catch-all only renders the "coming soon" stub for apps whose canonical
