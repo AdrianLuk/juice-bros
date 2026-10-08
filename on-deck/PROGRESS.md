@@ -18,6 +18,14 @@ event array plus assertions about the resulting state.
 
 ## Hosted DB
 
+**`20261008120000`** (#620: `on_deck_session_events.operator_user_id` now
+`on delete cascade` instead of `set null`, so deleting an Organizer's account no
+longer trips the organizer-names-an-account CHECK while their Club has an open
+Session) was pushed 2026-10-08 right after PR #620 merged. The `--dry-run`
+before it listed this migration alone, so `20260914120000` (Club public name),
+`20260915120000` (auto-close stale Session) and `20260915130000` (create Club)
+were already up: local and remote in sync through this migration.
+
 **`20260908120000`** (#469 — the Club's clock: `on_deck_clubs.time_zone` and
 `on_deck_sessions.time_zone`, a `pg_timezone_names` validation trigger, an
 inherit-on-insert trigger, and the `on_deck_adopt_club_time_zone` /
