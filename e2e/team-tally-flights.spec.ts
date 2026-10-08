@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { deleteTeamEventOrganizer, scoreMatchup, seedTeamEvent } from "./support/team-tally.ts";
+import { deleteTeamEventOrganizer, playMatchup, scoreMatchup, seedTeamEvent } from "./support/team-tally.ts";
 
 /**
  * Team Tally: Matchup done, Seeding and Flights (issue #624).
@@ -154,6 +154,40 @@ test("Seed now places the Flights with a Matchup unfinished", async ({ page, bro
     await expect(
       fed.getByRole("region", { name: "Your Flight" }).getByRole("region", { name: "Flight A · Courts 16 & 19" }),
     ).toBeVisible();
+  } finally {
+    await deleteTeamEventOrganizer(night);
+  }
+});
+
+test("once play starts the setup is set, and a tie the night placed by itself is still the Organizer's call", async ({
+  page,
+}) => {
+  const night = await seedTeamEvent("Tie Call Night");
+  try {
+    // Both Matchups 60-60, both Dreambreakers to red: all four Teams level on
+    // every count, so the night seeds itself in setup order.
+    await playMatchup(night, { opening: 1 }, TIED, { done: true, dreambreakerWinner: "red" });
+    await playMatchup(night, { opening: 2 }, TIED, { done: true, dreambreakerWinner: "red" });
+
+    await page.goto(`/tools/team-tally/sign-in?next=/tools/team-tally/events/${night.eventId}`);
+    await clickUntil(page.getByRole("button", { name: "Sign in with a password" }), page.getByLabel("Password"));
+    await page.getByLabel("Email").fill(night.organizerEmail);
+    await page.getByLabel("Password").fill(night.organizerPassword);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Tie Call Night" })).toBeVisible();
+
+    await expect(page.getByRole("link", { name: "Edit setup" })).toHaveCount(0);
+    await expect(page.getByText("Rosters change from the Score Links now.")).toBeVisible();
+
+    const panel = page.getByRole("region", { name: "The Flights" });
+    await expect(panel).toContainText("Placed");
+    await expect(page.getByRole("table", { name: "Flight B · Courts 17 & 18" })).toContainText("Kitchen Kings");
+    await clickUntil(
+      panel.getByRole("button", { name: "Put Kitchen Kings ahead" }),
+      panel.getByRole("button", { name: "Put Team Federico Staksrud ahead" }),
+    );
+    await expect(page.getByRole("table", { name: "Flight A · Courts 16 & 19" })).toContainText("Kitchen Kings");
+    await expect(page.getByRole("table", { name: "Flight B · Courts 17 & 18" })).toContainText("Team Federico Staksrud");
   } finally {
     await deleteTeamEventOrganizer(night);
   }

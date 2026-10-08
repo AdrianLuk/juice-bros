@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { verifyOrganizer } from "../dal.ts";
-import { deleteTeamEvent, saveTeamEvent } from "../events.ts";
+import { deleteTeamEvent, saveTeamEvent, SetupRefused } from "../events.ts";
 import { TEAM_TALLY_ROOT, teamEventPath } from "../routes.ts";
 import { parseSetup, validateSetup } from "../setup.ts";
 import { createClient } from "../supabase/server.ts";
@@ -40,7 +40,8 @@ export async function saveTeamEventAction(
   let savedId: string;
   try {
     savedId = await saveTeamEvent(supabase, setup, eventId);
-  } catch {
+  } catch (error) {
+    if (error instanceof SetupRefused) return { problems: [error.message] };
     return { problems: ["Couldn't save the Team Event. Try again."] };
   }
 

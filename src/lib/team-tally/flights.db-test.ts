@@ -9,16 +9,18 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
 import { anonClient, createTestUser, deleteTestUser, type TestUser } from "../db-test-support.ts";
+import { flightMatchups } from "./event-doc.ts";
 import { loadTeamEvent, saveTeamEvent } from "./events.ts";
 import {
   loadOrganizerEvent,
   markDoneByLink,
+  putAheadAsOrganizer,
   saveScoreAsOrganizer,
   seedNowAsOrganizer,
   setDreambreakerByLink,
 } from "./live-events.ts";
 import type { TeamEventSetup } from "./setup.ts";
-import { computeStandings, placedOrder } from "./standings.ts";
+import { computeStandings, placedOrder, tieCalls } from "./standings.ts";
 
 const users: TestUser[] = [];
 
@@ -94,7 +96,7 @@ test("two captains marking the last two Matchups done at the same moment place t
     assert.equal(event.status, "flights");
     assert.ok(event.seededAt);
     assert.deepEqual(
-      event.matchups.filter((matchup) => matchup.stage === "flight").map((matchup) => matchup.flightLetter),
+      flightMatchups(event).map((matchup) => matchup.flightLetter),
       ["A", "B"],
     );
   }
@@ -119,7 +121,7 @@ test("the Flights the database places are the standings' order, Dreambreaker inc
   // Federico's Team won the Dreambreaker, so it sits above Ben's.
   assert.ok(standings.indexOf(before.teams[1].id) < standings.indexOf(before.teams[0].id));
   assert.deepEqual(
-    placed.matchups.filter((matchup) => matchup.stage === "flight").map((matchup) => matchup.courtPair.join(" & ")),
+    flightMatchups(placed).map((matchup) => matchup.courtPair.join(" & ")),
     ["16 & 19", "17 & 18"],
   );
 });
@@ -142,4 +144,34 @@ test("a refused Matchup done comes back as the reason, and Seed now places the F
     ok: false,
     problem: "The Flights are already placed.",
   });
+});
+
+test("a tie on every count the night placed by itself is still the Organizer's call, and the standings follow it", async () => {
+  const { organizer, eventId, tokens } = await night();
+  const m1 = await score(organizer, eventId, 0, TIED);
+  const m2 = await score(organizer, eventId, 1, TIED);
+  const teams = (await loadOrganizerEvent(organizer.supabase, eventId))!.teams.map((team) => team.id);
+
+  // Both Matchups 60-60, both Dreambreakers to red: all four Teams level on every count.
+  assert.deepEqual(await setDreambreakerByLink(anonClient(), tokens[0], m1, teams[0]), { ok: true });
+  assert.deepEqual(await setDreambreakerByLink(anonClient(), tokens[2], m2, teams[2]), { ok: true });
+  assert.deepEqual(await markDoneByLink(anonClient(), tokens[0], m1), { ok: true });
+  assert.deepEqual(await markDoneByLink(anonClient(), tokens[2], m2), { ok: true });
+
+  const seeded = (await loadOrganizerEvent(organizer.supabase, eventId))!;
+  assert.deepEqual(placedOrder(seeded), teams);
+  assert.deepEqual(
+    tieCalls(seeded).map(({ aheadTeamId, behindTeamId }) => [aheadTeamId, behindTeamId]),
+    [[teams[1], teams[2]]],
+  );
+
+  assert.deepEqual(await putAheadAsOrganizer(organizer.supabase, eventId, teams[2]), { ok: true });
+
+  const called = (await loadOrganizerEvent(organizer.supabase, eventId))!;
+  assert.deepEqual(placedOrder(called), [teams[0], teams[2], teams[1], teams[3]]);
+  assert.deepEqual(computeStandings(called).map((row) => row.teamId), placedOrder(called));
+  assert.deepEqual(
+    flightMatchups(called).map((matchup) => matchup.courtPair.join(" & ")),
+    ["16 & 19", "17 & 18"],
+  );
 });

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { DocGame, DocMatchup, DocTeam, TeamEventDoc } from "./event-doc.ts";
-import { computeStandings, standingsMoved } from "./standings.ts";
+import { computeStandings, standingsMoved, tieCalls } from "./standings.ts";
 
 function team(id: string, captain: string, nickname: string | null = null): DocTeam {
   return { id, nickname, homeCourt: id, captain, slotA: "A", slotB: "B", slotC: "C" };
@@ -177,4 +177,69 @@ test("once Flights are placed, a corrected opening score shows the standings mov
   );
 
   assert.equal(standingsMoved(night(opening)), false);
+});
+
+/** Every Game 11-9 or 9-11 in turn: 60-60, each Team on three Games won. */
+const LEVEL: [number, number][] = [
+  [11, 9],
+  [9, 11],
+  [11, 9],
+  [9, 11],
+  [11, 9],
+  [9, 11],
+];
+
+test("a tie on every count across a Flight line is the Organizer's call before Seeding", () => {
+  const event = night([
+    matchup(1, "ben", "fed", LEVEL, { dreambreakerWinnerId: "ben" }),
+    matchup(2, "hay", "chr", LEVEL, { dreambreakerWinnerId: "hay" }),
+  ]);
+
+  assert.deepEqual(tieCalls(event), [
+    {
+      aheadTeamId: "fed",
+      aheadName: "Team Federico Staksrud",
+      behindTeamId: "hay",
+      behindName: "Kitchen Kings",
+      aheadFlight: "A",
+      behindFlight: "B",
+    },
+  ]);
+});
+
+test("after the night seeds itself, the call stays open until either Flight has a score", () => {
+  const opening = [
+    matchup(1, "ben", "fed", LEVEL, { dreambreakerWinnerId: "ben", doneAt: "2026-10-13T19:00:00Z" }),
+    matchup(2, "hay", "chr", LEVEL, { dreambreakerWinnerId: "hay", doneAt: "2026-10-13T19:05:00Z" }),
+  ];
+  // All four level on every count: placed in setup order.
+  const flights = [
+    matchup(1, "ben", "fed", [null, null, null, null, null, null], { id: "fa", stage: "flight", flightLetter: "A" }),
+    matchup(2, "hay", "chr", [null, null, null, null, null, null], { id: "fb", stage: "flight", flightLetter: "B" }),
+  ];
+  const seeded = { ...night([...opening, ...flights]), status: "flights" as const, seededAt: "2026-10-13T19:05:00Z" };
+
+  assert.deepEqual(
+    tieCalls(seeded).map(({ aheadTeamId, behindTeamId }) => [aheadTeamId, behindTeamId]),
+    [["fed", "hay"]],
+  );
+
+  const started = structuredClone(seeded);
+  started.matchups[3].games[0].redScore = 11;
+  started.matchups[3].games[0].blueScore = 4;
+  assert.deepEqual(tieCalls(started), []);
+
+  assert.deepEqual(tieCalls({ ...seeded, status: "finished" }), []);
+});
+
+test("a tie inside one Flight, or one a rule settled, is nobody's call", () => {
+  assert.deepEqual(
+    tieCalls(
+      night([
+        matchup(1, "ben", "fed", [[11, 8], [11, 9], [7, 11], [11, 6], [9, 11], [11, 4]]),
+        matchup(2, "hay", "chr", [[11, 8], [11, 9], [7, 11], [11, 6], [9, 11], [11, 4]]),
+      ]),
+    ),
+    [],
+  );
 });

@@ -44,8 +44,17 @@ export type LoadedTeamEvent = {
 };
 
 /**
+ * The database refused a save for a reason the Organizer can act on, in its
+ * own words: once play has started the setup is set (PR #629 review).
+ */
+export class SetupRefused extends Error {
+  override name = "SetupRefused";
+}
+
+/**
  * Creates a Team Event, or edits `eventId`. Returns its id. The caller has
- * already run `validateSetup`; the database refuses what slips past it.
+ * already run `validateSetup`; the database refuses what slips past it, and
+ * an edit once play has started, as a `SetupRefused`.
  */
 export async function saveTeamEvent(
   supabase: SupabaseClient,
@@ -68,6 +77,9 @@ export async function saveTeamEvent(
     p_matchups: setup.matchups.map(({ red, blue }) => ({ red, blue })),
   });
 
+  if (error?.code === "22023") {
+    throw new SetupRefused(error.message);
+  }
   if (error || typeof data !== "string") {
     throw new Error(`Saving the Team Event failed: ${error?.message ?? "no id returned"}`);
   }

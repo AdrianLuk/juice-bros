@@ -159,7 +159,7 @@
         "role": "neutral",
         "displayName": "Plate Faint",
         "canonical": "#5d6f8d",
-        "note": "Placeholder glyphs only (unscored dash, no-change mark). Never a number a reader needs."
+        "note": "Placeholder glyphs only (an unscored Round's dash). Never a number a reader needs."
       }
     },
     "typographyMeta": {
@@ -189,7 +189,7 @@
       },
       "plate-label": {
         "displayName": "Plate Label",
-        "purpose": "Header rows and plate bars; Flight bands at 0.2em, 800."
+        "purpose": "Header rows and plate bars. Flight bands step up to 0.8125rem, 800, 0.2em, in plate ink between two 2px plate-dim rules."
       },
       "lead": {
         "displayName": "Lead",
@@ -340,9 +340,9 @@
       "name": "Timing Tower",
       "kind": "custom",
       "refersTo": "plate",
-      "description": "Signature. Standings with fixed R1 R2 R3 TOT columns, a Flight band every pair, your own row raised with a yellow position chip, move marks in plate ink only.",
-      "html": "<div class=\"ds-tt-tower\"><div class=\"row head\"><span>Pos</span><span></span><span style=\"text-align:left\">Team</span><span>R1</span><span class=\"nowink\">R2</span><span>R3</span><span>Tot</span><span></span></div><div class=\"band\">Flight A</div><div class=\"row\" data-mine><span class=\"pos\">1</span><span class=\"chip red\"></span><span class=\"name\">Kitchen Sync</span><span class=\"rd\">22</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">31</span><span class=\"mv up\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" aria-hidden=\"true\"><path d=\"m18 15-6-6-6 6\"/></svg>2</span></div><div class=\"row\"><span class=\"pos\">2</span><span class=\"chip blue\"></span><span class=\"name\">Net Gains</span><span class=\"rd\">21</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">30</span><span class=\"mv\">–</span></div><div class=\"band\">Flight B</div><div class=\"row\"><span class=\"pos\">3</span><span class=\"chip red\"></span><span class=\"name\">Third Shot Drop</span><span class=\"rd\">20</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">29</span><span class=\"mv down\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>1</span></div></div>",
-      "css": ".ds-tt-tower { max-width: 30rem; background: #0f1b30; color: #fff; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 10px 28px -16px oklch(0.2 0.035 262 / 0.55); font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-variant-numeric: tabular-nums; } .ds-tt-tower .row { display: grid; grid-template-columns: 1.75rem 0.35rem minmax(0, 1fr) repeat(3, 1.75rem) 2.5rem 2rem; gap: 0.5rem; align-items: center; padding: 0.4rem 0.75rem; border-top: 1px solid #1d2c48; } .ds-tt-tower .band + .row { border-top: 0; } .ds-tt-tower .head { padding-block: 0.3rem; border-top: 0; background: #0a1324; color: #9fb0c9; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; text-align: center; } .ds-tt-tower .nowink { color: #d8f03a; } .ds-tt-tower .band { padding: 0.2rem 0.75rem; background: #0a1324; color: #9fb0c9; font-weight: 800; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; text-align: center; } .ds-tt-tower .pos { font-weight: 800; font-size: 1.125rem; text-align: center; line-height: 1.4; } .ds-tt-tower .chip { height: 1rem; border-radius: 1px; } .ds-tt-tower .red { background: #e2322c; } .ds-tt-tower .blue { background: #1d5ae0; } .ds-tt-tower .name { font-weight: 700; font-size: 1.0625rem; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-tt-tower .rd { font-weight: 700; font-size: 1.0625rem; text-align: center; line-height: 1.6; } .ds-tt-tower .rd.now { box-shadow: inset 0 -2px 0 #d8f03a; } .ds-tt-tower .pend { color: #5d6f8d; } .ds-tt-tower .pts { font-weight: 800; font-size: 1.25rem; text-align: right; } .ds-tt-tower .mv { display: inline-flex; justify-content: flex-end; align-items: center; gap: 0.1rem; font-weight: 700; font-size: 0.875rem; text-align: right; color: #5d6f8d; } .ds-tt-tower .mv.up { color: #fff; } .ds-tt-tower .mv.down { color: #9fb0c9; } .ds-tt-tower .row[data-mine] { background: #18284a; } .ds-tt-tower .row[data-mine] .pos { color: #0f1b30; background: #d8f03a; border-radius: 2px; }"
+      "description": "Signature. Standings with fixed R1 R2 R3 TOT columns, a Flight band every pair drawn as the cut line, TOT on a raised cell, your own row raised with a yellow position chip (outlined once the night is finished), move marks only where a Team moved.",
+      "html": "<div class=\"ds-tt-tower\"><div class=\"row head\"><span>Pos</span><span></span><span style=\"text-align:left\">Team</span><span>R1</span><span class=\"nowink\">R2</span><span>R3</span><span>Tot</span><span></span></div><div class=\"band\">Flight A</div><div class=\"row\" data-mine><span class=\"pos\">1</span><span class=\"chip red\"></span><span class=\"name\">Kitchen Sync</span><span class=\"rd\">22</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">31</span><span class=\"mv up\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" aria-hidden=\"true\"><path d=\"m18 15-6-6-6 6\"/></svg>2</span></div><div class=\"row\"><span class=\"pos\">2</span><span class=\"chip blue\"></span><span class=\"name\">Net Gains</span><span class=\"rd\">21</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">30</span><span class=\"mv\"></span></div><div class=\"band\">Flight B</div><div class=\"row\"><span class=\"pos\">3</span><span class=\"chip red\"></span><span class=\"name\">Third Shot Drop</span><span class=\"rd\">20</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">29</span><span class=\"mv down\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>1</span></div></div>",
+      "css": ".ds-tt-tower { max-width: 30rem; background: #0f1b30; color: #fff; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 10px 28px -16px oklch(0.2 0.035 262 / 0.55); font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-variant-numeric: tabular-nums; } .ds-tt-tower .row { display: grid; grid-template-columns: 1.75rem 0.35rem minmax(0, 1fr) repeat(3, 1.75rem) 2.5rem 2rem; gap: 0.5rem; align-items: center; padding: 0.4rem 0.75rem; border-top: 1px solid #1d2c48; } .ds-tt-tower .band + .row { border-top: 0; } .ds-tt-tower .head { padding-block: 0.3rem; border-top: 0; background: #0a1324; color: #9fb0c9; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; text-align: center; } .ds-tt-tower .nowink { color: #d8f03a; } .ds-tt-tower .band { display: flex; align-items: center; gap: 0.75rem; padding: 0.3rem 0.75rem; background: #0a1324; color: #fff; font-weight: 800; font-size: 0.8125rem; line-height: 1.2; letter-spacing: 0.2em; text-transform: uppercase; } .ds-tt-tower .band::before, .ds-tt-tower .band::after { content: ''; flex: 1; height: 2px; background: #9fb0c9; } .ds-tt-tower .pos { font-weight: 800; font-size: 1.125rem; text-align: center; line-height: 1.4; } .ds-tt-tower .chip { height: 1rem; border-radius: 1px; } .ds-tt-tower .red { background: #e2322c; } .ds-tt-tower .blue { background: #1d5ae0; } .ds-tt-tower .name { font-weight: 700; font-size: 1.0625rem; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-tt-tower .rd { font-weight: 700; font-size: 1.0625rem; text-align: center; line-height: 1.6; } .ds-tt-tower .rd.now { box-shadow: inset 0 -2px 0 #d8f03a; } .ds-tt-tower .pend { color: #5d6f8d; } .ds-tt-tower .pts { align-self: stretch; display: flex; align-items: center; justify-content: center; margin-block: -0.4rem; background: #18284a; font-weight: 800; font-size: 1.25rem; } .ds-tt-tower .mv { display: inline-flex; justify-content: flex-end; align-items: center; gap: 0.1rem; font-weight: 700; font-size: 0.875rem; text-align: right; color: #5d6f8d; } .ds-tt-tower .mv.up { color: #fff; } .ds-tt-tower .mv.down { color: #9fb0c9; } .ds-tt-tower .row[data-mine] { background: #18284a; } .ds-tt-tower .row[data-mine] .pos { color: #0f1b30; background: #d8f03a; border-radius: 2px; }"
     }
   ],
   "narrative": {
@@ -369,12 +369,12 @@
       },
       {
         "name": "The Now Rule",
-        "body": "Ball yellow marks what is happening now: the live Round, the live dot, your own position. If nothing is live, no yellow appears.",
+        "body": "Ball yellow marks what is happening now: the live Round, the live dot, your own position while the night is running. If nothing is live, no yellow appears: once the night is finished, your own position and place keep their chip as a plate-ink outline instead.",
         "section": "colors"
       },
       {
         "name": "The No Extra Hues Rule",
-        "body": "Tower move marks (up, down, no change) are drawn in plate ink, plate dim and plate faint with a chevron carrying direction. No green for up, no red for down: no hue may compete with the two sides.",
+        "body": "Tower move marks (up, down) are drawn in plate ink and plate dim with a chevron carrying direction; a row that didn't move draws nothing. No green for up, no red for down: no hue may compete with the two sides.",
         "section": "colors"
       },
       {
@@ -394,7 +394,7 @@
       },
       {
         "name": "The Flight Band Rule",
-        "body": "A Flight band opens every pair of rows in the tower (positions 1 and 2 are Flight A, 3 and 4 Flight B, and so on), drawn where a leaderboard draws the cut.",
+        "body": "A Flight band opens every pair of rows in the tower (positions 1 and 2 are Flight A, 3 and 4 Flight B, and so on), drawn where a leaderboard draws the cut. It is the loudest rule on the tower: the Flight letter in plate ink between two 2px plate-dim rules.",
         "section": "layout"
       },
       {
@@ -416,7 +416,8 @@
     "dos": [
       "Do put every live score, total and position on a navy plate (#0f1b30), and everything else on white sheets on the gym-white ground.",
       "Do mark a Matchup's sides with Side Red (#e2322c) first and Side Blue (#1d5ae0) second, as solid near-square blocks.",
-      "Do reserve ball yellow (#d8f03a) for the live Round, the LIVE dot and your own position chip.",
+      "Do reserve ball yellow (#d8f03a) for the live Round, the LIVE dot and your own position chip while the night runs.",
+      "Do keep the generated Brief in the Organizer's own format, em-dashes and emoji included: it is their text for their group chat, and the one exception to the no-em-dash rule for Team Tally's copy.",
       "Do set numerals, team names and plate labels in Sofia Sans Extra Condensed caps with tabular figures, and prose and inputs in Sofia Sans.",
       "Do keep R1, R2, R3 and TOT fixed and draw a Flight band before every pair of tower rows.",
       "Do build #623 to #625 from ScoreBug, TimingTower, TtAppBar and the tt controls rather than new graphics."

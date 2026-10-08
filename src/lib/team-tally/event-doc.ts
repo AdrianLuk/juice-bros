@@ -67,6 +67,16 @@ export type TeamEventDoc = {
   tieOrder: string[];
 };
 
+/** The opening Matchups, in MATCH order. */
+export function openingMatchups<M extends Pick<DocMatchup, "stage">>(event: { matchups: readonly M[] }): M[] {
+  return event.matchups.filter((matchup) => matchup.stage === "opening");
+}
+
+/** The Flight Matchups, Flight A first; empty before Seeding. */
+export function flightMatchups<M extends Pick<DocMatchup, "stage">>(event: { matchups: readonly M[] }): M[] {
+  return event.matchups.filter((matchup) => matchup.stage === "flight");
+}
+
 /** "Team Ben Johns", as the Brief prints a Team. */
 export function captainTeamName(team: Pick<DocTeam, "captain">): string {
   return `Team ${team.captain}`;
@@ -98,6 +108,16 @@ export function playersIn(team: DocTeam, round: Round, kind: GameKind): string[]
 
 export function isScored(game: Pick<DocGame, "redScore" | "blueScore">): boolean {
   return game.redScore !== null && game.blueScore !== null;
+}
+
+/**
+ * True once play has started: a Game has a score, or the Flights are placed.
+ * From then on the setup form is closed (re-pairing would throw away
+ * Matchups with their Games) and rosters change from the Score Links.
+ * `team_tally_save_event` refuses the same.
+ */
+export function setupIsSet(event: Pick<TeamEventDoc, "status" | "matchups">): boolean {
+  return event.status !== "opening" || event.matchups.some((matchup) => matchup.games.some(isScored));
 }
 
 /**

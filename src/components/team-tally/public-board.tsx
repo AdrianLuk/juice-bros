@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 
 import type { LiveView } from "@/lib/team-tally/actions/live";
+import { flightMatchups, openingMatchups } from "@/lib/team-tally/event-doc";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
@@ -30,6 +31,17 @@ import { useLiveEvent } from "./use-live-event";
  * `view` forces a layout (the link's `?view=`), `screen` pins one big-screen
  * screen (`?screen=`).
  */
+/**
+ * How many Matchup slots the opening standings stand beside on the desktop
+ * results page: the tower's height (a row per Team, a band per Flight) over
+ * one Matchup's (a FINAL bug over its folded Games), about 3.9 at 14 Teams,
+ * plus the row the "Every Matchup" heading takes.
+ */
+function towerSpan(teamCount: number): number {
+  const towerPx = 80 + teamCount * 42 + (teamCount / 2) * 26;
+  return Math.max(1, Math.round(towerPx / 215)) + 1;
+}
+
 export function PublicBoard({
   token,
   initial,
@@ -62,8 +74,8 @@ function PublicBoardInner({
   const { view } = useLiveEvent({ kind: "public", token }, initial);
   const { event } = view;
   const teams = useMemo(() => new Map(event.teams.map((team) => [team.id, team])), [event.teams]);
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
-  const opening = event.matchups.filter((matchup) => matchup.stage === "opening");
+  const flights = flightMatchups(event);
+  const opening = openingMatchups(event);
   const finished = event.status === "finished";
 
   const matchupItem = (matchup: (typeof event.matchups)[number]) => (
@@ -114,20 +126,42 @@ function PublicBoardInner({
             </section>
           )}
 
-          <div className="tt-live-grid tt-live-grid-public">
-            <section aria-label="Standings" className="grid content-start gap-2">
-              {finished ? <h2 className="tt-sect">Opening standings</h2> : <h2 className="sr-only">Standings</h2>}
-              <StandingsTower event={event} />
-            </section>
+          {finished ? (
+            <>
+              {/* Every Matchup two across, Flights first, flowing round the
+                  opening standings: the tower takes the left column for as
+                  many Matchups as it is tall, then the Matchups run both
+                  columns, so no column runs on alone. */}
+              <div
+                className="tt-results-flow"
+                style={{ "--tt-tower-span": towerSpan(event.teams.length) } as CSSProperties}
+              >
+                <section aria-label="Standings" className="tt-results-tower grid content-start gap-2">
+                  <h2 className="sr-only">Opening standings</h2>
+                  <StandingsTower event={event} />
+                </section>
+                <section aria-label="Every Matchup" className="contents">
+                  <h2 className="tt-sect tt-results-flow-head">Every Matchup</h2>
+                  <ul className="contents">
+                    {flights.map(matchupItem)}
+                    {opening.map(matchupItem)}
+                  </ul>
+                </section>
+              </div>
+            </>
+          ) : (
+            <div className="tt-live-grid tt-live-grid-public">
+              <section aria-label="Standings" className="grid content-start gap-2">
+                <h2 className="sr-only">Standings</h2>
+                <StandingsTower event={event} />
+              </section>
 
-            <section aria-label="Matchups" className="grid content-start gap-2">
-              <h2 className="tt-sect">{finished ? "Every Matchup" : flights.length > 0 ? "Opening round" : "Matchups"}</h2>
-              <ul className="tt-matchup-list">
-                {finished && flights.map(matchupItem)}
-                {opening.map(matchupItem)}
-              </ul>
-            </section>
-          </div>
+              <section aria-label="Matchups" className="grid content-start gap-2">
+                <h2 className="tt-sect">{flights.length > 0 ? "Opening round" : "Matchups"}</h2>
+                <ul className="tt-matchup-list">{opening.map(matchupItem)}</ul>
+              </section>
+            </div>
+          )}
         </div>
       </div>
 

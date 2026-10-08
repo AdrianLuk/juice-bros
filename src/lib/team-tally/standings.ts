@@ -10,7 +10,9 @@
  */
 
 import {
+  flightMatchups,
   isScored,
+  openingMatchups,
   roundPoints,
   sideOf,
   teamName,
@@ -39,7 +41,7 @@ export type StandingRow = {
 
 /** The opening round's standings: one row per Team that has an opening Matchup. */
 export function computeStandings(event: TeamEventDoc): StandingRow[] {
-  const opening = event.matchups.filter((matchup) => matchup.stage === "opening");
+  const opening = openingMatchups(event);
 
   const rows = new Map<string, Omit<StandingRow, "position" | "flightLetter" | "decidedBy">>();
   const entries: SeedEntry[] = [];
@@ -76,8 +78,7 @@ export function computeStandings(event: TeamEventDoc): StandingRow[] {
  * then its blue, then Flight B's. Empty before Seeding.
  */
 export function placedOrder(event: Pick<TeamEventDoc, "matchups">): string[] {
-  return event.matchups
-    .filter((matchup) => matchup.stage === "flight")
+  return flightMatchups(event)
     .sort((a, b) => a.number - b.number)
     .flatMap((matchup) => [matchup.redTeamId, matchup.blueTeamId]);
 }
@@ -88,6 +89,60 @@ export function standingsMoved(event: TeamEventDoc): boolean {
   if (placed.length === 0) return false;
   const now = computeStandings(event).map((row) => row.teamId);
   return now.some((teamId, index) => placed[index] !== teamId);
+}
+
+/**
+ * A tie on every count across a Flight line, which only the Organizer can
+ * settle: put the lower Team (`behind`) ahead of the one above it (`ahead`).
+ */
+export type TieCall = {
+  aheadTeamId: string;
+  aheadName: string;
+  behindTeamId: string;
+  behindName: string;
+  aheadFlight: string;
+  behindFlight: string;
+};
+
+/**
+ * The ties the Organizer can still call. Before Seeding, any tie on every
+ * count across a Flight line in the standings. After, the night has placed
+ * such a tie in setup order by itself, so the call stays open while the two
+ * Teams still sit either side of the line and neither Flight has a score.
+ * None once the night is over. `team_tally_organizer_put_ahead` checks the
+ * same in the database.
+ */
+export function tieCalls(event: TeamEventDoc): TieCall[] {
+  if (event.status === "finished") return [];
+  const standings = computeStandings(event);
+  const calls: TieCall[] = [];
+
+  standings.forEach((row, index) => {
+    if (row.decidedBy !== "organizer") return;
+    const above = standings[index - 1];
+    calls.push({
+      aheadTeamId: above.teamId,
+      aheadName: above.name,
+      behindTeamId: row.teamId,
+      behindName: row.name,
+      aheadFlight: above.flightLetter,
+      behindFlight: row.flightLetter,
+    });
+  });
+
+  if (event.status === "opening") return calls;
+
+  const flights = flightMatchups(event);
+  return calls.filter((call) => {
+    const upper = flights.find((flight) => flight.blueTeamId === call.aheadTeamId);
+    const lower = flights.find((flight) => flight.redTeamId === call.behindTeamId);
+    return (
+      upper !== undefined &&
+      lower !== undefined &&
+      lower.number === upper.number + 1 &&
+      ![upper, lower].some((flight) => flight.games.some(isScored))
+    );
+  });
 }
 
 function rowFor(

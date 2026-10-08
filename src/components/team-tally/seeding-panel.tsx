@@ -2,18 +2,20 @@
 
 import { useId, useState, useTransition, type FormEvent } from "react";
 
-import { orderTiedTeams, seedFlightsNow, swapFlightCourts } from "@/lib/team-tally/actions/live";
-import { isScored, type TeamEventDoc } from "@/lib/team-tally/event-doc";
-import { computeStandings, standingsMoved } from "@/lib/team-tally/standings";
+import { orderTiedTeams, putTeamAhead, seedFlightsNow, swapFlightCourts } from "@/lib/team-tally/actions/live";
+import { flightMatchups, isScored, openingMatchups, type TeamEventDoc } from "@/lib/team-tally/event-doc";
+import { computeStandings, standingsMoved, tieCalls, type TieCall } from "@/lib/team-tally/standings";
 
 type Result = { ok: true } | { ok: false; problem: string };
 
 /**
  * The Organizer's Flights sheet (issue #624). Before Seeding: how many
  * Matchups are done, any tie on every count that straddles a Flight (the
- * Organizer's call), and Seed now, confirmed in the page. After: the
- * opening standings moving since Seeding, and swapping two Flights' court
- * pairs until a Flight has a score.
+ * Organizer's call), and Seed now, confirmed in the page. After: a tie on
+ * every count the night placed across a Flight line by itself (still the
+ * Organizer's call until either Flight has a score), the opening standings
+ * moving since Seeding, and swapping two Flights' court pairs until a Flight
+ * has a score.
  */
 export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved: () => Promise<unknown> }) {
   const [confirming, setConfirming] = useState(false);
@@ -33,11 +35,36 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
     });
   }
 
-  const opening = event.matchups.filter((matchup) => matchup.stage === "opening");
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
+  const opening = openingMatchups(event);
+  const flights = flightMatchups(event);
   const done = opening.filter((matchup) => matchup.doneAt !== null).length;
-  const standings = computeStandings(event);
   const seeded = flights.length > 0;
+
+  function putAhead(call: TieCall) {
+    if (seeded) {
+      run(() => putTeamAhead(event.id, call.behindTeamId));
+      return;
+    }
+    const order = computeStandings(event).map((row) => row.teamId);
+    const behind = order.indexOf(call.behindTeamId);
+    [order[behind - 1], order[behind]] = [order[behind], order[behind - 1]];
+    run(() => orderTiedTeams(event.id, order));
+  }
+
+  const callouts = tieCalls(event).map((call) => (
+    <div key={call.behindTeamId} className="tt-callout">
+      <p className="m-0">
+        {call.aheadName} and {call.behindName} are level on every count, across Flights {call.aheadFlight} and{" "}
+        {call.behindFlight}.{" "}
+        {seeded
+          ? `The Flights placed ${call.aheadName} ahead. Your call until either Flight has a score.`
+          : `Your call: ${call.aheadName} is ahead for now.`}
+      </p>
+      <button type="button" className="tt-btn tt-btn-ghost" disabled={pending} onClick={() => putAhead(call)}>
+        Put {call.behindName} ahead
+      </button>
+    </div>
+  ));
 
   return (
     <section className="tt-sheet" aria-label="The Flights">
@@ -50,6 +77,7 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
       <div className="tt-done-body">
         {seeded ? (
           <>
+            {callouts}
             {standingsMoved(event) && (
               <p className="tt-callout m-0" role="status">
                 The opening standings have moved since the Flights were placed. The Flights stay as they are.
@@ -64,28 +92,7 @@ export function SeedingPanel({ event, onSaved }: { event: TeamEventDoc; onSaved:
               stand.
             </p>
 
-            {standings.map((row, index) => {
-              if (row.decidedBy !== "organizer") return null;
-              const above = standings[index - 1];
-              const order = standings.map((standing) => standing.teamId);
-              [order[index - 1], order[index]] = [order[index], order[index - 1]];
-              return (
-                <div key={row.teamId} className="tt-callout">
-                  <p className="m-0">
-                    {above.name} and {row.name} are level on every count, across Flights {above.flightLetter} and{" "}
-                    {row.flightLetter}. Your call: {above.name} is ahead for now.
-                  </p>
-                  <button
-                    type="button"
-                    className="tt-btn tt-btn-ghost"
-                    disabled={pending}
-                    onClick={() => run(() => orderTiedTeams(event.id, order))}
-                  >
-                    Put {row.name} ahead
-                  </button>
-                </div>
-              );
-            })}
+            {callouts}
 
             {confirming ? (
               <div role="alertdialog" aria-label="Seed the Flights now" className="tt-confirm">
@@ -136,7 +143,7 @@ function SwapCourts({
   run: (action: () => Promise<Result>) => void;
 }) {
   const id = useId();
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
+  const flights = flightMatchups(event);
   const [from, setFrom] = useState(flights[0]?.id ?? "");
   const [to, setTo] = useState(flights[1]?.id ?? "");
   const started = flights.some((flight) => flight.games.some(isScored));

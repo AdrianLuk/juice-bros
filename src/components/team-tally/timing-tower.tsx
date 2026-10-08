@@ -92,12 +92,15 @@ export function TimingTower({
   label,
   liveRound,
   size,
+  final,
 }: {
   rows: TowerRow[];
   label?: string;
   liveRound?: 1 | 2 | 3;
   /** "tv" sets the tower for the big-screen layout (CSS in `.tt-tv`). */
   size?: "tv";
+  /** The night is over: nothing is live, so your own position drops the yellow chip. */
+  final?: boolean;
 }) {
   const list = useResortSlide(rows.map((row) => row.id ?? row.position).join(","));
 
@@ -107,7 +110,7 @@ export function TimingTower({
       .join(" ");
 
   return (
-    <div className="tt-plate tt-tower" data-size={size}>
+    <div className="tt-plate tt-tower" data-size={size} data-final={final || undefined}>
       {label && (
         <div className="tt-plate-bar">
           <span>{label}</span>
@@ -129,7 +132,7 @@ export function TimingTower({
         {rows.flatMap((row) => [
           row.position % 2 === 1 ? (
             <li key={`band-${row.position}`} aria-hidden className="tt-tower-band">
-              Flight {flightLetter(row.position)}
+              <span>Flight {flightLetter(row.position)}</span>
             </li>
           ) : null,
           <li
@@ -164,14 +167,9 @@ export function TimingTower({
   );
 }
 
+/** The move mark, drawn only for a Team that moved: an unmoved row leaves the cell empty. */
 function Move({ move }: { move?: number }) {
-  if (!move) {
-    return (
-      <span className="tt-tower-move" aria-label="No change">
-        –
-      </span>
-    );
-  }
+  if (!move) return <span className="tt-tower-move" />;
   const up = move > 0;
   const Icon = up ? ChevronUp : ChevronDown;
   return (

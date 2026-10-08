@@ -6,7 +6,9 @@ import { TtHead } from "@/components/team-tally/tt-head";
 import { SetupForm } from "@/components/team-tally/setup-form";
 import { pageMetadata } from "@/lib/metadata";
 import { verifyOrganizer } from "@/lib/team-tally/dal";
+import { setupIsSet } from "@/lib/team-tally/event-doc";
 import { loadTeamEvent } from "@/lib/team-tally/events";
+import { loadOrganizerEvent } from "@/lib/team-tally/live-events";
 import { editTeamEventPath, teamEventPath } from "@/lib/team-tally/routes";
 import { createClient } from "@/lib/team-tally/supabase/server";
 
@@ -30,8 +32,25 @@ export default async function EditTeamEventPage({ params }: { params: Promise<{ 
   const { eventId } = await params;
   await verifyOrganizer();
   const supabase = await createClient();
-  const event = await loadTeamEvent(supabase, eventId);
-  if (!event) notFound();
+  const [event, live] = await Promise.all([loadTeamEvent(supabase, eventId), loadOrganizerEvent(supabase, eventId)]);
+  if (!event || !live) notFound();
+
+  // Once play has started the database refuses a setup save; say so up front.
+  if (setupIsSet(live)) {
+    return (
+      <div className="flex w-full flex-1 flex-col">
+        <TtHead
+          title={`Edit ${event.name}`}
+          lead="Play has started, so the setup is set. Rosters change from the Score Links now."
+        />
+        <section className="tt-wrap pb-20 sm:pb-28">
+          <Link href={teamEventPath(event.id)} className="tt-quietlink inline-block">
+            Back to the brief
+          </Link>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-1 flex-col">

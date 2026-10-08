@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import type { LiveView } from "@/lib/team-tally/actions/live";
-import { matchupLabel, scoredRoundsFor, teamName, type DocMatchup } from "@/lib/team-tally/event-doc";
+import { type DocMatchup, flightMatchups, matchupLabel, openingMatchups, scoredRoundsFor, teamName } from "@/lib/team-tally/event-doc";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
@@ -33,9 +33,9 @@ function OrganizerBoardInner({ eventId, initial }: { eventId: string; initial: L
   const { view, refresh } = useLiveEvent({ kind: "organizer", eventId }, initial);
   const { event } = view;
   const teams = useMemo(() => new Map(event.teams.map((team) => [team.id, team])), [event.teams]);
-  const writer = { kind: "organizer" as const, eventId };
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
-  const opening = event.matchups.filter((matchup) => matchup.stage === "opening");
+  const writer = { kind: "organizer" as const };
+  const flights = flightMatchups(event);
+  const opening = openingMatchups(event);
   const openLeft = opening.filter((matchup) => matchup.doneAt === null).length;
 
   const matchupSection = (matchup: DocMatchup) => (

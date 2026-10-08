@@ -11,7 +11,7 @@
  * Relative imports only, for `node --test`.
  */
 
-import { isScored, type TeamEventDoc } from "./event-doc.ts";
+import { flightMatchups, isScored, type TeamEventDoc } from "./event-doc.ts";
 
 export type TvScreenId = "standings" | "matchups" | "handoff" | "flight-scores" | "summary";
 
@@ -41,7 +41,7 @@ const seconds = (n: number) => n * 1_000;
  * finished night leads with its results.
  */
 export function tvScreens(event: Pick<TeamEventDoc, "status" | "matchups">): TvScreen[] {
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
+  const flights = flightMatchups(event);
 
   if (event.status === "finished" && flights.length > 0) {
     return [
@@ -86,6 +86,22 @@ export function splitStandings<Row extends { position: number }>(rows: readonly 
 export function bugGridColumns(count: number): number {
   if (count <= 3) return Math.max(1, count);
   return count === 4 ? 2 : 3;
+}
+
+/**
+ * How much larger than the stage's unit a screen of score bugs is set, so the
+ * bugs fill the height a 1080 screen gives them instead of floating in it:
+ * three rows (seven Matchups) at 1.25, two rows of three at 1.4, and a single
+ * row, or two of two, at 1.5. Bounded by width too: three across at 1.5 still
+ * leaves a two-line Team name its column. Done Matchups (`final`) carry a
+ * FINAL bar on top, so they grow less: 1.25, and three rows of them stay at
+ * the unit.
+ */
+export function bugGridScale(count: number, final = false): number {
+  const rows = Math.ceil(count / bugGridColumns(count));
+  if (final) return rows >= 3 ? 1 : 1.25;
+  if (rows >= 3) return 1.25;
+  return bugGridColumns(count) >= 3 && rows === 2 ? 1.4 : 1.5;
 }
 
 /** Columns for the Flight hand-off plates, in two rows: 6 are 3 across, 7 are 4 then 3. */

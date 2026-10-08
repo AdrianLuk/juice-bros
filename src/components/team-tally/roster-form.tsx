@@ -88,7 +88,8 @@ export function RosterForm({
               <label htmlFor={`${id}-${key}`} className="tt-label">
                 Player {letter}
               </label>
-              <div className="tt-roster-field">
+              {/* A slot that can't move up (its Round, or the one above, has a score) gets no button at all. */}
+              <div className="tt-roster-field" data-move={canMoveUp || undefined}>
                 <input
                   id={`${id}-${key}`}
                   className="tt-field"
@@ -97,11 +98,11 @@ export function RosterForm({
                   aria-describedby={`${id}-${key}-note`}
                   onChange={(event) => change({ ...shown, [key]: event.target.value })}
                 />
-                {index > 0 && (
+                {canMoveUp && (
                   <button
                     type="button"
                     className="tt-btn tt-btn-ghost tt-roster-move"
-                    disabled={!canMoveUp}
+                    disabled={pending}
                     aria-label={`Swap ${letter} and ${SLOTS[index - 1].letter}`}
                     onClick={() => moveUp(index as 1 | 2)}
                   >

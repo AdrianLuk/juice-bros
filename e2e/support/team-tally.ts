@@ -8,6 +8,8 @@
  * `on-deck.ts`. Names are PPA Tour pros: this repo is public.
  */
 
+import { torontoDate } from "./dates.ts";
+
 const API_URL = "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
@@ -81,6 +83,48 @@ async function ok(res: Response, what: string): Promise<Response> {
   return res;
 }
 
+type Headers = Record<string, string>;
+
+/** Signs the Organizer in by password and returns headers that call PostgREST as them. */
+async function organizerHeaders(email: string, password: string): Promise<Headers> {
+  const session = await ok(
+    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }),
+    "signing the Organizer in",
+  );
+  const accessToken = ((await session.json()) as { access_token: string }).access_token;
+  return { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+}
+
+/** Calls a Team Tally database function as the Organizer. */
+async function rpc(headers: Headers, fn: string, args: Record<string, unknown>, what: string): Promise<Response> {
+  return ok(
+    await fetch(`${API_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers, body: JSON.stringify(args) }),
+    what,
+  );
+}
+
+type OrganizerDoc = {
+  teams: { id: string }[];
+  matchups: {
+    id: string;
+    stage: string;
+    number: number;
+    flightLetter: string | null;
+    redTeamId: string;
+    blueTeamId: string;
+    games: { id: string }[];
+  }[];
+};
+
+async function organizerEvent(headers: Headers, seeded: SeededTeamEvent): Promise<OrganizerDoc> {
+  const read = await rpc(headers, "team_tally_organizer_event", { p_event_id: seeded.eventId }, "reading the Team Event");
+  return (await read.json()) as OrganizerDoc;
+}
+
 /** A fresh Organizer with a four-Team night (Matchups 16 & 19, 17 & 18). */
 export async function seedTeamEvent(name = "Tuesday Team Night", night: Night = TEAM_TALLY_NIGHT): Promise<SeededTeamEvent> {
   const email = `team-tally-live-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
@@ -94,30 +138,18 @@ export async function seedTeamEvent(name = "Tuesday Team Night", night: Night = 
     "creating the Organizer",
   );
   const userId = ((await created.json()) as { id: string }).id;
+  const asOrganizer = await organizerHeaders(email, PASSWORD);
 
-  const session = await ok(
-    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: PASSWORD }),
-    }),
-    "signing the Organizer in",
-  );
-  const accessToken = ((await session.json()) as { access_token: string }).access_token;
-  const asOrganizer = { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
-
-  const saved = await ok(
-    await fetch(`${API_URL}/rest/v1/rpc/team_tally_save_event`, {
-      method: "POST",
-      headers: asOrganizer,
-      body: JSON.stringify({
-        p_event_id: null,
-        p_name: name,
-        p_event_date: new Date().toISOString().slice(0, 10),
-        p_teams: night.teams,
-        p_matchups: night.matchups,
-      }),
-    }),
+  const saved = await rpc(
+    asOrganizer,
+    "team_tally_save_event",
+    {
+      p_event_id: null,
+      p_name: name,
+      p_event_date: torontoDate(0),
+      p_teams: night.teams,
+      p_matchups: night.matchups,
+    },
     "saving the Team Event",
   );
   const eventId = (await saved.json()) as string;
@@ -154,40 +186,7 @@ export async function scoreMatchup(
   matchupNumber: number,
   scores: [number, number][],
 ): Promise<void> {
-  const session = await ok(
-    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ email: seeded.organizerEmail, password: seeded.organizerPassword }),
-    }),
-    "signing the Organizer in",
-  );
-  const accessToken = ((await session.json()) as { access_token: string }).access_token;
-  const asOrganizer = { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
-
-  const read = await ok(
-    await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_event`, {
-      method: "POST",
-      headers: asOrganizer,
-      body: JSON.stringify({ p_event_id: seeded.eventId }),
-    }),
-    "reading the Team Event",
-  );
-  const event = (await read.json()) as {
-    matchups: { stage: string; number: number; games: { id: string }[] }[];
-  };
-  const matchup = event.matchups.find((candidate) => candidate.stage === "opening" && candidate.number === matchupNumber)!;
-
-  for (const [index, [red, blue]] of scores.entries()) {
-    await ok(
-      await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_score_game`, {
-        method: "POST",
-        headers: asOrganizer,
-        body: JSON.stringify({ p_game_id: matchup.games[index].id, p_red: red, p_blue: blue }),
-      }),
-      "saving a score",
-    );
-  }
+  await playMatchup(seeded, { opening: matchupNumber }, scores);
 }
 
 /**
@@ -200,30 +199,10 @@ export async function playMatchup(
   seeded: SeededTeamEvent,
   which: { opening: number } | { flight: string },
   scores: [number, number][],
-  options: { done?: boolean } = {},
+  options: { done?: boolean; dreambreakerWinner?: "red" | "blue" } = {},
 ): Promise<void> {
-  const session = await ok(
-    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ email: seeded.organizerEmail, password: seeded.organizerPassword }),
-    }),
-    "signing the Organizer in",
-  );
-  const accessToken = ((await session.json()) as { access_token: string }).access_token;
-  const asOrganizer = { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
-
-  const read = await ok(
-    await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_event`, {
-      method: "POST",
-      headers: asOrganizer,
-      body: JSON.stringify({ p_event_id: seeded.eventId }),
-    }),
-    "reading the Team Event",
-  );
-  const event = (await read.json()) as {
-    matchups: { id: string; stage: string; number: number; flightLetter: string | null; games: { id: string }[] }[];
-  };
+  const asOrganizer = await organizerHeaders(seeded.organizerEmail, seeded.organizerPassword);
+  const event = await organizerEvent(asOrganizer, seeded);
   const matchup = event.matchups.find((candidate) =>
     "opening" in which
       ? candidate.stage === "opening" && candidate.number === which.opening
@@ -232,25 +211,28 @@ export async function playMatchup(
   if (!matchup) throw new Error(`No such Matchup: ${JSON.stringify(which)}`);
 
   for (const [index, [red, blue]] of scores.entries()) {
-    await ok(
-      await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_score_game`, {
-        method: "POST",
-        headers: asOrganizer,
-        body: JSON.stringify({ p_game_id: matchup.games[index].id, p_red: red, p_blue: blue }),
-      }),
+    await rpc(
+      asOrganizer,
+      "team_tally_organizer_score_game",
+      { p_game_id: matchup.games[index].id, p_red: red, p_blue: blue },
       "saving a score",
     );
   }
 
-  if (options.done) {
-    await ok(
-      await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_mark_done`, {
-        method: "POST",
-        headers: asOrganizer,
-        body: JSON.stringify({ p_matchup_id: matchup.id }),
-      }),
-      "marking the Matchup done",
+  if (options.dreambreakerWinner) {
+    await rpc(
+      asOrganizer,
+      "team_tally_organizer_set_dreambreaker",
+      {
+        p_matchup_id: matchup.id,
+        p_winner_team_id: options.dreambreakerWinner === "red" ? matchup.redTeamId : matchup.blueTeamId,
+      },
+      "recording the Dreambreaker",
     );
+  }
+
+  if (options.done) {
+    await rpc(asOrganizer, "team_tally_organizer_mark_done", { p_matchup_id: matchup.id }, "marking the Matchup done");
   }
 }
 

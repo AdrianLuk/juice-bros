@@ -192,6 +192,15 @@ body:has(.tt-surface) {
   gap: 0.75rem 1rem;
 }
 
+/* One plain line under the actions, saying why one isn't there. */
+.tt-head-note {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--tt-ink-dim);
+  max-width: 62ch;
+  margin: -0.5rem 0 0;
+}
+
 /* ---- material ---------------------------------------------------------- */
 
 .tt-sheet {
@@ -268,6 +277,16 @@ body:has(.tt-surface) {
 .tt-btn:hover { background: var(--tt-plate-raised); }
 .tt-btn:active { transform: translateY(1px); }
 .tt-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+/* A ghost button at half opacity still reads as a live outline on white, so a
+   disabled one also goes dashed and dim, and stops answering hover. */
+.tt-btn-ghost:disabled,
+.tt-btn-ghost:disabled:hover {
+  border-style: dashed;
+  border-color: var(--tt-rule-strong);
+  background: transparent;
+  color: var(--tt-ink-dim);
+  opacity: 1;
+}
 
 .tt-btn-ghost {
   background: transparent;
@@ -412,13 +431,19 @@ body:has(.tt-surface) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* TOT sits on the raised cell, the same package as the score bug's TOT. It
+   runs the row's full height, through the row's own padding. */
 .tt-tower-pts {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-block: -0.4rem;
+  background: var(--tt-plate-raised);
   font-family: var(--tt-cond);
   font-weight: 800;
   font-size: 1.25rem;
-  text-align: right;
-}
-.tt-tower-move {
+}.tt-tower-move {
   display: inline-flex;
   justify-content: flex-end;
   align-items: center;
@@ -460,16 +485,35 @@ body:has(.tt-surface) {
   background: var(--tt-now);
   border-radius: 2px;
 }
+/* Once the night is over nothing is live, so no yellow: your position keeps
+   its chip as a plate-ink outline. */
+.tt-tower[data-final] .tt-tower-row[data-mine] .tt-tower-pos {
+  color: var(--tt-plate-ink);
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--tt-plate-ink);
+}
+/* The Flight band is the cut line, the loudest rule on the tower: the label in
+   plate ink between two heavy rules, where a leaderboard draws who drops. */
 .tt-tower-band {
-  padding: 0.2rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.75rem;
   background: var(--tt-plate-bar);
-  color: var(--tt-plate-dim);
+  color: var(--tt-plate-ink);
   font-family: var(--tt-cond);
   font-weight: 800;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.2;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  text-align: center;
+}
+.tt-tower-band::before,
+.tt-tower-band::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--tt-plate-dim);
 }
 
 /* ---- the Organizer's lists and forms ------------------------------------ */
@@ -822,10 +866,10 @@ body:has(.tt-surface) {
 .tt-roster-row { display: grid; gap: 0.35rem; }
 .tt-roster-field {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
-.tt-roster-row:first-child .tt-roster-field { grid-template-columns: minmax(0, 1fr); }
+.tt-roster-field[data-move] { grid-template-columns: minmax(0, 1fr) auto; }
 .tt-roster-move { width: 2.75rem; padding: 0; }
 .tt-roster-field .tt-field:read-only {
   background: var(--tt-ground);
@@ -852,6 +896,22 @@ body:has(.tt-surface) {
   list-style: none;
 }
 .tt-game-lines { gap: 0; }
+/* The results page: every Matchup two across, flowing round the opening
+   standings, which hold the left column for --tt-tower-span rows. */
+.tt-results-flow {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .tt-results-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    column-gap: 2.5rem;
+  }
+  .tt-results-tower { grid-column: 1; grid-row: 1 / span var(--tt-tower-span, 2); }
+  .tt-results-flow-head { grid-column: 2; grid-row: 1; }
+}
 .tt-game-line {
   display: grid;
   gap: 0.35rem;
@@ -933,22 +993,29 @@ body:has(.tt-surface) {
   text-transform: uppercase;
 }
 
-/* How a tie was settled, under the Team's name in the tower. */
-.tt-tower-name { display: grid; }
+/* How a tie was settled, under the Team's name in the tower. A long name
+   wraps to a second line rather than losing its end, and so does the note:
+   it is the only place a tied placing is explained. */
+.tt-tower-name { display: grid; white-space: normal; }
 .tt-tower-name-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 .tt-tower-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-top: 0.1rem;
   color: var(--tt-plate-dim);
   font-weight: 700;
   font-size: 0.6875rem;
-  line-height: 1.2;
-  letter-spacing: 0.1em;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
 }
 
 /* The Flight hand-off: the Flight letter and its court pair are the biggest
@@ -1241,11 +1308,14 @@ body:has(.tt-surface) {
   display: grid;
   min-width: 0;
 }
+/* Names wrap to a second line on a phone rather than losing their end. */
 .tt-champ-name,
 .tt-place-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-family: var(--tt-cond);
   font-weight: 800;
   font-size: 1.375rem;
@@ -1291,11 +1361,11 @@ body:has(.tt-surface) {
   text-align: center;
 }
 .tt-place-name { font-size: 1.125rem; font-weight: 700; }
-/* Your own Team's place sits on the same yellow chip as your tower position. */
+/* Your own Team's place: the raised row and an outlined chip. Results only
+   exist once the night is over, and with nothing live there is no yellow. */
 .tt-place-row[data-mine] .tt-place-num {
-  color: var(--tt-plate);
-  background: var(--tt-now);
   border-radius: 2px;
+  box-shadow: inset 0 0 0 1.5px var(--tt-plate-ink);
 }
 
 /* The Public Link holds both layouts and CSS picks one, so nothing flashes.
@@ -1340,7 +1410,10 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   gap: 1.5em;
 }
 .tt-tv-id { display: grid; gap: 0.2em; min-width: 0; }
-.tt-tv-mark { font-size: 0.6em; pointer-events: none; }
+/* The mark signs the screen from the bottom-right corner, like a network bug,
+   rather than sitting over the title. */
+.tt-tv-sign { display: inline-flex; align-items: center; gap: 1.4em; }
+.tt-tv-mark { font-size: 0.7em; pointer-events: none; }
 .tt-tv-title {
   margin: 0;
   font-family: var(--tt-cond);
@@ -1400,7 +1473,7 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   list-style: none;
   font-family: var(--tt-cond);
   font-weight: 700;
-  font-size: 0.6em;
+  font-size: 0.72em;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--tt-ink-dim);
@@ -1414,7 +1487,7 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   border-bottom-color: var(--tt-ink);
 }
 .tt-tv-link {
-  font-size: 0.55em;
+  font-size: 0.65em;
   font-weight: 600;
   color: var(--tt-ink-dim);
   text-decoration: underline;
@@ -1442,18 +1515,24 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   min-height: 0;
 }
 .tt-tv .tt-tower-list .tt-tower-row { flex: 1 1 0; }
-.tt-tv .tt-plate-bar { padding: 0.6em 1em; font-size: 0.55em; }
+/* Secondary type on the stage stays at a room's reading size: bars, column
+   heads and Flight bands at 0.9 to 1 unit (22 to 24px at 1920). */
+.tt-tv .tt-plate-bar { padding: 0.45em 0.9em; font-size: 0.9em; letter-spacing: 0.1em; }
 .tt-tv .tt-tower-row {
   grid-template-columns: var(--tt-tv-tower-cols);
   gap: 0.5em;
   padding: 0 0.9em;
 }
-.tt-tv .tt-tower-head { padding-block: 0.5em; font-size: 0.55em; flex: none; }
-.tt-tv .tt-tower-band { flex: none; padding: 0.4em 0.9em; font-size: 0.55em; }
+.tt-tv .tt-tower-head { padding-block: 0.3em; font-size: 0.95em; letter-spacing: 0.1em; flex: none; }
+.tt-tv .tt-tower-band { flex: none; gap: 0.8em; padding: 0.3em 0.9em; font-size: 1em; }
+.tt-tv .tt-tower-band::before,
+.tt-tv .tt-tower-band::after { height: 0.16em; }
 .tt-tv .tt-tower-pos { font-size: 1.4em; line-height: 1; }
 .tt-tv .tt-tower-chip { height: 1.2em; }
 .tt-tv .tt-tower-name { font-size: 1.55em; line-height: 1.1; }
-.tt-tv .tt-tower-note { font-size: 0.4em; line-height: 1.3; }
+.tt-tv .tt-tower-name-text { -webkit-line-clamp: 1; }
+.tt-tv .tt-tower-note { font-size: 0.6em; line-height: 1.2; -webkit-line-clamp: 1; }
+.tt-tv .tt-tower-pts { margin-block: 0; }
 .tt-tv .tt-tower-round { font-size: 1.45em; line-height: 1.3; }
 .tt-tv .tt-tower-round.tt-now { box-shadow: inset 0 -0.1em 0 var(--tt-now); }
 .tt-tv .tt-tower-pts { font-size: 1.9em; line-height: 1; }
@@ -1476,6 +1555,8 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   flex: 0 0 calc((100% - (var(--tt-tv-cols) - 1) * 1.2em) / var(--tt-tv-cols));
   min-width: 0;
 }
+/* A screen of score bugs grows into the height it has (tv-screens.ts). */
+.tt-tv-bugs:not(.tt-tv-handoffs) { font-size: calc(var(--tt-tv-bug-scale, 1) * 1em); }
 
 .tt-tv .tt-bug { grid-template-columns: var(--tt-tv-bug-cols); }
 .tt-tv .tt-bug > :where(span),
@@ -1498,28 +1579,28 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   -webkit-line-clamp: 2;
   text-wrap: balance;
 }
-.tt-tv .tt-bug .tt-bug-head { padding-block: 0.5em; font-size: 0.6em; }
-.tt-tv .tt-bug .tt-bug-head.tt-bug-team { padding-left: 0.9em; font-size: 0.65em; }
+.tt-tv .tt-bug .tt-bug-head { padding-block: 0.35em; font-size: 0.85em; letter-spacing: 0.1em; }
+.tt-tv .tt-bug .tt-bug-head.tt-bug-team { padding-left: 0.6em; font-size: 0.9em; letter-spacing: 0.08em; }
 .tt-tv .tt-bug .tt-bug-tot { font-size: 2.2em; }
 .tt-tv .tt-bug .tt-now { box-shadow: inset 0 -0.12em 0 var(--tt-now); }
 .tt-tv .tt-bug .tt-bug-head.tt-now { box-shadow: none; }
 .tt-tv .tt-bug-mark { font-size: 0.45em; }
-.tt-tv .tt-bug-finalbar { font-size: 0.7em; }
+.tt-tv .tt-bug-finalbar { font-size: 0.8em; }
 
 .tt-tv .tt-handoff-head { padding: 0.6em 0.9em 0.65em; }
-.tt-tv .tt-handoff-kicker { font-size: 0.62em; }
+.tt-tv .tt-handoff-kicker { font-size: 0.8em; }
 .tt-tv .tt-handoff-letter { font-size: 5.6em; }
 .tt-tv .tt-handoff-pair { font-size: 4em; }
 .tt-tv .tt-handoff-row {
   grid-template-columns: 1.3em 0.45em minmax(0, 1fr) auto;
   gap: 0.6em;
-  padding: 0.7em 0.9em;
+  padding: 0.55em 0.9em;
 }
 .tt-tv .tt-handoff-seed { font-size: 1.2em; }
 .tt-tv .tt-handoff-row .tt-tower-chip { height: 1.6em; }
 .tt-tv .tt-handoff-name { font-size: 1.4em; }
 .tt-tv .tt-handoff-name .tt-bug-name { white-space: normal; text-wrap: balance; line-height: 1.05; }
-.tt-tv .tt-handoff-court-label { font-size: 0.55em; }
+.tt-tv .tt-handoff-court-label { font-size: 0.7em; }
 .tt-tv .tt-handoff-court-num { font-size: 2.7em; }
 
 /* Results: champions left, Final places right in two columns of places. */
@@ -1543,10 +1624,10 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 }
 .tt-tv .tt-champ-row { flex: 1 1 0; gap: 0.8em; padding: 0 0.9em; }
 .tt-tv .tt-champ-flight { min-width: 2.4em; padding: 0.3em 0.45em 0.25em; }
-.tt-tv .tt-champ-kicker { font-size: 0.4em; }
+.tt-tv .tt-champ-kicker { font-size: 0.65em; }
 .tt-tv .tt-champ-letter { font-size: 2.2em; }
 .tt-tv .tt-champ-name { font-size: 1.45em; }
-.tt-tv .tt-champ-beat { font-size: 0.5em; }
+.tt-tv .tt-champ-beat { font-size: 0.8em; }
 .tt-tv .tt-champ-score { font-size: 2.1em; }
 .tt-tv .tt-place-list {
   flex: 1;
@@ -1565,7 +1646,7 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 }
 .tt-tv .tt-place-num { font-size: 1.7em; line-height: 1.1; }
 .tt-tv .tt-place-name { font-size: 1.25em; }
-.tt-tv .tt-place-role { font-size: 0.45em; }
+.tt-tv .tt-place-role { font-size: 0.75em; }
 
 @media (prefers-reduced-motion: reduce) {
   .tt-surface *,

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import type { LiveView } from "@/lib/team-tally/actions/live";
-import { captainTeamName, scoredRoundsFor, sideOf, teamName, type DocMatchup } from "@/lib/team-tally/event-doc";
+import { captainTeamName, type DocMatchup, flightMatchups, openingMatchups, scoredRoundsFor, sideOf, teamName } from "@/lib/team-tally/event-doc";
 import { finalPlaces, ordinal } from "@/lib/team-tally/final-places";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import { FlightHandoff } from "./flight-handoff";
@@ -51,8 +51,8 @@ function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveV
   const myFlight = myMatchups.find((matchup) => matchup.stage === "flight");
   // The Matchup this Team is playing now: its Flight once there is one.
   const mine = myFlight ?? opening;
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
-  const openingLeft = event.matchups.filter((matchup) => matchup.stage === "opening" && matchup.doneAt === null);
+  const flights = flightMatchups(event);
+  const openingLeft = openingMatchups(event).filter((matchup) => matchup.doneAt === null);
 
   // The night has ended: scores are final. The page still opens, with no inputs.
   if (event.status === "finished") {
@@ -98,7 +98,7 @@ function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveV
             </div>
             <div className="tt-live-side">
               <section aria-label="Standings" className="grid gap-2">
-                <h2 className="tt-sect">Opening standings</h2>
+                <h2 className="sr-only">Opening standings</h2>
                 <StandingsTower event={event} myTeamId={myTeamId} />
               </section>
             </div>

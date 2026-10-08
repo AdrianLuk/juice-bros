@@ -197,6 +197,18 @@ export async function setTieOrderAsOrganizer(
   return call(supabase, "team_tally_organizer_set_tie_order", { p_event_id: eventId, p_team_ids: teamIds }, "Saving the order");
 }
 
+/**
+ * After Seeding, the Organizer puts a Team ahead of the one above it across a
+ * Flight line, when the two are level on every count: they change Flights.
+ */
+export async function putAheadAsOrganizer(
+  supabase: SupabaseClient,
+  eventId: string,
+  teamId: string,
+): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_put_ahead", { p_event_id: eventId, p_team_id: teamId }, "Saving the order");
+}
+
 /** The Organizer swaps two Flights' court pairs, before any Flight score. */
 export async function swapFlightCourtsAsOrganizer(
   supabase: SupabaseClient,

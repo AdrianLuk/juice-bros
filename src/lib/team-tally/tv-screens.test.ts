@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { DocGame, DocMatchup } from "./event-doc.ts";
-import { bugGridColumns, handoffGridColumns, splitStandings, tvScreens } from "./tv-screens.ts";
+import { bugGridColumns, bugGridScale, handoffGridColumns, splitStandings, tvScreens } from "./tv-screens.ts";
 
 function games(scores: ([number, number] | null)[]): DocGame[] {
   return scores.map((score, index) => ({
@@ -105,4 +105,18 @@ test("Matchup score bugs run up to three across, so a night of 14 Teams reads at
 
 test("Flight hand-off plates run in two rows of up to four, the loudest layout the stage has", () => {
   assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(handoffGridColumns), [1, 1, 2, 2, 3, 3, 4]);
+});
+
+test("score bugs grow into the screen's height: three rows of them at 1.25 times, fewer rows larger still", () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 6, 7].map((count) => bugGridScale(count)),
+    [1.5, 1.5, 1.5, 1.5, 1.4, 1.4, 1.25],
+  );
+});
+
+test("done Matchups carry a FINAL bar, so a screen of them grows less: three rows stay at the stage's unit", () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 6, 7].map((count) => bugGridScale(count, true)),
+    [1.25, 1.25, 1.25, 1.25, 1.25, 1.25, 1],
+  );
 });

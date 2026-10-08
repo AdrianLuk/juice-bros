@@ -24,19 +24,23 @@ export function TtAppBar({ context }: { context?: ReactNode }) {
 
 /**
  * The opening of a Team Tally page: the app bar, then the title, its
- * metadata, a standfirst and the page's actions, in that order.
+ * metadata, a standfirst, the page's actions and a one-line note about them,
+ * in that order.
  */
 export function TtHead({
   title,
   meta,
   lead,
   actions,
+  note,
   context = "Organizer",
 }: {
   title: ReactNode;
   meta?: ReactNode;
   lead?: ReactNode;
   actions?: ReactNode;
+  /** Why an action isn't offered, say. */
+  note?: ReactNode;
   context?: ReactNode;
 }) {
   return (
@@ -49,6 +53,7 @@ export function TtHead({
         </div>
         {lead && <p className="tt-lead">{lead}</p>}
         {actions && <div className="tt-actions">{actions}</div>}
+        {note && <p className="tt-head-note">{note}</p>}
       </header>
     </>
   );

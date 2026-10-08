@@ -3,11 +3,18 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import { eventDateLabel } from "@/lib/team-tally/format";
-import type { DocMatchup, DocTeam, TeamEventDoc } from "@/lib/team-tally/event-doc";
+import {
+  flightMatchups,
+  openingMatchups,
+  type DocMatchup,
+  type DocTeam,
+  type TeamEventDoc,
+} from "@/lib/team-tally/event-doc";
 import { flightResults } from "@/lib/team-tally/final-places";
 import { computeStandings } from "@/lib/team-tally/standings";
 import {
   bugGridColumns,
+  bugGridScale,
   handoffGridColumns,
   splitStandings,
   tvScreens,
@@ -62,8 +69,8 @@ function doneCount(matchups: DocMatchup[]): string {
 
 /** What the head says about the night: its stage, and how far through it is. */
 function stageOf(event: TeamEventDoc): { name: string; progress: string; live?: string } {
-  const opening = event.matchups.filter((matchup) => matchup.stage === "opening");
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
+  const opening = openingMatchups(event);
+  const flights = flightMatchups(event);
   if (event.status === "finished") {
     return { name: "Final", progress: `${flights.length} Flights played` };
   }
@@ -80,11 +87,15 @@ function stageOf(event: TeamEventDoc): { name: string; progress: string; live?: 
 
 function BugGrid({ matchups, teams }: { matchups: DocMatchup[]; teams: Map<string, DocTeam> }) {
   const columns = bugGridColumns(matchups.length);
+  const scale = bugGridScale(
+    matchups.length,
+    matchups.some((matchup) => matchup.doneAt !== null),
+  );
   return (
     <ul
       className="tt-tv-bugs"
       data-count={matchups.length}
-      style={{ "--tt-tv-cols": columns } as CSSProperties}
+      style={{ "--tt-tv-cols": columns, "--tt-tv-bug-scale": scale } as CSSProperties}
     >
       {matchups.map((matchup) => (
         <li key={matchup.id}>
@@ -119,12 +130,12 @@ function StandingsScreen({ event }: { event: TeamEventDoc }) {
 }
 
 function ScreenBody({ id, event, teams }: { id: TvScreenId; event: TeamEventDoc; teams: Map<string, DocTeam> }) {
-  const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
+  const flights = flightMatchups(event);
   switch (id) {
     case "standings":
       return <StandingsScreen event={event} />;
     case "matchups":
-      return <BugGrid matchups={event.matchups.filter((matchup) => matchup.stage === "opening")} teams={teams} />;
+      return <BugGrid matchups={openingMatchups(event)} teams={teams} />;
     case "handoff":
       return (
         <ul
@@ -208,10 +219,6 @@ export function TvStage({
     <div className="tt-tv" aria-label="Big screen">
       <header className="tt-tv-head">
         <div className="tt-tv-id">
-          <span className="tt-mark tt-tv-mark">
-            <span aria-hidden className="tt-mark-blocks" />
-            Team Tally
-          </span>
           <h1 className="tt-tv-title">{event.name}</h1>
           <p className="tt-tv-meta">
             {eventDateLabel(event.date)} · {event.teams.length} Teams
@@ -251,9 +258,15 @@ export function TvStage({
         ) : (
           <span />
         )}
-        <a href="?view=scroll" className="tt-tv-link">
-          Scrolling view
-        </a>
+        <div className="tt-tv-sign">
+          <a href="?view=scroll" className="tt-tv-link">
+            Scrolling view
+          </a>
+          <span className="tt-mark tt-tv-mark">
+            <span aria-hidden className="tt-mark-blocks" />
+            Team Tally
+          </span>
+        </div>
       </footer>
     </div>
   );

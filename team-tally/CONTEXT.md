@@ -38,8 +38,8 @@ The court a Team meets on, one of its Matchup's court pair. It decides nothing a
 ### Play
 
 **Matchup**:
-Two Teams playing three Rounds on a pair of adjacent courts. The Brief prints it as "MATCH 1" because that is what the Organizer writes; everywhere else it is a Matchup.
-_Avoid_: Match (Pickle Point Pal's word for a scored contest between two sides)
+Two Teams playing three Rounds on a pair of adjacent courts. The term is Matchup in code, tests and docs. On screens a Matchup is labelled by its brief number ("Match 1 · Courts 16 & 19"), as the Brief prints it ("MATCH 1"), so players can find it from the brief they were sent. "Match" stays a display label and never names an identifier.
+_Avoid_: Match, outside that label (Pickle Point Pal's word for a scored contest between two sides)
 
 **Court pair**:
 The two adjacent courts a Matchup plays on. Which of the two is the captains' court does not matter and is not recorded.
@@ -66,7 +66,7 @@ Either captain's tap that says a Matchup is over. It needs all six scores, and a
 ### Flights and results
 
 **Seeding**:
-Ranking every Team on its opening Team score to place it in a Flight. A tie is broken by the Matchup winner when the two Teams played each other, then point differential, then Games won, then the Organizer; the standings say which rule decided. Seeding happens by itself when the last opening Matchup is done, or when the Organizer taps Seed now.
+Ranking every Team on its opening Team score to place it in a Flight. A tie is broken by the Matchup winner when the two Teams played each other, then point differential, then Games won, then the Organizer; the standings say which rule decided. Seeding happens by itself when the last opening Matchup is done, or when the Organizer taps Seed now. When it happens by itself, a tie on every count across a Flight line is placed in setup order with nobody choosing; the Organizer can still put the lower Team ahead, which swaps the two Teams between the two Flights, until either Flight has a score.
 
 **Flight**:
 A performance division of two Teams, ranked by Seeding: the top two are Flight A, the next two Flight B, and so on. There are as many Flights as opening Matchups. Each Flight plays one Matchup on one of the night's opening court pairs, and its winner is that Flight's champion. Nothing to do with aircraft.

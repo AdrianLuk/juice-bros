@@ -10,7 +10,8 @@ import { after, test } from "node:test";
 
 import { createTestUser, deleteTestUser, type TestUser } from "../db-test-support.ts";
 import type { TeamEventSetup } from "./setup.ts";
-import { listTeamEvents, loadTeamEvent, saveTeamEvent } from "./events.ts";
+import { listTeamEvents, loadTeamEvent, saveTeamEvent, SetupRefused } from "./events.ts";
+import { loadOrganizerEvent, saveScoreAsOrganizer } from "./live-events.ts";
 
 const users: TestUser[] = [];
 
@@ -114,4 +115,30 @@ test("another User can't list or load the Organizer's Team Event", async () => {
 
   assert.deepEqual(await listTeamEvents(stranger.supabase), []);
   assert.equal(await loadTeamEvent(stranger.supabase, eventId), null);
+});
+
+test("once a Game has a score, an edit is refused with the reason and the night stays as it was", async () => {
+  const { supabase } = await organizer();
+  const eventId = await saveTeamEvent(supabase, fourTeamNight());
+  const before = (await loadTeamEvent(supabase, eventId))!;
+  const live = (await loadOrganizerEvent(supabase, eventId))!;
+  assert.deepEqual(await saveScoreAsOrganizer(supabase, live.matchups[0].games[0].id, 11, 9), { ok: true });
+
+  const repaired: TeamEventSetup = {
+    ...fourTeamNight(),
+    teams: before.teams,
+    matchups: [
+      { red: 0, blue: 2 },
+      { red: 1, blue: 3 },
+    ],
+  };
+  await assert.rejects(saveTeamEvent(supabase, repaired, eventId), (error: unknown) => {
+    assert.ok(error instanceof SetupRefused);
+    assert.equal(error.message, "Play has started, so the setup is set. Rosters change from the Score Links now.");
+    return true;
+  });
+
+  const after = (await loadTeamEvent(supabase, eventId))!;
+  assert.deepEqual(after.matchups, before.matchups);
+  assert.equal((await loadOrganizerEvent(supabase, eventId))!.matchups[0].games[0].redScore, 11);
 });

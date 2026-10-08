@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { liveRound, type Round, type TeamEventDoc } from "@/lib/team-tally/event-doc";
+import { liveRound, openingMatchups, type Round, type TeamEventDoc } from "@/lib/team-tally/event-doc";
 import { tieRuleLabel } from "@/lib/team-tally/seeding";
 import { computeStandings, type StandingRow } from "@/lib/team-tally/standings";
 import { TimingTower } from "./timing-tower";
@@ -30,8 +30,7 @@ function useMoves(rows: StandingRow[]): Map<string, number> {
 
 /** The Round still being played somewhere in the opening round, for the tower's yellow column. */
 export function openingLiveRound(event: TeamEventDoc): Round | undefined {
-  const rounds = event.matchups
-    .filter((matchup) => matchup.stage === "opening")
+  const rounds = openingMatchups(event)
     .map((matchup) => liveRound(matchup))
     .filter((round): round is Round => round !== undefined);
   return rounds.length > 0 ? (Math.min(...rounds) as Round) : undefined;
@@ -74,6 +73,7 @@ export function StandingsTower({
     <TimingTower
       label={label}
       size={size}
+      final={event.status === "finished"}
       liveRound={event.status === "opening" ? openingLiveRound(event) : undefined}
       rows={standings
         .map((row, index) => ({ row, index }))

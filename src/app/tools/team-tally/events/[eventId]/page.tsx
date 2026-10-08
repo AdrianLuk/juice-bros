@@ -11,6 +11,7 @@ import { pageMetadata } from "@/lib/metadata";
 import { generateBrief } from "@/lib/team-tally/brief";
 import { verifyOrganizer } from "@/lib/team-tally/dal";
 import { briefInputFor, loadTeamEvent } from "@/lib/team-tally/events";
+import { setupIsSet } from "@/lib/team-tally/event-doc";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import { loadOrganizerEvent } from "@/lib/team-tally/live-events";
 import { TEAM_TALLY_ROOT, editTeamEventPath, publicLinkPath, teamEventPath } from "@/lib/team-tally/routes";
@@ -58,12 +59,17 @@ export default async function TeamEventPage({ params }: { params: Promise<{ even
               <Link href={publicLinkPath(event.publicToken)} className="tt-btn tt-btn-ghost">
                 See the results
               </Link>
-            ) : (
+            ) : setupIsSet(live) ? null : (
               <Link href={editTeamEventPath(event.id)} className="tt-btn tt-btn-ghost">
                 Edit setup
               </Link>
             )}
           </>
+        }
+        note={
+          event.status !== "finished" && setupIsSet(live)
+            ? "Play has started, so the setup is set. Rosters change from the Score Links now."
+            : undefined
         }
       />
 

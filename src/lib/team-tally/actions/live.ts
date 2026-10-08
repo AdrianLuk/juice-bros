@@ -10,6 +10,7 @@ import {
   loadScoreLinkEvent,
   markDoneAsOrganizer,
   markDoneByLink,
+  putAheadAsOrganizer,
   reopenAsOrganizer,
   saveScoreAsOrganizer,
   saveScoreByLink,
@@ -38,7 +39,11 @@ export type LiveReader =
   | { kind: "public"; token: string }
   | { kind: "organizer"; eventId: string };
 
-export type LiveWriter = { kind: "score"; token: string } | { kind: "organizer"; eventId: string };
+/**
+ * Who is writing: a Score Link by its token, or the signed-in Organizer (the
+ * database finds the Team Event from the Game, Team or Matchup written).
+ */
+export type LiveWriter = { kind: "score"; token: string } | { kind: "organizer" };
 
 export type LiveView = { event: TeamEventDoc; myTeamId?: string };
 
@@ -78,17 +83,13 @@ export async function saveGameScore(
   const check = checkGameScore(redScore, blueScore);
   if (!check.ok) return check;
 
-  // Outside the try: a signed-out Organizer is redirected, by a throw.
-  if (writer.kind === "organizer") await verifyOrganizer();
-
-  try {
-    if (writer.kind === "score") {
-      return await saveScoreByLink(await createClient(), writer.token, String(gameId), redScore, blueScore);
-    }
-    return await saveScoreAsOrganizer(await createClient(), String(gameId), redScore, blueScore);
-  } catch {
-    return { ok: false, problem: "Couldn't save the score. Try again." };
-  }
+  const id = String(gameId);
+  return asWriter(
+    writer,
+    (supabase, token) => saveScoreByLink(supabase, token, id, redScore, blueScore),
+    (supabase) => saveScoreAsOrganizer(supabase, id, redScore, blueScore),
+    "Couldn't save the score. Try again.",
+  );
 }
 
 /** Saves a Team's slots A, B and C (a Score Link saves only its own Team's). */
@@ -99,22 +100,19 @@ export async function saveRoster(writer: LiveWriter, teamId: string, roster: Ros
     slotC: String(roster?.slotC ?? ""),
   };
 
-  if (writer.kind === "organizer") await verifyOrganizer();
-
-  try {
-    if (writer.kind === "score") {
-      return await setSlotsByLink(await createClient(), writer.token, clean);
-    }
-    return await setSlotsAsOrganizer(await createClient(), String(teamId), clean);
-  } catch {
-    return { ok: false, problem: "Couldn't save the roster. Try again." };
-  }
+  const id = String(teamId);
+  return asWriter(
+    writer,
+    (supabase, token) => setSlotsByLink(supabase, token, clean),
+    (supabase) => setSlotsAsOrganizer(supabase, id, clean),
+    "Couldn't save the roster. Try again.",
+  );
 }
 
 /**
- * Runs one of #624's writes as whoever holds the writer: a Score Link by its
- * token, or the signed-in Organizer. A refusal comes back with the database's
- * reason; anything else is a generic retry message.
+ * Runs a write as whoever holds the writer: a Score Link by its token, or the
+ * signed-in Organizer. A refusal comes back with the database's reason;
+ * anything else is a generic retry message.
  */
 async function asWriter(
   writer: LiveWriter,
@@ -189,6 +187,17 @@ export async function swapFlightCourts(flightId: string, otherFlightId: string):
   return asOrganizerOnly(
     (supabase) => swapFlightCourtsAsOrganizer(supabase, String(flightId), String(otherFlightId)),
     "Couldn't swap the courts. Try again.",
+  );
+}
+
+/**
+ * After Seeding, the Organizer puts a Team ahead of the one above it across a
+ * Flight line, when the two are level on every count: they change Flights.
+ */
+export async function putTeamAhead(eventId: string, teamId: string): Promise<WriteResult> {
+  return asOrganizerOnly(
+    (supabase) => putAheadAsOrganizer(supabase, String(eventId), String(teamId)),
+    "Couldn't save the order. Try again.",
   );
 }
 
