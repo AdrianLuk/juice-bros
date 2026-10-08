@@ -388,9 +388,25 @@ test.describe("14 Teams on the big screen", () => {
     await expect(tv.getByRole("list", { name: "Standings · Flights A to C" })).toBeVisible();
     await expect(tv.getByRole("list", { name: "Standings · Flights D to G" })).toBeVisible();
     await expect(tv.getByRole("list", { name: "Standings · Flights D to G" }).getByRole("listitem")).toHaveCount(8);
+    // Four-row bugs hold four to a screen, so seven Matchups run as two screens.
+    await expect(tv.getByRole("list", { name: "Screens" }).getByRole("listitem")).toHaveText([
+      "Standings",
+      "Matchups 1 to 4",
+      "Matchups 5 to 7",
+    ]);
+    await expect(
+      tv
+        .getByRole("region", { name: "Matchups 1 to 4", includeHidden: true })
+        .getByRole("table", { includeHidden: true }),
+    ).toHaveCount(4);
+    await expect(
+      tv
+        .getByRole("region", { name: "Matchups 5 to 7", includeHidden: true })
+        .getByRole("table", { includeHidden: true }),
+    ).toHaveCount(3);
     await tv.context().close();
 
-    await checkScreens(browser, ["standings", "matchups"]);
+    await checkScreens(browser, ["standings", "matchups", "matchups-2"]);
   });
 
   test("the Flights hand-off, Flight scores and the results fit", async ({ browser }) => {
@@ -410,6 +426,6 @@ test.describe("14 Teams on the big screen", () => {
     for (const letter of ["A", "B", "C", "D", "E", "F", "G"]) {
       await playMatchup(night, { flight: letter }, letter < "D" ? RED_WINS : BLUE_WINS, { done: true });
     }
-    await checkScreens(browser, ["summary", "flight-scores", "standings"]);
+    await checkScreens(browser, ["summary", "flight-scores", "flight-scores-2", "standings"]);
   });
 });
