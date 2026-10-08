@@ -1559,29 +1559,31 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 .tt-tv-bugs:not(.tt-tv-handoffs) { font-size: calc(var(--tt-tv-bug-scale, 1) * 1em); }
 
 .tt-tv .tt-bug { grid-template-columns: var(--tt-tv-bug-cols); }
+/* Round numerals sit in fixed cells with air between them, so "10 10 10"
+   never reads as one string of digits across a room. Names stay on one line
+   so every bug in a row is the same height. */
 .tt-tv .tt-bug > :where(span),
 .tt-tv .tt-bug > :where([role="row"]) > :where(span) {
   padding: 0.3em 0.2em;
-  font-size: 1.85em;
+  font-size: 1.45em;
 }
 .tt-tv .tt-bug .tt-bug-team {
   padding-left: 0.5em;
-  font-size: 1.4em;
+  font-size: 1.2em;
   line-height: 1.05;
-  white-space: normal;
-  overflow: visible;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .tt-tv .tt-bug .tt-bug-teamrow { align-items: center; }
 .tt-tv .tt-bug .tt-bug-name {
-  display: -webkit-box;
-  white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  text-wrap: balance;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tt-tv .tt-bug .tt-bug-head { padding-block: 0.35em; font-size: 0.85em; letter-spacing: 0.1em; }
 .tt-tv .tt-bug .tt-bug-head.tt-bug-team { padding-left: 0.6em; font-size: 0.9em; letter-spacing: 0.08em; }
-.tt-tv .tt-bug .tt-bug-tot { font-size: 2.2em; }
+.tt-tv .tt-bug .tt-bug-tot { font-size: 1.8em; }
 .tt-tv .tt-bug .tt-now { box-shadow: inset 0 -0.12em 0 var(--tt-now); }
 .tt-tv .tt-bug .tt-bug-head.tt-now { box-shadow: none; }
 .tt-tv .tt-bug-mark { font-size: 0.45em; }
