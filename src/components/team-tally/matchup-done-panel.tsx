@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 
-import { markMatchupDone, recordDreambreaker, reopenMatchup, type LiveWriter } from "@/lib/team-tally/actions/live";
 import { captainTeamName, liveRound, teamName, type DocMatchup, type DocTeam } from "@/lib/team-tally/event-doc";
+import type { LiveWrites, WriteResult } from "@/lib/team-tally/live-seam";
 import { doneProblem, matchupTotals, matchupWinnerId, needsDreambreaker } from "@/lib/team-tally/matchup-done";
 
 /**
@@ -15,14 +15,12 @@ import { doneProblem, matchupTotals, matchupWinnerId, needsDreambreaker } from "
 export function MatchupDonePanel({
   matchup,
   teams,
-  writer,
-  onSaved,
+  writes,
   lastOpening = false,
 }: {
   matchup: DocMatchup;
   teams: Map<string, DocTeam>;
-  writer: LiveWriter;
-  onSaved: () => Promise<unknown>;
+  writes: LiveWrites;
   /** The only opening Matchup still open: done places the Flights. */
   lastOpening?: boolean;
 }) {
@@ -31,10 +29,10 @@ export function MatchupDonePanel({
   const [pending, startTransition] = useTransition();
   const red = teams.get(matchup.redTeamId)!;
   const blue = teams.get(matchup.blueTeamId)!;
-  const organizer = writer.kind === "organizer";
+  const organizer = writes.by === "organizer" ? writes : null;
   const flight = matchup.stage === "flight";
 
-  function run(action: () => Promise<{ ok: true } | { ok: false; problem: string }>, after?: () => void) {
+  function run(action: () => Promise<WriteResult>, after?: () => void) {
     setProblem(null);
     startTransition(async () => {
       const result = await action();
@@ -42,7 +40,6 @@ export function MatchupDonePanel({
         setProblem(result.problem);
         return;
       }
-      await onSaved();
       after?.();
     });
   }
@@ -70,7 +67,7 @@ export function MatchupDonePanel({
               type="button"
               className="tt-btn tt-btn-ghost"
               disabled={pending}
-              onClick={() => run(() => reopenMatchup(matchup.id))}
+              onClick={() => run(() => organizer.reopenMatchup(matchup.id))}
             >
               {pending ? "Reopening" : "Reopen Matchup"}
             </button>
@@ -118,7 +115,7 @@ export function MatchupDonePanel({
                     className="tt-btn tt-btn-ghost tt-pick"
                     aria-pressed={picked}
                     disabled={pending}
-                    onClick={() => run(() => recordDreambreaker(writer, matchup.id, picked ? null : team.id))}
+                    onClick={() => run(() => writes.recordDreambreaker(matchup.id, picked ? null : team.id))}
                   >
                     <span aria-hidden className={`tt-side ${index === 0 ? "tt-side-red" : "tt-side-blue"}`} />
                     {teamName(team)} won
@@ -141,7 +138,7 @@ export function MatchupDonePanel({
                 type="button"
                 className="tt-btn"
                 disabled={pending}
-                onClick={() => run(() => markMatchupDone(writer, matchup.id), () => setConfirming(false))}
+                onClick={() => run(() => writes.markMatchupDone(matchup.id), () => setConfirming(false))}
               >
                 {pending ? "Locking" : "Yes, it's done"}
               </button>

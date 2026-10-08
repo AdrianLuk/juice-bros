@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ScoreLinkBoard } from "@/components/team-tally/score-link-board";
+import { ScoreLinkBoard } from "@/components/team-tally/live-boards";
 import { loadScoreLinkEvent } from "@/lib/team-tally/live-events";
 import { createClient } from "@/lib/team-tally/supabase/server";
 

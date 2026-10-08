@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { TtHead } from "@/components/team-tally/tt-head";
 import { CopyBriefButton } from "@/components/team-tally/copy-brief-button";
 import { DeleteEventPanel } from "@/components/team-tally/delete-event-panel";
-import { OrganizerBoard } from "@/components/team-tally/organizer-board";
+import { OrganizerBoard } from "@/components/team-tally/live-boards";
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { pageMetadata } from "@/lib/metadata";
 import { generateBrief } from "@/lib/team-tally/brief";

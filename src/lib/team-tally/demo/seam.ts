@@ -16,6 +16,14 @@ import type { DemoActor, DemoWrite } from "./reduce.ts";
 export type DemoCommit = (actor: DemoActor, write: DemoWrite) => Promise<WriteResult>;
 
 /** The writes a screen gets, as `actor`. */
+export function demoWrites(
+  actor: Extract<DemoActor, { kind: "team" }>,
+  commit: DemoCommit,
+): { by: "team" } & TeamWrites;
+export function demoWrites(
+  actor: Extract<DemoActor, { kind: "organizer" }>,
+  commit: DemoCommit,
+): { by: "organizer" } & OrganizerWrites;
 export function demoWrites(actor: DemoActor, commit: DemoCommit): LiveWrites {
   const run = (write: DemoWrite) => commit(actor, write);
   const team: TeamWrites = {

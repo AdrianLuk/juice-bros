@@ -3,8 +3,8 @@
 import { useId, useState, useTransition, type FormEvent } from "react";
 import { ArrowUp } from "lucide-react";
 
-import { saveRoster, type LiveWriter } from "@/lib/team-tally/actions/live";
 import type { DocTeam, Round } from "@/lib/team-tally/event-doc";
+import type { TeamWrites } from "@/lib/team-tally/live-seam";
 import { checkRosterChange, type Roster } from "@/lib/team-tally/roster";
 
 const SLOTS = [
@@ -26,14 +26,12 @@ export function RosterForm({
   team,
   title,
   scoredRounds,
-  writer,
-  onSaved,
+  writes,
 }: {
   team: DocTeam;
   title: string;
   scoredRounds: Round[];
-  writer: LiveWriter;
-  onSaved: () => Promise<unknown>;
+  writes: TeamWrites;
 }) {
   const id = useId();
   const [draft, setDraft] = useState<Roster | null>(null);
@@ -62,12 +60,11 @@ export function RosterForm({
       return;
     }
     startTransition(async () => {
-      const result = await saveRoster(writer, team.id, shown);
+      const result = await writes.saveRoster(team.id, shown);
       if (!result.ok) {
         setMessage({ ok: false, text: result.problem });
         return;
       }
-      await onSaved();
       setDraft(null);
       setMessage({ ok: true, text: "Roster saved." });
     });

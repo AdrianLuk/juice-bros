@@ -1,7 +1,7 @@
 "use client";
 
-import type { LiveWriter } from "@/lib/team-tally/actions/live";
 import { isScored, liveRound, type DocMatchup, type DocTeam, type Round } from "@/lib/team-tally/event-doc";
+import type { TeamWrites } from "@/lib/team-tally/live-seam";
 import { GameCard } from "./game-card";
 
 /**
@@ -14,14 +14,12 @@ import { GameCard } from "./game-card";
 export function MatchupRounds({
   matchup,
   teams,
-  writer,
-  onSaved,
+  writes,
   locked = matchup.doneAt !== null,
 }: {
   matchup: DocMatchup;
   teams: Map<string, DocTeam>;
-  writer: LiveWriter;
-  onSaved: () => Promise<unknown>;
+  writes: TeamWrites;
   locked?: boolean;
 }) {
   const live = locked ? undefined : liveRound(matchup);
@@ -37,8 +35,7 @@ export function MatchupRounds({
           game={game}
           matchup={matchup}
           teams={teams}
-          writer={writer}
-          onSaved={onSaved}
+          writes={writes}
           locked={locked}
         />
       ));

@@ -40,7 +40,6 @@ test("the Organizer's writes include Seed now", async () => {
   const { box, commit } = holder(event);
   const writes = demoWrites({ kind: "organizer" }, commit);
   assert.equal(writes.by, "organizer");
-  assert.ok(writes.by === "organizer");
   assert.deepEqual(await writes.seedFlightsNow(), { ok: true });
   assert.equal(box.event.status, "flights");
 });
