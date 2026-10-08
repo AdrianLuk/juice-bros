@@ -3,13 +3,16 @@
 import { useMemo } from "react";
 
 import type { LiveView } from "@/lib/team-tally/actions/live";
-import { captainTeamName, scoredRoundsFor, sideOf } from "@/lib/team-tally/event-doc";
+import { captainTeamName, scoredRoundsFor, sideOf, teamName, type DocMatchup } from "@/lib/team-tally/event-doc";
+import { finalPlaces, ordinal } from "@/lib/team-tally/final-places";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
+import { MatchupGames } from "./matchup-games";
 import { MatchupRounds } from "./matchup-rounds";
 import { QueryProvider } from "./query-provider";
+import { ResultsSummary } from "./results-summary";
 import { RosterForm } from "./roster-form";
 import { StandingsTower } from "./standings-tower";
 import { TtAppBar } from "./tt-head";
@@ -31,6 +34,10 @@ export function ScoreLinkBoard({ token, initial }: { token: string; initial: Liv
   );
 }
 
+function isMatchup(matchup: DocMatchup | undefined): matchup is DocMatchup {
+  return matchup !== undefined;
+}
+
 function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveView }) {
   const { view, refresh } = useLiveEvent({ kind: "score", token }, initial);
   const { event } = view;
@@ -46,6 +53,60 @@ function ScoreLinkBoardInner({ token, initial }: { token: string; initial: LiveV
   const mine = myFlight ?? opening;
   const flights = event.matchups.filter((matchup) => matchup.stage === "flight");
   const openingLeft = event.matchups.filter((matchup) => matchup.stage === "opening" && matchup.doneAt === null);
+
+  // The night has ended: scores are final. The page still opens, with no inputs.
+  if (event.status === "finished") {
+    const place = finalPlaces(event).find((candidate) => candidate.teamId === myTeamId);
+    return (
+      <>
+        <TtAppBar context={`${captainTeamName(me)} · Score link`} />
+        <div className="tt-wrap tt-livepage">
+          <header className="tt-live-head">
+            <h1 className="tt-live-title">{event.name}</h1>
+            <p className="tt-meta m-0">{eventDateLabel(event.date)}</p>
+          </header>
+
+          <section className="tt-sheet tt-over" aria-label="The night is over">
+            <p className="tt-done-line m-0">
+              <span className="tt-final">Final</span>
+              <span>
+                The night is over, so this link is read-only.
+                {place && (
+                  <>
+                    {" "}
+                    {teamName(me)} finished <b>{ordinal(place.place)}</b>, Flight {place.flightLetter}{" "}
+                    {place.role}.
+                  </>
+                )}
+              </span>
+            </p>
+          </section>
+
+          <ResultsSummary event={event} teams={teams} myTeamId={myTeamId} />
+
+          <div className="tt-live-grid">
+            <div className="tt-live-main">
+              <h2 className="tt-sect">Your Matchups</h2>
+              <ul className="tt-matchup-list">
+                {[myFlight, opening].filter(isMatchup).map((matchup) => (
+                  <li key={matchup.id} className="grid gap-2">
+                    <MatchupBug matchup={matchup} teams={teams} />
+                    <MatchupGames matchup={matchup} teams={teams} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="tt-live-side">
+              <section aria-label="Standings" className="grid gap-2">
+                <h2 className="tt-sect">Opening standings</h2>
+                <StandingsTower event={event} myTeamId={myTeamId} />
+              </section>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

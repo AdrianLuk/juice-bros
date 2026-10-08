@@ -74,6 +74,26 @@ export async function saveTeamEvent(
   return data;
 }
 
+/**
+ * Deletes one of the Organizer's Team Events with everything under it: its
+ * Teams, slots, Matchups and Games. Every Score Link and the Public Link stop
+ * opening with it. Runs under the caller's RLS, so a Team Event that isn't
+ * theirs deletes nothing and comes back as not found.
+ */
+export async function deleteTeamEvent(
+  supabase: SupabaseClient,
+  eventId: string,
+): Promise<{ ok: true } | { ok: false; problem: string }> {
+  const { data, error } = await supabase.from("team_tally_events").delete().eq("id", eventId).select("id");
+  if (error) {
+    // A malformed id is "not found", not a crash.
+    if (error.code === "22P02") return { ok: false, problem: "That Team Event doesn't exist." };
+    throw new Error(`Deleting the Team Event failed: ${error.message}`);
+  }
+  if (!data || data.length === 0) return { ok: false, problem: "That Team Event doesn't exist." };
+  return { ok: true };
+}
+
 /** The Organizer's Team Events, the latest night first. */
 export async function listTeamEvents(supabase: SupabaseClient): Promise<TeamEventSummary[]> {
   const { data, error } = await supabase

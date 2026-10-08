@@ -1,7 +1,13 @@
-import { Fragment } from "react";
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
+import { flipDeltas } from "@/lib/team-tally/flip";
+
 export type TowerRow = {
+  /** The Team, so a row keeps its identity when the order changes. Defaults to its position. */
+  id?: string;
   position: number;
   name: string;
   /** The Team's side in its Matchup, as the brief colours it. */
@@ -22,29 +28,86 @@ function flightLetter(position: number): string {
   return String.fromCharCode(65 + Math.floor((position - 1) / 2));
 }
 
+/** How long a re-sorted row takes to slide into its new place. */
+const SLIDE_MS = 650;
+
+/**
+ * The re-sort motion (the direction's signature interaction): when the order
+ * of Teams changes, each moved row slides from where it was to where it is
+ * now, by FLIP on `transform` alone. Nothing animates on first paint, on a
+ * resize, while the tower is hidden (the TV's other screens), or under
+ * `prefers-reduced-motion`, which gets the hard cut to the new order.
+ */
+function useResortSlide(order: string) {
+  const list = useRef<HTMLOListElement>(null);
+  const seen = useRef<{ order: string; tops: Map<string, number> } | null>(null);
+
+  useLayoutEffect(() => {
+    const element = list.current;
+    if (!element) return;
+
+    // Hidden (display: none somewhere above) rows have no layout to compare.
+    if (element.getClientRects().length === 0) {
+      seen.current = null;
+      return;
+    }
+
+    const rows = element.querySelectorAll<HTMLElement>("[data-flip]");
+    const tops = new Map<string, number>();
+    rows.forEach((row) => tops.set(row.dataset.flip!, row.offsetTop));
+
+    const before = seen.current;
+    seen.current = { order, tops };
+    if (!before || before.order === order) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (typeof Element.prototype.animate !== "function") return;
+
+    const deltas = flipDeltas(before.tops, tops);
+    rows.forEach((row) => {
+      const delta = deltas.get(row.dataset.flip!);
+      if (delta === undefined) return;
+      row.style.zIndex = "1";
+      const slide = row.animate(
+        [{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }],
+        { duration: SLIDE_MS, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+      );
+      slide.onfinish = slide.oncancel = () => {
+        row.style.zIndex = "";
+      };
+    });
+  });
+
+  return list;
+}
+
 /**
  * The standings as a broadcast timing tower read like a golf leaderboard:
  * R1, R2, R3 and TOT for every Team, the live Round underlined in the "now"
- * yellow. Columns never move; rows only re-sort. A Flight band opens every
- * pair, drawn where a leaderboard draws the cut, so the room can see who is
- * about to drop a Flight.
+ * yellow. Columns never move; rows only re-sort, sliding into their new places
+ * with an up or down mark. A Flight band opens every pair, drawn where a
+ * leaderboard draws the cut, so the room can see who is about to drop a Flight.
  */
 export function TimingTower({
   rows,
   label,
   liveRound,
+  size,
 }: {
   rows: TowerRow[];
   label?: string;
   liveRound?: 1 | 2 | 3;
+  /** "tv" sets the tower for the big-screen layout (CSS in `.tt-tv`). */
+  size?: "tv";
 }) {
+  const list = useResortSlide(rows.map((row) => row.id ?? row.position).join(","));
+
   const roundClass = (round: number, pending: boolean) =>
     ["tt-tower-round", liveRound === round ? "tt-now" : "", pending ? "tt-pending" : ""]
       .filter(Boolean)
       .join(" ");
 
   return (
-    <div className="tt-plate">
+    <div className="tt-plate tt-tower" data-size={size}>
       {label && (
         <div className="tt-plate-bar">
           <span>{label}</span>
@@ -62,37 +125,40 @@ export function TimingTower({
         <span>Tot</span>
         <span />
       </div>
-      <ol aria-label={label ?? "Standings"} className="m-0 list-none p-0">
-        {rows.map((row) => (
-          <Fragment key={row.position}>
-            {row.position % 2 === 1 && (
-              <li aria-hidden className="tt-tower-band">
-                Flight {flightLetter(row.position)}
-              </li>
-            )}
-            <li className="tt-tower-row" data-mine={row.mine || undefined}>
-              <span className="tt-tower-pos">{row.position}</span>
-              <span aria-hidden className={`tt-tower-chip ${row.side === "red" ? "tt-side-red" : "tt-side-blue"}`} />
-              <span className="tt-tower-name">
-                <span className="tt-tower-name-text">{row.name}</span>
-                {row.note && <small className="tt-tower-note">{row.note}</small>}
-              </span>
-              {row.rounds.map((points, index) => (
-                <span
-                  key={index}
-                  className={roundClass(index + 1, points === null)}
-                  aria-label={`Round ${index + 1}: ${points ?? "not scored"}`}
-                >
-                  {points ?? "–"}
-                </span>
-              ))}
-              <span className="tt-tower-pts" aria-label={`Total ${row.points}`}>
-                {row.points}
-              </span>
-              <Move move={row.move} />
+      <ol ref={list} aria-label={label ?? "Standings"} className="tt-tower-list m-0 list-none p-0">
+        {rows.flatMap((row) => [
+          row.position % 2 === 1 ? (
+            <li key={`band-${row.position}`} aria-hidden className="tt-tower-band">
+              Flight {flightLetter(row.position)}
             </li>
-          </Fragment>
-        ))}
+          ) : null,
+          <li
+            key={row.id ?? row.position}
+            className="tt-tower-row"
+            data-mine={row.mine || undefined}
+            data-flip={row.id ?? row.position}
+          >
+            <span className="tt-tower-pos">{row.position}</span>
+            <span aria-hidden className={`tt-tower-chip ${row.side === "red" ? "tt-side-red" : "tt-side-blue"}`} />
+            <span className="tt-tower-name">
+              <span className="tt-tower-name-text">{row.name}</span>
+              {row.note && <small className="tt-tower-note">{row.note}</small>}
+            </span>
+            {row.rounds.map((points, index) => (
+              <span
+                key={index}
+                className={roundClass(index + 1, points === null)}
+                aria-label={`Round ${index + 1}: ${points ?? "not scored"}`}
+              >
+                {points ?? "–"}
+              </span>
+            ))}
+            <span className="tt-tower-pts" aria-label={`Total ${row.points}`}>
+              {row.points}
+            </span>
+            <Move move={row.move} />
+          </li>,
+        ])}
       </ol>
     </div>
   );

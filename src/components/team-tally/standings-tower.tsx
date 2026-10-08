@@ -29,7 +29,7 @@ function useMoves(rows: StandingRow[]): Map<string, number> {
 }
 
 /** The Round still being played somewhere in the opening round, for the tower's yellow column. */
-function openingLiveRound(event: TeamEventDoc): Round | undefined {
+export function openingLiveRound(event: TeamEventDoc): Round | undefined {
   const rounds = event.matchups
     .filter((matchup) => matchup.stage === "opening")
     .map((matchup) => liveRound(matchup))
@@ -53,24 +53,42 @@ function tieNote(row: StandingRow, below: StandingRow | undefined): string | nul
  * The opening standings, computed on read, as the timing tower: the viewer's
  * own Team on a Score Link highlighted, and each re-sort's moves marked.
  */
-export function StandingsTower({ event, myTeamId }: { event: TeamEventDoc; myTeamId?: string }) {
+export function StandingsTower({
+  event,
+  myTeamId,
+  label = "Standings · opening round",
+  positions,
+  size,
+}: {
+  event: TeamEventDoc;
+  myTeamId?: string;
+  label?: string;
+  /** Only these positions (first and last, inclusive): one column of the big screen's two. */
+  positions?: [number, number];
+  size?: "tv";
+}) {
   const standings = computeStandings(event);
   const moves = useMoves(standings);
 
   return (
     <TimingTower
-      label="Standings · opening round"
+      label={label}
+      size={size}
       liveRound={event.status === "opening" ? openingLiveRound(event) : undefined}
-      rows={standings.map((row, index) => ({
-        position: row.position,
-        name: row.name,
-        side: row.side,
-        rounds: row.rounds,
-        points: row.teamScore,
-        move: moves.get(row.teamId),
-        mine: row.teamId === myTeamId,
-        note: tieNote(row, standings[index + 1]),
-      }))}
+      rows={standings
+        .map((row, index) => ({ row, index }))
+        .filter(({ row }) => !positions || (row.position >= positions[0] && row.position <= positions[1]))
+        .map(({ row, index }) => ({
+          id: row.teamId,
+          position: row.position,
+          name: row.name,
+          side: row.side,
+          rounds: row.rounds,
+          points: row.teamScore,
+          move: moves.get(row.teamId),
+          mine: row.teamId === myTeamId,
+          note: tieNote(row, standings[index + 1]),
+        }))}
     />
   );
 }

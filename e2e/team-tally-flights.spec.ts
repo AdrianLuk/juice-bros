@@ -45,8 +45,15 @@ async function clickUntil(button: Locator, then: Locator) {
   }).toPass({ timeout: 15_000 });
 }
 
-async function openPage(browser: import("@playwright/test").Browser, path: string): Promise<Page> {
-  const page = await (await browser.newContext()).newPage();
+/** A phone-width viewport: the Public Link's scrolling layout (desktop widths get the big-screen stage, #625). */
+const PHONE = { width: 390, height: 844 };
+
+async function openPage(
+  browser: import("@playwright/test").Browser,
+  path: string,
+  viewport?: { width: number; height: number },
+): Promise<Page> {
+  const page = await (await browser.newContext(viewport ? { viewport } : {})).newPage();
   await page.goto(path);
   return page;
 }
@@ -60,7 +67,7 @@ test("the last Matchup done sends every Score Link to its Flight on the expected
     const ben = await openPage(browser, `/tools/team-tally/score/${night.scoreTokens[0]}`);
     const hay = await openPage(browser, `/tools/team-tally/score/${night.scoreTokens[2]}`);
     const chr = await openPage(browser, `/tools/team-tally/score/${night.scoreTokens[3]}`);
-    const room = await openPage(browser, `/tools/team-tally/live/${night.publicToken}`);
+    const room = await openPage(browser, `/tools/team-tally/live/${night.publicToken}`, PHONE);
 
     // Ben's captain finishes Match 1, confirming in the page.
     const benFinish = ben.getByRole("region", { name: "Finish the Matchup" });

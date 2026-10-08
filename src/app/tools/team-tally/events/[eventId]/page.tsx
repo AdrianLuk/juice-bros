@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { TtHead } from "@/components/team-tally/tt-head";
 import { CopyBriefButton } from "@/components/team-tally/copy-brief-button";
+import { DeleteEventPanel } from "@/components/team-tally/delete-event-panel";
 import { OrganizerBoard } from "@/components/team-tally/organizer-board";
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { pageMetadata } from "@/lib/metadata";
@@ -12,7 +13,7 @@ import { verifyOrganizer } from "@/lib/team-tally/dal";
 import { briefInputFor, loadTeamEvent } from "@/lib/team-tally/events";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import { loadOrganizerEvent } from "@/lib/team-tally/live-events";
-import { TEAM_TALLY_ROOT, editTeamEventPath, teamEventPath } from "@/lib/team-tally/routes";
+import { TEAM_TALLY_ROOT, editTeamEventPath, publicLinkPath, teamEventPath } from "@/lib/team-tally/routes";
 import { createClient } from "@/lib/team-tally/supabase/server";
 
 export async function generateMetadata({
@@ -53,9 +54,15 @@ export default async function TeamEventPage({ params }: { params: Promise<{ even
         actions={
           <>
             <CopyBriefButton brief={brief} />
-            <Link href={editTeamEventPath(event.id)} className="tt-btn tt-btn-ghost">
-              Edit setup
-            </Link>
+            {event.status === "finished" ? (
+              <Link href={publicLinkPath(event.publicToken)} className="tt-btn tt-btn-ghost">
+                See the results
+              </Link>
+            ) : (
+              <Link href={editTeamEventPath(event.id)} className="tt-btn tt-btn-ghost">
+                Edit setup
+              </Link>
+            )}
           </>
         }
       />
@@ -74,9 +81,12 @@ export default async function TeamEventPage({ params }: { params: Promise<{ even
             {brief}
           </pre>
         </div>
-        <Link href={TEAM_TALLY_ROOT} className="tt-quietlink mx-auto mt-10 block w-fit">
-          Back to your Team Events
-        </Link>
+        <div className="mx-auto mt-10 grid w-fit justify-items-center gap-6">
+          <Link href={TEAM_TALLY_ROOT} className="tt-quietlink">
+            Back to your Team Events
+          </Link>
+          <DeleteEventPanel eventId={event.id} name={event.name} />
+        </div>
       </section>
     </div>
   );

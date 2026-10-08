@@ -47,7 +47,8 @@ async function enterScore(page: Page, round: number, kind: "captains'" | "teamma
 test("a score entered on one captain's phone shows on the other's and on the Public Link", async ({ browser }) => {
   const benPage = await (await browser.newContext()).newPage();
   const fedPage = await (await browser.newContext()).newPage();
-  const publicPage = await (await browser.newContext()).newPage();
+  // Phone width: the Public Link's scrolling layout (desktop widths get the big-screen stage, #625).
+  const publicPage = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
 
   await benPage.goto(`/tools/team-tally/score/${night.scoreTokens[0]}`);
   await fedPage.goto(`/tools/team-tally/score/${night.scoreTokens[1]}`);

@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
 import { anonClient, createTestUser, deleteTestUser, type TestUser } from "../db-test-support.ts";
-import { loadTeamEvent, saveTeamEvent } from "./events.ts";
+import { deleteTeamEvent, loadTeamEvent, saveTeamEvent } from "./events.ts";
 import {
   loadOrganizerEvent,
   loadPublicEvent,
@@ -116,4 +116,31 @@ test("the Organizer reads their night and corrects a Game as the Organizer", asy
   const stranger = await createTestUser("Someone else");
   users.push(stranger);
   assert.equal(await loadOrganizerEvent(stranger.supabase, eventId), null);
+});
+
+test("deleting a played Team Event takes its Matchups with it and its links stop opening", async () => {
+  const { organizer, eventId, loaded } = await night();
+  const anon = anonClient();
+  const event = await loadOrganizerEvent(organizer.supabase, eventId);
+  assert.deepEqual(await saveScoreAsOrganizer(organizer.supabase, event!.matchups[0].games[0].id, 11, 7), { ok: true });
+  const publicToken = loaded.publicToken;
+  const scoreToken = loaded.teams[0].scoreToken;
+  assert.ok(await loadPublicEvent(anon, publicToken));
+
+  assert.deepEqual(await deleteTeamEvent(organizer.supabase, eventId), { ok: true });
+
+  assert.equal(await loadTeamEvent(organizer.supabase, eventId), null);
+  assert.equal(await loadOrganizerEvent(organizer.supabase, eventId), null);
+  assert.equal(await loadPublicEvent(anon, publicToken), null);
+  assert.equal(await loadScoreLinkEvent(anon, scoreToken), null);
+});
+
+test("another User cannot delete the Organizer's Team Event", async () => {
+  const { organizer, eventId } = await night();
+  const stranger = await createTestUser("Someone else");
+  users.push(stranger);
+
+  const result = await deleteTeamEvent(stranger.supabase, eventId);
+  assert.equal(result.ok, false);
+  assert.ok(await loadOrganizerEvent(organizer.supabase, eventId));
 });

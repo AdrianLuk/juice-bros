@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { verifyOrganizer } from "../dal.ts";
-import { saveTeamEvent } from "../events.ts";
+import { deleteTeamEvent, saveTeamEvent } from "../events.ts";
 import { TEAM_TALLY_ROOT, teamEventPath } from "../routes.ts";
 import { parseSetup, validateSetup } from "../setup.ts";
 import { createClient } from "../supabase/server.ts";
@@ -47,4 +47,25 @@ export async function saveTeamEventAction(
   // Outside the try: redirect works by throwing.
   revalidatePath(TEAM_TALLY_ROOT, "layout");
   redirect(teamEventPath(savedId));
+}
+
+/**
+ * Deletes a Team Event for good, then sends the Organizer back to their list.
+ * The page asks first, in the page (issue #625). Reachable by a direct POST,
+ * so it checks the Organizer itself; RLS keeps a delete to their own events.
+ */
+export async function deleteTeamEventAction(eventId: string): Promise<{ problem: string }> {
+  await verifyOrganizer();
+
+  let result: Awaited<ReturnType<typeof deleteTeamEvent>>;
+  try {
+    result = await deleteTeamEvent(await createClient(), String(eventId));
+  } catch {
+    return { problem: "Couldn't delete the Team Event. Try again." };
+  }
+  if (!result.ok) return { problem: result.problem };
+
+  // Outside the try: redirect works by throwing.
+  revalidatePath(TEAM_TALLY_ROOT, "layout");
+  redirect(TEAM_TALLY_ROOT);
 }

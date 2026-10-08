@@ -19,7 +19,7 @@ export function FlightHandoff({
   flight: DocMatchup;
   teams: Map<string, DocTeam>;
   myTeamId?: string;
-  size?: "hero" | "compact";
+  size?: "hero" | "compact" | "tv";
 }) {
   const [courtOne, courtTwo] = flight.courtPair;
   const seed = (flight.number - 1) * 2;
