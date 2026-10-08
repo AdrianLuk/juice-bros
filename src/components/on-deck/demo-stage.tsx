@@ -15,7 +15,13 @@ import {
 } from "@/components/on-deck/kiosk-board";
 import { useBoardClock } from "@/components/on-deck/use-board-clock";
 import { DEMO_CONFIG, demoNightEvents } from "@/lib/on-deck/demo/night";
-import { demoEventFor, demoLoadedSession } from "@/lib/on-deck/demo/fold";
+import {
+  appendToDemoLog,
+  demoLoadedSession,
+  demoLogOf,
+  undoInDemoLog,
+  type DemoLog,
+} from "@/lib/on-deck/demo/fold";
 import {
   addWalkupOutcome,
   bringBackOutcome,
@@ -33,7 +39,7 @@ import {
   floorRosterFrom,
   rotationViewFrom,
 } from "@/lib/on-deck/session/rotation-view";
-import type { Operator, SessionEvent } from "@/lib/on-deck/session/types";
+import type { EventBody, Operator } from "@/lib/on-deck/session/types";
 import type { OnDeckFunnelEvent } from "@/lib/on-deck/analytics-events";
 import { trackWhenReady } from "@/lib/on-deck/analytics-browser";
 
@@ -48,8 +54,8 @@ import { trackWhenReady } from "@/lib/on-deck/analytics-browser";
  * `FloorBoard` stands in for the Organizer; `KioskBoard` stands in for
  * whoever is stood at the courts. Both commit through the same pure
  * `floor-ops` decisions the live Server Actions call, appended to the same
- * `useState` array, so a tap on one screen is exactly what the other two see
- * on their next render.
+ * in-memory log (`demo/fold.ts`) held in `useState`, so a tap on one screen is
+ * exactly what the other two see on their next render.
  */
 
 /** How often "let it run" fires a turnover — long enough to watch each one
@@ -109,16 +115,16 @@ const KIOSK: Operator = { kind: "kiosk" };
 
 export function DemoStage() {
   const { origin, now } = useBoardClock();
-  const [events, setEvents] = useState<SessionEvent[]>(() =>
-    demoNightEvents(origin),
+  const [log, setLog] = useState<DemoLog>(() =>
+    demoLogOf(demoNightEvents(origin)),
   );
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<DemoScreen>("floor");
   const [running, setRunning] = useState(false);
 
   const loaded = useMemo(
-    () => demoLoadedSession(DEMO_CONFIG, events),
-    [events],
+    () => demoLoadedSession(DEMO_CONFIG, log),
+    [log],
   );
   const view = useMemo(
     () => rotationViewFrom(loaded, undefined, now),
@@ -182,36 +188,36 @@ export function DemoStage() {
     setError(null);
     if (outcome.kind === "noop") return { ok: true };
 
-    const event = demoEventFor(outcome, Date.now(), operator);
-    if (!event) {
-      // Unreachable short of a `floor-ops` outcome this module has no case
-      // for. Say so rather than swallowing it: a tap that does nothing and
-      // explains nothing is the one thing worse than a tap that fails.
-      setError("The demo can't do that one. Reload to start the night over.");
-      return { ok: false };
-    }
-    setEvents((prev) => [...prev, event]);
+    append(outcome.body, operator);
     // Every path that calls a new foursome onto a Court comes through here —
     // a tap on the Floor, a tap on the Kiosk, and "let it run" alike.
-    if (event.type === "COURT_FINISHED") countTurnover();
+    if (outcome.body.type === "COURT_FINISHED") countTurnover();
     return { ok: true };
   };
 
+  /** Append a body as `operator`, stamped now — what the in-memory event log's
+   * `append` does, and the database's `default now()` does for a live row. */
+  const append = (body: EventBody, operator: Operator): void => {
+    const at = Date.now();
+    setLog((prev) => appendToDemoLog(prev, body, operator, at));
+  };
+
   /** Append an event no floor decision produces — the two wrap-up taps. */
-  const appendRaw = (event: SessionEvent): void => {
+  const appendRaw = (body: EventBody): void => {
     setError(null);
-    setEvents((prev) => [...prev, event]);
+    append(body, ORGANIZER);
   };
 
   /** Undo means the same thing it does in the database: drop the last event
    * and fold again, unless somebody — or "let it run" — got there first. */
   const undo = (expectedSeq: number): void => {
-    if (expectedSeq !== events.length) {
+    const undone = undoInDemoLog(log, expectedSeq);
+    if (!undone) {
       setError("The board moved on. Take another look.");
       return;
     }
     setError(null);
-    setEvents((prev) => prev.slice(0, -1));
+    setLog(undone);
   };
 
   const floorOps: FloorBoardOps = {
@@ -249,10 +255,8 @@ export function DemoStage() {
       applyAs(ORGANIZER, lowerGroupCapOutcome(loaded.state, cap)),
     dissolveGroup: (groupId) =>
       applyAs(ORGANIZER, dissolveGroupOutcome(loaded.state, groupId)),
-    callLastCall: () =>
-      appendRaw({ type: "LAST_CALL", at: Date.now(), operator: ORGANIZER }),
-    closeSession: () =>
-      appendRaw({ type: "SESSION_CLOSED", at: Date.now(), operator: ORGANIZER }),
+    callLastCall: () => appendRaw({ type: "LAST_CALL" }),
+    closeSession: () => appendRaw({ type: "SESSION_CLOSED" }),
   };
 
   const kioskOps: KioskBoardOps = {
@@ -317,7 +321,7 @@ export function DemoStage() {
   const reset = (): void => {
     setRunning(false);
     setError(null);
-    setEvents(demoNightEvents(Date.now()));
+    setLog(demoLogOf(demoNightEvents(Date.now())));
   };
 
   return (

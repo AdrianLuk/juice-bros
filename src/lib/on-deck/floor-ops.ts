@@ -15,7 +15,13 @@
  * object, unit-tested under `node --test`.
  */
 
-import { isSkillLevel, type Operator, type SessionState } from "./session/types.ts";
+import {
+  isSkillLevel,
+  type EventBody,
+  type LastEvent,
+  type Operator,
+  type SessionState,
+} from "./session/types.ts";
 
 /**
  * The operational **turnover** events a floor tap can produce — the one list the
@@ -58,6 +64,12 @@ export type FloorOutcomeType =
   // `FLOOR_EVENT_TYPES`.
   | "COURT_CONFIRMED";
 
+/** The `EventBody` of one event type. */
+type BodyOf<T extends EventBody["type"]> = Extract<EventBody, { type: T }>;
+
+/** What a floor decision can append: the `EventBody` of any `FloorOutcomeType`. */
+export type FloorOutcomeBody = BodyOf<FloorOutcomeType>;
+
 function isFloorEventType(type: string): type is FloorEventType {
   return (FLOOR_EVENT_TYPES as readonly string[]).includes(type);
 }
@@ -77,16 +89,6 @@ const UNDO_LABEL: Record<FloorEventType, string> = {
   FOURSOME_MEMBER_SWAPPED: "the last no-show swap",
   GROUP_FORMED: "the last group",
   GROUP_DISSOLVED: "the last group break-up",
-};
-
-/** The most recent raw event of a Session — the seq/type/at/operator the fold
- * discards but operator Undo needs. */
-export type LastEvent = {
-  seq: number;
-  type: string;
-  /** epoch ms */
-  at: number;
-  operator: Operator;
 };
 
 /**
@@ -121,12 +123,12 @@ export function describeUndo(
 }
 
 /**
- * `event` — append this. `noop` — the board already moved on (a double tap, a
- * stale poll); do nothing, report success. `error` — the tap does not apply;
- * show the message.
+ * `event` — append this typed body (`encode` writes the row). `noop` — the
+ * board already moved on (a double tap, a stale poll); do nothing, report
+ * success. `error` — the tap does not apply; show the message.
  */
-export type FloorOpOutcome =
-  | { kind: "event"; type: FloorOutcomeType; payload: Record<string, unknown> }
+export type FloorOpOutcome<B extends FloorOutcomeBody = FloorOutcomeBody> =
+  | { kind: "event"; body: B }
   | { kind: "noop" }
   | { kind: "error"; error: string };
 
@@ -164,7 +166,7 @@ export function finishCourtOutcome(
     return { kind: "noop" };
   }
 
-  return { kind: "event", type: "COURT_FINISHED", payload: { court } };
+  return { kind: "event", body: { type: "COURT_FINISHED", court } };
 }
 
 /**
@@ -197,8 +199,7 @@ export function confirmCourtOutcome(
 
   return {
     kind: "event",
-    type: "COURT_CONFIRMED",
-    payload: { court, since: expectedSince },
+    body: { type: "COURT_CONFIRMED", court, since: expectedSince },
   };
 }
 
@@ -213,8 +214,7 @@ export function setAsideOutcome(
   }
   return {
     kind: "event",
-    type: "PLAYER_PAUSED",
-    payload: { token, reason: "set-aside" },
+    body: { type: "PLAYER_PAUSED", token, reason: "set-aside" },
   };
 }
 
@@ -227,7 +227,7 @@ export function bringBackOutcome(
   if (!token) {
     return { kind: "error", error: "Couldn't find that player." };
   }
-  return { kind: "event", type: "PLAYER_REQUEUED", payload: { token } };
+  return { kind: "event", body: { type: "PLAYER_REQUEUED", token } };
 }
 
 /**
@@ -264,8 +264,7 @@ export function swapNoShowOutcome(
 
   return {
     kind: "event",
-    type: "FOURSOME_MEMBER_SWAPPED",
-    payload: { court, out: outToken, in: inToken },
+    body: { type: "FOURSOME_MEMBER_SWAPPED", court, out: outToken, in: inToken },
   };
 }
 
@@ -310,8 +309,8 @@ export function addWalkupOutcome(
   }
   return {
     kind: "event",
-    type: "PLAYER_JOINED",
-    payload: {
+    body: {
+      type: "PLAYER_JOINED",
       token,
       firstName: first,
       lastInitial: initial,
@@ -345,8 +344,7 @@ export function overrideSkillOutcome(
   }
   return {
     kind: "event",
-    type: "PLAYER_SKILL_SET",
-    payload: { token, skillLevel },
+    body: { type: "PLAYER_SKILL_SET", token, skillLevel },
   };
 }
 
@@ -360,7 +358,7 @@ export function formGroupOutcome(
   state: SessionState,
   playerNames: readonly string[],
   groupId: string,
-): FloorOpOutcome {
+): FloorOpOutcome<BodyOf<"GROUP_FORMED">> {
   const grouped = new Set(state.groups.flatMap((g) => g.memberIds));
   const seen = new Set<string>();
   const memberTokens: string[] = [];
@@ -393,7 +391,7 @@ export function formGroupOutcome(
     };
   }
 
-  return { kind: "event", type: "GROUP_FORMED", payload: { groupId, memberTokens } };
+  return { kind: "event", body: { type: "GROUP_FORMED", groupId, memberTokens } };
 }
 
 /**
@@ -409,7 +407,7 @@ export function dissolveGroupOutcome(
   if (!group || group.courtNumber !== null) {
     return { kind: "noop" };
   }
-  return { kind: "event", type: "GROUP_DISSOLVED", payload: { groupId } };
+  return { kind: "event", body: { type: "GROUP_DISSOLVED", groupId } };
 }
 
 /**
@@ -425,7 +423,7 @@ export function formGroupByPlayerOutcome(
   actorToken: string,
   pickedNames: readonly string[],
   groupId: string,
-): FloorOpOutcome {
+): FloorOpOutcome<BodyOf<"GROUP_FORMED">> {
   const actor = state.roster.find((p) => p.id === actorToken);
   if (!actor) {
     return { kind: "error", error: "Join the session first." };
@@ -449,15 +447,14 @@ export function formGroupByPlayerOutcome(
 export function leaveGroupByPlayerOutcome(
   state: SessionState,
   actorToken: string,
-): FloorOpOutcome {
+): FloorOpOutcome<BodyOf<"GROUP_MEMBER_REMOVED">> {
   const group = state.groups.find(
     (g) => g.courtNumber === null && g.memberIds.includes(actorToken),
   );
   if (!group) return { kind: "noop" };
   return {
     kind: "event",
-    type: "GROUP_MEMBER_REMOVED",
-    payload: { groupId: group.id, token: actorToken },
+    body: { type: "GROUP_MEMBER_REMOVED", groupId: group.id, token: actorToken },
   };
 }
 
@@ -479,5 +476,5 @@ export function lowerGroupCapOutcome(
     };
   }
   if (cap === state.groupCap) return { kind: "noop" };
-  return { kind: "event", type: "GROUP_CAP_CHANGED", payload: { cap } };
+  return { kind: "event", body: { type: "GROUP_CAP_CHANGED", cap } };
 }

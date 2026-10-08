@@ -24,6 +24,7 @@ import {
   playerCourt,
   playerPaused,
   queueUnits,
+  type LastEvent,
   type PauseReason,
   type SessionConfig,
   type SessionEvent,
@@ -32,7 +33,7 @@ import {
 } from "./types.ts";
 import { bestReplacement } from "./match-me.ts";
 import { idleCourts } from "./idle-court.ts";
-import { describeUndo, type LastEvent, type UndoTarget } from "../floor-ops.ts";
+import { describeUndo, type UndoTarget } from "../floor-ops.ts";
 
 /**
  * A Session as loaded from the database and folded — the input every
@@ -51,9 +52,11 @@ export type LoadedSession = {
    */
   events: SessionEvent[];
   /**
-   * The raw most recent event row, or null for an eventless Session. What
-   * operator Undo (#247) needs that the fold discards: the seq to target, and
-   * enough to decide whether it is an Operator's to undo and whose tap it was.
+   * The newest event that decoded, with the `seq` its log stored it under, or
+   * null for an eventless Session. What operator Undo (#247) needs that the
+   * fold discards: the seq to target, and enough to decide whether it is an
+   * Operator's to undo and whose tap it was. Never a row the fold skipped
+   * (`decodeLog` in `codec.ts`).
    */
   lastEvent: LastEvent | null;
 };

@@ -40,7 +40,7 @@ import type {
   SessionEvent,
   SessionState,
 } from "../session/types.ts";
-import { demoLoadedSession } from "./fold.ts";
+import { demoLoadedSession, demoLogOf } from "./fold.ts";
 
 const MIN = 60_000;
 const SEC = 1_000;
@@ -142,7 +142,7 @@ function foldSoFar(
   // assembled in blocks that each cover a different stretch of the evening.
   const loaded = demoLoadedSession(
     DEMO_CONFIG,
-    events.filter((e) => e.at <= upTo).sort((a, b) => a.at - b.at),
+    demoLogOf(events.filter((e) => e.at <= upTo).sort((a, b) => a.at - b.at)),
   );
   return { state: loaded.state, view: rotationViewFrom(loaded, undefined, upTo) };
 }

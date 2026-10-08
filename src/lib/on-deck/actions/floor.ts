@@ -10,6 +10,7 @@ import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
 import { sessionPath, floorPath } from "../routes.ts";
 import { projectSummary } from "../session/summary.ts";
+import { supabaseEventLog } from "../supabase/event-log.ts";
 import {
   commitFloorOutcome,
   runUndo,
@@ -66,10 +67,11 @@ async function loadOwnedOpenSession(
 }
 
 /**
- * Run a `floor-ops` decision as the Organizer: append the event with a plain
- * INSERT under the foundation's "an Organizer appends events to their own open
- * Session" policy. A link-authenticated Volunteer takes the same outcome to
- * `on_deck_volunteer_append` instead (`actions/volunteer.ts`).
+ * Run a `floor-ops` decision as the Organizer: append the event through the
+ * Supabase event log, a plain INSERT under the foundation's "an Organizer
+ * appends events to their own open Session" policy. A link-authenticated
+ * Volunteer takes the same outcome to `on_deck_volunteer_append` instead
+ * (`actions/volunteer.ts`).
  */
 async function runAsOrganizer(
   sessionId: string,
@@ -78,20 +80,20 @@ async function runAsOrganizer(
   const owned = await loadOwnedOpenSession(sessionId);
   if ("error" in owned) return owned;
 
+  const log = supabaseEventLog(owned.supabase);
   return commitFloorOutcome(
     sessionId,
     decide(owned),
-    async (event) => {
-      const { error } = await owned.supabase
-        .from("on_deck_session_events")
-        .insert({
-          session_id: sessionId,
-          type: event.type,
-          operator_kind: "organizer",
-          operator_user_id: owned.organizer.userId,
-          payload: event.payload,
+    async (body) => {
+      try {
+        await log.append(sessionId, body, {
+          kind: "organizer",
+          userId: owned.organizer.userId,
         });
-      return { error };
+        return { error: null };
+      } catch (error) {
+        return { error };
+      }
     },
     owned.loaded.state,
   );

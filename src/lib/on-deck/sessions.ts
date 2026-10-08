@@ -4,13 +4,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { after } from "next/server";
 
 import { trackFirstSessionClosed } from "./analytics.ts";
-import { reduceSession } from "./session/reduce.ts";
+import { assembleLoadedSession } from "./session/codec.ts";
 import { projectSummary } from "./session/summary.ts";
 import { isSessionStale } from "./session/stale.ts";
-import { isPauseReason, isSkillLevel } from "./session/types.ts";
-import type { Operator, SessionConfig, SessionEvent } from "./session/types.ts";
-import type { LastEvent } from "./floor-ops.ts";
+import type { SessionConfig } from "./session/types.ts";
 import type { LoadedSession } from "./session/rotation-view.ts";
+import { supabaseEventLog } from "./supabase/event-log.ts";
 
 export type { LoadedSession } from "./session/rotation-view.ts";
 
@@ -25,19 +24,8 @@ type SessionRow = {
   seed: string;
 };
 
-type EventRow = {
-  seq: number;
-  type: string;
-  at: string;
-  operator_kind: Operator["kind"];
-  operator_user_id: string | null;
-  payload: Record<string, unknown> | null;
-};
-
 const SESSION_COLUMNS =
   "id, club_id, venue_name, court_count, group_cap, floor_mode, status, seed";
-
-const EVENT_COLUMNS = "seq, type, at, operator_kind, operator_user_id, payload";
 
 function toConfig(row: SessionRow): SessionConfig {
   return {
@@ -51,183 +39,6 @@ function toConfig(row: SessionRow): SessionConfig {
   };
 }
 
-function toOperator(row: EventRow): Operator {
-  if (row.operator_kind === "organizer") {
-    return { kind: "organizer", userId: row.operator_user_id ?? "" };
-  }
-  return { kind: row.operator_kind };
-}
-
-function toEvent(row: EventRow): SessionEvent | null {
-  // Later tickets widen this map as they widen the fold. An unrecognised row,
-  // or one whose payload doesn't carry what its type needs, is skipped rather
-  // than mis-folded.
-  const at = new Date(row.at).getTime();
-  const operator = toOperator(row);
-
-  switch (row.type) {
-    case "SESSION_STARTED":
-      return { type: "SESSION_STARTED", at, operator };
-
-    case "PLAYER_JOINED": {
-      const payload = row.payload ?? {};
-      const token = payload.token;
-      const firstName = payload.firstName;
-      const lastInitial = payload.lastInitial;
-      const skillLevel = payload.skillLevel;
-      if (
-        typeof token !== "string" ||
-        typeof firstName !== "string" ||
-        typeof lastInitial !== "string" ||
-        !isSkillLevel(skillLevel)
-      ) {
-        return null;
-      }
-      return {
-        type: "PLAYER_JOINED",
-        at,
-        operator,
-        token,
-        firstName,
-        lastInitial,
-        skillLevel,
-        // Walk-up added by an Operator (issue #249) — straight into the Queue.
-        queueOnJoin: payload.queueOnJoin === true,
-      };
-    }
-
-    case "PLAYER_SKILL_SET": {
-      const payload = row.payload ?? {};
-      const token = payload.token;
-      const skillLevel = payload.skillLevel;
-      if (typeof token !== "string" || !isSkillLevel(skillLevel)) {
-        return null;
-      }
-      return { type: "PLAYER_SKILL_SET", at, operator, token, skillLevel };
-    }
-
-    case "PLAYER_QUEUED": {
-      const token = (row.payload ?? {}).token;
-      if (typeof token !== "string") {
-        return null;
-      }
-      return { type: "PLAYER_QUEUED", at, operator, token };
-    }
-
-    case "COURT_FINISHED": {
-      const court = (row.payload ?? {}).court;
-      if (typeof court !== "number" || !Number.isInteger(court)) {
-        return null;
-      }
-      return { type: "COURT_FINISHED", at, operator, court };
-    }
-
-    case "COURT_CONFIRMED": {
-      const payload = row.payload ?? {};
-      const court = payload.court;
-      const since = payload.since;
-      if (typeof court !== "number" || !Number.isInteger(court)) {
-        return null;
-      }
-      // `since` is the Game's seat time the confirming surface saw, or null.
-      if (since !== null && typeof since !== "number") {
-        return null;
-      }
-      return { type: "COURT_CONFIRMED", at, operator, court, since };
-    }
-
-    case "PLAYER_PAUSED": {
-      const payload = row.payload ?? {};
-      const token = payload.token;
-      const reason = payload.reason;
-      if (typeof token !== "string" || !isPauseReason(reason)) {
-        return null;
-      }
-      return { type: "PLAYER_PAUSED", at, operator, token, reason };
-    }
-
-    case "PLAYER_REQUEUED": {
-      const token = (row.payload ?? {}).token;
-      if (typeof token !== "string") {
-        return null;
-      }
-      return { type: "PLAYER_REQUEUED", at, operator, token };
-    }
-
-    case "FOURSOME_MEMBER_SWAPPED": {
-      const payload = row.payload ?? {};
-      const court = payload.court;
-      const out = payload.out;
-      const inbound = payload.in;
-      if (
-        typeof court !== "number" ||
-        !Number.isInteger(court) ||
-        typeof out !== "string" ||
-        typeof inbound !== "string"
-      ) {
-        return null;
-      }
-      return {
-        type: "FOURSOME_MEMBER_SWAPPED",
-        at,
-        operator,
-        court,
-        out,
-        in: inbound,
-      };
-    }
-
-    case "GROUP_FORMED": {
-      const payload = row.payload ?? {};
-      const groupId = payload.groupId;
-      const memberTokens = payload.memberTokens;
-      if (
-        typeof groupId !== "string" ||
-        !Array.isArray(memberTokens) ||
-        !memberTokens.every((t): t is string => typeof t === "string")
-      ) {
-        return null;
-      }
-      return { type: "GROUP_FORMED", at, operator, groupId, memberTokens };
-    }
-
-    case "GROUP_CAP_CHANGED": {
-      const cap = (row.payload ?? {}).cap;
-      if (typeof cap !== "number" || !Number.isInteger(cap)) {
-        return null;
-      }
-      return { type: "GROUP_CAP_CHANGED", at, operator, cap };
-    }
-
-    case "GROUP_MEMBER_REMOVED": {
-      const payload = row.payload ?? {};
-      const groupId = payload.groupId;
-      const token = payload.token;
-      if (typeof groupId !== "string" || typeof token !== "string") {
-        return null;
-      }
-      return { type: "GROUP_MEMBER_REMOVED", at, operator, groupId, token };
-    }
-
-    case "GROUP_DISSOLVED": {
-      const groupId = (row.payload ?? {}).groupId;
-      if (typeof groupId !== "string") {
-        return null;
-      }
-      return { type: "GROUP_DISSOLVED", at, operator, groupId };
-    }
-
-    case "LAST_CALL":
-      return { type: "LAST_CALL", at, operator };
-
-    case "SESSION_CLOSED":
-      return { type: "SESSION_CLOSED", at, operator };
-
-    default:
-      return null;
-  }
-}
-
 /**
  * The Club's currently-open Session, or null. This is what the stable Club QR
  * path resolves against — readable as `anon` per the migration's policy, so no
@@ -237,6 +48,15 @@ export async function getOpenSessionForClub(
   supabase: SupabaseClient,
   clubId: string,
 ): Promise<LoadedSession | null> {
+  return (await loadOpenSessionWithLastRowAt(supabase, clubId))?.loaded ?? null;
+}
+
+/** The open Session as `getOpenSessionForClub` returns it, plus the
+ * `lastRowAt` that `resolveOpenSessionForClub`'s auto-close check needs. */
+async function loadOpenSessionWithLastRowAt(
+  supabase: SupabaseClient,
+  clubId: string,
+): Promise<SessionWithLastRowAt | null> {
   const { data, error } = await supabase
     .from("on_deck_sessions")
     .select(SESSION_COLUMNS)
@@ -262,14 +82,16 @@ export async function getOpenSessionForClub(
  *
  * Only ever able to succeed for the calling Organizer's own Club: the RPC
  * re-checks both ownership and staleness itself against the full event log in
- * plain SQL — unlike the read above, which goes through PostgREST and so is
- * capped at `max_rows` — so a failed attempt (not actually stale by the
- * database's own clock, a race with another close, not signed in as the
- * owner) just falls back to returning the Session as still open. This never
- * surfaces an error to a caller that only wanted to know "is one running", and
- * it never *incorrectly* closes one either: whatever this function's own
- * (possibly capped) idea of the last event is, the database is the one that
- * actually decides.
+ * plain SQL, so a failed attempt (not actually stale by the database's own
+ * clock, a race with another close, not signed in as the owner) just falls
+ * back to returning the Session as still open. This never surfaces an error to
+ * a caller that only wanted to know "is one running", and it never
+ * *incorrectly* closes one either: whatever this function's own idea of the
+ * last event is, the database is the one that actually decides.
+ *
+ * That idea is the newest *row's* `at`, not the newest decoded event's: the
+ * SQL takes `max(at)` over every row, a skipped one included, and the check
+ * here has to agree with it.
  *
  * This does write during what is, for the home screen, a page render — fine
  * here specifically because that page is already dynamic (reads cookies for
@@ -285,11 +107,11 @@ export async function resolveOpenSessionForClub(
   supabase: SupabaseClient,
   clubId: string,
 ): Promise<LoadedSession | null> {
-  const openSession = await getOpenSessionForClub(supabase, clubId);
-  if (!openSession) return null;
+  const open = await loadOpenSessionWithLastRowAt(supabase, clubId);
+  if (!open) return null;
+  const { loaded: openSession, lastRowAt } = open;
 
-  const lastAt = openSession.lastEvent?.at ?? null;
-  if (lastAt === null || !isSessionStale(lastAt, Date.now())) {
+  if (lastRowAt === null || !isSessionStale(lastRowAt, Date.now())) {
     return openSession;
   }
 
@@ -347,7 +169,7 @@ export async function getSession(
     return null;
   }
 
-  return loadSession(supabase, data as SessionRow);
+  return (await loadSession(supabase, data as SessionRow)).loaded;
 }
 
 /**
@@ -363,42 +185,18 @@ export function venueNameOf(loaded: LoadedSession | null): string | null {
   return loaded?.config.venueName ?? null;
 }
 
+/** A folded Session, plus its log's `lastRowAt` for the auto-close check. */
+type SessionWithLastRowAt = { loaded: LoadedSession; lastRowAt: number | null };
+
+/** Fold a Session row with its log, read through the Supabase event log. */
 async function loadSession(
   supabase: SupabaseClient,
   row: SessionRow,
-): Promise<LoadedSession> {
-  const { data, error } = await supabase
-    .from("on_deck_session_events")
-    .select(EVENT_COLUMNS)
-    .eq("session_id", row.id)
-    .order("seq", { ascending: true });
-
-  if (error) {
-    throw new Error(`loading the Session's events failed: ${error.message}`);
-  }
-
-  const config = toConfig(row);
-  const rows = data as EventRow[];
-  const events = rows
-    .map(toEvent)
-    .filter((event): event is SessionEvent => event !== null);
-
-  const lastRow = rows[rows.length - 1];
-  const lastEvent: LastEvent | null = lastRow
-    ? {
-        seq: lastRow.seq,
-        type: lastRow.type,
-        at: new Date(lastRow.at).getTime(),
-        operator: toOperator(lastRow),
-      }
-    : null;
-
+): Promise<SessionWithLastRowAt> {
+  const log = await supabaseEventLog(supabase).load(row.id);
   return {
-    config,
-    status: row.status,
-    state: reduceSession(config, events),
-    events,
-    lastEvent,
+    loaded: assembleLoadedSession(toConfig(row), row.status, log),
+    lastRowAt: log.lastRowAt,
   };
 }
 

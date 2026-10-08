@@ -387,6 +387,31 @@ export type SessionEvent =
     };
 
 /**
+ * A `SessionEvent` before it is stamped: the same variants without `at` and
+ * `operator`, which the write path adds (the database stamps `at`, and each
+ * append path fixes the Operator). What `floor-ops` decides and what `encode`
+ * (`codec.ts`) turns into a `{ type, payload }` row.
+ */
+export type EventBody = SessionEvent extends infer E
+  ? E extends SessionEvent
+    ? Omit<E, "at" | "operator">
+    : never
+  : never;
+
+/**
+ * The newest event of a Session's log that decoded, with the `seq` its log
+ * stored it under: the seq/type/at/operator the fold discards but operator
+ * Undo (#247) needs. Built by `lastEventOf` (`codec.ts`).
+ */
+export type LastEvent = {
+  seq: number;
+  type: string;
+  /** epoch ms */
+  at: number;
+  operator: Operator;
+};
+
+/**
  * The one-line explainer of how a Queue Together Group's place in line works —
  * so a Group sitting mid-Queue doesn't read as line-jumping (issue #238 user
  * story 57, issue #251). Shown on the Display and the floor's Queue; kept here

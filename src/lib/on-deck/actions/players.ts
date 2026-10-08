@@ -275,8 +275,8 @@ export async function formGroupAsPlayer(
   const { error } = await supabase.rpc("on_deck_form_group", {
     p_session_id: sessionId,
     p_actor_token: trimmed,
-    p_group_id: outcome.payload.groupId,
-    p_member_tokens: outcome.payload.memberTokens,
+    p_group_id: outcome.body.groupId,
+    p_member_tokens: outcome.body.memberTokens,
   });
 
   if (error) {
@@ -321,7 +321,7 @@ export async function leaveGroup(
   const { error } = await supabase.rpc("on_deck_leave_group", {
     p_session_id: sessionId,
     p_token: trimmed,
-    p_group_id: outcome.payload.groupId,
+    p_group_id: outcome.body.groupId,
   });
 
   if (error) {

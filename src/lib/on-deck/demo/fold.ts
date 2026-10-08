@@ -1,165 +1,127 @@
 /**
- * Folding the demo night in the browser (issue #519).
+ * The Demo night's event log, held in the browser (issues #519, #618).
  *
- * The live Floor loads a Session out of Postgres (`../sessions.ts`), folds it,
- * and commits a tap as a row; the demo does the same two things with the same
- * pure code and no database at all. This module is the join: it turns an event
- * array into the `LoadedSession` every board projection takes, and turns a
- * `floor-ops` decision back into the event to append.
+ * The live Floor loads a Session out of Postgres (`../supabase/event-log.ts`),
+ * folds it, and commits a tap as a row; the demo does the same two things with
+ * the same pure code and no database at all. This module is the in-memory
+ * adapter: a `floor-ops` decision's typed body is appended as it is, stamped
+ * with `at` and an `operator`, and `demoLoadedSession` folds the log into the
+ * `LoadedSession` every board projection takes, through the same
+ * `assembleLoadedSession` the live loader uses.
+ *
+ * The log is an immutable value so it can sit in React state; the
+ * `SessionEventLog` wrapper at the bottom is the same functions behind the
+ * interface the contract test runs both adapters through.
  *
  * Relative imports only, no `server-only`, no React — the demo route's whole
  * import graph has to stay clear of a Supabase client, and this is the piece
  * that would otherwise be tempted to reach for one.
  */
 
-import { reduceSession } from "../session/reduce.ts";
-import { isPauseReason, isSkillLevel } from "../session/types.ts";
+import {
+  assembleLoadedSession,
+  lastEventOf,
+  type LoadedLog,
+  type SessionEventLog,
+} from "../session/codec.ts";
 import type { LoadedSession } from "../session/rotation-view.ts";
 import type {
+  EventBody,
   Operator,
   SessionConfig,
   SessionEvent,
 } from "../session/types.ts";
-import type { FloorOpOutcome } from "../floor-ops.ts";
 
-/**
- * Fold an authored log into the shape a board renders from. `lastEvent`'s
- * `seq` is the event's 1-based position, which is exactly what the database
- * column means — so operator Undo (#247) offers the same phrase here as on a
- * real night, and "undo" means the same thing: drop the last event, re-fold.
- */
-export function demoLoadedSession(
-  config: SessionConfig,
-  events: SessionEvent[],
-): LoadedSession {
-  const state = reduceSession(config, events);
-  const last = events[events.length - 1];
+export type DemoLog = {
+  readonly entries: readonly { seq: number; event: SessionEvent }[];
+  /**
+   * The `seq` the next append takes. It only grows — an Undo doesn't hand its
+   * number back — which is what the database's identity column does too, so a
+   * stale Undo aimed at a dropped event can never land on its replacement.
+   */
+  readonly nextSeq: number;
+};
+
+/** An authored log, numbered from 1 in the order given. */
+export function demoLogOf(events: readonly SessionEvent[]): DemoLog {
   return {
-    config,
-    status: state.status === "closed" ? "closed" : "open",
-    state,
-    events,
-    lastEvent: last
-      ? {
-          seq: events.length,
-          type: last.type,
-          at: last.at,
-          operator: last.operator,
-        }
-      : null,
+    entries: events.map((event, i) => ({ seq: i + 1, event })),
+    nextSeq: events.length + 1,
   };
 }
 
 /**
- * Turn a `floor-ops` decision into the event to append, or null when it cannot
- * become one. The live paths hand the same `{ type, payload }` to Postgres,
- * which reads it back through `sessions.ts`'s row parser; this is the browser's
- * half of that same trip.
- *
- * `FloorOpOutcome.payload` is a `Record<string, unknown>`, so every field has
- * to be narrowed on the way out. A field that is missing or the wrong type
- * returns null rather than a `0` or an empty string: an event carrying
- * `court: 0` would fold into a board nobody could explain, and a decision this
- * module has no case for must leave the board untouched, not quietly damage
- * it. Callers surface the null; nothing here throws.
+ * Append a body as `operator` fired it at `at` — the stamp the database's
+ * `default now()` adds to a live row. Every demo tap and the in-memory
+ * adapter's `append` come through here.
  */
-export function demoEventFor(
-  outcome: FloorOpOutcome,
-  at: number,
+export function appendToDemoLog(
+  log: DemoLog,
+  body: EventBody,
   operator: Operator,
-): SessionEvent | null {
-  if (outcome.kind !== "event") return null;
-  const p = outcome.payload;
-  const str = (key: string): string | null =>
-    typeof p[key] === "string" && p[key] ? (p[key] as string) : null;
-  const court = (): number | null =>
-    typeof p.court === "number" && Number.isInteger(p.court) ? p.court : null;
+  at: number,
+): DemoLog {
+  const event = { ...body, at, operator } as SessionEvent;
+  return {
+    entries: [...log.entries, { seq: log.nextSeq, event }],
+    nextSeq: log.nextSeq + 1,
+  };
+}
 
-  switch (outcome.type) {
-    case "COURT_FINISHED": {
-      const n = court();
-      return n === null ? null : { type: "COURT_FINISHED", at, operator, court: n };
-    }
-    case "COURT_CONFIRMED": {
-      const n = court();
-      return n === null
-        ? null
-        : {
-            type: "COURT_CONFIRMED",
-            at,
-            operator,
-            court: n,
-            since: typeof p.since === "number" ? p.since : null,
-          };
-    }
-    case "PLAYER_PAUSED": {
-      const token = str("token");
-      return token && isPauseReason(p.reason)
-        ? { type: "PLAYER_PAUSED", at, operator, token, reason: p.reason }
-        : null;
-    }
-    case "PLAYER_REQUEUED": {
-      const token = str("token");
-      return token ? { type: "PLAYER_REQUEUED", at, operator, token } : null;
-    }
-    case "FOURSOME_MEMBER_SWAPPED": {
-      const n = court();
-      const out = str("out");
-      const incoming = str("in");
-      return n !== null && out && incoming
-        ? { type: "FOURSOME_MEMBER_SWAPPED", at, operator, court: n, out, in: incoming }
-        : null;
-    }
-    case "PLAYER_JOINED": {
-      const token = str("token");
-      const firstName = str("firstName");
-      const lastInitial = str("lastInitial");
-      return token && firstName && lastInitial && isSkillLevel(p.skillLevel)
-        ? {
-            type: "PLAYER_JOINED",
-            at,
-            operator,
-            token,
-            firstName,
-            lastInitial,
-            skillLevel: p.skillLevel,
-            queueOnJoin: p.queueOnJoin === true,
-          }
-        : null;
-    }
-    case "PLAYER_SKILL_SET": {
-      const token = str("token");
-      return token && isSkillLevel(p.skillLevel)
-        ? { type: "PLAYER_SKILL_SET", at, operator, token, skillLevel: p.skillLevel }
-        : null;
-    }
-    case "GROUP_FORMED": {
-      const groupId = str("groupId");
-      const raw = Array.isArray(p.memberTokens) ? p.memberTokens : null;
-      const memberTokens =
-        raw?.filter((t): t is string => typeof t === "string") ?? [];
-      // Every member has to survive the narrowing, or the Group that forms is
-      // not the one the Operator picked.
-      return groupId && raw && memberTokens.length === raw.length
-        ? { type: "GROUP_FORMED", at, operator, groupId, memberTokens }
-        : null;
-    }
-    case "GROUP_MEMBER_REMOVED": {
-      const groupId = str("groupId");
-      const token = str("token");
-      return groupId && token
-        ? { type: "GROUP_MEMBER_REMOVED", at, operator, groupId, token }
-        : null;
-    }
-    case "GROUP_DISSOLVED": {
-      const groupId = str("groupId");
-      return groupId ? { type: "GROUP_DISSOLVED", at, operator, groupId } : null;
-    }
-    case "GROUP_CAP_CHANGED":
-      return typeof p.cap === "number" && Number.isInteger(p.cap)
-        ? { type: "GROUP_CAP_CHANGED", at, operator, cap: p.cap }
-        : null;
-    default:
-      return null;
-  }
+/**
+ * Undo means the same thing it does in the database: drop the newest event,
+ * but only if it is still the one the caller saw (`expectedSeq`). Null when
+ * somebody — or "let it run" — got there first.
+ */
+export function undoInDemoLog(log: DemoLog, expectedSeq: number): DemoLog | null {
+  const last = log.entries[log.entries.length - 1];
+  if (!last || last.seq !== expectedSeq) return null;
+  return { entries: log.entries.slice(0, -1), nextSeq: log.nextSeq };
+}
+
+/**
+ * The log as `load` hands it back: events in order, the newest with its seq.
+ * Nothing in memory fails to decode, so the newest entry is also the newest
+ * row `lastRowAt` reads.
+ */
+export function readDemoLog(log: DemoLog): LoadedLog {
+  const last = log.entries[log.entries.length - 1];
+  return {
+    events: log.entries.map((entry) => entry.event),
+    lastEvent: last ? lastEventOf(last.seq, last.event) : null,
+    lastRowAt: last ? last.event.at : null,
+  };
+}
+
+/**
+ * Fold the log into the shape a board renders from. There is no Session row
+ * to read a status off, so the log supplies it: closed once SESSION_CLOSED is
+ * in it.
+ */
+export function demoLoadedSession(
+  config: SessionConfig,
+  log: DemoLog,
+): LoadedSession {
+  const closed = log.entries.some((e) => e.event.type === "SESSION_CLOSED");
+  return assembleLoadedSession(config, closed ? "closed" : "open", readDemoLog(log));
+}
+
+/**
+ * The in-memory adapter behind the `SessionEventLog` interface, one log per
+ * Session id: nothing but `appendToDemoLog` and `readDemoLog`, the same two
+ * functions `demo-stage.tsx` commits and folds through, so the contract test
+ * runs the demo's own code. `now` stamps each append, as the database's clock
+ * does a live row.
+ */
+export function inMemoryEventLog(now: () => number = Date.now): SessionEventLog {
+  const logs = new Map<string, DemoLog>();
+  const logFor = (sessionId: string) => logs.get(sessionId) ?? demoLogOf([]);
+  return {
+    async append(sessionId, body, operator) {
+      logs.set(sessionId, appendToDemoLog(logFor(sessionId), body, operator, now()));
+    },
+    async load(sessionId) {
+      return readDemoLog(logFor(sessionId));
+    },
+  };
 }
