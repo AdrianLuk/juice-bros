@@ -86,6 +86,10 @@ function useResortSlide(order: string) {
  * yellow. Columns never move; rows only re-sort, sliding into their new places
  * with an up or down mark. A Flight band opens every pair, drawn where a
  * leaderboard draws the cut, so the room can see who is about to drop a Flight.
+ *
+ * A Round cell is a Team's two Games in that Round added up, unlike the score
+ * bug's cells, which are one Game each (issue #633). A key under the rows says
+ * so; `roundKey={false}` leaves it off where another tower on screen has it.
  */
 export function TimingTower({
   rows,
@@ -93,6 +97,7 @@ export function TimingTower({
   liveRound,
   size,
   final,
+  roundKey = true,
 }: {
   rows: TowerRow[];
   label?: string;
@@ -101,6 +106,8 @@ export function TimingTower({
   size?: "tv";
   /** The night is over: nothing is live, so your own position drops the yellow chip. */
   final?: boolean;
+  /** The line under the rows saying what R1, R2, R3 and Tot add up. */
+  roundKey?: boolean;
 }) {
   const list = useResortSlide(rows.map((row) => row.id ?? row.position).join(","));
 
@@ -163,6 +170,12 @@ export function TimingTower({
           </li>,
         ])}
       </ol>
+      {roundKey && (
+        <p className="tt-tower-key">
+          <b>R1, R2, R3</b> are a Team&apos;s points from that Round&apos;s two Games: captains&apos; plus
+          teammates&apos;. <b>Tot</b> is all six.
+        </p>
+      )}
     </div>
   );
 }

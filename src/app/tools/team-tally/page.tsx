@@ -11,6 +11,7 @@ import { buildAppPageJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { signOut } from "@/lib/team-tally/actions/auth";
 import { getOptionalOrganizer } from "@/lib/team-tally/dal";
 import { listTeamEvents } from "@/lib/team-tally/events";
+import { bugRows } from "@/lib/team-tally/score-bug";
 import { eventDateLabel, eventDateParts } from "@/lib/team-tally/format";
 import {
   TEAM_TALLY_DEMO_PATH,
@@ -21,6 +22,13 @@ import {
 import { createClient } from "@/lib/team-tally/supabase/server";
 
 const app = apps.find((item) => item.slug === "team-tally")!;
+
+/** The example bug's Games, mid Round 2: Round 1 both in, Round 2's captains' Game in. */
+const EXAMPLE_GAMES = [
+  { round: 1, kind: "captains", redScore: 11, blueScore: 8 },
+  { round: 1, kind: "teammates", redScore: 11, blueScore: 9 },
+  { round: 2, kind: "captains", redScore: 11, blueScore: 7 },
+] as const;
 
 export const metadata: Metadata = pageMetadata({
   title: "Team Tally: Captained Team Night Scoring",
@@ -81,14 +89,14 @@ function Landing() {
           <ScoreBug
             label="Match 1 · Courts 21 & 18"
             liveRound={2}
-            red={{ name: "Kitchen Sync", rounds: [22, 9, null], total: 31 }}
-            blue={{ name: "Dink Floyd", rounds: [17, 7, null], total: 24 }}
+            red={{ name: "Kitchen Sync", rows: bugRows(EXAMPLE_GAMES, "red") }}
+            blue={{ name: "Dink Floyd", rows: bugRows(EXAMPLE_GAMES, "blue") }}
           />
           <TimingTower
             label="Standings · opening round"
             liveRound={2}
             rows={[
-              { position: 1, name: "Kitchen Sync", side: "red", rounds: [22, 9, null], points: 31, move: 2 },
+              { position: 1, name: "Kitchen Sync", side: "red", rounds: [22, 11, null], points: 33, move: 2 },
               { position: 2, name: "Net Gains", side: "red", rounds: [21, 9, null], points: 30 },
               { position: 3, name: "Third Shot Drop", side: "red", rounds: [20, 9, null], points: 29, move: -1 },
               { position: 4, name: "Lob City", side: "blue", rounds: [19, 8, null], points: 27, move: -1 },
