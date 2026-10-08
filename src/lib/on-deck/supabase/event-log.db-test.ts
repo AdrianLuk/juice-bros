@@ -26,16 +26,9 @@ import { supabaseEventLog } from "./event-log.ts";
 type Subject = { log: SessionEventLog; sessionId: string; organizer: Operator };
 
 const users: TestUser[] = [];
-const clubIds: string[] = [];
 
 after(async () => {
-  // Clubs first: deleting an Organizer would null `operator_user_id` on their
-  // events before the cascade reached them, which the organizer-has-an-account
-  // CHECK refuses. A Club takes its Sessions and their logs with it.
-  if (clubIds.length > 0) {
-    const { error } = await serviceRoleClient().from("on_deck_clubs").delete().in("id", clubIds);
-    if (error) throw new Error(`deleting the test Clubs failed: ${error.message}`);
-  }
+  // Deleting the Organizer takes their Club, its Sessions and their logs.
   await Promise.all(users.map(deleteTestUser));
 });
 
@@ -59,7 +52,6 @@ async function supabaseSubject(): Promise<Subject> {
     .select("id")
     .single();
   if (clubError || !club) throw new Error(`seeding a Club failed: ${clubError?.message}`);
-  clubIds.push(club.id);
 
   const { data: session, error: sessionError } = await admin
     .from("on_deck_sessions")
