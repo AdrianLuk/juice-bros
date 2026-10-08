@@ -73,7 +73,8 @@ function toPoints(value: string): number | null {
 /**
  * One Game with its two score boxes, red side first as the brief prints it.
  * Standard number inputs restyled in the world. The boxes follow the live
- * score until someone types; a typed score is theirs until it saves.
+ * score until someone types; a typed score is theirs until it saves. A done
+ * Matchup's Games are locked: the boxes keep their scores, read-only.
  */
 export function GameCard({
   game,
@@ -81,12 +82,14 @@ export function GameCard({
   teams,
   writer,
   onSaved,
+  locked = false,
 }: {
   game: DocGame;
   matchup: DocMatchup;
   teams: Map<string, DocTeam>;
   writer: LiveWriter;
   onSaved: () => Promise<unknown>;
+  locked?: boolean;
 }) {
   const red = teams.get(matchup.redTeamId)!;
   const blue = teams.get(matchup.blueTeamId)!;
@@ -94,7 +97,7 @@ export function GameCard({
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const shown = draft ?? {
+  const shown = (locked ? null : draft) ?? {
     red: game.redScore === null ? "" : String(game.redScore),
     blue: game.blueScore === null ? "" : String(game.blueScore),
   };
@@ -130,7 +133,7 @@ export function GameCard({
     });
   }
 
-  const showSave = draft !== null || !scored;
+  const showSave = !locked && (draft !== null || !scored);
 
   return (
     <form className="tt-sheet tt-game" aria-label={name} onSubmit={submit} noValidate>
@@ -152,6 +155,7 @@ export function GameCard({
                 aria-label={`${teamName(team)} points`}
                 aria-invalid={problem ? true : undefined}
                 value={shown[side]}
+                readOnly={locked}
                 onChange={(event) => edit(side, event.target.value)}
               />
             </div>

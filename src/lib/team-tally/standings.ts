@@ -1,12 +1,12 @@
 /**
  * The standings, computed on read from the Game rows (team-tally ADR 0001):
  * each Team's Team score (every point across its Matchup's six Games), Games
- * won and point differential, sorted by Team score.
+ * won and point differential, ranked by Seeding's own rules (seeding.ts), so
+ * the tower the room watches is the order Flights will be placed in.
  *
- * A tie on Team score falls to point differential, then Games won, then the
- * Organizer's setup order, so the tower never flickers between equal Teams.
- * Seeding's own tie-breaks (the Matchup winner first) belong to the Flight
- * hand-off, not this live view. Relative imports only, for `node --test`.
+ * Once Flights are placed they stay placed. A corrected opening score still
+ * re-sorts these standings, and `standingsMoved` says they no longer match
+ * the Flights. Relative imports only, for `node --test`.
  */
 
 import {
@@ -18,6 +18,8 @@ import {
   type Side,
   type TeamEventDoc,
 } from "./event-doc.ts";
+import { matchupWinnerId } from "./matchup-done.ts";
+import { seedTeams, type SeedEntry, type TieRule } from "./seeding.ts";
 
 export type StandingRow = {
   position: number;
@@ -29,31 +31,71 @@ export type StandingRow = {
   teamScore: number;
   gamesWon: number;
   pointDiff: number;
+  /** The Flight this position seeds into. */
+  flightLetter: string;
+  /** What separated this Team from the one above it; null for the top row. */
+  decidedBy: TieRule | null;
 };
 
 /** The opening round's standings: one row per Team that has an opening Matchup. */
 export function computeStandings(event: TeamEventDoc): StandingRow[] {
   const opening = event.matchups.filter((matchup) => matchup.stage === "opening");
 
-  const rows = event.teams.flatMap((team, setupIndex) => {
+  const rows = new Map<string, Omit<StandingRow, "position" | "flightLetter" | "decidedBy">>();
+  const entries: SeedEntry[] = [];
+
+  event.teams.forEach((team, setupIndex) => {
     const matchup = opening.find((candidate) => sideOf(candidate, team.id));
-    if (!matchup) return [];
+    if (!matchup) return;
     const side = sideOf(matchup, team.id)!;
-    return [{ setupIndex, row: rowFor(matchup, side, team.id, teamName(team)) }];
+    const row = rowFor(matchup, side, team.id, teamName(team));
+    rows.set(team.id, row);
+
+    const winner = matchupWinnerId(matchup);
+    entries.push({
+      teamId: team.id,
+      setupIndex,
+      matchupId: matchup.id,
+      teamScore: row.teamScore,
+      pointDiff: row.pointDiff,
+      gamesWon: row.gamesWon,
+      wonMatchup: winner === null ? null : winner === team.id,
+    });
   });
 
-  rows.sort(
-    (a, b) =>
-      b.row.teamScore - a.row.teamScore ||
-      b.row.pointDiff - a.row.pointDiff ||
-      b.row.gamesWon - a.row.gamesWon ||
-      a.setupIndex - b.setupIndex,
-  );
-
-  return rows.map(({ row }, index) => ({ ...row, position: index + 1 }));
+  return seedTeams(entries, event.tieOrder ?? []).map((seed) => ({
+    ...rows.get(seed.teamId)!,
+    position: seed.position,
+    flightLetter: seed.flightLetter,
+    decidedBy: seed.decidedBy,
+  }));
 }
 
-function rowFor(matchup: DocMatchup, side: Side, teamId: string, name: string): Omit<StandingRow, "position"> {
+/**
+ * The order the Flights were placed in: Flight A's red Team (the higher seed)
+ * then its blue, then Flight B's. Empty before Seeding.
+ */
+export function placedOrder(event: Pick<TeamEventDoc, "matchups">): string[] {
+  return event.matchups
+    .filter((matchup) => matchup.stage === "flight")
+    .sort((a, b) => a.number - b.number)
+    .flatMap((matchup) => [matchup.redTeamId, matchup.blueTeamId]);
+}
+
+/** True once Flights are placed and the opening standings no longer read in their order. */
+export function standingsMoved(event: TeamEventDoc): boolean {
+  const placed = placedOrder(event);
+  if (placed.length === 0) return false;
+  const now = computeStandings(event).map((row) => row.teamId);
+  return now.some((teamId, index) => placed[index] !== teamId);
+}
+
+function rowFor(
+  matchup: DocMatchup,
+  side: Side,
+  teamId: string,
+  name: string,
+): Omit<StandingRow, "position" | "flightLetter" | "decidedBy"> {
   let teamScore = 0;
   let against = 0;
   let gamesWon = 0;

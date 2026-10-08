@@ -109,6 +109,52 @@ export async function seedTeamEvent(name = "Tuesday Team Night"): Promise<Seeded
   };
 }
 
+/**
+ * Scores an opening Matchup's six Games as the Organizer (issue #624), red
+ * side first in Round order, captains' game before teammates'. For specs that
+ * need a played Matchup without typing 36 boxes.
+ */
+export async function scoreMatchup(
+  seeded: SeededTeamEvent,
+  matchupNumber: number,
+  scores: [number, number][],
+): Promise<void> {
+  const session = await ok(
+    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: seeded.organizerEmail, password: seeded.organizerPassword }),
+    }),
+    "signing the Organizer in",
+  );
+  const accessToken = ((await session.json()) as { access_token: string }).access_token;
+  const asOrganizer = { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+
+  const read = await ok(
+    await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_event`, {
+      method: "POST",
+      headers: asOrganizer,
+      body: JSON.stringify({ p_event_id: seeded.eventId }),
+    }),
+    "reading the Team Event",
+  );
+  const event = (await read.json()) as {
+    matchups: { stage: string; number: number; games: { id: string }[] }[];
+  };
+  const matchup = event.matchups.find((candidate) => candidate.stage === "opening" && candidate.number === matchupNumber)!;
+
+  for (const [index, [red, blue]] of scores.entries()) {
+    await ok(
+      await fetch(`${API_URL}/rest/v1/rpc/team_tally_organizer_score_game`, {
+        method: "POST",
+        headers: asOrganizer,
+        body: JSON.stringify({ p_game_id: matchup.games[index].id, p_red: red, p_blue: blue }),
+      }),
+      "saving a score",
+    );
+  }
+}
+
 /** Deletes the Organizer, and with them their Team Events. */
 export async function deleteTeamEventOrganizer(seeded: SeededTeamEvent): Promise<void> {
   await fetch(`${API_URL}/auth/v1/admin/users/${seeded.userId}`, {

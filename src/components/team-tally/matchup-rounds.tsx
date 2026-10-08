@@ -8,20 +8,23 @@ import { GameCard } from "./game-card";
  * A Matchup's three Rounds as score entry. The live Round leads, open, under
  * its LIVE mark; every other Round folds into one line (its two scores and a
  * FINAL stamp once both are in), and opens to its own score boxes. All six
- * Games stay editable.
+ * Games stay editable until the Matchup is done; then they lock, read-only,
+ * until the Organizer reopens it.
  */
 export function MatchupRounds({
   matchup,
   teams,
   writer,
   onSaved,
+  locked = matchup.doneAt !== null,
 }: {
   matchup: DocMatchup;
   teams: Map<string, DocTeam>;
   writer: LiveWriter;
   onSaved: () => Promise<unknown>;
+  locked?: boolean;
 }) {
-  const live = liveRound(matchup);
+  const live = locked ? undefined : liveRound(matchup);
   const order = ([1, 2, 3] as const).filter((round) => round !== live);
   const rounds: Round[] = live ? [live, ...order] : [...order];
 
@@ -29,7 +32,15 @@ export function MatchupRounds({
     matchup.games
       .filter((game) => game.round === round)
       .map((game) => (
-        <GameCard key={game.id} game={game} matchup={matchup} teams={teams} writer={writer} onSaved={onSaved} />
+        <GameCard
+          key={game.id}
+          game={game}
+          matchup={matchup}
+          teams={teams}
+          writer={writer}
+          onSaved={onSaved}
+          locked={locked}
+        />
       ));
 
   return (

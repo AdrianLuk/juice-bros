@@ -1,15 +1,25 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { verifyOrganizer } from "../dal.ts";
 import type { TeamEventDoc } from "../event-doc.ts";
 import {
   loadOrganizerEvent,
   loadPublicEvent,
   loadScoreLinkEvent,
+  markDoneAsOrganizer,
+  markDoneByLink,
+  reopenAsOrganizer,
   saveScoreAsOrganizer,
   saveScoreByLink,
+  seedNowAsOrganizer,
+  setDreambreakerAsOrganizer,
+  setDreambreakerByLink,
   setSlotsAsOrganizer,
   setSlotsByLink,
+  setTieOrderAsOrganizer,
+  swapFlightCourtsAsOrganizer,
   type WriteResult,
 } from "../live-events.ts";
 import { checkGameScore } from "../score.ts";
@@ -99,4 +109,94 @@ export async function saveRoster(writer: LiveWriter, teamId: string, roster: Ros
   } catch {
     return { ok: false, problem: "Couldn't save the roster. Try again." };
   }
+}
+
+/**
+ * Runs one of #624's writes as whoever holds the writer: a Score Link by its
+ * token, or the signed-in Organizer. A refusal comes back with the database's
+ * reason; anything else is a generic retry message.
+ */
+async function asWriter(
+  writer: LiveWriter,
+  byLink: (supabase: SupabaseClient, token: string) => Promise<WriteResult>,
+  asOrganizer: (supabase: SupabaseClient) => Promise<WriteResult>,
+  failed: string,
+): Promise<WriteResult> {
+  // Outside the try: a signed-out Organizer is redirected, by a throw.
+  if (writer.kind === "organizer") await verifyOrganizer();
+  try {
+    const supabase = await createClient();
+    return writer.kind === "score" ? await byLink(supabase, String(writer.token)) : await asOrganizer(supabase);
+  } catch {
+    return { ok: false, problem: failed };
+  }
+}
+
+async function asOrganizerOnly(
+  write: (supabase: SupabaseClient) => Promise<WriteResult>,
+  failed: string,
+): Promise<WriteResult> {
+  await verifyOrganizer();
+  try {
+    return await write(await createClient());
+  } catch {
+    return { ok: false, problem: failed };
+  }
+}
+
+/** Matchup done (issue #624): the last opening Matchup done places the Flights. */
+export async function markMatchupDone(writer: LiveWriter, matchupId: string): Promise<WriteResult> {
+  const id = String(matchupId);
+  return asWriter(
+    writer,
+    (supabase, token) => markDoneByLink(supabase, token, id),
+    (supabase) => markDoneAsOrganizer(supabase, id),
+    "Couldn't mark the Matchup done. Try again.",
+  );
+}
+
+/** Records who won a tied Matchup's Dreambreaker; null clears it. */
+export async function recordDreambreaker(
+  writer: LiveWriter,
+  matchupId: string,
+  winnerTeamId: string | null,
+): Promise<WriteResult> {
+  const id = String(matchupId);
+  const winner = winnerTeamId === null ? null : String(winnerTeamId);
+  return asWriter(
+    writer,
+    (supabase, token) => setDreambreakerByLink(supabase, token, id, winner),
+    (supabase) => setDreambreakerAsOrganizer(supabase, id, winner),
+    "Couldn't save the Dreambreaker. Try again.",
+  );
+}
+
+/** The Organizer reopens a done Matchup. */
+export async function reopenMatchup(matchupId: string): Promise<WriteResult> {
+  return asOrganizerOnly((supabase) => reopenAsOrganizer(supabase, String(matchupId)), "Couldn't reopen it. Try again.");
+}
+
+/** Seed now: the Organizer places the Flights from the scores as they stand. */
+export async function seedFlightsNow(eventId: string): Promise<WriteResult> {
+  return asOrganizerOnly(
+    (supabase) => seedNowAsOrganizer(supabase, String(eventId)),
+    "Couldn't place the Flights. Try again.",
+  );
+}
+
+/** The Organizer swaps two Flights' court pairs. */
+export async function swapFlightCourts(flightId: string, otherFlightId: string): Promise<WriteResult> {
+  return asOrganizerOnly(
+    (supabase) => swapFlightCourtsAsOrganizer(supabase, String(flightId), String(otherFlightId)),
+    "Couldn't swap the courts. Try again.",
+  );
+}
+
+/** The Organizer orders Teams level on every count, first ahead. */
+export async function orderTiedTeams(eventId: string, teamIds: string[]): Promise<WriteResult> {
+  const ids = Array.isArray(teamIds) ? teamIds.map(String) : [];
+  return asOrganizerOnly(
+    (supabase) => setTieOrderAsOrganizer(supabase, String(eventId), ids),
+    "Couldn't save the order. Try again.",
+  );
 }

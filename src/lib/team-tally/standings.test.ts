@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { DocGame, DocMatchup, DocTeam, TeamEventDoc } from "./event-doc.ts";
-import { computeStandings } from "./standings.ts";
+import { computeStandings, standingsMoved } from "./standings.ts";
 
 function team(id: string, captain: string, nickname: string | null = null): DocTeam {
   return { id, nickname, homeCourt: id, captain, slotA: "A", slotB: "B", slotC: "C" };
@@ -21,7 +21,13 @@ function games(scores: ([number, number] | null)[]): DocGame[] {
   }));
 }
 
-function matchup(number: number, red: string, blue: string, scores: ([number, number] | null)[]): DocMatchup {
+function matchup(
+  number: number,
+  red: string,
+  blue: string,
+  scores: ([number, number] | null)[],
+  extra: Partial<DocMatchup> = {},
+): DocMatchup {
   return {
     id: `m${number}`,
     stage: "opening",
@@ -31,6 +37,10 @@ function matchup(number: number, red: string, blue: string, scores: ([number, nu
     redTeamId: red,
     blueTeamId: blue,
     games: games(scores),
+    doneAt: null,
+    doneByTeamId: null,
+    dreambreakerWinnerId: null,
+    ...extra,
   };
 }
 
@@ -47,6 +57,8 @@ function night(matchups: DocMatchup[]): TeamEventDoc {
       team("chr", "Christian Alshon"),
     ],
     matchups,
+    seededAt: null,
+    tieOrder: [],
   };
 }
 
@@ -110,4 +122,59 @@ test("a tie on Team score goes to point differential, then Games won, then setup
     standings.map((row) => row.teamId),
     ["hay", "ben", "fed", "chr"],
   );
+});
+
+const TIED: [number, number][] = [
+  [11, 9],
+  [9, 11],
+  [11, 9],
+  [9, 11],
+  [11, 9],
+  [9, 11],
+];
+
+test("two Teams level after their own Matchup are split by its Dreambreaker, and the row says so", () => {
+  const standings = computeStandings(
+    night([
+      matchup(1, "ben", "fed", TIED, { dreambreakerWinnerId: "fed" }),
+      matchup(2, "hay", "chr", [[11, 2], [11, 3], [11, 4], [11, 5], [11, 6], [11, 7]]),
+    ]),
+  );
+
+  assert.deepEqual(
+    standings.map(({ teamId, flightLetter, decidedBy }) => [teamId, flightLetter, decidedBy]),
+    [
+      ["hay", "A", null],
+      ["fed", "A", "teamScore"],
+      ["ben", "B", "matchupWinner"],
+      ["chr", "B", "teamScore"],
+    ],
+  );
+});
+
+test("once Flights are placed, a corrected opening score shows the standings moved", () => {
+  const opening = [
+    matchup(1, "ben", "fed", [[11, 8], [11, 9], [11, 7], [11, 6], [11, 5], [11, 4]]),
+    matchup(2, "hay", "chr", [[11, 9], [11, 9], [11, 9], [11, 9], [11, 9], [11, 9]]),
+  ];
+  // Seeded as Ben 66, Hayden 66 (Ben ahead on point differential), then
+  // Christian 54 and Federico 39.
+  const flights = [
+    matchup(1, "ben", "hay", [], { id: "fa", stage: "flight", flightLetter: "A" }),
+    matchup(2, "chr", "fed", [], { id: "fb", stage: "flight", flightLetter: "B" }),
+  ];
+  const seeded = { ...night([...opening, ...flights]), status: "flights" as const, seededAt: "2026-10-13T20:00:00Z" };
+  assert.equal(standingsMoved(seeded), false);
+
+  // The Organizer reopens Match 1 and corrects a score: Ben drops to 63.
+  const corrected = structuredClone(seeded);
+  corrected.matchups[0].games[0].redScore = 8;
+  corrected.matchups[0].games[0].blueScore = 11;
+  assert.equal(standingsMoved(corrected), true);
+  assert.deepEqual(
+    computeStandings(corrected).map((row) => row.teamId),
+    ["hay", "ben", "chr", "fed"],
+  );
+
+  assert.equal(standingsMoved(night(opening)), false);
 });

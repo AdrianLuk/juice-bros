@@ -123,3 +123,90 @@ export async function setSlotsAsOrganizer(
   });
   return asResult(error, "Saving the roster");
 }
+
+// ---------------------------------------------------------------------------
+// Matchup done, the Dreambreaker and Seeding (issue #624), in
+// supabase/migrations/20261009150000_team_tally_flights.sql
+// ---------------------------------------------------------------------------
+
+async function call(
+  supabase: SupabaseClient,
+  fn: string,
+  args: Record<string, unknown>,
+  what: string,
+): Promise<WriteResult> {
+  const { error } = await supabase.rpc(fn, args);
+  return asResult(error, what);
+}
+
+/** A captain marks their Matchup done. The last opening one places the Flights. */
+export async function markDoneByLink(supabase: SupabaseClient, token: string, matchupId: string): Promise<WriteResult> {
+  return call(supabase, "team_tally_mark_done", { p_token: token, p_matchup_id: matchupId }, "Marking the Matchup done");
+}
+
+/** The Organizer marks any of their Matchups done. */
+export async function markDoneAsOrganizer(supabase: SupabaseClient, matchupId: string): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_mark_done", { p_matchup_id: matchupId }, "Marking the Matchup done");
+}
+
+/** The Organizer reopens a done Matchup. */
+export async function reopenAsOrganizer(supabase: SupabaseClient, matchupId: string): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_reopen", { p_matchup_id: matchupId }, "Reopening the Matchup");
+}
+
+/** A captain records who won their tied Matchup's Dreambreaker (null clears it). */
+export async function setDreambreakerByLink(
+  supabase: SupabaseClient,
+  token: string,
+  matchupId: string,
+  winnerTeamId: string | null,
+): Promise<WriteResult> {
+  return call(
+    supabase,
+    "team_tally_set_dreambreaker",
+    { p_token: token, p_matchup_id: matchupId, p_winner_team_id: winnerTeamId },
+    "Saving the Dreambreaker",
+  );
+}
+
+/** The Organizer records a Dreambreaker winner. */
+export async function setDreambreakerAsOrganizer(
+  supabase: SupabaseClient,
+  matchupId: string,
+  winnerTeamId: string | null,
+): Promise<WriteResult> {
+  return call(
+    supabase,
+    "team_tally_organizer_set_dreambreaker",
+    { p_matchup_id: matchupId, p_winner_team_id: winnerTeamId },
+    "Saving the Dreambreaker",
+  );
+}
+
+/** Seed now: the Flights from the scores as they stand. */
+export async function seedNowAsOrganizer(supabase: SupabaseClient, eventId: string): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_seed_now", { p_event_id: eventId }, "Placing the Flights");
+}
+
+/** The Organizer orders Teams level on every count, first ahead. */
+export async function setTieOrderAsOrganizer(
+  supabase: SupabaseClient,
+  eventId: string,
+  teamIds: string[],
+): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_set_tie_order", { p_event_id: eventId, p_team_ids: teamIds }, "Saving the order");
+}
+
+/** The Organizer swaps two Flights' court pairs, before any Flight score. */
+export async function swapFlightCourtsAsOrganizer(
+  supabase: SupabaseClient,
+  flightId: string,
+  otherFlightId: string,
+): Promise<WriteResult> {
+  return call(
+    supabase,
+    "team_tally_organizer_swap_flight_courts",
+    { p_flight_id: flightId, p_other_flight_id: otherFlightId },
+    "Swapping the courts",
+  );
+}

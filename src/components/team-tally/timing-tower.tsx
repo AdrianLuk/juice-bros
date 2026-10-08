@@ -13,6 +13,8 @@ export type TowerRow = {
   move?: number;
   /** The viewer's own Team, on a Score Link. */
   mine?: boolean;
+  /** How a tie with the row above was settled, e.g. "Ahead on point differential". */
+  note?: string | null;
 };
 
 /** Positions 1 and 2 are Flight A, 3 and 4 Flight B, and so on. */
@@ -71,7 +73,10 @@ export function TimingTower({
             <li className="tt-tower-row" data-mine={row.mine || undefined}>
               <span className="tt-tower-pos">{row.position}</span>
               <span aria-hidden className={`tt-tower-chip ${row.side === "red" ? "tt-side-red" : "tt-side-blue"}`} />
-              <span className="tt-tower-name">{row.name}</span>
+              <span className="tt-tower-name">
+                <span className="tt-tower-name-text">{row.name}</span>
+                {row.note && <small className="tt-tower-note">{row.note}</small>}
+              </span>
               {row.rounds.map((points, index) => (
                 <span
                   key={index}

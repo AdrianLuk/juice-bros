@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { liveRound, type Round, type TeamEventDoc } from "@/lib/team-tally/event-doc";
+import { tieRuleLabel } from "@/lib/team-tally/seeding";
 import { computeStandings, type StandingRow } from "@/lib/team-tally/standings";
 import { TimingTower } from "./timing-tower";
 
@@ -37,6 +38,18 @@ function openingLiveRound(event: TeamEventDoc): Round | undefined {
 }
 
 /**
+ * How a Team came out ahead of the Team below it on equal Team score, said
+ * on its own row ("Ahead on point differential"). Only a tie that decided
+ * something says so: not two Teams level inside one Flight, and not a night
+ * with nothing scored yet.
+ */
+function tieNote(row: StandingRow, below: StandingRow | undefined): string | null {
+  if (!below?.decidedBy || below.decidedBy === "level") return null;
+  if (!row.rounds.some((points) => points !== null)) return null;
+  return tieRuleLabel(below.decidedBy);
+}
+
+/**
  * The opening standings, computed on read, as the timing tower: the viewer's
  * own Team on a Score Link highlighted, and each re-sort's moves marked.
  */
@@ -48,7 +61,7 @@ export function StandingsTower({ event, myTeamId }: { event: TeamEventDoc; myTea
     <TimingTower
       label="Standings · opening round"
       liveRound={event.status === "opening" ? openingLiveRound(event) : undefined}
-      rows={standings.map((row) => ({
+      rows={standings.map((row, index) => ({
         position: row.position,
         name: row.name,
         side: row.side,
@@ -56,6 +69,7 @@ export function StandingsTower({ event, myTeamId }: { event: TeamEventDoc; myTea
         points: row.teamScore,
         move: moves.get(row.teamId),
         mine: row.teamId === myTeamId,
+        note: tieNote(row, standings[index + 1]),
       }))}
     />
   );

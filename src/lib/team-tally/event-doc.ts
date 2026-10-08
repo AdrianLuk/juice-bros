@@ -34,6 +34,12 @@ export type DocMatchup = {
   blueTeamId: string;
   /** Round order, captains' game before teammates'. */
   games: DocGame[];
+  /** When a captain (or the Organizer) marked it done; null while it is open. */
+  doneAt: string | null;
+  /** The Team whose captain marked it done; null when the Organizer did, or while open. */
+  doneByTeamId: string | null;
+  /** Who won the Dreambreaker a tied Matchup played. Decides the winner only on a tie. */
+  dreambreakerWinnerId: string | null;
 };
 
 export type DocTeam = {
@@ -55,6 +61,10 @@ export type TeamEventDoc = {
   teams: DocTeam[];
   /** Opening Matchups in MATCH order, then Flights. */
   matchups: DocMatchup[];
+  /** When the Flights were placed; null until Seeding. */
+  seededAt: string | null;
+  /** Teams the Organizer has ordered for a tie on every count, first ahead. */
+  tieOrder: string[];
 };
 
 /** "Team Ben Johns", as the Brief prints a Team. */

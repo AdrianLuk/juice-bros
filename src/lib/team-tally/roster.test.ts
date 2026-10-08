@@ -16,6 +16,7 @@ test("a Team's scored Rounds count every Matchup it plays, and only those", () =
   });
   const matchup = (id: string, red: string, blue: string, games: ReturnType<typeof game>[]): DocMatchup => ({
     id, stage: "opening", number: 1, flightLetter: null, courtPair: ["1", "2"], redTeamId: red, blueTeamId: blue, games,
+    doneAt: null, doneByTeamId: null, dreambreakerWinnerId: null,
   });
 
   const event = {

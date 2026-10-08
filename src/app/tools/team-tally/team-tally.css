@@ -334,7 +334,10 @@ body:has(.tt-surface) {
   display: grid;
   grid-template-columns: 0.4rem minmax(0, 1fr) repeat(3, 2.25rem) 3.25rem;
 }
-.tt-bug span {
+/* Only the grid's own cells (not the name and tag inside a team cell), at one
+   class's weight so the cell classes below still win. */
+.tt-bug > :where(span),
+.tt-bug > :where([role="row"]) > :where(span) {
   display: grid;
   align-items: center;
   justify-items: center;
@@ -880,6 +883,289 @@ body:has(.tt-surface) {
 }
 @media (min-width: 1024px) {
   .tt-organizer-matchups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---- Matchup done, Seeding and Flights (#624) ---------------------------- */
+
+/* A done Matchup: a plate bar on top of its bug, the winner left and a FINAL
+   stamp right, slightly askew like the Round stamp. Scores stay put. */
+.tt-bug-finalbar { align-items: center; }
+.tt-bug-finalnote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tt-plate-ink);
+}
+.tt-bug-final {
+  flex: none;
+  padding: 0.05rem 0.4rem;
+  border: 1.5px solid var(--tt-plate-ink);
+  border-radius: 3px;
+  color: var(--tt-plate-ink);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  transform: rotate(-3deg);
+}
+.tt-bug .tt-bug-teamrow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tt-bug-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* DB: won the Dreambreaker that settled a tie. Dim, so it never reads as a score. */
+.tt-bug-mark {
+  flex: none;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--tt-plate-dim);
+  border-radius: 2px;
+  color: var(--tt-plate-dim);
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* How a tie was settled, under the Team's name in the tower. */
+.tt-tower-name { display: grid; }
+.tt-tower-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tt-tower-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tt-plate-dim);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+}
+
+/* The Flight hand-off: the Flight letter and its court pair are the biggest
+   type on the page, because fifty people are looking for their courts. */
+.tt-handoff-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+  padding: 0.75rem 1rem 0.85rem;
+  background: var(--tt-plate-bar);
+}
+.tt-handoff-stack {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.tt-handoff-courts { justify-items: end; text-align: right; }
+.tt-handoff-kicker {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tt-plate-dim);
+}
+.tt-handoff-letter,
+.tt-handoff-pair {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  line-height: 0.82;
+  color: var(--tt-plate-ink);
+  white-space: nowrap;
+}
+.tt-handoff-letter { font-size: clamp(4.25rem, 19vw, 6.5rem); }
+.tt-handoff-pair { font-size: clamp(3rem, 13vw, 4.75rem); }
+.tt-handoff-amp {
+  color: var(--tt-plate-dim);
+  font-size: 0.55em;
+  vertical-align: 0.35em;
+}
+.tt-handoff-teams {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-handoff-row {
+  display: grid;
+  grid-template-columns: 1.5rem 0.35rem minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--tt-plate-line);
+}
+.tt-handoff-row:first-child { border-top: 0; }
+.tt-handoff-seed {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.125rem;
+  text-align: center;
+  color: var(--tt-plate-dim);
+}
+.tt-handoff-row .tt-tower-chip { height: 1.25rem; }
+.tt-handoff-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 1.1875rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tt-handoff-court {
+  display: grid;
+  justify-items: end;
+  gap: 0.15rem;
+}
+.tt-handoff-court-label {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tt-plate-dim);
+}
+.tt-handoff-court-num {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 2rem;
+  line-height: 1;
+}
+/* Your own Team: the raised row, and your court on the "you" chip. */
+.tt-handoff-row[data-mine] { background: var(--tt-plate-raised); }
+.tt-handoff-row[data-mine] .tt-handoff-court-num {
+  padding: 0.1rem 0.45rem;
+  border-radius: 2px;
+  background: var(--tt-now);
+  color: var(--tt-plate);
+}
+.tt-handoff-row[data-mine] .tt-handoff-court-label { color: var(--tt-plate-ink); }
+
+.tt-handoff[data-size="compact"] .tt-handoff-head { padding: 0.55rem 0.85rem 0.6rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-kicker { font-size: 0.6875rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-letter { font-size: 2.75rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-pair { font-size: 2.125rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-row { padding: 0.4rem 0.85rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-name { font-size: 1.0625rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-court-num { font-size: 1.375rem; }
+
+.tt-flight-grid,
+.tt-handoff-list {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-handoff-list { gap: 0.75rem; }
+@media (min-width: 720px) {
+  .tt-flight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1100px) {
+  .tt-flight-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Finishing a Matchup: the Dreambreaker, Matchup done, the in-page confirm. */
+.tt-done-body {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+  padding: 1rem 1.25rem 1.25rem;
+}
+.tt-done-body > p { margin: 0; }
+.tt-done-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+.tt-done-btn { width: 100%; }
+@media (min-width: 640px) {
+  .tt-done-btn { width: auto; min-width: 14rem; }
+}
+.tt-dreambreaker {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.tt-dreambreaker-picks {
+  display: grid;
+  gap: 0.6rem;
+}
+@media (min-width: 480px) {
+  .tt-dreambreaker-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.tt-pick {
+  justify-content: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+.tt-pick .tt-side { height: 1rem; width: 0.4rem; }
+.tt-pick[aria-pressed="true"] {
+  background: var(--tt-ink);
+  color: #ffffff;
+}
+.tt-confirm {
+  display: grid;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1.5px solid var(--tt-ink);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+}
+.tt-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+.tt-callout {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--tt-rule-strong);
+  border-radius: 0.5rem;
+  background: var(--tt-ground);
+  color: var(--tt-ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.tt-swap {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+.tt-swap-field { display: grid; gap: 0.35rem; }
+.tt-swap .tt-btn { justify-self: start; }
+
+.tt-organizer-top {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .tt-organizer-top { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
