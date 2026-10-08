@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-08T00:00:00Z",
+  "title": "Design System: Team Tally",
+  "extensions": {
+    "scope": {
+      "governs": [
+        "/tools/team-tally/*"
+      ],
+      "selector": ".tt-surface",
+      "outOfScope": [
+        "The marketing site (Broadcast Dark, root DESIGN.md)",
+        "The site's pill nav and footer, which frame the surface"
+      ],
+      "note": "Tokens are declared on .tt-surface in src/app/tools/team-tally/team-tally.css and reach no other route. SiteShell lists /tools/team-tally in its dark exceptions."
+    },
+    "colorMeta": {
+      "plate": {
+        "role": "primary",
+        "displayName": "Broadcast Navy",
+        "canonical": "#0f1b30",
+        "note": "Graphics plate. Live numbers only.",
+        "tonalRamp": [
+          "#0a1324",
+          "#0f1b30",
+          "#18284a",
+          "#1d2c48",
+          "#3a4c6c",
+          "#5d6f8d",
+          "#9fb0c9",
+          "#dbe3ee"
+        ]
+      },
+      "plate-raised": {
+        "role": "primary",
+        "displayName": "Plate Raised",
+        "canonical": "#18284a",
+        "note": "TOT cell, your own tower row, primary button hover."
+      },
+      "plate-bar": {
+        "role": "primary",
+        "displayName": "Plate Bar",
+        "canonical": "#0a1324",
+        "note": "Header rows, plate label bar, Flight bands."
+      },
+      "plate-line": {
+        "role": "primary",
+        "displayName": "Plate Line",
+        "canonical": "#1d2c48",
+        "note": "Row hairlines inside a plate."
+      },
+      "side-red": {
+        "role": "secondary",
+        "displayName": "Side Red",
+        "canonical": "#e2322c",
+        "note": "A Matchup's first side, as the brief marks it. Nothing else.",
+        "tonalRamp": [
+          "oklch(0.30 0.12 28)",
+          "oklch(0.40 0.16 28)",
+          "oklch(0.50 0.19 28)",
+          "oklch(0.59 0.21 28)",
+          "oklch(0.68 0.18 28)",
+          "oklch(0.77 0.13 28)",
+          "oklch(0.86 0.08 28)",
+          "oklch(0.95 0.03 28)"
+        ]
+      },
+      "side-blue": {
+        "role": "secondary",
+        "displayName": "Side Blue",
+        "canonical": "#1d5ae0",
+        "note": "A Matchup's second side. Also the focus outline and caret on the white ground.",
+        "tonalRamp": [
+          "oklch(0.28 0.12 264)",
+          "oklch(0.37 0.16 264)",
+          "oklch(0.46 0.20 264)",
+          "oklch(0.53 0.21 264)",
+          "oklch(0.64 0.17 264)",
+          "oklch(0.75 0.12 264)",
+          "oklch(0.86 0.07 264)",
+          "oklch(0.95 0.025 264)"
+        ]
+      },
+      "now": {
+        "role": "tertiary",
+        "displayName": "Ball Yellow",
+        "canonical": "#d8f03a",
+        "note": "Now only: live Round column, LIVE dot, your own position chip.",
+        "tonalRamp": [
+          "oklch(0.35 0.08 118)",
+          "oklch(0.47 0.11 118)",
+          "oklch(0.60 0.15 118)",
+          "oklch(0.72 0.18 118)",
+          "oklch(0.83 0.19 118)",
+          "oklch(0.90 0.19 118)",
+          "oklch(0.94 0.12 118)",
+          "oklch(0.97 0.06 118)"
+        ]
+      },
+      "flag": {
+        "role": "tertiary",
+        "displayName": "Flag Amber",
+        "canonical": "oklch(0.56 0.15 62)",
+        "note": "A field the pasted brief could not read. Amber so it never reads as a side."
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Gym White",
+        "canonical": "oklch(0.966 0.006 255)",
+        "tonalRamp": [
+          "oklch(0.2 0.035 262)",
+          "oklch(0.46 0.03 258)",
+          "oklch(0.58 0.02 258)",
+          "oklch(0.68 0.025 258)",
+          "oklch(0.8 0.018 255)",
+          "oklch(0.9 0.01 255)",
+          "oklch(0.966 0.006 255)",
+          "#ffffff"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "#ffffff"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Navy Ink",
+        "canonical": "oklch(0.2 0.035 262)"
+      },
+      "ink-dim": {
+        "role": "neutral",
+        "displayName": "Dim Ink",
+        "canonical": "oklch(0.46 0.03 258)",
+        "note": "About 6.5:1 on the ground."
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "oklch(0.9 0.01 255)"
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "oklch(0.8 0.018 255)"
+      },
+      "plate-ink": {
+        "role": "neutral",
+        "displayName": "Plate Ink",
+        "canonical": "#ffffff"
+      },
+      "plate-dim": {
+        "role": "neutral",
+        "displayName": "Plate Dim",
+        "canonical": "#9fb0c9",
+        "note": "Plate labels, Flight bands, down move marks."
+      },
+      "plate-faint": {
+        "role": "neutral",
+        "displayName": "Plate Faint",
+        "canonical": "#5d6f8d",
+        "note": "Placeholder glyphs only (an unscored Round's dash). Never a number a reader needs."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles, one per page, uppercase, balanced wrap."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section heads on sheets; event names at 1.375rem."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Score-bug cells; TOT 1.625rem, tower total 1.25rem, position 1.125rem, list date 2rem."
+      },
+      "team-name": {
+        "displayName": "Team Name",
+        "purpose": "Team names and Round cells in the tower and bug, uppercase, ellipsis."
+      },
+      "action": {
+        "displayName": "Action",
+        "purpose": "Button labels and the setup legend, uppercase."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Line under a title and section-head asides, uppercase, dim ink."
+      },
+      "plate-label": {
+        "displayName": "Plate Label",
+        "purpose": "Header rows and plate bars. Flight bands step up to 0.8125rem, 800, 0.2em, in plate ink between two 2px plate-dim rules."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Standfirst under a page title, max 58ch."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Explanatory prose, max 62ch; the brief at 0.9375rem pre-wrapped."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels and quiet links."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 1px 2px oklch(0.2 0.035 262 / 0.05), 0 8px 22px -14px oklch(0.2 0.035 262 / 0.22)",
+        "purpose": "Every white content sheet."
+      },
+      {
+        "name": "plate",
+        "value": "0 10px 28px -16px oklch(0.2 0.035 262 / 0.55)",
+        "purpose": "Every navy graphics plate."
+      },
+      {
+        "name": "field-focus",
+        "value": "0 0 0 3px oklch(0.55 0.2 262 / 0.28)",
+        "purpose": "Field with keyboard focus; border turns navy ink."
+      },
+      {
+        "name": "field-invalid",
+        "value": "0 0 0 3px oklch(0.56 0.15 62 / 0.22)",
+        "purpose": "Field the brief could not read."
+      },
+      {
+        "name": "live-underline-bug",
+        "value": "inset 0 -3px 0 #d8f03a",
+        "purpose": "Live Round cells in the score bug."
+      },
+      {
+        "name": "live-underline-tower",
+        "value": "inset 0 -2px 0 #d8f03a",
+        "purpose": "Live Round cells in the timing tower."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control",
+        "value": "120ms ease-out",
+        "purpose": "Button fill and press, field border and ring, list row hover."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition-duration: 0ms; animation-duration: 0ms",
+        "purpose": "Every element in .tt-surface under prefers-reduced-motion: hard cuts."
+      },
+      {
+        "name": "tower-resort (owed)",
+        "value": "not yet built",
+        "purpose": "Signature interaction: rows slide to new positions when a score lands; reduced motion cuts to the new order. Owed by #623 to #625."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tower-compact",
+        "value": "max-width: 479px",
+        "purpose": "Tower columns tighten; no column is dropped."
+      },
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Wider wrap padding, head and section padding."
+      }
+    ],
+    "browserSurfaces": {
+      "scrollbar": "scrollbar-color: oklch(0.8 0.018 255) transparent",
+      "caret": "#1d5ae0",
+      "selection": "background oklch(0.88 0.08 262), color navy ink",
+      "document": "body:has(.tt-surface) paints gym white behind the pill nav and on overscroll",
+      "focus": "2px solid #1d5ae0 outline, 2px offset, 4px radius"
+    },
+    "owed": [
+      "Re-sort motion in TimingTower, hard cut under reduced motion",
+      "FINAL state on ScoreBug for a finished Round or Matchup; scores never disappear",
+      "Entered by lower third on Score Link Games",
+      "TV layout: full-width two-column tower (Flights A to C, then D to G), Matchup bugs on their own screen, hard cuts between screens, never scrolls"
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The page's one primary action, navy fill and condensed caps.",
+      "html": "<button class=\"ds-tt-btn\">Sign in to build a night</button>",
+      "css": ".ds-tt-btn { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1.25rem; border: 1.5px solid oklch(0.2 0.035 262); border-radius: 0.5rem; background: oklch(0.2 0.035 262); color: #fff; font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 800; font-size: 1.0625rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: background-color 120ms ease-out, transform 120ms ease-out; } .ds-tt-btn:hover { background: #18284a; } .ds-tt-btn:active { transform: translateY(1px); } .ds-tt-btn:focus-visible { outline: 2px solid #1d5ae0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action beside the primary, navy outline.",
+      "html": "<button class=\"ds-tt-ghost\">Edit setup</button>",
+      "css": ".ds-tt-ghost { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1.25rem; border: 1.5px solid oklch(0.2 0.035 262); border-radius: 0.5rem; background: transparent; color: oklch(0.2 0.035 262); font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 800; font-size: 1.0625rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: background-color 120ms ease-out; } .ds-tt-ghost:hover { background: oklch(0.2 0.035 262 / 0.06); } .ds-tt-ghost:focus-visible { outline: 2px solid #1d5ae0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Link",
+      "kind": "button",
+      "refersTo": "quietlink",
+      "description": "Tertiary navigation and in-form secondary actions.",
+      "html": "<a class=\"ds-tt-quiet\" href=\"#\">Back to your Team Events</a>",
+      "css": ".ds-tt-quiet { color: oklch(0.46 0.03 258); font-family: 'Sofia Sans', sans-serif; font-weight: 600; font-size: 0.9375rem; text-decoration: underline; text-decoration-color: oklch(0.8 0.018 255); text-underline-offset: 0.25em; } .ds-tt-quiet:hover { color: oklch(0.2 0.035 262); text-decoration-color: currentColor; } .ds-tt-quiet:focus-visible { outline: 2px solid #1d5ae0; outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Standard text field restyled in the world; amber when the brief could not read it.",
+      "html": "<label class=\"ds-tt-label\">Name of the Night<input class=\"ds-tt-field\" value=\"Tuesday Team Night\"></label>",
+      "css": ".ds-tt-label { display: grid; gap: 0.4rem; font-family: 'Sofia Sans', sans-serif; font-weight: 600; font-size: 0.9375rem; color: oklch(0.2 0.035 262); } .ds-tt-field { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1.5px solid oklch(0.8 0.018 255); border-radius: 0.5rem; background: #fff; color: oklch(0.2 0.035 262); font: inherit; font-weight: 400; font-size: 1rem; transition: border-color 120ms ease-out, box-shadow 120ms ease-out; } .ds-tt-field:hover { border-color: oklch(0.68 0.025 258); } .ds-tt-field:focus-visible { outline: none; border-color: oklch(0.2 0.035 262); box-shadow: 0 0 0 3px oklch(0.55 0.2 262 / 0.28); } .ds-tt-field[aria-invalid=true] { border-color: oklch(0.56 0.15 62); box-shadow: 0 0 0 3px oklch(0.56 0.15 62 / 0.22); }"
+    },
+    {
+      "name": "App Bar",
+      "kind": "nav",
+      "refersTo": "app-bar",
+      "description": "The mark (two side blocks and the name) left, the context chip right.",
+      "html": "<div class=\"ds-tt-appbar\"><a class=\"ds-tt-mark\" href=\"#\"><span class=\"ds-tt-blocks\"></span>Team Tally</a><span class=\"ds-tt-chip\">Organizer</span></div>",
+      "css": ".ds-tt-appbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3.25rem; padding: 0.5rem 1rem; background: #fff; border-bottom: 1px solid oklch(0.9 0.01 255); } .ds-tt-mark { display: inline-flex; align-items: center; gap: 0.5rem; font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 800; font-size: 1.0625rem; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(0.2 0.035 262); text-decoration: none; } .ds-tt-mark:focus-visible { outline: 2px solid #1d5ae0; outline-offset: 2px; } .ds-tt-blocks { display: inline-grid; grid-template-columns: 0.4rem 0.4rem; gap: 0.15rem; height: 1rem; } .ds-tt-blocks::before { content: ''; background: #e2322c; border-radius: 1px; } .ds-tt-blocks::after { content: ''; background: #1d5ae0; border-radius: 1px; } .ds-tt-chip { display: inline-flex; align-items: center; min-height: 1.75rem; padding: 0 0.75rem; border: 1px solid oklch(0.8 0.018 255); border-radius: 999px; background: oklch(0.966 0.006 255); font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 700; font-size: 0.875rem; letter-spacing: 0.06em; text-transform: uppercase; color: oklch(0.46 0.03 258); }"
+    },
+    {
+      "name": "Sheet",
+      "kind": "card",
+      "refersTo": "sheet",
+      "description": "White content sheet on the ground, section head with a bottom rule.",
+      "html": "<section class=\"ds-tt-sheet\"><div class=\"ds-tt-sh\"><h2>The brief</h2><span>For the group chat</span></div><p>Teams of four, a captain and players A, B and C.</p></section>",
+      "css": ".ds-tt-sheet { background: #fff; border: 1px solid oklch(0.9 0.01 255); border-radius: 0.75rem; box-shadow: 0 1px 2px oklch(0.2 0.035 262 / 0.05), 0 8px 22px -14px oklch(0.2 0.035 262 / 0.22); color: oklch(0.2 0.035 262); } .ds-tt-sh { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.85rem 1.25rem; border-bottom: 1px solid oklch(0.9 0.01 255); } .ds-tt-sh h2 { margin: 0; font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 800; font-size: 1.5rem; letter-spacing: 0.02em; text-transform: uppercase; } .ds-tt-sh span { font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 700; font-size: 0.9375rem; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(0.46 0.03 258); } .ds-tt-sheet p { margin: 0; padding: 1.25rem; font-family: 'Sofia Sans', sans-serif; line-height: 1.6; color: oklch(0.46 0.03 258); }"
+    },
+    {
+      "name": "Score Bug",
+      "kind": "custom",
+      "refersTo": "plate",
+      "description": "Signature. A Matchup round by round: R1 R2 R3 TOT, live Round underlined in ball yellow, sides as red and blue stripes.",
+      "html": "<div class=\"ds-tt-plate\"><div class=\"ds-tt-bug\"><span class=\"h\"></span><span class=\"h t\">Match 1 · Courts 21 &amp; 18</span><span class=\"h\">R1</span><span class=\"h now-h\">R2</span><span class=\"h\">R3</span><span class=\"h\">Tot</span><span class=\"red\"></span><span class=\"t\">Kitchen Sync</span><span>22</span><span class=\"now\">9</span><span class=\"pend\">–</span><span class=\"tot\">31</span><span class=\"blue r\"></span><span class=\"t r\">Dink Floyd</span><span class=\"r\">17</span><span class=\"now r\">7</span><span class=\"pend r\">–</span><span class=\"tot r\">24</span></div></div>",
+      "css": ".ds-tt-plate { max-width: 30rem; background: #0f1b30; color: #fff; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 10px 28px -16px oklch(0.2 0.035 262 / 0.55); } .ds-tt-bug { display: grid; grid-template-columns: 0.4rem minmax(0, 1fr) repeat(3, 2.25rem) 3.25rem; font-variant-numeric: tabular-nums; } .ds-tt-bug span { display: grid; align-items: center; justify-items: center; padding: 0.45rem 0.25rem; font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-weight: 800; font-size: 1.375rem; line-height: 1; } .ds-tt-bug .h { padding-block: 0.4rem; background: #0a1324; color: #9fb0c9; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; } .ds-tt-bug .now-h { color: #d8f03a; } .ds-tt-bug .t { justify-items: start; padding-left: 0.6rem; font-weight: 700; font-size: 1rem; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; } .ds-tt-bug .h.t { font-size: 0.75rem; letter-spacing: 0.12em; } .ds-tt-bug .red { padding: 0; background: #e2322c; } .ds-tt-bug .blue { padding: 0; background: #1d5ae0; } .ds-tt-bug .tot { background: #18284a; font-size: 1.625rem; } .ds-tt-bug .r { border-top: 1px solid #1d2c48; } .ds-tt-bug .pend { color: #5d6f8d; } .ds-tt-bug .now { box-shadow: inset 0 -3px 0 #d8f03a; }"
+    },
+    {
+      "name": "Timing Tower",
+      "kind": "custom",
+      "refersTo": "plate",
+      "description": "Signature. Standings with fixed R1 R2 R3 TOT columns, a Flight band every pair drawn as the cut line, TOT on a raised cell, your own row raised with a yellow position chip (outlined once the night is finished), move marks only where a Team moved.",
+      "html": "<div class=\"ds-tt-tower\"><div class=\"row head\"><span>Pos</span><span></span><span style=\"text-align:left\">Team</span><span>R1</span><span class=\"nowink\">R2</span><span>R3</span><span>Tot</span><span></span></div><div class=\"band\">Flight A</div><div class=\"row\" data-mine><span class=\"pos\">1</span><span class=\"chip red\"></span><span class=\"name\">Kitchen Sync</span><span class=\"rd\">22</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">31</span><span class=\"mv up\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" aria-hidden=\"true\"><path d=\"m18 15-6-6-6 6\"/></svg>2</span></div><div class=\"row\"><span class=\"pos\">2</span><span class=\"chip blue\"></span><span class=\"name\">Net Gains</span><span class=\"rd\">21</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">30</span><span class=\"mv\"></span></div><div class=\"band\">Flight B</div><div class=\"row\"><span class=\"pos\">3</span><span class=\"chip red\"></span><span class=\"name\">Third Shot Drop</span><span class=\"rd\">20</span><span class=\"rd now\">9</span><span class=\"rd pend\">–</span><span class=\"pts\">29</span><span class=\"mv down\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>1</span></div></div>",
+      "css": ".ds-tt-tower { max-width: 30rem; background: #0f1b30; color: #fff; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 10px 28px -16px oklch(0.2 0.035 262 / 0.55); font-family: 'Sofia Sans Extra Condensed', 'Sofia Sans', sans-serif; font-variant-numeric: tabular-nums; } .ds-tt-tower .row { display: grid; grid-template-columns: 1.75rem 0.35rem minmax(0, 1fr) repeat(3, 1.75rem) 2.5rem 2rem; gap: 0.5rem; align-items: center; padding: 0.4rem 0.75rem; border-top: 1px solid #1d2c48; } .ds-tt-tower .band + .row { border-top: 0; } .ds-tt-tower .head { padding-block: 0.3rem; border-top: 0; background: #0a1324; color: #9fb0c9; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; text-align: center; } .ds-tt-tower .nowink { color: #d8f03a; } .ds-tt-tower .band { display: flex; align-items: center; gap: 0.75rem; padding: 0.3rem 0.75rem; background: #0a1324; color: #fff; font-weight: 800; font-size: 0.8125rem; line-height: 1.2; letter-spacing: 0.2em; text-transform: uppercase; } .ds-tt-tower .band::before, .ds-tt-tower .band::after { content: ''; flex: 1; height: 2px; background: #9fb0c9; } .ds-tt-tower .pos { font-weight: 800; font-size: 1.125rem; text-align: center; line-height: 1.4; } .ds-tt-tower .chip { height: 1rem; border-radius: 1px; } .ds-tt-tower .red { background: #e2322c; } .ds-tt-tower .blue { background: #1d5ae0; } .ds-tt-tower .name { font-weight: 700; font-size: 1.0625rem; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-tt-tower .rd { font-weight: 700; font-size: 1.0625rem; text-align: center; line-height: 1.6; } .ds-tt-tower .rd.now { box-shadow: inset 0 -2px 0 #d8f03a; } .ds-tt-tower .pend { color: #5d6f8d; } .ds-tt-tower .pts { align-self: stretch; display: flex; align-items: center; justify-content: center; margin-block: -0.4rem; background: #18284a; font-weight: 800; font-size: 1.25rem; } .ds-tt-tower .mv { display: inline-flex; justify-content: flex-end; align-items: center; gap: 0.1rem; font-weight: 700; font-size: 0.875rem; text-align: right; color: #5d6f8d; } .ds-tt-tower .mv.up { color: #fff; } .ds-tt-tower .mv.down { color: #9fb0c9; } .ds-tt-tower .row[data-mine] { background: #18284a; } .ds-tt-tower .row[data-mine] .pos { color: #0f1b30; background: #d8f03a; border-radius: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Broadcast Package",
+    "overview": "A team night is televised, even when nobody is filming it. Every live number is a sports-TV graphic, read the way a golf broadcast reads its leaderboard: a Matchup is a score bug with R1 R2 R3 TOT columns, the standings are a timing tower, and a Flight cut is a band drawn across it. The ground is cool gym white because the room is lit by bright overhead light and phones are read under it; the graphics are deep navy plates set on that ground, small, dense and exact, like a lower-third on a broadcast.\n\nThe world splits its labour cleanly. Plates carry live numbers and nothing else. White sheets on the ground carry everything the Organizer reads, writes or taps: the event list, the setup form, the brief. Colour is rationed by meaning: red and blue are only a Matchup's two sides as the brief marks them, ball yellow only means \"now\". Everything else is navy ink on white.\n\nControls are standard web controls (text fields, buttons, links) restyled in the world, not replaced with bespoke widgets. The type is one family in two widths: Sofia Sans Extra Condensed in tracked caps for numerals, team names and plate labels; Sofia Sans for prose and every input. The world refuses the SaaS dashboard of cards and tables.",
+    "keyCharacteristics": [
+      "Navy graphics plates on a cool white ground; plates hold live numbers only.",
+      "Red and blue are a Matchup's two sides, drawn as small solid blocks inside a plate.",
+      "Ball yellow is the single \"now\" signal.",
+      "Condensed tracked caps for every graphic; plain Sofia Sans for everything read or tapped.",
+      "Tabular numerals everywhere, so columns of scores never jitter.",
+      "Fixed columns; standings change only by rows re-sorting."
+    ],
+    "rules": [
+      {
+        "name": "The Plates Carry Numbers Rule",
+        "body": "A navy plate holds live numbers (scores, totals, positions) and the labels that index them. Prose, forms, explanations and buttons go on white sheets on the ground.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Sides Rule",
+        "body": "Red and blue mean a Matchup's two sides, as the brief marks them, and nothing else. No red error, no blue link, no red-versus-blue decoration outside a Matchup.",
+        "section": "colors"
+      },
+      {
+        "name": "The Now Rule",
+        "body": "Ball yellow marks what is happening now: the live Round, the live dot, your own position while the night is running. If nothing is live, no yellow appears: once the night is finished, your own position and place keep their chip as a plate-ink outline instead.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Extra Hues Rule",
+        "body": "Tower move marks (up, down) are drawn in plate ink and plate dim with a chevron carrying direction; a row that didn't move draws nothing. No green for up, no red for down: no hue may compete with the two sides.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Widths Rule",
+        "body": "Condensed caps for what is broadcast (numerals, team names, plate labels, titles, button labels); regular Sofia Sans for what is read or typed. A paragraph is never condensed; a score is never regular width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "The whole surface sets font-variant-numeric: tabular-nums, so a score changing from 9 to 19 never shifts its column.",
+        "section": "typography"
+      },
+      {
+        "name": "The Columns Never Move Rule",
+        "body": "R1, R2, R3 and TOT hold their positions at every width and in every state. Standings change only by rows re-sorting into new positions.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flight Band Rule",
+        "body": "A Flight band opens every pair of rows in the tower (positions 1 and 2 are Flight A, 3 and 4 Flight B, and so on), drawn where a leaderboard draws the cut. It is the loudest rule on the tower: the Flight letter in plate ink between two 2px plate-dim rules.",
+        "section": "layout"
+      },
+      {
+        "name": "The Material Not State Rule",
+        "body": "Shadows say what a thing is (sheet or plate), never what it is doing. Hover changes fill or underline, not elevation.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Restyle Not Replace Rule",
+        "body": "Standard controls (inputs, buttons, links, fieldsets) stay standard and take the world's styling. No custom pickers or faux controls.",
+        "section": "components"
+      },
+      {
+        "name": "The Hard Cut Rule",
+        "body": "Broadcast graphics cut; they do not drift. Any motion added later is a re-sort or a screen change, and reduced motion always gets the cut.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do put every live score, total and position on a navy plate (#0f1b30), and everything else on white sheets on the gym-white ground.",
+      "Do mark a Matchup's sides with Side Red (#e2322c) first and Side Blue (#1d5ae0) second, as solid near-square blocks.",
+      "Do reserve ball yellow (#d8f03a) for the live Round, the LIVE dot and your own position chip while the night runs.",
+      "Do keep the generated Brief in the Organizer's own format, em-dashes and emoji included: it is their text for their group chat, and the one exception to the no-em-dash rule for Team Tally's copy.",
+      "Do set numerals, team names and plate labels in Sofia Sans Extra Condensed caps with tabular figures, and prose and inputs in Sofia Sans.",
+      "Do keep R1, R2, R3 and TOT fixed and draw a Flight band before every pair of tower rows.",
+      "Do build #623 to #625 from ScoreBug, TimingTower, TtAppBar and the tt controls rather than new graphics."
+    ],
+    "donts": [
+      "Don't put prose, forms or buttons on a navy plate.",
+      "Don't use red or blue for anything but a Matchup's two sides (no red errors; invalid fields use Flag Amber).",
+      "Don't colour move marks green or red; direction is the chevron, in plate ink or plate dim.",
+      "Don't use yellow as a highlight, fill or decoration when nothing is live.",
+      "Don't reorder, hide or animate columns; only rows re-sort.",
+      "Don't set prose in the condensed cut or scores in the regular cut.",
+      "Don't use Archivo here; it is Match Mixer's face.",
+      "Don't let the TV scroll; cut between screens."
+    ]
+  }
+}

@@ -1,0 +1,1660 @@
+/* =========================================================================
+   Team Tally: "the broadcast package" (direction seed fb8e9ead)
+
+   Every live number on a team night is a sports-TV graphic, read the way a
+   golf broadcast reads its leaderboard: a Matchup is a score bug, the
+   standings are a timing tower with R1 R2 R3 TOT columns, a Flight cut is a
+   band across it. Indoor gym light, so the ground is a cool white and the
+   graphics are navy plates on it. Plates carry live numbers and nothing else;
+   red and blue are the brief's two sides of a Matchup; ball yellow means
+   "now" and never decorates. Contract: .impeccable/surfaces/
+   src-app-tools-team-tally.md. Imported by the Team Tally layout and scoped
+   to `.tt-surface`, so no other route sees these tokens.
+   ========================================================================= */
+
+.tt-surface {
+  --tt-ground: oklch(0.966 0.006 255);
+  --tt-sheet: #ffffff;
+  --tt-ink: oklch(0.2 0.035 262);
+  /* Secondary text tinted toward the navy, about 6.5:1 on the ground. */
+  --tt-ink-dim: oklch(0.46 0.03 258);
+  --tt-rule: oklch(0.9 0.01 255);
+  --tt-rule-strong: oklch(0.8 0.018 255);
+
+  --tt-plate: #0f1b30;
+  --tt-plate-raised: #18284a;
+  --tt-plate-bar: #0a1324;
+  --tt-plate-line: #1d2c48;
+  --tt-plate-ink: #ffffff;
+  --tt-plate-dim: #9fb0c9;
+  --tt-plate-faint: #5d6f8d;
+
+  --tt-red: #e2322c;
+  --tt-blue: #1d5ae0;
+  --tt-now: #d8f03a;
+  /* A field a pasted brief could not read. Amber, so it never reads as a side. */
+  --tt-flag: oklch(0.56 0.15 62);
+  --tt-focus: #1d5ae0;
+
+  --tt-cond: var(--font-tt-cond), var(--font-tt), ui-sans-serif, sans-serif;
+
+  background-color: var(--tt-ground);
+  color: var(--tt-ink);
+  font-family: var(--font-tt), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-color: var(--tt-rule-strong) transparent;
+  caret-color: var(--tt-blue);
+}
+
+/* The document behind the surface: the strip the pill nav floats in, and
+   overscroll. Literal, because the token lives on the surface element. */
+body:has(.tt-surface) {
+  background-color: oklch(0.966 0.006 255);
+}
+
+.tt-surface ::selection {
+  background: oklch(0.88 0.08 262);
+  color: var(--tt-ink);
+}
+
+.tt-surface *:focus-visible {
+  outline: 2px solid var(--tt-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- page frame -------------------------------------------------------- */
+
+.tt-wrap {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 640px) {
+  .tt-wrap { padding-inline: 1.5rem; }
+}
+
+/* The app bar: a white band with a bottom rule, the mark left and what this
+   screen is on the right. */
+.tt-appbar {
+  background: var(--tt-sheet);
+  border-bottom: 1px solid var(--tt-rule);
+}
+.tt-appbar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  min-height: 3.25rem;
+  padding-block: 0.5rem;
+}
+.tt-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--tt-rule-strong);
+  border-radius: 999px;
+  background: var(--tt-ground);
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+
+/* The mark: two side blocks, red then blue, and the name in graphics caps.
+   A Matchup is the product's atom, so the mark is one. */
+.tt-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tt-ink);
+  text-decoration: none;
+}
+.tt-mark-blocks {
+  display: inline-grid;
+  grid-template-columns: 0.4rem 0.4rem;
+  gap: 0.15rem;
+  height: 1rem;
+}
+.tt-mark-blocks::before { content: ""; background: var(--tt-red); border-radius: 1px; }
+.tt-mark-blocks::after { content: ""; background: var(--tt-blue); border-radius: 1px; }
+
+.tt-head {
+  display: grid;
+  gap: 1.25rem;
+  padding-block: 1.75rem 2.25rem;
+}
+@media (min-width: 640px) {
+  .tt-head { padding-block: 2.5rem 2.75rem; }
+}
+
+.tt-title {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 7vw, 4.25rem);
+  line-height: 0.92;
+  letter-spacing: 0.002em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.tt-lead {
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--tt-ink-dim);
+  max-width: 58ch;
+  margin: 0;
+}
+
+.tt-h2 {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.tt-meta {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+
+.tt-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--tt-ink-dim);
+  max-width: 62ch;
+  margin: 0;
+}
+
+.tt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+/* One plain line under the actions, saying why one isn't there. */
+.tt-head-note {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--tt-ink-dim);
+  max-width: 62ch;
+  margin: -0.5rem 0 0;
+}
+
+/* ---- material ---------------------------------------------------------- */
+
+.tt-sheet {
+  background: var(--tt-sheet);
+  border: 1px solid var(--tt-rule);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 1px 2px oklch(0.2 0.035 262 / 0.05),
+    0 8px 22px -14px oklch(0.2 0.035 262 / 0.22);
+}
+
+/* A navy graphics plate: the only surface that carries live numbers. */
+.tt-plate {
+  background: var(--tt-plate);
+  color: var(--tt-plate-ink);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 10px 28px -16px oklch(0.2 0.035 262 / 0.55);
+}
+
+/* ---- controls ---------------------------------------------------------- */
+
+.tt-label {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--tt-ink);
+}
+
+.tt-field {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--tt-rule-strong);
+  border-radius: 0.5rem;
+  background: var(--tt-sheet);
+  color: var(--tt-ink);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.tt-field::placeholder { color: oklch(0.58 0.02 258); }
+.tt-field:hover { border-color: oklch(0.68 0.025 258); }
+.tt-field:focus-visible {
+  outline: none;
+  border-color: var(--tt-ink);
+  box-shadow: 0 0 0 3px oklch(0.55 0.2 262 / 0.28);
+}
+.tt-field[aria-invalid="true"] {
+  border-color: var(--tt-flag);
+  box-shadow: 0 0 0 3px oklch(0.56 0.15 62 / 0.22);
+}
+.tt-flag-note { color: var(--tt-flag); font-weight: 600; }
+
+.tt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border: 1.5px solid var(--tt-ink);
+  border-radius: 0.5rem;
+  background: var(--tt-ink);
+  color: #ffffff;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease-out, transform 120ms ease-out;
+}
+.tt-btn:hover { background: var(--tt-plate-raised); }
+.tt-btn:active { transform: translateY(1px); }
+.tt-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+/* A ghost button at half opacity still reads as a live outline on white, so a
+   disabled one also goes dashed and dim, and stops answering hover. */
+.tt-btn-ghost:disabled,
+.tt-btn-ghost:disabled:hover {
+  border-style: dashed;
+  border-color: var(--tt-rule-strong);
+  background: transparent;
+  color: var(--tt-ink-dim);
+  opacity: 1;
+}
+
+.tt-btn-ghost {
+  background: transparent;
+  color: var(--tt-ink);
+}
+.tt-btn-ghost:hover { background: oklch(0.2 0.035 262 / 0.06); }
+
+.tt-quietlink {
+  color: var(--tt-ink-dim);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: underline;
+  text-decoration-color: var(--tt-rule-strong);
+  text-underline-offset: 0.25em;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.tt-quietlink:hover { color: var(--tt-ink); text-decoration-color: currentColor; }
+
+/* A Matchup's side, as the brief marks it: red first, blue second. */
+.tt-side {
+  display: inline-block;
+  width: 0.5rem;
+  height: 1.125rem;
+  border-radius: 1px;
+  flex: none;
+}
+.tt-side-red { background: var(--tt-red); }
+.tt-side-blue { background: var(--tt-blue); }
+
+/* ---- the graphics: score bug and timing tower --------------------------- */
+
+.tt-plate-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--tt-plate-bar);
+  color: var(--tt-plate-dim);
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tt-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--tt-now);
+}
+.tt-live::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* A Matchup round by round: R1 R2 R3 TOT, the live Round underlined. */
+.tt-bug {
+  display: grid;
+  grid-template-columns: 0.4rem minmax(0, 1fr) repeat(3, 2.25rem) 3.25rem;
+}
+/* Only the grid's own cells (not the name and tag inside a team cell), at one
+   class's weight so the cell classes below still win. */
+.tt-bug > :where(span),
+.tt-bug > :where([role="row"]) > :where(span) {
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 0.45rem 0.25rem;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.375rem;
+  line-height: 1;
+}
+.tt-bug .tt-bug-head {
+  padding-block: 0.4rem;
+  background: var(--tt-plate-bar);
+  color: var(--tt-plate-dim);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tt-bug .tt-bug-team {
+  justify-items: start;
+  padding-left: 0.6rem;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tt-bug .tt-bug-stripe { padding: 0; }
+.tt-bug .tt-bug-tot {
+  background: var(--tt-plate-raised);
+  font-size: 1.625rem;
+}
+.tt-bug .tt-bug-rule { border-top: 1px solid var(--tt-plate-line); }
+.tt-bug .tt-pending { color: var(--tt-plate-faint); }
+.tt-bug .tt-now { box-shadow: inset 0 -3px 0 var(--tt-now); }
+.tt-bug .tt-bug-head.tt-now { color: var(--tt-now); box-shadow: none; }
+
+/* The standings: rows only move by re-sorting; columns never move. */
+.tt-tower-row {
+  display: grid;
+  grid-template-columns: 1.75rem 0.35rem minmax(0, 1fr) repeat(3, 1.75rem) 2.5rem 2rem;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--tt-plate-line);
+}
+.tt-tower-band + .tt-tower-row { border-top: 0; }
+@media (max-width: 479px) {
+  .tt-tower-row {
+    grid-template-columns: 1.5rem 0.3rem minmax(0, 1fr) repeat(3, 1.4rem) 2.1rem 1.6rem;
+    gap: 0.4rem;
+    padding-inline: 0.6rem;
+  }
+}
+.tt-tower-pos {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.125rem;
+  text-align: center;
+  line-height: 1.4;
+}
+.tt-tower-chip { height: 1rem; border-radius: 1px; }
+.tt-tower-name {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* TOT sits on the raised cell, the same package as the score bug's TOT. It
+   runs the row's full height, through the row's own padding. */
+.tt-tower-pts {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-block: -0.4rem;
+  background: var(--tt-plate-raised);
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.25rem;
+}.tt-tower-move {
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.1rem;
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--tt-plate-faint);
+}
+/* The chevron carries the direction; no hue may compete with the two sides. */
+.tt-tower-move[data-move="up"] { color: var(--tt-plate-ink); }
+.tt-tower-move[data-move="down"] { color: var(--tt-plate-dim); }
+
+.tt-tower-head {
+  padding-block: 0.3rem;
+  border-top: 0;
+  background: var(--tt-plate-bar);
+  color: var(--tt-plate-dim);
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.tt-tower-head .tt-now-ink { color: var(--tt-now); }
+.tt-tower-round {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  text-align: center;
+  line-height: 1.6;
+}
+.tt-tower-round.tt-pending { color: var(--tt-plate-faint); }
+.tt-tower-round.tt-now { box-shadow: inset 0 -2px 0 var(--tt-now); }
+.tt-tower-row[data-mine] { background: var(--tt-plate-raised); }
+.tt-tower-row[data-mine] .tt-tower-pos {
+  color: var(--tt-plate);
+  background: var(--tt-now);
+  border-radius: 2px;
+}
+/* Once the night is over nothing is live, so no yellow: your position keeps
+   its chip as a plate-ink outline. */
+.tt-tower[data-final] .tt-tower-row[data-mine] .tt-tower-pos {
+  color: var(--tt-plate-ink);
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--tt-plate-ink);
+}
+/* The Flight band is the cut line, the loudest rule on the tower: the label in
+   plate ink between two heavy rules, where a leaderboard draws who drops. */
+.tt-tower-band {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  background: var(--tt-plate-bar);
+  color: var(--tt-plate-ink);
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.tt-tower-band::before,
+.tt-tower-band::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--tt-plate-dim);
+}
+
+/* ---- the Organizer's lists and forms ------------------------------------ */
+
+.tt-event-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 120ms ease-out;
+}
+.tt-event-row:hover { background: oklch(0.2 0.035 262 / 0.035); }
+.tt-event-list > li + li { border-top: 1px solid var(--tt-rule); }
+.tt-date {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  line-height: 1;
+  font-family: var(--tt-cond);
+  text-transform: uppercase;
+}
+.tt-date-small {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  color: var(--tt-ink-dim);
+}
+.tt-date-num { font-weight: 800; font-size: 2rem; }
+.tt-event-name {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.375rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.tt-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--tt-rule);
+}
+@media (min-width: 640px) {
+  .tt-section-head { padding-inline: 1.75rem; }
+}
+.tt-section-body { padding: 1.25rem; }
+@media (min-width: 640px) {
+  .tt-section-body { padding: 1.5rem 1.75rem 1.75rem; }
+}
+
+.tt-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tt-brief {
+  margin: 0;
+  padding: 1.25rem;
+  font-family: var(--font-tt), ui-sans-serif, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: var(--tt-ink);
+}
+@media (min-width: 640px) {
+  .tt-brief { padding: 1.75rem 2rem; }
+}
+
+/* ---- live screens: Score Link, Public Link, the Organizer's night (#623) -- */
+
+.tt-livepage {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1.25rem 4rem;
+}
+@media (min-width: 640px) {
+  .tt-livepage { padding-block: 1.75rem 5rem; }
+}
+.tt-live-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+.tt-live-title {
+  margin: 0;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.tt-live-grid {
+  display: grid;
+  gap: 1.75rem;
+  align-items: start;
+}
+.tt-live-main,
+.tt-live-side {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.tt-live-side { gap: 1.5rem; }
+@media (min-width: 960px) {
+  .tt-live-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); gap: 2.5rem; }
+  .tt-live-grid-public { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+/* A small dim section label on the ground, like a broadcast's segment slug. */
+.tt-sect {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding-top: 0.35rem;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 0.875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+/* The live Round: a ball-yellow dot, ringed in navy so it holds on white. */
+.tt-live-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--tt-ink);
+  letter-spacing: 0.12em;
+}
+.tt-live-mark::before {
+  content: "";
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--tt-now);
+  box-shadow: 0 0 0 1.5px var(--tt-ink);
+}
+
+.tt-rounds,
+.tt-round-live {
+  display: grid;
+  gap: 0.6rem;
+}
+.tt-rounds { gap: 0.75rem; }
+
+/* One Game: a white sheet with the two sides and their score boxes. */
+.tt-game {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.8rem 0.9rem 0.9rem;
+}
+.tt-game-label {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+/* Two rows, red over blue: who plays, then that side's score box. */
+.tt-game-sides { display: grid; }
+.tt-game-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding-block: 0.45rem;
+}
+.tt-game-side + .tt-game-side { border-top: 1px solid var(--tt-rule); }
+.tt-who {
+  display: grid;
+  grid-template-columns: 0.3rem minmax(0, 1fr);
+  column-gap: 0.55rem;
+  row-gap: 0.1rem;
+  min-width: 0;
+  line-height: 1.25;
+}
+.tt-who-side {
+  grid-row: span 2;
+  width: 0.3rem;
+  height: auto;
+  align-self: stretch;
+}
+.tt-who-names {
+  font-weight: 600;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.tt-who small {
+  font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--tt-ink-dim);
+}
+.tt-score-input {
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 1.5px solid var(--tt-rule-strong);
+  border-radius: 0.5rem;
+  background: var(--tt-sheet);
+  color: var(--tt-ink);
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.625rem;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.tt-score-input::-webkit-outer-spin-button,
+.tt-score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tt-score-input::placeholder { color: var(--tt-rule-strong); font-weight: 600; }
+/* A box holding a number takes the ink border, as the comp's filled box does. */
+.tt-score-input:not(:placeholder-shown) { border-color: var(--tt-ink); }
+.tt-score-input:focus-visible {
+  outline: none;
+  border-color: var(--tt-ink);
+  box-shadow: 0 0 0 3px oklch(0.55 0.2 262 / 0.28);
+}
+.tt-score-input[aria-invalid="true"] {
+  border-color: var(--tt-flag);
+  box-shadow: 0 0 0 3px oklch(0.56 0.15 62 / 0.22);
+}
+.tt-game-problem { margin: 0; font-size: 0.9375rem; }
+
+.tt-game-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.tt-game-save { flex: 1 1 10rem; }
+.tt-game-foot .tt-lower-third + .tt-game-save { flex: 0 1 auto; }
+
+/* The "Entered by" lower third: a small plate tag with the editor's side bar. */
+.tt-lower-third {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding-right: 0.55rem;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: var(--tt-plate);
+  color: var(--tt-plate-ink);
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tt-lower-third::before {
+  content: "";
+  flex: none;
+  width: 0.25rem;
+  background: var(--tt-plate-dim);
+}
+.tt-lower-third[data-side="red"]::before { background: var(--tt-red); }
+.tt-lower-third[data-side="blue"]::before { background: var(--tt-blue); }
+
+/* A folded Round: one line on a white sheet, opening to its Games. */
+.tt-round {
+  border: 1px solid var(--tt-rule);
+  border-radius: 0.75rem;
+  background: var(--tt-sheet);
+}
+.tt-round-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  list-style: none;
+}
+.tt-round-summary::-webkit-details-marker { display: none; }
+.tt-round-summary b {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tt-round-scores { color: var(--tt-ink-dim); }
+.tt-round-summary::after {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-left: auto;
+  border-right: 2px solid var(--tt-ink-dim);
+  border-bottom: 2px solid var(--tt-ink-dim);
+  transform: rotate(45deg) translateY(-0.15rem);
+}
+.tt-round[open] > .tt-round-summary::after { transform: rotate(-135deg) translateY(-0.1rem); }
+.tt-round[open] > .tt-round-summary { border-bottom: 1px solid var(--tt-rule); }
+.tt-round-body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.75rem;
+}
+.tt-round-body > .tt-game,
+.tt-round-body > .tt-roster { box-shadow: none; }
+
+/* FINAL: a stamp, slightly askew, on a Round both of whose Games are in. */
+.tt-final {
+  flex: none;
+  padding: 0.05rem 0.4rem;
+  border: 1.5px solid var(--tt-ink);
+  border-radius: 3px;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+
+/* A Team's slots on the night. */
+.tt-roster-title { font-size: 1.25rem; }
+.tt-roster-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1.25rem 1.25rem;
+}
+.tt-roster-row { display: grid; gap: 0.35rem; }
+.tt-roster-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+.tt-roster-field[data-move] { grid-template-columns: minmax(0, 1fr) auto; }
+.tt-roster-move { width: 2.75rem; padding: 0; }
+.tt-roster-field .tt-field:read-only {
+  background: var(--tt-ground);
+  border-style: dashed;
+  color: var(--tt-ink-dim);
+}
+.tt-roster-note { font-size: 0.875rem; color: var(--tt-ink-dim); }
+.tt-roster-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+.tt-roster-foot p { margin: 0; }
+.tt-roster-saved { color: var(--tt-ink); font-weight: 600; }
+
+/* The Public Link's Matchups and their Games. */
+.tt-matchup-list,
+.tt-game-lines {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-game-lines { gap: 0; }
+/* The results page: every Matchup two across, flowing round the opening
+   standings, which hold the left column for --tt-tower-span rows. */
+.tt-results-flow {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .tt-results-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    column-gap: 2.5rem;
+  }
+  .tt-results-tower { grid-column: 1; grid-row: 1 / span var(--tt-tower-span, 2); }
+  .tt-results-flow-head { grid-column: 2; grid-row: 1; }
+}
+.tt-game-line {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  padding: 0.6rem 0.25rem;
+}
+.tt-game-line + .tt-game-line { border-top: 1px solid var(--tt-rule); }
+.tt-game-line-row {
+  display: grid;
+  grid-template-columns: 0.3rem minmax(0, 1fr) 2rem;
+  gap: 0.55rem;
+  align-items: center;
+  width: 100%;
+  font-size: 0.9375rem;
+}
+.tt-game-line-row .tt-who-side { height: 1rem; }
+.tt-game-line-score {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.375rem;
+  line-height: 1.1;
+  text-align: right;
+}
+.tt-game-line-pending { color: var(--tt-rule-strong); }
+
+.tt-organizer-matchups {
+  display: grid;
+  gap: 2rem;
+}
+@media (min-width: 1024px) {
+  .tt-organizer-matchups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---- Matchup done, Seeding and Flights (#624) ---------------------------- */
+
+/* A done Matchup: a plate bar on top of its bug, the winner left and a FINAL
+   stamp right, slightly askew like the Round stamp. Scores stay put. */
+.tt-bug-finalbar { align-items: center; }
+.tt-bug-finalnote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tt-plate-ink);
+}
+.tt-bug-final {
+  flex: none;
+  padding: 0.05rem 0.4rem;
+  border: 1.5px solid var(--tt-plate-ink);
+  border-radius: 3px;
+  color: var(--tt-plate-ink);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  transform: rotate(-3deg);
+}
+.tt-bug .tt-bug-teamrow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tt-bug-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* DB: won the Dreambreaker that settled a tie. Dim, so it never reads as a score. */
+.tt-bug-mark {
+  flex: none;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--tt-plate-dim);
+  border-radius: 2px;
+  color: var(--tt-plate-dim);
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* How a tie was settled, under the Team's name in the tower. A long name
+   wraps to a second line rather than losing its end, and so does the note:
+   it is the only place a tied placing is explained. */
+.tt-tower-name { display: grid; white-space: normal; }
+.tt-tower-name-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.tt-tower-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 0.1rem;
+  color: var(--tt-plate-dim);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+}
+
+/* The Flight hand-off: the Flight letter and its court pair are the biggest
+   type on the page, because fifty people are looking for their courts. */
+.tt-handoff-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+  padding: 0.75rem 1rem 0.85rem;
+  background: var(--tt-plate-bar);
+}
+.tt-handoff-stack {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.tt-handoff-courts { justify-items: end; text-align: right; }
+.tt-handoff-kicker {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tt-plate-dim);
+}
+.tt-handoff-letter,
+.tt-handoff-pair {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  line-height: 0.82;
+  color: var(--tt-plate-ink);
+  white-space: nowrap;
+}
+.tt-handoff-letter { font-size: clamp(4.25rem, 19vw, 6.5rem); }
+.tt-handoff-pair { font-size: clamp(3rem, 13vw, 4.75rem); }
+.tt-handoff-amp {
+  color: var(--tt-plate-dim);
+  font-size: 0.55em;
+  vertical-align: 0.35em;
+}
+.tt-handoff-teams {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-handoff-row {
+  display: grid;
+  grid-template-columns: 1.5rem 0.35rem minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--tt-plate-line);
+}
+.tt-handoff-row:first-child { border-top: 0; }
+.tt-handoff-seed {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.125rem;
+  text-align: center;
+  color: var(--tt-plate-dim);
+}
+.tt-handoff-row .tt-tower-chip { height: 1.25rem; }
+.tt-handoff-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 1.1875rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tt-handoff-court {
+  display: grid;
+  justify-items: end;
+  gap: 0.15rem;
+}
+.tt-handoff-court-label {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tt-plate-dim);
+}
+.tt-handoff-court-num {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 2rem;
+  line-height: 1;
+}
+/* Your own Team: the raised row, and your court on the "you" chip. */
+.tt-handoff-row[data-mine] { background: var(--tt-plate-raised); }
+.tt-handoff-row[data-mine] .tt-handoff-court-num {
+  padding: 0.1rem 0.45rem;
+  border-radius: 2px;
+  background: var(--tt-now);
+  color: var(--tt-plate);
+}
+.tt-handoff-row[data-mine] .tt-handoff-court-label { color: var(--tt-plate-ink); }
+
+.tt-handoff[data-size="compact"] .tt-handoff-head { padding: 0.55rem 0.85rem 0.6rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-kicker { font-size: 0.6875rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-letter { font-size: 2.75rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-pair { font-size: 2.125rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-row { padding: 0.4rem 0.85rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-name { font-size: 1.0625rem; }
+.tt-handoff[data-size="compact"] .tt-handoff-court-num { font-size: 1.375rem; }
+
+.tt-flight-grid,
+.tt-handoff-list {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-handoff-list { gap: 0.75rem; }
+@media (min-width: 720px) {
+  .tt-flight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1100px) {
+  .tt-flight-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Finishing a Matchup: the Dreambreaker, Matchup done, the in-page confirm. */
+.tt-done-body {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+  padding: 1rem 1.25rem 1.25rem;
+}
+.tt-done-body > p { margin: 0; }
+.tt-done-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+.tt-done-btn { width: 100%; }
+@media (min-width: 640px) {
+  .tt-done-btn { width: auto; min-width: 14rem; }
+}
+.tt-dreambreaker {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.tt-dreambreaker-picks {
+  display: grid;
+  gap: 0.6rem;
+}
+@media (min-width: 480px) {
+  .tt-dreambreaker-picks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.tt-pick {
+  justify-content: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+.tt-pick .tt-side { height: 1rem; width: 0.4rem; }
+.tt-pick[aria-pressed="true"] {
+  background: var(--tt-ink);
+  color: #ffffff;
+}
+.tt-confirm {
+  display: grid;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1.5px solid var(--tt-ink);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+}
+.tt-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+.tt-callout {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--tt-rule-strong);
+  border-radius: 0.5rem;
+  background: var(--tt-ground);
+  color: var(--tt-ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.tt-swap {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+.tt-swap-field { display: grid; gap: 0.35rem; }
+.tt-swap .tt-btn { justify-self: start; }
+
+.tt-organizer-top {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .tt-organizer-top { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); }
+}
+
+/* ---- the re-sort slide, results, and the big screen (#625) ---------------- */
+
+/* A re-sorted row slides over its neighbours, so each row paints its own plate
+   ground; the tower's list is the offset parent the slide measures against. */
+.tt-tower-list { position: relative; }
+.tt-tower .tt-tower-row:not(.tt-tower-head) {
+  position: relative;
+  background: var(--tt-plate);
+}
+.tt-tower .tt-tower-row[data-mine] { background: var(--tt-plate-raised); }
+
+/* The night is over: a quiet sheet above the results saying so. */
+.tt-over { padding: 0.9rem 1.1rem; }
+
+/* Results: the Flight champions and Final places, side by side from 960px. */
+.tt-results {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .tt-results { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.tt-champ-list,
+.tt-place-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-champ-row,
+.tt-place-row {
+  border-top: 1px solid var(--tt-plate-line);
+}
+.tt-champ-row:first-child,
+.tt-place-row:first-child { border-top: 0; }
+.tt-champ-row[data-mine],
+.tt-place-row[data-mine] { background: var(--tt-plate-raised); }
+
+.tt-champ-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.6rem 0.85rem;
+}
+.tt-champ-flight {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  min-width: 3.25rem;
+  padding: 0.35rem 0.5rem 0.3rem;
+  border-radius: 2px;
+  background: var(--tt-plate-bar);
+}
+.tt-champ-kicker {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tt-plate-dim);
+}
+.tt-champ-letter {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 2.25rem;
+  line-height: 0.85;
+}
+.tt-champ-who,
+.tt-place-who {
+  display: grid;
+  min-width: 0;
+}
+/* Names wrap to a second line on a phone rather than losing their end. */
+.tt-champ-name,
+.tt-place-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.375rem;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.tt-champ-beat,
+.tt-place-role {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tt-plate-dim);
+}
+.tt-champ-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.tt-place-row {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+}
+.tt-place-num {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.tt-place-name { font-size: 1.125rem; font-weight: 700; }
+/* Your own Team's place: the raised row and an outlined chip. Results only
+   exist once the night is over, and with nothing live there is no yellow. */
+.tt-place-row[data-mine] .tt-place-num {
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1.5px var(--tt-plate-ink);
+}
+
+/* The Public Link holds both layouts and CSS picks one, so nothing flashes.
+   The big-screen query is repeated in tv-stage.tsx (TV_QUERY). ?view= forces. */
+.tt-tv { display: none; }
+.tt-public-tvlink { display: none; }
+@media (min-width: 960px) {
+  .tt-public-tvlink { display: inline; }
+}
+.tt-public[data-view="tv"] > .tt-public-scroll { display: none; }
+.tt-public[data-view="tv"] > .tt-tv { display: flex; }
+html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
+@media (min-width: 1280px) and (min-aspect-ratio: 3/2) and (min-height: 560px) {
+  .tt-public[data-view="auto"] > .tt-public-scroll { display: none; }
+  .tt-public[data-view="auto"] > .tt-tv { display: flex; }
+  html:has(.tt-public[data-view="auto"]) { overflow: hidden; }
+}
+
+/* The stage: a full-viewport graphic over the site's chrome, never scrolling.
+   Everything inside is sized in --u, so it scales with the screen (24px at
+   1920x1080, 17px at 1366x768) and never shrinks below what a room can read. */
+.tt-tv {
+  --u: min(1.25vw, 2.2222vh);
+  --tt-tv-tower-cols: calc(var(--u) * 1.7) calc(var(--u) * 0.45) minmax(0, 1fr) repeat(3, calc(var(--u) * 2.1))
+    calc(var(--u) * 2.8) calc(var(--u) * 2.6);
+  --tt-tv-bug-cols: calc(var(--u) * 0.5) minmax(0, 1fr) repeat(3, calc(var(--u) * 2.5)) calc(var(--u) * 3.3);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  flex-direction: column;
+  gap: 0.9em;
+  padding: 0.9em 1.6em 0.8em;
+  overflow: hidden;
+  font-size: var(--u);
+  background-color: var(--tt-ground);
+  color: var(--tt-ink);
+}
+.tt-tv-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5em;
+}
+.tt-tv-id { display: grid; gap: 0.2em; min-width: 0; }
+/* The mark signs the screen from the bottom-right corner, like a network bug,
+   rather than sitting over the title. */
+.tt-tv-sign { display: inline-flex; align-items: center; gap: 1.4em; }
+.tt-tv-mark { font-size: 0.7em; pointer-events: none; }
+.tt-tv-title {
+  margin: 0;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 2.3em;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.tt-tv-meta {
+  margin: 0;
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.7em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+.tt-tv-stage { display: grid; justify-items: end; gap: 0.25em; text-align: right; }
+.tt-tv-stage-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.8em;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tt-tv .tt-tv-live { font-size: 0.55em; }
+.tt-tv .tt-live-mark::before { width: 0.65em; height: 0.65em; }
+.tt-tv-stage-progress {
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.7em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+
+.tt-tv-body { flex: 1; display: grid; min-height: 0; }
+.tt-tv-screen { display: grid; min-height: 0; align-content: stretch; }
+.tt-tv-screen[hidden] { display: none; }
+
+.tt-tv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+}
+.tt-tv-cycle {
+  display: flex;
+  gap: 1.8em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.72em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+.tt-tv-cycle li {
+  padding-bottom: 0.2em;
+  border-bottom: 0.2em solid transparent;
+}
+.tt-tv-cycle li[aria-current] {
+  color: var(--tt-ink);
+  border-bottom-color: var(--tt-ink);
+}
+.tt-tv-link {
+  font-size: 0.65em;
+  font-weight: 600;
+  color: var(--tt-ink-dim);
+  text-decoration: underline;
+  text-decoration-color: var(--tt-rule-strong);
+  text-underline-offset: 0.25em;
+}
+
+/* Standings: the tower full width in two columns, each stretched to the same
+   height, its rows sharing it. */
+.tt-tv-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.2em;
+  min-height: 0;
+}
+.tt-tv .tt-tower {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tt-tv .tt-tower-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tt-tv .tt-tower-list .tt-tower-row { flex: 1 1 0; }
+/* Secondary type on the stage stays at a room's reading size: bars, column
+   heads and Flight bands at 0.9 to 1 unit (22 to 24px at 1920). */
+.tt-tv .tt-plate-bar { padding: 0.45em 0.9em; font-size: 0.9em; letter-spacing: 0.1em; }
+.tt-tv .tt-tower-row {
+  grid-template-columns: var(--tt-tv-tower-cols);
+  gap: 0.5em;
+  padding: 0 0.9em;
+}
+.tt-tv .tt-tower-head { padding-block: 0.3em; font-size: 0.95em; letter-spacing: 0.1em; flex: none; }
+.tt-tv .tt-tower-band { flex: none; gap: 0.8em; padding: 0.3em 0.9em; font-size: 1em; }
+.tt-tv .tt-tower-band::before,
+.tt-tv .tt-tower-band::after { height: 0.16em; }
+.tt-tv .tt-tower-pos { font-size: 1.4em; line-height: 1; }
+.tt-tv .tt-tower-chip { height: 1.2em; }
+.tt-tv .tt-tower-name { font-size: 1.55em; line-height: 1.1; }
+.tt-tv .tt-tower-name-text { -webkit-line-clamp: 1; }
+.tt-tv .tt-tower-note { font-size: 0.6em; line-height: 1.2; -webkit-line-clamp: 1; }
+.tt-tv .tt-tower-pts { margin-block: 0; }
+.tt-tv .tt-tower-round { font-size: 1.45em; line-height: 1.3; }
+.tt-tv .tt-tower-round.tt-now { box-shadow: inset 0 -0.1em 0 var(--tt-now); }
+.tt-tv .tt-tower-pts { font-size: 1.9em; line-height: 1; }
+.tt-tv .tt-tower-move { font-size: 0.85em; }
+.tt-tv .tt-tower-move svg { width: 1em; height: 1em; }
+
+/* Matchups and Flights: bugs and hand-off plates in two rows, a short last
+   row centred. */
+.tt-tv-bugs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 1.4em 1.2em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-tv-bugs > li {
+  flex: 0 0 calc((100% - (var(--tt-tv-cols) - 1) * 1.2em) / var(--tt-tv-cols));
+  min-width: 0;
+}
+/* A screen of score bugs grows into the height it has (tv-screens.ts). */
+.tt-tv-bugs:not(.tt-tv-handoffs) { font-size: calc(var(--tt-tv-bug-scale, 1) * 1em); }
+
+.tt-tv .tt-bug { grid-template-columns: var(--tt-tv-bug-cols); }
+/* Round numerals sit in fixed cells with air between them, so "10 10 10"
+   never reads as one string of digits across a room. Names stay on one line
+   so every bug in a row is the same height. */
+.tt-tv .tt-bug > :where(span),
+.tt-tv .tt-bug > :where([role="row"]) > :where(span) {
+  padding: 0.3em 0.2em;
+  font-size: 1.45em;
+}
+.tt-tv .tt-bug .tt-bug-team {
+  padding-left: 0.5em;
+  font-size: 1.2em;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tt-tv .tt-bug .tt-bug-teamrow { align-items: center; }
+.tt-tv .tt-bug .tt-bug-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tt-tv .tt-bug .tt-bug-head { padding-block: 0.35em; font-size: 0.85em; letter-spacing: 0.1em; }
+.tt-tv .tt-bug .tt-bug-head.tt-bug-team { padding-left: 0.6em; font-size: 0.9em; letter-spacing: 0.08em; }
+.tt-tv .tt-bug .tt-bug-tot { font-size: 1.8em; }
+.tt-tv .tt-bug .tt-now { box-shadow: inset 0 -0.12em 0 var(--tt-now); }
+.tt-tv .tt-bug .tt-bug-head.tt-now { box-shadow: none; }
+.tt-tv .tt-bug-mark { font-size: 0.45em; }
+.tt-tv .tt-bug-finalbar { font-size: 0.8em; }
+
+.tt-tv .tt-handoff-head { padding: 0.6em 0.9em 0.65em; }
+.tt-tv .tt-handoff-kicker { font-size: 0.8em; }
+.tt-tv .tt-handoff-letter { font-size: 5.6em; }
+.tt-tv .tt-handoff-pair { font-size: 4em; }
+.tt-tv .tt-handoff-row {
+  grid-template-columns: 1.3em 0.45em minmax(0, 1fr) auto;
+  gap: 0.6em;
+  padding: 0.55em 0.9em;
+}
+.tt-tv .tt-handoff-seed { font-size: 1.2em; }
+.tt-tv .tt-handoff-row .tt-tower-chip { height: 1.6em; }
+.tt-tv .tt-handoff-name { font-size: 1.4em; }
+.tt-tv .tt-handoff-name .tt-bug-name { white-space: normal; text-wrap: balance; line-height: 1.05; }
+.tt-tv .tt-handoff-court-label { font-size: 0.7em; }
+.tt-tv .tt-handoff-court-num { font-size: 2.7em; }
+
+/* Results: champions left, Final places right in two columns of places. */
+.tt-tv-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 1.2em;
+  min-height: 0;
+}
+.tt-tv .tt-champs,
+.tt-tv .tt-places {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tt-tv .tt-champ-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tt-tv .tt-champ-row { flex: 1 1 0; gap: 0.8em; padding: 0 0.9em; }
+.tt-tv .tt-champ-flight { min-width: 2.4em; padding: 0.3em 0.45em 0.25em; }
+.tt-tv .tt-champ-kicker { font-size: 0.65em; }
+.tt-tv .tt-champ-letter { font-size: 2.2em; }
+.tt-tv .tt-champ-name { font-size: 1.45em; }
+.tt-tv .tt-champ-beat { font-size: 0.8em; }
+.tt-tv .tt-champ-score { font-size: 2.1em; }
+.tt-tv .tt-place-list {
+  flex: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--tt-place-rows, 7), minmax(0, 1fr));
+  min-height: 0;
+}
+.tt-tv .tt-place-row {
+  grid-template-columns: 1.7em minmax(0, 1fr);
+  gap: 0.6em;
+  padding: 0 0.9em;
+  border-top: 0;
+  border-bottom: 1px solid var(--tt-plate-line);
+}
+.tt-tv .tt-place-num { font-size: 1.7em; line-height: 1.1; }
+.tt-tv .tt-place-name { font-size: 1.25em; }
+.tt-tv .tt-place-role { font-size: 0.75em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-surface *,
+  .tt-surface *::before,
+  .tt-surface *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

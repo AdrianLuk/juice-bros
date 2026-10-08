@@ -54,6 +54,13 @@ export function serviceRoleClient(): SupabaseClient {
   });
 }
 
+/** A signed-out client, as a link holder with no account reaches the database (a Team Tally Score Link). */
+export function anonClient(): SupabaseClient {
+  return createClient(API_URL, ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 /** A fresh User with this display name, signed in. Delete it with `deleteTestUser`. */
 export async function createTestUser(displayName: string): Promise<TestUser> {
   const email = `db-test-${randomUUID()}@example.com`;

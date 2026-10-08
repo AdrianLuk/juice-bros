@@ -8,6 +8,11 @@ import {
   ON_DECK_SIGN_IN_PATH,
   requiresOrganizerSession,
 } from "@/lib/on-deck/routes";
+import {
+  TEAM_TALLY_ROOT,
+  TEAM_TALLY_SIGN_IN_PATH,
+  requiresOrganizerSession as requiresTeamTallyOrganizer,
+} from "@/lib/team-tally/routes";
 
 // The Vercel project answers on both juicebrospickleball.com and
 // www.juicebrospickleball.com (both are attached to the domain in Vercel), so
@@ -24,7 +29,10 @@ const WWW_HOST = `www.${CANONICAL_HOST}`;
 // pages have no backend and must stay that way (see the matcher comment
 // below). Now that the matcher is site-wide (to catch the www redirect on
 // every path), this check keeps that scoping in the function body instead.
-const SUPABASE_SCOPED_PREFIXES = ["/booking-buddy", "/on-deck/home", "/on-deck/dev"];
+//
+// Team Tally's whole subtree is in scope: its root page branches on the
+// session (landing or the Organizer's list), and its Team Events are gated.
+const SUPABASE_SCOPED_PREFIXES = ["/booking-buddy", "/on-deck/home", "/on-deck/dev", TEAM_TALLY_ROOT];
 
 function needsSupabaseRefresh(pathname: string) {
   return SUPABASE_SCOPED_PREFIXES.some(
@@ -94,7 +102,9 @@ export async function proxy(request: NextRequest) {
     ? SIGN_IN_PATH
     : requiresOrganizerSession(pathname)
       ? ON_DECK_SIGN_IN_PATH
-      : null;
+      : requiresTeamTallyOrganizer(pathname)
+        ? TEAM_TALLY_SIGN_IN_PATH
+        : null;
 
   if (signInPath) {
     const signInUrl = new URL(signInPath, origin);
