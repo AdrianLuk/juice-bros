@@ -86,8 +86,7 @@ test("finishCourtOutcome: a fresh board yields a COURT_FINISHED event", () => {
   const since = state.courts[0].since;
   assert.deepEqual(finishCourtOutcome(state, 1, since), {
     kind: "event",
-    type: "COURT_FINISHED",
-    payload: { court: 1 },
+    body: { type: "COURT_FINISHED", court: 1 },
   });
 });
 
@@ -102,8 +101,7 @@ test("finishCourtOutcome: an empty Court with a null expectation still fires", (
   assert.equal(state.courts[1].foursome.length, 0);
   assert.deepEqual(finishCourtOutcome(state, 2, null), {
     kind: "event",
-    type: "COURT_FINISHED",
-    payload: { court: 2 },
+    body: { type: "COURT_FINISHED", court: 2 },
   });
 });
 
@@ -119,8 +117,7 @@ test("confirmCourtOutcome: an in-play Court with a matching since yields COURT_C
   const since = state.courts[0].since;
   assert.deepEqual(confirmCourtOutcome(state, 1, since), {
     kind: "event",
-    type: "COURT_CONFIRMED",
-    payload: { court: 1, since },
+    body: { type: "COURT_CONFIRMED", court: 1, since },
   });
 });
 
@@ -143,8 +140,7 @@ test("setAsideOutcome pauses a named Player as a set-aside", () => {
   const waiting = nameOf(state.queue[0].playerId);
   assert.deepEqual(setAsideOutcome(state, waiting), {
     kind: "event",
-    type: "PLAYER_PAUSED",
-    payload: { token: state.queue[0].playerId, reason: "set-aside" },
+    body: { type: "PLAYER_PAUSED", token: state.queue[0].playerId, reason: "set-aside" },
   });
   assert.equal(setAsideOutcome(state, "Ghost X.").kind, "error");
 });
@@ -154,8 +150,7 @@ test("bringBackOutcome re-queues a named Player", () => {
   const someone = nameOf(state.roster[0].id);
   assert.deepEqual(bringBackOutcome(state, someone), {
     kind: "event",
-    type: "PLAYER_REQUEUED",
-    payload: { token: state.roster[0].id },
+    body: { type: "PLAYER_REQUEUED", token: state.roster[0].id },
   });
 });
 
@@ -167,8 +162,8 @@ test("swapNoShowOutcome swaps a Player on the Court for one still waiting", () =
 
   assert.deepEqual(swapNoShowOutcome(state, 1, since, onCourt, waiting), {
     kind: "event",
-    type: "FOURSOME_MEMBER_SWAPPED",
-    payload: {
+    body: {
+      type: "FOURSOME_MEMBER_SWAPPED",
       court: 1,
       out: state.courts[0].foursome[0],
       in: state.queue[0].playerId,
@@ -182,8 +177,8 @@ test("addWalkupOutcome yields a queued PLAYER_JOINED with the minted token", () 
     addWalkupOutcome(state, "walkup-abc", " Wanda ", "w", "beginner"),
     {
       kind: "event",
-      type: "PLAYER_JOINED",
-      payload: {
+      body: {
+        type: "PLAYER_JOINED",
         token: "walkup-abc",
         firstName: "Wanda",
         lastInitial: "W",
@@ -212,8 +207,7 @@ test("overrideSkillOutcome resolves a name and yields PLAYER_SKILL_SET", () => {
   const { state } = sessionWithFilledCourt(6);
   assert.deepEqual(overrideSkillOutcome(state, "P1 X.", "advanced"), {
     kind: "event",
-    type: "PLAYER_SKILL_SET",
-    payload: { token: "p1", skillLevel: "advanced" },
+    body: { type: "PLAYER_SKILL_SET", token: "p1", skillLevel: "advanced" },
   });
 });
 
@@ -316,8 +310,7 @@ test("formGroupOutcome resolves names to a GROUP_FORMED event", () => {
     formGroupOutcome(state, ["P1 X.", " P3 X. "], "group-abc"),
     {
       kind: "event",
-      type: "GROUP_FORMED",
-      payload: { groupId: "group-abc", memberTokens: ["p1", "p3"] },
+      body: { type: "GROUP_FORMED", groupId: "group-abc", memberTokens: ["p1", "p3"] },
     },
   );
 });
@@ -359,8 +352,7 @@ test("lowerGroupCapOutcome trims the live cap, no-ops when unchanged, rejects ou
   const { state } = queuedSession(4);
   assert.deepEqual(lowerGroupCapOutcome(state, 2), {
     kind: "event",
-    type: "GROUP_CAP_CHANGED",
-    payload: { cap: 2 },
+    body: { type: "GROUP_CAP_CHANGED", cap: 2 },
   });
   assert.deepEqual(lowerGroupCapOutcome(state, 4), { kind: "noop" });
   assert.equal(lowerGroupCapOutcome(state, 1).kind, "error");
@@ -400,8 +392,7 @@ test("formGroupByPlayerOutcome folds the actor in and defers to the shared rules
     formGroupByPlayerOutcome(state, "p1", ["P2 X.", "P3 X."], "group-abc"),
     {
       kind: "event",
-      type: "GROUP_FORMED",
-      payload: { groupId: "group-abc", memberTokens: ["p1", "p2", "p3"] },
+      body: { type: "GROUP_FORMED", groupId: "group-abc", memberTokens: ["p1", "p2", "p3"] },
     },
   );
   // Picking nobody else is a one-person Group — rejected by the shared check.
@@ -414,8 +405,7 @@ test("leaveGroupByPlayerOutcome emits GROUP_MEMBER_REMOVED for a member, no-ops 
   const state = queuedSessionWithGroup(6, "group-1", ["p1", "p2", "p3"]);
   assert.deepEqual(leaveGroupByPlayerOutcome(state, "p2"), {
     kind: "event",
-    type: "GROUP_MEMBER_REMOVED",
-    payload: { groupId: "group-1", token: "p2" },
+    body: { type: "GROUP_MEMBER_REMOVED", groupId: "group-1", token: "p2" },
   });
   // p4 is in no Group.
   assert.deepEqual(leaveGroupByPlayerOutcome(state, "p4"), { kind: "noop" });
@@ -425,8 +415,7 @@ test("dissolveGroupOutcome emits GROUP_DISSOLVED for a waiting Group, no-ops for
   const state = queuedSessionWithGroup(6, "group-1", ["p1", "p2"]);
   assert.deepEqual(dissolveGroupOutcome(state, "group-1"), {
     kind: "event",
-    type: "GROUP_DISSOLVED",
-    payload: { groupId: "group-1" },
+    body: { type: "GROUP_DISSOLVED", groupId: "group-1" },
   });
   assert.deepEqual(dissolveGroupOutcome(state, "group-nope"), { kind: "noop" });
 });

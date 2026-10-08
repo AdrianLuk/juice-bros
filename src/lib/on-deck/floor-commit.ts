@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { sessionPath } from "./routes.ts";
 import { dispatchTurnNotifications } from "./turn-notify-dispatch.ts";
-import type { FloorOutcomeType, FloorOpOutcome } from "./floor-ops.ts";
+import type { FloorOpOutcome } from "./floor-ops.ts";
+import { encode, type EncodedEvent } from "./session/codec.ts";
 import type { SessionState } from "./session/types.ts";
 
 /** `{ ok: true }` on success (an appended event or a harmless no-op), or an
@@ -22,10 +23,7 @@ export type FloorActionResult = { ok: true } | { ok?: false; error: string };
 export async function commitFloorOutcome(
   sessionId: string,
   outcome: FloorOpOutcome,
-  write: (event: {
-    type: FloorOutcomeType;
-    payload: Record<string, unknown>;
-  }) => Promise<{ error: unknown }>,
+  write: (event: EncodedEvent) => Promise<{ error: unknown }>,
   /**
    * The folded `SessionState` from *before* this write. When given, a
    * successful append fires the opt-in turn notification (issue #260): the
@@ -38,9 +36,9 @@ export async function commitFloorOutcome(
   if (outcome.kind === "error") return { error: outcome.error };
   if (outcome.kind === "noop") return { ok: true };
 
-  const { error } = await write({ type: outcome.type, payload: outcome.payload });
+  const { error } = await write(encode(outcome.body));
   if (error) {
-    console.error("on-deck: floor action failed", outcome.type, error);
+    console.error("on-deck: floor action failed", outcome.body.type, error);
     return { error: "That didn't go through. Try again." };
   }
 

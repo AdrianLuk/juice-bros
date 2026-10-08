@@ -17,7 +17,7 @@ import {
   DEMO_PLAYER_COUNT,
   demoNightEvents,
 } from "./night.ts";
-import { demoEventFor, demoLoadedSession } from "./fold.ts";
+import { demoLoadedSession } from "./fold.ts";
 import { finishCourtOutcome } from "../floor-ops.ts";
 import { SELECTION_WINDOW, selectFoursome } from "../session/match-me.ts";
 import { rotationViewFrom } from "../session/rotation-view.ts";
@@ -301,10 +301,13 @@ test("game done sends the committed on-deck foursome onto the freed court", () =
 
   const outcome = finishCourtOutcome(loaded.state, court.number, court.since);
   assert.equal(outcome.kind, "event");
-  const event = demoEventFor(outcome, NOW, { kind: "organizer", userId: "demo" });
-  assert.notEqual(event, null);
+  const event: SessionEvent = {
+    ...outcome.body,
+    at: NOW,
+    operator: { kind: "organizer", userId: "demo" },
+  };
 
-  const after = demoLoadedSession(DEMO_CONFIG, [...events, event!]);
+  const after = demoLoadedSession(DEMO_CONFIG, [...events, event]);
   const afterView = rotationViewFrom(after, undefined, NOW);
   const turned = afterView.courts.find((c) => c.number === court.number)!;
 
@@ -342,9 +345,13 @@ test("ten turnovers in a row leave the board whole", () => {
     const loaded = demoLoadedSession(DEMO_CONFIG, events);
     const court = loaded.state.courts[i % DEMO_CONFIG.courtCount];
     const outcome = finishCourtOutcome(loaded.state, court.number, court.since);
-    const event = demoEventFor(outcome, at, { kind: "organizer", userId: "demo" });
-    assert.notEqual(event, null, `turnover ${i} produced no event`);
-    events = [...events, event!];
+    assert.equal(outcome.kind, "event", `turnover ${i} produced no event`);
+    const event: SessionEvent = {
+      ...outcome.body,
+      at,
+      operator: { kind: "organizer", userId: "demo" },
+    };
+    events = [...events, event];
 
     const after = demoLoadedSession(DEMO_CONFIG, events);
     assertNobodyDoubled(after.state);

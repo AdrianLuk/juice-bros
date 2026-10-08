@@ -15,7 +15,7 @@ import {
 } from "@/components/on-deck/kiosk-board";
 import { useBoardClock } from "@/components/on-deck/use-board-clock";
 import { DEMO_CONFIG, demoNightEvents } from "@/lib/on-deck/demo/night";
-import { demoEventFor, demoLoadedSession } from "@/lib/on-deck/demo/fold";
+import { demoLoadedSession } from "@/lib/on-deck/demo/fold";
 import {
   addWalkupOutcome,
   bringBackOutcome,
@@ -182,14 +182,8 @@ export function DemoStage() {
     setError(null);
     if (outcome.kind === "noop") return { ok: true };
 
-    const event = demoEventFor(outcome, Date.now(), operator);
-    if (!event) {
-      // Unreachable short of a `floor-ops` outcome this module has no case
-      // for. Say so rather than swallowing it: a tap that does nothing and
-      // explains nothing is the one thing worse than a tap that fails.
-      setError("The demo can't do that one. Reload to start the night over.");
-      return { ok: false };
-    }
+    // The typed body is the event, less the stamp the database would add.
+    const event: SessionEvent = { ...outcome.body, at: Date.now(), operator };
     setEvents((prev) => [...prev, event]);
     // Every path that calls a new foursome onto a Court comes through here —
     // a tap on the Floor, a tap on the Kiosk, and "let it run" alike.
