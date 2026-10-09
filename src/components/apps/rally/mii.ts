@@ -2,13 +2,18 @@ import {
   CanvasTexture,
   CapsuleGeometry,
   Color,
+  ConeGeometry,
   CylinderGeometry,
   BoxGeometry,
+  ExtrudeGeometry,
   Group,
   Mesh,
   MeshToonMaterial,
+  Shape,
   SphereGeometry,
   SRGBColorSpace,
+  TorusGeometry,
+  Vector3,
   type Material,
 } from "three";
 
@@ -23,10 +28,17 @@ import type { Host } from "./hosts";
  * shoulders on each swing, arms up for a point won and a droop for one lost.
  */
 
-const HEAD_R = 0.95;
+/** The head: big, as a Mii's is, so the face reads from across the court. */
+const HEAD_R = 1.15;
+/** The face's patch of the head: its width round the front, and where it starts and how far it runs down (radians). */
+const FACE_WIDTH = 2.1;
+const FACE_TOP = 0.85;
+const FACE_HEIGHT = 1.5;
+/** How much the skin and face light themselves, over the court's lights. */
+const FACE_GLOW = 0.35;
+const UP = new Vector3(0, 1, 0);
 const JERSEY = "#f26522";
 const SHORTS = "#16181b";
-const SHOE = "#eef0f2";
 const PADDLE = "#1b1e22";
 const PADDLE_FACE = "#2d6cdf";
 
@@ -49,7 +61,8 @@ export type Mii = {
   update(dt: number, speed: number, ball: { x: number; y: number; z: number } | null): void;
   /** Sets the skin's colour, from the face texture's background once it loads. */
   setSkin(color: Color): void;
-  setFace(texture: CanvasTexture): void;
+  /** Tilts the face up toward the camera, in radians. */
+  setGaze(angle: number): void;
   dispose(): void;
 };
 
@@ -123,15 +136,139 @@ export function placeholderFace(host: Host) {
   return texture;
 }
 
+/** Points a mesh's +y along `direction`, at `at` on the head. */
+function stand(mesh: Mesh, at: Vector3, direction: Vector3) {
+  mesh.position.copy(at);
+  mesh.quaternion.setFromUnitVectors(UP, direction.clone().normalize());
+  return mesh;
+}
+
+/** A point on a sphere of radius `r`: `theta` down from the top, `phi` round from the front (-z) toward +x. */
+const onSphere = (r: number, theta: number, phi: number) =>
+  new Vector3(r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta), -r * Math.sin(theta) * Math.cos(phi));
+
+/**
+ * Short black hair with some shape to it: a close crop over the top, sides
+ * and back, lifted into short spikes over the crown and a fringe that kicks
+ * up at the front, as in the photos.
+ */
+function createHair(material: MeshToonMaterial) {
+  const group = new Group();
+  const R = HEAD_R;
+  // The crop: over the top down to the hairline, lower at the sides, to the nape at the back.
+  const top = new Mesh(new SphereGeometry(R * 1.04, 32, 14, 0, Math.PI * 2, 0, 1.08), material);
+  top.scale.y = 1.06;
+  const back = new Mesh(new SphereGeometry(R * 1.03, 28, 14, Math.PI / 2 - 1.5, 3.0, 0, 2.0), material);
+  const sides = [-1, 1].map((x) => {
+    const side = new Mesh(new SphereGeometry(R * 1.035, 12, 10, x > 0 ? -0.55 : Math.PI - 0.55, 1.1, 0.5, 0.95), material);
+    return side;
+  });
+  group.add(top, back, ...sides);
+  // Spikes over the crown, leaning back a little; a fringe kicking up and forward.
+  const spike = new ConeGeometry(R * 0.2, R * 0.42, 6);
+  for (let ring = 0; ring < 3; ring++) {
+    const theta = 0.15 + ring * 0.32;
+    const count = ring === 0 ? 3 : 7 + ring * 2;
+    for (let i = 0; i < count; i++) {
+      const phi = (i / count) * Math.PI * 2 + ring * 0.4;
+      const at = onSphere(R * 1.02, theta, phi);
+      const lean = at.clone().normalize().add(new Vector3(0, 0.3, 0.35));
+      group.add(stand(new Mesh(spike, material), at, lean));
+    }
+  }
+  for (let i = 0; i < 6; i++) {
+    const phi = -0.75 + (i / 5) * 1.5;
+    const at = onSphere(R * 1.02, 1.0, phi);
+    const kick = at.clone().normalize().add(new Vector3(0, 0.9, -0.4));
+    group.add(stand(new Mesh(spike, material), at, kick));
+  }
+  return group;
+}
+
+/**
+ * A structured six-panel baseball cap: a crown that sits on the head just
+ * above the brows, seams from the button down each panel, a curved bill out
+ * the front, and the strap's opening at the back with hair showing through.
+ */
+function createCap(capMaterial: MeshToonMaterial, seamMaterial: MeshToonMaterial, hairMaterial: MeshToonMaterial) {
+  const group = new Group();
+  const R = HEAD_R;
+  const crownR = R * 1.08;
+  const band = R * 0.42;
+  const bandTheta = Math.acos(band / crownR);
+  // The crown: a dome a little taller than the head, the front panels standing up.
+  const crown = new Group();
+  crown.scale.set(1, 1.08, 1.04);
+  crown.position.z = -0.03;
+  const dome = new Mesh(new SphereGeometry(crownR, 36, 16, 0, Math.PI * 2, 0, bandTheta), capMaterial);
+  crown.add(dome);
+  // Seams down each panel, from the button to the band.
+  for (let i = 0; i < 6; i++) {
+    const seam = new Mesh(new TorusGeometry(crownR + 0.005, R * 0.018, 4, 24, bandTheta), seamMaterial);
+    seam.rotation.z = Math.PI / 2 - bandTheta;
+    const panel = new Group();
+    panel.rotation.y = Math.PI / 2 + (i * Math.PI) / 3;
+    panel.add(seam);
+    crown.add(panel);
+  }
+  const button = new Mesh(new SphereGeometry(R * 0.1, 12, 8), capMaterial);
+  button.position.y = crownR;
+  // The strap's opening at the back: hair through an arch, the strap across its foot.
+  const opening = new Mesh(
+    new SphereGeometry(crownR + 0.01, 12, 6, Math.PI / 2 - 0.32, 0.64, bandTheta - 0.42, 0.42),
+    hairMaterial,
+  );
+  crown.add(button, opening);
+  group.add(crown);
+  // The sweatband's edge all round, which gives the cap its line.
+  const edge = new Mesh(new TorusGeometry(Math.sqrt(crownR ** 2 - band ** 2), R * 0.045, 6, 40), capMaterial);
+  edge.rotation.x = Math.PI / 2;
+  edge.scale.set(1, 1.04, 1);
+  edge.position.set(0, band * 1.08, -0.03);
+  group.add(edge);
+
+  // The bill: a rounded D, curved down at its sides, out from the front of the band.
+  const half = R * 0.78;
+  const reach = R * 0.92;
+  const shape = new Shape();
+  shape.moveTo(-half, 0);
+  shape.absellipse(0, 0, half, reach, Math.PI, 0, true);
+  shape.lineTo(-half, 0);
+  const billGeometry = new ExtrudeGeometry(shape, { depth: R * 0.05, bevelEnabled: true, bevelSize: R * 0.02, bevelThickness: R * 0.02, bevelSegments: 2, curveSegments: 24 });
+  billGeometry.rotateX(-Math.PI / 2);
+  const position = billGeometry.getAttribute("position");
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i) / half;
+    position.setY(i, position.getY(i) - R * 0.28 * x * x);
+  }
+  billGeometry.computeVertexNormals();
+  const bill = new Mesh(billGeometry, capMaterial);
+  const chord = Math.sqrt(Math.max(0, crownR ** 2 - band ** 2 - half ** 2));
+  bill.position.set(0, band * 1.08, -chord * 1.04);
+  bill.rotation.x = -0.08;
+  group.add(bill);
+
+  // Hair showing under the cap at the back and round the ears.
+  const nape = new Mesh(new SphereGeometry(R * 1.02, 24, 10, Math.PI / 2 - 1.4, 2.8, bandTheta - 0.1, 0.85), hairMaterial);
+  group.add(nape);
+  return group;
+}
+
 export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
-  const { height: h, width: w } = host.build;
+  const { height: h, legs: legScale, width: w, depth: d, limbs } = host.build;
   const toon = (color: string | Color) => new MeshToonMaterial({ color });
-  const skin = toon(host.skin);
+  // The skin and the face glow a little, so the face reads from across the court.
+  const skin = new MeshToonMaterial({ color: host.skin, emissive: host.skin, emissiveIntensity: FACE_GLOW });
   const hair = toon(host.hair);
   const jersey = toon(JERSEY);
   const shorts = toon(SHORTS);
   const legs = host.leggings ? toon(SHORTS) : skin;
-  const faceMaterial = new MeshToonMaterial({ map: face });
+  const faceMaterial = new MeshToonMaterial({
+    map: face,
+    emissive: "#ffffff",
+    emissiveMap: face,
+    emissiveIntensity: FACE_GLOW,
+  });
   const nameMaterial = new MeshToonMaterial({ map: nameTexture(host.jersey, font), transparent: true });
 
   const group = new Group();
@@ -141,16 +278,18 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
   const upper = new Group();
   group.add(body);
 
-  const hipY = 1.5 * h;
-  const legLength = 1.5 * h;
+  const legLength = 1.5 * h * legScale;
+  const hipY = legLength;
+  const legR = 0.24 * limbs;
 
-  // Legs swing from the hip; a white shoe at each foot.
+  // Legs swing from the hip; a shoe at each foot.
+  const shoeMaterial = toon(host.shoes);
   const leg = (x: number) => {
     const pivot = new Group();
     pivot.position.set(x * w, hipY, 0);
-    const limb = new Mesh(new CapsuleGeometry(0.24, legLength - 0.48, 4, 10), legs);
+    const limb = new Mesh(new CapsuleGeometry(legR, legLength - legR * 2, 4, 10), legs);
     limb.position.y = -legLength / 2;
-    const shoe = new Mesh(new SphereGeometry(0.27, 12, 8), toon(SHOE));
+    const shoe = new Mesh(new SphereGeometry(0.28, 12, 8), shoeMaterial);
     shoe.scale.set(1, 0.6, 1.5);
     shoe.position.set(0, -legLength + 0.1, -0.12);
     pivot.add(limb, shoe);
@@ -158,43 +297,53 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     return pivot;
   };
   const legL = leg(-0.3);
-  const legR = leg(0.3);
+  const legRight = leg(0.3);
 
-  const shortsMesh = new Mesh(new CylinderGeometry(0.62 * w, 0.66 * w, 0.6, 20), shorts);
+  const shortsMesh = new Mesh(new CylinderGeometry(0.62 * w, 0.68 * w, 0.62, 20), shorts);
+  shortsMesh.scale.z = d;
   shortsMesh.position.y = hipY + 0.05;
   body.add(shortsMesh);
+  if (host.liner) {
+    const liner = new Mesh(new CylinderGeometry(0.69 * w, 0.69 * w, 0.12, 20, 1, true), toon(host.liner));
+    liner.scale.z = d;
+    liner.position.y = hipY - 0.3;
+    body.add(liner);
+  }
 
   upper.position.y = hipY;
   body.add(upper);
 
   const torso = new Mesh(new CapsuleGeometry(0.62, 0.8, 6, 20), jersey);
-  torso.scale.x = w;
+  torso.scale.set(w, 1, d);
   torso.position.y = 0.85;
   // The name on the back: a strip of the torso's own curve, a hair outside it.
-  const name = new Mesh(
-    new CylinderGeometry(0.63, 0.63, 0.56, 16, 1, true, -0.75, 1.5),
-    nameMaterial,
-  );
+  const name = new Mesh(new CylinderGeometry(0.63, 0.63, 0.56, 16, 1, true, -0.75, 1.5), nameMaterial);
   name.position.y = 0.15;
   torso.add(name);
   upper.add(torso);
 
   // Arms hang from the shoulder; a ball hand at the end; the paddle in the right.
+  const armR = 0.17 * limbs;
   const arm = (x: number) => {
     const pivot = new Group();
     pivot.position.set(x * 0.72 * w, 1.42, 0);
-    const limb = new Mesh(new CapsuleGeometry(0.17, 0.7, 4, 8), skin);
+    const limb = new Mesh(new CapsuleGeometry(armR, 0.7, 4, 8), skin);
     limb.position.y = -0.5;
-    const sleeve = new Mesh(new CapsuleGeometry(0.22, 0.12, 4, 8), jersey);
+    const sleeve = new Mesh(new CapsuleGeometry(armR + 0.06, 0.12, 4, 8), jersey);
     sleeve.position.y = -0.12;
-    const hand = new Mesh(new SphereGeometry(0.22, 12, 8), skin);
+    const hand = new Mesh(new SphereGeometry(0.2 + 0.03 * limbs, 12, 8), skin);
     hand.position.y = -1.0;
     pivot.add(limb, sleeve, hand);
     upper.add(pivot);
     return pivot;
   };
-  const armL = arm(-1);
-  const armR = arm(1);
+  const armLeft = arm(-1);
+  const armRight = arm(1);
+  if (host.watch) {
+    const watch = new Mesh(new CylinderGeometry(armR + 0.03, armR + 0.03, 0.14, 12), toon("#111316"));
+    watch.position.y = -0.82;
+    armLeft.add(watch);
+  }
   const paddle = new Group();
   const blade = new Mesh(new BoxGeometry(0.75, 0.95, 0.08), toon(PADDLE));
   blade.position.y = -0.62;
@@ -204,52 +353,25 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
   grip.position.y = -0.05;
   paddle.add(blade, bladeFace, grip);
   paddle.position.y = -1.05;
-  armR.add(paddle);
+  armRight.add(paddle);
 
-  // The head: skin all round, the face wrapped round its front.
+  // The head: skin all round, the face wrapped round its front, set low the
+  // way a Mii's is, under a tall forehead for the hair or the cap.
   const head = new Group();
-  head.position.y = 1.9 + HEAD_R * 0.8;
-  const skull = new Mesh(new SphereGeometry(HEAD_R, 32, 20), skin);
+  head.position.y = 1.75 + HEAD_R * 0.85;
+  const skull = new Mesh(new SphereGeometry(HEAD_R, 40, 24), skin);
   const faceMesh = new Mesh(
-    new SphereGeometry(HEAD_R * 1.004, 32, 20, Math.PI * 1.5 - 1, 2, 0.7, 1.5),
+    new SphereGeometry(HEAD_R * 1.004, 40, 24, Math.PI * 1.5 - FACE_WIDTH / 2, FACE_WIDTH, FACE_TOP, FACE_HEIGHT),
     faceMaterial,
   );
   head.add(skull, faceMesh);
   for (const x of [-1, 1]) {
-    const ear = new Mesh(new SphereGeometry(0.2, 10, 8), skin);
+    const ear = new Mesh(new SphereGeometry(0.22, 10, 8), skin);
     ear.scale.set(0.6, 1, 0.8);
-    ear.position.set(x * HEAD_R * 0.97, -0.05, 0.05);
+    ear.position.set(x * HEAD_R * 0.97, -0.08, 0.05);
     head.add(ear);
   }
-  if (host.cap) {
-    const capMaterial = toon(host.cap);
-    // The crown stops just above the brows, the brim off its front edge, a
-    // button on top: from behind, what tells the cap from hair.
-    const crown = new Mesh(new SphereGeometry(HEAD_R * 1.07, 28, 12, 0, Math.PI * 2, 0, 1.0), capMaterial);
-    crown.position.y = 0.04;
-    const brim = new Mesh(
-      new CylinderGeometry(0.62, 0.62, 0.06, 24, 1, false, Math.PI / 2, Math.PI),
-      capMaterial,
-    );
-    brim.position.set(0, 0.6, -0.8);
-    brim.rotation.x = -0.15;
-    const button = new Mesh(new SphereGeometry(0.1, 10, 8), capMaterial);
-    button.position.y = HEAD_R * 1.07 + 0.04;
-    // Hair showing under the cap at the back.
-    const nape = new Mesh(
-      new SphereGeometry(HEAD_R * 1.03, 20, 10, Math.PI / 2 - 1.3, 2.6, 0.95, 0.8),
-      hair,
-    );
-    head.add(crown, brim, button, nape);
-  } else {
-    // Short hair: a cap of it over the top, down the back to the nape.
-    const top = new Mesh(new SphereGeometry(HEAD_R * 1.05, 28, 12, 0, Math.PI * 2, 0, 1.0), hair);
-    const back = new Mesh(
-      new SphereGeometry(HEAD_R * 1.04, 24, 12, Math.PI / 2 - 1.45, 2.9, 0, 1.85),
-      hair,
-    );
-    head.add(top, back);
-  }
+  head.add(host.cap ? createCap(toon(host.cap), toon("#3a404a"), hair) : createHair(hair));
   upper.add(head);
 
   let stride = 0;
@@ -258,6 +380,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
   let swingSide: 1 | -1 = 1;
   let cheerT = Infinity;
   let slumpT = Infinity;
+  let gaze = 0;
 
   function update(dt: number, speed: number, ball: { x: number; y: number; z: number } | null) {
     swingT += dt;
@@ -269,7 +392,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     // Running: legs stride, arms pump against them, the body bobs.
     const s = Math.sin(stride) * runAmount;
     legL.rotation.x = s * 0.7;
-    legR.rotation.x = -s * 0.7;
+    legRight.rotation.x = -s * 0.7;
     let hop = Math.abs(Math.sin(stride)) * 0.14 * runAmount;
     let leftArm = { x: -s * 0.6, z: -0.12 };
     let rightArm = { x: s * 0.6 + 0.35, z: 0.25 };
@@ -304,11 +427,11 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
       rightArm = { x: 0.1, z: 0.1 };
     }
     body.position.y = hop;
-    head.rotation.x = ease(head.rotation.x, -0.45 * droop, 14, dt);
+    head.rotation.x = ease(head.rotation.x, gaze - 0.45 * droop, 14, dt);
     upper.rotation.x = ease(upper.rotation.x, -0.15 * droop, 14, dt);
     for (const [pivot, to] of [
-      [armL, leftArm],
-      [armR, rightArm],
+      [armLeft, leftArm],
+      [armRight, rightArm],
     ] as const) {
       pivot.rotation.x = ease(pivot.rotation.x, to.x, 18, dt);
       pivot.rotation.z = ease(pivot.rotation.z, to.z, 18, dt);
@@ -332,11 +455,10 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     update,
     setSkin(color) {
       skin.color.copy(color);
+      skin.emissive.copy(color);
     },
-    setFace(texture) {
-      faceMaterial.map?.dispose();
-      faceMaterial.map = texture;
-      faceMaterial.needsUpdate = true;
+    setGaze(angle) {
+      gaze = angle;
     },
     dispose() {
       const materials = new Set<Material>();

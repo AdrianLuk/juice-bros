@@ -47,9 +47,9 @@ export type RallyView = {
 
 const BALL_RADIUS = 0.42;
 /** The hosts drawn larger than life, as the ball is, so they read from the baseline. */
-const FIGURE_SCALE = 1.3;
+const FIGURE_SCALE = 1.35;
 /** The margin round a face image's features on the head, as a fraction of its side. */
-const FACE_INSET = 0.12;
+const FACE_INSET = 0.03;
 const COLORS = {
   sky: "#08090b",
   floor: "#121a22",
@@ -190,6 +190,7 @@ export async function createRallyView(container: HTMLElement, player: HostId): P
     adrian: createMii(HOSTS.adrian, faces[0].texture, font),
     daven: createMii(HOSTS.daven, faces[1].texture, font),
   };
+  for (const { texture } of faces) texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
   figures.adrian.setSkin(faces[0].skin);
   figures.daven.setSkin(faces[1].skin);
   const feetShadows = {} as Record<HostId, Mesh>;
@@ -232,6 +233,8 @@ export async function createRallyView(container: HTMLElement, player: HostId): P
       const facing = side === "player" ? 1 : -1;
       figure.group.position.set(at.x, 0, at.z);
       figure.group.rotation.y = side === "player" ? 0 : Math.PI;
+      // The far host looks up at the camera, so their face meets the player's.
+      figure.setGaze(side === "ai" ? 0.32 : 0);
       feetShadows[sides[side]].position.set(at.x, 0.04, at.z);
       const rel = {
         x: facing * (game.ball.x - at.x),

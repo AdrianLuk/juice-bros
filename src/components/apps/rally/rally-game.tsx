@@ -400,13 +400,14 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
                 <dd className="tabular-nums">{hud.score.ai}</dd>
               </div>
             </dl>
-            <button
-              type="button"
-              className="bx-btn bx-btn-ghost pointer-events-auto bg-black/70"
-              onClick={() => pause(true)}
-            >
-              Pause
-            </button>
+            <div className="pointer-events-auto flex gap-2">
+              <button type="button" className="bx-btn bx-btn-ghost bg-black/70" onClick={begin}>
+                Restart
+              </button>
+              <button type="button" className="bx-btn bx-btn-ghost bg-black/70" onClick={() => pause(true)}>
+                Pause
+              </button>
+            </div>
           </div>
           <p
             aria-hidden="true"
@@ -438,94 +439,102 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
         </>
       )}
 
-      {!filled && (
+      {playing && hud.paused && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/75 p-5 text-center">
+          <div className="flex max-w-sm flex-col items-center gap-5">
+            <h2 className="bx-h2 text-2xl">Paused</h2>
+            <p className="font-[family-name:var(--font-arena)] text-4xl font-extrabold tabular-nums">
+              {you} {hud.score.player}–{hud.score.ai} {opponent}
+            </p>
+            <p className="text-(--bx-muted)">{copy.paused}</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button ref={resumeRef} type="button" className="bx-btn bx-btn-play" onClick={resume}>
+                Resume
+              </button>
+              <button type="button" className="bx-btn bx-btn-ghost" onClick={begin}>
+                Restart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!playing && (
         <div className="absolute inset-0 flex items-end bg-linear-to-t from-black/95 via-black/80 via-60% to-black/10 p-5 sm:items-center sm:bg-linear-to-r sm:from-black/85 sm:via-black/40 sm:via-50% sm:to-transparent sm:p-8">
           <div className="flex max-w-sm flex-col items-start gap-5">
-            {playing && hud.paused ? (
+            {hud.phase === "over" ? (
               <>
-                <h2 className="bx-h2 text-2xl">Paused</h2>
-                <p className="text-(--bx-muted)">{copy.paused}</p>
-                <button ref={resumeRef} type="button" className="bx-btn bx-btn-play" onClick={resume}>
-                  Resume
-                </button>
+                <h2 className="bx-h2 text-2xl">
+                  {hud.winner === "player" ? copy.over.won : copy.over.lost}
+                </h2>
+                <p className="font-[family-name:var(--font-arena)] text-5xl font-extrabold tabular-nums">
+                  {hud.score.player}–{hud.score.ai}
+                </p>
               </>
             ) : (
-              <>
-                {hud.phase === "over" ? (
-                  <>
-                    <h2 className="bx-h2 text-2xl">
-                      {hud.winner === "player" ? copy.over.won : copy.over.lost}
-                    </h2>
-                    <p className="font-[family-name:var(--font-arena)] text-5xl font-extrabold tabular-nums">
-                      {hud.score.player}–{hud.score.ai}
-                    </p>
-                  </>
-                ) : (
-                  <h2 className="bx-h2 text-2xl">Who are you playing as?</h2>
-                )}
-                <fieldset>
-                  <legend className="sr-only">Play as</legend>
-                  <div className="flex gap-2">
-                    {(["adrian", "daven"] as const).map((id) => (
-                      <label
-                        key={id}
-                        className="cursor-pointer rounded-full border border-(--bx-line) px-4 py-2 text-[0.9375rem] font-semibold has-checked:border-(--bx-accent) has-checked:bg-(--bx-accent) has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2"
-                      >
-                        <input
-                          type="radio"
-                          name="rally-host"
-                          value={id}
-                          checked={host === id}
-                          onChange={() => pick(id)}
-                          className="sr-only"
-                        />
-                        {HOSTS[id].name}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                <p className="text-[0.9375rem] text-(--bx-muted)">
-                  You&apos;re {you}, and {opponent} is across the net. First to 11, win by 2.
+              <h2 className="bx-h2 text-2xl">Who are you playing as?</h2>
+            )}
+            <fieldset>
+              <legend className="sr-only">Play as</legend>
+              <div className="flex gap-2">
+                {(["adrian", "daven"] as const).map((id) => (
+                  <label
+                    key={id}
+                    className="cursor-pointer rounded-full border border-(--bx-line) px-4 py-2 text-[0.9375rem] font-semibold has-checked:border-(--bx-accent) has-checked:bg-(--bx-accent) has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2"
+                  >
+                    <input
+                      type="radio"
+                      name="rally-host"
+                      value={id}
+                      checked={host === id}
+                      onChange={() => pick(id)}
+                      className="sr-only"
+                    />
+                    {HOSTS[id].name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <p className="text-[0.9375rem] text-(--bx-muted)">
+              You&apos;re {you}, and {opponent} is across the net. First to 11, win by 2.
+            </p>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                role="switch"
+                checked={hud.slow}
+                onChange={(e) => toggleSlow(e.target.checked)}
+                className="mt-1 size-5 accent-(--bx-accent)"
+                aria-describedby="rally-slow-description"
+              />
+              <span>
+                <span className="font-semibold">Slow mode</span>
+                <span id="rally-slow-description" className="block text-sm text-(--bx-muted)">
+                  Half speed, for the ball and {opponent} alike.
+                </span>
+              </span>
+            </label>
+            {view === "unavailable" ? (
+              <p className="text-(--bx-muted)">
+                This browser can&apos;t draw the court (WebGL is off or not supported), so the
+                game can&apos;t run here.
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <button
+                  ref={actionRef}
+                  type="button"
+                  className="bx-btn bx-btn-play"
+                  disabled={!ready}
+                  onClick={begin}
+                >
+                  {hud.phase === "over" ? "Play again" : "Start"}
+                </button>
+                {/* Kept in the flow once the court is ready, so nothing shifts. */}
+                <p className={`text-sm text-(--bx-muted) ${ready ? "invisible" : ""}`}>
+                  Setting up the court…
                 </p>
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={hud.slow}
-                    onChange={(e) => toggleSlow(e.target.checked)}
-                    className="mt-1 size-5 accent-(--bx-accent)"
-                    aria-describedby="rally-slow-description"
-                  />
-                  <span>
-                    <span className="font-semibold">Slow mode</span>
-                    <span id="rally-slow-description" className="block text-sm text-(--bx-muted)">
-                      Half speed, for the ball and {opponent} alike.
-                    </span>
-                  </span>
-                </label>
-                {view === "unavailable" ? (
-                  <p className="text-(--bx-muted)">
-                    This browser can&apos;t draw the court (WebGL is off or not supported), so the
-                    game can&apos;t run here.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                    <button
-                      ref={actionRef}
-                      type="button"
-                      className="bx-btn bx-btn-play"
-                      disabled={!ready}
-                      onClick={begin}
-                    >
-                      {hud.phase === "over" ? "Play again" : "Start"}
-                    </button>
-                    {/* Kept in the flow once the court is ready, so nothing shifts. */}
-                    <p className={`text-sm text-(--bx-muted) ${ready ? "invisible" : ""}`}>
-                      Setting up the court…
-                    </p>
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </div>
         </div>

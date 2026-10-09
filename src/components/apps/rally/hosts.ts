@@ -1,9 +1,9 @@
 /**
  * The two hosts as the game draws them: Mii-style, from the photos in
- * public/pictures (faces from the Creator Night group photo, backs from
- * adrian-dav-backs-rally). `face` is a flat cartoon of the features on a
- * skin-tone square, wrapped round the front of the head; until it exists the
- * scene paints a simple stand-in from `glasses`.
+ * public/pictures (faces from the Creator Night group photo; builds and kit
+ * from that photo and adrian-dav-backs-rally). `face` is a flat cartoon of
+ * the features on a skin-tone square, wrapped round the front of the head;
+ * without one the scene paints a simple stand-in from `glasses`.
  */
 export type HostId = "adrian" | "daven";
 
@@ -14,16 +14,25 @@ export type Host = {
   face: string | null;
   skin: string;
   hair: string;
-  /** A ball cap over the hair, in this colour. */
+  /** A baseball cap over the hair, in this colour; short spiky hair without one. */
   cap: string | null;
   glasses: { frame: string; round: boolean };
   /** Leggings under the shorts, or bare legs. */
   leggings: boolean;
-  /** Relative to a standard figure: height, and width across the torso. */
-  build: { height: number; width: number };
+  /** The shorts' liner, showing below the hem. */
+  liner: string | null;
+  shoes: string;
+  /** A watch on the left wrist. */
+  watch: boolean;
+  /**
+   * Relative to a standard figure: overall height, leg length, torso width
+   * and depth, and how thick the arms and legs are.
+   */
+  build: { height: number; legs: number; width: number; depth: number; limbs: number };
 };
 
 export const HOSTS: Record<HostId, Host> = {
+  // Shorter and sturdy: broad through the chest and middle, thick arms and legs.
   adrian: {
     name: "Adrian",
     jersey: "ADRIAN",
@@ -33,18 +42,25 @@ export const HOSTS: Record<HostId, Host> = {
     cap: null,
     glasses: { frame: "#141414", round: false },
     leggings: false,
-    build: { height: 0.95, width: 1.12 },
+    liner: "#f25a24",
+    shoes: "#2c3448",
+    watch: false,
+    build: { height: 0.92, legs: 0.86, width: 1.22, depth: 1.18, limbs: 1.25 },
   },
+  // Taller and lean: long legs in black leggings, slim arms, white shoes.
   daven: {
     name: "Daven",
     jersey: "DAVEN",
     face: "/play/daven-face.webp",
     skin: "#dba47a",
     hair: "#17130f",
-    cap: "#2b3038",
+    cap: "#1c1f24",
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
-    build: { height: 1.06, width: 0.94 },
+    liner: null,
+    shoes: "#f1f2f4",
+    watch: true,
+    build: { height: 1.08, legs: 1.14, width: 0.94, depth: 0.88, limbs: 0.86 },
   },
 };
 
