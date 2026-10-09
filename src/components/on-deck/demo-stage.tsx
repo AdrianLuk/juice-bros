@@ -193,7 +193,7 @@ export function DemoStage() {
     setError(null);
     if (outcome.kind === "noop") return { ok: true };
 
-    // A wrap-up (`event`) appends as it stands: there is no RPC to go through.
+    // A wrap-up (`wrapUp`) appends as it stands: there is no RPC to go through.
     const at = Date.now();
     setLog((prev) => appendToDemoLog(prev, outcome.body, operator, at));
     // Every path that calls a new foursome onto a Court comes through here —

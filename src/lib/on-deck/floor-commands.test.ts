@@ -182,12 +182,12 @@ test("each command kind reaches its floor-ops decision", () => {
     [
       "volunteer",
       { kind: "lastCall" },
-      { kind: "event", body: { type: "LAST_CALL" } },
+      { kind: "wrapUp", body: { type: "LAST_CALL" } },
     ],
     [
       "organizer",
       { kind: "closeSession" },
-      { kind: "event", body: { type: "SESSION_CLOSED" } },
+      { kind: "wrapUp", body: { type: "SESSION_CLOSED" } },
     ],
   ];
 

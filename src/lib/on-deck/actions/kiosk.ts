@@ -47,7 +47,7 @@ export async function kioskFloorCommand(
     mintFloorIds(),
   );
   // Neither wrap-up is the Kiosk's, so the dispatcher never hands it one.
-  if (outcome.kind === "event") return { error: FLOOR_COMMAND_REFUSED };
+  if (outcome.kind === "wrapUp") return { error: FLOOR_COMMAND_REFUSED };
 
   return commitFloorOutcome(
     sessionId,
