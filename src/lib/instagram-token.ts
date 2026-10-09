@@ -1,4 +1,6 @@
 import { createClient } from "@vercel/edge-config";
+// `.js` so `node --test` (plain ESM, no exports map on `next`) can resolve it too.
+import { unstable_cache } from "next/cache.js";
 
 const EDGE_CONFIG_KEY = "instagram_token";
 
@@ -33,11 +35,19 @@ export async function getInstagramToken(): Promise<StoredInstagramToken | null> 
   return null;
 }
 
+// Cached for an hour, like the media fetch. The client's default `no-store`
+// fetch would otherwise make / and /contact render on every request. A token
+// the cron rotates is picked up within the hour, long before the old one expires.
+const getCachedEdgeConfigValue = unstable_cache(
+  () => createClient(process.env.EDGE_CONFIG).get<StoredInstagramToken>(EDGE_CONFIG_KEY),
+  ["instagram-token-edge-config"],
+  { revalidate: 3600 },
+);
+
 async function readFromEdgeConfig(): Promise<StoredInstagramToken | null> {
   if (!process.env.EDGE_CONFIG) return null;
   try {
-    const client = createClient(process.env.EDGE_CONFIG);
-    const value = await client.get<StoredInstagramToken>(EDGE_CONFIG_KEY);
+    const value = await getCachedEdgeConfigValue();
     if (value && typeof value.token === "string" && typeof value.expiresAt === "number") {
       return value;
     }
