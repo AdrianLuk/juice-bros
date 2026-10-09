@@ -1,9 +1,13 @@
 import "server-only";
 
 import { createAdminClient } from "./supabase/admin.ts";
-import { emailToUserFromEnv } from "./email-to-user.ts";
+import { deliver } from "./delivery/deliver.ts";
+import { emailSenderFromEnv } from "./delivery/resend-sender.ts";
+import { supabaseAddressLookup } from "./delivery/supabase-adapters.ts";
 import { personOptionLabel } from "./connections.ts";
 import { formatGameOffEmail } from "./game-off-email.ts";
+
+const LOG_TAG = "game-off-notify";
 
 /**
  * The I/O behind the "it's off" email (issue #578). Who to tell is decided
@@ -12,9 +16,10 @@ import { formatGameOffEmail } from "./game-off-email.ts";
  *
  * Admin client for the same reason the connection emails use one: the
  * recipients' addresses live in `auth.users`, which no User's grant reaches.
- * Best-effort throughout: every exit is a `return`, each send is separate so
- * one bad address doesn't stop the rest, and nothing here can undo or fail
- * the skip that triggered it.
+ * Best-effort throughout: every exit is a `return`, `deliver` (spec #610)
+ * sends to each recipient separately so one bad address doesn't stop the
+ * rest, no send log is kept, and nothing here can undo or fail the skip that
+ * triggered it.
  */
 export async function notifyGameOff(params: {
   recipientIds: readonly string[];
@@ -30,11 +35,14 @@ export async function notifyGameOff(params: {
   }
 
   try {
-    const supabase = createAdminClient();
-    const emailToUser = emailToUserFromEnv(supabase, "game-off-notify");
-    if (!emailToUser) {
+    // Checked first so an unconfigured environment skips the reads below too.
+    const sendEmail = emailSenderFromEnv();
+    if (!sendEmail) {
+      console.warn(`${LOG_TAG}: email is not configured, skipping it.`);
       return;
     }
+
+    const supabase = createAdminClient();
 
     const [{ data: owner }, { data: standingGame }] = await Promise.all([
       supabase.from("profiles").select("display_name, username").eq("id", params.ownerId).maybeSingle(),
@@ -52,10 +60,17 @@ export async function notifyGameOff(params: {
       weeklyGameContinues: Boolean(standingGame) && standingGame?.ended_at === null,
     });
 
-    for (const userId of params.recipientIds) {
-      await emailToUser(userId, { subject, html });
-    }
+    // One sender for every recipient; unlogged, so the result is ignored.
+    await deliver(
+      params.recipientIds.map((userId) => ({ channel: "email" as const, userId, subject, html })),
+      {
+        logTag: LOG_TAG,
+        lookupAddress: supabaseAddressLookup(supabase),
+        sendEmail,
+        sendPush: null,
+      },
+    );
   } catch (error) {
-    console.error("game-off-notify: unexpected failure", error);
+    console.error(`${LOG_TAG}: unexpected failure`, error);
   }
 }
