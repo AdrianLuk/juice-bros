@@ -92,11 +92,18 @@ test("the hero's standings re-sort when the score lands", async ({ page }) => {
 });
 
 for (const width of [390, 1440]) {
-  test(`at ${width} wide it never scrolls sideways`, async ({ browser }) => {
+  test(`at ${width} wide it never scrolls sideways, and ends at the footer`, async ({ browser }) => {
     const page = await (await browser.newContext({ viewport: { width, height: 900 } })).newPage();
     await page.goto(LANDING);
     await expect(page.getByRole("heading", { level: 2, name: "Questions" })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+    // Nothing inside the previews (the phone frame scrolls its own content)
+    // may stretch the page into blank space below the site footer.
+    const pastFooter = await page.evaluate(() => {
+      const footer = [...document.querySelectorAll("footer")].pop()!;
+      return document.documentElement.scrollHeight - (footer.getBoundingClientRect().bottom + window.scrollY);
+    });
+    expect(pastFooter).toBeLessThanOrEqual(1);
   });
 }

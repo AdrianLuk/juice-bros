@@ -2095,8 +2095,11 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   }
 }
 
-/* The Public Link as a phone opens it, held to a handset at every width. */
+/* The Public Link as a phone opens it, held to a handset at every width.
+   Positioned, so the screen-reader-only labels inside it (absolute) are
+   clipped with it instead of stretching the page below the footer. */
 .tt-land-phone {
+  position: relative;
   max-height: min(40rem, 78vh);
   overflow-y: auto;
   overscroll-behavior: contain;
