@@ -132,7 +132,7 @@ export type WrapUpBody = Extract<
 /** A `floor-ops` outcome, or a wrap-up event to append. */
 export type FloorCommandOutcome =
   | FloorOpOutcome
-  | { kind: "event"; body: WrapUpBody };
+  | { kind: "wrapUp"; body: WrapUpBody };
 
 /**
  * The refusal for a command outside the Operator's set. No screen offers such
@@ -194,8 +194,8 @@ export function dispatchFloorCommand(
     case "lowerGroupCap":
       return lowerGroupCapOutcome(state, command.cap);
     case "lastCall":
-      return { kind: "event", body: { type: "LAST_CALL" } };
+      return { kind: "wrapUp", body: { type: "LAST_CALL" } };
     case "closeSession":
-      return { kind: "event", body: { type: "SESSION_CLOSED" } };
+      return { kind: "wrapUp", body: { type: "SESSION_CLOSED" } };
   }
 }

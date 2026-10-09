@@ -70,7 +70,7 @@ export async function organizerFloorCommand(
     command,
     mintFloorIds(),
   );
-  if (outcome.kind === "event") {
+  if (outcome.kind === "wrapUp") {
     return outcome.body.type === "LAST_CALL"
       ? runLastCall(owned, sessionId)
       : runClose(owned, sessionId);

@@ -44,7 +44,7 @@ export async function volunteerFloorCommand(
     mintFloorIds(),
   );
   // Close is the Organizer's alone, so the one wrap-up event left is Last Call.
-  if (outcome.kind === "event") return runLastCall(sessionId, token);
+  if (outcome.kind === "wrapUp") return runLastCall(sessionId, token);
 
   return commitFloorOutcome(
     sessionId,
