@@ -17,7 +17,7 @@ import {
   restore,
   restoreRoster,
   saveFor,
-  type Draw,
+  type DrawnBoard,
   type EditorState,
   type Source,
 } from "@/components/apps/match-mixer/lib/board-editor";
@@ -823,7 +823,7 @@ function ActionNote({
   supported,
   blocked,
 }: {
-  draw: Draw | null;
+  draw: DrawnBoard | null;
   stale: boolean;
   size: number;
   /** Whether this many names can be drawn at the Pool count chosen. */

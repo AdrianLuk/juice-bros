@@ -64,7 +64,7 @@ import type { SharedBoard } from "./persistence/share-link.ts";
  */
 
 /** What the Schedule on screen was drawn from, kept beside it. */
-export interface Draw {
+export interface DrawnBoard {
   /**
    * The whole Config it came from, held rather than just its outputs. The
    * names matter because the engine works in positions, so a Schedule only
@@ -135,7 +135,7 @@ export interface EditorState {
    * otherwise, and clamped to what the Roster can make wherever it is read.
    */
   readonly pools: number;
-  readonly draw: Draw | null;
+  readonly draw: DrawnBoard | null;
   /**
    * Whether the saved Config has been read yet, which is only ever asked so
    * that saving cannot start before loading has finished. The screen itself
@@ -194,6 +194,15 @@ type KeyedConfig = Pick<
 > & { readonly headers: readonly PoolHeader[] };
 
 /**
+ * The `---` headers as one line, label and start for each, the way both keys
+ * below fold them in. One spelling rather than two, because the draw key's
+ * copy is pinned and a tidy-up made to only one of them would quietly move it.
+ */
+function headerLine(headers: readonly PoolHeader[]): string {
+  return headers.map((h) => `${h.label ?? ""}@${h.start}`).join(",");
+}
+
+/**
  * Everything generation depends on. Ids are deliberately absent: the engine
  * sees names and numbers only, so typing a name back to what it was is not a
  * change and should not leave the board flagged as stale.
@@ -229,9 +238,7 @@ function drawKey({
   headers,
 }: KeyedConfig): string {
   const declared =
-    headers.length > 0
-      ? `+declared:${headers.map((h) => `${h.label ?? ""}@${h.start}`).join(",")}`
-      : "";
+    headers.length > 0 ? `+declared:${headerLine(headers)}` : "";
   // The line as typed, joined on a newline because that is the one character
   // `parseRoster` will not leave inside a name. On a space, "Mary Ann / Bo"
   // and "Mary / Ann Bo" would key the same, and an edit between them would
@@ -240,19 +247,11 @@ function drawKey({
 }
 
 /** Draws the board for a Config, whether it was just asked for or restored. */
-function drawFrom(config: BoardConfig, outdated = false): Draw {
-  const { roster, courts, rounds, format, mixed, pools, headers } = config;
+function drawFrom(config: BoardConfig, outdated = false): DrawnBoard {
+  const { roster, courts, rounds, format, mixed, pools } = config;
   return {
     config,
-    key: drawKey({
-      roster,
-      courts,
-      rounds,
-      format,
-      mixed,
-      pools,
-      headers: headers ?? [],
-    }),
+    key: drawKey({ ...config, headers: config.headers ?? [] }),
     numbers: describeNumbers({
       players: roster.length,
       courts,
@@ -448,7 +447,7 @@ function borrowKey(
     format,
     mixed ? "mixed" : "",
     pools,
-    headers.map((h) => `${h.label ?? ""}@${h.start}`).join(","),
+    headerLine(headers),
     ...entries,
   ].join("\n");
 }
@@ -537,15 +536,10 @@ export function restore(state: EditorState, source: Source): EditorState {
   // calling it this browser's own is how it would end up in this browser's
   // storage.
   const { visit } = source;
-  const edited: EditedConfig = visit?.edited ?? {
-    roster: [],
-    courts: null,
-    rounds: null,
-    format: DEFAULT_FORMAT,
-    mixed: false,
-    pools: 1,
-    headers: [],
-  };
+  // Nothing saved reads back as the zero state's own Config, taken off `EMPTY`
+  // rather than typed out again, so the two cannot drift into different
+  // defaults for the same empty screen.
+  const edited = visit?.edited ?? editedOf(EMPTY);
   return settle({
     ...state,
     text: rosterText(edited.roster, edited.headers),
@@ -584,17 +578,23 @@ export function saveFor(state: EditorState): Save | null {
   // which is the mistake the undo is there for.
   if (state.cleared) return null;
   if (!state.held) return null;
+  return { edited: editedOf(state), drawn: state.draw?.config ?? null };
+}
+
+/**
+ * The fields as a save records them: choices as choices, so an untouched
+ * number stays `null` and keeps following the Roster when it is read back.
+ */
+function editedOf(state: EditorState): EditedConfig {
+  const { roster, courts, rounds, format, mixed, pools, text } = state;
   return {
-    edited: {
-      roster: state.roster,
-      courts: state.courts,
-      rounds: state.rounds,
-      format: state.format,
-      mixed: state.mixed,
-      pools: state.pools,
-      headers: parsePoolHeaders(state.text),
-    },
-    drawn: state.draw?.config ?? null,
+    roster,
+    courts,
+    rounds,
+    format,
+    mixed,
+    pools,
+    headers: parsePoolHeaders(text),
   };
 }
 
@@ -632,11 +632,19 @@ export function choosePools(state: EditorState, pools: number | null): EditorSta
  * typed.
  */
 export function chooseMixed(state: EditorState, mixed: boolean): EditorState {
-  return settle({
+  return settle(withMixed(state, mixed));
+}
+
+/**
+ * The box ticked or unticked and the lines read again under it, unsettled, so
+ * that `chooseFormat` can fold it into its own edit and settle the two once.
+ */
+function withMixed(state: EditorState, mixed: boolean): EditorState {
+  return {
     ...state,
     mixed,
     roster: parseRoster(state.text, state.roster, resolveMixed(state.format, mixed)),
-  });
+  };
 }
 
 /**
@@ -647,8 +655,8 @@ export function chooseMixed(state: EditorState, mixed: boolean): EditorState {
  * it.
  */
 export function chooseFormat(state: EditorState, format: Format): EditorState {
-  const next = settle({ ...state, format });
-  return format === "rotating" ? next : chooseMixed(next, false);
+  const next = { ...state, format };
+  return settle(format === "rotating" ? next : withMixed(next, false));
 }
 
 /**
@@ -728,15 +736,13 @@ export function keepSplit(state: EditorState): EditorState {
     text: rosterText(roster, headers),
     roster,
     cleared: null,
+    // The board's own Config with only the split changed: the same numbers,
+    // the same Format and the same Seed, which is what makes it the same board.
     draw: drawFrom({
+      ...draw.config,
       roster,
-      courts: draw.config.courts,
-      rounds: draw.config.rounds,
-      format: draw.config.format,
-      mixed: draw.config.mixed,
       pools: draw.pools.length,
       headers,
-      seed: draw.config.seed,
     }),
   });
 }

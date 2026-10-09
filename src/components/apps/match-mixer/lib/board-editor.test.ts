@@ -51,6 +51,21 @@ test("the draw key of a plain board has not moved", () => {
   );
 });
 
+/**
+ * The same string off the other road. What a stored Selection is filed under
+ * is the key on the drawn board, which `generate` builds from the Config it
+ * draws rather than from `derive`; the two agreeing is what keeps a board
+ * from reading stale the moment it is drawn, and the drawn one is the one
+ * `boardIdentity` stores.
+ */
+test("the draw key a generated board carries has not moved", () => {
+  const state = generate(typed(FOUR.join("\n"), 1, 3), 7);
+  assert.equal(
+    state.draw?.key,
+    "rotating/1/3/Ben Johns\nAnna Leigh Waters\nFederico Staksrud\nCatherine Parenteau",
+  );
+});
+
 test("the draw key of a mixed board has not moved", () => {
   const text = ["Ben Johns M", "Anna Leigh Waters F", "JW Johnson M", "Anna Bright F"].join("\n");
   const state = chooseMixed(typed(text, 1, 3), true);
