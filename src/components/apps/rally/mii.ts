@@ -40,6 +40,8 @@ const UP = new Vector3(0, 1, 0);
 const JERSEY = "#f26522";
 const SHORTS = "#16181b";
 const PADDLE = "#1b1e22";
+/** How far down the thigh the shorts reach, in feet. */
+const SHORTS_LENGTH = 0.55;
 const PADDLE_FACE = "#2d6cdf";
 
 /** How long a swing, a cheer and a slump last, in seconds. */
@@ -309,23 +311,22 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     const shoe = new Mesh(new SphereGeometry(0.28, 12, 8), shoeMaterial);
     shoe.scale.set(1, 0.6, 1.5);
     shoe.position.set(0, -legLength + 0.1, -0.12);
-    pivot.add(limb, shoe);
+    // Each leg of the shorts goes with its leg, so they read as shorts, not a skirt.
+    const short = new Mesh(new CylinderGeometry(legR + 0.1, legR + 0.13, SHORTS_LENGTH, 14), shorts);
+    short.scale.z = d;
+    short.position.y = -SHORTS_LENGTH / 2 + 0.05;
+    pivot.add(limb, shoe, short);
     body.add(pivot);
     return pivot;
   };
   const legL = leg(-0.3);
   const legRight = leg(0.3);
 
-  const shortsMesh = new Mesh(new CylinderGeometry(0.62 * w, 0.68 * w, 0.62, 20), shorts);
-  shortsMesh.scale.z = d;
-  shortsMesh.position.y = hipY + 0.05;
-  body.add(shortsMesh);
-  if (host.liner) {
-    const liner = new Mesh(new CylinderGeometry(0.69 * w, 0.69 * w, 0.12, 20, 1, true), toon(host.liner));
-    liner.scale.z = d;
-    liner.position.y = hipY - 0.3;
-    body.add(liner);
-  }
+  // The seat of the shorts, under the jersey's hem.
+  const seat = new Mesh(new CylinderGeometry(0.58 * w, 0.58 * w, 0.4, 20), shorts);
+  seat.scale.z = d;
+  seat.position.y = hipY + 0.1;
+  body.add(seat);
 
   upper.position.y = hipY;
   body.add(upper);

@@ -116,6 +116,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
   const copyRef = useRef(copy);
   copyRef.current = copy;
 
+  const [portraits, setPortraits] = useState<Record<HostId, string> | null>(null);
   const [view, setView] = useState<"loading" | "ready" | "unavailable">("loading");
   const [announcement, setAnnouncement] = useState("");
   const [dinkHeld, setDinkHeld] = useState(false);
@@ -199,6 +200,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
         viewRef.current = created;
         created.setEffects(!gameRef.current.slow);
         created.draw(gameRef.current, 0);
+        setPortraits(created.portraits());
         setView("ready");
       } catch {
         // No WebGL, or a stale chunk after a deploy.
@@ -469,8 +471,8 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
       )}
 
       {!playing && (
-        <div className="absolute inset-0 flex items-end bg-linear-to-t from-black/95 via-black/80 via-60% to-black/10 p-5 sm:items-center sm:bg-linear-to-r sm:from-black/85 sm:via-black/40 sm:via-50% sm:to-transparent sm:p-8">
-          <div className="flex max-w-sm flex-col items-start gap-5">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 p-4 text-center sm:p-8">
+          <div className="flex max-w-sm flex-col items-center gap-4 sm:gap-5">
             {hud.phase === "over" ? (
               <>
                 <h2 className="bx-h2 text-2xl">
@@ -485,12 +487,19 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
             )}
             <fieldset>
               <legend className="sr-only">Play as</legend>
-              <div className="flex gap-2">
+              <div className="flex justify-center gap-3">
                 {(["adrian", "daven"] as const).map((id) => (
                   <label
                     key={id}
-                    className="cursor-pointer rounded-full border border-(--bx-line) px-4 py-2 text-[0.9375rem] font-semibold has-checked:border-(--bx-accent) has-checked:bg-(--bx-accent) has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2"
+                    className="flex w-28 cursor-pointer flex-col items-center gap-2 rounded-(--bx-radius) border border-(--bx-line) bg-black/40 p-2.5 text-[0.9375rem] font-semibold has-checked:border-(--bx-accent) has-checked:bg-(--bx-accent) has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2 sm:w-32"
                   >
+                    {/* The host's own figure, rendered by the court once it loads. */}
+                    {portraits ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- a data URL the court just rendered
+                      <img src={portraits[id]} alt="" className="size-16 rounded-full sm:size-20" />
+                    ) : (
+                      <span aria-hidden className="size-16 rounded-full bg-(--bx-raised) sm:size-20" />
+                    )}
                     <input
                       type="radio"
                       name="rally-host"
@@ -507,7 +516,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
             <p className="text-[0.9375rem] text-(--bx-muted)">
               You&apos;re {you}, and {opponent} is across the net. First to 11, win by 2.
             </p>
-            <label className="flex cursor-pointer items-start gap-3">
+            <label className="flex cursor-pointer items-start gap-3 text-left">
               <input
                 type="checkbox"
                 role="switch"

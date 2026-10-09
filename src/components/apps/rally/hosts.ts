@@ -19,8 +19,6 @@ export type Host = {
   glasses: { frame: string; round: boolean };
   /** Leggings under the shorts, or bare legs. */
   leggings: boolean;
-  /** The shorts' liner, showing below the hem. */
-  liner: string | null;
   shoes: string;
   /** A watch on the left wrist. */
   watch: boolean;
@@ -32,7 +30,8 @@ export type Host = {
 };
 
 export const HOSTS: Record<HostId, Host> = {
-  // Shorter and sturdy: broad through the chest and middle, thick arms and legs.
+  // Shorter and sturdy: broad through the chest and middle, thick arms and legs,
+  // bare legs below black shorts.
   adrian: {
     name: "Adrian",
     jersey: "ADRIAN",
@@ -42,10 +41,9 @@ export const HOSTS: Record<HostId, Host> = {
     cap: null,
     glasses: { frame: "#141414", round: false },
     leggings: false,
-    liner: "#f25a24",
     shoes: "#2c3448",
     watch: false,
-    build: { height: 0.92, legs: 0.86, width: 1.22, depth: 1.18, limbs: 1.25 },
+    build: { height: 0.9, legs: 1.0, width: 1.2, depth: 1.15, limbs: 1.25 },
   },
   // Taller and lean: long legs in black leggings, slim arms, white shoes.
   daven: {
@@ -57,7 +55,6 @@ export const HOSTS: Record<HostId, Host> = {
     cap: "#1c1f24",
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
-    liner: null,
     shoes: "#f1f2f4",
     watch: true,
     build: { height: 1.08, legs: 1.14, width: 0.94, depth: 0.88, limbs: 0.86 },

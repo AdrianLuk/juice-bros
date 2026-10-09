@@ -1,4 +1,5 @@
 import {
+  Box3,
   BoxGeometry,
   CanvasTexture,
   CircleGeometry,
@@ -40,6 +41,8 @@ export type RallyView = {
   setEffects(on: boolean): void;
   /** Who plays: the player's host and the opponent's. */
   setHosts(player: HostId): void;
+  /** Each host's head and shoulders, as image URLs, for the picker. */
+  portraits(): Record<HostId, string>;
   /** How far a touch drag moves the player, in feet; null past the horizon. */
   drag(from: Vec, by: { x: number; y: number }): Vec | null;
   dispose(): void;
@@ -50,6 +53,9 @@ const BALL_RADIUS = 0.42;
 const FIGURE_SCALE = 1.35;
 /** The margin round a face image's features on the head, as a fraction of its side. */
 const FACE_INSET = 0.03;
+/** The picker's portraits: their size in pixels, and the panel colour behind them. */
+const PORTRAIT_SIZE = 256;
+const PORTRAIT_BACKGROUND = "#1b2129";
 const COLORS = {
   sky: "#08090b",
   floor: "#121a22",
@@ -261,8 +267,44 @@ export async function createRallyView(container: HTMLElement, player: HostId): P
     renderer.render(scene, camera);
   }
 
+  /**
+   * Each host's head and shoulders, front on: drawn through the court's own
+   * canvas at a small size and read back at once, then the canvas restored.
+   */
+  function portraits() {
+    const studio = new Scene();
+    studio.background = new Color(PORTRAIT_BACKGROUND);
+    studio.add(new HemisphereLight("#dfe8f5", "#1a1d22", 1.6));
+    const key = new DirectionalLight("#ffffff", 2.2);
+    key.position.set(-6, 10, 14);
+    studio.add(key);
+    const lens = new PerspectiveCamera(30, 1, 0.5, 100);
+    renderer.setSize(PORTRAIT_SIZE, PORTRAIT_SIZE, false);
+    const urls = {} as Record<HostId, string>;
+    for (const id of ["adrian", "daven"] as const) {
+      const { group } = figures[id];
+      const was = { position: group.position.clone(), rotation: group.rotation.y };
+      studio.add(group);
+      group.position.set(0, 0, 0);
+      group.rotation.y = Math.PI;
+      figures[id].setGaze(0);
+      figures[id].update(1, 0, null);
+      const top = new Box3().setFromObject(group).max.y;
+      lens.position.set(0, top - 1.2, 10);
+      lens.lookAt(0, top - 2.1, 0);
+      renderer.render(studio, lens);
+      urls[id] = renderer.domElement.toDataURL("image/png");
+      scene.add(group);
+      group.position.copy(was.position);
+      group.rotation.y = was.rotation;
+    }
+    resize();
+    return urls;
+  }
+
   return {
     draw,
+    portraits,
     setEffects(on) {
       effects = on;
     },
