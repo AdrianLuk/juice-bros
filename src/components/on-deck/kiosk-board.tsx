@@ -14,6 +14,7 @@ import {
 } from "@/components/on-deck/board-parts";
 import type { RotationView } from "@/lib/on-deck/session/rotation-view";
 import { SKILL_LEVELS, SKILL_LEVEL_LABEL } from "@/lib/on-deck/session/types";
+import type { FloorCommand } from "@/lib/on-deck/floor-commands";
 
 /*
  * The courtside Kiosk itself (issue #259), with nothing in it that knows where
@@ -25,24 +26,14 @@ import { SKILL_LEVELS, SKILL_LEVEL_LABEL } from "@/lib/on-deck/session/types";
  */
 
 /**
- * What a tap on the Kiosk does. The live board hands these to TanStack Query
- * mutations that call the Kiosk's Server Actions; the demo hands them a
- * reducer over an event array. Neither shape leaks into the board.
+ * What a tap on the Kiosk does: every tap but Undo is a floor command (issue
+ * #612). The live board hands it to one TanStack Query mutation that calls the
+ * Kiosk's Server Action; the demo hands it the dispatcher over an event array.
+ * Neither shape leaks into the board. `send` never rejects; "add me" reads
+ * what it resolves to, because the form clears itself only on success.
  */
 export type KioskBoardOps = {
-  finishCourt: (court: number, since: number | null) => void;
-  swapNoShow: (args: {
-    court: number;
-    since: number | null;
-    outName: string;
-    inName: string;
-  }) => void;
-  addWalkup: (args: {
-    first: string;
-    initial: string;
-    skill: string;
-  }) => Promise<{ ok?: boolean } | undefined>;
-  confirmCourt: (court: number, since: number | null) => void;
+  send: (command: FloorCommand) => Promise<{ ok?: boolean } | undefined>;
   undo: (expectedSeq: number) => void;
 };
 
@@ -373,7 +364,13 @@ export function KioskBoard({
                     }
                     disabled={busy || (!occupied && !nextReady)}
                     data-testid={`kiosk-court-${court.number}`}
-                    onClick={() => ops.finishCourt(court.number, court.since)}
+                    onClick={() =>
+                      ops.send({
+                        kind: "finishCourt",
+                        court: court.number,
+                        since: court.since,
+                      })
+                    }
                   >
                     {occupied ? `Court ${court.number} done` : "Send next four"}
                   </button>
@@ -391,7 +388,13 @@ export function KioskBoard({
                         className="od-key od-key--ghost"
                         disabled={busy}
                         data-testid={`kiosk-still-going-${court.number}`}
-                        onClick={() => ops.confirmCourt(court.number, court.since)}
+                        onClick={() =>
+                          ops.send({
+                            kind: "confirmCourt",
+                            court: court.number,
+                            since: court.since,
+                          })
+                        }
                       >
                         Still going
                       </button>
@@ -405,7 +408,9 @@ export function KioskBoard({
                       since={court.since}
                       suggested={court.suggestedReplacement}
                       waiting={view.waitingNames}
-                      onSwap={ops.swapNoShow}
+                      onSwap={(args) =>
+                        ops.send({ kind: "swapNoShow", ...args })
+                      }
                       pending={pending.swap}
                     />
                   )}
@@ -440,7 +445,17 @@ export function KioskBoard({
       </div>
 
       {!view.lastCall && (
-        <AddMe onAdd={ops.addWalkup} pending={pending.walkup} />
+        <AddMe
+          onAdd={({ first, initial, skill }) =>
+            ops.send({
+              kind: "addWalkup",
+              firstName: first,
+              lastInitial: initial,
+              skillLevel: skill,
+            })
+          }
+          pending={pending.walkup}
+        />
       )}
 
       {/* ── Queue ─────────────────────────────────────────────────────── */}

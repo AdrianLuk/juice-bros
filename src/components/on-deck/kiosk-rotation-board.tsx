@@ -1,20 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
 import { KioskBoard, type KioskBoardOps } from "@/components/on-deck/kiosk-board";
 import {
-  kioskAddWalkup,
-  kioskConfirmCourt,
-  kioskFinishCourt,
-  kioskSwapNoShow,
+  kioskFloorCommand,
   kioskUndoLastAction,
 } from "@/lib/on-deck/actions/kiosk";
 import { getRotationView } from "@/lib/on-deck/actions/rotation";
 import type { RotationView } from "@/lib/on-deck/session/rotation-view";
+import type {
+  FloorCommand,
+  FloorCommandKind,
+} from "@/lib/on-deck/floor-commands";
+
+/** What the Kiosk shows when a command's request itself fails (thrown, not
+ * refused): its own wording, which differs from the Floor's for a swap and an
+ * add. */
+const COMMAND_FAILED: Partial<Record<FloorCommandKind, string>> = {
+  finishCourt: "Couldn't end that game. Try again.",
+  swapNoShow: "Couldn't bring someone in. Try again.",
+  addWalkup: "Couldn't add you. Try again.",
+  confirmCourt: "Couldn't update that. Try again.",
+};
 
 /**
  * The *live* Kiosk (issue #259): `KioskBoard` wired to the database. Polls
@@ -71,33 +87,19 @@ function KioskRotationBoardInner({
     refresh();
   };
 
-  const finish = useMutation({
-    mutationFn: ({ court, since }: { court: number; since: number | null }) =>
-      kioskFinishCourt(sessionId, court, since),
+  // Keyed so `useMutationState` sees every command in flight, not just the
+  // latest one this hook fired.
+  const commandKey = ["on-deck", "kiosk-command", sessionId] as const;
+  const command = useMutation({
+    mutationKey: commandKey,
+    mutationFn: (sent: FloorCommand) => kioskFloorCommand(sessionId, sent),
     onSuccess: handle,
-    onError: () => setError("Couldn't end that game. Try again."),
+    onError: (_error, sent) =>
+      setError(COMMAND_FAILED[sent.kind] ?? "Something went wrong. Try again."),
   });
-  const swap = useMutation({
-    mutationFn: (args: {
-      court: number;
-      since: number | null;
-      outName: string;
-      inName: string;
-    }) => kioskSwapNoShow(sessionId, args.court, args.since, args.outName, args.inName),
-    onSuccess: handle,
-    onError: () => setError("Couldn't bring someone in. Try again."),
-  });
-  const walkup = useMutation({
-    mutationFn: (args: { first: string; initial: string; skill: string }) =>
-      kioskAddWalkup(sessionId, args.first, args.initial, args.skill),
-    onSuccess: handle,
-    onError: () => setError("Couldn't add you. Try again."),
-  });
-  const confirm = useMutation({
-    mutationFn: ({ court, since }: { court: number; since: number | null }) =>
-      kioskConfirmCourt(sessionId, court, since),
-    onSuccess: handle,
-    onError: () => setError("Couldn't update that. Try again."),
+  const inFlight = useMutationState({
+    filters: { mutationKey: commandKey, status: "pending" },
+    select: (mutation) => (mutation.state.variables as FloorCommand).kind,
   });
   const undo = useMutation({
     mutationFn: (expectedSeq: number) => kioskUndoLastAction(sessionId, expectedSeq),
@@ -106,26 +108,22 @@ function KioskRotationBoardInner({
   });
 
   const ops: KioskBoardOps = {
-    finishCourt: (court, since) => finish.mutate({ court, since }),
-    swapNoShow: (args) => swap.mutate(args),
-    addWalkup: (args) => walkup.mutateAsync(args),
-    confirmCourt: (court, since) => confirm.mutate({ court, since }),
+    // `onError` has already shown the failure; resolving `ok: false` keeps the
+    // "add me" form filled in, as a rejection did.
+    send: (sent) => command.mutateAsync(sent).catch(() => ({ ok: false })),
     undo: (expectedSeq) => undo.mutate(expectedSeq),
   };
-
-  const busy =
-    finish.isPending ||
-    swap.isPending ||
-    walkup.isPending ||
-    confirm.isPending ||
-    undo.isPending;
 
   return (
     <KioskBoard
       view={query.data ?? initialView}
       error={error}
       now={now}
-      pending={{ any: busy, swap: swap.isPending, walkup: walkup.isPending }}
+      pending={{
+        any: inFlight.length > 0 || undo.isPending,
+        swap: inFlight.includes("swapNoShow"),
+        walkup: inFlight.includes("addWalkup"),
+      }}
       ops={ops}
     />
   );

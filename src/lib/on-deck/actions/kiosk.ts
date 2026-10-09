@@ -8,41 +8,50 @@ import {
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
-  addWalkupOutcome,
-  confirmCourtOutcome,
-  finishCourtOutcome,
-  swapNoShowOutcome,
-  type FloorOpOutcome,
-} from "../floor-ops.ts";
+  dispatchFloorCommand,
+  FLOOR_COMMAND_REFUSED,
+  mintFloorIds,
+  type FloorCommand,
+} from "../floor-commands.ts";
 import { encode } from "../session/codec.ts";
-import type { SessionState } from "../session/types.ts";
 
 export type { FloorActionResult } from "../floor-commit.ts";
 
 const KIOSK_OFF = "The kiosk isn't available for this session right now.";
 
 /**
- * Every Kiosk floor action (issue #259): re-check that the Kiosk is available
- * for this Session, decide the outcome over the folded board (the same
- * `floor-ops` rules every Operator runs — ADR 0005), then append through
- * `on_deck_kiosk_append` — the one write path that stamps
- * `operator_kind = 'kiosk'` and enforces the Kiosk scope in the database.
+ * Every Kiosk floor tap (issues #259, #612): re-check that the Kiosk is
+ * available for this Session, decide the command over the folded board
+ * through `dispatchFloorCommand` (the same rules every Operator runs — ADR
+ * 0005), then append through `on_deck_kiosk_append` — the one write path that
+ * stamps `operator_kind = 'kiosk'` and enforces the Kiosk scope in the
+ * database. The Kiosk may send: Court done, a player short, add me, and the
+ * idle-court nudge's "still going".
  *
  * The Kiosk has no token: the Session id in the URL is its whole credential,
  * and `on_deck_check_kiosk_access` gates on Floor Mode. Anyone courtside can
  * tap — accepted (ADR 0005): a friendly social, Undo covers mistaps, the
  * Organizer keeps override.
  */
-async function kioskAppend(
+export async function kioskFloorCommand(
   sessionId: string,
-  decide: (state: SessionState) => FloorOpOutcome,
+  command: FloorCommand,
 ): Promise<FloorActionResult> {
   const loaded = await loadKioskSession(sessionId);
   if (!loaded) return { error: KIOSK_OFF };
 
+  const outcome = dispatchFloorCommand(
+    loaded.state,
+    "kiosk",
+    command,
+    mintFloorIds(),
+  );
+  // Neither wrap-up is the Kiosk's, so the dispatcher never hands it one.
+  if (outcome.kind === "event") return { error: FLOOR_COMMAND_REFUSED };
+
   return commitFloorOutcome(
     sessionId,
-    decide(loaded.state),
+    outcome,
     async (body) => {
       const event = encode(body);
       const supabase = await createClient();
@@ -58,67 +67,6 @@ async function kioskAppend(
     // Kiosk "Court done" that moves a Foursome On Deck or onto a Court fires
     // the push.
     loaded.state,
-  );
-}
-
-/** "Court N done" fired at the Kiosk — identical fold to a Volunteer's tap. */
-export async function kioskFinishCourt(
-  sessionId: string,
-  court: number,
-  expectedSince: number | null,
-): Promise<FloorActionResult> {
-  return kioskAppend(sessionId, (state) =>
-    finishCourtOutcome(state, court, expectedSince),
-  );
-}
-
-/**
- * "A player short" at the Kiosk: the three who showed up flag the missing
- * fourth by name and the app pulls a Match Me replacement into the Foursome
- * (reuses the no-show swap, issue #246). `inName` is the suggested replacement
- * the Kiosk pre-fills from `RotationView.courts[].suggestedReplacement`.
- */
-export async function kioskSwapNoShow(
-  sessionId: string,
-  court: number,
-  expectedSince: number | null,
-  outName: string,
-  inName: string,
-): Promise<FloorActionResult> {
-  return kioskAppend(sessionId, (state) =>
-    swapNoShowOutcome(state, court, expectedSince, outName, inName),
-  );
-}
-
-/**
- * "Add me" at the Kiosk (issue #259): a walk-up with no phone enters their name,
- * last initial, and Skill Level and lands in the Session and the Queue exactly
- * like a self-registered Player (reuses the walk-up flow, issue #249).
- */
-export async function kioskAddWalkup(
-  sessionId: string,
-  firstName: string,
-  lastInitial: string,
-  skillLevel: string,
-): Promise<FloorActionResult> {
-  const token = `walkup-${crypto.randomUUID()}`;
-  return kioskAppend(sessionId, (state) =>
-    addWalkupOutcome(state, token, firstName, lastInitial, skillLevel),
-  );
-}
-
-/**
- * The idle-court nudge's "yes, Court N is still going" tap (issue #259). Pushes
- * the next nudge out by roughly another Game length. `expectedSince` guards
- * against confirming a Game that has already turned over.
- */
-export async function kioskConfirmCourt(
-  sessionId: string,
-  court: number,
-  expectedSince: number | null,
-): Promise<FloorActionResult> {
-  return kioskAppend(sessionId, (state) =>
-    confirmCourtOutcome(state, court, expectedSince),
   );
 }
 

@@ -24,6 +24,7 @@ import {
   type PauseReason,
 } from "@/lib/on-deck/session/types";
 import type { ClubJoinQr } from "@/lib/on-deck/qr-types";
+import type { FloorCommand } from "@/lib/on-deck/floor-commands";
 
 /*
  * The floor screen itself (issue #243), with nothing in it that knows where the
@@ -588,36 +589,18 @@ function WrapUp({
 }
 
 /**
- * What a tap on the floor screen does. The live board hands these to TanStack
- * Query mutations that call Server Actions; the demo hands them a reducer over
- * an event array. Neither shape leaks into the board.
+ * What a tap on the floor screen does: every tap but Undo is a floor command
+ * (issue #612). The live board hands it to one TanStack Query mutation that
+ * calls the driving credential's Server Action; the demo hands it the
+ * dispatcher over an event array. Neither shape leaks into the board.
  *
- * The two that return a promise do so because the form behind them clears
- * itself only on success — everything else is fire-and-forget from the board's
- * point of view, with `error` and `pending` coming back as props.
+ * `send` never rejects. The walk-up and queue-together forms read what it
+ * resolves to, because they clear themselves only on success; everything else
+ * is fire-and-forget, with `error` and `pending` coming back as props.
  */
 export type FloorBoardOps = {
-  finishCourt: (court: number, since: number | null) => void;
-  swapNoShow: (args: {
-    court: number;
-    since: number | null;
-    outName: string;
-    inName: string;
-  }) => void;
-  setPlayerAside: (name: string) => void;
-  bringPlayerBack: (name: string) => void;
+  send: (command: FloorCommand) => Promise<{ ok?: boolean } | undefined>;
   undo: (expectedSeq: number) => void;
-  addWalkup: (args: {
-    first: string;
-    initial: string;
-    skill: string;
-  }) => Promise<{ ok?: boolean } | undefined>;
-  overrideSkill: (args: { name: string; skill: string }) => void;
-  formGroup: (names: string[]) => Promise<{ ok?: boolean } | undefined>;
-  setGroupCap: (cap: number) => void;
-  dissolveGroup: (groupId: string) => void;
-  callLastCall: () => void;
-  closeSession: () => void;
 };
 
 /**
@@ -759,7 +742,11 @@ export function FloorBoard({
                       }
                       disabled={busy || (!occupied && !nextReady)}
                       onClick={() =>
-                        ops.finishCourt(court.number, court.since)
+                        ops.send({
+                          kind: "finishCourt",
+                          court: court.number,
+                          since: court.since,
+                        })
                       }
                     >
                       {occupied ? `Court ${court.number} done` : "Send next four"}
@@ -772,7 +759,9 @@ export function FloorBoard({
                       since={court.since}
                       suggested={court.suggestedReplacement}
                       waiting={view.waitingNames}
-                      onSwap={ops.swapNoShow}
+                      onSwap={(args) =>
+                        ops.send({ kind: "swapNoShow", ...args })
+                      }
                       pending={pending.swap}
                     />
                   )}
@@ -813,7 +802,14 @@ export function FloorBoard({
         <>
           {joinQr && <ShowTheQr qr={joinQr} />}
           <AddWalkup
-            onAdd={ops.addWalkup}
+            onAdd={({ first, initial, skill }) =>
+              ops.send({
+                kind: "addWalkup",
+                firstName: first,
+                lastInitial: initial,
+                skillLevel: skill,
+              })
+            }
             pending={pending.walkup}
           />
         </>
@@ -839,8 +835,14 @@ export function FloorBoard({
           now={now}
           lastCall={view.lastCall}
           busy={busy}
-          onSetAside={live ? ops.setPlayerAside : undefined}
-          onBreakUp={live ? ops.dissolveGroup : undefined}
+          onSetAside={
+            live ? (name) => ops.send({ kind: "setAside", name }) : undefined
+          }
+          onBreakUp={
+            live
+              ? (groupId) => ops.send({ kind: "dissolveGroup", groupId })
+              : undefined
+          }
           data-testid="queue-list"
         />
       </section>
@@ -851,14 +853,16 @@ export function FloorBoard({
             waiting={view.groupablePlayers}
             groupCap={view.groupCap}
             groupCapMax={view.groupCapMax}
-            onForm={ops.formGroup}
-            onSetCap={ops.setGroupCap}
+            onForm={(names) => ops.send({ kind: "formGroup", names })}
+            onSetCap={(cap) => ops.send({ kind: "lowerGroupCap", cap })}
             pending={pending.group}
           />
 
           <SkillLevels
             roster={roster}
-            onOverride={ops.overrideSkill}
+            onOverride={({ name, skill }) =>
+              ops.send({ kind: "overrideSkill", name, skillLevel: skill })
+            }
             pending={pending.skill}
           />
         </>
@@ -870,8 +874,8 @@ export function FloorBoard({
           canClose={auth.kind === "organizer"}
           permitEndsAt={view.permitEndsAt}
           now={now}
-          onLastCall={ops.callLastCall}
-          onClose={ops.closeSession}
+          onLastCall={() => ops.send({ kind: "lastCall" })}
+          onClose={() => ops.send({ kind: "closeSession" })}
           pending={busy}
         />
       )}
@@ -896,7 +900,7 @@ export function FloorBoard({
                     type="button"
                     className="od-readout text-arena-dim underline-offset-4 hover:underline"
                     disabled={busy}
-                    onClick={() => ops.bringPlayerBack(p.name)}
+                    onClick={() => ops.send({ kind: "bringBack", name: p.name })}
                   >
                     Back in the queue
                   </button>

@@ -236,7 +236,7 @@ export async function formGroupViaRpc(
  * Fires "Court N done" through the Volunteer append RPC (issue #248) — the way
  * the volunteer floor screen does — so a spec can drive a turnover without
  * signing in an Organizer or opening the floor UI. Sends only `{ court }`;
- * unlike the real `finishCourt` action there is no stale-board guard, which a
+ * unlike a real `finishCourt` command there is no stale-board guard, which a
  * scripted spec doesn't need.
  */
 export async function finishCourtViaRpc(
