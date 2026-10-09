@@ -1447,17 +1447,16 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   background-color: var(--tt-ground);
   color: var(--tt-ink);
 }
+/* One row of chrome, all of it in the head: the night on the left, the
+   screens in the cycle in the middle, the stage on the right. The body below
+   gets every other pixel. */
 .tt-tv-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
   gap: 1.5em;
 }
 .tt-tv-id { display: grid; gap: 0.2em; min-width: 0; }
-/* The mark signs the screen from the bottom-right corner, like a network bug,
-   rather than sitting over the title. */
-.tt-tv-sign { display: inline-flex; align-items: center; gap: 1.4em; }
-.tt-tv-mark { font-size: 0.7em; pointer-events: none; }
 .tt-tv-title {
   margin: 0;
   font-family: var(--tt-cond);
@@ -1503,32 +1502,64 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 .tt-tv-screen { display: grid; min-height: 0; align-content: stretch; }
 .tt-tv-screen[hidden] { display: none; }
 
-.tt-tv-foot {
+.tt-tv-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1em;
+  justify-content: center;
+  gap: 0.4em 1.2em;
+  min-width: 0;
+  padding-bottom: 0.1em;
 }
 .tt-tv-cycle {
   display: flex;
-  gap: 1.8em;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3em;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+/* Small, and still a real target on a laptop or a phone holding the demo. */
+.tt-tv-cycle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.35em 0.7em;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tt-ink-dim);
   font-family: var(--tt-cond);
   font-weight: 700;
-  font-size: 0.72em;
-  letter-spacing: 0.14em;
+  font-size: 0.68em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--tt-ink-dim);
+  white-space: nowrap;
+  cursor: pointer;
 }
-.tt-tv-cycle li {
-  padding-bottom: 0.2em;
-  border-bottom: 0.2em solid transparent;
+.tt-tv-cycle-btn:hover { color: var(--tt-ink); background: oklch(0.2 0.035 262 / 0.06); }
+.tt-tv-cycle-btn:focus-visible { outline: 2px solid var(--tt-focus); outline-offset: 1px; }
+.tt-tv-cycle li[aria-current] .tt-tv-cycle-btn {
+  color: #ffffff;
+  background: var(--tt-ink);
 }
-.tt-tv-cycle li[aria-current] {
-  color: var(--tt-ink);
-  border-bottom-color: var(--tt-ink);
+/* Time left on the screen showing: the pie fills, and the cut comes when it
+   is full. Drawn in the button's own ink. */
+.tt-tv-pie { width: 1.15em; height: 1.15em; flex: none; }
+.tt-tv-pie-rim { fill: none; stroke: currentColor; stroke-width: 2; }
+.tt-tv-pie-fill {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 9;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transform: rotate(-90deg);
+  transform-origin: 10px 10px;
+  animation: tt-tv-pie var(--tt-pie-ms, 10s) linear forwards;
+}
+@keyframes tt-tv-pie {
+  to { stroke-dashoffset: 0; }
 }
 .tt-tv-link {
   font-size: 0.65em;
@@ -1813,6 +1844,10 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   border-radius: 0.75rem;
   background: var(--tt-ground);
   box-shadow: 0 10px 28px -16px oklch(0.2 0.035 262 / 0.55);
+}
+/* On a phone the TV is a thumbnail at best: give it the bezel's width back. */
+@media (max-width: 639px) {
+  .tt-demo-tv { border-width: 0.25rem; border-radius: 0.5rem; }
 }
 .tt-tv.tt-tv-framed {
   --u: min(1.25cqw, 2.2222cqh);

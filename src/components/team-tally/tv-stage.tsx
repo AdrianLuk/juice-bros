@@ -175,7 +175,8 @@ function screenNamed(screens: TvScreen[], id: string | undefined): TvScreen | un
  * Flight hand-off, the Flights and their court pairs at display size, holds the
  * stage alone until a Flight has a score, then leads the cycle. A finished
  * night leads with its results. `pinned` (the link's `?screen=`) holds one
- * screen still.
+ * screen still until somebody taps a screen's name in the head, which jumps
+ * there and restarts the cycle.
  *
  * Every screen stays mounted and only the current one is shown, so the
  * standings tower keeps its up and down marks and can slide its rows when it
@@ -202,12 +203,16 @@ export function TvStage({
   const screensKey = screens.map((screen) => screen.id).join(",");
   const visible = useStageVisible(view);
   const [cycleId, setCycleId] = useState<string | undefined>(undefined);
+  // A tap on a screen's name lets go of a ?screen= pin and restarts the clock
+  // on the screen tapped, even when it is already the one showing.
+  const [chosen, setChosen] = useState(0);
 
-  const pin = screenNamed(screens, pinned);
+  const pin = chosen === 0 ? screenNamed(screens, pinned) : undefined;
   const current = pin ?? screenNamed(screens, cycleId) ?? screens[0];
+  const cycling = visible && !pin && screens.length > 1;
 
   useEffect(() => {
-    if (!visible || pin || screens.length < 2) return;
+    if (!cycling) return;
     const timer = window.setTimeout(() => {
       const at = screens.findIndex((screen) => screen.id === current.id);
       setCycleId(screens[(at + 1) % screens.length].id);
@@ -215,7 +220,12 @@ export function TvStage({
     return () => window.clearTimeout(timer);
     // `screens` is derived from `screensKey` and `current.id`; both are listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, pin, screensKey, current.id, current.dwellMs]);
+  }, [cycling, screensKey, current.id, current.dwellMs, chosen]);
+
+  function show(id: string) {
+    setCycleId(id);
+    setChosen((count) => count + 1);
+  }
 
   const stage = stageOf(event);
   // Framed, the stage sits under the page's own title.
@@ -230,6 +240,35 @@ export function TvStage({
             {eventDateLabel(event.date)} · {event.teams.length} Teams
           </p>
         </div>
+
+        {/* The screens in the cycle, in the head so the body keeps the whole
+            height. Each is a button; the one showing carries a pie that fills
+            until the cut. */}
+        <nav className="tt-tv-nav" aria-label="Screen">
+          {screens.length > 1 && (
+            <ol className="tt-tv-cycle" aria-label="Screens">
+              {screens.map((screen) => {
+                const isCurrent = screen.id === current.id;
+                return (
+                  <li key={screen.id} aria-current={isCurrent ? "true" : undefined}>
+                    <button type="button" className="tt-tv-cycle-btn" onClick={() => show(screen.id)}>
+                      {isCurrent && cycling && (
+                        <CountdownPie key={`${screen.id}-${chosen}`} durationMs={screen.dwellMs} />
+                      )}
+                      {screen.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          {!framed && (
+            <a href="?view=scroll" className="tt-tv-link">
+              Scrolling view
+            </a>
+          )}
+        </nav>
+
         <div className="tt-tv-stage">
           <span className="tt-tv-stage-name">
             {stage.name}
@@ -251,31 +290,25 @@ export function TvStage({
           </section>
         ))}
       </div>
-
-      <footer className="tt-tv-foot">
-        {screens.length > 1 ? (
-          <ol className="tt-tv-cycle" aria-label="Screens">
-            {screens.map((screen) => (
-              <li key={screen.id} aria-current={screen.id === current.id ? "true" : undefined}>
-                {screen.label}
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <span />
-        )}
-        <div className="tt-tv-sign">
-          {!framed && (
-            <a href="?view=scroll" className="tt-tv-link">
-              Scrolling view
-            </a>
-          )}
-          <span className="tt-mark tt-tv-mark">
-            <span aria-hidden className="tt-mark-blocks" />
-            Team Tally
-          </span>
-        </div>
-      </footer>
     </div>
+  );
+}
+
+/**
+ * Time left on the screen showing: a pie that fills over its dwell, full at
+ * the cut. Remounted (by key) whenever the screen changes or is tapped, so the
+ * fill always starts empty.
+ */
+function CountdownPie({ durationMs }: { durationMs: number }) {
+  return (
+    <svg
+      aria-hidden
+      className="tt-tv-pie"
+      viewBox="0 0 20 20"
+      style={{ "--tt-pie-ms": `${durationMs}ms` } as CSSProperties}
+    >
+      <circle className="tt-tv-pie-rim" cx="10" cy="10" r="9" />
+      <circle className="tt-tv-pie-fill" cx="10" cy="10" r="4.5" pathLength={100} />
+    </svg>
   );
 }
