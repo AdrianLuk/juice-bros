@@ -190,21 +190,26 @@ function createHair(material: MeshToonMaterial) {
  * above the brows, seams from the button down each panel, a curved bill out
  * the front, and the strap's opening at the back with hair showing through.
  */
-function createCap(capMaterial: MeshToonMaterial, seamMaterial: MeshToonMaterial, hairMaterial: MeshToonMaterial) {
+function createCap(
+  capMaterial: MeshToonMaterial,
+  seamMaterial: MeshToonMaterial,
+  strapMaterial: MeshToonMaterial,
+  hairMaterial: MeshToonMaterial,
+) {
   const group = new Group();
   const R = HEAD_R;
-  const crownR = R * 1.08;
+  const crownR = R * 1.05;
   const band = R * 0.42;
   const bandTheta = Math.acos(band / crownR);
   // The crown: a dome a little taller than the head, the front panels standing up.
   const crown = new Group();
-  crown.scale.set(1, 1.08, 1.04);
+  crown.scale.set(1, 1, 1.04);
   crown.position.z = -0.03;
   const dome = new Mesh(new SphereGeometry(crownR, 36, 16, 0, Math.PI * 2, 0, bandTheta), capMaterial);
   crown.add(dome);
   // Seams down each panel, from the button to the band.
   for (let i = 0; i < 6; i++) {
-    const seam = new Mesh(new TorusGeometry(crownR + 0.005, R * 0.018, 4, 24, bandTheta), seamMaterial);
+    const seam = new Mesh(new TorusGeometry(crownR + 0.005, R * 0.012, 4, 24, bandTheta), seamMaterial);
     seam.rotation.z = Math.PI / 2 - bandTheta;
     const panel = new Group();
     panel.rotation.y = Math.PI / 2 + (i * Math.PI) / 3;
@@ -215,16 +220,28 @@ function createCap(capMaterial: MeshToonMaterial, seamMaterial: MeshToonMaterial
   button.position.y = crownR;
   // The strap's opening at the back: hair through an arch, the strap across its foot.
   const opening = new Mesh(
-    new SphereGeometry(crownR + 0.01, 12, 6, Math.PI / 2 - 0.32, 0.64, bandTheta - 0.42, 0.42),
+    new SphereGeometry(crownR + 0.01, 12, 6, Math.PI / 2 - 0.42, 0.84, bandTheta - 0.5, 0.5),
     hairMaterial,
   );
   crown.add(button, opening);
+  // The strap across the opening's foot, grey so it reads against the hair, and its buckle.
+  const strapArc = 0.95;
+  const strap = new Mesh(new TorusGeometry(Math.sqrt(crownR ** 2 - band ** 2) + 0.03, R * 0.05, 6, 16, strapArc), strapMaterial);
+  strap.rotation.z = Math.PI / 2 - strapArc / 2;
+  const strapRing = new Group();
+  strapRing.rotation.x = Math.PI / 2;
+  strapRing.scale.set(1, 1.04, 1);
+  strapRing.position.set(0, band + R * 0.07, -0.03);
+  strapRing.add(strap);
+  const buckle = new Mesh(new BoxGeometry(R * 0.16, R * 0.12, R * 0.05), strapMaterial);
+  buckle.position.set(R * 0.18, band + R * 0.07, Math.sqrt(crownR ** 2 - band ** 2) * 1.04 + 0.02);
+  group.add(strapRing, buckle);
   group.add(crown);
   // The sweatband's edge all round, which gives the cap its line.
   const edge = new Mesh(new TorusGeometry(Math.sqrt(crownR ** 2 - band ** 2), R * 0.045, 6, 40), capMaterial);
   edge.rotation.x = Math.PI / 2;
   edge.scale.set(1, 1.04, 1);
-  edge.position.set(0, band * 1.08, -0.03);
+  edge.position.set(0, band, -0.03);
   group.add(edge);
 
   // The bill: a rounded D, curved down at its sides, out from the front of the band.
@@ -244,12 +261,12 @@ function createCap(capMaterial: MeshToonMaterial, seamMaterial: MeshToonMaterial
   billGeometry.computeVertexNormals();
   const bill = new Mesh(billGeometry, capMaterial);
   const chord = Math.sqrt(Math.max(0, crownR ** 2 - band ** 2 - half ** 2));
-  bill.position.set(0, band * 1.08, -chord * 1.04);
+  bill.position.set(0, band, -chord * 1.04);
   bill.rotation.x = -0.08;
   group.add(bill);
 
   // Hair showing under the cap at the back and round the ears.
-  const nape = new Mesh(new SphereGeometry(R * 1.02, 24, 10, Math.PI / 2 - 1.4, 2.8, bandTheta - 0.1, 0.85), hairMaterial);
+  const nape = new Mesh(new SphereGeometry(R * 1.02, 24, 10, Math.PI / 2 - 1.4, 2.8, bandTheta - 0.05, 0.4), hairMaterial);
   group.add(nape);
   return group;
 }
@@ -371,7 +388,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     ear.position.set(x * HEAD_R * 0.97, -0.08, 0.05);
     head.add(ear);
   }
-  head.add(host.cap ? createCap(toon(host.cap), toon("#3a404a"), hair) : createHair(hair));
+  head.add(host.cap ? createCap(toon(host.cap), toon("#2c3139"), toon("#8d949e"), hair) : createHair(hair));
   upper.add(head);
 
   let stride = 0;
