@@ -271,6 +271,10 @@ export function MatchMixer() {
   // editor's question (`saveFor`): this only decides when, and makes sure the
   // last write lands on the way out.
   useEffect(() => {
+    // Nothing here runs before the read above has landed. On mount this
+    // effect runs straight after `seed()` and still sees the empty screen it
+    // replaces, which is neither a board to save nor a borrow released.
+    if (!editor.restored) return;
     if (linked.current && editor.borrowed === null) {
       linked.current = false;
       // The address bar was only ever describing the board that arrived, and
