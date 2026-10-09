@@ -11,42 +11,44 @@ import {
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
-  addWalkupOutcome,
-  bringBackOutcome,
-  dissolveGroupOutcome,
-  finishCourtOutcome,
-  formGroupOutcome,
-  lowerGroupCapOutcome,
-  overrideSkillOutcome,
-  setAsideOutcome,
-  swapNoShowOutcome,
-  type FloorOpOutcome,
-} from "../floor-ops.ts";
+  dispatchFloorCommand,
+  mintFloorIds,
+  type FloorCommand,
+} from "../floor-commands.ts";
 import { encode } from "../session/codec.ts";
-import type { SessionState } from "../session/types.ts";
 
 export type { FloorActionResult } from "../floor-commit.ts";
 
 const LINK_DEAD = "This volunteer link isn't active anymore.";
 
 /**
- * Every volunteer floor action: re-check the link token, decide the outcome
- * over the folded board (the same `floor-ops` rules the Organizer runs), then
- * append through `on_deck_volunteer_append` — the one write path that stamps
- * `operator_kind = 'volunteer'` and enforces the volunteer scope in the
- * database (issue #248), not just by hiding controls.
+ * Every volunteer floor tap (issue #612): re-check the link token, decide the
+ * command over the folded board through `dispatchFloorCommand` (the same rules
+ * the Organizer runs), then append through `on_deck_volunteer_append` — the
+ * one write path that stamps `operator_kind = 'volunteer'` and enforces the
+ * volunteer scope in the database (issue #248), not just by hiding controls.
+ * Last Call keeps its own RPC.
  */
-async function volunteerAppend(
+export async function volunteerFloorCommand(
   sessionId: string,
   token: string,
-  decide: (state: SessionState) => FloorOpOutcome,
+  command: FloorCommand,
 ): Promise<FloorActionResult> {
   const loaded = await loadVolunteerSession(sessionId, token);
   if (!loaded) return { error: LINK_DEAD };
 
+  const outcome = dispatchFloorCommand(
+    loaded.state,
+    "volunteer",
+    command,
+    mintFloorIds(),
+  );
+  // Close is the Organizer's alone, so the one wrap-up event left is Last Call.
+  if (outcome.kind === "event") return runLastCall(sessionId, token);
+
   return commitFloorOutcome(
     sessionId,
-    decide(loaded.state),
+    outcome,
     async (body) => {
       const event = encode(body);
       const supabase = await createClient();
@@ -59,114 +61,6 @@ async function volunteerAppend(
       return { error };
     },
     loaded.state,
-  );
-}
-
-/** "Court N done" / "Send next four", fired by a link-authenticated Volunteer. */
-export async function volunteerFinishCourt(
-  sessionId: string,
-  token: string,
-  court: number,
-  expectedSince: number | null,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    finishCourtOutcome(state, court, expectedSince),
-  );
-}
-
-/** "Set aside" a waiting Player. */
-export async function volunteerSetPlayerAside(
-  sessionId: string,
-  token: string,
-  playerName: string,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    setAsideOutcome(state, playerName),
-  );
-}
-
-/** "Back in the queue" for a Player who was set aside. */
-export async function volunteerBringPlayerBack(
-  sessionId: string,
-  token: string,
-  playerName: string,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    bringBackOutcome(state, playerName),
-  );
-}
-
-/** "Add a walk-up" Player (issue #249), fired by a link-authenticated Volunteer. */
-export async function volunteerAddWalkup(
-  sessionId: string,
-  token: string,
-  firstName: string,
-  lastInitial: string,
-  skillLevel: string,
-): Promise<FloorActionResult> {
-  const walkupToken = `walkup-${crypto.randomUUID()}`;
-  return volunteerAppend(sessionId, token, (state) =>
-    addWalkupOutcome(state, walkupToken, firstName, lastInitial, skillLevel),
-  );
-}
-
-/** "Fix a skill level" on any Player (issue #249). */
-export async function volunteerOverridePlayerSkill(
-  sessionId: string,
-  token: string,
-  playerName: string,
-  skillLevel: string,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    overrideSkillOutcome(state, playerName, skillLevel),
-  );
-}
-
-/** The no-show swap on an in-play Court. */
-export async function volunteerSwapNoShow(
-  sessionId: string,
-  token: string,
-  court: number,
-  expectedSince: number | null,
-  outName: string,
-  inName: string,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    swapNoShowOutcome(state, court, expectedSince, outName, inName),
-  );
-}
-
-/** "Queue together" (issue #250), fired by a link-authenticated Volunteer. */
-export async function volunteerFormGroup(
-  sessionId: string,
-  token: string,
-  playerNames: string[],
-): Promise<FloorActionResult> {
-  const groupId = `group-${crypto.randomUUID()}`;
-  return volunteerAppend(sessionId, token, (state) =>
-    formGroupOutcome(state, playerNames, groupId),
-  );
-}
-
-/** "Break up this group" (issue #251), fired by a link-authenticated Volunteer. */
-export async function volunteerDissolveGroup(
-  sessionId: string,
-  token: string,
-  groupId: string,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    dissolveGroupOutcome(state, groupId),
-  );
-}
-
-/** "Lower the group cap" (issue #250), fired by a link-authenticated Volunteer. */
-export async function volunteerLowerGroupCap(
-  sessionId: string,
-  token: string,
-  cap: number,
-): Promise<FloorActionResult> {
-  return volunteerAppend(sessionId, token, (state) =>
-    lowerGroupCapOutcome(state, cap),
   );
 }
 
@@ -188,16 +82,12 @@ export async function volunteerUndoLastAction(
 /**
  * "Last Call" fired by a link-authenticated Volunteer (issue #255). Goes
  * through `on_deck_last_call` with the token carried back so the database
- * re-checks the volunteer scope. Close stays the Organizer's alone — a
- * Volunteer has no close action.
+ * re-checks the volunteer scope.
  */
-export async function volunteerCallLastCall(
+async function runLastCall(
   sessionId: string,
   token: string,
 ): Promise<FloorActionResult> {
-  const loaded = await loadVolunteerSession(sessionId, token);
-  if (!loaded) return { error: LINK_DEAD };
-
   const supabase = await createClient();
   const { error } = await supabase.rpc("on_deck_last_call", {
     p_session_id: sessionId,

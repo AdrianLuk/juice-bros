@@ -11,16 +11,7 @@ import { getOpenSessionForClub, type LoadedSession } from "../sessions.ts";
 import { ON_DECK_DEV_PATH } from "../routes.ts";
 import type { SessionState } from "../session/types.ts";
 import { SKILL_LEVELS } from "../session/types.ts";
-import {
-  bringPlayerBack,
-  callLastCall,
-  closeSession,
-  finishCourt,
-  formGroup,
-  overridePlayerSkill,
-  setPlayerAside,
-  swapNoShow,
-} from "./floor.ts";
+import { organizerFloorCommand } from "./floor.ts";
 
 export type DevResult = { ok: true; note: string } | { ok?: false; error: string };
 
@@ -28,7 +19,7 @@ export type DevResult = { ok: true; note: string } | { ok?: false; error: string
  * The dev console's actions (issue #351). Every one gates on the dev key *and*
  * an Organizer session, then drives the same paths a real night uses — the
  * fake-Player adds go through the `anon` join/queue RPCs, everything else
- * reuses `actions/floor.ts` verbatim (ADR 0005: a synthetic Player is
+ * goes through `organizerFloorCommand` (ADR 0005: a synthetic Player is
  * indistinguishable from a real one to the fold).
  */
 
@@ -121,7 +112,9 @@ export async function devResetSession(): Promise<DevResult> {
 
   const open = await getOpenSessionForClub(supabase, club.id);
   if (open) {
-    const closed = await closeSession(open.config.sessionId);
+    const closed = await organizerFloorCommand(open.config.sessionId, {
+      kind: "closeSession",
+    });
     if ("error" in closed && closed.error) return { error: closed.error };
   }
 
@@ -190,11 +183,11 @@ export async function devSeatNextFour(): Promise<DevResult> {
   const empty = state.courts.find((c) => c.foursome.length === 0);
   if (!empty) return { error: "Every court has a game on it." };
 
-  const result = await finishCourt(
-    loaded.session.config.sessionId,
-    empty.number,
-    null,
-  );
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "finishCourt",
+    court: empty.number,
+    since: null,
+  });
   return fromFloor(result, `Sent the next four onto court ${empty.number}.`);
 }
 
@@ -217,7 +210,11 @@ export async function devFillCourts(): Promise<DevResult> {
     if (s.onDeck.length === 0 || s.onDeck[0].players.length === 0) break;
     const empty = s.courts.find((c) => c.foursome.length === 0);
     if (!empty) break;
-    const result = await finishCourt(sessionId, empty.number, null);
+    const result = await organizerFloorCommand(sessionId, {
+      kind: "finishCourt",
+      court: empty.number,
+      since: null,
+    });
     if ("error" in result && result.error) {
       return seated > 0
         ? done(`Seated ${seated}, then hit: ${result.error}`)
@@ -248,11 +245,11 @@ export async function devFinishCourt(court?: number): Promise<DevResult> {
       : shuffled(occupied)[0];
   if (!target) return { error: `Court ${court} isn't in play.` };
 
-  const result = await finishCourt(
-    loaded.session.config.sessionId,
-    target.number,
-    target.since,
-  );
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "finishCourt",
+    court: target.number,
+    since: target.since,
+  });
   return fromFloor(result, `Court ${target.number} done.`);
 }
 
@@ -269,7 +266,11 @@ export async function devFinishAllCourts(): Promise<DevResult> {
   const sessionId = loaded.session.config.sessionId;
   let finished = 0;
   for (const c of occupied) {
-    const result = await finishCourt(sessionId, c.number, c.since);
+    const result = await organizerFloorCommand(sessionId, {
+      kind: "finishCourt",
+      court: c.number,
+      since: c.since,
+    });
     if ("error" in result && result.error) {
       return finished > 0
         ? done(`Finished ${finished} court${finished === 1 ? "" : "s"}, then hit: ${result.error}`)
@@ -291,7 +292,10 @@ export async function devFormRandomGroup(): Promise<DevResult> {
 
   const size = Math.min(cap, 2 + Math.floor(Math.random() * (cap - 1)));
   const members = shuffled(waiting).slice(0, Math.min(size, waiting.length));
-  const result = await formGroup(loaded.session.config.sessionId, members);
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "formGroup",
+    names: members,
+  });
   return fromFloor(result, `Grouped ${members.length} waiting players`);
 }
 
@@ -306,11 +310,11 @@ export async function devOverrideRandomSkill(): Promise<DevResult> {
   const player = shuffled(roster)[0];
   const options = SKILL_LEVELS.filter((l) => l !== player.skillLevel);
   const level = options[Math.floor(Math.random() * options.length)];
-  const result = await overridePlayerSkill(
-    loaded.session.config.sessionId,
-    player.displayName,
-    level,
-  );
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "overrideSkill",
+    name: player.displayName,
+    skillLevel: level,
+  });
   return fromFloor(result, `${player.displayName} is now ${level}`);
 }
 
@@ -325,7 +329,10 @@ export async function devSetAsideRandom(): Promise<DevResult> {
   if (names.length === 0) return { error: "Nobody's in the queue." };
 
   const name = shuffled(names)[0];
-  const result = await setPlayerAside(loaded.session.config.sessionId, name);
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "setAside",
+    name,
+  });
   return fromFloor(result, `${name} is set aside`);
 }
 
@@ -340,7 +347,10 @@ export async function devRequeueRandom(): Promise<DevResult> {
   if (names.length === 0) return { error: "Nobody's stepped out." };
 
   const name = shuffled(names)[0];
-  const result = await bringPlayerBack(loaded.session.config.sessionId, name);
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "bringBack",
+    name,
+  });
   return fromFloor(result, `${name} is back in the queue`);
 }
 
@@ -361,13 +371,13 @@ export async function devSwapRandomNoShow(): Promise<DevResult> {
   const inName = nameOf(state, shuffled(waiting)[0].playerId);
   if (!outName || !inName) return { error: "Couldn't resolve those players." };
 
-  const result = await swapNoShow(
-    loaded.session.config.sessionId,
-    court.number,
-    court.since,
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "swapNoShow",
+    court: court.number,
+    since: court.since,
     outName,
     inName,
-  );
+  });
   return fromFloor(result, `Court ${court.number}: ${inName} in for ${outName}`);
 }
 
@@ -375,7 +385,9 @@ export async function devSwapRandomNoShow(): Promise<DevResult> {
 export async function devLastCall(): Promise<DevResult> {
   const loaded = await loadDevSession();
   if ("error" in loaded) return loaded;
-  const result = await callLastCall(loaded.session.config.sessionId);
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "lastCall",
+  });
   return fromFloor(result, "Last call.");
 }
 
@@ -383,6 +395,8 @@ export async function devLastCall(): Promise<DevResult> {
 export async function devCloseSession(): Promise<DevResult> {
   const loaded = await loadDevSession();
   if ("error" in loaded) return loaded;
-  const result = await closeSession(loaded.session.config.sessionId);
+  const result = await organizerFloorCommand(loaded.session.config.sessionId, {
+    kind: "closeSession",
+  });
   return fromFloor(result, "Session closed.");
 }

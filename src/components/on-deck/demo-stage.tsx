@@ -23,23 +23,15 @@ import {
   type DemoLog,
 } from "@/lib/on-deck/demo/fold";
 import {
-  addWalkupOutcome,
-  bringBackOutcome,
-  confirmCourtOutcome,
-  dissolveGroupOutcome,
-  finishCourtOutcome,
-  formGroupOutcome,
-  lowerGroupCapOutcome,
-  overrideSkillOutcome,
-  setAsideOutcome,
-  swapNoShowOutcome,
-  type FloorOpOutcome,
-} from "@/lib/on-deck/floor-ops";
+  dispatchFloorCommand,
+  mintFloorIds,
+  type FloorCommand,
+} from "@/lib/on-deck/floor-commands";
 import {
   floorRosterFrom,
   rotationViewFrom,
 } from "@/lib/on-deck/session/rotation-view";
-import type { EventBody, Operator } from "@/lib/on-deck/session/types";
+import type { Operator } from "@/lib/on-deck/session/types";
 import type { OnDeckFunnelEvent } from "@/lib/on-deck/analytics-events";
 import { trackWhenReady } from "@/lib/on-deck/analytics-browser";
 
@@ -52,8 +44,9 @@ import { trackWhenReady } from "@/lib/on-deck/analytics-browser";
  * Display, which already had no taps to widen a seam for.
  *
  * `FloorBoard` stands in for the Organizer; `KioskBoard` stands in for
- * whoever is stood at the courts. Both commit through the same pure
- * `floor-ops` decisions the live Server Actions call, appended to the same
+ * whoever is stood at the courts. Both send their taps through the same pure
+ * `dispatchFloorCommand` the live Server Actions call (issue #612), appended
+ * to the same
  * in-memory log (`demo/fold.ts`) held in `useState`, so a tap on one screen is
  * exactly what the other two see on their next render.
  */
@@ -107,11 +100,14 @@ const SCREENS: { id: DemoScreen; label: string }[] = [
   { id: "kiosk", label: "Kiosk" },
 ];
 
+/** The two Operators the demo stands in for. */
+type DemoOperator = Extract<Operator, { kind: "organizer" | "kiosk" }>;
+
 /** Whoever is tapping the demo's Floor is standing in for the Organizer. */
-const ORGANIZER: Operator = { kind: "organizer", userId: "demo-organizer" };
+const ORGANIZER: DemoOperator = { kind: "organizer", userId: "demo-organizer" };
 /** A tap on the demo's Kiosk carries the Kiosk's own Operator kind, exactly
  * like a real one — so Undo attributes it correctly on every screen. */
-const KIOSK: Operator = { kind: "kiosk" };
+const KIOSK: DemoOperator = { kind: "kiosk" };
 
 export function DemoStage() {
   const { origin, now } = useBoardClock();
@@ -171,16 +167,25 @@ export function DemoStage() {
   };
 
   /**
-   * Commit one floor decision as `operator`. An `error` outcome is shown and
-   * nothing is appended; a `noop` — a double tap on a Court that already
+   * The demo night's adapter over the floor dispatcher: decide `command` as
+   * `operator` over `state` (the board as last folded, unless "let it run"
+   * passes the latest) and commit the outcome. An `error` outcome is shown
+   * and nothing is appended; a `noop` — a double tap on a Court that already
    * turned over — clears the error and leaves the board alone, exactly as the
    * live path treats it. Returns whether the tap was accepted, for the forms
    * that clear themselves on success.
    */
-  const applyAs = (
-    operator: Operator,
-    outcome: FloorOpOutcome,
+  const sendAs = (
+    operator: DemoOperator,
+    command: FloorCommand,
+    state = loaded.state,
   ): { ok?: boolean } => {
+    const outcome = dispatchFloorCommand(
+      state,
+      operator.kind,
+      command,
+      mintFloorIds(),
+    );
     if (outcome.kind === "error") {
       setError(outcome.error);
       return { ok: false };
@@ -188,24 +193,13 @@ export function DemoStage() {
     setError(null);
     if (outcome.kind === "noop") return { ok: true };
 
-    append(outcome.body, operator);
+    // A wrap-up (`event`) appends as it stands: there is no RPC to go through.
+    const at = Date.now();
+    setLog((prev) => appendToDemoLog(prev, outcome.body, operator, at));
     // Every path that calls a new foursome onto a Court comes through here —
     // a tap on the Floor, a tap on the Kiosk, and "let it run" alike.
     if (outcome.body.type === "COURT_FINISHED") countTurnover();
     return { ok: true };
-  };
-
-  /** Append a body as `operator`, stamped now — what the in-memory event log's
-   * `append` does, and the database's `default now()` does for a live row. */
-  const append = (body: EventBody, operator: Operator): void => {
-    const at = Date.now();
-    setLog((prev) => appendToDemoLog(prev, body, operator, at));
-  };
-
-  /** Append an event no floor decision produces — the two wrap-up taps. */
-  const appendRaw = (body: EventBody): void => {
-    setError(null);
-    append(body, ORGANIZER);
   };
 
   /** Undo means the same thing it does in the database: drop the last event
@@ -221,65 +215,12 @@ export function DemoStage() {
   };
 
   const floorOps: FloorBoardOps = {
-    finishCourt: (court, since) =>
-      applyAs(ORGANIZER, finishCourtOutcome(loaded.state, court, since)),
-    swapNoShow: ({ court, since, outName, inName }) =>
-      applyAs(
-        ORGANIZER,
-        swapNoShowOutcome(loaded.state, court, since, outName, inName),
-      ),
-    setPlayerAside: (name) =>
-      applyAs(ORGANIZER, setAsideOutcome(loaded.state, name)),
-    bringPlayerBack: (name) =>
-      applyAs(ORGANIZER, bringBackOutcome(loaded.state, name)),
+    send: async (command) => sendAs(ORGANIZER, command),
     undo,
-    addWalkup: async ({ first, initial, skill }) =>
-      applyAs(
-        ORGANIZER,
-        addWalkupOutcome(
-          loaded.state,
-          `walkup-${crypto.randomUUID()}`,
-          first,
-          initial,
-          skill,
-        ),
-      ),
-    overrideSkill: ({ name, skill }) =>
-      applyAs(ORGANIZER, overrideSkillOutcome(loaded.state, name, skill)),
-    formGroup: async (names) =>
-      applyAs(
-        ORGANIZER,
-        formGroupOutcome(loaded.state, names, `group-${crypto.randomUUID()}`),
-      ),
-    setGroupCap: (cap) =>
-      applyAs(ORGANIZER, lowerGroupCapOutcome(loaded.state, cap)),
-    dissolveGroup: (groupId) =>
-      applyAs(ORGANIZER, dissolveGroupOutcome(loaded.state, groupId)),
-    callLastCall: () => appendRaw({ type: "LAST_CALL" }),
-    closeSession: () => appendRaw({ type: "SESSION_CLOSED" }),
   };
 
   const kioskOps: KioskBoardOps = {
-    finishCourt: (court, since) =>
-      applyAs(KIOSK, finishCourtOutcome(loaded.state, court, since)),
-    swapNoShow: ({ court, since, outName, inName }) =>
-      applyAs(
-        KIOSK,
-        swapNoShowOutcome(loaded.state, court, since, outName, inName),
-      ),
-    addWalkup: async ({ first, initial, skill }) =>
-      applyAs(
-        KIOSK,
-        addWalkupOutcome(
-          loaded.state,
-          `walkup-${crypto.randomUUID()}`,
-          first,
-          initial,
-          skill,
-        ),
-      ),
-    confirmCourt: (court, since) =>
-      applyAs(KIOSK, confirmCourtOutcome(loaded.state, court, since)),
+    send: async (command) => sendAs(KIOSK, command),
     undo,
   };
 
@@ -310,9 +251,10 @@ export function DemoStage() {
           ? court
           : longest,
       );
-      applyAs(
+      sendAs(
         ORGANIZER,
-        finishCourtOutcome(loadedRef.current.state, oldest.number, oldest.since),
+        { kind: "finishCourt", court: oldest.number, since: oldest.since },
+        loadedRef.current.state,
       );
     }, LET_IT_RUN_INTERVAL_MS);
     return () => clearInterval(id);

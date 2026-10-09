@@ -15,20 +15,12 @@ import {
   type FloorActionResult,
 } from "../floor-commit.ts";
 import {
-  addWalkupOutcome,
-  bringBackOutcome,
-  dissolveGroupOutcome,
-  finishCourtOutcome,
-  formGroupOutcome,
-  lowerGroupCapOutcome,
-  overrideSkillOutcome,
-  setAsideOutcome,
-  swapNoShowOutcome,
-  type FloorOpOutcome,
-} from "../floor-ops.ts";
+  dispatchFloorCommand,
+  mintFloorIds,
+  type FloorCommand,
+} from "../floor-commands.ts";
 
 export type { FloorActionResult } from "../floor-commit.ts";
-export type FinishCourtResult = FloorActionResult;
 
 /**
  * Load the Organizer's own Session, or an error. Every operational floor
@@ -58,23 +50,44 @@ async function loadOwnedOpenSession(
 }
 
 /**
- * Run a `floor-ops` decision as the Organizer: append the event through the
+ * Every Organizer floor tap (issue #612): decide the command over the folded
+ * board through `dispatchFloorCommand`, then append the event through the
  * Supabase event log, a plain INSERT under the foundation's "an Organizer
  * appends events to their own open Session" policy. A link-authenticated
- * Volunteer takes the same outcome to `on_deck_volunteer_append` instead
+ * Volunteer takes the same decision to `on_deck_volunteer_append` instead
  * (`actions/volunteer.ts`).
+ *
+ * Last Call and close Session keep their own RPCs, and on an already-closed
+ * Session they are moot rather than an error (a stale board, a double tap
+ * after close, a retry after a dropped response).
  */
-async function runAsOrganizer(
+export async function organizerFloorCommand(
   sessionId: string,
-  decide: (owned: OwnedSession) => FloorOpOutcome,
+  command: FloorCommand,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOpenSession(sessionId);
+  const owned = await loadOwnedOrError(sessionId);
   if ("error" in owned) return owned;
+
+  const outcome = dispatchFloorCommand(
+    owned.loaded.state,
+    "organizer",
+    command,
+    mintFloorIds(),
+  );
+  if (outcome.kind === "event") {
+    if (owned.loaded.status !== "open") return { ok: true };
+    return outcome.body.type === "LAST_CALL"
+      ? runLastCall(owned, sessionId)
+      : runClose(owned, sessionId);
+  }
+  if (owned.loaded.status !== "open") {
+    return { error: "This session has already wrapped up." };
+  }
 
   const log = supabaseEventLog(owned.supabase);
   return commitFloorOutcome(
     sessionId,
-    decide(owned),
+    outcome,
     async (body) => {
       try {
         await log.append(sessionId, body, {
@@ -87,147 +100,6 @@ async function runAsOrganizer(
       }
     },
     owned.loaded.state,
-  );
-}
-
-/**
- * "Court N done" (issue #243). Appends a `COURT_FINISHED` event; the
- * `reduceSession` fold re-queues the four coming off and walks the
- * longest-waiting Foursome onto the freed Court.
- *
- * `expectedSince` is the `since` the floor screen last saw for this Court — a
- * mismatch (a double tap, a stale board) makes this a silent no-op rather than
- * a second `COURT_FINISHED`.
- */
-export async function finishCourt(
-  sessionId: string,
-  court: number,
-  expectedSince: number | null,
-): Promise<FinishCourtResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    finishCourtOutcome(loaded.state, court, expectedSince),
-  );
-}
-
-/**
- * "Set aside" (issue #246, door 3): an Operator stands a Player down — clearly
- * gone home, or asked to sit out. Appends `PLAYER_PAUSED` (reason `set-aside`);
- * the fold pulls them from the Queue and any On Deck Foursome and holds their
- * Wait Time.
- */
-export async function setPlayerAside(
-  sessionId: string,
-  playerName: string,
-): Promise<FloorActionResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    setAsideOutcome(loaded.state, playerName),
-  );
-}
-
-/**
- * "Back in the queue" (issue #246): an Operator re-adds a paused Player.
- * Appends `PLAYER_REQUEUED`; the fold restores their accrued Wait Time.
- */
-export async function bringPlayerBack(
-  sessionId: string,
-  playerName: string,
-): Promise<FloorActionResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    bringBackOutcome(loaded.state, playerName),
-  );
-}
-
-/**
- * "Add a walk-up" (issue #249): the Organizer enters a Player with no phone —
- * name, last initial, Skill Level. Appends `PLAYER_JOINED` with a synthetic id
- * and `queueOnJoin`, so the fold drops them into the Session and the Queue
- * exactly like a self-registered Player.
- */
-export async function addWalkup(
-  sessionId: string,
-  firstName: string,
-  lastInitial: string,
-  skillLevel: string,
-): Promise<FloorActionResult> {
-  const token = `walkup-${crypto.randomUUID()}`;
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    addWalkupOutcome(loaded.state, token, firstName, lastInitial, skillLevel),
-  );
-}
-
-/**
- * "Fix a skill level" (issue #249): the Organizer corrects an obviously wrong
- * self-rating on any Player. Appends `PLAYER_SKILL_SET`; Match Me uses the
- * corrected level on its next selection.
- */
-export async function overridePlayerSkill(
-  sessionId: string,
-  playerName: string,
-  skillLevel: string,
-): Promise<FloorActionResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    overrideSkillOutcome(loaded.state, playerName, skillLevel),
-  );
-}
-
-/**
- * The no-show swap (issue #246, door 2): the Organizer taps a called Player who
- * didn't appear and names a replacement standing there. Appends
- * `FOURSOME_MEMBER_SWAPPED` — the fold pauses `out` (reason `no-show`, Wait
- * Time held) and seats `in` on the Court without restarting the Game.
- */
-export async function swapNoShow(
-  sessionId: string,
-  court: number,
-  expectedSince: number | null,
-  outName: string,
-  inName: string,
-): Promise<FloorActionResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    swapNoShowOutcome(loaded.state, court, expectedSince, outName, inName),
-  );
-}
-
-/**
- * "Queue together" (issue #250): the Organizer forms a Group from 2 to the live
- * cap waiting Players who asked to play together. Appends `GROUP_FORMED` with a
- * server-minted `group-<uuid>`; the fold queues them as one unit at their
- * median Wait Time and fills a short Group to four via Match Me.
- */
-export async function formGroup(
-  sessionId: string,
-  playerNames: string[],
-): Promise<FloorActionResult> {
-  const groupId = `group-${crypto.randomUUID()}`;
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    formGroupOutcome(loaded.state, playerNames, groupId),
-  );
-}
-
-/**
- * "Break up this group" (issue #251): the Organizer dissolves a waiting Group.
- * Appends `GROUP_DISSOLVED`; the fold drops the Group and its members re-sort as
- * solos. A no-op for a Group already on a Court.
- */
-export async function dissolveGroup(
-  sessionId: string,
-  groupId: string,
-): Promise<FloorActionResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    dissolveGroupOutcome(loaded.state, groupId),
-  );
-}
-
-/**
- * "Lower the group cap" (issue #250): the Organizer trims the live cap. Appends
- * `GROUP_CAP_CHANGED`; existing larger Groups are untouched.
- */
-export async function lowerGroupCap(
-  sessionId: string,
-  cap: number,
-): Promise<FloorActionResult> {
-  return runAsOrganizer(sessionId, ({ loaded }) =>
-    lowerGroupCapOutcome(loaded.state, cap),
   );
 }
 
@@ -252,15 +124,10 @@ export async function undoLastAction(
  * On Deck ones, while Games on Courts finish normally. Idempotent — a second
  * tap is a no-op.
  */
-export async function callLastCall(
+async function runLastCall(
+  owned: OwnedSession,
   sessionId: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOrError(sessionId);
-  if ("error" in owned) return owned;
-  // Already closed — Last Call is moot but not an error (a stale board, a
-  // double tap after close).
-  if (owned.loaded.status !== "open") return { ok: true };
-
   const { error } = await owned.supabase.rpc("on_deck_last_call", {
     p_session_id: sessionId,
   });
@@ -282,15 +149,10 @@ export async function callLastCall(
  * the event log and Player roster (ADR 0001) in one transaction. Idempotent on
  * an already-closed Session.
  */
-export async function closeSession(
+async function runClose(
+  owned: OwnedSession,
   sessionId: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOrError(sessionId);
-  if ("error" in owned) return owned;
-  // Already closed — a double tap or a retry after a dropped response. The RPC
-  // is idempotent too, but there is nothing to send and no summary to project.
-  if (owned.loaded.status !== "open") return { ok: true };
-
   const summary = projectSummary(owned.loaded.config, owned.loaded.events);
 
   const { error } = await owned.supabase.rpc("on_deck_close_session", {
