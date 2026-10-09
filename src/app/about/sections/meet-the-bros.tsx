@@ -108,14 +108,23 @@ export function MeetTheBros() {
         ))}
       </div>
 
-      {/* The way on from "who are these two" to more photos of them. A quiet
-          link, because it leaves the section rather than acting inside it. */}
-      <Link href="/photos" className="bx-quietlink group mt-8 inline-flex items-center">
-        More photos
-        <span aria-hidden className="bx-arrow">
-          &rarr;
-        </span>
-      </Link>
+      {/* The ways on from "who are these two": more photos of them, or a game
+          against one. Quiet links, because they leave the section rather than
+          acting inside it. */}
+      <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
+        <Link href="/photos" className="bx-quietlink group inline-flex items-center">
+          More photos
+          <span aria-hidden className="bx-arrow">
+            &rarr;
+          </span>
+        </Link>
+        <Link href="/play" className="bx-quietlink group inline-flex items-center">
+          Play a game against one of us
+          <span aria-hidden className="bx-arrow">
+            &rarr;
+          </span>
+        </Link>
+      </div>
     </section>
   );
 }

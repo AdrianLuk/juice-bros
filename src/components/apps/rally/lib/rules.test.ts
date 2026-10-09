@@ -22,10 +22,10 @@ function matches(actual: unknown, expected: unknown): boolean {
     return false;
   }
 }
-function expect(actual: unknown) {
+function expect(actual: unknown, message?: string) {
   const n = actual as number;
   return {
-    toBe: (e: unknown) => assert.equal(actual, e),
+    toBe: (e: unknown) => assert.equal(actual, e, message),
     toEqual: (e: unknown) => assert.deepStrictEqual(actual, e),
     toMatchObject: (e: object) => assert.ok(matches(actual, e), `${JSON.stringify(actual)} doesn't match ${JSON.stringify(e)}`),
     toContainEqual: (e: unknown) => assert.ok((actual as unknown[]).some((a) => matches(a, e)), `no item matches ${JSON.stringify(e)}`),
