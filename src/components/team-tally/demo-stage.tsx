@@ -7,6 +7,7 @@ import { generateBrief } from "@/lib/team-tally/brief";
 import { demoNight } from "@/lib/team-tally/demo/night";
 import { nextRunStep } from "@/lib/team-tally/demo/run";
 import { demoBriefInput, demoWrites } from "@/lib/team-tally/demo/seam";
+import { SCREENS, type DemoScreen } from "@/lib/team-tally/demo/screens";
 import { createDemoStore } from "@/lib/team-tally/demo/store";
 import { flightMatchups, openingMatchups, type TeamEventDoc } from "@/lib/team-tally/event-doc";
 import { CopyBriefButton } from "./copy-brief-button";
@@ -28,17 +29,6 @@ import { TvStage } from "./tv-stage";
 
 /** Long enough to see each score land, short enough to reach the results in under a minute. */
 const RUN_INTERVAL_MS = 700;
-
-type DemoScreen = "score" | "public" | "tv" | "organizer" | "brief";
-
-/** Each screen, who holds it, and what it is for: the tagline under its tab. */
-const SCREENS: { id: DemoScreen; label: string; who: string; what: string }[] = [
-  { id: "score", label: "Score Link", who: "For each captain", what: "Enter your Matchup's scores from your phone." },
-  { id: "public", label: "Public Link", who: "For players and fans", what: "Follow the standings and scores on any phone." },
-  { id: "tv", label: "TV", who: "For the venue screen", what: "Standings and Matchups, cycling on their own." },
-  { id: "organizer", label: "Organizer", who: "For the Organizer", what: "Fix any score, reopen a Matchup, call a tie." },
-  { id: "brief", label: "Brief", who: "For the group chat", what: "Teams, courts and links, ready to paste." },
-];
 
 /** Where the night is, in a line: for the bar above the screens. */
 function progressOf(event: TeamEventDoc): string {

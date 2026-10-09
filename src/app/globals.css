@@ -3302,6 +3302,31 @@ html:has(.bb-app-chrome) {
   }
   a.bx-panel:hover { background: var(--bx-raised-2); box-shadow: 0 0 0 1px var(--bx-line); }
 
+  /* A panel with more than one link (the tools cards): the main link's hit
+     area stretches over the whole panel, which is `relative`, and any other
+     link sits above it, so the panel is still one big target without nesting
+     a link inside a link. The panel answers hover and keyboard focus on its
+     main link the way an `a.bx-panel` answers hover. */
+  .bx-panel-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  .bx-panel-linked:has(.bx-panel-link:hover),
+  .bx-panel-linked:has(.bx-panel-link:focus-visible) {
+    background: var(--bx-raised-2);
+    box-shadow: 0 0 0 1px var(--bx-line);
+  }
+  .bx-panel-sublink {
+    position: relative;
+    z-index: 1;
+    text-decoration: underline;
+    text-decoration-color: var(--bx-line-2);
+    text-underline-offset: 0.25em;
+  }
+  .bx-panel-sublink:hover { text-decoration-color: currentColor; }
+
   .bx-hair { border-top: 1px solid var(--bx-line-soft); }
 
   /* ---- Photo rows ----------------------------------------------------------

@@ -3,37 +3,23 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { apps } from "@/data/apps";
-import { ScoreBug } from "@/components/team-tally/score-bug";
-import { TimingTower } from "@/components/team-tally/timing-tower";
-import { TtAppBar, TtHead } from "@/components/team-tally/tt-head";
+import { TeamTallyLanding } from "@/components/team-tally/landing/landing";
+import { TtHead } from "@/components/team-tally/tt-head";
 import { pageMetadata } from "@/lib/metadata";
 import { buildAppPageJsonLd, toJsonLdScript } from "@/lib/structured-data";
 import { signOut } from "@/lib/team-tally/actions/auth";
 import { getOptionalOrganizer } from "@/lib/team-tally/dal";
 import { listTeamEvents } from "@/lib/team-tally/events";
-import { bugRows } from "@/lib/team-tally/score-bug";
 import { eventDateLabel, eventDateParts } from "@/lib/team-tally/format";
-import {
-  TEAM_TALLY_DEMO_PATH,
-  TEAM_TALLY_NEW_EVENT_PATH,
-  TEAM_TALLY_SIGN_IN_PATH,
-  teamEventPath,
-} from "@/lib/team-tally/routes";
+import { TEAM_TALLY_NEW_EVENT_PATH, teamEventPath } from "@/lib/team-tally/routes";
 import { createClient } from "@/lib/team-tally/supabase/server";
 
 const app = apps.find((item) => item.slug === "team-tally")!;
 
-/** The example bug's Games, mid Round 2: Round 1 both in, Round 2's captains' Game in. */
-const EXAMPLE_GAMES = [
-  { round: 1, kind: "captains", redScore: 11, blueScore: 8 },
-  { round: 1, kind: "teammates", redScore: 11, blueScore: 9 },
-  { round: 2, kind: "captains", redScore: 11, blueScore: 7 },
-] as const;
-
 export const metadata: Metadata = pageMetadata({
   title: "Team Tally: Captained Team Night Scoring",
   description:
-    "Free scoring for captained pickleball team nights. Set up the teams and Matchups once and get the brief for your group chat.",
+    "Free scoring for captained pickleball team nights. Set up the teams once, post the brief, and captains score from their phones while the standings and Flights sort themselves.",
   path: app.href,
 });
 
@@ -51,122 +37,8 @@ export default async function TeamTallyPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppPageJsonLd(app)) }}
       />
-      {organizer ? <OrganizerList /> : <Landing />}
+      {organizer ? <OrganizerList /> : <TeamTallyLanding />}
     </div>
-  );
-}
-
-const ROUNDS = [
-  { round: 1, captains: "Captain + Player A, against the other captain + their Player A", teammates: "B and C, against B and C" },
-  { round: 2, captains: "Captain + Player B, against the other captain + their Player B", teammates: "A and C, against A and C" },
-  { round: 3, captains: "Captain + Player C, against the other captain + their Player C", teammates: "A and B, against A and B" },
-];
-
-function Landing() {
-  return (
-    <>
-      <TtAppBar context="Free for organizers" />
-      <section className="tt-wrap grid gap-10 pt-8 pb-14 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:items-center lg:gap-14 lg:pb-20">
-        <div className="grid gap-6">
-          <h1 className="tt-title">Scoring for captained team nights</h1>
-          <p className="tt-meta m-0">Free · Account for organizers only</p>
-          <p className="tt-lead">
-            Set up the night&apos;s teams and Matchups once. Team Tally writes the brief you post in the group
-            chat, with every roster and every court pair in it. Captains score from their phones, the
-            standings sort themselves, and the night splits into Flights on its own.
-          </p>
-          <div className="tt-actions">
-            <Link href={TEAM_TALLY_SIGN_IN_PATH} className="tt-btn">
-              Sign in to build a night
-            </Link>
-            <Link href={TEAM_TALLY_DEMO_PATH} className="tt-btn tt-btn-ghost">
-              Try a demo night
-            </Link>
-          </div>
-        </div>
-
-        <figure className="m-0 grid gap-3" aria-label="An example night, mid Round 2">
-          <ScoreBug
-            label="Match 1 · Courts 21 & 18"
-            liveRound={2}
-            red={{ name: "Kitchen Sync", rows: bugRows(EXAMPLE_GAMES, "red") }}
-            blue={{ name: "Dink Floyd", rows: bugRows(EXAMPLE_GAMES, "blue") }}
-          />
-          <TimingTower
-            label="Standings · opening round"
-            liveRound={2}
-            rows={[
-              { position: 1, name: "Kitchen Sync", side: "red", rounds: [22, 11, null], points: 33, move: 2 },
-              { position: 2, name: "Net Gains", side: "red", rounds: [21, 9, null], points: 30 },
-              { position: 3, name: "Third Shot Drop", side: "red", rounds: [20, 9, null], points: 29, move: -1 },
-              { position: 4, name: "Lob City", side: "blue", rounds: [19, 8, null], points: 27, move: -1 },
-            ]}
-          />
-          <figcaption className="tt-meta text-[0.8125rem]">Example night · made-up teams</figcaption>
-        </figure>
-      </section>
-
-      <section className="tt-wrap pb-20 sm:pb-28">
-        <div className="tt-sheet">
-          <div className="tt-section-head">
-            <h2 className="tt-h2">The format it runs</h2>
-            <span className="tt-meta">4 to 14 Teams · 3 Rounds · 6 Games</span>
-          </div>
-          <div className="tt-section-body grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-            <div className="grid content-start gap-4">
-              <p className="tt-body">
-                Teams of four, a captain and players A, B and C. Each Matchup puts two Teams on a pair of
-                courts for three Rounds. The captain partners A, then B, then C against the other captain,
-                while the other two on each side play their own game.
-              </p>
-              <p className="tt-body">
-                Team score is every point across the six Games. The top two Teams play for Flight A, the
-                next two for Flight B, and on down.
-              </p>
-            </div>
-            <ol className="m-0 grid list-none gap-0 p-0 sm:hidden">
-              {ROUNDS.map((row) => (
-                <li key={row.round} className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 border-t border-(--tt-rule) py-3">
-                  <span className="row-span-2 font-[family-name:var(--tt-cond)] text-2xl leading-none font-extrabold">
-                    R{row.round}
-                  </span>
-                  <p className="m-0 text-[0.9375rem]">
-                    <span className="tt-meta text-[0.8125rem]">Captains&apos; game </span>
-                    {row.captains}
-                  </p>
-                  <p className="m-0 text-[0.9375rem] text-(--tt-ink-dim)">
-                    <span className="tt-meta text-[0.8125rem]">Teammates&apos; game </span>
-                    {row.teammates}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full border-collapse text-left text-[0.9375rem]">
-                <thead>
-                  <tr className="tt-meta text-[0.8125rem]">
-                    <th className="py-2 pr-4 font-[inherit]">Round</th>
-                    <th className="py-2 pr-4 font-[inherit]">Captains&apos; game</th>
-                    <th className="py-2 font-[inherit]">Teammates&apos; game</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ROUNDS.map((row) => (
-                    <tr key={row.round} className="border-t border-(--tt-rule) align-top">
-                      <td className="py-3 pr-4 font-[family-name:var(--tt-cond)] text-2xl leading-none font-extrabold">
-                        R{row.round}
-                      </td>
-                      <td className="py-3 pr-4">{row.captains}</td>
-                      <td className="py-3 text-(--tt-ink-dim)">{row.teammates}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
   );
 }
 

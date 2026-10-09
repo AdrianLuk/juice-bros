@@ -56,11 +56,12 @@ export default function ToolsPage() {
       <div className="bx-measure pb-20 sm:pb-28">
         <ul className="grid gap-5 lg:grid-cols-2">
           {apps.map((app) => (
+            // The card is one target, as it was when it was a single link:
+            // "Open" stretches over the whole panel (`bx-panel-link`), and a
+            // demo link sits above that layer, so neither link is inside the
+            // other.
             <li key={app.slug} className="flex">
-              <Link
-                href={app.href}
-                className="bx-panel group flex w-full flex-col p-6 sm:p-8"
-              >
+              <article className="bx-panel bx-panel-linked group relative flex w-full flex-col p-6 sm:p-8">
                 <h2 className="bx-h2 text-lg transition-colors duration-200 group-hover:text-(--bx-muted) sm:text-xl">
                   {app.title}
                 </h2>
@@ -87,13 +88,20 @@ export default function ToolsPage() {
                   ))}
                 </ul>
 
-                <p className="bx-actionlink mt-7 pt-1">
-                  Open {app.title}
-                  <span aria-hidden className="bx-arrow">
-                    &rarr;
-                  </span>
-                </p>
-              </Link>
+                <div className="mt-auto flex flex-wrap items-center gap-x-6 gap-y-3 pt-7">
+                  <Link href={app.href} className="bx-actionlink bx-panel-link pt-1">
+                    Open {app.title}
+                    <span aria-hidden className="bx-arrow">
+                      &rarr;
+                    </span>
+                  </Link>
+                  {app.demoHref && (
+                    <Link href={app.demoHref} className="bx-quietlink bx-panel-sublink pt-1">
+                      Try the demo<span className="sr-only"> of {app.title}</span>
+                    </Link>
+                  )}
+                </div>
+              </article>
             </li>
           ))}
         </ul>

@@ -25,6 +25,13 @@ const TEAMS = [
 
 test("Team Tally is on the Tools shelf and its landing renders signed out", async ({ page }) => {
   await page.goto("/tools");
+  // The tools that ask for an account link to a demo from their card (#636).
+  await expect(page.getByRole("link", { name: "Try the demo of Team Tally" })).toHaveAttribute(
+    "href",
+    "/tools/team-tally/demo",
+  );
+  await expect(page.getByRole("link", { name: "Try the demo of On Deck" })).toHaveAttribute("href", "/on-deck/demo");
+  await expect(page.getByRole("link", { name: /Try the demo/ })).toHaveCount(2);
   await page.getByRole("link", { name: /Open Team Tally/ }).click();
 
   await expect(page).toHaveURL(/\/tools\/team-tally$/);
