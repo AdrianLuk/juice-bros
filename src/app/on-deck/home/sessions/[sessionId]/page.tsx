@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
-import { verifyOrganizer } from "@/lib/on-deck/dal";
-import { createClient } from "@/lib/on-deck/supabase/server";
-import { getOwnedClub } from "@/lib/on-deck/clubs";
-import { getScheduledSession } from "@/lib/on-deck/sessions";
+import { loadOwnedScheduledSession } from "@/lib/on-deck/owned-session";
 import { editSessionPath } from "@/lib/on-deck/routes";
 import { SessionForm } from "@/components/on-deck/session-form";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
@@ -39,17 +36,11 @@ export default async function OnDeckEditSessionPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = await params;
-  await verifyOrganizer();
-  const supabase = await createClient();
-
-  const club = await getOwnedClub(supabase);
-  const session = await getScheduledSession(supabase, sessionId).catch(
-    () => null,
-  );
-
-  if (!club || !session || session.clubId !== club.id) {
+  const owned = await loadOwnedScheduledSession(sessionId);
+  if (!owned) {
     notFound();
   }
+  const session = owned.loaded;
 
   return (
     <ArenaShell>
