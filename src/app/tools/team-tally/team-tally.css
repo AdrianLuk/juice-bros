@@ -1990,10 +1990,6 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   .tt-land-slot[data-screen="organizer"] { grid-column: span 5; }
   .tt-land-slot[data-screen="brief"] { grid-column: span 7; }
 }
-/* The Public Link's tower rides beside the taller Score Link as it scrolls. */
-@media (min-width: 1024px) {
-  .tt-land-sticky { position: sticky; top: 1.5rem; }
-}
 /* On a phone the TV would be a thumbnail with 3px type, so it keeps a size a
    person can read and scrolls sideways inside its own frame instead. */
 .tt-land-tv-hint { display: none; }

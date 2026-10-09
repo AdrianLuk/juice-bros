@@ -177,9 +177,7 @@ export function TeamTallyLanding() {
               </p>
             </Screen>
             <Screen id="public">
-              <div className="tt-land-sticky">
-                <StandingsTower event={nights.night} positions={[1, 8]} />
-              </div>
+              <StandingsTower event={nights.night} />
             </Screen>
             <Screen id="tv">
               <div className="tt-land-tv">
