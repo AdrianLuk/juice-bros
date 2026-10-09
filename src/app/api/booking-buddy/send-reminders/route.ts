@@ -7,7 +7,6 @@ import {
   supabaseAddressLookup,
 } from "@/lib/booking-buddy/delivery/supabase-adapters";
 import { pushSenderFromEnv } from "@/lib/booking-buddy/delivery/web-push-sender";
-import { readVapidEnv } from "@/lib/booking-buddy/env";
 import { createAdminClient } from "@/lib/booking-buddy/supabase/admin";
 import { MAX_REMINDER_OFFSET_MINUTES, type ReminderResponder } from "@/lib/booking-buddy/reminders";
 import {
@@ -73,15 +72,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
+  const supabase = createAdminClient();
+
   // A deploy without VAPID keys still sends email Reminders, just not push
   // ones. The planner never produces a push send then, so `deliver` would not
-  // warn about it; this is that one warning for the run.
-  const pushConfigured = readVapidEnv() !== null;
+  // warn about it; this is that one warning for the run. The planner's gate
+  // comes from the push port itself, so the two can't disagree.
+  const sendPush = pushSenderFromEnv(supabase);
+  const pushConfigured = sendPush !== null;
   if (!pushConfigured) {
     console.warn("send-reminders: push is not configured, skipping it this run.");
   }
-
-  const supabase = createAdminClient();
   const now = new Date();
 
   // Bounded to what could possibly be due right now — a Slot starting further
@@ -227,7 +228,7 @@ export async function GET(request: NextRequest) {
         logTag: "send-reminders",
         lookupAddress: supabaseAddressLookup(supabase),
         sendEmail: emailSenderFromEnv(),
-        sendPush: pushSenderFromEnv(supabase),
+        sendPush,
         markSent: slotUserChannelLog(supabase, "reminder_sends"),
       });
     }

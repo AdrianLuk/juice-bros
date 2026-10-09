@@ -1,6 +1,7 @@
 /**
  * Booking Buddy's one delivery loop (spec #610): every Reminder, Booking
- * Reminder, Weekly Invite, connection email and "it's off" email goes out
+ * Reminder, Weekly Invite, Connection Request Email, Connection Accepted Email
+ * and "it's off" email goes out
  * through `deliver`. The planners (`reminder-run.ts`, `weekly-invites.ts`)
  * decide who gets what; this carries the sends out — the address lookup, the
  * channel dispatch, pruning a dead push device, the best-effort send-log
@@ -20,14 +21,14 @@
 /** One email to one User. The address is looked up here, not by the planner: no table exposes one. */
 export type EmailSend = { channel: "email"; userId: string; subject: string; html: string };
 
-/** One `push_subscriptions` row. `id` rides along for the 404/410 prune. */
-export type PushDevice = { id: string; endpoint: string; p256dh: string; auth: string };
+/** One `push_subscriptions` row: one device. `id` rides along for the 404/410 prune. */
+export type StoredPushSubscription = { id: string; endpoint: string; p256dh: string; auth: string };
 
 /** One push to every device a User has registered. */
 export type PushSend = {
   channel: "push";
   userId: string;
-  subscriptions: readonly PushDevice[];
+  subscriptions: readonly StoredPushSubscription[];
   /** Serialized by the push sender. */
   payload: unknown;
 };
@@ -47,9 +48,9 @@ export type EmailSender = (email: {
 }) => Promise<SendResult>;
 
 export type PushSender = {
-  send(device: PushDevice, payload: unknown): Promise<PushResult>;
-  /** Deletes a device the push service reported gone, so later runs stop trying it. */
-  forget(deviceId: string): Promise<void>;
+  send(subscription: StoredPushSubscription, payload: unknown): Promise<PushResult>;
+  /** Deletes a subscription the push service reported gone, so later runs stop trying it. */
+  forget(subscriptionId: string): Promise<void>;
 };
 
 /** The User's address, or `null` when they have none. Throw on a lookup error. */
@@ -70,7 +71,7 @@ export type DeliveryPorts<S extends PlannedSend> = {
   sendEmail: EmailSender | null;
   /** `null` when the VAPID keys aren't configured: every push is `skipped`. */
   sendPush: PushSender | null;
-  /** Leave out for the sends that keep no log (the connection and "it's off" emails). */
+  /** Leave out for the sends that keep no log (the two Connection emails and the "it's off" email). */
   markSent?: MarkSent<S>;
 };
 
@@ -93,7 +94,8 @@ export async function deliver<S extends PlannedSend>(
   const warned = new Set<PlannedSend["channel"]>();
 
   for (const send of sends) {
-    if ((send.channel === "email" ? ports.sendEmail : ports.sendPush) === null) {
+    const attempt = attemptOnChannel(send, ports);
+    if (attempt === null) {
       if (!warned.has(send.channel)) {
         warned.add(send.channel);
         console.warn(`${ports.logTag}: ${send.channel} is not configured, skipping it this run.`);
@@ -104,10 +106,7 @@ export async function deliver<S extends PlannedSend>(
 
     let outcome: Outcome;
     try {
-      outcome =
-        send.channel === "email"
-          ? await deliverEmail(send, ports.sendEmail!, ports)
-          : await deliverPush(send, ports.sendPush!, ports.logTag);
+      outcome = await attempt();
     } catch (error) {
       console.error(`${ports.logTag}: sending to ${send.userId} failed`, error);
       outcome = "failed";
@@ -120,6 +119,19 @@ export async function deliver<S extends PlannedSend>(
   }
 
   return result;
+}
+
+/** The send bound to its channel's port, or `null` when that channel isn't configured. */
+function attemptOnChannel<S extends PlannedSend>(
+  send: S,
+  ports: DeliveryPorts<S>,
+): (() => Promise<Outcome>) | null {
+  if (send.channel === "email") {
+    const sendEmail = ports.sendEmail;
+    return sendEmail ? () => deliverEmail(send, sendEmail, ports) : null;
+  }
+  const sendPush = ports.sendPush;
+  return sendPush ? () => deliverPush(send, sendPush, ports.logTag) : null;
 }
 
 async function deliverEmail(
@@ -148,10 +160,10 @@ async function deliverPush(send: PushSend, sendPush: PushSender, logTag: string)
   }
 
   let anyDelivered = false;
-  for (const device of send.subscriptions) {
+  for (const subscription of send.subscriptions) {
     let result: PushResult;
     try {
-      result = await sendPush.send(device, send.payload);
+      result = await sendPush.send(subscription, send.payload);
     } catch (error) {
       result = { status: "error", error };
     }
@@ -160,7 +172,7 @@ async function deliverPush(send: PushSend, sendPush: PushSender, logTag: string)
       anyDelivered = true;
     } else if (result.status === "gone") {
       try {
-        await sendPush.forget(device.id);
+        await sendPush.forget(subscription.id);
       } catch (error) {
         console.error(`${logTag}: forgetting a dead push device failed`, error);
       }

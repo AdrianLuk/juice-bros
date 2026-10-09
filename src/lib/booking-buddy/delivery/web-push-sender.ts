@@ -5,33 +5,30 @@ import webpush from "web-push";
 
 import { readVapidEnv, type VapidEnv } from "../env.ts";
 import type { PushSender } from "./deliver.ts";
+import { pushResultForError } from "./push-error.ts";
 import { pruneSubscription } from "./supabase-adapters.ts";
 
 /**
  * `deliver`'s push port over web-push. The VAPID details go with each request
  * rather than through `webpush.setVapidDetails`, so nothing global is set.
- * A 404 or 410 means the push service has dropped the device: `gone`, and
- * `deliver` hands it to `forget`.
+ * What a throw means (`gone` for 404/410) is `pushResultForError`.
  */
-export function webPushSender(
-  env: VapidEnv,
-  forget: (deviceId: string) => Promise<void>,
-): PushSender {
+function webPushSender(env: VapidEnv, forget: (subscriptionId: string) => Promise<void>): PushSender {
   const vapidDetails = { subject: env.subject, publicKey: env.publicKey, privateKey: env.privateKey };
   return {
-    async send(device, payload) {
+    async send(subscription, payload) {
       try {
         await webpush.sendNotification(
-          { endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.auth } },
+          {
+            endpoint: subscription.endpoint,
+            keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+          },
           JSON.stringify(payload),
           { vapidDetails },
         );
         return { status: "ok" };
       } catch (error) {
-        const statusCode = (error as { statusCode?: number }).statusCode;
-        return statusCode === 404 || statusCode === 410
-          ? { status: "gone" }
-          : { status: "error", error };
+        return pushResultForError(error);
       }
     },
     forget,
@@ -39,10 +36,12 @@ export function webPushSender(
 }
 
 /**
- * The push port from the VAPID env vars, pruning gone devices through the
+ * The push port from the VAPID env vars, pruning gone subscriptions through the
  * caller's admin client, or `null` (`deliver` then skips push) when any is unset.
  */
 export function pushSenderFromEnv(supabase: SupabaseClient): PushSender | null {
   const env = readVapidEnv();
-  return env ? webPushSender(env, (deviceId) => pruneSubscription(supabase, deviceId)) : null;
+  return env
+    ? webPushSender(env, (subscriptionId) => pruneSubscription(supabase, subscriptionId))
+    : null;
 }
