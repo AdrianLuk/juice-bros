@@ -7,6 +7,8 @@ import {
   readMicrosoftApiBaseUrl,
   readMicrosoftOAuthClientId,
   readPublicSupabaseEnv,
+  readResendEnv,
+  readVapidEnv,
   requireGoogleMapsApiKey,
   requireMicrosoftOAuthClientId,
   requireMicrosoftOAuthClientSecret,
@@ -133,3 +135,35 @@ test("readMicrosoftApiBaseUrl uses the override when set", () => {
   );
 });
 
+
+test("readResendEnv is null unless both the key and the From address are set", () => {
+  assert.equal(readResendEnv({}), null);
+  assert.equal(readResendEnv({ RESEND_API_KEY: "re_123" }), null);
+  assert.equal(readResendEnv({ RESEND_API_KEY: "re_123", REMINDER_FROM_EMAIL: "  " }), null);
+});
+
+test("readResendEnv returns the key and the From address when both are set", () => {
+  assert.deepEqual(
+    readResendEnv({ RESEND_API_KEY: "re_123", REMINDER_FROM_EMAIL: "bb@juicebros.ca" }),
+    { apiKey: "re_123", from: "bb@juicebros.ca" },
+  );
+});
+
+test("readVapidEnv is null unless all three VAPID values are set", () => {
+  assert.equal(readVapidEnv({}), null);
+  assert.equal(
+    readVapidEnv({ NEXT_PUBLIC_VAPID_PUBLIC_KEY: "pub", VAPID_PRIVATE_KEY: "priv" }),
+    null,
+  );
+});
+
+test("readVapidEnv returns the VAPID details when all three are set", () => {
+  assert.deepEqual(
+    readVapidEnv({
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "pub",
+      VAPID_PRIVATE_KEY: "priv",
+      VAPID_SUBJECT: "mailto:hello@juicebros.ca",
+    }),
+    { publicKey: "pub", privateKey: "priv", subject: "mailto:hello@juicebros.ca" },
+  );
+});

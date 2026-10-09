@@ -250,3 +250,49 @@ export function readMicrosoftApiBaseUrl(
   const value = source.MICROSOFT_API_BASE_URL;
   return value && value.trim() !== "" ? value : undefined;
 }
+
+export type ResendEnv = { apiKey: string; from: string };
+
+/**
+ * Resend for every Booking Buddy email (Reminders, Booking Reminders, Weekly
+ * Invites, the connection and "it's off" emails), read once by
+ * `delivery/resend-sender.ts`. `null` when either is unset: the caller's
+ * email channel is then skipped (spec #610), not a hard failure.
+ */
+export function readResendEnv(
+  source: EnvSource = {
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    REMINDER_FROM_EMAIL: process.env.REMINDER_FROM_EMAIL,
+  },
+): ResendEnv | null {
+  const apiKey = source.RESEND_API_KEY?.trim();
+  const from = source.REMINDER_FROM_EMAIL?.trim();
+  if (!apiKey || !from) {
+    return null;
+  }
+  return { apiKey, from };
+}
+
+export type VapidEnv = { publicKey: string; privateKey: string; subject: string };
+
+/**
+ * The VAPID keys for Booking Buddy's push channel (Reminders, Weekly
+ * Invites), read by `delivery/web-push-sender.ts`. On Deck reads the same
+ * three through its own `readWebPushEnv`. `null` when any is unset: push is
+ * then skipped and email still goes.
+ */
+export function readVapidEnv(
+  source: EnvSource = {
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+  },
+): VapidEnv | null {
+  const publicKey = source.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  const privateKey = source.VAPID_PRIVATE_KEY?.trim();
+  const subject = source.VAPID_SUBJECT?.trim();
+  if (!publicKey || !privateKey || !subject) {
+    return null;
+  }
+  return { publicKey, privateKey, subject };
+}
