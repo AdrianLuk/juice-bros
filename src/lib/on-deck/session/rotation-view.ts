@@ -8,8 +8,8 @@
  *
  * Same relative-imports-only, no-React, no-`server-only`, no-`@/` rule as the
  * rest of this folder (see `types.ts`): the fold is pure, and this is the
- * next layer out — the loaders (`../sessions.ts`, `../rotation.ts`) are the
- * boundary where a database enters, not this one. That's what lets a board
+ * next layer out — the loaders (`../sessions.ts`, `../actions/rotation.ts`)
+ * are the boundary where a database enters, not this one. That's what lets a board
  * component pull its view type from here instead of a `"use server"` module.
  *
  * Device tokens never leave the server: a token is a Player's whole identity

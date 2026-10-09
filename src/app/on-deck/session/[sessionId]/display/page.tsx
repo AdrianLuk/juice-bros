@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { createClient } from "@/lib/on-deck/supabase/server";
 import { getSession, venueNameOf } from "@/lib/on-deck/sessions";
-import { rotationViewFrom } from "@/lib/on-deck/rotation";
+import { rotationViewFrom } from "@/lib/on-deck/session/rotation-view";
 import { displayPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { DisplayRotationBoard } from "@/components/on-deck/display-rotation-board";

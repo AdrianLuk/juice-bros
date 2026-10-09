@@ -1,23 +1,28 @@
 "use server";
 
 import { createClient } from "../supabase/server.ts";
-import { verifyOrganizer } from "../dal.ts";
-import { getOwnedClub } from "../clubs.ts";
 import { getSession } from "../sessions.ts";
+import { loadOwnedSession } from "../owned-session.ts";
 import { loadVolunteerSession } from "../volunteer.ts";
-import { floorRosterFrom, loadRotationView } from "../rotation.ts";
-import type { FloorRoster, RotationView } from "../session/rotation-view.ts";
+import {
+  floorRosterFrom,
+  rotationViewFrom,
+  type FloorRoster,
+  type RotationView,
+} from "../session/rotation-view.ts";
 
 /**
- * The Server Action the live surfaces poll (issue #243). Thin wrapper over
- * `loadRotationView` so client components have something to call; the
- * projection and the token-privacy rules live in `../rotation.ts`.
+ * The Server Action the live surfaces poll (issue #243): load a Session by id
+ * and project its `RotationView`, or null. The projection and the
+ * token-privacy rules live in `../session/rotation-view.ts`.
  */
 export async function getRotationView(
   sessionId: string,
   token?: string,
 ): Promise<RotationView | null> {
-  return loadRotationView(sessionId, token);
+  const supabase = await createClient();
+  const loaded = await getSession(supabase, sessionId).catch(() => null);
+  return loaded ? rotationViewFrom(loaded, token) : null;
 }
 
 /**
@@ -38,12 +43,6 @@ export async function getFloorRoster(
     return loaded ? floorRosterFrom(loaded) : null;
   }
 
-  await verifyOrganizer();
-  const supabase = await createClient();
-  const club = await getOwnedClub(supabase);
-  const loaded = await getSession(supabase, sessionId).catch(() => null);
-  if (!club || !loaded || loaded.config.clubId !== club.id) {
-    return null;
-  }
-  return floorRosterFrom(loaded);
+  const owned = await loadOwnedSession(sessionId);
+  return owned ? floorRosterFrom(owned.loaded) : null;
 }
