@@ -19,7 +19,6 @@ import {
   splitStandings,
   tvScreens,
   type TvScreen,
-  type TvScreenId,
 } from "@/lib/team-tally/tv-screens";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
@@ -87,10 +86,7 @@ function stageOf(event: TeamEventDoc): { name: string; progress: string; live?: 
 
 function BugGrid({ matchups, teams }: { matchups: DocMatchup[]; teams: Map<string, DocTeam> }) {
   const columns = bugGridColumns(matchups.length);
-  const scale = bugGridScale(
-    matchups.length,
-    matchups.some((matchup) => matchup.doneAt !== null),
-  );
+  const scale = bugGridScale(matchups.some((matchup) => matchup.doneAt !== null));
   return (
     <ul
       className="tt-tv-bugs"
@@ -112,7 +108,7 @@ function StandingsScreen({ event }: { event: TeamEventDoc }) {
   const columns = [left, right].filter((rows) => rows.length > 0);
   return (
     <div className="tt-tv-cols">
-      {columns.map((rows) => {
+      {columns.map((rows, index) => {
         const first = rows[0].position;
         const last = rows[rows.length - 1].position;
         return (
@@ -122,6 +118,7 @@ function StandingsScreen({ event }: { event: TeamEventDoc }) {
             size="tv"
             positions={[first, last]}
             label={`Standings · ${flightRange(first, last)}`}
+            roundKey={index === columns.length - 1}
           />
         );
       })}
@@ -129,13 +126,14 @@ function StandingsScreen({ event }: { event: TeamEventDoc }) {
   );
 }
 
-function ScreenBody({ id, event, teams }: { id: TvScreenId; event: TeamEventDoc; teams: Map<string, DocTeam> }) {
+function ScreenBody({ screen, event, teams }: { screen: TvScreen; event: TeamEventDoc; teams: Map<string, DocTeam> }) {
   const flights = flightMatchups(event);
-  switch (id) {
+  const page = (matchups: DocMatchup[]) => (screen.bugs ? matchups.slice(...screen.bugs) : matchups);
+  switch (screen.kind) {
     case "standings":
       return <StandingsScreen event={event} />;
     case "matchups":
-      return <BugGrid matchups={openingMatchups(event)} teams={teams} />;
+      return <BugGrid matchups={page(openingMatchups(event))} teams={teams} />;
     case "handoff":
       return (
         <ul
@@ -151,7 +149,7 @@ function ScreenBody({ id, event, teams }: { id: TvScreenId; event: TeamEventDoc;
         </ul>
       );
     case "flight-scores":
-      return <BugGrid matchups={flights} teams={teams} />;
+      return <BugGrid matchups={page(flights)} teams={teams} />;
     case "summary":
       return (
         <div className="tt-tv-summary">
@@ -203,7 +201,7 @@ export function TvStage({
   const screens = tvScreens(event);
   const screensKey = screens.map((screen) => screen.id).join(",");
   const visible = useStageVisible(view);
-  const [cycleId, setCycleId] = useState<TvScreenId | undefined>(undefined);
+  const [cycleId, setCycleId] = useState<string | undefined>(undefined);
 
   const pin = screenNamed(screens, pinned);
   const current = pin ?? screenNamed(screens, cycleId) ?? screens[0];
@@ -249,7 +247,7 @@ export function TvStage({
             aria-label={screen.label}
             hidden={screen.id !== current.id}
           >
-            <ScreenBody id={screen.id} event={event} teams={teams} />
+            <ScreenBody screen={screen} event={event} teams={teams} />
           </section>
         ))}
       </div>

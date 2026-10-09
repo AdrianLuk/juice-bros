@@ -31,12 +31,13 @@ const RUN_INTERVAL_MS = 700;
 
 type DemoScreen = "score" | "public" | "tv" | "organizer" | "brief";
 
-const SCREENS: { id: DemoScreen; label: string }[] = [
-  { id: "score", label: "Score Link" },
-  { id: "public", label: "Public Link" },
-  { id: "tv", label: "TV" },
-  { id: "organizer", label: "Organizer" },
-  { id: "brief", label: "Brief" },
+/** Each screen, who holds it, and what it is for: the tagline under its tab. */
+const SCREENS: { id: DemoScreen; label: string; who: string; what: string }[] = [
+  { id: "score", label: "Score Link", who: "For each captain", what: "Enter your Matchup's scores from your phone." },
+  { id: "public", label: "Public Link", who: "For players and fans", what: "Follow the standings and scores on any phone." },
+  { id: "tv", label: "TV", who: "For the venue screen", what: "Standings and Matchups, cycling on their own." },
+  { id: "organizer", label: "Organizer", who: "For the Organizer", what: "Fix any score, reopen a Matchup, call a tie." },
+  { id: "brief", label: "Brief", who: "For the group chat", what: "Teams, courts and links, ready to paste." },
 ];
 
 /** Where the night is, in a line: for the bar above the screens. */
@@ -88,7 +89,7 @@ export function DemoStage({ date }: { date: string }) {
     <div className="tt-demo">
       <div className="tt-demo-bar">
         <div role="tablist" aria-label="Demo screen" className="tt-demo-tabs">
-          {SCREENS.map(({ id, label }) => (
+          {SCREENS.map(({ id, label, who, what }) => (
             <button
               key={id}
               type="button"
@@ -96,28 +97,52 @@ export function DemoStage({ date }: { date: string }) {
               id={`tt-demo-tab-${id}`}
               aria-selected={screen === id}
               aria-controls="tt-demo-panel"
+              aria-labelledby={`tt-demo-tab-${id}-label`}
+              aria-describedby={`tt-demo-tab-${id}-what`}
               data-testid={`demo-screen-${id}`}
-              className={screen === id ? "tt-btn tt-demo-tab" : "tt-btn tt-btn-ghost tt-demo-tab"}
+              className="tt-demo-tab"
               onClick={() => setScreen(id)}
             >
-              {label}
+              <span id={`tt-demo-tab-${id}-label`} className="tt-demo-tab-label">
+                {label}
+              </span>
+              <span id={`tt-demo-tab-${id}-what`} className="tt-demo-tab-what">
+                <span className="tt-demo-tab-who">{who}</span> {what}
+              </span>
             </button>
           ))}
         </div>
         <div className="tt-demo-controls">
-          <button
-            type="button"
-            className={running ? "tt-btn" : "tt-btn tt-btn-ghost"}
-            data-testid="demo-let-it-run"
-            aria-pressed={running}
-            disabled={finished}
-            onClick={() => setRunning((on) => !on)}
-          >
-            {running ? "Stop" : "Let it run"}
-          </button>
-          <button type="button" className="tt-btn tt-btn-ghost" data-testid="demo-reset" onClick={reset}>
-            Reset
-          </button>
+          <div className="tt-demo-control">
+            <button
+              type="button"
+              className={running ? "tt-btn" : "tt-btn tt-btn-ghost"}
+              data-testid="demo-let-it-run"
+              aria-pressed={running}
+              aria-describedby="tt-demo-run-what"
+              disabled={finished}
+              onClick={() => setRunning((on) => !on)}
+            >
+              {running ? "Stop" : "Let it run"}
+            </button>
+            <p id="tt-demo-run-what" className="tt-demo-control-what">
+              Plays out the other courts so you can watch the Flights get placed and the results go up.
+            </p>
+          </div>
+          <div className="tt-demo-control">
+            <button
+              type="button"
+              className="tt-btn tt-btn-ghost"
+              data-testid="demo-reset"
+              aria-describedby="tt-demo-reset-what"
+              onClick={reset}
+            >
+              Reset
+            </button>
+            <p id="tt-demo-reset-what" className="tt-demo-control-what">
+              Starts the night over from where it opened.
+            </p>
+          </div>
         </div>
         <p className="tt-meta tt-demo-progress" role="status" aria-live="polite" data-testid="demo-progress">
           {progressOf(event)}

@@ -58,6 +58,7 @@ export function StandingsTower({
   label = "Standings · opening round",
   positions,
   size,
+  roundKey,
 }: {
   event: TeamEventDoc;
   myTeamId?: string;
@@ -65,6 +66,8 @@ export function StandingsTower({
   /** Only these positions (first and last, inclusive): one column of the big screen's two. */
   positions?: [number, number];
   size?: "tv";
+  /** The key saying what the Round cells add up; on by default. */
+  roundKey?: boolean;
 }) {
   const standings = computeStandings(event);
   const moves = useMoves(standings);
@@ -73,6 +76,7 @@ export function StandingsTower({
     <TimingTower
       label={label}
       size={size}
+      roundKey={roundKey}
       final={event.status === "finished"}
       liveRound={event.status === "opening" ? openingLiveRound(event) : undefined}
       rows={standings

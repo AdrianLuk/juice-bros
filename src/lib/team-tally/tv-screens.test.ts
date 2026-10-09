@@ -34,10 +34,67 @@ function flight(letter: string, scores: ([number, number] | null)[]): DocMatchup
   };
 }
 
+function opening(number: number): DocMatchup {
+  return { ...flight("A", NONE), id: `match-${number}`, stage: "opening", number, flightLetter: null };
+}
+
+const openingNight = (count: number) => ({
+  status: "opening" as const,
+  matchups: Array.from({ length: count }, (_, index) => opening(index + 1)),
+});
+
 const ids = (event: Parameters<typeof tvScreens>[0]) => tvScreens(event).map((screen) => screen.id);
 
 test("the opening round cycles the standings and the Matchups", () => {
   assert.deepEqual(ids({ status: "opening", matchups: [] }), ["standings", "matchups"]);
+});
+
+test("four Matchups or fewer share one Matchups screen", () => {
+  const screens = tvScreens(openingNight(4));
+  assert.deepEqual(
+    screens.map((screen) => [screen.id, screen.label, screen.bugs]),
+    [
+      ["standings", "Standings", undefined],
+      ["matchups", "Matchups", [0, 4]],
+    ],
+  );
+});
+
+test("seven opening Matchups become two screens of four-row bugs: 1 to 4, then 5 to 7", () => {
+  const screens = tvScreens(openingNight(7));
+  assert.deepEqual(
+    screens.map((screen) => [screen.id, screen.label, screen.bugs]),
+    [
+      ["standings", "Standings", undefined],
+      ["matchups", "Matchups 1 to 4", [0, 4]],
+      ["matchups-2", "Matchups 5 to 7", [4, 7]],
+    ],
+  );
+});
+
+test("five or six Matchups split evenly, so no screen holds a lone bug", () => {
+  assert.deepEqual(
+    tvScreens(openingNight(5)).flatMap((screen) => (screen.bugs ? [screen.label] : [])),
+    ["Matchups 1 to 3", "Matchups 4 to 5"],
+  );
+  assert.deepEqual(
+    tvScreens(openingNight(6)).flatMap((screen) => (screen.bugs ? [screen.label] : [])),
+    ["Matchups 1 to 3", "Matchups 4 to 6"],
+  );
+});
+
+test("seven Flights' scores split the same way, by Flight letter", () => {
+  const flights = ["A", "B", "C", "D", "E", "F", "G"].map((letter) => flight(letter, NONE));
+  const screens = tvScreens({ status: "finished", matchups: [...openingNight(7).matchups, ...flights] });
+  assert.deepEqual(
+    screens.map((screen) => [screen.id, screen.label, screen.bugs]),
+    [
+      ["summary", "Results", undefined],
+      ["flight-scores", "Flight scores A to D", [0, 4]],
+      ["flight-scores-2", "Flight scores E to G", [4, 7]],
+      ["standings", "Opening standings", undefined],
+    ],
+  );
 });
 
 test("right after Seeding the Flight hand-off holds the screen alone", () => {
@@ -99,24 +156,15 @@ test("a night with six Teams or fewer fills only the left column", () => {
   assert.equal(page.right.length, 0);
 });
 
-test("Matchup score bugs run up to three across, so a night of 14 Teams reads at a size a room can see", () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(bugGridColumns), [1, 2, 3, 2, 3, 3, 3]);
+test("a screen of four-row score bugs runs two across, a lone bug on its own", () => {
+  assert.deepEqual([1, 2, 3, 4].map(bugGridColumns), [1, 2, 2, 2]);
 });
 
 test("Flight hand-off plates run in two rows of up to four, the loudest layout the stage has", () => {
   assert.deepEqual([1, 2, 3, 4, 5, 6, 7].map(handoffGridColumns), [1, 1, 2, 2, 3, 3, 4]);
 });
 
-test("score bugs grow into the screen's height: three rows of them at 1.25 times, fewer rows larger still", () => {
-  assert.deepEqual(
-    [1, 2, 3, 4, 5, 6, 7].map((count) => bugGridScale(count)),
-    [1.5, 1.5, 1.5, 1.5, 1.4, 1.4, 1.25],
-  );
-});
-
-test("done Matchups carry a FINAL bar, so a screen of them grows less: three rows stay at the stage's unit", () => {
-  assert.deepEqual(
-    [1, 2, 3, 4, 5, 6, 7].map((count) => bugGridScale(count, true)),
-    [1.25, 1.25, 1.25, 1.25, 1.25, 1.25, 1],
-  );
+test("score bugs grow into the screen's height, less when a done Matchup's FINAL bar adds a row", () => {
+  assert.equal(bugGridScale(), 1.5);
+  assert.equal(bugGridScale(true), 1.3);
 });

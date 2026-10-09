@@ -1,10 +1,11 @@
-import { liveRound, matchupLabel, roundPoints, teamName, type DocMatchup, type DocTeam } from "@/lib/team-tally/event-doc";
+import { liveRound, matchupLabel, teamName, type DocMatchup, type DocTeam } from "@/lib/team-tally/event-doc";
 import { matchupWinnerId, needsDreambreaker } from "@/lib/team-tally/matchup-done";
+import { bugRows } from "@/lib/team-tally/score-bug";
 import { ScoreBug } from "./score-bug";
 
 /**
- * A Matchup from the live document as its score bug, red first, live Round
- * underlined. Done, it carries the FINAL bar naming the winner (a Flight's,
+ * A Matchup from the live document as its score bug, red first, each Team's
+ * two Games on their own rows, live Round underlined. Done, it carries the FINAL bar naming the winner (a Flight's,
  * its champion); a tie settled by a Dreambreaker tags who won it.
  */
 export function MatchupBug({ matchup, teams }: { matchup: DocMatchup; teams: Map<string, DocTeam> }) {
@@ -12,15 +13,11 @@ export function MatchupBug({ matchup, teams }: { matchup: DocMatchup; teams: Map
   const winner = matchupWinnerId(matchup);
   const settledByDreambreaker = needsDreambreaker(matchup);
 
-  const side = (teamId: string, color: "red" | "blue") => {
-    const rounds = roundPoints(matchup, color);
-    return {
-      name: teamName(teams.get(teamId)!),
-      rounds,
-      total: rounds.reduce<number>((sum, points) => sum + (points ?? 0), 0),
-      dreambreaker: settledByDreambreaker && winner === teamId,
-    };
-  };
+  const side = (teamId: string, color: "red" | "blue") => ({
+    name: teamName(teams.get(teamId)!),
+    rows: bugRows(matchup.games, color),
+    dreambreaker: settledByDreambreaker && winner === teamId,
+  });
 
   let final: string | undefined;
   if (done && winner) {
