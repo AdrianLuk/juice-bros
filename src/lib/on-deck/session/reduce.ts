@@ -371,17 +371,23 @@ function refreshOnDeck(state: SessionState, at: number): void {
  * "Games played" for the Session Summary is therefore a count of
  * `COURT_FINISHED` events whose Court *was* occupied, derived in a later fold,
  * not a raw event count.
+ *
+ * `from`, when given, is the fold of the events before `events` (same
+ * `config`): folding on from it equals folding the whole log, and `from`
+ * itself is never mutated. The floor dispatcher uses it to try one candidate
+ * event without replaying the night (issue #641).
  */
 export function reduceSession(
   config: SessionConfig,
   events: SessionEvent[],
+  from?: SessionState,
 ): SessionState {
   const courts: CourtSlot[] = Array.from(
     { length: Math.max(0, config.courtCount) },
     (_, i) => ({ number: i + 1, foursome: [], since: null }),
   );
 
-  const state: SessionState = {
+  const state: SessionState = from ? structuredClone(from) : {
     config,
     groupCap: config.groupCap,
     groups: [],

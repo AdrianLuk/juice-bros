@@ -8,6 +8,7 @@ import {
   FLOOR_PERMISSIONS,
   mintFloorIds,
   type FloorCommand,
+  type FloorCommandOutcome,
   type FloorIds,
   type FloorOperatorKind,
 } from "./floor-commands.ts";
@@ -93,7 +94,15 @@ function board() {
   const state = reduceSession(config, events);
   const nameOf = (id: string) =>
     state.roster.find((p) => p.id === id)?.displayName ?? "?";
-  return { state, nameOf };
+  return { state, nameOf, events };
+}
+
+/** The log with the Session event an outcome appends, one tick after the last. */
+function append(events: SessionEvent[], outcome: FloorCommandOutcome): SessionEvent[] {
+  assert.equal(outcome.kind, "event");
+  if (outcome.kind !== "event") throw new Error("unreachable");
+  const at = events[events.length - 1].at + 1;
+  return [...events, { ...outcome.body, at, operator: organizer } as SessionEvent];
 }
 
 test("each command kind reaches its floor-ops decision", () => {
@@ -122,10 +131,11 @@ test("each command kind reaches its floor-ops decision", () => {
         body: { type: "PLAYER_PAUSED", token: waiting, reason: "set-aside" },
       },
     ],
+    // Still waiting, never set aside: the fold would ignore it (issue #641).
     [
       "volunteer",
       { kind: "bringBack", name: nameOf(waiting) },
-      { kind: "event", body: { type: "PLAYER_REQUEUED", token: waiting } },
+      { kind: "error", error: "They aren't set aside right now." },
     ],
     [
       "kiosk",
@@ -241,4 +251,37 @@ test("each dispatch gets fresh walk-up and Group ids in the shape the event log 
   assert.match(first.groupId, /^group-[0-9a-f-]{36}$/);
   assert.notEqual(first.walkupToken, second.walkupToken);
   assert.notEqual(first.groupId, second.groupId);
+});
+
+test("setting aside a Player who is already set aside is refused, so no dead event is written", () => {
+  const { state, nameOf, events } = board();
+  const name = nameOf(state.queue[0].playerId);
+  const setAside = dispatchFloorCommand(state, "volunteer", { kind: "setAside", name }, ids);
+  assert.equal(setAside.kind, "event");
+
+  const after = reduceSession(config, append(events, setAside));
+  assert.deepEqual(
+    dispatchFloorCommand(after, "organizer", { kind: "setAside", name }, ids),
+    { kind: "error", error: "They're already set aside." },
+  );
+});
+
+test("bringing back a set-aside Player writes the event; bringing back one who isn't set aside is refused", () => {
+  const { state, nameOf, events } = board();
+  const name = nameOf(state.queue[0].playerId);
+  const setAside = dispatchFloorCommand(state, "volunteer", { kind: "setAside", name }, ids);
+  const pausedLog = append(events, setAside);
+  const paused = reduceSession(config, pausedLog);
+
+  const bringBack = dispatchFloorCommand(paused, "organizer", { kind: "bringBack", name }, ids);
+  assert.deepEqual(bringBack, {
+    kind: "event",
+    body: { type: "PLAYER_REQUEUED", token: state.queue[0].playerId },
+  });
+
+  const back = reduceSession(config, append(pausedLog, bringBack));
+  assert.deepEqual(
+    dispatchFloorCommand(back, "volunteer", { kind: "bringBack", name }, ids),
+    { kind: "error", error: "They aren't set aside right now." },
+  );
 });
