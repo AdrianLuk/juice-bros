@@ -1,8 +1,9 @@
 import "server-only";
 
-import { Resend } from "resend";
-
 import { createAdminClient } from "./supabase/admin.ts";
+import { deliver } from "./delivery/deliver.ts";
+import { emailSenderFromEnv } from "./delivery/resend-sender.ts";
+import { supabaseAddressLookup } from "./delivery/supabase-adapters.ts";
 import { absoluteAppUrl } from "./request-origin.ts";
 import { connectLinkPath, FRIENDS_PATH } from "./routes.ts";
 import { personOptionLabel } from "./connections.ts";
@@ -15,7 +16,7 @@ import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
 /**
  * The I/O behind the friend-request email (issue #228). The email copy itself
  * is `connection-request-email.ts` (pure, unit-tested); everything here is the
- * `service_role` reads, the address lookup, the Resend call, and the
+ * `service_role` reads, the hand-off to `deliver` (spec #610), and the
  * session-less Accept / Decline logic the `/connect/<token>` page and its
  * action share.
  *
@@ -26,6 +27,8 @@ import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
  * across two Users (the addressee's email in `auth.users`, the requester's name
  * in a `profiles` row RLS would hide), which no single User's grant allows.
  */
+
+const LOG_TAG = "connection-request-notify";
 
 type ConnectionRow = {
   id: string;
@@ -68,12 +71,10 @@ export async function notifyNewConnectionRequest(
   connectionId: string,
 ): Promise<void> {
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.REMINDER_FROM_EMAIL;
-    if (!apiKey || !from) {
-      console.error(
-        "connection-request-notify: missing RESEND_API_KEY or REMINDER_FROM_EMAIL.",
-      );
+    // Checked first so an unconfigured environment skips the reads below too.
+    const sendEmail = emailSenderFromEnv();
+    if (!sendEmail) {
+      console.warn(`${LOG_TAG}: email is not configured, skipping it.`);
       return;
     }
 
@@ -121,18 +122,6 @@ export async function notifyNewConnectionRequest(
       return;
     }
 
-    const { data: userData, error: userError } =
-      await supabase.auth.admin.getUserById(connection.addressee_id);
-    const to = userData?.user?.email;
-    if (userError || !to) {
-      console.error(
-        "connection-request-notify: no email for addressee",
-        connection.addressee_id,
-        userError,
-      );
-      return;
-    }
-
     const requesterLabel = await loadPersonLabel(
       supabase,
       connection.requester_id,
@@ -144,17 +133,15 @@ export async function notifyNewConnectionRequest(
       declineUrl: await absoluteAppUrl(connectLinkPath(link.token, "decline")),
     });
 
-    const { error: sendError } = await new Resend(apiKey).emails.send({
-      from,
-      to,
-      subject,
-      html,
+    // Unlogged and uncounted: the result is ignored.
+    await deliver([{ channel: "email", userId: connection.addressee_id, subject, html }], {
+      logTag: LOG_TAG,
+      lookupAddress: supabaseAddressLookup(supabase),
+      sendEmail,
+      sendPush: null,
     });
-    if (sendError) {
-      console.error("connection-request-notify: Resend error", sendError);
-    }
   } catch (error) {
-    console.error("connection-request-notify: unexpected failure", error);
+    console.error(`${LOG_TAG}: unexpected failure`, error);
   }
 }
 
@@ -170,12 +157,10 @@ export async function notifyConnectionAccepted(
   connectionId: string,
 ): Promise<void> {
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.REMINDER_FROM_EMAIL;
-    if (!apiKey || !from) {
-      console.error(
-        "connection-request-notify: missing RESEND_API_KEY or REMINDER_FROM_EMAIL.",
-      );
+    // Checked first so an unconfigured environment skips the reads below too.
+    const sendEmail = emailSenderFromEnv();
+    if (!sendEmail) {
+      console.warn(`${LOG_TAG}: email is not configured, skipping it.`);
       return;
     }
 
@@ -202,18 +187,6 @@ export async function notifyConnectionAccepted(
       return;
     }
 
-    const { data: userData, error: userError } =
-      await supabase.auth.admin.getUserById(connection.requester_id);
-    const to = userData?.user?.email;
-    if (userError || !to) {
-      console.error(
-        "connection-request-notify: no email for requester",
-        connection.requester_id,
-        userError,
-      );
-      return;
-    }
-
     const accepterLabel = await loadPersonLabel(
       supabase,
       connection.addressee_id,
@@ -224,20 +197,14 @@ export async function notifyConnectionAccepted(
       friendsUrl: await absoluteAppUrl(FRIENDS_PATH),
     });
 
-    const { error: sendError } = await new Resend(apiKey).emails.send({
-      from,
-      to,
-      subject,
-      html,
+    await deliver([{ channel: "email", userId: connection.requester_id, subject, html }], {
+      logTag: `${LOG_TAG} (accepted)`,
+      lookupAddress: supabaseAddressLookup(supabase),
+      sendEmail,
+      sendPush: null,
     });
-    if (sendError) {
-      console.error("connection-request-notify: Resend error (accepted)", sendError);
-    }
   } catch (error) {
-    console.error(
-      "connection-request-notify: unexpected failure (accepted)",
-      error,
-    );
+    console.error(`${LOG_TAG}: unexpected failure (accepted)`, error);
   }
 }
 
