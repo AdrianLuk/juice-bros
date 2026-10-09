@@ -3292,6 +3292,54 @@ html:has(.bb-app-chrome) {
     color: #fff;
   }
 
+  /* The Instagram rail: a sideways scroller that runs to the screen edge below
+     `lg`, six fixed columns from `lg` up. The block padding is room for the
+     tile's 3px lift and ring, which an overflow container would otherwise
+     clip; the bottom keeps the scrollbar off the dates. */
+  .bx-rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 42%;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    margin-inline: -1.25rem;
+    padding: 0.5rem 1.25rem 0.875rem;
+    scroll-padding-inline: 1.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bx-line) transparent;
+  }
+  .bx-rail > li { scroll-snap-align: start; }
+  /* Reel covers carry their own big lettering, so the play mark moves off the
+     centre to the corner the runtime chip uses on episode cards. */
+  .bx-rail .bx-play {
+    left: auto;
+    top: auto;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    translate: none;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  @media (min-width: 640px) {
+    .bx-rail {
+      grid-auto-columns: 28%;
+      margin-inline: -2rem;
+      padding-inline: 2rem;
+      scroll-padding-inline: 2rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .bx-rail {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      overflow: visible;
+      margin-inline: 0;
+      padding: 0;
+    }
+  }
+
   /* ---- Panels ------------------------------------------------------------ */
 
   .bx-panel {

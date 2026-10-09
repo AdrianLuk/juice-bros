@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseInstagramMedia } from "./instagram.ts";
+import { captionLead, parseInstagramMedia } from "./instagram.ts";
 
 const imageItem = {
   id: "1",
@@ -83,4 +83,14 @@ test("parseInstagramMedia stops at the limit", () => {
 
 test("parseInstagramMedia handles a response with no data array", () => {
   assert.deepEqual(parseInstagramMedia({}, 6), []);
+});
+
+test("captionLead keeps the first non-empty line and drops its trailing tags", () => {
+  assert.equal(captionLead("\nWhen the 4.0 says good shot #pickleball @juicebros\nmore"), "When the 4.0 says good shot");
+});
+
+test("captionLead keeps a mid-sentence tag and returns '' for a tags-only line", () => {
+  assert.equal(captionLead("Shoutout @daven for the save"), "Shoutout @daven for the save");
+  assert.equal(captionLead("#pickleball #dinking"), "");
+  assert.equal(captionLead(""), "");
 });
