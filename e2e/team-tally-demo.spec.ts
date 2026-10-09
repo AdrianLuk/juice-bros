@@ -135,3 +135,24 @@ test("on a phone it fits the screen, and the landing page leads to it", async ({
     expect(overflow, `${name} scrolls sideways`).toBeLessThanOrEqual(0);
   }
 });
+
+test("on the TV, tapping a screen's name cuts to it and its countdown starts over", async ({ page }) => {
+  await page.clock.install();
+  await page.goto(DEMO);
+  await tab(page, "TV").click();
+  const tv = page.getByLabel("Big screen");
+  const screens = tv.getByRole("list", { name: "Screens" });
+  await expect(tv.getByRole("region", { name: "Standings" })).toBeVisible();
+  await expect(screens.locator("li[aria-current] .tt-tv-pie")).toHaveCount(1);
+
+  await screens.getByRole("button", { name: "Matchups 5 to 7" }).click();
+  await expect(tv.getByRole("region", { name: "Matchups 5 to 7" })).toBeVisible();
+  await expect(tv.getByRole("region", { name: "Standings" })).toBeHidden();
+  await expect(screens.getByRole("listitem").nth(2)).toHaveAttribute("aria-current", "true");
+
+  // Its dwell (10s) starts from the tap, then the cycle wraps to the standings.
+  await page.clock.fastForward(9_000);
+  await expect(tv.getByRole("region", { name: "Matchups 5 to 7" })).toBeVisible();
+  await page.clock.fastForward(2_000);
+  await expect(tv.getByRole("region", { name: "Standings" })).toBeVisible();
+});
