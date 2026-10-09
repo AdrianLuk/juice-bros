@@ -333,6 +333,37 @@ export async function turnNotificationSendCount(
   return ((await res.json()) as unknown[]).length;
 }
 
+/**
+ * Flips a Session to closed straight on the row, the flag every Player RPC
+ * checks. Unlike the Organizer's close it leaves the event log in place, so no
+ * Realtime change reaches an open Player tab: the tab stays stale, which is
+ * the case a closed-Session spec wants to drive.
+ */
+export async function closeSessionViaRest(sessionId: string): Promise<void> {
+  const url = new URL(`${LOCAL_SUPABASE_API_URL}/rest/v1/on_deck_sessions`);
+  url.searchParams.set("id", `eq.${sessionId}`);
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: serviceRoleHeaders(),
+    body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString() }),
+  });
+  if (!res.ok) {
+    throw new Error(`closing the Session failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+/** How many events a Session's log holds. */
+export async function sessionEventCount(sessionId: string): Promise<number> {
+  const url = new URL(`${LOCAL_SUPABASE_API_URL}/rest/v1/on_deck_session_events`);
+  url.searchParams.set("session_id", `eq.${sessionId}`);
+  url.searchParams.set("select", "id");
+  const res = await fetch(url, { headers: serviceRoleHeaders() });
+  if (!res.ok) {
+    throw new Error(`reading the event log failed: ${res.status} ${await res.text()}`);
+  }
+  return ((await res.json()) as unknown[]).length;
+}
+
 /** Tears down the Club and everything cascading off it (Sessions, events). */
 export async function deleteClubForOrganizer(email: string): Promise<void> {
   const ownerId = await userIdForEmail(email);
