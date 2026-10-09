@@ -83,6 +83,9 @@ const hudFor = (game: Game, call: string): Hud => ({
 });
 
 const pill = "rounded-full bg-black/70 backdrop-blur-sm";
+/** The in-play buttons: smaller than .bx-btn, so the score and both fit across a phone. */
+const hudButton =
+  "inline-flex min-h-11 items-center rounded-full border border-(--bx-line) bg-black/70 px-3.5 text-sm font-semibold hover:bg-(--bx-raised) sm:px-5 sm:text-[0.9375rem]";
 
 /**
  * The Rally game: pick a host, then play the other one, first to 11. The
@@ -258,8 +261,12 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
     gameRef.current = fresh;
     setHud(hudFor(fresh, callFor(fresh)));
     setAnnouncement(`${callFor(fresh)}.`);
-    // The stage goes full screen this render; focus the court once it has.
-    requestAnimationFrame(() => surfaceRef.current?.focus());
+    // The stage goes full screen this render on a phone; focus the court once
+    // it has, and on a wider screen bring the whole court into view.
+    requestAnimationFrame(() => {
+      surfaceRef.current?.focus({ preventScroll: true });
+      stageRef.current?.scrollIntoView({ block: "center" });
+    });
     draw();
     loop();
   }
@@ -356,11 +363,13 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
       ref={stageRef}
       data-phase={hud.phase}
       data-view={view}
-      className={
+      // In play on a phone the court fills the screen, so a drag never
+      // scrolls the page; from sm: up it stays in the page.
+      className={`bg-(--bx-bg) sm:relative sm:inset-auto sm:z-auto sm:aspect-[16/10] sm:w-full sm:overflow-hidden sm:rounded-(--bx-radius) sm:shadow-[0_0_0_1px_var(--bx-line-soft)] ${
         filled
-          ? "fixed inset-0 z-[100] bg-(--bx-bg)"
-          : "relative aspect-[3/4] w-full overflow-hidden rounded-(--bx-radius) bg-(--bx-bg) shadow-[0_0_0_1px_var(--bx-line-soft)] sm:aspect-[16/10]"
-      }
+          ? "fixed inset-0 z-[100]"
+          : "relative aspect-[3/4] w-full overflow-hidden rounded-(--bx-radius) shadow-[0_0_0_1px_var(--bx-line-soft)]"
+      }`}
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
       onBlur={(event) => {
@@ -389,8 +398,8 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
 
       {filled && (
         <>
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 px-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6">
-            <dl className={`${pill} font-[family-name:var(--font-arena)] flex gap-5 px-5 py-2 text-lg font-bold uppercase`}>
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 px-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6">
+            <dl className={`${pill} font-[family-name:var(--font-arena)] flex gap-3 px-4 py-2 text-base font-bold uppercase sm:gap-5 sm:px-5 sm:text-lg`}>
               <div className="flex items-baseline gap-2">
                 <dt className="text-(--bx-accent)">{you}</dt>
                 <dd className="tabular-nums">{hud.score.player}</dd>
@@ -401,10 +410,10 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
               </div>
             </dl>
             <div className="pointer-events-auto flex gap-2">
-              <button type="button" className="bx-btn bx-btn-ghost bg-black/70" onClick={begin}>
+              <button type="button" className={hudButton} onClick={begin}>
                 Restart
               </button>
-              <button type="button" className="bx-btn bx-btn-ghost bg-black/70" onClick={() => pause(true)}>
+              <button type="button" className={hudButton} onClick={() => pause(true)}>
                 Pause
               </button>
             </div>
