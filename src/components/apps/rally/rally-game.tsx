@@ -439,7 +439,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
       )}
 
       {!filled && (
-        <div className="absolute inset-0 flex items-end bg-linear-to-t from-black/85 via-black/40 to-transparent p-5 sm:items-center sm:bg-linear-to-r sm:p-8">
+        <div className="absolute inset-0 flex items-end bg-linear-to-t from-black/95 via-black/80 via-60% to-black/10 p-5 sm:items-center sm:bg-linear-to-r sm:from-black/85 sm:via-black/40 sm:via-50% sm:to-transparent sm:p-8">
           <div className="flex max-w-sm flex-col items-start gap-5">
             {playing && hud.paused ? (
               <>
