@@ -48,6 +48,8 @@ export type RallyView = {
 const BALL_RADIUS = 0.42;
 /** The hosts drawn larger than life, as the ball is, so they read from the baseline. */
 const FIGURE_SCALE = 1.3;
+/** The margin round a face image's features on the head, as a fraction of its side. */
+const FACE_INSET = 0.12;
 const COLORS = {
   sky: "#08090b",
   floor: "#121a22",
@@ -144,6 +146,11 @@ async function loadFace(id: HostId): Promise<{ texture: CanvasTexture; skin: Col
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(image, 0, 0, 512, 512);
   const [r, g, b] = ctx.getImageData(4, 4, 1, 1).data;
+  // The features run nearly edge to edge: inset them on their own skin, so
+  // the glasses sit on the front of the head instead of wrapping to the ears.
+  ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.drawImage(image, 512 * FACE_INSET, 512 * FACE_INSET, 512 * (1 - 2 * FACE_INSET), 512 * (1 - 2 * FACE_INSET));
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   return { texture, skin: new Color(`rgb(${r}, ${g}, ${b})`) };

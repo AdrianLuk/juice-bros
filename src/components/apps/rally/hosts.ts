@@ -27,7 +27,7 @@ export const HOSTS: Record<HostId, Host> = {
   adrian: {
     name: "Adrian",
     jersey: "ADRIAN",
-    face: null,
+    face: "/play/adrian-face.webp",
     skin: "#e8b48c",
     hair: "#17130f",
     cap: null,
@@ -38,7 +38,7 @@ export const HOSTS: Record<HostId, Host> = {
   daven: {
     name: "Daven",
     jersey: "DAVEN",
-    face: null,
+    face: "/play/daven-face.webp",
     skin: "#dba47a",
     hair: "#17130f",
     cap: "#111316",
