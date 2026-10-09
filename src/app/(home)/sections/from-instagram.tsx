@@ -7,5 +7,5 @@ import { InstagramStrip } from "@/components/bx/instagram-strip";
  * is what the two pages use it to say.
  */
 export function FromInstagram({ posts }: { posts: InstagramPost[] }) {
-  return <InstagramStrip posts={posts} title="Between episodes" />;
+  return <InstagramStrip posts={posts} title="Catch us on Instagram" />;
 }

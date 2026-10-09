@@ -19,6 +19,17 @@ export type InstagramPost = {
   type: "image" | "video";
 };
 
+/**
+ * The caption's opening line, for the line printed under each tile: the first
+ * non-empty line with its trailing run of hashtags and mentions dropped, since
+ * a tag block reads as noise once it is cut to two lines. Empty when nothing
+ * but tags is left, so the caller prints no caption at all.
+ */
+export function captionLead(caption: string): string {
+  const first = caption.split("\n").find((line) => line.trim() !== "") ?? "";
+  return first.replace(/(?:\s*[#@][\p{L}\p{N}_.]+)+\s*$/u, "").trim();
+}
+
 type RawMediaItem = {
   id: string;
   caption?: string;

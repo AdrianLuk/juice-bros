@@ -447,7 +447,7 @@ border. Putting a hairline on every section is what made an earlier build read a
 a flat plateau of equals.
 
 **Grids step up responsively.** The episode archive runs 1 → 2 (`sm`) → 3 (`lg`)
-→ 4 (`xl`) columns; the Instagram strip runs 3 → 6 (`lg`); the tools grid runs
+→ 4 (`xl`) columns; the Instagram rail scrolls sideways (2.3 → 3.5 cards visible) and settles at 6 columns from `lg`; the tools grid runs
 1 → 2 (`md`). Gaps hold to a small set of steps: `gap-3` (0.75rem) for the
 tightest grid, `gap-4`–`gap-6` for card grids (the archive splits them, 1.5rem
 across and 2.25rem down, so wrapped two-line titles never crowd the row below),
@@ -541,7 +541,7 @@ buttons, the mobile corner button, the footer's social icon buttons — is a ful
 pill (999px). There are no square-cornered buttons and no sharp-cornered cards.
 Borders are always 1px, always drawn from the three line tokens, never a heavier
 weight. Media is cropped to its own aspect: 16:9 for the stage and archive
-thumbnails, 4:3 for the hosts photo, 1:1 for the Instagram strip.
+thumbnails, 4:3 for the hosts photo, 9:16 for the Instagram rail (the account posts Reels; its play mark sits in the bottom-right corner, off the cover lettering).
 
 ## Components
 
@@ -578,7 +578,7 @@ thumbnails, 4:3 for the hosts photo, 1:1 for the Instagram strip.
   the full tile gesture instead, and a keyboard visitor gets the same lift a
   pointer does.
 - **`.bx-tile` (the signature gesture)** — every thumbnail-bearing surface: the
-  stage, archive thumbnails, the Instagram grid, the hosts' photo. Raised fill,
+  stage, archive thumbnails, the Instagram rail, the hosts' photo. Raised fill,
   0.75rem radius, `overflow: hidden`, images `object-fit: cover` filling the tile
   edge to edge with no internal padding. One hover/focus treatment — lift 3px,
   ring brightens a step, `--bx-shadow` appears, the play mark goes opaque white
