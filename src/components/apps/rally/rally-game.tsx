@@ -491,14 +491,14 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
                 {(["adrian", "daven"] as const).map((id) => (
                   <label
                     key={id}
-                    className="flex w-28 cursor-pointer flex-col items-center gap-2 rounded-(--bx-radius) border border-(--bx-line) bg-black/40 p-2.5 text-[0.9375rem] font-semibold has-checked:border-(--bx-accent) has-checked:bg-(--bx-accent) has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2 sm:w-32"
+                    className="flex w-28 cursor-pointer flex-col items-center gap-2 rounded-(--bx-radius) border border-(--bx-line) bg-black/40 p-2.5 text-[0.9375rem] font-semibold has-checked:border-(--bx-accent) has-checked:bg-(--bx-accent) has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-offset-2 sm:w-40"
                   >
                     {/* The host's own figure, rendered by the court once it loads. */}
                     {portraits ? (
                       // eslint-disable-next-line @next/next/no-img-element -- a data URL the court just rendered
-                      <img src={portraits[id]} alt="" className="size-16 rounded-full sm:size-20" />
+                      <img src={portraits[id]} alt="" className="size-16 rounded-full sm:size-28" />
                     ) : (
-                      <span aria-hidden className="size-16 rounded-full bg-(--bx-raised) sm:size-20" />
+                      <span aria-hidden className="size-16 rounded-full bg-(--bx-raised) sm:size-28" />
                     )}
                     <input
                       type="radio"
