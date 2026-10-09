@@ -22,31 +22,22 @@ import {
 
 export type { FloorActionResult } from "../floor-commit.ts";
 
-/**
- * Load the Organizer's own Session, or an error. Every operational floor
- * action starts here; the ownership check lives in `../owned-session.ts`.
- */
 type OwnedSession = Owned<LoadedSession>;
 
-async function loadOwnedOrError(
-  sessionId: string,
-): Promise<OwnedSession | { error: string }> {
-  return (
-    (await loadOwnedSession(sessionId)) ?? {
-      error: "That session isn't yours to run.",
-    }
-  );
-}
-
+/**
+ * Load the Organizer's own open Session, or the result to return instead.
+ * Every operational floor action starts here; the ownership check lives in
+ * `../owned-session.ts`. A closed Session returns `whenClosed`.
+ */
 async function loadOwnedOpenSession(
   sessionId: string,
-): Promise<OwnedSession | { error: string }> {
-  const owned = await loadOwnedOrError(sessionId);
-  if ("error" in owned) return owned;
-  if (owned.loaded.status !== "open") {
-    return { error: "This session has already wrapped up." };
-  }
-  return owned;
+  whenClosed: FloorActionResult = {
+    error: "This session has already wrapped up.",
+  },
+): Promise<OwnedSession | FloorActionResult> {
+  const owned = await loadOwnedSession(sessionId);
+  if (!owned) return { error: "That session isn't yours to run." };
+  return owned.loaded.status === "open" ? owned : whenClosed;
 }
 
 /**
@@ -65,8 +56,13 @@ export async function organizerFloorCommand(
   sessionId: string,
   command: FloorCommand,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedOrError(sessionId);
-  if ("error" in owned) return owned;
+  const wrapUp =
+    command?.kind === "lastCall" || command?.kind === "closeSession";
+  const owned = await loadOwnedOpenSession(
+    sessionId,
+    wrapUp ? { ok: true } : undefined,
+  );
+  if (!("loaded" in owned)) return owned;
 
   const outcome = dispatchFloorCommand(
     owned.loaded.state,
@@ -75,13 +71,9 @@ export async function organizerFloorCommand(
     mintFloorIds(),
   );
   if (outcome.kind === "event") {
-    if (owned.loaded.status !== "open") return { ok: true };
     return outcome.body.type === "LAST_CALL"
       ? runLastCall(owned, sessionId)
       : runClose(owned, sessionId);
-  }
-  if (owned.loaded.status !== "open") {
-    return { error: "This session has already wrapped up." };
   }
 
   const log = supabaseEventLog(owned.supabase);
@@ -114,7 +106,7 @@ export async function undoLastAction(
   expectedSeq: number,
 ): Promise<FloorActionResult> {
   const owned = await loadOwnedOpenSession(sessionId);
-  if ("error" in owned) return owned;
+  if (!("loaded" in owned)) return owned;
   return runUndo(owned.supabase, sessionId, expectedSeq);
 }
 

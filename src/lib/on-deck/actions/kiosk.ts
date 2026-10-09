@@ -4,6 +4,7 @@ import { createClient } from "../supabase/server.ts";
 import { loadKioskSession } from "../kiosk.ts";
 import {
   commitFloorOutcome,
+  rpcAppend,
   runUndo,
   type FloorActionResult,
 } from "../floor-commit.ts";
@@ -13,7 +14,6 @@ import {
   mintFloorIds,
   type FloorCommand,
 } from "../floor-commands.ts";
-import { encode } from "../session/codec.ts";
 
 export type { FloorActionResult } from "../floor-commit.ts";
 
@@ -52,16 +52,7 @@ export async function kioskFloorCommand(
   return commitFloorOutcome(
     sessionId,
     outcome,
-    async (body) => {
-      const event = encode(body);
-      const supabase = await createClient();
-      const { error } = await supabase.rpc("on_deck_kiosk_append", {
-        p_session_id: sessionId,
-        p_type: event.type,
-        p_payload: event.payload,
-      });
-      return { error };
-    },
+    rpcAppend("on_deck_kiosk_append", sessionId),
     // The Kiosk is the self-serve floor with no Volunteer calling names — the
     // exact case the opt-in turn notification (issue #260) exists for. A
     // Kiosk "Court done" that moves a Foursome On Deck or onto a Court fires

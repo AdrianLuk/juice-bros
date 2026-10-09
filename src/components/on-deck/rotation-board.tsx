@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useMutation,
-  useMutationState,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { QueryProvider } from "@/components/on-deck/query-provider";
 import { useRotationSync } from "@/components/on-deck/use-rotation-sync";
+import { useFloorCommand } from "@/components/on-deck/use-floor-command";
 import { useBoardClock } from "@/components/on-deck/use-board-clock";
 import {
   FloorBoard,
@@ -154,19 +150,12 @@ function RotationBoardInner({
     refresh();
   };
 
-  // Keyed so `useMutationState` sees every command in flight, not just the
-  // latest one this hook fired.
-  const commandKey = ["on-deck", "floor-command", sessionId] as const;
-  const command = useMutation({
-    mutationKey: commandKey,
+  const { command, inFlight } = useFloorCommand({
+    mutationKey: ["on-deck", "floor-command", sessionId],
     mutationFn: actions.send,
     onSuccess: handle,
     onError: (_error, sent) =>
       setError(COMMAND_FAILED[sent.kind] ?? "Something went wrong. Try again."),
-  });
-  const inFlight = useMutationState({
-    filters: { mutationKey: commandKey, status: "pending" },
-    select: (mutation) => (mutation.state.variables as FloorCommand).kind,
   });
 
   const undo = useMutation({

@@ -7,6 +7,7 @@ import { loadVolunteerSession } from "../volunteer.ts";
 import { sessionPath } from "../routes.ts";
 import {
   commitFloorOutcome,
+  rpcAppend,
   runUndo,
   type FloorActionResult,
 } from "../floor-commit.ts";
@@ -15,7 +16,6 @@ import {
   mintFloorIds,
   type FloorCommand,
 } from "../floor-commands.ts";
-import { encode } from "../session/codec.ts";
 
 export type { FloorActionResult } from "../floor-commit.ts";
 
@@ -49,17 +49,9 @@ export async function volunteerFloorCommand(
   return commitFloorOutcome(
     sessionId,
     outcome,
-    async (body) => {
-      const event = encode(body);
-      const supabase = await createClient();
-      const { error } = await supabase.rpc("on_deck_volunteer_append", {
-        p_session_id: sessionId,
-        p_token: token.trim(),
-        p_type: event.type,
-        p_payload: event.payload,
-      });
-      return { error };
-    },
+    rpcAppend("on_deck_volunteer_append", sessionId, {
+      p_token: token.trim(),
+    }),
     loaded.state,
   );
 }
