@@ -1704,17 +1704,50 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 /* The real screens, one night behind all of them, switched from one bar: the
    screen tabs, Let it run and Reset, and a line saying where the night is. */
 .tt-demo { display: grid; gap: 1.25rem; }
-.tt-demo-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1.25rem;
+.tt-demo-bar { display: grid; gap: 1rem; }
+/* Each tab says whose screen it is and what it is for, so a first-time
+   Organizer can pick the view by its holder, not by guessing at a name. */
+.tt-demo-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11.5rem), 1fr));
+  gap: 0.5rem;
 }
-.tt-demo-tabs,
-.tt-demo-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.tt-demo-tab { padding-inline: 0.9rem; }
-.tt-demo-progress { flex-basis: 100%; margin: 0; }
+.tt-demo-tab {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  padding: 0.7rem 0.85rem 0.8rem;
+  border: 1.5px solid var(--tt-ink);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--tt-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+.tt-demo-tab:hover { background: oklch(0.2 0.035 262 / 0.06); }
+.tt-demo-tab[aria-selected="true"] { background: var(--tt-ink); color: #ffffff; }
+.tt-demo-tab-label {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.tt-demo-tab-what {
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--tt-ink-dim);
+}
+.tt-demo-tab[aria-selected="true"] .tt-demo-tab-what { color: var(--tt-plate-dim); }
+.tt-demo-tab-who { font-weight: 700; color: var(--tt-ink); }
+.tt-demo-tab[aria-selected="true"] .tt-demo-tab-who { color: #ffffff; }
+.tt-demo-controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; }
+.tt-demo-control { display: flex; align-items: center; gap: 0.75rem; flex: 1 1 18rem; }
+.tt-demo-control .tt-btn { flex: none; min-width: 7.5rem; }
+.tt-demo-control-what { margin: 0; font-size: 0.875rem; line-height: 1.35; color: var(--tt-ink-dim); }
+.tt-demo-progress { margin: 0; }
 
 /* A screen as its holder sees it, edged like a window onto it. */
 .tt-demo-frame {
