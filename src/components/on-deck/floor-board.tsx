@@ -212,14 +212,10 @@ function ShowTheQr({ qr }: { qr: ClubJoinQr }) {
  * a self-registered Player, minus the device.
  */
 function AddWalkup({
-  onAdd,
+  send,
   pending,
 }: {
-  onAdd: (args: {
-    first: string;
-    initial: string;
-    skill: string;
-  }) => Promise<{ ok?: boolean } | undefined>;
+  send: FloorBoardOps["send"];
   pending: boolean;
 }) {
   const [first, setFirst] = useState("");
@@ -234,7 +230,12 @@ function AddWalkup({
       onSubmit={(e) => {
         e.preventDefault();
         if (!ready || pending) return;
-        onAdd({ first, initial, skill })
+        send({
+          kind: "addWalkup",
+          firstName: first,
+          lastInitial: initial,
+          skillLevel: skill,
+        })
           .then((result) => {
             if (result && result.ok === false) return;
             setFirst("");
@@ -802,14 +803,7 @@ export function FloorBoard({
         <>
           {joinQr && <ShowTheQr qr={joinQr} />}
           <AddWalkup
-            onAdd={({ first, initial, skill }) =>
-              ops.send({
-                kind: "addWalkup",
-                firstName: first,
-                lastInitial: initial,
-                skillLevel: skill,
-              })
-            }
+            send={ops.send}
             pending={pending.walkup}
           />
         </>

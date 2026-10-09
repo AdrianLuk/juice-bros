@@ -4,6 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 import { sessionPath } from "./routes.ts";
+import { encode } from "./session/codec.ts";
+import { createClient } from "./supabase/server.ts";
 import { dispatchTurnNotifications } from "./turn-notify-dispatch.ts";
 import type { FloorOpOutcome } from "./floor-ops.ts";
 import type { EventBody, SessionState } from "./session/types.ts";
@@ -48,6 +50,21 @@ export async function commitFloorOutcome(
     await dispatchTurnNotifications(beforeState, sessionId);
   }
   return { ok: true };
+}
+
+/** The `write` for a credential whose own RPC stamps the Operator and checks
+ * its scope: `encode` the body, then `rpc` with that credential's own args. */
+export function rpcAppend(rpc: string, sessionId: string, credential = {}) {
+  return async (body: EventBody) => {
+    const event = encode(body);
+    const { error } = await (await createClient()).rpc(rpc, {
+      p_session_id: sessionId,
+      ...credential,
+      p_type: event.type,
+      p_payload: event.payload,
+    });
+    return { error };
+  };
 }
 
 /**

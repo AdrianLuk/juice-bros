@@ -157,14 +157,10 @@ function PlayerShort({
 
 /** "Add me": a walk-up with no phone enters their details and joins the Queue. */
 function AddMe({
-  onAdd,
+  send,
   pending,
 }: {
-  onAdd: (args: {
-    first: string;
-    initial: string;
-    skill: string;
-  }) => Promise<{ ok?: boolean } | undefined>;
+  send: KioskBoardOps["send"];
   pending: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -193,7 +189,12 @@ function AddMe({
       onSubmit={(e) => {
         e.preventDefault();
         if (!ready || pending) return;
-        onAdd({ first, initial, skill })
+        send({
+          kind: "addWalkup",
+          firstName: first,
+          lastInitial: initial,
+          skillLevel: skill,
+        })
           .then((result) => {
             if (result && result.ok === false) return;
             setFirst("");
@@ -446,14 +447,7 @@ export function KioskBoard({
 
       {!view.lastCall && (
         <AddMe
-          onAdd={({ first, initial, skill }) =>
-            ops.send({
-              kind: "addWalkup",
-              firstName: first,
-              lastInitial: initial,
-              skillLevel: skill,
-            })
-          }
+          send={ops.send}
           pending={pending.walkup}
         />
       )}
