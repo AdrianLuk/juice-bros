@@ -3,11 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
-import { createClient } from "../supabase/server.ts";
 import { trackFirstSessionClosed } from "../analytics.ts";
-import { verifyOrganizer } from "../dal.ts";
-import { getOwnedClub } from "../clubs.ts";
-import { getSession } from "../sessions.ts";
+import { loadOwnedSession, type Owned } from "../owned-session.ts";
+import type { LoadedSession } from "../sessions.ts";
 import { sessionPath, floorPath } from "../routes.ts";
 import { projectSummary } from "../session/summary.ts";
 import { supabaseEventLog } from "../supabase/event-log.ts";
@@ -33,32 +31,25 @@ export type { FloorActionResult } from "../floor-commit.ts";
 export type FinishCourtResult = FloorActionResult;
 
 /**
- * Load the Organizer's own open Session, or an error. Every operational floor
- * action starts here — the ownership check is belt-and-braces on top of RLS.
+ * Load the Organizer's own Session, or an error. Every operational floor
+ * action starts here; the ownership check lives in `../owned-session.ts`.
  */
-type OwnedSession = {
-  organizer: Awaited<ReturnType<typeof verifyOrganizer>>;
-  supabase: Awaited<ReturnType<typeof createClient>>;
-  loaded: NonNullable<Awaited<ReturnType<typeof getSession>>>;
-};
+type OwnedSession = Owned<LoadedSession>;
 
-async function loadOwnedSession(
+async function loadOwnedOrError(
   sessionId: string,
 ): Promise<OwnedSession | { error: string }> {
-  const organizer = await verifyOrganizer();
-  const supabase = await createClient();
-  const club = await getOwnedClub(supabase);
-  const loaded = await getSession(supabase, sessionId).catch(() => null);
-  if (!club || !loaded || loaded.config.clubId !== club.id) {
-    return { error: "That session isn't yours to run." };
-  }
-  return { organizer, supabase, loaded };
+  return (
+    (await loadOwnedSession(sessionId)) ?? {
+      error: "That session isn't yours to run.",
+    }
+  );
 }
 
 async function loadOwnedOpenSession(
   sessionId: string,
 ): Promise<OwnedSession | { error: string }> {
-  const owned = await loadOwnedSession(sessionId);
+  const owned = await loadOwnedOrError(sessionId);
   if ("error" in owned) return owned;
   if (owned.loaded.status !== "open") {
     return { error: "This session has already wrapped up." };
@@ -264,7 +255,7 @@ export async function undoLastAction(
 export async function callLastCall(
   sessionId: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedSession(sessionId);
+  const owned = await loadOwnedOrError(sessionId);
   if ("error" in owned) return owned;
   // Already closed — Last Call is moot but not an error (a stale board, a
   // double tap after close).
@@ -294,7 +285,7 @@ export async function callLastCall(
 export async function closeSession(
   sessionId: string,
 ): Promise<FloorActionResult> {
-  const owned = await loadOwnedSession(sessionId);
+  const owned = await loadOwnedOrError(sessionId);
   if ("error" in owned) return owned;
   // Already closed — a double tap or a retry after a dropped response. The RPC
   // is idempotent too, but there is nothing to send and no summary to project.

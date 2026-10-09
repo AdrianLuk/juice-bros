@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { pageMetadata } from "@/lib/metadata";
-import { verifyOrganizer } from "@/lib/on-deck/dal";
-import { createClient } from "@/lib/on-deck/supabase/server";
-import { getOwnedClub } from "@/lib/on-deck/clubs";
-import { getSession } from "@/lib/on-deck/sessions";
-import { floorRosterFrom, rotationViewFrom } from "@/lib/on-deck/rotation";
+import { loadOwnedSession } from "@/lib/on-deck/owned-session";
+import {
+  floorRosterFrom,
+  rotationViewFrom,
+} from "@/lib/on-deck/session/rotation-view";
 import { getVolunteerToken } from "@/lib/on-deck/volunteer";
 import { onDeckAbsoluteUrl } from "@/lib/on-deck/request-origin";
 import {
@@ -50,14 +50,11 @@ export default async function FloorPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = await params;
-  const organizer = await verifyOrganizer();
-  const supabase = await createClient();
-
-  const club = await getOwnedClub(supabase);
-  const loaded = await getSession(supabase, sessionId).catch(() => null);
-  if (!club || !loaded || loaded.config.clubId !== club.id) {
+  const owned = await loadOwnedSession(sessionId);
+  if (!owned) {
     notFound();
   }
+  const { organizer, supabase, club, loaded } = owned;
 
   const view = rotationViewFrom(loaded);
   const roster = floorRosterFrom(loaded);

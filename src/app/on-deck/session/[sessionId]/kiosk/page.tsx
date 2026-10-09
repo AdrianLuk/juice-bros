@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
 import { loadKioskSession } from "@/lib/on-deck/kiosk";
 import { venueNameOf } from "@/lib/on-deck/sessions";
-import { rotationViewFrom } from "@/lib/on-deck/rotation";
+import { rotationViewFrom } from "@/lib/on-deck/session/rotation-view";
 import { kioskPath } from "@/lib/on-deck/routes";
 import { ArenaShell } from "@/components/on-deck/arena-shell";
 import { KioskRotationBoard } from "@/components/on-deck/kiosk-rotation-board";
