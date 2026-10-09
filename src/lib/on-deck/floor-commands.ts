@@ -28,8 +28,15 @@ import {
   setAsideOutcome,
   swapNoShowOutcome,
   type FloorOpOutcome,
+  type FloorOutcomeBody,
 } from "./floor-ops.ts";
-import type { EventBody, Operator, SessionState } from "./session/types.ts";
+import { reduceSession } from "./session/reduce.ts";
+import type {
+  EventBody,
+  Operator,
+  SessionEvent,
+  SessionState,
+} from "./session/types.ts";
 
 /** One appending floor operation and its inputs. `since` is the Court's
  * `since` the board last rendered (the stale-board guard). */
@@ -143,8 +150,9 @@ export const FLOOR_COMMAND_REFUSED = "That didn't go through. Try again.";
 
 /**
  * Decide what `command`, sent by `operator`, appends to the board in `state`.
- * Refuses (an `error` outcome) a command the Operator may not send; otherwise
- * returns exactly what the matching `floor-ops` decision returns.
+ * Refuses (an `error` outcome) a command the Operator may not send, and an
+ * event the fold would ignore (issue #641); otherwise returns exactly what the
+ * matching `floor-ops` decision returns.
  *
  * Last Call and close Session always append: whether the Session is still open
  * is the adapter's check, as it is today.
@@ -160,6 +168,61 @@ export function dispatchFloorCommand(
     return { kind: "error", error: FLOOR_COMMAND_REFUSED };
   }
 
+  const outcome = decide(state, command, ids);
+  if (outcome.kind !== "event") return outcome;
+  return foldChanges(state, operator, outcome.body)
+    ? outcome
+    : { kind: "error", error: ignoredCopy(state, outcome.body) };
+}
+
+/**
+ * The fold's timestamp for the trial event. Later than any real event, so a
+ * write whose only effect is a timestamp (a repeat "still going") still shows
+ * as a change; no fold guard reads `at`.
+ */
+const TRIAL_AT = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Whether appending `body` would change the board at all (issue #641). The
+ * reducer is the one judge of which events apply: an ignored event `break`s
+ * before touching the state, so an unchanged fold means a dead event that
+ * would sit in the log and be the next thing Undo drops.
+ */
+function foldChanges(
+  state: SessionState,
+  operator: FloorOperatorKind,
+  body: FloorOutcomeBody,
+): boolean {
+  const event = {
+    ...body,
+    at: TRIAL_AT,
+    // The fold only reads the Operator on SESSION_STARTED; the kind is enough.
+    operator: { kind: operator },
+  } as SessionEvent;
+  const next = reduceSession(state.config, [event], state);
+  // SessionState is plain JSON data (arrays, records, numbers, strings, null).
+  return JSON.stringify(next) !== JSON.stringify(state);
+}
+
+/** What the Operator sees when their tap would change nothing. */
+function ignoredCopy(state: SessionState, body: FloorOutcomeBody): string {
+  if (state.status !== "open") return "This session has already wrapped up.";
+  if (
+    body.type === "PLAYER_PAUSED" &&
+    state.paused.some((p) => p.playerId === body.token)
+  ) {
+    return "They're already set aside.";
+  }
+  if (body.type === "PLAYER_REQUEUED") return "They aren't set aside right now.";
+  return "The board moved on. Take another look.";
+}
+
+/** The `floor-ops` decision for one permitted command. */
+function decide(
+  state: SessionState,
+  command: FloorCommand,
+  ids: FloorIds,
+): FloorCommandOutcome {
   switch (command.kind) {
     case "finishCourt":
       return finishCourtOutcome(state, command.court, command.since);

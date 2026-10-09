@@ -1835,3 +1835,16 @@ test("undo drops the last COURT_CONFIRMED: re-folding restores the prior state",
   assert.equal(reduceSession(config, withConfirm).courtConfirmedAt[1] !== undefined, true);
   assert.deepEqual(reduceSession(config, withConfirm.slice(0, -1)), before);
 });
+
+test("folding on from an earlier fold equals folding the whole log, and leaves the earlier fold alone", () => {
+  const head = sessionWith(10);
+  const tail = [courtFinished(1), courtFinished(2), courtFinished(1)];
+  const before = reduceSession(config, head);
+  const snapshot = structuredClone(before);
+
+  assert.deepEqual(
+    reduceSession(config, tail, before),
+    reduceSession(config, [...head, ...tail]),
+  );
+  assert.deepEqual(before, snapshot);
+});
