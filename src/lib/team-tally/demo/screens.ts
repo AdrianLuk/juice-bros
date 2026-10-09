@@ -12,8 +12,8 @@ export const SCREENS: { id: DemoScreen; label: string; who: string; what: string
   { id: "score", label: "Score Link", who: "For each captain", what: "Enter your Matchup's scores from your phone." },
   { id: "public", label: "Public Link", who: "For players and fans", what: "Follow the standings and scores on any phone." },
   { id: "tv", label: "TV", who: "For the venue screen", what: "Standings and Matchups, cycling on their own." },
-  { id: "organizer", label: "Organizer", who: "For the Organizer", what: "Fix any score, reopen a Matchup, call a tie." },
-  { id: "brief", label: "Brief", who: "For the group chat", what: "Teams, courts and links, ready to paste." },
+  { id: "organizer", label: "Organizer", who: "For the Organizer", what: "Fix any score and settle what the captains can't." },
+  { id: "brief", label: "Brief", who: "For the group chat", what: "Teams and courts for every Matchup, ready to paste." },
 ];
 
 export function screenNamed(id: DemoScreen): (typeof SCREENS)[number] {

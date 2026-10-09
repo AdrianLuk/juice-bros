@@ -1862,18 +1862,16 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 /* ---- the signed-out landing (#636) ----------------------------------------
 
    Persuade mode inside the same world: no new material, only a composition.
-   Sections alternate the gym-white ground and full-width white bands, so a
-   graphic-heavy passage is followed by a quieter, text-led one. Every preview
-   is a real plate (bug, tower, hand-off, the TV) on a made-up night. */
+   The gym-white ground runs the whole page (white stays on sheets), and
+   sections part on a hairline rule and space, a graphic-heavy passage then a
+   quieter, text-led one. Every preview is a real plate (bug, tower, hand-off,
+   the TV) on a made-up night. */
 
 .tt-land-section { padding-block: 4rem; }
 @media (min-width: 640px) {
   .tt-land-section { padding-block: 5.5rem; }
 }
-.tt-land-band {
-  background: var(--tt-sheet);
-  border-block: 1px solid var(--tt-rule);
-}
+.tt-land-band { border-top: 1px solid var(--tt-rule); }
 .tt-land-head {
   display: grid;
   gap: 1rem;
@@ -1991,6 +1989,22 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   .tt-land-slot[data-screen="public"] { grid-column: span 7; }
   .tt-land-slot[data-screen="organizer"] { grid-column: span 5; }
   .tt-land-slot[data-screen="brief"] { grid-column: span 7; }
+}
+/* The Public Link's tower rides beside the taller Score Link as it scrolls. */
+@media (min-width: 1024px) {
+  .tt-land-sticky { position: sticky; top: 1.5rem; }
+}
+/* On a phone the TV would be a thumbnail with 3px type, so it keeps a size a
+   person can read and scrolls sideways inside its own frame instead. */
+.tt-land-tv-hint { display: none; }
+@media (max-width: 639px) {
+  .tt-land-tv {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    border-radius: 0.5rem;
+  }
+  .tt-land-tv > .tt-demo-tv { width: 46rem; border-width: 0.4rem; }
+  .tt-land-tv-hint { display: block; }
 }
 /* The brief excerpt: its links are long and unbroken, so let them wrap. */
 .tt-land-brief {

@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { demoNight } from "@/lib/team-tally/demo/night";
 import { demoWrites } from "@/lib/team-tally/demo/seam";
 import { createDemoStore } from "@/lib/team-tally/demo/store";
-import { liveRound, sideOf, type DocGame, type DocMatchup, type DocTeam, type TeamEventDoc } from "@/lib/team-tally/event-doc";
-import { EditedBy, GameCard, KIND_LABEL } from "../game-card";
+import { sideOf, type DocGame, type DocMatchup, type DocTeam, type TeamEventDoc } from "@/lib/team-tally/event-doc";
+import { EditedBy, KIND_LABEL } from "../game-card";
 import { MatchupBug } from "../matchup-bug";
+import { MatchupRounds } from "../matchup-rounds";
+import { PublicScreen } from "../public-screen";
 import { TvStage } from "../tv-stage";
 
 /**
@@ -21,38 +22,25 @@ function teamMap(teams: DocTeam[]): Map<string, DocTeam> {
 }
 
 /**
- * The Score Link, working: Golden Set's Matchup as its bug, over the live
- * Round's two Games with their score boxes. A score saves into a night held in
- * the browser by the demo's own rules, so 13-9 gets the real refusal and a
- * saved Game says who entered it. Nothing leaves the page.
+ * The Score Link, working: Golden Set's Matchup as its bug, over its Rounds
+ * as the real Score Link sets them (`MatchupRounds`): the live Round open,
+ * one Game already entered (with who entered it) and one with its score
+ * boxes waiting, the others folded. A score saves into a night held in the browser by
+ * the demo's own rules, so 13-9 gets the real refusal and a saved Game says
+ * who entered it. Nothing leaves the page.
  */
-export function ScoreLinkPreview({ date }: { date: string }) {
-  const [opening] = useState(() => demoNight(date));
-  const { myTeamId } = opening;
-  const [store] = useState(() => createDemoStore(opening.event));
+export function ScoreLinkPreview({ event: start, myTeamId }: { event: TeamEventDoc; myTeamId: string }) {
+  const [store] = useState(() => createDemoStore(start));
   const event = useSyncExternalStore(store.subscribe, store.get, store.get);
   const writes = useMemo(() => demoWrites({ kind: "team", teamId: myTeamId }, store.commit), [myTeamId, store]);
   const teams = useMemo(() => teamMap(event.teams), [event.teams]);
 
   const matchup = event.matchups.find((candidate) => candidate.stage === "opening" && sideOf(candidate, myTeamId))!;
-  const round = liveRound(matchup);
-  const games = round ? matchup.games.filter((game) => game.round === round) : [];
 
   return (
     <div className="grid gap-3">
       <MatchupBug matchup={matchup} teams={teams} />
-      {round ? (
-        <>
-          <p className="tt-sect">
-            Round {round} <span className="tt-live-mark">Live</span>
-          </p>
-          {games.map((game) => (
-            <GameCard key={game.id} game={game} matchup={matchup} teams={teams} writes={writes} />
-          ))}
-        </>
-      ) : (
-        <p className="tt-body">All six Games are in. On the real Score Link, Matchup done comes next.</p>
-      )}
+      <MatchupRounds matchup={matchup} teams={teams} writes={writes} />
     </div>
   );
 }
@@ -89,6 +77,40 @@ export function OrganizerPreview({
         </span>
         <EditedBy game={game} matchup={matchup} teams={byId} />
       </p>
+    </div>
+  );
+}
+
+/**
+ * The Public Link as a phone opens it, in a handset. It opens scrolled to the
+ * Matchups, past the standings the previews above already show, with the
+ * first Matchup's Games open, so what is on screen is the Games and who
+ * entered them. The visitor can
+ * scroll it either way.
+ */
+export function PhonePreview({ event }: { event: TeamEventDoc }) {
+  const frame = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = frame.current;
+    const matchups = element?.querySelector<HTMLElement>('section[aria-label="Matchups"]');
+    if (!element || !matchups) return;
+    // Open the first Matchup's Games, so who entered each one is on screen.
+    const games = matchups.querySelector<HTMLDetailsElement>("details");
+    if (games) games.open = true;
+    const offset = matchups.getBoundingClientRect().top - element.getBoundingClientRect().top;
+    element.scrollTop = Math.max(0, offset - 12);
+  }, []);
+
+  return (
+    <div
+      ref={frame}
+      className="tt-demo-phone tt-land-phone"
+      role="region"
+      aria-label="The Public Link on a phone"
+      tabIndex={0}
+    >
+      <PublicScreen live={{ view: { event } }} view="scroll" />
     </div>
   );
 }

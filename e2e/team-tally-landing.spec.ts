@@ -5,8 +5,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
  * previews built from the real components on a made-up night.
  *
  *   - every section is there, and it ends on Try the demo and Build a night;
- *   - the Score Link preview works: 13-9 gets the real refusal, a real score
- *     saves and says who entered it;
+ *   - the Score Link preview works: Round 2's captains' game is already in
+ *     with who entered it, 13-9 gets the real refusal, a real score saves;
  *   - the hero's standings re-sort once a score lands;
  *   - no sideways scroll on a phone or a desktop.
  *
@@ -56,7 +56,10 @@ test("the landing walks through the whole night and ends on the demo and a way t
 
 test("the Score Link preview refuses 13-9 and saves a real score", async ({ page }) => {
   await page.goto(LANDING);
-  const form = scoreLink(page).getByRole("form", { name: "Round 2, captains' game" });
+  await expect(
+    scoreLink(page).getByRole("form", { name: "Round 2, captains' game" }).getByText("Entered by Team Ben Johns"),
+  ).toBeVisible();
+  const form = scoreLink(page).getByRole("form", { name: "Round 2, teammates' game" });
   const red = form.getByLabel("Golden Set points");
   const blue = form.getByLabel("Team Federico Staksrud points");
 
@@ -72,7 +75,11 @@ test("the Score Link preview refuses 13-9 and saves a real score", async ({ page
   await red.fill("11");
   await blue.fill("9");
   await form.getByRole("button", { name: "Save score" }).click();
-  await expect(form.getByText("Entered by Team Ben Johns")).toBeVisible();
+  // Round 2 is in: it folds to one line under a FINAL stamp, and Round 3 leads.
+  const round2 = scoreLink(page).locator("details", { hasText: "Round 2" });
+  await expect(round2).toContainText("11–7 · 11–9");
+  await expect(round2).toContainText("Final");
+  await expect(scoreLink(page).getByRole("region", { name: "Round 3, live" })).toBeVisible();
 });
 
 test("the hero's standings re-sort when the score lands", async ({ page }) => {

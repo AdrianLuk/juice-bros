@@ -12,11 +12,10 @@ import {
   TEAM_TALLY_SIGN_IN_PATH,
 } from "@/lib/team-tally/routes";
 import { FlightHandoff } from "../flight-handoff";
-import { PublicScreen } from "../public-screen";
 import { StandingsTower } from "../standings-tower";
 import { TtAppBar } from "../tt-head";
 import { HeroNight } from "./hero-night";
-import { OrganizerPreview, ScoreLinkPreview, TvPreview } from "./previews";
+import { OrganizerPreview, PhonePreview, ScoreLinkPreview, TvPreview } from "./previews";
 
 /** Sign in, then straight to building a night. */
 const BUILD_A_NIGHT = `${TEAM_TALLY_SIGN_IN_PATH}?next=${encodeURIComponent(TEAM_TALLY_NEW_EVENT_PATH)}`;
@@ -159,41 +158,48 @@ export function TeamTallyLanding() {
         </div>
       </section>
 
-      <section className="tt-wrap tt-land-section" aria-labelledby="tt-land-screens">
-        <div className="tt-land-head">
-          <h2 id="tt-land-screens" className="tt-land-h2">
-            One night, five screens
-          </h2>
-          <p className="tt-lead">
-            Every screen shows the same night as it happens. Which one you look at depends on where you are standing.
-          </p>
-        </div>
-        <div className="tt-land-screens">
-          <Screen id="score">
-            <ScoreLinkPreview date={date} />
-            <p className="tt-land-hint">
-              Enter Round 2 for Golden Set and save. A score like{" "}
-              <span className="whitespace-nowrap">13-9</span> gets turned back with what it should have been.
+      <section className="tt-land-band" aria-labelledby="tt-land-screens">
+        <div className="tt-wrap tt-land-section">
+          <div className="tt-land-head">
+            <h2 id="tt-land-screens" className="tt-land-h2">
+              One night, five screens
+            </h2>
+            <p className="tt-lead">
+              Every screen shows the same night as it happens. Which one you look at depends on where you are standing.
             </p>
-          </Screen>
-          <Screen id="public">
-            <StandingsTower event={nights.opening} positions={[1, 6]} />
-          </Screen>
-          <Screen id="tv">
-            <TvPreview event={nights.opening} />
-          </Screen>
-          <Screen id="organizer">
-            <OrganizerPreview
-              matchup={nights.organizerMatchup}
-              game={nights.organizerGame}
-              teams={nights.opening.teams}
-            />
-          </Screen>
-          <Screen id="brief">
-            <pre aria-label="An excerpt of the brief" className="tt-sheet tt-brief tt-land-brief">
-              {nights.briefExcerpt}
-            </pre>
-          </Screen>
+          </div>
+          <div className="tt-land-screens">
+            <Screen id="score">
+              <ScoreLinkPreview event={nights.night} myTeamId={nights.myTeamId} />
+              <p className="tt-land-hint">
+                Enter the teammates&apos; game and save. A score like{" "}
+                <span className="whitespace-nowrap">13-9</span> gets turned back with what it should have been.
+              </p>
+            </Screen>
+            <Screen id="public">
+              <div className="tt-land-sticky">
+                <StandingsTower event={nights.night} positions={[1, 8]} />
+              </div>
+            </Screen>
+            <Screen id="tv">
+              <div className="tt-land-tv">
+                <TvPreview event={nights.night} />
+              </div>
+              <p className="tt-land-hint tt-land-tv-hint">Swipe across the screen to see all of it.</p>
+            </Screen>
+            <Screen id="organizer">
+              <OrganizerPreview
+                matchup={nights.organizerMatchup}
+                game={nights.organizerGame}
+                teams={nights.night.teams}
+              />
+            </Screen>
+            <Screen id="brief">
+              <pre aria-label="An excerpt of the brief" className="tt-sheet tt-brief tt-land-brief">
+                {nights.briefExcerpt}
+              </pre>
+            </Screen>
+          </div>
         </div>
       </section>
 
@@ -211,7 +217,7 @@ export function TeamTallyLanding() {
               </p>
             </div>
             <div className="grid gap-3">
-              <h3 className="tt-land-h3">When Team scores are level</h3>
+              <h3 className="tt-land-h3">How Seeding orders the Teams</h3>
               <ol className="tt-land-ladder">
                 {TIE_LADDER.map((rung) => (
                   <li key={rung.rule}>
@@ -221,7 +227,8 @@ export function TeamTallyLanding() {
                 ))}
               </ol>
               <p className="tt-body">
-                The tower names the rule that decided a placing, under the Team that came out ahead.
+                Each rule only matters when the ones above it are level. The tower names the rule that decided a
+                placing, under the Team that came out ahead.
               </p>
             </div>
           </div>
@@ -232,33 +239,43 @@ export function TeamTallyLanding() {
         </div>
       </section>
 
-      <section className="tt-wrap tt-land-section" aria-labelledby="tt-land-runs">
-        <div className="tt-land-head">
-          <h2 id="tt-land-runs" className="tt-land-h2">
-            It runs without you
-          </h2>
-          <p className="tt-lead">
-            You can play in your own Matchup. The captains keep the night moving, and anything that can&apos;t be
-            right gets turned back before it reaches the standings.
-          </p>
+      <section className="tt-land-band" aria-labelledby="tt-land-runs">
+        <div className="tt-wrap tt-land-section">
+          <div className="tt-land-head">
+            <h2 id="tt-land-runs" className="tt-land-h2">
+              It runs without you
+            </h2>
+            <p className="tt-lead">
+              You can play in your own Matchup. The captains keep the night moving, and anything that can&apos;t be
+              right gets turned back before it reaches the standings.
+            </p>
+          </div>
+          <ul className="tt-sheet tt-land-rules">
+            <Rule title="Captains set their own lineups" proof={<p className="tt-flag-note m-0">{nights.refusals.roster}</p>}>
+              Either captain can rename or reorder their Team&apos;s players on the night, for any Round with no score
+              yet. A sub takes the slot of the player they replace.
+            </Rule>
+            <Rule title="Impossible scores don't save" proof={<p className="tt-flag-note m-0">{nights.refusals.score}</p>}>
+              A Game is first to 11, win by 2, so a typo a game can&apos;t end on is refused with the score it should
+              have been. Time-capped scores like 9-8 still save.
+            </Rule>
+            <Rule title="A tie needs its Dreambreaker" proof={<p className="tt-flag-note m-0">{nights.refusals.tie}</p>}>
+              A Matchup level on Team score can&apos;t be marked done until a captain records who won the Dreambreaker.
+            </Rule>
+            <Rule
+              title="You can still fix anything"
+              proof={
+                <p className="tt-land-edit">
+                  <span className="tt-meta text-[0.8125rem]">A Game you changed</span>
+                  <span className="tt-lower-third">Edited by the organizer</span>
+                </p>
+              }
+            >
+              Signed in as the Organizer, you can change any score or reopen a Matchup that was marked done. When two
+              Teams are level on every count, you decide which goes ahead.
+            </Rule>
+          </ul>
         </div>
-        <ul className="tt-sheet tt-land-rules">
-          <Rule title="Captains set their own lineups" proof={<p className="tt-flag-note m-0">{nights.refusals.roster}</p>}>
-            Either captain can rename or reorder their Team&apos;s players on the night, for any Round with no score
-            yet. A sub takes the slot of the player they replace.
-          </Rule>
-          <Rule title="Impossible scores don't save" proof={<p className="tt-flag-note m-0">{nights.refusals.score}</p>}>
-            A Game is first to 11, win by 2, so a typo a game can&apos;t end on is refused with the score it should
-            have been. Time-capped scores like 9-8 still save.
-          </Rule>
-          <Rule title="A tie needs its Dreambreaker" proof={<p className="tt-flag-note m-0">{nights.refusals.tie}</p>}>
-            A Matchup level on Team score can&apos;t be marked done until a captain records who won the Dreambreaker.
-          </Rule>
-          <Rule title="You can still fix anything" proof={<span className="tt-lower-third">Edited by the organizer</span>}>
-            Signed in as the Organizer, you can change any score, reopen a done Matchup, or settle a tie that is level
-            on every count. The Game you changed then says so.
-          </Rule>
-        </ul>
       </section>
 
       <section className="tt-land-band" aria-labelledby="tt-land-notv">
@@ -276,73 +293,73 @@ export function TeamTallyLanding() {
               wide or more it turns into the big-screen view, if you do find a TV.
             </p>
           </div>
-          <div className="tt-demo-phone tt-land-phone">
-            <PublicScreen live={{ view: { event: nights.opening } }} view="scroll" />
-          </div>
+          <PhonePreview event={nights.night} />
         </div>
       </section>
 
-      <section className="tt-wrap tt-land-section" aria-labelledby="tt-land-format">
-        <div className="tt-sheet">
-          <div className="tt-section-head">
-            <h2 id="tt-land-format" className="tt-h2">
-              The format it runs
-            </h2>
-            <span className="tt-meta">4 to 14 Teams · 3 Rounds · 6 Games</span>
-          </div>
-          <div className="tt-section-body grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-            <div className="grid content-start gap-4">
-              <p className="tt-body">
-                Teams of four, a captain and players A, B and C. Each Matchup puts two Teams on a pair of courts for
-                three Rounds. The captain partners A, then B, then C against the other captain, while the other two
-                on each side play their own game.
-              </p>
-              <p className="tt-body">
-                Team score is every point across the six Games. The top two Teams play for Flight A, the next two
-                for Flight B, and on down.
-              </p>
+      <section className="tt-land-band" aria-labelledby="tt-land-format">
+        <div className="tt-wrap tt-land-section">
+          <div className="tt-sheet">
+            <div className="tt-section-head">
+              <h2 id="tt-land-format" className="tt-h2">
+                The format it runs
+              </h2>
+              <span className="tt-meta">4 to 14 Teams · 3 Rounds · 6 Games</span>
             </div>
-            <ol className="m-0 grid list-none gap-0 p-0 sm:hidden">
-              {ROUNDS.map((row) => (
-                <li
-                  key={row.round}
-                  className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 border-t border-(--tt-rule) py-3"
-                >
-                  <span className="row-span-2 font-[family-name:var(--tt-cond)] text-2xl leading-none font-extrabold">
-                    R{row.round}
-                  </span>
-                  <p className="m-0 text-[0.9375rem]">
-                    <span className="tt-meta text-[0.8125rem]">Captains&apos; game </span>
-                    {row.captains}
-                  </p>
-                  <p className="m-0 text-[0.9375rem] text-(--tt-ink-dim)">
-                    <span className="tt-meta text-[0.8125rem]">Teammates&apos; game </span>
-                    {row.teammates}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full border-collapse text-left text-[0.9375rem]">
-                <thead>
-                  <tr className="tt-meta text-[0.8125rem]">
-                    <th className="py-2 pr-4 font-[inherit]">Round</th>
-                    <th className="py-2 pr-4 font-[inherit]">Captains&apos; game</th>
-                    <th className="py-2 font-[inherit]">Teammates&apos; game</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ROUNDS.map((row) => (
-                    <tr key={row.round} className="border-t border-(--tt-rule) align-top">
-                      <td className="py-3 pr-4 font-[family-name:var(--tt-cond)] text-2xl leading-none font-extrabold">
-                        R{row.round}
-                      </td>
-                      <td className="py-3 pr-4">{row.captains}</td>
-                      <td className="py-3 text-(--tt-ink-dim)">{row.teammates}</td>
+            <div className="tt-section-body grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+              <div className="grid content-start gap-4">
+                <p className="tt-body">
+                  Teams of four, a captain and players A, B and C. Each Matchup puts two Teams on a pair of courts for
+                  three Rounds. The captain partners A, then B, then C against the other captain, while the other two
+                  on each side play their own game.
+                </p>
+                <p className="tt-body">
+                  Team score is every point across the six Games. The top two Teams play for Flight A, the next two
+                  for Flight B, and on down.
+                </p>
+              </div>
+              <ol className="m-0 grid list-none gap-0 p-0 sm:hidden">
+                {ROUNDS.map((row) => (
+                  <li
+                    key={row.round}
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 border-t border-(--tt-rule) py-3"
+                  >
+                    <span className="row-span-2 font-[family-name:var(--tt-cond)] text-2xl leading-none font-extrabold">
+                      R{row.round}
+                    </span>
+                    <p className="m-0 text-[0.9375rem]">
+                      <span className="tt-meta text-[0.8125rem]">Captains&apos; game </span>
+                      {row.captains}
+                    </p>
+                    <p className="m-0 text-[0.9375rem] text-(--tt-ink-dim)">
+                      <span className="tt-meta text-[0.8125rem]">Teammates&apos; game </span>
+                      {row.teammates}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full border-collapse text-left text-[0.9375rem]">
+                  <thead>
+                    <tr className="tt-meta text-[0.8125rem]">
+                      <th className="py-2 pr-4 font-[inherit]">Round</th>
+                      <th className="py-2 pr-4 font-[inherit]">Captains&apos; game</th>
+                      <th className="py-2 font-[inherit]">Teammates&apos; game</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {ROUNDS.map((row) => (
+                      <tr key={row.round} className="border-t border-(--tt-rule) align-top">
+                        <td className="py-3 pr-4 font-[family-name:var(--tt-cond)] text-2xl leading-none font-extrabold">
+                          R{row.round}
+                        </td>
+                        <td className="py-3 pr-4">{row.captains}</td>
+                        <td className="py-3 text-(--tt-ink-dim)">{row.teammates}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

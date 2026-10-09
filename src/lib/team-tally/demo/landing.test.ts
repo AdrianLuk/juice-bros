@@ -6,7 +6,7 @@ import { landingNights } from "./landing.ts";
 const nights = landingNights("2026-10-13", "https://example.com");
 
 test("the Flights preview is the demo night once its Flights are placed", () => {
-  assert.equal(nights.opening.status, "opening");
+  assert.equal(nights.night.status, "opening");
   assert.equal(nights.flights.status, "flights");
   const flights = nights.flights.matchups.filter((matchup) => matchup.stage === "flight");
   assert.equal(flights.length, 7);
@@ -22,6 +22,18 @@ test("the Organizer's preview is the tied Matchup, edited by the Organizer, sett
   assert.notEqual(matchup.doneAt, null);
   assert.equal(matchup.dreambreakerWinnerId, matchup.blueTeamId);
   assert.equal(nights.organizerGame.lastEditedByKind, "organizer");
+});
+
+test("every live preview's night has Golden Set's Round 2 captains' game in and the teammates' game waiting", () => {
+  const mine = nights.night.matchups.find((matchup) => matchup.redTeamId === nights.myTeamId)!;
+  const round2 = mine.games.filter((game) => game.round === 2);
+  assert.deepEqual(
+    round2.map((game) => [game.kind, game.redScore, game.lastEditedByTeamId]),
+    [
+      ["captains", 11, nights.myTeamId],
+      ["teammates", null, null],
+    ],
+  );
 });
 
 test("the brief excerpt runs from the Matchups heading through Match 1 only", () => {
