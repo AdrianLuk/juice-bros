@@ -87,6 +87,19 @@ All shipped together in PR #629 (squash `004dfba`), built on
   finished. The Organizer can still put one tied Team ahead after auto-seeding,
   until either Flight has a score. Explicit grants. TV type sized for reading
   across a room.
+- [x] **#631: the demo night** (PR #632). `/tools/team-tally/demo`, signed
+  out, folded in the browser: the real screens behind a live seam
+  (`live-seam.ts`; the server adapter wraps the Server Actions, the demo
+  adapter is `demo/reduce.ts`), so a refusal is the real one. Placing the
+  Flights and ending the night are ported to `transitions.ts`, checked
+  against the SQL by `transitions.db-test.ts`. Let it run, Reset, and a
+  tagline per view saying who it's for. An import-graph test keeps Supabase
+  out of the demo.
+- [x] **#633: both Games on the score bug** (PR #634). Four rows per bug, a
+  Captains and a Teammates row per Team, so every cell is one Game's score;
+  the loser of each Game is dimmed and TOT spans the Team's two rows. The TV
+  shows at most 4 bugs a screen (`tv-screens.ts` splits Matchups and Flight
+  scores evenly). The standings keep round totals with a key saying so.
 
 ## Tooling
 
@@ -103,8 +116,8 @@ All shipped together in PR #629 (squash `004dfba`), built on
 
 - [ ] **First real night: Tuesday 2026-10-13** at Backyard, run by the
   organizer the app was designed around.
-- [ ] A demo night to show that organizer before then, like On Deck's
-  `/on-deck/demo` (#519, #522).
+- [ ] Show that organizer the demo night (`/tools/team-tally/demo`) before
+  then.
 - Not planned: other team formats (MLP-style gender doubles and the like).
   CONTEXT.md says to add a second Format when one is needed, not to
   generalise now.
