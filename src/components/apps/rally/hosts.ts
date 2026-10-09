@@ -41,7 +41,7 @@ export const HOSTS: Record<HostId, Host> = {
     face: "/play/daven-face.webp",
     skin: "#dba47a",
     hair: "#17130f",
-    cap: "#111316",
+    cap: "#2b3038",
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
     build: { height: 1.06, width: 0.94 },

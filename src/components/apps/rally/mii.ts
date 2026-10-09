@@ -223,23 +223,27 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
   }
   if (host.cap) {
     const capMaterial = toon(host.cap);
-    const crown = new Mesh(new SphereGeometry(HEAD_R * 1.07, 28, 12, 0, Math.PI * 2, 0, 1.25), capMaterial);
+    // The crown stops just above the brows, the brim off its front edge, a
+    // button on top: from behind, what tells the cap from hair.
+    const crown = new Mesh(new SphereGeometry(HEAD_R * 1.07, 28, 12, 0, Math.PI * 2, 0, 1.0), capMaterial);
     crown.position.y = 0.04;
     const brim = new Mesh(
-      new CylinderGeometry(0.78, 0.78, 0.06, 24, 1, false, Math.PI / 2, Math.PI),
+      new CylinderGeometry(0.62, 0.62, 0.06, 24, 1, false, Math.PI / 2, Math.PI),
       capMaterial,
     );
-    brim.position.set(0, 0.4, -HEAD_R * 0.72);
-    brim.rotation.x = -0.12;
+    brim.position.set(0, 0.6, -0.8);
+    brim.rotation.x = -0.15;
+    const button = new Mesh(new SphereGeometry(0.1, 10, 8), capMaterial);
+    button.position.y = HEAD_R * 1.07 + 0.04;
     // Hair showing under the cap at the back.
     const nape = new Mesh(
-      new SphereGeometry(HEAD_R * 1.03, 20, 10, Math.PI / 2 - 1.3, 2.6, 1.2, 0.55),
+      new SphereGeometry(HEAD_R * 1.03, 20, 10, Math.PI / 2 - 1.3, 2.6, 0.95, 0.8),
       hair,
     );
-    head.add(crown, brim, nape);
+    head.add(crown, brim, button, nape);
   } else {
     // Short hair: a cap of it over the top, down the back to the nape.
-    const top = new Mesh(new SphereGeometry(HEAD_R * 1.05, 28, 12, 0, Math.PI * 2, 0, 0.95), hair);
+    const top = new Mesh(new SphereGeometry(HEAD_R * 1.05, 28, 12, 0, Math.PI * 2, 0, 1.0), hair);
     const back = new Mesh(
       new SphereGeometry(HEAD_R * 1.04, 24, 12, Math.PI / 2 - 1.45, 2.9, 0, 1.85),
       hair,
