@@ -23,6 +23,12 @@ export type AppItem = {
    * added by editing a component instead of this file.
    */
   terms: string[];
+  /**
+   * A demo that runs in the browser with nothing to sign up for, linked from
+   * the tool's card beside "Open". Only the tools that ask for an account have
+   * one, because that is where a visitor wants to look before signing in.
+   */
+  demoHref?: string;
 };
 
 export const apps: AppItem[] = [
@@ -85,6 +91,7 @@ export const apps: AppItem[] = [
       "Keeps court time fair and mixes up who plays with whom",
     ],
     terms: ["Free", "Account for organizers only", "Open now"],
+    demoHref: "/on-deck/demo",
   },
   {
     slug: "drum-roll",
@@ -106,14 +113,16 @@ export const apps: AppItem[] = [
     title: "Team Tally",
     href: "/tools/team-tally",
     description:
-      "Run a captained team night. Set up the teams and Matchups once and Team Tally writes the brief for your group chat.",
+      "Score a captained team night from everyone's phones. Captains enter their own Matchups, and Team Tally places the Flights when the opening round is done.",
     icon: Users,
     status: "live",
     highlights: [
-      "Enter each team's captain, players and home court in one form",
-      "The brief lists every Matchup with its two courts and both rosters",
-      "Copy it and paste it straight into the group chat",
+      "Set up the night once, or paste last week's brief, and get the message for the group chat",
+      "Captains score from a link in the brief, with no app and no account",
+      "Standings re-sort as scores land, on any phone or the venue TV",
+      "The night ends on a results page with every Flight's champion",
     ],
     terms: ["Free", "Account for organizers only", "Open now"],
+    demoHref: "/tools/team-tally/demo",
   },
 ];
