@@ -70,6 +70,14 @@ export type FloorOperatorKind = Exclude<Operator["kind"], "player">;
  * the dispatcher stays pure. Only `addWalkup` and `formGroup` read them. */
 export type FloorIds = { walkupToken: string; groupId: string };
 
+/** Fresh ids for one dispatch. Every adapter mints through here. */
+export function mintFloorIds(): FloorIds {
+  return {
+    walkupToken: `walkup-${crypto.randomUUID()}`,
+    groupId: `group-${crypto.randomUUID()}`,
+  };
+}
+
 /** Which commands each Operator may send, and whether it may Undo. */
 export const FLOOR_PERMISSIONS: Record<
   FloorOperatorKind,

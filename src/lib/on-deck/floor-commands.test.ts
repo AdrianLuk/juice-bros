@@ -6,6 +6,7 @@ import type { Operator, SessionConfig, SessionEvent } from "./session/types.ts";
 import {
   dispatchFloorCommand,
   FLOOR_PERMISSIONS,
+  mintFloorIds,
   type FloorCommand,
   type FloorIds,
   type FloorOperatorKind,
@@ -231,4 +232,13 @@ test("the dispatcher refuses a command outside the Operator's set", () => {
     dispatchFloorCommand(state, "organizer", { kind: "dropTable" } as unknown as FloorCommand, ids),
     refused,
   );
+});
+
+test("each dispatch gets fresh walk-up and Group ids in the shape the event log has always stored", () => {
+  const first = mintFloorIds();
+  const second = mintFloorIds();
+  assert.match(first.walkupToken, /^walkup-[0-9a-f-]{36}$/);
+  assert.match(first.groupId, /^group-[0-9a-f-]{36}$/);
+  assert.notEqual(first.walkupToken, second.walkupToken);
+  assert.notEqual(first.groupId, second.groupId);
 });
