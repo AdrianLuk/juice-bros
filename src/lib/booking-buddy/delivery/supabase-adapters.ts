@@ -1,6 +1,6 @@
 /**
  * The Supabase side of `deliver`'s ports (spec #610): the address lookup, the
- * dead-device prune, and the send-log writers.
+ * dead-subscription prune, and the send-log writers.
  *
  * Every function takes the caller's admin (`service_role`) client: the
  * `*_sends` tables are service_role-only, and `auth.admin.getUserById` needs
@@ -26,8 +26,11 @@ export function supabaseAddressLookup(supabase: SupabaseClient): AddressLookup {
 }
 
 /** Deletes a `push_subscriptions` row the push service reported gone (404/410). */
-export async function pruneSubscription(supabase: SupabaseClient, deviceId: string): Promise<void> {
-  const { error } = await supabase.from("push_subscriptions").delete().eq("id", deviceId);
+export async function pruneSubscription(
+  supabase: SupabaseClient,
+  subscriptionId: string,
+): Promise<void> {
+  const { error } = await supabase.from("push_subscriptions").delete().eq("id", subscriptionId);
   if (error) {
     throw error;
   }

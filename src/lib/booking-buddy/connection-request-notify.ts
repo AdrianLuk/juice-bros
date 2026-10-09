@@ -1,9 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "./supabase/admin.ts";
-import { deliver } from "./delivery/deliver.ts";
-import { emailSenderFromEnv } from "./delivery/resend-sender.ts";
-import { supabaseAddressLookup } from "./delivery/supabase-adapters.ts";
+import { deliverOneOffEmails, type AdminClient } from "./delivery/one-off-emails.ts";
 import { absoluteAppUrl } from "./request-origin.ts";
 import { connectLinkPath, FRIENDS_PATH } from "./routes.ts";
 import { personOptionLabel } from "./connections.ts";
@@ -16,7 +14,7 @@ import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
 /**
  * The I/O behind the friend-request email (issue #228). The email copy itself
  * is `connection-request-email.ts` (pure, unit-tested); everything here is the
- * `service_role` reads, the hand-off to `deliver` (spec #610), and the
+ * `service_role` reads, the hand-off to `deliverOneOffEmails` (spec #610), and the
  * session-less Accept / Decline logic the `/connect/<token>` page and its
  * action share.
  *
@@ -29,6 +27,7 @@ import { formatConnectionAcceptedEmail } from "./connection-accepted-email.ts";
  */
 
 const LOG_TAG = "connection-request-notify";
+const ACCEPTED_LOG_TAG = "connection-accepted-notify";
 
 type ConnectionRow = {
   id: string;
@@ -46,7 +45,7 @@ type LinkRow = {
 
 /** A person's display label from their `profiles` row, read past RLS. Used for both parties. */
 async function loadPersonLabel(
-  supabase: ReturnType<typeof createAdminClient>,
+  supabase: AdminClient,
   userId: string,
 ): Promise<string> {
   const { data } = await supabase
@@ -62,24 +61,14 @@ async function loadPersonLabel(
 }
 
 /**
- * Send the friend-request email for a freshly-created pending Connection.
- * Best-effort: every exit is a `return`, and the whole body is wrapped so a
- * failure here never propagates into the request that triggered it (it is
- * always called from `after()`).
+ * Send the Connection Request Email for a freshly-created pending Connection.
+ * Best-effort: always called from `after()`, and `deliverOneOffEmails` logs
+ * any failure rather than letting it reach the request that triggered it.
  */
 export async function notifyNewConnectionRequest(
   connectionId: string,
 ): Promise<void> {
-  try {
-    // Checked first so an unconfigured environment skips the reads below too.
-    const sendEmail = emailSenderFromEnv();
-    if (!sendEmail) {
-      console.warn(`${LOG_TAG}: email is not configured, skipping it.`);
-      return;
-    }
-
-    const supabase = createAdminClient();
-
+  await deliverOneOffEmails(LOG_TAG, async (supabase) => {
     const { data: connection, error: connectionError } = await supabase
       .from("connections")
       .select("id, requester_id, addressee_id, status")
@@ -87,7 +76,7 @@ export async function notifyNewConnectionRequest(
       .maybeSingle<ConnectionRow>();
 
     if (connectionError || !connection || connection.status !== "pending") {
-      return;
+      return [];
     }
 
     // The trigger mints one per Connection; insert defensively in case this
@@ -108,7 +97,7 @@ export async function notifyNewConnectionRequest(
     }
 
     if (!link || link.consumed_at) {
-      return;
+      return [];
     }
 
     const { data: preference } = await supabase
@@ -119,7 +108,7 @@ export async function notifyNewConnectionRequest(
 
     // A missing row means the column default — opted in.
     if (preference && preference.connection_request_email_enabled === false) {
-      return;
+      return [];
     }
 
     const requesterLabel = await loadPersonLabel(
@@ -133,39 +122,20 @@ export async function notifyNewConnectionRequest(
       declineUrl: await absoluteAppUrl(connectLinkPath(link.token, "decline")),
     });
 
-    // Unlogged and uncounted: the result is ignored.
-    await deliver([{ channel: "email", userId: connection.addressee_id, subject, html }], {
-      logTag: LOG_TAG,
-      lookupAddress: supabaseAddressLookup(supabase),
-      sendEmail,
-      sendPush: null,
-    });
-  } catch (error) {
-    console.error(`${LOG_TAG}: unexpected failure`, error);
-  }
+    return [{ channel: "email", userId: connection.addressee_id, subject, html }];
+  });
 }
 
 /**
  * Send the "your friend request was accepted" email to the original requester.
  * Called from `after()` on whichever path moved the Connection to `accepted`
  * (the signed-in Friends page, or the session-less `/connect/<token>` link), so
- * the same best-effort rules as `notifyNewConnectionRequest` apply: every exit
- * is a `return`, and the whole body is wrapped so nothing here can fail the
- * request that triggered it.
+ * the same best-effort rules as `notifyNewConnectionRequest` apply.
  */
 export async function notifyConnectionAccepted(
   connectionId: string,
 ): Promise<void> {
-  try {
-    // Checked first so an unconfigured environment skips the reads below too.
-    const sendEmail = emailSenderFromEnv();
-    if (!sendEmail) {
-      console.warn(`${LOG_TAG}: email is not configured, skipping it.`);
-      return;
-    }
-
-    const supabase = createAdminClient();
-
+  await deliverOneOffEmails(ACCEPTED_LOG_TAG, async (supabase) => {
     const { data: connection, error: connectionError } = await supabase
       .from("connections")
       .select("id, requester_id, addressee_id, status")
@@ -173,7 +143,7 @@ export async function notifyConnectionAccepted(
       .maybeSingle<ConnectionRow>();
 
     if (connectionError || !connection || connection.status !== "accepted") {
-      return;
+      return [];
     }
 
     const { data: preference } = await supabase
@@ -184,7 +154,7 @@ export async function notifyConnectionAccepted(
 
     // A missing row means the column default — opted in.
     if (preference && preference.connection_accepted_email_enabled === false) {
-      return;
+      return [];
     }
 
     const accepterLabel = await loadPersonLabel(
@@ -197,15 +167,8 @@ export async function notifyConnectionAccepted(
       friendsUrl: await absoluteAppUrl(FRIENDS_PATH),
     });
 
-    await deliver([{ channel: "email", userId: connection.requester_id, subject, html }], {
-      logTag: `${LOG_TAG} (accepted)`,
-      lookupAddress: supabaseAddressLookup(supabase),
-      sendEmail,
-      sendPush: null,
-    });
-  } catch (error) {
-    console.error(`${LOG_TAG}: unexpected failure (accepted)`, error);
-  }
+    return [{ channel: "email", userId: connection.requester_id, subject, html }];
+  });
 }
 
 export type ConnectionRequestView = {

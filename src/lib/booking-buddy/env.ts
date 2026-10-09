@@ -255,7 +255,8 @@ export type ResendEnv = { apiKey: string; from: string };
 
 /**
  * Resend for every Booking Buddy email (Reminders, Booking Reminders, Weekly
- * Invites, the connection and "it's off" emails), read once by
+ * Invites, the Connection Request Email, the Connection Accepted Email and the
+ * "it's off" email), read once by
  * `delivery/resend-sender.ts`. `null` when either is unset: the caller's
  * email channel is then skipped (spec #610), not a hard failure.
  */

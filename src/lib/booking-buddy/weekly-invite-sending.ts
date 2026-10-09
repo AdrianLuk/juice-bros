@@ -8,7 +8,6 @@ import { deliver, type DeliveryResult } from "./delivery/deliver.ts";
 import { emailSenderFromEnv } from "./delivery/resend-sender.ts";
 import { slotUserChannelLog, supabaseAddressLookup } from "./delivery/supabase-adapters.ts";
 import { pushSenderFromEnv } from "./delivery/web-push-sender.ts";
-import { readVapidEnv } from "./env.ts";
 import { groupRegularsByGame } from "./regulars.ts";
 import { absoluteAppUrl } from "./request-origin.ts";
 import { createAdminClient } from "./supabase/admin.ts";
@@ -52,7 +51,7 @@ const RUN_FAILED: WeeklyInviteRunResult = { ...NOTHING_SENT, runFailed: true };
  *
  * Email needs RESEND_API_KEY and REMINDER_FROM_EMAIL: without them every email
  * counts as `skipped`, with one warning per run. Push needs the VAPID keys:
- * without them the planner plans no push at all, as before.
+ * without them the planner plans no push at all, with one warning per run.
  */
 export async function sendWeeklyInvites(
   supabase: SupabaseClient,
@@ -150,8 +149,14 @@ async function sendWeeklyInvitesUnsafe(
   posted: readonly PostedWeek[],
   origin: string,
 ): Promise<WeeklyInviteRunResult> {
-  // Without VAPID keys the planner plans no push and the device read is skipped.
-  const pushConfigured = readVapidEnv() !== null;
+  // Without VAPID keys the planner plans no push and the subscriptions read
+  // is skipped. `deliver` never sees a push send then, so it can't warn; this
+  // is that one warning for the run.
+  const sendPush = pushSenderFromEnv(supabase);
+  const pushConfigured = sendPush !== null;
+  if (!pushConfigured) {
+    console.warn("weekly-invites: push is not configured, skipping it this run.");
+  }
 
   const slotIds = posted.map((week) => week.slotId);
   const standingGameIds = [...new Set(posted.map((week) => week.standingGameId))];
@@ -285,7 +290,7 @@ async function sendWeeklyInvitesUnsafe(
     logTag: "weekly-invites",
     lookupAddress: supabaseAddressLookup(supabase),
     sendEmail: emailSenderFromEnv(),
-    sendPush: pushSenderFromEnv(supabase),
+    sendPush,
     markSent: slotUserChannelLog(supabase, "weekly_invite_sends"),
   });
   return { ...result, runFailed: false };
