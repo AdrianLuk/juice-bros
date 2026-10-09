@@ -13,6 +13,25 @@ import {
 import { dispatchTurnNotifications } from "../turn-notify-dispatch.ts";
 import { readWebPushEnv } from "../env.ts";
 
+/** A Player's tap that lands after the Session closed (issue #642). */
+const SESSION_ENDED = "This night has ended.";
+
+/**
+ * The error for a write the database refused (42501). Every Player RPC refuses
+ * a closed Session and an unknown device the same way, so read the Session
+ * back to tell the two apart. Only the refused path pays for the read. A
+ * Player can only read an open Session (ADR 0006), so a closed one reads back
+ * as nothing.
+ */
+async function refusal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  otherwise: string,
+): Promise<{ error: string }> {
+  const loaded = await getSession(supabase, sessionId).catch(() => null);
+  return { error: loaded?.status === "open" ? otherwise : SESSION_ENDED };
+}
+
 /** What the "you're in" screen shows — the Player's own token is never echoed back. */
 export type RecognizedPlayer = { displayName: string; skillLevel: SkillLevel };
 
@@ -98,7 +117,11 @@ export async function joinSession(input: JoinInput): Promise<JoinResult> {
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "This session isn't running anymore." };
+      return refusal(
+        supabase,
+        input.sessionId,
+        "This session isn't running anymore.",
+      );
     }
     console.error("on-deck: joining a Session failed", error);
     return { error: "Couldn't add you just now. Try again." };
@@ -152,11 +175,13 @@ export async function queueForSession(
 
   if (error) {
     if (error.code === "42501") {
-      // Either the Session has closed or this device isn't on the roster
-      // (a lost/rotated token). Scanning the Club QR again resolves both.
-      return {
-        error: "Couldn't add you. Scan the club QR again to get set up.",
-      };
+      // Not closed, so this device isn't on the roster (a lost/rotated
+      // token). Scanning the Club QR again sets it up.
+      return refusal(
+        supabase,
+        sessionId,
+        "Couldn't add you. Scan the club QR again to get set up.",
+      );
     }
     console.error("on-deck: queueing a Player failed", error);
     return { error: "Couldn't add you to the queue. Try again." };
@@ -191,7 +216,11 @@ export async function leaveQueue(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "Scan the club QR again to get set up." };
+      return refusal(
+        supabase,
+        sessionId,
+        "Scan the club QR again to get set up.",
+      );
     }
     console.error("on-deck: pausing a Player failed", error);
     return { error: "Couldn't update that. Try again." };
@@ -227,7 +256,11 @@ export async function rejoinQueue(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "Scan the club QR again to get set up." };
+      return refusal(
+        supabase,
+        sessionId,
+        "Scan the club QR again to get set up.",
+      );
     }
     console.error("on-deck: re-queueing a Player failed", error);
     return { error: "Couldn't add you back. Try again." };
@@ -258,9 +291,8 @@ export async function formGroupAsPlayer(
 
   const supabase = await createClient();
   const loaded = await getSession(supabase, sessionId).catch(() => null);
-  if (!loaded) {
-    return { error: "This session isn't running anymore." };
-  }
+  // A closed Session reads back as nothing to a Player (ADR 0006).
+  if (loaded?.status !== "open") return { error: SESSION_ENDED };
 
   const groupId = `group-${crypto.randomUUID()}`;
   const outcome = formGroupByPlayerOutcome(
@@ -281,7 +313,11 @@ export async function formGroupAsPlayer(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "Scan the club QR again to get set up." };
+      return refusal(
+        supabase,
+        sessionId,
+        "Scan the club QR again to get set up.",
+      );
     }
     console.error("on-deck: forming a player Group failed", error);
     return { error: "Couldn't group you up just now. Try again." };
@@ -310,9 +346,8 @@ export async function leaveGroup(
 
   const supabase = await createClient();
   const loaded = await getSession(supabase, sessionId).catch(() => null);
-  if (!loaded) {
-    return { error: "This session isn't running anymore." };
-  }
+  // A closed Session reads back as nothing to a Player (ADR 0006).
+  if (loaded?.status !== "open") return { error: SESSION_ENDED };
 
   const outcome = leaveGroupByPlayerOutcome(loaded.state, trimmed);
   if (outcome.kind === "error") return { error: outcome.error };
@@ -326,7 +361,11 @@ export async function leaveGroup(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "Scan the club QR again to get set up." };
+      return refusal(
+        supabase,
+        sessionId,
+        "Scan the club QR again to get set up.",
+      );
     }
     console.error("on-deck: leaving a Group failed", error);
     return { error: "Couldn't update that. Try again." };
