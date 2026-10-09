@@ -4,13 +4,17 @@ import test from "node:test";
 import { decodeShareLink } from "./persistence/share-link.ts";
 import {
   chooseCourts,
+  chooseFormat,
   chooseMixed,
+  clearRoster,
+  restoreRoster,
   choosePools,
   chooseRounds,
   derive,
   editRoster,
   EMPTY,
   generate,
+  keepSplit,
   restore,
   saveFor,
   type EditorState,
@@ -101,6 +105,106 @@ test("a claimed board stays claimed when the edit is typed back out", () => {
   const claimed = editRoster(editRoster(borrowed, `${borrowed.text}\nPlayer 9`), borrowed.text);
   assert.equal(claimed.text, borrowed.text);
   assert.equal(saveFor(claimed)?.edited.roster.length, 8);
+});
+
+/** A tab that came back to a saved visit of eight names and no board. */
+function returned(): EditorState {
+  const kept = typed(EIGHT.join("\n"), 2, 4);
+  return restore(EMPTY, {
+    from: "visit",
+    visit: { schema: 1, savedAt: 0, drawn: null, edited: saveForced(kept) },
+  });
+}
+
+/** The Config a state would save, gates aside, for building a saved visit. */
+function saveForced(state: EditorState) {
+  const save = saveFor({ ...state, restored: true, held: true });
+  assert.ok(save);
+  return save.edited;
+}
+
+test("a pending Clear undo blocks the save", () => {
+  const back = returned();
+  assert.equal(saveFor(back)?.edited.roster.length, 8);
+
+  const emptied = clearRoster(back);
+  assert.equal(emptied.text, "");
+  assert.equal(saveFor(emptied), null);
+
+  // Put back, it saves again, as the same Players.
+  const undone = restoreRoster(emptied);
+  assert.deepEqual(saveFor(undone)?.edited.roster, back.roster);
+});
+
+test("typing after a Clear gives up the undo, and the empty box is saved", () => {
+  const typedOver = editRoster(clearRoster(returned()), "");
+  assert.equal(typedOver.cleared, null);
+  assert.deepEqual(saveFor(typedOver)?.edited.roster, []);
+});
+
+test("an empty tab that never held a Roster writes nothing", () => {
+  assert.equal(saveFor(EMPTY), null);
+  const empty = restore(EMPTY, { from: "visit", visit: null });
+  assert.equal(saveFor(empty), null);
+  assert.equal(saveFor(chooseCourts(choosePools(empty, 2), 3)), null);
+  // Its first name is what makes it a tab with something to say.
+  assert.equal(saveFor(editRoster(empty, "Ben Johns"))?.edited.roster.length, 1);
+});
+
+test("leaving rotating turns mixed off, and coming back leaves it off", () => {
+  const text = ["Ben Johns M", "Anna Leigh Waters F", "JW Johnson M", "Anna Bright F"].join("\n");
+  const mixed = chooseMixed(editRoster(EMPTY, text), true);
+  assert.equal(mixed.roster[0].name, "Ben Johns");
+  assert.equal(derive(mixed).mixing, true);
+
+  const fixed = chooseFormat(mixed, "fixed");
+  assert.equal(fixed.mixed, false);
+  // The same lines read back as names, last initial and all.
+  assert.equal(fixed.roster[0].name, "Ben Johns M");
+
+  const back = chooseFormat(fixed, "rotating");
+  assert.equal(back.mixed, false);
+  assert.equal(derive(back).mixing, false);
+});
+
+test("Keep this split gives the same board with the same Seed", () => {
+  const dealt = generate(choosePools(typed(EIGHT.join("\n"), 2, 4), 2), 7);
+  assert.equal(dealt.draw?.pools.length, 2);
+  assert.equal(derive(dealt).declared, null);
+
+  const kept = keepSplit(dealt);
+  assert.equal(kept.draw?.config.seed, 7);
+  assert.match(kept.text, /^---$/m);
+  assert.notEqual(derive(kept).declared, null);
+  assert.equal(derive(kept).stale, false);
+  // Down to the seat every name sat in.
+  assert.deepEqual(
+    kept.draw?.pools.map((pool) => [pool.roster.map((p) => p.name), pool.schedule]),
+    dealt.draw?.pools.map((pool) => [pool.roster.map((p) => p.name), pool.schedule]),
+  );
+});
+
+test("Keep this split does nothing over a stale board", () => {
+  const dealt = generate(choosePools(typed(EIGHT.join("\n"), 2, 4), 2), 7);
+  const edited = chooseRounds(dealt, 5);
+  assert.equal(derive(edited).stale, true);
+  assert.equal(keepSplit(edited), edited);
+});
+
+test("a saved visit comes back as the board it saved, current and its own", () => {
+  const fresh = restore(EMPTY, { from: "visit", visit: null });
+  const board = generate(editRoster(fresh, EIGHT.join("\n")), 11);
+  const save = saveFor(board);
+  assert.ok(save?.drawn);
+
+  const back = restore(EMPTY, {
+    from: "visit",
+    visit: { schema: 1, savedAt: 0, edited: save.edited, drawn: save.drawn },
+  });
+  assert.equal(back.borrowed, null);
+  assert.equal(back.draw?.key, board.draw?.key);
+  assert.equal(derive(back).stale, false);
+  assert.deepEqual(saveFor(back), save);
 });
 
 test("a redraw claims a borrowed board, and saves the board it drew", () => {

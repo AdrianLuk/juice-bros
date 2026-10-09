@@ -39,6 +39,7 @@ import {
   DEFAULT_FORMAT,
   MIN_ROSTER_SIZE,
   type Format,
+  type Player,
   type Roster,
 } from "./engine/types.ts";
 import type {
@@ -635,6 +636,108 @@ export function chooseMixed(state: EditorState, mixed: boolean): EditorState {
     ...state,
     mixed,
     roster: parseRoster(state.text, state.roster, resolveMixed(state.format, mixed)),
+  });
+}
+
+/**
+ * Leaving rotating takes the constraint with it rather than leaving a ticked
+ * box applying to nothing. Cleared as well as hidden, because a box that
+ * came back ticked on the way round would be a constraint the organizer
+ * never re-chose, arriving silently at the moment they stopped looking at
+ * it.
+ */
+export function chooseFormat(state: EditorState, format: Format): EditorState {
+  const next = settle({ ...state, format });
+  return format === "rotating" ? next : chooseMixed(next, false);
+}
+
+/**
+ * Emptying the box is how an organizer says the list is finished with, and
+ * on a phone doing it by hand is a long-press, a select-all and a delete. It
+ * is one press here, and the press that undoes it is the same button.
+ *
+ * No confirmation: this is an edit to a text box, and a dialog in front of
+ * every one of them would be heavier than the thing it guards and dismissed
+ * unread by the time it mattered. What answers a mistake is the undo, and
+ * for the undo to be worth more than a dialog it has to survive the tab —
+ * which is why the save is left alone while it stands, and only overwritten
+ * once the organizer types and the list is genuinely finished with.
+ */
+export function clearRoster(state: EditorState): EditorState {
+  return settle({
+    ...state,
+    cleared: { text: state.text, roster: state.roster },
+    text: "",
+    roster: [],
+  });
+}
+
+export function restoreRoster(state: EditorState): EditorState {
+  const { cleared } = state;
+  if (!cleared) return state;
+  return settle({
+    ...state,
+    text: cleared.text,
+    // Read again rather than put the entries back as they were, because the
+    // box may have been cleared under a different reading of the same lines:
+    // ticking or unticking the box while it stands changes whether a trailing
+    // letter is a marker or the last initial it was typed as. The entries go
+    // in as `previous`, so a reading that has not changed reuses every id and
+    // a Player comes back as the same Player.
+    roster: parseRoster(
+      cleared.text,
+      cleared.roster,
+      resolveMixed(state.format, state.mixed),
+    ),
+    cleared: null,
+  });
+}
+
+/**
+ * "Keep this split" (ADR 0005): the only thing in the tool that ever
+ * writes to the roster box, and only when pressed. It takes the Pools
+ * actually on screen and writes them back as bare `---` lines, so the
+ * split becomes the organizer's own — from here they can move a name
+ * across a divider or put a label on it — and it is also how an organizer
+ * discovers the header syntax in the first place, findable from a dealt
+ * board rather than buried in a note.
+ *
+ * It redraws with the Seed already on screen rather than leaving the old
+ * `draw` standing: the Pools it just wrote are the same Pools, in the same
+ * order, with the same names in each — so the board that comes back is the
+ * same board, only now current against the fields instead of one edit
+ * behind them.
+ */
+export function keepSplit(state: EditorState): EditorState {
+  const { draw } = state;
+  // Guarded again rather than trusted to the button's own gating: writing
+  // a stale draw's Pools over fields the organizer has since edited would
+  // silently discard that edit, which is the one thing this action must
+  // never do.
+  if (!draw || derive(state).stale || draw.pools.length <= 1) return state;
+  const headers: PoolHeader[] = [];
+  const roster: Player[] = [];
+  for (const pool of draw.pools) {
+    if (roster.length > 0) {
+      headers.push({ label: null, start: roster.length });
+    }
+    roster.push(...pool.roster);
+  }
+  return settle({
+    ...state,
+    text: rosterText(roster, headers),
+    roster,
+    cleared: null,
+    draw: drawFrom({
+      roster,
+      courts: draw.config.courts,
+      rounds: draw.config.rounds,
+      format: draw.config.format,
+      mixed: draw.config.mixed,
+      pools: draw.pools.length,
+      headers,
+      seed: draw.config.seed,
+    }),
   });
 }
 
