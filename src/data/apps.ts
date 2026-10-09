@@ -94,21 +94,6 @@ export const apps: AppItem[] = [
     demoHref: "/on-deck/demo",
   },
   {
-    slug: "drum-roll",
-    title: "Drum Roll",
-    href: "/tools/drum-roll",
-    description:
-      "Spin a wheel to pick a name, or add prizes and run the whole raffle. No paper tickets, no accounts.",
-    icon: Ticket,
-    status: "live",
-    highlights: [
-      "Paste your names and spin, or pass the phone round and let people add themselves",
-      "More tickets means a wider slice of the wheel, so the odds are there to see",
-      "Add a prize and it becomes a full raffle, drawn one prize at a time",
-    ],
-    terms: ["Free", "No sign-up", "Open now"],
-  },
-  {
     slug: "team-tally",
     title: "Team Tally",
     href: "/tools/team-tally",
@@ -124,5 +109,21 @@ export const apps: AppItem[] = [
     ],
     terms: ["Free", "Account for organizers only", "Open now"],
     demoHref: "/tools/team-tally/demo",
+  },
+  // Drum Roll stays last: it was a one-off raffle tool, so new tools go above it.
+  {
+    slug: "drum-roll",
+    title: "Drum Roll",
+    href: "/tools/drum-roll",
+    description:
+      "Spin a wheel to pick a name, or add prizes and run the whole raffle. No paper tickets, no accounts.",
+    icon: Ticket,
+    status: "live",
+    highlights: [
+      "Paste your names and spin, or pass the phone round and let people add themselves",
+      "More tickets means a wider slice of the wheel, so the odds are there to see",
+      "Add a prize and it becomes a full raffle, drawn one prize at a time",
+    ],
+    terms: ["Free", "No sign-up", "Open now"],
   },
 ];
