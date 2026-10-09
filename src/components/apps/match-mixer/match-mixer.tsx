@@ -3,53 +3,43 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
-  MAX_ROUNDS,
-  maxCourts,
-} from "@/components/apps/match-mixer/lib/engine/config";
-import {
-  describeConfig,
-  describeNumbers,
-  describePooledConfig,
-  describeUnsupportedRoster,
-} from "@/components/apps/match-mixer/lib/engine/describe";
+  chooseCourts,
+  chooseFormat,
+  chooseMixed,
+  choosePools,
+  chooseRounds,
+  clearRoster,
+  derive,
+  editRoster,
+  EMPTY,
+  generate,
+  keepSplit,
+  restore,
+  restoreRoster,
+  saveFor,
+  type Draw,
+  type EditorState,
+  type Source,
+} from "@/components/apps/match-mixer/lib/board-editor";
+import { MAX_ROUNDS } from "@/components/apps/match-mixer/lib/engine/config";
+import { describeNumbers } from "@/components/apps/match-mixer/lib/engine/describe";
 import {
   FORMAT_LABELS,
   FORMAT_NOTES,
   FORMATS,
 } from "@/components/apps/match-mixer/lib/engine/format";
+import { describeMarkers } from "@/components/apps/match-mixer/lib/engine/mixed";
 import {
-  countMarkers,
-  describeMarkers,
-  mixedCourtDefault,
-  partnershipSupply,
-  resolveMixed,
-  rosterLine,
-} from "@/components/apps/match-mixer/lib/engine/mixed";
-import {
-  boardObjection,
   declaredCourtDefault,
-  declaredPools,
-  drawPools,
-  isSupportedBoardSize,
   locate,
   MAX_BOARD_SIZE,
   maxPools,
-  planDeclaredPools,
-  planPools,
   pooledCourtDefault,
   poolName,
-  resolveBoard,
-  resolvePools,
   type BoardConfig,
   type Pool,
 } from "@/components/apps/match-mixer/lib/engine/pools";
-import {
-  duplicateNames,
-  parsePoolHeaders,
-  parseRoster,
-  rosterText,
-  type PoolHeader,
-} from "@/components/apps/match-mixer/lib/engine/roster";
+import { parseRoster } from "@/components/apps/match-mixer/lib/engine/roster";
 import { scoreSchedule } from "@/components/apps/match-mixer/lib/engine/scorer";
 import { generateSchedule } from "@/components/apps/match-mixer/lib/engine/schedule";
 import {
@@ -69,13 +59,10 @@ import {
   save as saveSelection,
 } from "@/components/apps/match-mixer/lib/persistence/selection-storage";
 import {
-  DEFAULT_FORMAT,
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
   type Format,
-  type Player,
   type PlayerIndex,
-  type Roster,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
 import { ScheduleGrid, type Band, type BandPlayer } from "./schedule-grid";
@@ -198,143 +185,6 @@ const EXAMPLE: readonly Band[] = (() => {
   ];
 })();
 
-/** What the Schedule on screen was drawn from, kept beside it. */
-interface Draw {
-  /**
-   * The whole Config it came from, held rather than just its outputs. The
-   * names matter because the engine works in positions, so a Schedule only
-   * means anything beside the Roster it was generated against; the Seed
-   * matters because it is what lets the same board be generated again after a
-   * reload instead of stored (ADR 0001).
-   */
-  readonly config: BoardConfig;
-  /** The Roster and numbers it came from, for telling current from stale. */
-  readonly key: string;
-  /** The numbers it was drawn from, for the flag over a stale board. */
-  readonly numbers: string;
-  /**
-   * What was drawn: one Pool on an ordinary board, several side by side on a
-   * dealt one. Each carries its own Schedule and its own Scorer reading, and
-   * nothing here combines them.
-   */
-  readonly pools: readonly Pool[];
-  /**
-   * Whether this board came off a Share Link minted under an older Generator
-   * Version. It sticks to this particular draw rather than to the screen, so
-   * it clears the moment the board is actually redrawn — pressing the button
-   * makes a current board, whatever it was opened from.
-   */
-  readonly outdated: boolean;
-}
-
-/** Draws the board for a Config, whether it was just asked for or restored. */
-function drawFrom(config: BoardConfig, outdated = false): Draw {
-  const { roster, courts, rounds, format, mixed, pools, headers } = config;
-  return {
-    config,
-    key: drawKey(roster, courts, rounds, format, mixed, pools, headers ?? []),
-    numbers: describeNumbers({
-      players: roster.length,
-      courts,
-      rounds,
-      format,
-      mixed,
-      pools,
-    }),
-    pools: drawPools(config),
-    outdated,
-  };
-}
-
-/**
- * Everything generation depends on. Ids are deliberately absent: the engine
- * sees names and numbers only, so typing a name back to what it was is not a
- * change and should not leave the board flagged as stale.
- *
- * The Format is in here because it is the one input that changes the board
- * without changing a single name or number. Without it, switching the row
- * would leave the previous Format's board on screen with nothing over it
- * saying so — which is the exact reading this key exists to prevent. Mixed
- * doubles is in here on the same argument, twice over: the box and the markers
- * on the lines both change the board, and one of them changes it while every
- * name stays where it was. So is the Pool count, which changes every seat on
- * the board without touching a name or a court.
- *
- * The Pool count is only written past one, so a one-Pool board keys exactly as
- * it did before Pools existed. The key is also half of a stored Selection's
- * board identity, and a Selection kept from last week should still find its
- * board.
- *
- * Headers are folded in too (ADR 0005), and for the same reason: moving a
- * `---` line can change every Pool's membership without adding, removing or
- * reordering a single Player, which `roster.map(rosterLine)` alone would not
- * notice. `label` and `start` are both in the string, so a relabelled or
- * reshuffled split reads as a different key even when the names line up.
- */
-function drawKey(
-  roster: Roster,
-  courts: number,
-  rounds: number,
-  format: Format,
-  mixed: boolean,
-  pools: number,
-  headers: readonly PoolHeader[],
-): string {
-  const declared =
-    headers.length > 0
-      ? `+declared:${headers.map((h) => `${h.label ?? ""}@${h.start}`).join(",")}`
-      : "";
-  // The line as typed, joined on a newline because that is the one character
-  // `parseRoster` will not leave inside a name. On a space, "Mary Ann / Bo"
-  // and "Mary / Ann Bo" would key the same, and an edit between them would
-  // never flag the board.
-  return `${format}${mixed ? "+mixed" : ""}${pools > 1 ? `+${pools}pools` : ""}${declared}/${courts}/${rounds}/${roster.map(rosterLine).join("\n")}`;
-}
-
-/**
- * The signature of the screen, for telling whether it is still the board a
- * link put there. Over exactly what a save would write — the Roster including
- * identity, the two field choices as choices, and the Seed of the board on
- * screen — so anything a save would record as different reads as different
- * here too.
- *
- * Not `drawKey`, which is deliberately blind to ids and to unmade choices
- * because its question is whether the board is stale. This one's question is
- * whether the reader has touched anything at all.
- */
-function borrowKey(
-  roster: Roster,
-  courts: number | null,
-  rounds: number | null,
-  format: Format,
-  mixed: boolean,
-  pools: number,
-  seed: number | undefined,
-  headers: readonly PoolHeader[],
-): string {
-  const entries = roster.map((player) => `${player.id}=${rosterLine(player)}`);
-  return [
-    seed ?? "",
-    courts ?? "",
-    rounds ?? "",
-    format,
-    mixed ? "mixed" : "",
-    pools,
-    headers.map((h) => `${h.label ?? ""}@${h.start}`).join(","),
-    ...entries,
-  ].join("\n");
-}
-
-/**
- * A cleared Roster, held only in memory. The text and the parsed entries both,
- * so that putting it back restores the ids as well as the names and a Player
- * comes back as the same Player.
- */
-interface ClearedRoster {
-  readonly text: string;
-  readonly roster: Roster;
-}
-
 /**
  * Whose evening is being read, and off which board. Kept as one value rather
  * than a bare index so the pair can be checked against the board on screen in
@@ -359,61 +209,25 @@ function nextSeed(previous: number | undefined): number {
 }
 
 export function MatchMixer() {
-  const [text, setText] = useState("");
-  // The Roster is kept beside the text rather than derived from it, because
-  // parsing has to see the previous entries to hand a corrected or reordered
-  // line back its existing id.
-  const [roster, setRoster] = useState<Roster>([]);
-  // Null means "whatever this Roster suggests", so the fields keep following
-  // the names being pasted until the organizer overrules them.
-  const [courtsChoice, setCourtsChoice] = useState<number | null>(null);
-  const [roundsChoice, setRoundsChoice] = useState<number | null>(null);
-  // The Format is not nullable the way the two numbers are: they follow the
-  // Roster until overruled, and a Format has nothing to follow. Rotating is a
-  // selection made on the organizer's behalf before they arrive.
-  const [format, setFormat] = useState<Format>(DEFAULT_FORMAT);
-  // Whether every team has to come out one M and one F. A qualifier on
-  // rotating rather than a Format of its own, so it is held beside the row
-  // rather than inside it.
-  const [mixed, setMixed] = useState(false);
-  // How many Pools to deal the Roster into. A choice like the Format rather
-  // than a number that follows the Roster: one until the organizer says
-  // otherwise, and clamped to what the Roster can make wherever it is read.
-  const [poolsChoice, setPoolsChoice] = useState(1);
-  const [draw, setDraw] = useState<Draw | null>(null);
-  // Whether the saved Config has been read yet, which is only ever asked so
-  // that saving cannot start before loading has finished. The screen itself
-  // does not wait on it: the example board is server-rendered and stays until
-  // there is something truer to put in its place.
-  const [restored, setRestored] = useState(false);
-  // What the box held before Clear emptied it, kept for as long as it stays
-  // empty rather than for a few seconds: an organizer who looks up from the
-  // court a minute later should still find the way back.
-  const [cleared, setCleared] = useState<ClearedRoster | null>(null);
-  // The board a link put on screen, as the signature of the screen showing it,
-  // or null when nothing was borrowed. While the screen still matches, the
-  // board belongs to somebody else and nothing is written: most people who
-  // open a link are players rather than organizers, and some of them keep
-  // their own club list in this same browser.
-  //
-  // Held as the signature rather than as a flag that every edit handler has to
-  // remember to clear. There are six ways to edit this screen and a seventh
-  // that forgot would quietly write a stranger's roster over the reader's own;
-  // comparing what is on screen cannot be forgotten by a handler that does not
-  // know it exists.
-  const borrowed = useRef<string | null>(null);
+  // Everything the screen holds, as one value, and changed only through the
+  // board editor's named transitions (`lib/board-editor.ts`): the Roster, the
+  // field choices, the board on screen, and the three gates on the save. What
+  // is left here is rendering and the two adapters to the browser, the
+  // address bar and storage.
+  const [editor, setEditor] = useState<EditorState>(EMPTY);
+  const { text, roster, format, mixed, draw, cleared } = editor;
   // Whose evening is being read off the board. A Roster index and never a
   // name, so two Players called Mike are two selections — and always carrying
   // the board it was picked on, for the reason `selection-storage` gives: an
   // index means nothing on its own.
   const [found, setFound] = useState<Found | null>(null);
-  // Whether this tab has ever had a Roster in it, which decides whether its
-  // empty box means anything. A tab left open on the zero state has nothing to
-  // say about the save, and must not be the one that deletes it.
-  const held = useRef(false);
   // The share parameter this screen was last seeded from, so a history move
   // that did not touch it is not mistaken for a different board.
   const seededFrom = useRef<string | null | undefined>(undefined);
+  // Whether the address bar still carries the link the board on screen
+  // arrived by. The editor knows when a borrow is released; only this side
+  // knows there is an address bar to tidy up when it is.
+  const linked = useRef(false);
 
   // Both the address bar and storage are read in an effect and never during
   // render: neither exists on the server, and rendering from them would
@@ -438,75 +252,13 @@ export function MatchMixer() {
       }
       seededFrom.current = param;
 
-      setCleared(null);
-
       // A link beats storage, and beats it without reading it at all.
       const shared = decodeShareLink(param);
-      if (shared) {
-        const {
-          roster: shown,
-          courts,
-          rounds,
-          format: shownFormat,
-          mixed: shownMixed,
-          pools: shownPools,
-        } = shared.config;
-        // The lines as they were typed, headers and all: a shared declared
-        // split has to open declared, and a shared mixed board has to open as
-        // a mixed board, so the box over it has to be ticked against a roster
-        // that still says why.
-        setText(rosterText(shown, shared.config.headers ?? []));
-        setRoster(shown);
-        setCourtsChoice(courts);
-        setRoundsChoice(rounds);
-        setFormat(shownFormat);
-        setMixed(shownMixed);
-        setPoolsChoice(shownPools);
-        // Generated again from the values the link carried rather than sent as
-        // a grid, which is what ADR 0001's determinism was for. `!current` is
-        // never a decode failure (#494): an unrecognised or future version
-        // still draws, it just carries the notice below.
-        setDraw(drawFrom(shared.config, !shared.current));
-        borrowed.current = borrowKey(
-          shown,
-          courts,
-          rounds,
-          shownFormat,
-          shownMixed,
-          shownPools,
-          shared.config.seed,
-          shared.config.headers ?? [],
-        );
-        setRestored(true);
-        return;
-      }
-
-      // Written out even when there is nothing saved, because this also runs
-      // on the way back off a link: leaving the borrowed board on screen while
-      // calling it this browser's own is how it would end up in this
-      // browser's storage.
-      const saved = load();
-      const edited = saved?.edited ?? {
-        roster: [],
-        courts: null,
-        rounds: null,
-        format: DEFAULT_FORMAT,
-        mixed: false,
-        pools: 1,
-        headers: [],
-      };
-      setText(rosterText(edited.roster, edited.headers));
-      setRoster(edited.roster);
-      setCourtsChoice(edited.courts);
-      setRoundsChoice(edited.rounds);
-      setFormat(edited.format);
-      setMixed(edited.mixed);
-      setPoolsChoice(edited.pools);
-      // The board is generated again rather than stored, so what comes back is
-      // the same board down to the seat every name sat in.
-      setDraw(saved?.drawn ? drawFrom(saved.drawn) : null);
-      borrowed.current = null;
-      setRestored(true);
+      linked.current = shared !== null;
+      const source: Source = shared
+        ? { from: "link", board: shared }
+        : { from: "visit", visit: load() };
+      setEditor((state) => restore(state, source));
     };
 
     seed();
@@ -515,30 +267,12 @@ export function MatchMixer() {
   }, []);
 
   // Debounced because the Roster arrives a keystroke at a time and a write per
-  // keystroke is work nobody asked for. The write is guarded against running
-  // before the read above, which would save an empty screen over the roster it
-  // is in the middle of restoring.
+  // keystroke is work nobody asked for. Whether to write at all is the
+  // editor's question (`saveFor`): this only decides when, and makes sure the
+  // last write lands on the way out.
   useEffect(() => {
-    if (!restored) return;
-    // Somebody else's board is read, not kept. A player who opens a link and
-    // happens to keep their own club list in this browser must find it exactly
-    // where they left it, so nothing at all is written while the screen is
-    // still the board the link put there. Changing anything — a name, a
-    // number, a redraw — is how a reader says they are working on it now, and
-    // it saves like any other visit from that point.
-    if (borrowed.current !== null) {
-      const onScreen = borrowKey(
-        roster,
-        courtsChoice,
-        roundsChoice,
-        format,
-        mixed,
-        poolsChoice,
-        draw?.config.seed,
-        parsePoolHeaders(text),
-      );
-      if (borrowed.current === onScreen) return;
-      borrowed.current = null;
+    if (linked.current && editor.borrowed === null) {
+      linked.current = false;
       // The address bar was only ever describing the board that arrived, and
       // that board is gone. A history replace, not a navigation: no new
       // entry, no reload, and no `popstate` to send the mount effect's
@@ -553,26 +287,10 @@ export function MatchMixer() {
       // not read as a change worth reseeding over.
       seededFrom.current = null;
     }
-    // While the undo is standing, the save is what backs it. Writing the empty
-    // box over it would make Clear irreversible the moment the tab went away,
-    // which is the mistake the undo is there for.
-    if (cleared) return;
-    // A tab that has never held a Roster has nothing to say about the save,
-    // and an empty one saying it would delete the Roster another tab is in the
-    // middle of keeping.
-    held.current ||= roster.length > 0 || draw !== null;
-    if (!held.current) return;
 
-    const edited = {
-      roster,
-      courts: courtsChoice,
-      rounds: roundsChoice,
-      format,
-      mixed,
-      pools: poolsChoice,
-      headers: parsePoolHeaders(text),
-    };
-    const drawn = draw?.config ?? null;
+    const pending = saveFor(editor);
+    if (!pending) return;
+    const { edited, drawn } = pending;
 
     const timer = setTimeout(() => save(edited, drawn), SAVE_DEBOUNCE_MS);
     // A tab closed on the last name typed is exactly the visit worth keeping,
@@ -592,18 +310,7 @@ export function MatchMixer() {
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flush);
     };
-  }, [
-    restored,
-    cleared,
-    text,
-    roster,
-    courtsChoice,
-    roundsChoice,
-    format,
-    mixed,
-    poolsChoice,
-    draw,
-  ]);
+  }, [editor]);
 
   // Which board is on screen, for the find-me selection to be held against.
   // Never the Roster index alone: an index only means anything against one
@@ -671,231 +378,34 @@ export function MatchMixer() {
     if (member !== undefined) selectPlayer(member);
   };
 
-  const editRoster = (next: string) => {
-    setText(next);
-    setRoster((previous) => parseRoster(next, previous, mixing));
-    // Typing gives up the cleared list. By then the board may have been drawn
-    // from different names, and putting the old ones back beside it would be
-    // offering to undo something that is no longer what happened.
-    setCleared(null);
-  };
-
-  /**
-   * Emptying the box is how an organizer says the list is finished with, and
-   * on a phone doing it by hand is a long-press, a select-all and a delete. It
-   * is one press here, and the press that undoes it is the same button.
-   *
-   * No confirmation: this is an edit to a text box, and a dialog in front of
-   * every one of them would be heavier than the thing it guards and dismissed
-   * unread by the time it mattered. What answers a mistake is the undo, and
-   * for the undo to be worth more than a dialog it has to survive the tab —
-   * which is why the save is left alone while it stands, and only overwritten
-   * once the organizer types and the list is genuinely finished with.
-   */
-  const clearRoster = () => {
-    setCleared({ text, roster });
-    setText("");
-    setRoster([]);
-  };
-
-  const restoreRoster = () => {
-    if (!cleared) return;
-    setText(cleared.text);
-    // Read again rather than put the entries back as they were, because the
-    // box may have been cleared under a different reading of the same lines:
-    // ticking or unticking the box while it stands changes whether a trailing
-    // letter is a marker or the last initial it was typed as. The entries go
-    // in as `previous`, so a reading that has not changed reuses every id and
-    // a Player comes back as the same Player.
-    setRoster(parseRoster(cleared.text, cleared.roster, mixing));
-    setCleared(null);
-  };
-
-  const size = roster.length;
-  // The Roster's own declared split (ADR 0005): headers read off the box,
-  // turned into ranges over this Roster. Present, it wins over the Pool count
-  // everywhere below — the count is read only when this is `null`.
-  const headers = parsePoolHeaders(text);
-  const declared = headers.length > 0 ? declaredPools(size, headers) : null;
-  // The Pool count this Roster will be drawn with: the declared split's own
-  // count, or the choice brought inside what the names can make. Read before
-  // anything else, because whether the Roster fits at all depends on it —
-  // forty names is too many for one rotation and two Pools of twenty.
-  const pools = declared ? declared.length : resolvePools(size, poolsChoice);
-  // A declared split answers its own size question per Pool, further down in
-  // `boardObjection` — this is only the coarse "is there a Roster to speak
-  // of at all" gate that decides whether the fields render.
-  const supported = declared
-    ? size >= MIN_ROSTER_SIZE && size <= MAX_BOARD_SIZE
-    : isSupportedBoardSize(size, pools);
-  // The ceiling follows the Format, because a singles court seats two: the
-  // field's maximum has to move as the row is switched, not only as names are
-  // pasted, or a doubles court count would survive into a Format that could
-  // have offered twice as many.
-  const courtCeiling = maxCourts(size, format);
-  // Mixed doubles applies to rotating and nothing else, so a Format that
-  // cannot carry it drops it here as well as hiding the box: nothing below
-  // this line has to remember the pairing is impossible.
-  const mixing = resolveMixed(format, mixed);
-  // How many partnerships this board has to spend, which mixed doubles cuts to
-  // `M × F`. Read by the consequence line's supply clause and by the default
-  // round count, both of which would otherwise count pairs the night can never
-  // draw.
-  const supply = partnershipSupply(roster, mixing);
-  // What a mixed night can fill, for the court dial's note and its default.
-  const mixedCeiling = mixedCourtDefault(roster, mixing);
-  // The fields show what the engine will actually use, which is the same clamp
-  // `generateSchedule` applies rather than a second opinion beside it. A null
-  // choice is an untouched or emptied field, and means the default.
-  //
-  // Not memoized. It is four comparisons over primitives, and the manual
-  // memoization it used to carry is the kind the React Compiler has to refuse
-  // to preserve once one of the inputs is derived from the Roster.
-  //
-  // Past one Pool the courts default to what the Pools can fill, which the
-  // pool layer works out; the mixed ceiling above is a whole-Roster figure and
-  // says nothing about a Pool. A declared split works its own default out the
-  // same way, off its own Pools rather than an even deal.
-  const poolish = declared !== null || pools > 1;
-  const { courts, rounds } = resolveBoard(
-    roster,
-    courtsChoice ?? (poolish ? undefined : mixedCeiling),
-    roundsChoice ?? undefined,
-    format,
-    mixing,
+  // The fast speed of the screen, worked out afresh on every render rather
+  // than held anywhere: the numbers, the objection, the consequence line and
+  // whether the board on screen is stale. `derive` says how each is reached.
+  const {
+    size,
+    declared,
     pools,
-    headers,
-  );
-
-  const repeated = duplicateNames(roster);
-  const markers = countMarkers(roster);
-  const shape = {
-    players: size,
+    supported,
+    poolish,
+    courtCeiling,
+    mixing,
+    mixedCeiling,
     courts,
     rounds,
-    format,
-    mixed: mixing,
-    partnerships: supply,
-    pools,
-  };
-  // Why this Roster cannot be drawn like this, if it cannot. Asked here rather
-  // than caught out of `generateSchedule`, because the answer is a sentence
-  // the organizer can act on and it has to be on screen before the button is
-  // pressed rather than instead of the board afterwards.
-  //
-  // Past one Pool every Pool answers for itself as well, and the message names
-  // the one that could not be seated — a declared Pool's own composition, an
-  // even deal otherwise.
-  const objection = supported
-    ? boardObjection(roster, format, mixing, pools, courts, headers)
-    : null;
-  const drawable = supported && objection === null;
-  // The consequence line stays on the screen at every Roster size, including
-  // the sizes with no Config to describe: a Roster on its way to eleven names
-  // passes through them, and going quiet there is going quiet exactly when the
-  // organizer is least sure what they have. A Format that cannot seat this
-  // Roster takes its place, because describing seats nobody can sit in would
-  // be the more confident of the two wrong answers.
-  const plan =
-    supported && poolish
-      ? declared
-        ? planDeclaredPools(roster, format, mixing, declared, courts)
-        : planPools(roster, format, mixing, pools, courts)
-      : null;
-  const consequence = !supported
-    ? describeUnsupportedRoster(size)
-    : (objection ??
-      (plan ? describePooledConfig(shape, plan) : describeConfig(shape)));
-  const key = drawKey(roster, courts, rounds, format, mixing, pools, headers);
-  const stale = draw !== null && draw.key !== key;
+    repeated,
+    markers,
+    shape,
+    objection,
+    drawable,
+    consequence,
+    stale,
+  } = derive(editor);
 
-  const generate = () => {
-    setDraw(
-      drawFrom({
-        roster,
-        courts,
-        rounds,
-        format,
-        mixed: mixing,
-        pools,
-        headers: declared ? headers : undefined,
-        seed: nextSeed(draw?.config.seed),
-      }),
-    );
-  };
-
-  /**
-   * "Keep this split" (ADR 0005): the only thing in the tool that ever
-   * writes to the roster box, and only when pressed. It takes the Pools
-   * actually on screen and writes them back as bare `---` lines, so the
-   * split becomes the organizer's own — from here they can move a name
-   * across a divider or put a label on it — and it is also how an organizer
-   * discovers the header syntax in the first place, findable from a dealt
-   * board rather than buried in a note.
-   *
-   * It redraws with the Seed already on screen rather than leaving the old
-   * `draw` standing: the Pools it just wrote are the same Pools, in the same
-   * order, with the same names in each — so the board that comes back is the
-   * same board, only now current against the fields instead of one edit
-   * behind them.
-   */
-  const keepSplit = () => {
-    // Guarded again rather than trusted to the button's own gating: writing
-    // a stale draw's Pools over fields the organizer has since edited would
-    // silently discard that edit, which is the one thing this action must
-    // never do.
-    if (!draw || stale || draw.pools.length <= 1) return;
-    const nextHeaders: PoolHeader[] = [];
-    const flatRoster: Player[] = [];
-    for (const pool of draw.pools) {
-      if (flatRoster.length > 0) {
-        nextHeaders.push({ label: null, start: flatRoster.length });
-      }
-      flatRoster.push(...pool.roster);
-    }
-    const nextText = rosterText(flatRoster, nextHeaders);
-    setText(nextText);
-    setRoster(flatRoster);
-    setCleared(null);
-    setDraw(
-      drawFrom({
-        roster: flatRoster,
-        courts: draw.config.courts,
-        rounds: draw.config.rounds,
-        format: draw.config.format,
-        mixed: draw.config.mixed,
-        pools: draw.pools.length,
-        headers: nextHeaders,
-        seed: draw.config.seed,
-      }),
-    );
-  };
-
-  /**
-   * Leaving rotating takes the constraint with it rather than leaving a ticked
-   * box applying to nothing. Cleared as well as hidden, because a box that
-   * came back ticked on the way round would be a constraint the organizer
-   * never re-chose, arriving silently at the moment they stopped looking at
-   * it.
-   */
-  const chooseFormat = (next: Format) => {
-    setFormat(next);
-    if (next !== "rotating") chooseMixed(false, next);
-  };
-
-  /**
-   * Ticking the box re-reads the roster box, because the same lines mean
-   * something different under it: `Sarah M` is a name with a last initial
-   * while it is off and a marked Sarah while it is on. Without the re-read
-   * the constraint would be applied to a Roster parsed under the other
-   * reading, and every line would look unmarked however carefully it was
-   * typed.
-   */
-  const chooseMixed = (next: boolean, withFormat: Format = format) => {
-    setMixed(next);
-    setRoster((previous) =>
-      parseRoster(text, previous, resolveMixed(withFormat, next)),
-    );
+  // The Seed is rolled here rather than inside the transition, because a roll
+  // is not a pure thing to do and React may run an updater twice.
+  const redraw = () => {
+    const seed = nextSeed(draw?.config.seed);
+    setEditor((state) => generate(state, seed));
   };
 
   return (
@@ -967,9 +477,9 @@ export function MatchMixer() {
           <div className="mm-controls">
             <FormatRow
               value={format}
-              onChange={chooseFormat}
+              onChange={(next) => setEditor((state) => chooseFormat(state, next))}
               mixed={mixed}
-              onMixedChange={chooseMixed}
+              onMixedChange={(next) => setEditor((state) => chooseMixed(state, next))}
             />
 
             <div className="mm-field-head">
@@ -982,7 +492,7 @@ export function MatchMixer() {
                 <button
                   type="button"
                   className="mm-quiet"
-                  onClick={cleared ? restoreRoster : clearRoster}
+                  onClick={() => setEditor(cleared ? restoreRoster : clearRoster)}
                 >
                   {cleared
                     ? `Put ${countNames(cleared.roster.length)} back`
@@ -994,7 +504,10 @@ export function MatchMixer() {
               id="mm-roster"
               className="mm-input h-48 w-full resize-y p-2.5 sm:h-64"
               value={text}
-              onChange={(event) => editRoster(event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value;
+                setEditor((state) => editRoster(state, next));
+              }}
               placeholder={EXAMPLE_ROSTER}
               spellCheck={false}
               aria-describedby="mm-roster-note"
@@ -1037,7 +550,7 @@ export function MatchMixer() {
                   min={1}
                   max={declared ? pools : maxPools(size)}
                   disabled={declared !== null}
-                  onChange={(next) => setPoolsChoice(next ?? 1)}
+                  onChange={(next) => setEditor((state) => choosePools(state, next))}
                   note={
                     // Headers win (ADR 0005): with a `---` line in the box the
                     // count is read from nowhere and this field only reports
@@ -1063,7 +576,7 @@ export function MatchMixer() {
               <button
                 type="button"
                 className="mm-quiet mt-2"
-                onClick={keepSplit}
+                onClick={() => setEditor(keepSplit)}
                 aria-describedby="mm-keep-split-note"
               >
                 Keep this split
@@ -1084,7 +597,7 @@ export function MatchMixer() {
                   value={courts}
                   min={1}
                   max={courtCeiling}
-                  onChange={setCourtsChoice}
+                  onChange={(next) => setEditor((state) => chooseCourts(state, next))}
                   note={
                     // The dial's own ceiling is what the Roster can seat, and
                     // it stays there under mixed doubles: the courts are
@@ -1109,7 +622,7 @@ export function MatchMixer() {
                   value={rounds}
                   min={1}
                   max={MAX_ROUNDS}
-                  onChange={setRoundsChoice}
+                  onChange={(next) => setEditor((state) => chooseRounds(state, next))}
                   note="How many you have court time for."
                 />
               </div>
@@ -1126,7 +639,7 @@ export function MatchMixer() {
             <button
               type="button"
               className="mm-button mt-3"
-              onClick={generate}
+              onClick={redraw}
               disabled={!drawable}
               data-stale={stale ? "true" : undefined}
               aria-describedby="mm-action-note"
