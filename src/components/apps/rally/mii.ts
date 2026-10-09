@@ -41,7 +41,7 @@ const JERSEY = "#f26522";
 const SHORTS = "#16181b";
 const PADDLE = "#1b1e22";
 /** How far down the thigh the shorts reach, in feet. */
-const SHORTS_LENGTH = 0.55;
+const SHORTS_LENGTH = 0.45;
 const PADDLE_FACE = "#2d6cdf";
 
 /** How long a swing, a cheer and a slump last, in seconds. */

@@ -43,7 +43,7 @@ export const HOSTS: Record<HostId, Host> = {
     leggings: false,
     shoes: "#2c3448",
     watch: false,
-    build: { height: 0.9, legs: 1.0, width: 1.2, depth: 1.15, limbs: 1.25 },
+    build: { height: 0.9, legs: 1.1, width: 1.2, depth: 1.15, limbs: 1.25 },
   },
   // Taller and lean: long legs in black leggings, slim arms, white shoes.
   daven: {

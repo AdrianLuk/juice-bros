@@ -538,7 +538,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
                 game can&apos;t run here.
               </p>
             ) : (
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="flex flex-col items-center gap-2">
                 <button
                   ref={actionRef}
                   type="button"
