@@ -2,10 +2,13 @@ import "server-only";
 
 import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import webpush from "web-push";
 
 import { personOptionLabel } from "./connections.ts";
-import { emailToUserFromEnv } from "./email-to-user.ts";
+import { deliver, type DeliveryResult } from "./delivery/deliver.ts";
+import { emailSenderFromEnv } from "./delivery/resend-sender.ts";
+import { slotUserChannelLog, supabaseAddressLookup } from "./delivery/supabase-adapters.ts";
+import { pushSenderFromEnv } from "./delivery/web-push-sender.ts";
+import { readVapidEnv } from "./env.ts";
 import { groupRegularsByGame } from "./regulars.ts";
 import { absoluteAppUrl } from "./request-origin.ts";
 import { createAdminClient } from "./supabase/admin.ts";
@@ -22,9 +25,16 @@ import {
   type WeeklyInviteRules,
 } from "./weekly-invites.ts";
 
-export type WeeklyInviteRunResult = { sent: number; failed: number };
+/**
+ * One count per planned send, under `deliver`'s rule (spec #610): `sent`,
+ * `failed`, or `skipped` (channel not configured). `runFailed` is set when a
+ * read or the planning threw before anything was sent: the counts are then 0
+ * because nothing was planned, not because nothing was due.
+ */
+export type WeeklyInviteRunResult = DeliveryResult & { runFailed: boolean };
 
-const NOTHING_SENT: WeeklyInviteRunResult = { sent: 0, failed: 0 };
+const NOTHING_SENT: WeeklyInviteRunResult = { sent: 0, failed: 0, skipped: 0, runFailed: false };
+const RUN_FAILED: WeeklyInviteRunResult = { ...NOTHING_SENT, runFailed: true };
 
 /**
  * Sends the Weekly Invite for Slots a Standing Game just posted (issue #579).
@@ -35,12 +45,14 @@ const NOTHING_SENT: WeeklyInviteRunResult = { sent: 0, failed: 0 };
  * Takes the admin (`service_role`) client: the creation action runs as the
  * organizer, whose session can't read a Regular's preferences, devices or
  * email address. Who gets what is `planWeeklyInviteRun` (unit tested); this
- * is the reads, Resend and web-push, the dead-device prune, and the
- * `weekly_invite_sends` marker, the same shape as `send-reminders`. Never
- * throws: a failed invite must not fail the posting that triggered it.
+ * is the reads, then `deliver` (`delivery/deliver.ts`) does Resend and
+ * web-push, the dead-device prune, and the `weekly_invite_sends` marker, the
+ * same as `send-reminders`. Never throws: a failed invite must not fail the
+ * posting that triggered it.
  *
- * Email needs RESEND_API_KEY and REMINDER_FROM_EMAIL; push needs the VAPID
- * keys. Either missing skips that channel with a log line, not the run.
+ * Email needs RESEND_API_KEY and REMINDER_FROM_EMAIL: without them every email
+ * counts as `skipped`, with one warning per run. Push needs the VAPID keys:
+ * without them the planner plans no push at all, as before.
  */
 export async function sendWeeklyInvites(
   supabase: SupabaseClient,
@@ -55,7 +67,7 @@ export async function sendWeeklyInvites(
     return await sendWeeklyInvitesUnsafe(supabase, posted, origin);
   } catch (error) {
     console.error("weekly-invites: the run failed", error);
-    return { sent: 0, failed: posted.length };
+    return RUN_FAILED;
   }
 }
 
@@ -138,16 +150,8 @@ async function sendWeeklyInvitesUnsafe(
   posted: readonly PostedWeek[],
   origin: string,
 ): Promise<WeeklyInviteRunResult> {
-  // `null` (logged) without Resend config: the email channel is skipped, push still goes.
-  const emailToUser = emailToUserFromEnv(supabase, "weekly-invites");
-
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-  const vapidSubject = process.env.VAPID_SUBJECT;
-  const pushConfigured = Boolean(vapidPublicKey && vapidPrivateKey && vapidSubject);
-  if (pushConfigured) {
-    webpush.setVapidDetails(vapidSubject!, vapidPublicKey!, vapidPrivateKey!);
-  }
+  // Without VAPID keys the planner plans no push and the device read is skipped.
+  const pushConfigured = readVapidEnv() !== null;
 
   const slotIds = posted.map((week) => week.slotId);
   const standingGameIds = [...new Set(posted.map((week) => week.standingGameId))];
@@ -165,7 +169,7 @@ async function sendWeeklyInvitesUnsafe(
     ]);
   if (slotsError || regularsError) {
     console.error("weekly-invites: reading slots or regulars failed", slotsError ?? regularsError);
-    return { sent: 0, failed: posted.length };
+    return RUN_FAILED;
   }
 
   const regularsByGame = groupRegularsByGame(regularRows ?? []);
@@ -208,7 +212,7 @@ async function sendWeeklyInvitesUnsafe(
     profilesError ?? connectionsError ?? preferencesError ?? sentError ?? subscriptionsError;
   if (readError) {
     console.error("weekly-invites: a read failed", readError);
-    return { sent: 0, failed: posted.length };
+    return RUN_FAILED;
   }
 
   const nameByOwner = new Map(
@@ -277,63 +281,12 @@ async function sendWeeklyInvitesUnsafe(
     origin,
   });
 
-  let sent = 0;
-  let failed = 0;
-
-  // Best-effort: the message is already out; a duplicate marker (a race with
-  // another run) hits the unique constraint and is not a failure.
-  async function markSent(slotId: string, userId: string, channel: WeeklyInviteChannel) {
-    const { error } = await supabase
-      .from("weekly_invite_sends")
-      .insert({ slot_id: slotId, user_id: userId, channel });
-    if (error && error.code !== "23505") {
-      console.error("weekly-invites: recording the send failed", error);
-    }
-  }
-
-  for (const send of sends) {
-    if (send.channel === "email") {
-      if (!emailToUser) {
-        continue;
-      }
-      if (!(await emailToUser(send.userId, { subject: send.subject, html: send.html }))) {
-        failed += 1;
-        continue;
-      }
-
-      await markSent(send.slotId, send.userId, "email");
-      sent += 1;
-      continue;
-    }
-
-    let anyPushSucceeded = false;
-    for (const subscription of send.subscriptions) {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: subscription.endpoint,
-            keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-          },
-          JSON.stringify(send.payload),
-        );
-        anyPushSucceeded = true;
-      } catch (error) {
-        const statusCode = (error as { statusCode?: number }).statusCode;
-        if (statusCode === 404 || statusCode === 410) {
-          await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
-        } else {
-          console.error("weekly-invites: web-push error", error);
-        }
-      }
-    }
-
-    if (anyPushSucceeded) {
-      await markSent(send.slotId, send.userId, "push");
-      sent += 1;
-    } else {
-      failed += 1;
-    }
-  }
-
-  return { sent, failed };
+  const result = await deliver(sends, {
+    logTag: "weekly-invites",
+    lookupAddress: supabaseAddressLookup(supabase),
+    sendEmail: emailSenderFromEnv(),
+    sendPush: pushSenderFromEnv(supabase),
+    markSent: slotUserChannelLog(supabase, "weekly_invite_sends"),
+  });
+  return { ...result, runFailed: false };
 }

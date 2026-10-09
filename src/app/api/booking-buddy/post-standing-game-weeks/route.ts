@@ -73,5 +73,7 @@ export async function GET(request: NextRequest) {
     failed: result.failed.length,
     invitesSent: result.invites?.sent ?? 0,
     invitesFailed: result.invites?.failed ?? 0,
+    invitesSkipped: result.invites?.skipped ?? 0,
+    invitesRunFailed: result.invites?.runFailed ?? false,
   });
 }
