@@ -14,8 +14,16 @@ export type Host = {
   face: string | null;
   skin: string;
   hair: string;
-  /** A baseball cap over the hair, in this colour; short spiky hair without one. */
+  /** A baseball cap over the hair, in this colour; short thick hair without one. */
   cap: string | null;
+  /** The logo on the cap's front panels. */
+  capLogo: string | null;
+  /**
+   * The head's shape, from the photos: width and height against a round
+   * head, how full the cheeks are, how much it narrows to the chin, and how
+   * big the ears are.
+   */
+  head: { width: number; height: number; cheeks: number; chin: number; ears: number };
   glasses: { frame: string; round: boolean };
   /** Leggings under the shorts, or bare legs. */
   leggings: boolean;
@@ -39,6 +47,9 @@ export const HOSTS: Record<HostId, Host> = {
     skin: "#e8b48c",
     hair: "#17130f",
     cap: null,
+    capLogo: null,
+    // Round and broad, full in the cheeks.
+    head: { width: 1.07, height: 0.97, cheeks: 0.08, chin: 0.04, ears: 1 },
     glasses: { frame: "#141414", round: false },
     leggings: false,
     // White, as Daven's: dark shoes vanished into the court's shadow.
@@ -55,6 +66,10 @@ export const HOSTS: Record<HostId, Host> = {
     hair: "#17130f",
     // Light grey, as in the Vaughan Fall Open photo.
     cap: "#d3d3cd",
+    // His own brand, Game Point Apparel (gamepointapparel.ca).
+    capLogo: "/play/gp-logo.png",
+    // A longer oval, narrowing to the chin, the ears standing out a little.
+    head: { width: 0.93, height: 1.07, cheeks: 0, chin: 0.16, ears: 1.15 },
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
     shoes: "#f1f2f4",

@@ -17,6 +17,7 @@ import {
   Scene,
   SphereGeometry,
   SRGBColorSpace,
+  TextureLoader,
   WebGLRenderer,
   type Material,
 } from "three";
@@ -192,9 +193,19 @@ export async function createRallyView(container: HTMLElement, player: HostId): P
 
   const font = await jerseyFont();
   const faces = await Promise.all([loadFace("adrian"), loadFace("daven")]);
+  const logos = await Promise.all(
+    (["adrian", "daven"] as const).map(async (id) => {
+      const url = HOSTS[id].capLogo;
+      if (!url) return null;
+      const texture = await new TextureLoader().loadAsync(url);
+      texture.colorSpace = SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return texture;
+    }),
+  );
   const figures: Record<HostId, Mii> = {
-    adrian: createMii(HOSTS.adrian, faces[0].texture, font),
-    daven: createMii(HOSTS.daven, faces[1].texture, font),
+    adrian: createMii(HOSTS.adrian, faces[0].texture, font, logos[0]),
+    daven: createMii(HOSTS.daven, faces[1].texture, font, logos[1]),
   };
   for (const { texture } of faces) texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
   figures.adrian.setSkin(faces[0].skin);

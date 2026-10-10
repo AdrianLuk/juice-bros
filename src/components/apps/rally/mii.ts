@@ -2,18 +2,19 @@ import {
   CanvasTexture,
   CapsuleGeometry,
   Color,
-  ConeGeometry,
   CylinderGeometry,
   BoxGeometry,
   CatmullRomCurve3,
   ExtrudeGeometry,
   Group,
+  Matrix4,
   LatheGeometry,
   Mesh,
   MeshToonMaterial,
   Shape,
   SphereGeometry,
   SRGBColorSpace,
+  type Texture,
   TorusGeometry,
   TubeGeometry,
   Vector2,
@@ -40,7 +41,8 @@ const FACE_TOP = 1.02;
 const FACE_HEIGHT = 1.5;
 /** How much the skin and face light themselves, over the court's lights. */
 const FACE_GLOW = 0.35;
-const UP = new Vector3(0, 1, 0);
+/** How wide the cap's logo is round the front of the crown, in radians. */
+const LOGO_WIDTH = 0.38;
 const JERSEY = "#f26522";
 const SHORTS = "#16181b";
 const PADDLE = "#1b1e22";
@@ -185,53 +187,89 @@ function createPaddle(edge: MeshToonMaterial, face: MeshToonMaterial, grip: Mesh
   return group;
 }
 
-/** Points a mesh's +y along `direction`, at `at` on the head. */
-function stand(mesh: Mesh, at: Vector3, direction: Vector3) {
-  mesh.position.copy(at);
-  mesh.quaternion.setFromUnitVectors(UP, direction.clone().normalize());
-  return mesh;
-}
-
 /** A point on a sphere of radius `r`: `theta` down from the top, `phi` round from the front (-z) toward +x. */
 const onSphere = (r: number, theta: number, phi: number) =>
   new Vector3(r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta), -r * Math.sin(theta) * Math.cos(phi));
 
 /**
- * Short black hair with some shape to it: a close crop over the top, sides
- * and back, lifted into short spikes over the crown and a fringe that kicks
- * up at the front, as in the photos.
+ * The hairline, as the height (on the unit sphere) the hair comes down to in
+ * a direction round the head: low on the forehead, above the ears at the
+ * sides, down to the nape at the back.
+ */
+function hairline(dir: Vector3) {
+  const across = Math.hypot(dir.x, dir.z) || 1;
+  const front = -dir.z / across;
+  return 0.1 + 0.27 * Math.max(0, front) ** 1.5 - 0.5 * Math.max(0, -front);
+}
+
+/** How far out the hair stands in a direction: fuller over the top, and lifted at the front. */
+function hairRadius(dir: Vector3) {
+  const across = Math.hypot(dir.x, dir.z) || 1;
+  const front = Math.max(0, -dir.z / across);
+  const up = Math.max(0, dir.y);
+  return HEAD_R * 1.05 * (1 + 0.13 * up ** 1.3 + 0.07 * front * up);
+}
+
+/**
+ * Thick, short black hair, as in the photos: a full mass over the top with
+ * real volume, a hairline low on the forehead and above the ears, down to
+ * the nape at the back, and soft clumps over it that sweep up and forward
+ * into the fringe.
  */
 function createHair(material: MeshToonMaterial) {
   const group = new Group();
-  const R = HEAD_R;
-  // The crop: over the top down to the hairline, lower at the sides, to the nape at the back.
-  const top = new Mesh(new SphereGeometry(R * 1.04, 32, 14, 0, Math.PI * 2, 0, 1.08), material);
-  top.scale.y = 1.06;
-  const back = new Mesh(new SphereGeometry(R * 1.03, 28, 14, Math.PI / 2 - 1.5, 3.0, 0, 2.0), material);
-  const sides = [-1, 1].map((x) => {
-    const side = new Mesh(new SphereGeometry(R * 1.035, 12, 10, x > 0 ? -0.55 : Math.PI - 0.55, 1.1, 0.5, 0.95), material);
-    return side;
-  });
-  group.add(top, back, ...sides);
-  // Spikes over the crown, leaning back a little; a fringe kicking up and forward.
-  const spike = new ConeGeometry(R * 0.2, R * 0.42, 6);
-  for (let ring = 0; ring < 3; ring++) {
-    const theta = 0.15 + ring * 0.32;
-    const count = ring === 0 ? 3 : 7 + ring * 2;
-    for (let i = 0; i < count; i++) {
-      const phi = (i / count) * Math.PI * 2 + ring * 0.4;
-      const at = onSphere(R * 1.02, theta, phi);
-      const lean = at.clone().normalize().add(new Vector3(0, 0.3, 0.35));
-      group.add(stand(new Mesh(spike, material), at, lean));
-    }
+  // The mass: a shell round the head, tucked inside the skull below the hairline.
+  const geometry = new SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, 2.3);
+  const position = geometry.getAttribute("position");
+  const dir = new Vector3();
+  for (let i = 0; i < position.count; i++) {
+    dir.fromBufferAttribute(position, i).normalize();
+    const r = dir.y >= hairline(dir) ? hairRadius(dir) : HEAD_R * 0.9;
+    position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
   }
-  for (let i = 0; i < 6; i++) {
-    const phi = -0.75 + (i / 5) * 1.5;
-    const at = onSphere(R * 1.02, 1.0, phi);
-    const kick = at.clone().normalize().add(new Vector3(0, 0.9, -0.4));
-    group.add(stand(new Mesh(spike, material), at, kick));
+  geometry.computeVertexNormals();
+  group.add(new Mesh(geometry, material));
+
+  // Clumps over the top, sweeping forward; a fringe lifting at the front.
+  const clump = new SphereGeometry(1, 10, 8);
+  const place = (theta: number, phi: number, size: number, lift: number) => {
+    const at = onSphere(1, theta, phi);
+    const mesh = new Mesh(clump, material);
+    mesh.scale.set(HEAD_R * 0.17 * size, HEAD_R * 0.09 * size, HEAD_R * 0.26 * size);
+    mesh.position.copy(at.clone().multiplyScalar(hairRadius(at) * 0.97));
+    // Lie on the head, the long axis running toward the front and up by `lift`.
+    const normal = at.clone().normalize();
+    const forward = new Vector3(0, lift, -1);
+    forward.sub(normal.clone().multiplyScalar(forward.dot(normal))).normalize();
+    const side = new Vector3().crossVectors(normal, forward);
+    mesh.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(side, normal, forward));
+    group.add(mesh);
+  };
+  for (let ring = 0; ring < 4; ring++) {
+    const theta = 0.12 + ring * 0.24;
+    const count = 4 + ring * 3;
+    for (let i = 0; i < count; i++) place(theta, (i / count) * Math.PI * 2 + ring * 0.5, 1, 0.3);
   }
+  for (let i = 0; i < 6; i++) place(1.05, -0.62 + (i / 5) * 1.24, 1.1, 0.9);
   return group;
+}
+
+/**
+ * The lower half of the face: fuller through the cheeks, or narrowing to the
+ * chin, per the host's photos. Applied alike to the skull and the face on it.
+ */
+function shapeJaw(geometry: SphereGeometry, cheeks: number, chin: number) {
+  const position = geometry.getAttribute("position");
+  for (let i = 0; i < position.count; i++) {
+    const y = position.getY(i);
+    if (y >= 0) continue;
+    const t = Math.min(1, -y / HEAD_R);
+    const f = 1 + cheeks * Math.sin(Math.PI * t) - chin * t * t;
+    position.setX(i, position.getX(i) * f);
+    position.setZ(i, position.getZ(i) * (1 + (f - 1) * 0.6));
+  }
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 /**
@@ -255,6 +293,17 @@ const CROWN_PROFILE: [number, number][] = [
  * more the higher they are, and come forward, the way a structured cap's
  * front holds its height above the bill.
  */
+/** The crown's radius at height `y`, from its profile. */
+function crownRadiusAt(y: number) {
+  const points = CROWN_PROFILE.map(([r, h]) => [r * HEAD_R, h * HEAD_R]);
+  for (let i = 1; i < points.length; i++) {
+    const [r0, y0] = points[i - 1];
+    const [r1, y1] = points[i];
+    if (y <= y1) return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0);
+  }
+  return 0;
+}
+
 function shapeCrown(point: Vector3) {
   const R = HEAD_R;
   const front = Math.max(0, -point.z) / R;
@@ -275,6 +324,7 @@ function createCap(
   seamMaterial: MeshToonMaterial,
   strapMaterial: MeshToonMaterial,
   hairMaterial: MeshToonMaterial,
+  logo: Texture | null,
 ) {
   const group = new Group();
   const R = HEAD_R;
@@ -314,6 +364,19 @@ function createCap(
     hairMaterial,
   );
   group.add(button, opening);
+  // The logo, embroidered a shade darker on the front panels.
+  if (logo) {
+    const rows = 10;
+    const heights = Array.from({ length: rows }, (_, i) => R * (0.5 + (0.42 * i) / (rows - 1)));
+    const points = heights.map((y) => new Vector2(crownRadiusAt(y) + 0.012, y));
+    const material = new MeshToonMaterial({
+      map: logo,
+      color: new Color(capMaterial.color).multiplyScalar(0.62),
+      transparent: true,
+      depthWrite: false,
+    });
+    group.add(new Mesh(lathe(points, 16, Math.PI - LOGO_WIDTH / 2, LOGO_WIDTH), material));
+  }
   // The strap across the opening's foot, and its buckle.
   const strapArc = 0.95;
   const strap = new Mesh(new TorusGeometry(rBand + 0.03, R * 0.05, 6, 16, strapArc), strapMaterial);
@@ -338,13 +401,13 @@ function createCap(
   const position = billGeometry.getAttribute("position");
   for (let i = 0; i < position.count; i++) {
     const x = position.getX(i) / half;
-    position.setY(i, position.getY(i) - R * 0.16 * x * x);
+    position.setY(i, position.getY(i) - R * (0.34 * x * x + 0.1 * x ** 4));
   }
   billGeometry.computeVertexNormals();
   const bill = new Mesh(billGeometry, capMaterial);
   const chord = Math.sqrt(Math.max(0, rBand ** 2 - half ** 2));
   bill.position.set(0, band - R * 0.05, -chord * 1.05 + R * 0.06);
-  bill.rotation.x = -0.08;
+  bill.rotation.x = -0.12;
   group.add(bill);
 
   // Hair showing under the cap at the back and round the ears.
@@ -354,7 +417,7 @@ function createCap(
   return group;
 }
 
-export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
+export function createMii(host: Host, face: CanvasTexture, font: string, logo: Texture | null): Mii {
   const { height: h, legs: legScale, width: w, depth: d, limbs } = host.build;
   const toon = (color: string | Color) => new MeshToonMaterial({ color });
   // The skin and the face glow a little, so the face reads from across the court.
@@ -451,19 +514,30 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
   // way a Mii's is, under a tall forehead for the hair or the cap.
   const head = new Group();
   head.position.y = 1.85 + HEAD_R * 0.85;
-  const skull = new Mesh(new SphereGeometry(HEAD_R, 40, 24), skin);
+  // Shaped from the photos: wider or narrower, longer or rounder, fuller in the cheeks or narrowing to the chin.
+  const { width: headWidth, height: headHeight, cheeks, chin, ears } = host.head;
+  head.scale.set(headWidth, headHeight, (1 + headWidth) / 2);
+  const skull = new Mesh(shapeJaw(new SphereGeometry(HEAD_R, 40, 24), cheeks, chin), skin);
   const faceMesh = new Mesh(
-    new SphereGeometry(HEAD_R * 1.004, 40, 24, Math.PI * 1.5 - FACE_WIDTH / 2, FACE_WIDTH, FACE_TOP, FACE_HEIGHT),
+    shapeJaw(
+      new SphereGeometry(HEAD_R * 1.004, 40, 24, Math.PI * 1.5 - FACE_WIDTH / 2, FACE_WIDTH, FACE_TOP, FACE_HEIGHT),
+      cheeks,
+      chin,
+    ),
     faceMaterial,
   );
   head.add(skull, faceMesh);
   for (const x of [-1, 1]) {
     const ear = new Mesh(new SphereGeometry(0.22, 10, 8), skin);
-    ear.scale.set(0.6, 1, 0.8);
+    ear.scale.set(0.6 * ears, ears, 0.8 * ears);
     ear.position.set(x * HEAD_R * 0.97, -0.08, 0.05);
     head.add(ear);
   }
-  head.add(host.cap ? createCap(toon(host.cap), toon(new Color(host.cap).multiplyScalar(0.8)), toon(new Color(host.cap).multiplyScalar(0.8)), hair) : createHair(hair));
+  head.add(
+    host.cap
+      ? createCap(toon(host.cap), toon(new Color(host.cap).multiplyScalar(0.8)), toon(new Color(host.cap).multiplyScalar(0.8)), hair, logo)
+      : createHair(hair),
+  );
   upper.add(head);
 
   let stride = 0;
