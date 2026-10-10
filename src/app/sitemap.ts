@@ -28,6 +28,7 @@ const routes: Route[] = [
       changeFrequency: "monthly" as const,
       priority: 0.4,
     })),
+  { path: "/play", changeFrequency: "yearly", priority: 0.3 },
   { path: "/gear", changeFrequency: "monthly", priority: 0.6 },
   { path: "/about", changeFrequency: "yearly", priority: 0.5 },
   { path: "/contact", changeFrequency: "yearly", priority: 0.3 },

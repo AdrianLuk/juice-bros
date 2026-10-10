@@ -73,6 +73,12 @@ export function SiteFooter() {
                   </Link>
                 </li>
               ))}
+              {/* Footer only: the game isn't a section of the site. */}
+              <li>
+                <Link href="/play" className="bx-quietlink">
+                  Play
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
