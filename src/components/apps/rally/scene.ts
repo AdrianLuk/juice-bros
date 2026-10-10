@@ -53,9 +53,9 @@ const BALL_RADIUS = 0.42;
 const FIGURE_SCALE = 1.35;
 /** The margin round a face image's features on the head, as a fraction of its side. */
 const FACE_INSET = 0.03;
-/** The picker's portraits: their size in pixels, and the panel colour behind them. */
+/** The picker's portraits: their size in pixels, and the court's blue behind them, which black hair and the cap stand out against. */
 const PORTRAIT_SIZE = 256;
-const PORTRAIT_BACKGROUND = "#1b2129";
+const PORTRAIT_BACKGROUND = "#2a6596";
 const COLORS = {
   sky: "#08090b",
   floor: "#121a22",
