@@ -3502,6 +3502,37 @@ html:has(.bb-app-chrome) {
   }
   .group:hover .bx-arrow { transform: translateX(2px); }
 
+  /* The rally on the Play teaser's court (`components/bx/play-teaser.tsx`).
+     The ground group slides the ball and its shadow straight from one paddle
+     to the other; the lift raises and grows the ball on a parabola (ease-out
+     quad up, ease-in quad down), which together trace the dashed track. Both
+     run back and forth, paused by default at 45% of a crossing so the resting
+     frame has the ball over the net. Units are the SVG's, in feet. */
+  .bx-court-ground,
+  .bx-court-lift {
+    animation-duration: 1.3s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-delay: -0.585s;
+    animation-play-state: paused;
+  }
+  .bx-court-ground { animation-name: bx-court-ground; animation-timing-function: linear; }
+  .bx-court-lift { animation-name: bx-court-lift; transform-box: fill-box; transform-origin: center; }
+  @media (prefers-reduced-motion: no-preference) {
+    .group:hover :is(.bx-court-ground, .bx-court-lift),
+    .group:focus-visible :is(.bx-court-ground, .bx-court-lift) {
+      animation-play-state: running;
+    }
+  }
+  @keyframes bx-court-ground {
+    to { transform: translate(26.8px, -6.4px); }
+  }
+  @keyframes bx-court-lift {
+    0% { transform: none; animation-timing-function: cubic-bezier(0.33, 0.67, 0.67, 1); }
+    50% { transform: translateY(-5px) scale(1.35); animation-timing-function: cubic-bezier(0.33, 0, 0.67, 0.33); }
+    100% { transform: none; }
+  }
+
   /* The two link registers. An action link is ink dropping to muted (it is the
      thing to do next); a quiet link is muted rising to ink (it is the way out
      of a section). Both 200ms, colour only - no underline, no background. */

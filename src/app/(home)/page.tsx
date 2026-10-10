@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
 import { getLatestInstagramPosts, INSTAGRAM_POST_COUNT } from "@/lib/instagram";
+import { PlayTeaser } from "@/components/bx/play-teaser";
 import { PhotoHero } from "./sections/photo-hero";
 import { NowPlaying } from "./sections/now-playing";
 import { Archive } from "./sections/archive";
@@ -44,6 +45,7 @@ export default async function Home() {
       {newest && <NowPlaying episode={newest} />}
       <Archive episodes={rest.slice(0, 8)} />
       <TheHosts />
+      <PlayTeaser className="bx-hair" />
       <FreeTools />
       <OnTheRoad />
       <FromInstagram posts={instagramPosts} />
