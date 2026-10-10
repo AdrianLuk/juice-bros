@@ -290,8 +290,9 @@ export async function createRallyView(container: HTMLElement, player: HostId): P
       figures[id].setGaze(0);
       figures[id].update(1, 0, null);
       const top = new Box3().setFromObject(group).max.y;
-      lens.position.set(0, top - 1.2, 10);
-      lens.lookAt(0, top - 2.1, 0);
+      // A little above eye level, so the cap's bill shows its top.
+      lens.position.set(0, top + 0.6, 10);
+      lens.lookAt(0, top - 2.2, 0);
       renderer.render(studio, lens);
       urls[id] = renderer.domElement.toDataURL("image/png");
       scene.add(group);
