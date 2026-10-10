@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { getEpisodes } from "@/lib/episodes";
 import { getYoutubeVideoId } from "@/lib/utils";
+import { PlayTeaser } from "@/components/bx/play-teaser";
 import { Hero } from "./sections/hero";
 import { OriginStory } from "./sections/origin-story";
 import { Mission } from "./sections/mission";
@@ -66,6 +67,7 @@ export default async function AboutPage() {
       <OriginStory episodeSlug={originEpisode?.slug} />
       <Mission />
       <MeetTheBros />
+      <PlayTeaser />
       <Differentiation />
       <Pillars />
       <JoinIn />

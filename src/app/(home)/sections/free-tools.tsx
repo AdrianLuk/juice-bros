@@ -14,7 +14,7 @@ export function FreeTools() {
   if (apps.length === 0) return null;
 
   return (
-    <section className="bx-measure bx-hair py-10 sm:py-14">
+    <section className="bx-measure py-10 sm:py-14">
       <div className="flex items-baseline justify-between gap-6">
         <h2 className="bx-h2 text-lg sm:text-xl">Free tools we built</h2>
         <Link

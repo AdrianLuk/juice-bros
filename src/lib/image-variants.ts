@@ -267,6 +267,16 @@ export const IMAGE_MANIFEST = {
     widths: [320, 620],
     quality: { avif: 62, webp: 80 },
   },
+  // The Play teaser's still, rendered from the game by
+  // `scripts/render-play-teaser.mts`. At most ~40rem wide (the teaser's
+  // column at desktop, the full panel on a phone), so 1440 covers 2x. Flat
+  // toon shading holds up at lower quality than a photograph.
+  "/play/teaser.jpg": {
+    width: 1440,
+    height: 900,
+    widths: [720, 1080, 1440],
+    quality: { avif: 50, webp: 72 },
+  },
 } as const satisfies Record<string, ImageSource>;
 
 export type ManagedImage = keyof typeof IMAGE_MANIFEST;
