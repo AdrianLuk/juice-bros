@@ -7,7 +7,7 @@ import { hairGeometry, skullGeometry } from "./mii.ts";
 
 const head = HOSTS.adrian.head;
 
-/** How far the outline seen from the front reaches toward `degrees` (0 his left, 90 up). */
+/** How far the outline seen from the front reaches toward `degrees` (0 his right, 90 up). */
 function reach(geometry: BufferGeometry, degrees: number) {
   const a = (degrees * Math.PI) / 180;
   const position = geometry.getAttribute("position");
@@ -39,9 +39,9 @@ describe("Adrian's buzz cut", () => {
 
   it("is squarer than a round head from the front, full at 10 and 2 o'clock", () => {
     // An ellipse through the top and sides reaches this far at 45 degrees; a square, 1.41 times as far.
-    const round = Math.sqrt((reach(hair, 0) ** 2 + reach(hair, 90) ** 2) / 2);
+    const ellipse = Math.sqrt((reach(hair, 0) ** 2 + reach(hair, 90) ** 2) / 2);
     for (const corner of [45, 135]) {
-      const squareness = reach(hair, corner) / round;
+      const squareness = reach(hair, corner) / ellipse;
       assert.ok(squareness > 1.05, `at ${corner} degrees, ${squareness.toFixed(3)} times an ellipse`);
     }
   });

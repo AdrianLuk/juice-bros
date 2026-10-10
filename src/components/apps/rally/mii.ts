@@ -254,7 +254,7 @@ function bristles(color: string, coverage: number) {
   return texture;
 }
 
-/** How square the buzz cut is over the top at the sides: 0 round, 2 near a square's corner. */
+/** How square the buzz cut is over the top at the sides: 0 round, 2 a squircle. */
 const SQUARE = 1.2;
 /** How far the buzz cut stands out at its upper corners, at the sides, against the head's radius. */
 const CORNER = 0.05;
@@ -277,17 +277,18 @@ function hairShell(radius: number, flat: number, lift = 0) {
       const scale = Math.sqrt(1 - line * line) / across;
       dir.set(dir.x * scale, line, dir.z * scale);
     }
+    // The true width round the crown's pole is 0; `across` stands in for it where it divides.
     const width = Math.hypot(dir.x, dir.z);
     const across = width || 1;
     const front = Math.max(0, -dir.z / across);
-    const side = (dir.x / across) ** 2;
+    const sideways = (dir.x / across) ** 2;
     const up = Math.max(0, dir.y);
     // Squared off over the top toward the sides, a superellipse there rather
     // than a circle, and standing out at 45 degrees up: flat on top, fullest
     // at 10 and 2 o'clock from the front.
-    const n = 2 + SQUARE * side;
+    const n = 2 + SQUARE * sideways;
     const box = up > 0 ? 1 / (width ** n + up ** n) ** (1 / n) : 1;
-    const corner = CORNER * side * (2 * up * width) ** 2;
+    const corner = CORNER * sideways * (2 * up * width) ** 2;
     const r = radius * box * (1 + corner + 0.04 * up ** 2 + 0.04 * front * up);
     position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
   }
@@ -315,14 +316,10 @@ export function skullGeometry({ cheeks, chin, flat }: Host["head"]) {
   return shapeTop(shapeJaw(new SphereGeometry(HEAD_R, 48, 32), cheeks, chin), flat);
 }
 
-/**
- * A layer of the buzz cut: the solid ground that carries the colour, or the
- * fuzz of bristles just outside it. Shaped like the skull below it (flatter
- * on top, squaring the crop), so it never shows skin through.
- */
+/** A layer of the buzz cut, shaped like the skull below it (flatter on top, squaring the crop), so it never shows skin through. */
 export function hairGeometry({ cheeks, chin, flat }: Host["head"], layer: "ground" | "fuzz" = "ground") {
-  const shell = layer === "ground" ? hairShell(HEAD_R * 1.045, flat + 0.03) : hairShell(HEAD_R * 1.07, flat + 0.03, 0.1);
-  return shapeJaw(shell, cheeks, chin);
+  const fuzz = layer === "fuzz";
+  return shapeJaw(hairShell(HEAD_R * (fuzz ? 1.07 : 1.045), flat + 0.03, fuzz ? 0.1 : 0), cheeks, chin);
 }
 
 /** Flattens the top of the head a little, as Adrian's is, alike for the skull, the face and the hair. */
