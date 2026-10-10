@@ -69,7 +69,7 @@ export const HOSTS: Record<HostId, Host> = {
     // His own brand, Game Point Apparel (gamepointapparel.ca).
     capLogo: "/play/gp-logo.png",
     // A longer oval, narrowing to the chin, the ears standing out a little.
-    head: { width: 0.93, height: 1.07, cheeks: 0, chin: 0.16, ears: 1.15 },
+    head: { width: 0.92, height: 1.1, cheeks: 0, chin: 0.22, ears: 1.15 },
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
     shoes: "#f1f2f4",

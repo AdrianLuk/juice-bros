@@ -199,22 +199,22 @@ const onSphere = (r: number, theta: number, phi: number) =>
 function hairline(dir: Vector3) {
   const across = Math.hypot(dir.x, dir.z) || 1;
   const front = -dir.z / across;
-  return 0.1 + 0.27 * Math.max(0, front) ** 1.5 - 0.5 * Math.max(0, -front);
+  return 0.14 + 0.24 * Math.max(0, front) ** 1.5 - 0.54 * Math.max(0, -front);
 }
 
-/** How far out the hair stands in a direction: fuller over the top, and lifted at the front. */
+/** How far out the hair stands in a direction: close at the sides, height on top, lifted most at the front. */
 function hairRadius(dir: Vector3) {
   const across = Math.hypot(dir.x, dir.z) || 1;
   const front = Math.max(0, -dir.z / across);
   const up = Math.max(0, dir.y);
-  return HEAD_R * 1.05 * (1 + 0.13 * up ** 1.3 + 0.07 * front * up);
+  return HEAD_R * 1.03 * (1 + 0.2 * up ** 1.3 + 0.18 * front * up);
 }
 
 /**
  * Thick, short black hair, as in the photos: a full mass over the top with
  * real volume, a hairline low on the forehead and above the ears, down to
- * the nape at the back, and soft clumps over it that sweep up and forward
- * into the fringe.
+ * the nape at the back, and short straight strands over it that sweep up
+ * and forward into the fringe.
  */
 function createHair(material: MeshToonMaterial) {
   const group = new Group();
@@ -231,11 +231,11 @@ function createHair(material: MeshToonMaterial) {
   group.add(new Mesh(geometry, material));
 
   // Clumps over the top, sweeping forward; a fringe lifting at the front.
-  const clump = new SphereGeometry(1, 10, 8);
+  const clump = new SphereGeometry(1, 8, 6);
   const place = (theta: number, phi: number, size: number, lift: number) => {
     const at = onSphere(1, theta, phi);
     const mesh = new Mesh(clump, material);
-    mesh.scale.set(HEAD_R * 0.17 * size, HEAD_R * 0.09 * size, HEAD_R * 0.26 * size);
+    mesh.scale.set(HEAD_R * 0.12 * size, HEAD_R * 0.045 * size, HEAD_R * 0.3 * size);
     mesh.position.copy(at.clone().multiplyScalar(hairRadius(at) * 0.97));
     // Lie on the head, the long axis running toward the front and up by `lift`.
     const normal = at.clone().normalize();
@@ -250,7 +250,7 @@ function createHair(material: MeshToonMaterial) {
     const count = 4 + ring * 3;
     for (let i = 0; i < count; i++) place(theta, (i / count) * Math.PI * 2 + ring * 0.5, 1, 0.3);
   }
-  for (let i = 0; i < 6; i++) place(1.05, -0.62 + (i / 5) * 1.24, 1.1, 0.9);
+  for (let i = 0; i < 6; i++) place(1.02, -0.62 + (i / 5) * 1.24, 1.25, 1.6);
   return group;
 }
 
@@ -350,6 +350,8 @@ function createCap(
   group.add(new Mesh(lathe(profile, 48), capMaterial));
   // Seams down each panel, from the button to the band, following the crown's shape.
   for (let i = 0; i < 6; i++) {
+    // The front seam hides under the logo's embroidery.
+    if (logo && i === 3) continue;
     const phi = (i * Math.PI) / 3;
     const path = new CatmullRomCurve3(
       profile.map(({ x: r, y }) => shapeCrown(new Vector3(Math.sin(phi) * (r + 0.006), y, Math.cos(phi) * (r + 0.006)))),
@@ -390,8 +392,8 @@ function createCap(
   group.add(strapRing, buckle);
 
   // The bill: a rounded D, curved down at its sides, out from the front of the band.
-  const half = R * 0.78;
-  const reach = R * 0.92;
+  const half = R * 0.74;
+  const reach = R * 0.86;
   const shape = new Shape();
   shape.moveTo(-half, 0);
   shape.absellipse(0, 0, half, reach, Math.PI, 0, true);
@@ -399,9 +401,11 @@ function createCap(
   const billGeometry = new ExtrudeGeometry(shape, { depth: R * 0.05, bevelEnabled: true, bevelSize: R * 0.02, bevelThickness: R * 0.02, bevelSegments: 2, curveSegments: 24 });
   billGeometry.rotateX(-Math.PI / 2);
   const position = billGeometry.getAttribute("position");
+  // Pre-curved: level where it meets the crown, curving down toward its sides as it runs out.
   for (let i = 0; i < position.count; i++) {
     const x = position.getX(i) / half;
-    position.setY(i, position.getY(i) - R * (0.34 * x * x + 0.1 * x ** 4));
+    const out = Math.max(0, -position.getZ(i) / reach);
+    position.setY(i, position.getY(i) - R * 0.32 * x * x * out ** 0.8);
   }
   billGeometry.computeVertexNormals();
   const bill = new Mesh(billGeometry, capMaterial);
