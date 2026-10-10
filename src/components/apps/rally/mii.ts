@@ -218,13 +218,21 @@ function hairRadius(dir: Vector3) {
  */
 function createHair(material: MeshToonMaterial) {
   const group = new Group();
-  // The mass: a shell round the head, tucked inside the skull below the hairline.
+  // The mass: a shell round the head, down to the hairline.
   const geometry = new SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, 2.3);
   const position = geometry.getAttribute("position");
   const dir = new Vector3();
   for (let i = 0; i < position.count; i++) {
     dir.fromBufferAttribute(position, i).normalize();
-    const r = dir.y >= hairline(dir) ? hairRadius(dir) : HEAD_R * 0.9;
+    // Below the hairline, drawn up onto it: the hair ends in a clean edge
+    // just off the head, rather than cutting through it in steps.
+    const line = hairline(dir);
+    if (dir.y < line) {
+      const across = Math.hypot(dir.x, dir.z) || 1;
+      const scale = Math.sqrt(1 - line * line) / across;
+      dir.set(dir.x * scale, line, dir.z * scale);
+    }
+    const r = hairRadius(dir);
     position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
   }
   geometry.computeVertexNormals();
