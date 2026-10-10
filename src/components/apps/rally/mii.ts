@@ -207,7 +207,8 @@ function createCap(
   const crown = new Group();
   crown.scale.set(1, 1, 1.04);
   crown.position.z = -0.03;
-  const dome = new Mesh(new SphereGeometry(crownR, 36, 16, 0, Math.PI * 2, 0, bandTheta), capMaterial);
+  // It runs a little below the band, over the bill's root, so the two read as one piece.
+  const dome = new Mesh(new SphereGeometry(crownR, 36, 16, 0, Math.PI * 2, 0, bandTheta + 0.14), capMaterial);
   crown.add(dome);
   // Seams down each panel, from the button to the band.
   for (let i = 0; i < 6; i++) {
@@ -252,13 +253,12 @@ function createCap(
   const position = billGeometry.getAttribute("position");
   for (let i = 0; i < position.count; i++) {
     const x = position.getX(i) / half;
-    position.setY(i, position.getY(i) - R * 0.28 * x * x);
+    position.setY(i, position.getY(i) - R * 0.16 * x * x);
   }
   billGeometry.computeVertexNormals();
   const bill = new Mesh(billGeometry, capMaterial);
   const chord = Math.sqrt(Math.max(0, crownR ** 2 - band ** 2 - half ** 2));
-  // Tucked up under the crown's front edge, so crown and bill read as one piece.
-  bill.position.set(0, band - R * 0.03, -chord * 1.04 + R * 0.06);
+  bill.position.set(0, band - R * 0.05, -chord * 1.04 + R * 0.06);
   bill.rotation.x = -0.08;
   group.add(bill);
 
