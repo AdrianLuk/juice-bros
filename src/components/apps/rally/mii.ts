@@ -7,12 +7,12 @@ import {
   CatmullRomCurve3,
   ExtrudeGeometry,
   Group,
-  Matrix4,
   LatheGeometry,
   Mesh,
   MeshToonMaterial,
   Shape,
   SphereGeometry,
+  RepeatWrapping,
   SRGBColorSpace,
   type Texture,
   TorusGeometry,
@@ -187,39 +187,76 @@ function createPaddle(edge: MeshToonMaterial, face: MeshToonMaterial, grip: Mesh
   return group;
 }
 
-/** A point on a sphere of radius `r`: `theta` down from the top, `phi` round from the front (-z) toward +x. */
-const onSphere = (r: number, theta: number, phi: number) =>
-  new Vector3(r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta), -r * Math.sin(theta) * Math.cos(phi));
-
 /**
- * The hairline, as the height (on the unit sphere) the hair comes down to in
- * a direction round the head: low on the forehead, above the ears at the
- * sides, down to the nape at the back.
+ * Adrian's hairline, read off the photos, as heights on the unit sphere at
+ * angles round the head (0 the front, pi the back): straight across the
+ * forehead, squared at the temples, a sideburn in front of the ear, up over
+ * the ear, and down to the nape at the back.
  */
+const HAIRLINE: [number, number][] = [
+  [0, 0.44],
+  [0.72, 0.42],
+  [0.98, 0.26],
+  [1.1, 0.2],
+  [1.16, -0.12],
+  [1.3, -0.12],
+  [1.36, 0.14],
+  [1.8, 0.14],
+  [2.05, -0.28],
+  [2.4, -0.44],
+  [Math.PI, -0.46],
+];
+
+/** The hairline's height in a direction round the head, with a stubbly edge. */
 function hairline(dir: Vector3) {
-  const across = Math.hypot(dir.x, dir.z) || 1;
-  const front = -dir.z / across;
-  return 0.14 + 0.24 * Math.max(0, front) ** 1.5 - 0.54 * Math.max(0, -front);
-}
-
-/** How far out the hair stands in a direction: close at the sides, height on top, lifted most at the front. */
-function hairRadius(dir: Vector3) {
-  const across = Math.hypot(dir.x, dir.z) || 1;
-  const front = Math.max(0, -dir.z / across);
-  const up = Math.max(0, dir.y);
-  return HEAD_R * 1.03 * (1 + 0.2 * up ** 1.3 + 0.18 * front * up);
+  const angle = Math.abs(Math.atan2(dir.x, -dir.z));
+  let i = 1;
+  while (i < HAIRLINE.length - 1 && angle > HAIRLINE[i][0]) i++;
+  const [a0, y0] = HAIRLINE[i - 1];
+  const [a1, y1] = HAIRLINE[i];
+  const t = Math.min(1, Math.max(0, (angle - a0) / (a1 - a0)));
+  const eased = t * t * (3 - 2 * t);
+  return y0 + (y1 - y0) * eased + 0.012 * Math.sin(angle * 61) + 0.008 * Math.sin(angle * 97 + 1);
 }
 
 /**
- * Thick, short black hair, as in the photos: a full mass over the top with
- * real volume, a hairline low on the forehead and above the ears, down to
- * the nape at the back, and short straight strands over it that sweep up
- * and forward into the fringe.
+ * A buzz cut's look: short dark bristles over a near-black ground, for the
+ * hair's colour, and for its fuzzy outer layer, where only the bristles show.
  */
-function createHair(material: MeshToonMaterial) {
-  const group = new Group();
-  // The mass: a shell round the head, down to the hairline.
-  const geometry = new SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, 2.3);
+function bristles(color: string, coverage: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 256;
+  const ctx = canvas.getContext("2d")!;
+  if (coverage >= 1) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 256, 256);
+  }
+  // A fixed sequence, so every visit draws the same hair.
+  let seed = 7;
+  const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const strokes = coverage >= 1 ? 2600 : 1800;
+  for (let i = 0; i < strokes; i++) {
+    const x = random() * 256;
+    const y = random() * 256;
+    const length = 3 + random() * 4;
+    const tilt = (random() - 0.5) * 0.9;
+    ctx.strokeStyle = coverage >= 1 ? (random() < 0.5 ? "#3b342d" : "#0a0807") : "#ffffff";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.sin(tilt) * length, y - Math.cos(tilt) * length);
+    ctx.stroke();
+  }
+  const texture = new CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = RepeatWrapping;
+  texture.repeat.set(6, 3);
+  if (coverage >= 1) texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
+/** A shell of hair round the head at `radius`, down to the hairline, the top flattened like the skull. */
+function hairShell(radius: number, flat: number) {
+  const geometry = new SphereGeometry(1, 96, 48, 0, Math.PI * 2, 0, 2.3);
   const position = geometry.getAttribute("position");
   const dir = new Vector3();
   for (let i = 0; i < position.count; i++) {
@@ -232,34 +269,38 @@ function createHair(material: MeshToonMaterial) {
       const scale = Math.sqrt(1 - line * line) / across;
       dir.set(dir.x * scale, line, dir.z * scale);
     }
-    const r = hairRadius(dir);
-    position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
+    position.setXYZ(i, dir.x * radius, dir.y * radius, dir.z * radius);
+  }
+  return shapeTop(geometry, flat);
+}
+
+/**
+ * Adrian's buzz cut, as in the photos: short, dense and close to the head,
+ * fuzzy rather than styled, with a straight hairline and squared temples.
+ * A solid layer carries the colour; a slightly larger layer of bristles
+ * only, cut out of the light, gives it a soft, stubbly outline.
+ */
+function createHair(color: string, flat: number) {
+  const group = new Group();
+  const ground = new MeshToonMaterial({ color: "#ffffff", map: bristles(color, 1) });
+  group.add(new Mesh(hairShell(HEAD_R * 1.035, flat), ground));
+  const fuzz = new MeshToonMaterial({ color, alphaMap: bristles(color, 0.5), alphaTest: 0.5 });
+  group.add(new Mesh(hairShell(HEAD_R * 1.06, flat), fuzz));
+  return group;
+}
+
+/** Flattens the top of the head a little, as Adrian's is, alike for the skull, the face and the hair. */
+function shapeTop<T extends SphereGeometry>(geometry: T, flat: number) {
+  if (!flat) return geometry;
+  const position = geometry.getAttribute("position");
+  for (let i = 0; i < position.count; i++) {
+    const y = position.getY(i);
+    if (y <= 0) continue;
+    const t = y / HEAD_R;
+    position.setY(i, y * (1 - flat * t * t));
   }
   geometry.computeVertexNormals();
-  group.add(new Mesh(geometry, material));
-
-  // Clumps over the top, sweeping forward; a fringe lifting at the front.
-  const clump = new SphereGeometry(1, 8, 6);
-  const place = (theta: number, phi: number, size: number, lift: number) => {
-    const at = onSphere(1, theta, phi);
-    const mesh = new Mesh(clump, material);
-    mesh.scale.set(HEAD_R * 0.12 * size, HEAD_R * 0.045 * size, HEAD_R * 0.3 * size);
-    mesh.position.copy(at.clone().multiplyScalar(hairRadius(at) * 0.97));
-    // Lie on the head, the long axis running toward the front and up by `lift`.
-    const normal = at.clone().normalize();
-    const forward = new Vector3(0, lift, -1);
-    forward.sub(normal.clone().multiplyScalar(forward.dot(normal))).normalize();
-    const side = new Vector3().crossVectors(normal, forward);
-    mesh.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(side, normal, forward));
-    group.add(mesh);
-  };
-  for (let ring = 0; ring < 4; ring++) {
-    const theta = 0.12 + ring * 0.24;
-    const count = 4 + ring * 3;
-    for (let i = 0; i < count; i++) place(theta, (i / count) * Math.PI * 2 + ring * 0.5, 1, 0.3);
-  }
-  for (let i = 0; i < 6; i++) place(1.02, -0.62 + (i / 5) * 1.24, 1.25, 1.6);
-  return group;
+  return geometry;
 }
 
 /**
@@ -527,14 +568,17 @@ export function createMii(host: Host, face: CanvasTexture, font: string, logo: T
   const head = new Group();
   head.position.y = 1.85 + HEAD_R * 0.85;
   // Shaped from the photos: wider or narrower, longer or rounder, fuller in the cheeks or narrowing to the chin.
-  const { width: headWidth, height: headHeight, cheeks, chin, ears } = host.head;
+  const { width: headWidth, height: headHeight, cheeks, chin, ears, flat } = host.head;
   head.scale.set(headWidth, headHeight, (1 + headWidth) / 2);
-  const skull = new Mesh(shapeJaw(new SphereGeometry(HEAD_R, 40, 24), cheeks, chin), skin);
+  const skull = new Mesh(shapeTop(shapeJaw(new SphereGeometry(HEAD_R, 48, 32), cheeks, chin), flat), skin);
   const faceMesh = new Mesh(
-    shapeJaw(
-      new SphereGeometry(HEAD_R * 1.004, 40, 24, Math.PI * 1.5 - FACE_WIDTH / 2, FACE_WIDTH, FACE_TOP, FACE_HEIGHT),
-      cheeks,
-      chin,
+    shapeTop(
+      shapeJaw(
+        new SphereGeometry(HEAD_R * 1.004, 48, 32, Math.PI * 1.5 - FACE_WIDTH / 2, FACE_WIDTH, FACE_TOP, FACE_HEIGHT),
+        cheeks,
+        chin,
+      ),
+      flat,
     ),
     faceMaterial,
   );
@@ -542,13 +586,13 @@ export function createMii(host: Host, face: CanvasTexture, font: string, logo: T
   for (const x of [-1, 1]) {
     const ear = new Mesh(new SphereGeometry(0.22, 10, 8), skin);
     ear.scale.set(0.6 * ears, ears, 0.8 * ears);
-    ear.position.set(x * HEAD_R * 0.97, -0.08, 0.05);
+    ear.position.set(x * HEAD_R * 0.97, -0.1, 0.05);
     head.add(ear);
   }
   head.add(
     host.cap
       ? createCap(toon(host.cap), toon(new Color(host.cap).multiplyScalar(0.8)), toon(new Color(host.cap).multiplyScalar(0.8)), hair, logo)
-      : createHair(hair),
+      : createHair(host.hair, flat),
   );
   upper.add(head);
 

@@ -14,16 +14,17 @@ export type Host = {
   face: string | null;
   skin: string;
   hair: string;
-  /** A baseball cap over the hair, in this colour; short thick hair without one. */
+  /** A baseball cap over the hair, in this colour; a buzz cut without one. */
   cap: string | null;
   /** The logo on the cap's front panels. */
   capLogo: string | null;
   /**
    * The head's shape, from the photos: width and height against a round
-   * head, how full the cheeks are, how much it narrows to the chin, and how
-   * big the ears are.
+   * head, how full the cheeks are, how much it narrows to the chin (less
+   * than nothing for a full, soft jaw), how big the ears are, and how flat
+   * the top is.
    */
-  head: { width: number; height: number; cheeks: number; chin: number; ears: number };
+  head: { width: number; height: number; cheeks: number; chin: number; ears: number; flat: number };
   glasses: { frame: string; round: boolean };
   /** Leggings under the shorts, or bare legs. */
   leggings: boolean;
@@ -48,8 +49,8 @@ export const HOSTS: Record<HostId, Host> = {
     hair: "#17130f",
     cap: null,
     capLogo: null,
-    // Round and broad, full in the cheeks.
-    head: { width: 1.07, height: 0.97, cheeks: 0.08, chin: 0.04, ears: 1 },
+    // Big, round and deep, broad through full cheeks to a soft jaw, the top a little flat.
+    head: { width: 1.1, height: 0.97, cheeks: 0.12, chin: -0.04, ears: 1.05, flat: 0.12 },
     glasses: { frame: "#141414", round: false },
     leggings: false,
     // White, as Daven's: dark shoes vanished into the court's shadow.
@@ -69,7 +70,7 @@ export const HOSTS: Record<HostId, Host> = {
     // His own brand, Game Point Apparel (gamepointapparel.ca).
     capLogo: "/play/gp-logo.png",
     // A longer oval, narrowing to the chin, the ears standing out a little.
-    head: { width: 0.92, height: 1.1, cheeks: 0, chin: 0.22, ears: 1.15 },
+    head: { width: 0.92, height: 1.1, cheeks: 0, chin: 0.22, ears: 1.15, flat: 0 },
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
     shoes: "#f1f2f4",
