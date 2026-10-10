@@ -50,7 +50,7 @@ export const HOSTS: Record<HostId, Host> = {
     cap: null,
     capLogo: null,
     // Big, round and deep, broad through full cheeks to a soft jaw, the top a little flat.
-    head: { width: 1.1, height: 0.97, cheeks: 0.12, chin: -0.04, ears: 1.05, flat: 0.12 },
+    head: { width: 1.05, height: 1.0, cheeks: 0.12, chin: -0.04, ears: 1.05, flat: 0.06 },
     glasses: { frame: "#141414", round: false },
     leggings: false,
     // White, as Daven's: dark shoes vanished into the court's shadow.

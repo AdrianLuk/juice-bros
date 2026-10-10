@@ -254,8 +254,11 @@ function bristles(color: string, coverage: number) {
   return texture;
 }
 
-/** A shell of hair round the head at `radius`, down to the hairline, the top flattened like the skull. */
-function hairShell(radius: number, flat: number) {
+/**
+ * A shell of hair round the head at `radius`, down to the hairline (raised by
+ * `lift`), standing a little higher on top, the top flattened like the skull.
+ */
+function hairShell(radius: number, flat: number, lift = 0) {
   const geometry = new SphereGeometry(1, 96, 48, 0, Math.PI * 2, 0, 2.3);
   const position = geometry.getAttribute("position");
   const dir = new Vector3();
@@ -263,13 +266,16 @@ function hairShell(radius: number, flat: number) {
     dir.fromBufferAttribute(position, i).normalize();
     // Below the hairline, drawn up onto it: the hair ends in a clean edge
     // just off the head, rather than cutting through it in steps.
-    const line = hairline(dir);
+    const line = hairline(dir) + lift;
     if (dir.y < line) {
       const across = Math.hypot(dir.x, dir.z) || 1;
       const scale = Math.sqrt(1 - line * line) / across;
       dir.set(dir.x * scale, line, dir.z * scale);
     }
-    position.setXYZ(i, dir.x * radius, dir.y * radius, dir.z * radius);
+    const across = Math.hypot(dir.x, dir.z) || 1;
+    const front = Math.max(0, -dir.z / across);
+    const r = radius * (1 + 0.04 * Math.max(0, dir.y) ** 2 + 0.04 * front * Math.max(0, dir.y));
+    position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
   }
   return shapeTop(geometry, flat);
 }
@@ -280,12 +286,15 @@ function hairShell(radius: number, flat: number) {
  * A solid layer carries the colour; a slightly larger layer of bristles
  * only, cut out of the light, gives it a soft, stubbly outline.
  */
-function createHair(color: string, flat: number) {
+function createHair(color: string, flat: number, cheeks: number, chin: number) {
   const group = new Group();
   const ground = new MeshToonMaterial({ color: "#ffffff", map: bristles(color, 1) });
-  group.add(new Mesh(hairShell(HEAD_R * 1.035, flat), ground));
+  // Shaped like the skull below it (flatter on top, squaring the crop), so it never shows skin through.
+  const shell = (radius: number, lift?: number) => shapeJaw(hairShell(radius, flat + 0.03, lift), cheeks, chin);
+  group.add(new Mesh(shell(HEAD_R * 1.045), ground));
   const fuzz = new MeshToonMaterial({ color, alphaMap: bristles(color, 0.5), alphaTest: 0.5 });
-  group.add(new Mesh(hairShell(HEAD_R * 1.06, flat), fuzz));
+  // Kept off the hair's edge, where it would speckle the skin below.
+  group.add(new Mesh(shell(HEAD_R * 1.07, 0.1), fuzz));
   return group;
 }
 
@@ -592,7 +601,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string, logo: T
   head.add(
     host.cap
       ? createCap(toon(host.cap), toon(new Color(host.cap).multiplyScalar(0.8)), toon(new Color(host.cap).multiplyScalar(0.8)), hair, logo)
-      : createHair(host.hair, flat),
+      : createHair(host.hair, flat, cheeks, chin),
   );
   upper.add(head);
 
