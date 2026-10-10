@@ -5,14 +5,18 @@ import {
   ConeGeometry,
   CylinderGeometry,
   BoxGeometry,
+  CatmullRomCurve3,
   ExtrudeGeometry,
   Group,
+  LatheGeometry,
   Mesh,
   MeshToonMaterial,
   Shape,
   SphereGeometry,
   SRGBColorSpace,
   TorusGeometry,
+  TubeGeometry,
+  Vector2,
   Vector3,
   type Material,
 } from "three";
@@ -231,7 +235,38 @@ function createHair(material: MeshToonMaterial) {
 }
 
 /**
- * A structured six-panel baseball cap: a crown that sits on the head just
+ * The crown's profile, in head radii (radius out from the axis, height):
+ * near-straight sides up from just under the band, then a rounded shoulder
+ * into a flatter top, the shape of a structured cap rather than a dome.
+ */
+const CROWN_PROFILE: [number, number][] = [
+  [0.99, 0.26],
+  [1.01, 0.45],
+  [1.0, 0.65],
+  [0.94, 0.82],
+  [0.8, 0.96],
+  [0.55, 1.06],
+  [0.27, 1.11],
+  [0, 1.12],
+];
+
+/**
+ * Stands the front panels up: points toward the front (-z) rise a little,
+ * more the higher they are, and come forward, the way a structured cap's
+ * front holds its height above the bill.
+ */
+function shapeCrown(point: Vector3) {
+  const R = HEAD_R;
+  const front = Math.max(0, -point.z) / R;
+  const height = Math.max(0, (point.y - 0.26 * R) / (0.86 * R));
+  point.y += R * 0.1 * front * height;
+  if (point.z < 0) point.z *= 1.05;
+  return point;
+}
+
+/**
+ * A structured six-panel baseball cap, as in the photos: a crown with
+ * straight sides, a high front and a flatter top that sits on the head just
  * above the brows, seams from the button down each panel, a curved bill out
  * the front, and the strap's opening at the back with hair showing through.
  */
@@ -243,46 +278,53 @@ function createCap(
 ) {
   const group = new Group();
   const R = HEAD_R;
-  const crownR = R * 1.05;
   const band = R * 0.36;
-  const bandTheta = Math.acos(band / crownR);
-  // The crown: a dome a little taller than the head, the front panels standing up.
-  const crown = new Group();
-  crown.scale.set(1, 1, 1.04);
-  crown.position.z = -0.03;
-  // It runs a little below the band, over the bill's root, so the two read as one piece.
-  const dome = new Mesh(new SphereGeometry(crownR, 36, 16, 0, Math.PI * 2, 0, bandTheta + 0.14), capMaterial);
-  crown.add(dome);
-  // Seams down each panel, from the button to the band.
+  const rBand = R * 0.99;
+  const profile = CROWN_PROFILE.map(([r, y]) => new Vector2(r * R, y * R));
+  const top = CROWN_PROFILE[CROWN_PROFILE.length - 1][1] * R;
+
+  /** A lathe of the profile (or part of it), shaped like the crown. */
+  const lathe = (points: Vector2[], segments: number, phiStart?: number, phiLength?: number) => {
+    const geometry = new LatheGeometry(points, segments, phiStart, phiLength);
+    const position = geometry.getAttribute("position");
+    const point = new Vector3();
+    for (let i = 0; i < position.count; i++) {
+      shapeCrown(point.fromBufferAttribute(position, i));
+      position.setXYZ(i, point.x, point.y, point.z);
+    }
+    geometry.computeVertexNormals();
+    return geometry;
+  };
+
+  // The crown runs a little below the band, over the bill's root, so the two read as one piece.
+  group.add(new Mesh(lathe(profile, 48), capMaterial));
+  // Seams down each panel, from the button to the band, following the crown's shape.
   for (let i = 0; i < 6; i++) {
-    const seam = new Mesh(new TorusGeometry(crownR + 0.005, R * 0.012, 4, 24, bandTheta), seamMaterial);
-    seam.rotation.z = Math.PI / 2 - bandTheta;
-    const panel = new Group();
-    panel.rotation.y = Math.PI / 2 + (i * Math.PI) / 3;
-    panel.add(seam);
-    crown.add(panel);
+    const phi = (i * Math.PI) / 3;
+    const path = new CatmullRomCurve3(
+      profile.map(({ x: r, y }) => shapeCrown(new Vector3(Math.sin(phi) * (r + 0.006), y, Math.cos(phi) * (r + 0.006)))),
+    );
+    group.add(new Mesh(new TubeGeometry(path, 24, R * 0.012, 4), seamMaterial));
   }
-  const button = new Mesh(new SphereGeometry(R * 0.1, 12, 8), capMaterial);
-  button.position.y = crownR;
-  // The strap's opening at the back: hair through an arch, the strap across its foot.
+  const button = new Mesh(new SphereGeometry(R * 0.09, 12, 8), capMaterial);
+  button.position.y = top;
+  // The strap's opening at the back: hair through an arch above the strap.
   const opening = new Mesh(
-    new SphereGeometry(crownR + 0.01, 12, 6, Math.PI / 2 - 0.42, 0.84, bandTheta - 0.5, 0.5),
+    lathe(profile.slice(0, 3).map(({ x, y }) => new Vector2(x + 0.008, y)), 8, -0.42, 0.84),
     hairMaterial,
   );
-  crown.add(button, opening);
-  // The strap across the opening's foot, grey so it reads against the hair, and its buckle.
+  group.add(button, opening);
+  // The strap across the opening's foot, and its buckle.
   const strapArc = 0.95;
-  const strap = new Mesh(new TorusGeometry(Math.sqrt(crownR ** 2 - band ** 2) + 0.03, R * 0.05, 6, 16, strapArc), strapMaterial);
+  const strap = new Mesh(new TorusGeometry(rBand + 0.03, R * 0.05, 6, 16, strapArc), strapMaterial);
   strap.rotation.z = Math.PI / 2 - strapArc / 2;
   const strapRing = new Group();
   strapRing.rotation.x = Math.PI / 2;
-  strapRing.scale.set(1, 1.04, 1);
-  strapRing.position.set(0, band + R * 0.07, -0.03);
+  strapRing.position.y = band + R * 0.04;
   strapRing.add(strap);
-  const buckle = new Mesh(new BoxGeometry(R * 0.16, R * 0.12, R * 0.05), strapMaterial);
-  buckle.position.set(R * 0.18, band + R * 0.07, Math.sqrt(crownR ** 2 - band ** 2) * 1.04 + 0.02);
+  const buckle = new Mesh(new BoxGeometry(R * 0.16, R * 0.12, R * 0.05), new MeshToonMaterial({ color: "#8d949e" }));
+  buckle.position.set(R * 0.18, band + R * 0.04, rBand + 0.05);
   group.add(strapRing, buckle);
-  group.add(crown);
 
   // The bill: a rounded D, curved down at its sides, out from the front of the band.
   const half = R * 0.78;
@@ -300,13 +342,14 @@ function createCap(
   }
   billGeometry.computeVertexNormals();
   const bill = new Mesh(billGeometry, capMaterial);
-  const chord = Math.sqrt(Math.max(0, crownR ** 2 - band ** 2 - half ** 2));
-  bill.position.set(0, band - R * 0.05, -chord * 1.04 + R * 0.06);
+  const chord = Math.sqrt(Math.max(0, rBand ** 2 - half ** 2));
+  bill.position.set(0, band - R * 0.05, -chord * 1.05 + R * 0.06);
   bill.rotation.x = -0.08;
   group.add(bill);
 
   // Hair showing under the cap at the back and round the ears.
-  const nape = new Mesh(new SphereGeometry(R * 1.02, 24, 10, Math.PI / 2 - 1.4, 2.8, bandTheta - 0.05, 0.4), hairMaterial);
+  const napeTheta = Math.acos(0.3);
+  const nape = new Mesh(new SphereGeometry(R * 1.02, 24, 10, Math.PI / 2 - 1.4, 2.8, napeTheta, 0.4), hairMaterial);
   group.add(nape);
   return group;
 }
@@ -420,7 +463,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     ear.position.set(x * HEAD_R * 0.97, -0.08, 0.05);
     head.add(ear);
   }
-  head.add(host.cap ? createCap(toon(host.cap), toon("#2c3139"), toon("#8d949e"), hair) : createHair(hair));
+  head.add(host.cap ? createCap(toon(host.cap), toon(new Color(host.cap).multiplyScalar(0.8)), toon(new Color(host.cap).multiplyScalar(0.8)), hair) : createHair(hair));
   upper.add(head);
 
   let stride = 0;

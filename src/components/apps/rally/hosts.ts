@@ -53,7 +53,8 @@ export const HOSTS: Record<HostId, Host> = {
     face: "/play/daven-face.webp",
     skin: "#dba47a",
     hair: "#17130f",
-    cap: "#1c1f24",
+    // Light grey, as in the Vaughan Fall Open photo.
+    cap: "#d3d3cd",
     glasses: { frame: "#b9a57a", round: true },
     leggings: true,
     shoes: "#f1f2f4",
