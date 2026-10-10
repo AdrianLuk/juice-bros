@@ -32,7 +32,7 @@ import type { Host } from "./hosts";
 const HEAD_R = 1.15;
 /** The face's patch of the head: its width round the front, and where it starts and how far it runs down (radians). */
 const FACE_WIDTH = 2.1;
-const FACE_TOP = 0.85;
+const FACE_TOP = 1.02;
 const FACE_HEIGHT = 1.5;
 /** How much the skin and face light themselves, over the court's lights. */
 const FACE_GLOW = 0.35;
@@ -40,6 +40,7 @@ const UP = new Vector3(0, 1, 0);
 const JERSEY = "#f26522";
 const SHORTS = "#16181b";
 const PADDLE = "#1b1e22";
+const PADDLE_GRIP = "#eef0f2";
 /** How far down the thigh the shorts reach, in feet. */
 const SHORTS_LENGTH = 0.45;
 const PADDLE_FACE = "#2d6cdf";
@@ -136,6 +137,48 @@ export function placeholderFace(host: Host) {
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   return texture;
+}
+
+/** A rounded rectangle from `bottom` up to `top`, `width` across, rounder at the top. */
+function roundedRect(width: number, top: number, bottom: number, r: number) {
+  const x = width / 2;
+  const rt = r * 1.5;
+  const shape = new Shape();
+  shape.moveTo(-x + r, bottom);
+  shape.lineTo(x - r, bottom);
+  shape.absarc(x - r, bottom + r, r, -Math.PI / 2, 0, false);
+  shape.lineTo(x, top - rt);
+  shape.absarc(x - rt, top - rt, rt, 0, Math.PI / 2, false);
+  shape.lineTo(-x + rt, top);
+  shape.absarc(-x + rt, top - rt, rt, Math.PI / 2, Math.PI, false);
+  shape.lineTo(-x, bottom + r);
+  shape.absarc(-x + r, bottom + r, r, Math.PI, Math.PI * 1.5, false);
+  return shape;
+}
+
+/**
+ * A pickleball paddle, in feet, hanging from the hand down -y: an elongated
+ * face with rounded corners (rounder at the tip), a dark edge guard round
+ * it, a coloured face on each side, and a wrapped grip with a butt cap.
+ */
+function createPaddle(edge: MeshToonMaterial, face: MeshToonMaterial, grip: MeshToonMaterial) {
+  const group = new Group();
+  const thickness = 0.06;
+  // Drawn tip up, then turned over so the tip hangs below the hand.
+  const guard = new ExtrudeGeometry(roundedRect(0.68, 1.26, 0.28, 0.16), { depth: thickness, bevelEnabled: false, curveSegments: 10 });
+  guard.rotateZ(Math.PI).translate(0, 0, -thickness / 2);
+  group.add(new Mesh(guard, edge));
+  for (const side of [-1, 1]) {
+    const plate = new ExtrudeGeometry(roundedRect(0.6, 1.22, 0.32, 0.13), { depth: 0.006, bevelEnabled: false, curveSegments: 10 });
+    plate.rotateZ(Math.PI).translate(0, 0, side > 0 ? thickness / 2 : -thickness / 2 - 0.006);
+    group.add(new Mesh(plate, face));
+  }
+  const handle = new Mesh(new CylinderGeometry(0.068, 0.072, 0.5, 10), grip);
+  handle.position.y = -0.04;
+  const cap = new Mesh(new CylinderGeometry(0.085, 0.085, 0.05, 10), edge);
+  cap.position.y = 0.22;
+  group.add(handle, cap);
+  return group;
 }
 
 /** Points a mesh's +y along `direction`, at `at` on the head. */
@@ -357,21 +400,14 @@ export function createMii(host: Host, face: CanvasTexture, font: string): Mii {
     watch.position.y = -0.82;
     armLeft.add(watch);
   }
-  const paddle = new Group();
-  const blade = new Mesh(new BoxGeometry(0.75, 0.95, 0.08), toon(PADDLE));
-  blade.position.y = -0.62;
-  const bladeFace = new Mesh(new BoxGeometry(0.6, 0.78, 0.09), toon(PADDLE_FACE));
-  bladeFace.position.y = -0.64;
-  const grip = new Mesh(new CylinderGeometry(0.07, 0.07, 0.45, 8), toon(PADDLE));
-  grip.position.y = -0.05;
-  paddle.add(blade, bladeFace, grip);
+  const paddle = createPaddle(toon(PADDLE), toon(PADDLE_FACE), toon(PADDLE_GRIP));
   paddle.position.y = -1.05;
   armRight.add(paddle);
 
   // The head: skin all round, the face wrapped round its front, set low the
   // way a Mii's is, under a tall forehead for the hair or the cap.
   const head = new Group();
-  head.position.y = 1.75 + HEAD_R * 0.85;
+  head.position.y = 1.85 + HEAD_R * 0.85;
   const skull = new Mesh(new SphereGeometry(HEAD_R, 40, 24), skin);
   const faceMesh = new Mesh(
     new SphereGeometry(HEAD_R * 1.004, 40, 24, Math.PI * 1.5 - FACE_WIDTH / 2, FACE_WIDTH, FACE_TOP, FACE_HEIGHT),
