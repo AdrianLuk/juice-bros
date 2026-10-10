@@ -254,6 +254,11 @@ function bristles(color: string, coverage: number) {
   return texture;
 }
 
+/** How square the buzz cut is over the top at the sides: 0 round, 2 near a square's corner. */
+const SQUARE = 1.2;
+/** How far the buzz cut stands out at its upper corners, at the sides, against the head's radius. */
+const CORNER = 0.05;
+
 /**
  * A shell of hair round the head at `radius`, down to the hairline (raised by
  * `lift`), standing a little higher on top, the top flattened like the skull.
@@ -272,9 +277,18 @@ function hairShell(radius: number, flat: number, lift = 0) {
       const scale = Math.sqrt(1 - line * line) / across;
       dir.set(dir.x * scale, line, dir.z * scale);
     }
-    const across = Math.hypot(dir.x, dir.z) || 1;
+    const width = Math.hypot(dir.x, dir.z);
+    const across = width || 1;
     const front = Math.max(0, -dir.z / across);
-    const r = radius * (1 + 0.04 * Math.max(0, dir.y) ** 2 + 0.04 * front * Math.max(0, dir.y));
+    const side = (dir.x / across) ** 2;
+    const up = Math.max(0, dir.y);
+    // Squared off over the top toward the sides, a superellipse there rather
+    // than a circle, and standing out at 45 degrees up: flat on top, fullest
+    // at 10 and 2 o'clock from the front.
+    const n = 2 + SQUARE * side;
+    const box = up > 0 ? 1 / (width ** n + up ** n) ** (1 / n) : 1;
+    const corner = CORNER * side * (2 * up * width) ** 2;
+    const r = radius * box * (1 + corner + 0.04 * up ** 2 + 0.04 * front * up);
     position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
   }
   return shapeTop(geometry, flat);
@@ -286,16 +300,29 @@ function hairShell(radius: number, flat: number, lift = 0) {
  * A solid layer carries the colour; a slightly larger layer of bristles
  * only, cut out of the light, gives it a soft, stubbly outline.
  */
-function createHair(color: string, flat: number, cheeks: number, chin: number) {
+function createHair(color: string, head: Host["head"]) {
   const group = new Group();
   const ground = new MeshToonMaterial({ color: "#ffffff", map: bristles(color, 1) });
-  // Shaped like the skull below it (flatter on top, squaring the crop), so it never shows skin through.
-  const shell = (radius: number, lift?: number) => shapeJaw(hairShell(radius, flat + 0.03, lift), cheeks, chin);
-  group.add(new Mesh(shell(HEAD_R * 1.045), ground));
+  group.add(new Mesh(hairGeometry(head), ground));
   const fuzz = new MeshToonMaterial({ color, alphaMap: bristles(color, 0.5), alphaTest: 0.5 });
   // Kept off the hair's edge, where it would speckle the skin below.
-  group.add(new Mesh(shell(HEAD_R * 1.07, 0.1), fuzz));
+  group.add(new Mesh(hairGeometry(head, "fuzz"), fuzz));
   return group;
+}
+
+/** The skull, shaped from the host's photos. */
+export function skullGeometry({ cheeks, chin, flat }: Host["head"]) {
+  return shapeTop(shapeJaw(new SphereGeometry(HEAD_R, 48, 32), cheeks, chin), flat);
+}
+
+/**
+ * A layer of the buzz cut: the solid ground that carries the colour, or the
+ * fuzz of bristles just outside it. Shaped like the skull below it (flatter
+ * on top, squaring the crop), so it never shows skin through.
+ */
+export function hairGeometry({ cheeks, chin, flat }: Host["head"], layer: "ground" | "fuzz" = "ground") {
+  const shell = layer === "ground" ? hairShell(HEAD_R * 1.045, flat + 0.03) : hairShell(HEAD_R * 1.07, flat + 0.03, 0.1);
+  return shapeJaw(shell, cheeks, chin);
 }
 
 /** Flattens the top of the head a little, as Adrian's is, alike for the skull, the face and the hair. */
@@ -579,7 +606,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string, logo: T
   // Shaped from the photos: wider or narrower, longer or rounder, fuller in the cheeks or narrowing to the chin.
   const { width: headWidth, height: headHeight, cheeks, chin, ears, flat } = host.head;
   head.scale.set(headWidth, headHeight, (1 + headWidth) / 2);
-  const skull = new Mesh(shapeTop(shapeJaw(new SphereGeometry(HEAD_R, 48, 32), cheeks, chin), flat), skin);
+  const skull = new Mesh(skullGeometry(host.head), skin);
   const faceMesh = new Mesh(
     shapeTop(
       shapeJaw(
@@ -601,7 +628,7 @@ export function createMii(host: Host, face: CanvasTexture, font: string, logo: T
   head.add(
     host.cap
       ? createCap(toon(host.cap), toon(new Color(host.cap).multiplyScalar(0.8)), toon(new Color(host.cap).multiplyScalar(0.8)), hair, logo)
-      : createHair(host.hair, flat, cheeks, chin),
+      : createHair(host.hair, host.head),
   );
   upper.add(head);
 
