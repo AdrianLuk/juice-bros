@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/metadata";
 export const metadata: Metadata = pageMetadata({
   title: "Play: Pickleball Game",
   description:
-    "A short pickleball game in your browser. Play as Adrian or Daven from Juice Bros against the other host. Rally scoring, first to 11.",
+    "A short pickleball game in your browser. Play as Adrian or Daven from Juice Bros against the other host. Side-out scoring, first to 11.",
   path: "/play",
 });
 

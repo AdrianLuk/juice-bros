@@ -52,7 +52,7 @@ const REASONS: Record<PointReason, string> = {
 function copyFor(opponent: string) {
   return {
     serves: { player: "you serve", ai: `${opponent} serves` },
-    point: { won: "Point to you", lost: `Point to ${opponent}` },
+    point: { won: "Point to you", lost: `Point to ${opponent}`, sideOut: "Side out" },
     over: {
       won: `You beat ${opponent}. Screenshot it before they ask for a rematch.`,
       lost: `${opponent} wins this one.`,
@@ -157,7 +157,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
       for (const event of game.events) {
         if (event.type !== "point") continue;
         const won = event.winner === "player";
-        const line = `${won ? words.point.won : words.point.lost}: ${REASONS[event.reason]}.`;
+        const line = `${event.sideOut ? words.point.sideOut : won ? words.point.won : words.point.lost}: ${REASONS[event.reason]}.`;
         if (game.phase === "over") {
           const message = `${won ? words.over.won : words.over.lost} ${game.score.player}–${game.score.ai}.`;
           setAnnouncement(`${line} ${message}`);
@@ -514,7 +514,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
               </div>
             </fieldset>
             <p className="text-[0.9375rem] text-(--bx-muted)">
-              You&apos;re {you}, and {opponent} is across the net. First to 11, win by 2.
+              You&apos;re {you}, and {opponent} is across the net. Side-out scoring to 11, win by 2.
             </p>
             <label className="flex cursor-pointer items-start gap-3 text-left">
               <input
