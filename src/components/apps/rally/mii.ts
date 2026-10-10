@@ -201,7 +201,7 @@ function createCap(
   const group = new Group();
   const R = HEAD_R;
   const crownR = R * 1.05;
-  const band = R * 0.42;
+  const band = R * 0.36;
   const bandTheta = Math.acos(band / crownR);
   // The crown: a dome a little taller than the head, the front panels standing up.
   const crown = new Group();
@@ -239,12 +239,6 @@ function createCap(
   buckle.position.set(R * 0.18, band + R * 0.07, Math.sqrt(crownR ** 2 - band ** 2) * 1.04 + 0.02);
   group.add(strapRing, buckle);
   group.add(crown);
-  // The sweatband's edge all round, which gives the cap its line.
-  const edge = new Mesh(new TorusGeometry(Math.sqrt(crownR ** 2 - band ** 2), R * 0.045, 6, 40), capMaterial);
-  edge.rotation.x = Math.PI / 2;
-  edge.scale.set(1, 1.04, 1);
-  edge.position.set(0, band, -0.03);
-  group.add(edge);
 
   // The bill: a rounded D, curved down at its sides, out from the front of the band.
   const half = R * 0.78;
@@ -263,7 +257,8 @@ function createCap(
   billGeometry.computeVertexNormals();
   const bill = new Mesh(billGeometry, capMaterial);
   const chord = Math.sqrt(Math.max(0, crownR ** 2 - band ** 2 - half ** 2));
-  bill.position.set(0, band, -chord * 1.04);
+  // Tucked up under the crown's front edge, so crown and bill read as one piece.
+  bill.position.set(0, band - R * 0.03, -chord * 1.04 + R * 0.06);
   bill.rotation.x = -0.08;
   group.add(bill);
 

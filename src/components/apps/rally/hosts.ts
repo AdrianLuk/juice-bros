@@ -41,7 +41,8 @@ export const HOSTS: Record<HostId, Host> = {
     cap: null,
     glasses: { frame: "#141414", round: false },
     leggings: false,
-    shoes: "#2c3448",
+    // White, as Daven's: dark shoes vanished into the court's shadow.
+    shoes: "#f1f2f4",
     watch: false,
     build: { height: 0.9, legs: 1.1, width: 1.2, depth: 1.15, limbs: 1.25 },
   },
