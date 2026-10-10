@@ -287,11 +287,12 @@ export async function createRallyView(container: HTMLElement, player: HostId): P
       studio.add(group);
       group.position.set(0, 0, 0);
       group.rotation.y = Math.PI;
-      figures[id].setGaze(0);
+      figures[id].setGaze(0.15);
       figures[id].update(1, 0, null);
       const top = new Box3().setFromObject(group).max.y;
-      // A little above eye level, so the cap's bill shows its top.
-      lens.position.set(0, top + 0.6, 10);
+      // Just above eye level, the head tipped up a touch: the cap's bill
+      // shows its top without hiding the eyes.
+      lens.position.set(0, top - 0.5, 10);
       lens.lookAt(0, top - 2.2, 0);
       renderer.render(studio, lens);
       urls[id] = renderer.domElement.toDataURL("image/png");
