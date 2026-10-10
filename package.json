@@ -12,6 +12,7 @@
     "test:db": "node --test --test-concurrency=1 --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \"src/**/*.db-test.ts\"",
     "snapshot:videos": "node scripts/snapshot-videos.mts",
     "optimize:images": "node scripts/optimize-images.mts",
+    "render:play-teaser": "node scripts/render-play-teaser.mts",
     "seed:users": "node scripts/seed-booking-buddy-users.mts",
     "seed:on-deck": "node scripts/seed-on-deck.mts",
     "db:reset": "supabase db reset && npm run seed:users",

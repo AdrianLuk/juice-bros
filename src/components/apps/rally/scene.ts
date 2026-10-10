@@ -51,13 +51,13 @@ export type RallyView = {
 
 const BALL_RADIUS = 0.42;
 /** The hosts drawn larger than life, as the ball is, so they read from the baseline. */
-const FIGURE_SCALE = 1.35;
+export const FIGURE_SCALE = 1.35;
 /** The margin round a face image's features on the head, as a fraction of its side. */
 const FACE_INSET = 0.03;
 /** The picker's portraits: their size in pixels, and the court's blue behind them, which black hair and the cap stand out against. */
 const PORTRAIT_SIZE = 256;
 const PORTRAIT_BACKGROUND = "#2a6596";
-const COLORS = {
+export const COLORS = {
   sky: "#08090b",
   floor: "#121a22",
   court: "#1f4f7a",
@@ -78,7 +78,7 @@ function strip(width: number, length: number, color: string, x: number, z: numbe
   return mesh;
 }
 
-function createCourt() {
+export function createCourt() {
   const group = new Group();
   const halfW = COURT.width / 2;
   const half = COURT.length / 2;
@@ -127,7 +127,7 @@ function createCourt() {
 }
 
 /** The font the jersey names are set in: the site's condensed display face. */
-async function jerseyFont() {
+export async function jerseyFont() {
   const family = getComputedStyle(document.body).getPropertyValue("--font-saira-condensed").trim();
   const font = family ? `${family}, sans-serif` : "sans-serif";
   try {
@@ -142,7 +142,7 @@ async function jerseyFont() {
  * A host's cartoon face, and the skin colour round it (its top-left pixel),
  * so the rest of the head matches. The stand-in when they have none yet.
  */
-async function loadFace(id: HostId): Promise<{ texture: CanvasTexture; skin: Color }> {
+export async function loadFace(id: HostId): Promise<{ texture: CanvasTexture; skin: Color }> {
   const host = HOSTS[id];
   if (!host.face) return { texture: placeholderFace(host), skin: new Color(host.skin) };
   const image = new Image();
