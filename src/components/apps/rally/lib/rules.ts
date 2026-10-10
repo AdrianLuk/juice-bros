@@ -105,8 +105,8 @@ const TICK = 1 / 240;
 /** The beat after a point before the next serve, and the AI's wait to serve. */
 const POINT_PAUSE = 1.4;
 const AI_SERVE_DELAY = 1;
-/** The player's top speed, in feet per second. */
-const PLAYER_SPEED = 15;
+/** Both players' top speed, in feet per second: the AI runs as fast as the player. */
+const SPEED = 15;
 /** How far behind the baseline and outside the sidelines a player may go. */
 const ROOM_BACK = 8;
 const ROOM_SIDE = 5;
@@ -128,14 +128,13 @@ const WIN_BY = 2;
 
 /**
  * The AI's one level, tuned so a first-time player wins about half their
- * games: how long it takes to react to a shot, its top speed (feet per
- * second), and how often its shot goes wide, long or into the net. It aims
- * for the open court, away from the player, meeting the ball off its
- * paddle's centre by a fraction of its reach between AI_ANGLE's two ends,
- * and lands it between AI_DEPTH's (feet past the net).
+ * games: how long it takes to react to a shot, and how often its shot goes
+ * wide, long or into the net. It aims for the open court, away from the
+ * player, meeting the ball off its paddle's centre by a fraction of its
+ * reach between AI_ANGLE's two ends, and lands it between AI_DEPTH's (feet
+ * past the net).
  */
 export const AI_REACTION_MS = 260;
-export const AI_MAX_SPEED = 13;
 export const AI_ERROR_RATE = 0.08;
 export const AI_ANGLE = [0.2, 1] as const;
 export const AI_DEPTH = [10, 19] as const;
@@ -617,7 +616,7 @@ function moveAi(game: Game, dt: number): Game {
   const dx = game.aiTarget.x - game.ai.x;
   const dz = game.aiTarget.z - game.ai.z;
   const far = Math.hypot(dx, dz);
-  const reach = AI_MAX_SPEED * dt;
+  const reach = SPEED * dt;
   if (far <= reach) return { ...game, ai: game.aiTarget };
   return {
     ...game,
@@ -646,10 +645,10 @@ function movePlayer(game: Game, input: Input, dt: number): Game {
   const scale = length > 1 ? 1 / length : 1;
   const { dragLeft } = game;
   const left = Math.hypot(dragLeft.x, dragLeft.z);
-  const share = left > 0 ? Math.min(1, (PLAYER_SPEED * dt) / left) : 0;
+  const share = left > 0 ? Math.min(1, (SPEED * dt) / left) : 0;
   const wanted = {
-    x: game.player.x + move.x * scale * PLAYER_SPEED * dt + dragLeft.x * share,
-    z: game.player.z + move.z * scale * PLAYER_SPEED * dt + dragLeft.z * share,
+    x: game.player.x + move.x * scale * SPEED * dt + dragLeft.x * share,
+    z: game.player.z + move.z * scale * SPEED * dt + dragLeft.z * share,
   };
   const room = clampTo("player", wanted);
   const player = { x: room.x, z: Math.max(room.z, PLAYER_WALL) };
