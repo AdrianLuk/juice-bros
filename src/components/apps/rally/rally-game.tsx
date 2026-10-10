@@ -514,7 +514,7 @@ export function RallyGame({ describedBy }: { describedBy: string }) {
               </div>
             </fieldset>
             <p className="text-[0.9375rem] text-(--bx-muted)">
-              You&apos;re {you}, and {opponent} is across the net. First to 11, win by 2, and only the server scores.
+              You&apos;re {you}, and {opponent} is across the net. Side-out scoring to 11, win by 2.
             </p>
             <label className="flex cursor-pointer items-start gap-3 text-left">
               <input
