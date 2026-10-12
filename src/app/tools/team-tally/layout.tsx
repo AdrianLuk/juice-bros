@@ -4,8 +4,7 @@ import type { ReactNode } from "react";
 import "./team-tally.css";
 
 const SHARE_TITLE = "Team Tally, powered by Juice Bros Pickleball";
-const SHARE_DESCRIPTION =
-  "Live scores and standings for this team night. Captains score from their phones and the board updates as each game ends.";
+const SHARE_DESCRIPTION = "Follow the scores as they come in, game by game.";
 
 /**
  * What a Score Link or the Public Link shows when pasted into a group chat:
@@ -14,8 +13,17 @@ const SHARE_DESCRIPTION =
  * own and keep the site's.
  */
 export const metadata: Metadata = {
-  openGraph: { type: "website", siteName: "Juice Bros Pickleball", title: SHARE_TITLE, description: SHARE_DESCRIPTION },
-  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_DESCRIPTION },
+  openGraph: {
+    type: "website",
+    siteName: "Juice Bros Pickleball",
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+  },
 };
 
 /**
@@ -24,5 +32,7 @@ export const metadata: Metadata = {
  * `DARK_EXCEPTIONS`, so the marketing site's Broadcast Dark never reaches it.
  */
 export default function TeamTallyLayout({ children }: { children: ReactNode }) {
-  return <div className="tt-surface flex w-full flex-1 flex-col">{children}</div>;
+  return (
+    <div className="tt-surface flex w-full flex-1 flex-col">{children}</div>
+  );
 }
