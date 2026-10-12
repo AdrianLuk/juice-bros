@@ -29,3 +29,22 @@ export function pollIntervalFor(status: RealtimeStatus): number {
 export function teamEventTopic(eventId: string): string {
   return `team-tally:${eventId}`;
 }
+
+/**
+ * Whether a live screen can still vouch for what it shows (issue #661). The
+ * screen keeps its last good read while reads fail; past a short blip it says
+ * so, and once a reload is the only way back (a redeploy retires the read) it
+ * asks for one. The poll itself never changes for this.
+ */
+export type Freshness = "fresh" | "reconnecting" | "reload";
+
+/** Long enough that a wifi blip never flashes a note on the TV. */
+export const RECONNECTING_AFTER_MS = 30_000;
+
+export const RELOAD_AFTER_MS = 120_000;
+
+/** `failingForMs`: how long reads have been failing, null while they land. */
+export function freshnessFor(failingForMs: number | null): Freshness {
+  if (failingForMs === null || failingForMs < RECONNECTING_AFTER_MS) return "fresh";
+  return failingForMs < RELOAD_AFTER_MS ? "reconnecting" : "reload";
+}

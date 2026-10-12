@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
 
 import { flightMatchups, openingMatchups } from "@/lib/team-tally/event-doc";
 import { eventDateLabel } from "@/lib/team-tally/format";
@@ -9,6 +9,7 @@ import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupGames } from "./matchup-games";
 import { ResultsSummary } from "./results-summary";
+import { StaleNote } from "./stale-note";
 import { StandingsTower } from "./standings-tower";
 import { TtAppBar } from "./tt-head";
 import { TvStage, type PublicView } from "./tv-stage";
@@ -46,11 +47,13 @@ export function PublicScreen({
   screen,
 }: {
   /** Read-only: the Public Link has no writes. */
-  live: Pick<LiveSeam, "view">;
+  live: Pick<LiveSeam, "view" | "freshness">;
   view?: PublicView;
   screen?: string;
 }) {
   const { event } = live.view;
+  const stale = live.freshness !== undefined && live.freshness !== "fresh";
+  useReloadWhenReachable(live.freshness === "reload");
   const teams = useMemo(() => new Map(event.teams.map((team) => [team.id, team])), [event.teams]);
   const flights = flightMatchups(event);
   const opening = openingMatchups(event);
@@ -64,7 +67,7 @@ export function PublicScreen({
   );
 
   return (
-    <div className="tt-public" data-view={forced}>
+    <div className="tt-public" data-view={forced} data-stale={stale || undefined}>
       <div className="tt-public-scroll">
         <TtAppBar context={finished ? "Results" : "Live standings"} />
         <div className="tt-wrap tt-livepage">
@@ -76,6 +79,7 @@ export function PublicScreen({
             <a href="?view=tv" className="tt-quietlink tt-public-tvlink">
               Big-screen view
             </a>
+            <StaleNote freshness={live.freshness} />
           </header>
 
           {finished && (
@@ -143,7 +147,27 @@ export function PublicScreen({
         </div>
       </div>
 
-      <TvStage event={event} teams={teams} view={forced} pinned={screen} />
+      <TvStage event={event} teams={teams} view={forced} pinned={screen} stale={stale} />
     </div>
   );
+}
+
+/**
+ * The venue TV has nobody holding a remote, so past two minutes of failed
+ * reads (a redeploy retires the read for good) it reloads itself. Only once
+ * the page answers, though: reloading on dead wifi would strand the TV on the
+ * browser's offline page, which never retries.
+ */
+function useReloadWhenReachable(due: boolean) {
+  useEffect(() => {
+    if (!due) return;
+    const tryReload = () =>
+      fetch(window.location.href, { method: "HEAD", cache: "no-store" }).then(
+        (response) => response.ok && window.location.reload(),
+        () => undefined,
+      );
+    tryReload();
+    const retry = setInterval(tryReload, 15_000);
+    return () => clearInterval(retry);
+  }, [due]);
 }

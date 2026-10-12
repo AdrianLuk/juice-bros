@@ -13,6 +13,7 @@ import { MatchupGames } from "./matchup-games";
 import { MatchupRounds } from "./matchup-rounds";
 import { ResultsSummary } from "./results-summary";
 import { RosterForm } from "./roster-form";
+import { StaleNote } from "./stale-note";
 import { StandingsTower } from "./standings-tower";
 import { TtAppBar } from "./tt-head";
 
@@ -99,13 +100,16 @@ export function ScoreLinkScreen({ live, myTeamId }: { live: LiveSeam; myTeamId: 
     );
   }
 
+  const stale = live.freshness !== undefined && live.freshness !== "fresh";
+
   return (
     <>
       <TtAppBar context={`${captainTeamName(me)} · Score link`} />
-      <div className="tt-wrap tt-livepage">
+      <div className="tt-wrap tt-livepage" data-stale={stale || undefined}>
         <header className="tt-live-head">
           <h1 className="tt-live-title">{event.name}</h1>
           <p className="tt-meta m-0">{eventDateLabel(event.date)}</p>
+          <StaleNote freshness={live.freshness} />
         </header>
 
         <div className="tt-live-grid">
