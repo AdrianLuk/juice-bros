@@ -1,6 +1,21 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import "./team-tally.css";
+
+const SHARE_TITLE = "Team Tally";
+const SHARE_DESCRIPTION = "Live scores and standings for a captained pickleball team night.";
+
+/**
+ * What a Score Link or the Public Link shows when pasted into a group chat:
+ * Team Tally, not the podcast. No `images` here, so `opengraph-image.tsx`
+ * beside this layout fills them in. Pages built with `pageMetadata` set their
+ * own and keep the site's.
+ */
+export const metadata: Metadata = {
+  openGraph: { type: "website", siteName: SHARE_TITLE, title: SHARE_TITLE, description: SHARE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_DESCRIPTION },
+};
 
 /**
  * Team Tally's surface: the broadcast package world (team-tally.css) on every
