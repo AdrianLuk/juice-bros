@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { readLiveEvent, type LiveReader, type LiveView } from "@/lib/team-tally/actions/live";
-import { freshnessFor, type Freshness } from "@/lib/team-tally/live-sync";
+import { freshnessFor, trackFailures, type FailureClock, type Freshness } from "@/lib/team-tally/live-sync";
 import { useTeamEventSync } from "./use-team-event-sync";
 
 /**
@@ -35,22 +35,30 @@ export function useLiveEvent(reader: LiveReader, initial: LiveView) {
   const failing = query.failureCount > 0 || query.errorUpdatedAt > query.dataUpdatedAt || query.fetchStatus === "paused";
 
   // A link that stops working mid-night keeps showing the last good read, and says so.
-  return { view: query.data ?? initial, refresh, freshness: useFreshness(failing) };
+  return { view: query.data ?? initial, refresh, freshness: useFreshness(failing, query.dataUpdatedAt) };
 }
 
-/** How long reads have been failing, as a Freshness, re-checked every few seconds while they are. */
-function useFreshness(failing: boolean): Freshness {
-  const [failingFor, setFailingFor] = useState(0);
-
+/**
+ * Samples the reads every couple of seconds into a Freshness. Sampled rather
+ * than reacting to each change, so a read that blinks between attempts can't
+ * restart the clock (trackFailures in live-sync.ts says why that matters).
+ */
+function useFreshness(failing: boolean, lastGoodRead: number): Freshness {
+  const latest = useRef({ failing, lastGoodRead });
   useEffect(() => {
-    if (!failing) return;
-    const since = Date.now();
-    const tick = setInterval(() => setFailingFor(Date.now() - since), 5_000);
-    return () => {
-      clearInterval(tick);
-      setFailingFor(0);
-    };
-  }, [failing]);
+    latest.current = { failing, lastGoodRead };
+  });
 
-  return freshnessFor(failing ? failingFor : null);
+  const [freshness, setFreshness] = useState<Freshness>("fresh");
+  useEffect(() => {
+    let clock: FailureClock = null;
+    const tick = setInterval(() => {
+      const now = Date.now();
+      clock = trackFailures(clock, { ...latest.current, now });
+      setFreshness(freshnessFor(clock ? now - clock.since : null));
+    }, 2_000);
+    return () => clearInterval(tick);
+  }, []);
+
+  return freshness;
 }

@@ -4,12 +4,14 @@ import { useMemo } from "react";
 
 import { type DocMatchup, flightMatchups, matchupLabel, openingMatchups, scoredRoundsFor, teamName } from "@/lib/team-tally/event-doc";
 import type { LiveSeam, OrganizerWrites } from "@/lib/team-tally/live-seam";
+import { isStale } from "@/lib/team-tally/live-sync";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
 import { MatchupRounds } from "./matchup-rounds";
 import { RosterForm } from "./roster-form";
 import { SeedingPanel } from "./seeding-panel";
+import { StaleNote } from "./stale-note";
 import { StandingsTower } from "./standings-tower";
 
 /**
@@ -64,7 +66,8 @@ export function OrganizerScreen({ live }: { live: LiveSeam<{ by: "organizer" } &
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6" data-stale={isStale(live.freshness) || undefined}>
+      <StaleNote freshness={live.freshness} />
       <div className="tt-organizer-top">
         <section aria-label="Standings" className="grid content-start gap-2">
           <h2 className="sr-only">Standings</h2>

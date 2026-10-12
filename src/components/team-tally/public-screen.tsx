@@ -5,6 +5,7 @@ import { useEffect, useMemo, type CSSProperties } from "react";
 import { flightMatchups, openingMatchups } from "@/lib/team-tally/event-doc";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import type { LiveSeam } from "@/lib/team-tally/live-seam";
+import { isStale } from "@/lib/team-tally/live-sync";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupGames } from "./matchup-games";
@@ -52,7 +53,7 @@ export function PublicScreen({
   screen?: string;
 }) {
   const { event } = live.view;
-  const stale = live.freshness !== undefined && live.freshness !== "fresh";
+  const stale = isStale(live.freshness);
   useReloadWhenReachable(live.freshness === "reload");
   const teams = useMemo(() => new Map(event.teams.map((team) => [team.id, team])), [event.teams]);
   const flights = flightMatchups(event);
@@ -153,16 +154,17 @@ export function PublicScreen({
 }
 
 /**
- * The venue TV has nobody holding a remote, so past two minutes of failed
- * reads (a redeploy retires the read for good) it reloads itself. Only once
- * the page answers, though: reloading on dead wifi would strand the TV on the
- * browser's offline page, which never retries.
+ * The venue TV has nobody holding a remote, so once reads have failed long
+ * enough to need a reload (a redeploy retires the read for good) it reloads
+ * itself. Only once the page answers, though: reloading on dead wifi would
+ * strand the TV on the browser's offline page, which never retries.
  */
 function useReloadWhenReachable(due: boolean) {
   useEffect(() => {
     if (!due) return;
     const tryReload = () =>
-      fetch(window.location.href, { method: "HEAD", cache: "no-store" }).then(
+      // `redirect: "manual"`: a wifi login page redirects, and that must not count as the page answering.
+      fetch(window.location.href, { method: "HEAD", cache: "no-store", redirect: "manual" }).then(
         (response) => response.ok && window.location.reload(),
         () => undefined,
       );

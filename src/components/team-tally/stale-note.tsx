@@ -1,14 +1,14 @@
 "use client";
 
-import type { Freshness } from "@/lib/team-tally/live-sync";
+import { isStale, type Freshness } from "@/lib/team-tally/live-sync";
 
 /**
  * Said under a live screen's title once its reads stop landing (issue #661):
- * the scores shown may be behind. Past two minutes a reload is the way back
- * (after a redeploy nothing else is), so it offers one.
+ * the scores shown may be behind. Once only a reload will bring it back
+ * (after a redeploy nothing else does), it offers one.
  */
 export function StaleNote({ freshness }: { freshness?: Freshness }) {
-  if (!freshness || freshness === "fresh") return null;
+  if (!isStale(freshness)) return null;
   return (
     <p role="status" className="tt-stale m-0">
       {freshness === "reconnecting" ? (

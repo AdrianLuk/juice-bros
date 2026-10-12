@@ -706,10 +706,8 @@ body:has(.tt-surface) {
   box-shadow: 0 0 0 1.5px var(--tt-ink);
 }
 
-/* A board whose reads have stopped landing (issue #661). Ball yellow means
-   "now", and a stale board can't vouch for now: it goes grey, LIVE dots go. */
-[data-stale] { --tt-now: var(--tt-plate-faint); }
-[data-stale] .tt-live-mark::before { display: none; }
+/* "Reconnecting…": a board whose reads have stopped landing (issue #661). Its
+   yellow goes at the end of this file. */
 .tt-stale {
   display: inline-flex;
   align-items: center;
@@ -2188,3 +2186,19 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
 .tt-land-head-flush { margin-bottom: 0; }
 /* A section that follows another on the same ground needs no second gap. */
 .tt-land-section-follow { padding-top: 0; }
+
+/* A stale board (issue #661) can't vouch for "now", so the Now Rule takes its
+   yellow away exactly as a finished night does: no live dots, no live-Round
+   underline or header ink, and your own chips become a plate-ink outline.
+   Last in the file so it beats the TV's same-weight underline rules. */
+[data-stale] .tt-live-mark::before { display: none; }
+[data-stale] .tt-bug .tt-now,
+[data-stale] .tt-tower-round.tt-now { box-shadow: none; }
+[data-stale] .tt-bug .tt-bug-head.tt-now,
+[data-stale] .tt-tower-head .tt-now-ink { color: inherit; }
+[data-stale] .tt-tower-row[data-mine] .tt-tower-pos,
+[data-stale] .tt-handoff-row[data-mine] .tt-handoff-court-num {
+  color: var(--tt-plate-ink);
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--tt-plate-ink);
+}

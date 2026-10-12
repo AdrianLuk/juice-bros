@@ -6,6 +6,7 @@ import { captainTeamName, type DocMatchup, flightMatchups, openingMatchups, scor
 import { finalPlaces, ordinal } from "@/lib/team-tally/final-places";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import type { LiveSeam } from "@/lib/team-tally/live-seam";
+import { isStale } from "@/lib/team-tally/live-sync";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
@@ -100,7 +101,7 @@ export function ScoreLinkScreen({ live, myTeamId }: { live: LiveSeam; myTeamId: 
     );
   }
 
-  const stale = live.freshness !== undefined && live.freshness !== "fresh";
+  const stale = isStale(live.freshness);
 
   return (
     <>

@@ -48,6 +48,7 @@ test("the TV says Reconnecting and drops LIVE when reads keep failing, and recov
     await expect(stage).toContainText("Reconnecting", { timeout: 500 });
   }).toPass({ timeout: 20_000 });
   await expect(stage).not.toContainText("Round 1");
+  await expect(tv.locator(".tt-tv .tt-live-mark")).toHaveCount(0);
 
   blocked = false;
   await expect(async () => {

@@ -48,3 +48,25 @@ export function freshnessFor(failingForMs: number | null): Freshness {
   if (failingForMs === null || failingForMs < RECONNECTING_AFTER_MS) return "fresh";
   return failingForMs < RELOAD_AFTER_MS ? "reconnecting" : "reload";
 }
+
+/** Whether a screen should say it is behind: no LIVE mark, and the note. */
+export function isStale(freshness: Freshness | undefined): boolean {
+  return freshness === "reconnecting" || freshness === "reload";
+}
+
+/** Since when reads have been failing, pinned to the last good read it followed. */
+export type FailureClock = { lastGoodRead: number; since: number } | null;
+
+/**
+ * Starts the clock at the first failed read and stops it only when a read
+ * lands. Not when "failing" blinks false: after a redeploy every Realtime
+ * broadcast restarts the dead read, and a clock that restarted with it would
+ * never reach 30 seconds.
+ */
+export function trackFailures(
+  clock: FailureClock,
+  { failing, lastGoodRead, now }: { failing: boolean; lastGoodRead: number; now: number },
+): FailureClock {
+  if (clock && clock.lastGoodRead !== lastGoodRead) clock = null;
+  return clock ?? (failing ? { lastGoodRead, since: now } : null);
+}
