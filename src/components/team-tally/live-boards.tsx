@@ -73,6 +73,6 @@ function PublicLive({
   view: PublicView;
   screen?: string;
 }) {
-  const { view: live } = useLiveEvent({ kind: "public", token }, initial);
-  return <PublicScreen live={{ view: live }} view={view} screen={screen} />;
+  const { view: live, freshness } = useLiveEvent({ kind: "public", token }, initial);
+  return <PublicScreen live={{ view: live, freshness }} view={view} screen={screen} />;
 }

@@ -212,7 +212,7 @@ A restrained navy-on-gym-white system with exactly three signal hues, each bound
 
 **The Two Sides Rule.** Red and blue mean a Matchup's two sides, as the brief marks them, and nothing else. No red error, no blue link, no red-versus-blue decoration outside a Matchup.
 
-**The Now Rule.** Ball yellow marks what is happening now: the live Round, the live dot, your own position while the night is running. If nothing is live, no yellow appears: once the night is finished, your own position and place keep their chip as a plate-ink outline instead.
+**The Now Rule.** Ball yellow marks what is happening now: the live Round, the live dot, your own position while the night is running. If nothing is live, no yellow appears: once the night is finished, your own position and place keep their chip as a plate-ink outline instead. A board whose reads have stopped landing for 30 seconds (issue #661) can't vouch for now either: it draws no yellow the same way, and the LIVE mark gives way to "Reconnecting…" in ink-dim condensed caps behind a hollow ring.
 
 **The No Extra Hues Rule.** Tower move marks (up, down) are drawn in plate ink and plate dim with a chevron carrying direction; a row that didn't move draws nothing. No green for up, no red for down: no hue may compete with the two sides.
 

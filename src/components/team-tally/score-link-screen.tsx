@@ -6,6 +6,7 @@ import { captainTeamName, type DocMatchup, flightMatchups, openingMatchups, scor
 import { finalPlaces, ordinal } from "@/lib/team-tally/final-places";
 import { eventDateLabel } from "@/lib/team-tally/format";
 import type { LiveSeam } from "@/lib/team-tally/live-seam";
+import { isStale } from "@/lib/team-tally/live-sync";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
@@ -13,6 +14,7 @@ import { MatchupGames } from "./matchup-games";
 import { MatchupRounds } from "./matchup-rounds";
 import { ResultsSummary } from "./results-summary";
 import { RosterForm } from "./roster-form";
+import { StaleNote } from "./stale-note";
 import { StandingsTower } from "./standings-tower";
 import { TtAppBar } from "./tt-head";
 
@@ -99,13 +101,16 @@ export function ScoreLinkScreen({ live, myTeamId }: { live: LiveSeam; myTeamId: 
     );
   }
 
+  const stale = isStale(live.freshness);
+
   return (
     <>
       <TtAppBar context={`${captainTeamName(me)} · Score link`} />
-      <div className="tt-wrap tt-livepage">
+      <div className="tt-wrap tt-livepage" data-stale={stale || undefined}>
         <header className="tt-live-head">
           <h1 className="tt-live-title">{event.name}</h1>
           <p className="tt-meta m-0">{eventDateLabel(event.date)}</p>
+          <StaleNote freshness={live.freshness} />
         </header>
 
         <div className="tt-live-grid">

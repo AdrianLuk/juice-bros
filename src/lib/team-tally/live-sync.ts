@@ -29,3 +29,44 @@ export function pollIntervalFor(status: RealtimeStatus): number {
 export function teamEventTopic(eventId: string): string {
   return `team-tally:${eventId}`;
 }
+
+/**
+ * Whether a live screen can still vouch for what it shows (issue #661). The
+ * screen keeps its last good read while reads fail; past a short blip it says
+ * so, and once a reload is the only way back (a redeploy retires the read) it
+ * asks for one. The poll itself never changes for this.
+ */
+export type Freshness = "fresh" | "reconnecting" | "reload";
+
+/** Long enough that a wifi blip never flashes a note on the TV. */
+export const RECONNECTING_AFTER_MS = 30_000;
+
+export const RELOAD_AFTER_MS = 120_000;
+
+/** `failingForMs`: how long reads have been failing, null while they land. */
+export function freshnessFor(failingForMs: number | null): Freshness {
+  if (failingForMs === null || failingForMs < RECONNECTING_AFTER_MS) return "fresh";
+  return failingForMs < RELOAD_AFTER_MS ? "reconnecting" : "reload";
+}
+
+/** Whether a screen should say it is behind: no LIVE mark, and the note. */
+export function isStale(freshness: Freshness | undefined): boolean {
+  return freshness === "reconnecting" || freshness === "reload";
+}
+
+/** Since when reads have been failing, pinned to the last good read it followed. */
+export type FailureClock = { lastGoodRead: number; since: number } | null;
+
+/**
+ * Starts the clock at the first failed read and stops it only when a read
+ * lands. Not when "failing" blinks false: after a redeploy every Realtime
+ * broadcast restarts the dead read, and a clock that restarted with it would
+ * never reach 30 seconds.
+ */
+export function trackFailures(
+  clock: FailureClock,
+  { failing, lastGoodRead, now }: { failing: boolean; lastGoodRead: number; now: number },
+): FailureClock {
+  if (clock && clock.lastGoodRead !== lastGoodRead) clock = null;
+  return clock ?? (failing ? { lastGoodRead, since: now } : null);
+}

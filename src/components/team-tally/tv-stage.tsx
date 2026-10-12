@@ -192,12 +192,15 @@ export function TvStage({
   view,
   pinned,
   framed = false,
+  stale = false,
 }: {
   event: TeamEventDoc;
   teams: Map<string, DocTeam>;
   view: PublicView;
   pinned?: string;
   framed?: boolean;
+  /** Reads have stopped landing (issue #661): no LIVE mark, and the stage says so. */
+  stale?: boolean;
 }) {
   const screens = tvScreens(event);
   const screensKey = screens.map((screen) => screen.id).join(",");
@@ -272,7 +275,11 @@ export function TvStage({
         <div className="tt-tv-stage">
           <span className="tt-tv-stage-name">
             {stage.name}
-            {stage.live && <span className="tt-live-mark tt-tv-live">{stage.live}</span>}
+            {stale ? (
+              <span className="tt-stale tt-tv-live">Reconnecting…</span>
+            ) : (
+              stage.live && <span className="tt-live-mark tt-tv-live">{stage.live}</span>
+            )}
           </span>
           <span className="tt-tv-stage-progress">{stage.progress}</span>
         </div>

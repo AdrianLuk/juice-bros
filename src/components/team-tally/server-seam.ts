@@ -45,7 +45,7 @@ export function useServerSeam(
   initial: LiveView,
 ): LiveSeam<{ by: "organizer" } & OrganizerWrites>;
 export function useServerSeam(reader: Exclude<LiveReader, { kind: "public" }>, initial: LiveView): LiveSeam {
-  const { view, refresh } = useLiveEvent(reader, initial);
+  const { view, refresh, freshness } = useLiveEvent(reader, initial);
   const readerKey = JSON.stringify(reader);
   const eventId = initial.event.id;
 
@@ -77,5 +77,5 @@ export function useServerSeam(reader: Exclude<LiveReader, { kind: "public" }>, i
     };
   }, [readerKey, eventId, refresh]);
 
-  return { view, writes };
+  return { view, writes, freshness };
 }

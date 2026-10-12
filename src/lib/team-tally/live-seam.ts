@@ -15,6 +15,7 @@
  */
 
 import type { TeamEventDoc } from "./event-doc.ts";
+import type { Freshness } from "./live-sync.ts";
 import type { Roster } from "./roster.ts";
 
 export type WriteResult = { ok: true } | { ok: false; problem: string };
@@ -48,4 +49,8 @@ export type OrganizerWrites = TeamWrites & {
 /** Who is writing decides what a screen offers: only the Organizer reopens. */
 export type LiveWrites = ({ by: "team" } & TeamWrites) | ({ by: "organizer" } & OrganizerWrites);
 
-export type LiveSeam<W extends LiveWrites = LiveWrites> = { view: LiveView; writes: W };
+/**
+ * `freshness`: whether the reads behind `view` are still landing (issue #661).
+ * The demo night has no reads to lose, so its adapter leaves it out.
+ */
+export type LiveSeam<W extends LiveWrites = LiveWrites> = { view: LiveView; writes: W; freshness?: Freshness };
