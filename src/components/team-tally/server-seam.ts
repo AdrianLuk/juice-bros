@@ -23,6 +23,7 @@ import type {
   TeamWrites,
   WriteResult,
 } from "@/lib/team-tally/live-seam";
+import { settleWrite } from "@/lib/team-tally/settle-write";
 import { useLiveEvent } from "./use-live-event";
 
 /**
@@ -52,7 +53,7 @@ export function useServerSeam(reader: Exclude<LiveReader, { kind: "public" }>, i
     const parsed = JSON.parse(readerKey) as LiveReader;
     const writer: LiveWriter = parsed.kind === "score" ? { kind: "score", token: parsed.token } : { kind: "organizer" };
     const thenRefresh = async (result: Promise<WriteResult>) => {
-      const settled = await result;
+      const settled = await settleWrite(result);
       if (settled.ok) await refresh();
       return settled;
     };

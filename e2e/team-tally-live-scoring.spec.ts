@@ -109,3 +109,23 @@ test("a captain renames a slot and the new name shows in that Round", async ({ p
   await page.locator("summary").filter({ hasText: "Round 2" }).click();
   await expect(game(page, 2, "captains'")).toContainText("Ben Johns + Tyra Black");
 });
+
+test("a save with no signal says so and keeps the typed score (issue #659)", async ({ page, context }) => {
+  await page.goto(`/tools/team-tally/score/${night.scoreTokens[0]}`);
+  const form = game(page, 1, "teammates'");
+  const redBox = form.getByLabel("Golden Set points");
+  const blueBox = form.getByLabel("Team Federico Staksrud points");
+  await expect(async () => {
+    await redBox.fill("11");
+    await blueBox.fill("5");
+    await expect(redBox).toHaveValue("11", { timeout: 500 });
+    await expect(blueBox).toHaveValue("5", { timeout: 500 });
+  }).toPass({ timeout: 15_000 });
+
+  await context.setOffline(true);
+  await form.getByRole("button", { name: "Save score" }).click();
+  await expect(form).toContainText("Couldn't reach Team Tally. Check your signal, then reload to see if it saved.");
+  await expect(redBox).toHaveValue("11");
+  await expect(blueBox).toHaveValue("5");
+  await context.setOffline(false);
+});
