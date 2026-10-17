@@ -1,8 +1,8 @@
 /**
  * Renaming or reordering a Team's Player slots on the night (team-tally/
  * CONTEXT.md, "Player slot"). Slot N is the player who partners the captain
- * in Round N, so a Round with a score pins its slot: a rename or reorder only
- * moves Rounds with no score yet.
+ * in Round N, so a Round with a score pins its slot against a reorder. A
+ * rename always saves: a substitute takes over the same slot.
  *
  * Shared by the roster form and mirrored by `team_tally_write_slots` in the
  * database, which refuses with the same message. Relative imports only, for
@@ -21,7 +21,7 @@ const SLOTS = [
   { round: 3, key: "slotC", letter: "C" },
 ] as const;
 
-/** Checks a new A, B, C against the current one, given the Rounds that already have a score. */
+/** Checks a new A, B, C against the current one, given the Rounds of the current Matchup that have a score. */
 export function checkRosterChange(current: Roster, next: Roster, scoredRounds: readonly Round[]): RosterCheck {
   for (const { key, letter } of SLOTS) {
     const name = next[key].trim();
@@ -33,8 +33,12 @@ export function checkRosterChange(current: Roster, next: Roster, scoredRounds: r
     }
   }
 
+  // A slot moved when it now holds a name one of its teammates held.
   for (const { round, key, letter } of SLOTS) {
-    if (scoredRounds.includes(round) && next[key].trim() !== current[key].trim()) {
+    const name = next[key].trim();
+    const moved =
+      name !== current[key].trim() && SLOTS.some((other) => other.key !== key && current[other.key].trim() === name);
+    if (scoredRounds.includes(round) && moved) {
       return {
         ok: false,
         problem: `Round ${round} already has a score, so Player ${letter} stays ${current[key].trim()}.`,

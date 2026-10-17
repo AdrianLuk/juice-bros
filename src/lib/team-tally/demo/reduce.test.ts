@@ -75,7 +75,7 @@ test("the tied Matchup needs its Dreambreaker before it can be done", () => {
   );
 });
 
-test("a scored Round pins its slot, and the Organizer may rename any Team's", () => {
+test("a scored Round pins its slot against a move, and the Organizer may rename any Team's", () => {
   const me = night.event.teams.find((team) => team.id === night.myTeamId)!;
   const roster = { slotA: me.slotA, slotB: me.slotC, slotC: me.slotB };
   const swapped = apply(night.event, ME, { type: "roster", teamId: me.id, roster });
@@ -83,7 +83,7 @@ test("a scored Round pins its slot, and the Organizer may rename any Team's", ()
   assert.deepEqual([after.slotB, after.slotC], [me.slotC, me.slotB]);
 
   assert.equal(
-    refused(night.event, ME, { type: "roster", teamId: me.id, roster: { ...roster, slotA: "Someone Else" } }),
+    refused(night.event, ME, { type: "roster", teamId: me.id, roster: { slotA: me.slotB, slotB: me.slotC, slotC: me.slotA } }),
     `Round 1 already has a score, so Player A stays ${me.slotA}.`,
   );
   const other = match(night.event, 7).redTeamId;

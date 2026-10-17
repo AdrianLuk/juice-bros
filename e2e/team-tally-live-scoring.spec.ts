@@ -9,7 +9,8 @@ import { deleteTeamEventOrganizer, seedTeamEvent, type SeededTeamEvent } from ".
  *     entered on one phone shows on the other and on the Public Link, with
  *     the Team that entered it, and no reload;
  *   - a score no Game can end on is refused with the reason;
- *   - a captain renames a slot and the new name shows in that Round.
+ *   - a captain renames slots, a scored Round's too (a sub), and the new
+ *     names show in their Rounds.
  *
  * The night is seeded straight through the save function as a throwaway
  * Organizer (e2e/support/team-tally.ts); its Matchup 1 is Golden Set (Ben
@@ -93,19 +94,23 @@ test("a score no game can end on is refused with the reason", async ({ page }) =
   await expect(game(page, 1, "teammates'")).toContainText("13-9 can't happen: the game ends at 11-9");
 });
 
-test("a captain renames a slot and the new name shows in that Round", async ({ page }) => {
+test("a captain renames slots, a scored Round's for a sub, and the new names show in their Rounds", async ({ page }) => {
   await page.goto(`/tools/team-tally/score/${night.scoreTokens[0]}`);
 
   const roster = page.getByRole("form", { name: "Your roster" });
-  // Round 1 has a score, so Player A is pinned.
-  await expect(roster.getByLabel("Player A")).toHaveAttribute("readonly", "");
+  // Round 1 has a score, so Player B can't swap into A; C can still swap with B.
+  await expect(roster.getByRole("button", { name: "Swap B and A" })).toHaveCount(0);
+  await expect(roster.getByRole("button", { name: "Swap C and B" })).toBeVisible();
   await expect(async () => {
+    await roster.getByLabel("Player A").fill("Dylan Frazier");
     await roster.getByLabel("Player B").fill("Tyra Black");
+    await expect(roster.getByLabel("Player A")).toHaveValue("Dylan Frazier", { timeout: 500 });
     await expect(roster.getByLabel("Player B")).toHaveValue("Tyra Black", { timeout: 500 });
   }).toPass({ timeout: 15_000 });
   await roster.getByRole("button", { name: "Save roster" }).click();
   await expect(roster).toContainText("Roster saved.");
 
+  await expect(game(page, 1, "captains'")).toContainText("Ben Johns + Dylan Frazier");
   await page.locator("summary").filter({ hasText: "Round 2" }).click();
   await expect(game(page, 2, "captains'")).toContainText("Ben Johns + Tyra Black");
 });

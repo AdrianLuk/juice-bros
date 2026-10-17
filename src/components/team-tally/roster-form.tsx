@@ -18,9 +18,10 @@ function rosterOf(team: DocTeam): Roster {
 }
 
 /**
- * A Team's Player slots on the night: rename one, or move a player up a
- * slot. Slot N partners the captain in Round N, so a Round with a score pins
- * its slot (read-only, with the reason). Plain fields and buttons.
+ * A Team's Player slots on the night: rename one (a substitute takes the
+ * same slot), or move a player up a slot. Slot N partners the captain in
+ * Round N, so a Round with a score pins its slot against a move, with the
+ * reason. Plain fields and buttons.
  */
 export function RosterForm({
   team,
@@ -91,7 +92,6 @@ export function RosterForm({
                   id={`${id}-${key}`}
                   className="tt-field"
                   value={shown[key]}
-                  readOnly={pinned}
                   aria-describedby={`${id}-${key}-note`}
                   onChange={(event) => change({ ...shown, [key]: event.target.value })}
                 />
@@ -108,7 +108,7 @@ export function RosterForm({
                 )}
               </div>
               <span id={`${id}-${key}-note`} className="tt-roster-note">
-                {pinned ? `Round ${round} has a score, so this stays.` : `Partners the captain in Round ${round}.`}
+                {pinned ? `Round ${round} has a score, so only a rename for a sub.` : `Partners the captain in Round ${round}.`}
               </span>
             </div>
           );

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { scoredRoundsFor, type DocMatchup } from "./event-doc.ts";
 import { checkRosterChange } from "./roster.ts";
 
-test("a Team's scored Rounds count every Matchup it plays, and only those", () => {
+test("a Team's scored Rounds count its current Matchup only: its Flight once it has one", () => {
   const game = (round: 1 | 2 | 3, score: number | null) => ({
     id: `g${round}${score}`,
     round,
@@ -14,8 +14,8 @@ test("a Team's scored Rounds count every Matchup it plays, and only those", () =
     lastEditedByKind: null,
     lastEditedByTeamId: null,
   });
-  const matchup = (id: string, red: string, blue: string, games: ReturnType<typeof game>[]): DocMatchup => ({
-    id, stage: "opening", number: 1, flightLetter: null, courtPair: ["1", "2"], redTeamId: red, blueTeamId: blue, games,
+  const matchup = (id: string, red: string, blue: string, games: ReturnType<typeof game>[], stage: DocMatchup["stage"] = "opening"): DocMatchup => ({
+    id, stage, number: 1, flightLetter: null, courtPair: ["1", "2"], redTeamId: red, blueTeamId: blue, games,
     doneAt: null, doneByTeamId: null, dreambreakerWinnerId: null,
   });
 
@@ -27,6 +27,16 @@ test("a Team's scored Rounds count every Matchup it plays, and only those", () =
   };
   assert.deepEqual(scoredRoundsFor(event, "fed"), [1, 3]);
   assert.deepEqual(scoredRoundsFor(event, "chr"), [2]);
+
+  // In its Flight, the opening Matchup's three scored Rounds no longer pin anything.
+  const flights = {
+    matchups: [
+      matchup("m1", "ben", "fed", [game(1, 11), game(2, 9), game(3, 4)]),
+      matchup("f1", "fed", "chr", [game(1, 11), game(2, null)], "flight"),
+    ],
+  };
+  assert.deepEqual(scoredRoundsFor(flights, "fed"), [1]);
+  assert.deepEqual(scoredRoundsFor(flights, "ben"), [1, 2, 3]);
 });
 
 const ROSTER = { slotA: "Anna Leigh Waters", slotB: "Collin Johns", slotC: "Anna Bright" };
@@ -46,9 +56,16 @@ test("a reorder that only moves Rounds with no score saves", () => {
   );
 });
 
-test("a rename of a slot whose Round has a score is refused, naming the Round", () => {
+test("a substitute renames a slot even after its Round has a score", () => {
   assert.deepEqual(
-    checkRosterChange(ROSTER, { slotA: "Tyra Black", slotB: "Collin Johns", slotC: "Anna Bright" }, [1]),
+    checkRosterChange(ROSTER, { slotA: "Tyra Black", slotB: "Collin Johns", slotC: "Anna Bright" }, [1, 2, 3]),
+    { ok: true },
+  );
+});
+
+test("a teammate moved into a scored Round's slot is refused, naming the Round", () => {
+  assert.deepEqual(
+    checkRosterChange(ROSTER, { slotA: "Anna Bright", slotB: "Collin Johns", slotC: "Anna Leigh Waters" }, [1]),
     { ok: false, problem: "Round 1 already has a score, so Player A stays Anna Leigh Waters." },
   );
 });

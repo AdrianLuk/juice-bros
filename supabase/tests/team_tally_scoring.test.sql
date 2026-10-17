@@ -19,7 +19,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(43);
+select plan(48);
 
 select has_function('public', 'team_tally_score_link_event', array['text'], 'team_tally_score_link_event(text) exists');
 select has_function('public', 'team_tally_score_game', array['text', 'uuid', 'integer', 'integer'], 'team_tally_score_game exists');
@@ -179,10 +179,10 @@ select lives_ok(
 );
 select throws_ok(
   $$select public.team_tally_set_slots((select value from tt_ids where key = 'token_ben'),
-      'Lea Jansen', 'Collin Johns', 'Tyra Black')$$,
+      'Tyra Black', 'Collin Johns', 'Anna Leigh Waters')$$,
   '22023',
   'Round 1 already has a score, so Player A stays Anna Leigh Waters.',
-  'a rename of a scored Round''s slot is refused'
+  'a teammate moved into a scored Round''s slot is refused'
 );
 select throws_ok(
   $$select public.team_tally_set_slots((select value from tt_ids where key = 'token_ben'),
@@ -197,6 +197,16 @@ select throws_ok(
   '22023',
   'Player C needs a name.',
   'a slot cannot be left without a name'
+);
+select lives_ok(
+  $$select public.team_tally_set_slots((select value from tt_ids where key = 'token_ben'),
+      'Lea Jansen', 'Collin Johns', 'Tyra Black')$$,
+  'a substitute renames a slot whose Round has a score'
+);
+select lives_ok(
+  $$select public.team_tally_set_slots((select value from tt_ids where key = 'token_ben'),
+      'Anna Leigh Waters', 'Collin Johns', 'Tyra Black')$$,
+  'and the original player can come back'
 );
 select throws_ok(
   $$select public.team_tally_set_slots('not-the-token-not-the-token-not-the-token', 'A', 'B', 'C')$$,
@@ -309,6 +319,28 @@ select throws_ok(
   'P0002',
   null,
   'another User cannot score A''s Games'
+);
+
+-- ---- a superadmin ----------------------------------------------------------------
+reset role;
+insert into public.team_tally_superadmins (user_id) values ('23232323-0000-0000-0000-00000000000b');
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "23232323-0000-0000-0000-00000000000b", "role": "authenticated"}';
+
+select isnt(
+  public.team_tally_organizer_event((select value::uuid from tt_ids where key = 'event')),
+  null,
+  'a superadmin reads another Organizer''s running Team Event'
+);
+select lives_ok(
+  $$select public.team_tally_organizer_set_slots((select value::uuid from tt_ids where key = 'team_hay'),
+      'Tyra Black', 'Lea Jansen', 'Riley Newman')$$,
+  'and renames a slot on it'
+);
+select is(
+  (select count(*)::int from public.team_tally_events where id = (select value::uuid from tt_ids where key = 'event')),
+  1,
+  'and sees it in their list'
 );
 
 select * from finish();
