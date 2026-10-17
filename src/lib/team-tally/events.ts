@@ -22,6 +22,8 @@ export type TeamEventSummary = {
   date: string;
   status: TeamEventStatus;
   teamCount: number;
+  /** Differs from the caller's id only for a superadmin, who lists every Organizer's nights. */
+  ownerId: string;
 };
 
 export type SavedTeam = SetupTeam & {
@@ -110,7 +112,7 @@ export async function deleteTeamEvent(
 export async function listTeamEvents(supabase: SupabaseClient): Promise<TeamEventSummary[]> {
   const { data, error } = await supabase
     .from("team_tally_events")
-    .select("id, name, event_date, status, team_tally_teams(count)")
+    .select("id, name, event_date, status, owner_id, team_tally_teams(count)")
     .order("event_date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -124,6 +126,7 @@ export async function listTeamEvents(supabase: SupabaseClient): Promise<TeamEven
     date: row.event_date,
     status: row.status,
     teamCount: (row.team_tally_teams as unknown as { count: number }[])[0]?.count ?? 0,
+    ownerId: row.owner_id,
   }));
 }
 

@@ -18,6 +18,9 @@ _Avoid_: Session (On Deck's word for an open-play night), tournament, league nig
 The signed-in person who builds and owns a Team Event. They can edit anything at any point, but the night is designed to run without them: captains report, finish and seed it.
 _Avoid_: admin, host
 
+**Superadmin**:
+The site owner's account, which acts as the Organizer of every Team Event, so they can fix a night for another Organizer on the spot. It is a single row added by hand in the database; no screen grants it.
+
 **Brief**:
 The message the Organizer pastes into the group chat before the night. Team Tally writes it from the Team Event: the Matchups with their court pairs, each team's roster and home court, the round and game format, the Flights, one Score Link per team and the Public Link. A brief from before Team Tally existed can be pasted back in to prefill setup.
 
@@ -30,7 +33,7 @@ Four players who play together for one Team Event only. Teams are made up fresh 
 The first player on a Team's line. The captain plays every Round, partnering a different teammate each time, always against the opposing captain.
 
 **Player slot**:
-A, B or C: the order in which the captain partners their three teammates. The Organizer sets it from what they know of the players; either captain can rename or reorder their own team's slots on the night, for any Round with no score yet. Players are names only, never accounts, and a slot holding a substitute is the same slot.
+A, B or C: the order in which the captain partners their three teammates. The Organizer sets it from what they know of the players; either captain can rename their own team's slots at any point on the night, and reorder any slot whose Round has no score yet in the Team's current Matchup (its Flight once it has one). Players are names only, never accounts, and a slot holding a substitute is the same slot, so a rename is always allowed.
 
 **Home court**:
 The court a Team meets on, one of its Matchup's court pair. It decides nothing about who plays where.

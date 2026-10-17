@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(71);
+select plan(73);
 
 create temporary table tt_expected (fn text, args text[], anon boolean, signed_in boolean) on commit drop;
 insert into tt_expected values
@@ -30,6 +30,7 @@ insert into tt_expected values
   -- The signed-in Organizer.
   ('team_tally_save_event', array['uuid', 'text', 'date', 'jsonb', 'jsonb'], false, true),
   ('team_tally_owns_event', array['uuid'], false, true),
+  ('team_tally_is_superadmin', array[]::text[], false, true),
   ('team_tally_organizer_event', array['uuid'], false, true),
   ('team_tally_organizer_score_game', array['uuid', 'integer', 'integer'], false, true),
   ('team_tally_organizer_set_slots', array['uuid', 'text', 'text', 'text'], false, true),

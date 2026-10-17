@@ -94,7 +94,7 @@ const FAQ = [
   {
     question: "Can I change things once play has started?",
     answer:
-      "Setup locks once a Game has a score, so the Teams and Matchups stay as the brief printed them. Captains can still rename or reorder their own players for any Round with no score yet, and you can still fix any score or reopen a Matchup that was marked done.",
+      "Setup locks once a Game has a score, so the Teams and Matchups stay as the brief printed them. Captains can still rename their own players at any point when a sub comes in, and reorder any Round with no score yet, and you can still fix any score or reopen a Matchup that was marked done.",
   },
 ];
 

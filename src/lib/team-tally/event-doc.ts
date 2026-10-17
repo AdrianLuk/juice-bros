@@ -141,15 +141,14 @@ export function sideOf(matchup: Pick<DocMatchup, "redTeamId" | "blueTeamId">, te
   return undefined;
 }
 
-/** The Rounds with a score in any Matchup this Team plays: their slots are pinned. */
+/**
+ * The Rounds with a score in this Team's current Matchup (its Flight once it
+ * has one, else its opening Matchup): their slots are pinned against a reorder.
+ */
 export function scoredRoundsFor(event: Pick<TeamEventDoc, "matchups">, teamId: string): Round[] {
-  const rounds = new Set<Round>();
-  for (const matchup of event.matchups) {
-    if (!sideOf(matchup, teamId)) continue;
-    for (const game of matchup.games) {
-      if (isScored(game)) rounds.add(game.round);
-    }
-  }
+  const mine = event.matchups.filter((matchup) => sideOf(matchup, teamId));
+  const current = mine.find((matchup) => matchup.stage === "flight") ?? mine[0];
+  const rounds = new Set<Round>(current?.games.filter(isScored).map((game) => game.round));
   return [...rounds].sort();
 }
 

@@ -37,12 +37,12 @@ export default async function TeamTallyPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: toJsonLdScript(buildAppPageJsonLd(app)) }}
       />
-      {organizer ? <OrganizerList /> : <TeamTallyLanding />}
+      {organizer ? <OrganizerList userId={organizer.userId} /> : <TeamTallyLanding />}
     </div>
   );
 }
 
-async function OrganizerList() {
+async function OrganizerList({ userId }: { userId: string }) {
   const supabase = await createClient();
   const events = await listTeamEvents(supabase);
 
@@ -80,6 +80,7 @@ async function OrganizerList() {
                       <span className="tt-event-name">{event.name}</span>
                       <span className="tt-meta text-[0.875rem]">
                         {event.teamCount} Teams · {event.teamCount / 2} Matchups
+                        {event.ownerId !== userId && " · Another organizer's"}
                       </span>
                     </span>
                     <ChevronRight aria-hidden className="text-(--tt-ink-dim)" size={22} />
