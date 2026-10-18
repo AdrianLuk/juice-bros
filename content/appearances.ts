@@ -115,6 +115,22 @@ export const appearances: Appearance[] = [
     ],
   },
   {
+    name: "Picktopia - The Richmond Hill Open Moneyball",
+    startDate: "2026-10-30",
+    endDate: "2026-11-01",
+    location: "Picktopia Racquet Sports, Richmond Hill, ON",
+    url: "https://pickleballtournaments.com/tournaments/picktopia-the-richmond-hill-open-moneyball",
+    image: "/appearances/picktopia-richmond-hill-open-2026.png",
+    organizer: "Picktopia",
+    status: "confirmed",
+    players: "adrian",
+    divisions: [
+      { name: "Men's Singles 3.5", date: "2026-10-30", players: "adrian" },
+      { name: "Split Age Men's Doubles 4.0", date: "2026-10-30", players: "adrian" },
+      { name: "Mixed Doubles 4.0", date: "2026-11-01", players: "adrian" },
+    ],
+  },
+  {
     name: "PPA Canada Toronto 125",
     startDate: "2026-11-26",
     endDate: "2026-11-29",
