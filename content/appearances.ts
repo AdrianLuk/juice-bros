@@ -120,6 +120,7 @@ export const appearances: Appearance[] = [
     endDate: "2026-11-01",
     location: "Picktopia Racquet Sports, Richmond Hill, ON",
     url: "https://pickleballtournaments.com/tournaments/picktopia-the-richmond-hill-open-moneyball",
+    image: "/appearances/picktopia-richmond-hill-open-2026.png",
     organizer: "Picktopia",
     status: "confirmed",
     players: "adrian",
