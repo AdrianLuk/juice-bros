@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { DocGame, DocMatchup } from "./event-doc.ts";
+import type { DocGame, DocMatchup, TeamEventDoc } from "./event-doc.ts";
 import { bugGridColumns, bugGridScale, handoffGridColumns, splitStandings, tvScreens } from "./tv-screens.ts";
 
 function games(scores: ([number, number] | null)[]): DocGame[] {
@@ -154,6 +154,63 @@ test("a night with six Teams or fewer fills only the left column", () => {
   const page = splitStandings(rows);
   assert.equal(page.left.length, 4);
   assert.equal(page.right.length, 0);
+});
+
+test("a 16-Team screen of standings runs four Flights a side", () => {
+  const rows = Array.from({ length: 16 }, (_, index) => ({ position: index + 1 }));
+  const page = splitStandings(rows);
+  assert.equal(page.left.length, 8);
+  assert.equal(page.right.length, 8);
+});
+
+test("18 Teams page the standings, hand-off and Results instead of overflowing one screen", () => {
+  type Matchup = TeamEventDoc["matchups"][number];
+  const opening = Array.from({ length: 9 }, (_, index) => ({ stage: "opening", number: index + 1, flightLetter: null, games: [] }));
+  const flights = Array.from({ length: 9 }, (_, index) => ({
+    stage: "flight",
+    number: index + 1,
+    flightLetter: String.fromCharCode(65 + index),
+    games: [],
+  }));
+  const event = (status: TeamEventDoc["status"], matchups: unknown[]) =>
+    ({ status, matchups: matchups as Matchup[] }) as Pick<TeamEventDoc, "status" | "matchups">;
+
+  const openingScreens = tvScreens(event("opening", opening));
+  assert.deepEqual(
+    openingScreens.filter((screen) => screen.kind === "standings").map((screen) => [screen.label, screen.bugs]),
+    [
+      ["Standings A to E", [0, 10]],
+      ["Standings F to I", [10, 18]],
+    ],
+  );
+
+  const handoff = tvScreens(event("flights", [...opening, ...flights]));
+  assert.deepEqual(
+    handoff.map((screen) => [screen.id, screen.label, screen.bugs]),
+    [
+      ["handoff", "Flights A to E", [0, 5]],
+      ["handoff-2", "Flights F to I", [5, 9]],
+    ],
+  );
+
+  const done = tvScreens(event("finished", [...opening, ...flights]));
+  assert.deepEqual(
+    done.filter((screen) => screen.kind === "summary").map((screen) => [screen.label, screen.bugs]),
+    [
+      ["Results A to E", [0, 5]],
+      ["Results F to I", [5, 9]],
+    ],
+  );
+  assert.equal(new Set(done.map((screen) => screen.id)).size, done.length);
+});
+
+test("52 Teams, the ceiling, still hold every screen to its size", () => {
+  const opening = Array.from({ length: 26 }, (_, index) => ({ stage: "opening", number: index + 1, flightLetter: null, games: [] }));
+  const screens = tvScreens({ status: "opening", matchups: opening as unknown as TeamEventDoc["matchups"] });
+  const standings = screens.filter((screen) => screen.kind === "standings");
+  assert.equal(standings.length, 4);
+  assert.ok(standings.every(({ bugs }) => bugs![1] - bugs![0] <= 16 && bugs![0] % 2 === 0));
+  assert.equal(standings.at(-1)!.bugs![1], 52);
 });
 
 test("a screen of four-row score bugs runs two across, a lone bug on its own", () => {

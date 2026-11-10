@@ -84,7 +84,7 @@ const FAQ = [
   {
     question: "How many Teams can a night have?",
     answer:
-      "An even number from 4 to 14, four players to a Team. Every two Teams make one opening Matchup on a pair of courts, so 14 Teams play seven Matchups and then seven Flights.",
+      "An even number from 4 to 52, four players to a Team. Every two Teams make one opening Matchup on a pair of courts, so 14 Teams play seven Matchups and then seven Flights.",
   },
   {
     question: "What happens on a tie?",
@@ -302,7 +302,7 @@ export function TeamTallyLanding() {
               <h2 id="tt-land-format" className="tt-h2">
                 The format it runs
               </h2>
-              <span className="tt-meta">4 to 14 Teams · 3 Rounds · 6 Games</span>
+              <span className="tt-meta">4 to 52 Teams · 3 Rounds · 6 Games</span>
             </div>
             <div className="tt-section-body grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
               <div className="grid content-start gap-4">

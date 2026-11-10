@@ -102,8 +102,9 @@ function BugGrid({ matchups, teams }: { matchups: DocMatchup[]; teams: Map<strin
   );
 }
 
-function StandingsScreen({ event }: { event: TeamEventDoc }) {
-  const standings = computeStandings(event);
+function StandingsScreen({ event, rows }: { event: TeamEventDoc; rows?: [number, number] }) {
+  const all = computeStandings(event);
+  const standings = rows ? all.slice(...rows) : all;
   const { left, right } = splitStandings(standings);
   const columns = [left, right].filter((rows) => rows.length > 0);
   return (
@@ -131,17 +132,17 @@ function ScreenBody({ screen, event, teams }: { screen: TvScreen; event: TeamEve
   const page = (matchups: DocMatchup[]) => (screen.bugs ? matchups.slice(...screen.bugs) : matchups);
   switch (screen.kind) {
     case "standings":
-      return <StandingsScreen event={event} />;
+      return <StandingsScreen event={event} rows={screen.bugs} />;
     case "matchups":
       return <BugGrid matchups={page(openingMatchups(event))} teams={teams} />;
     case "handoff":
       return (
         <ul
           className="tt-tv-bugs tt-tv-handoffs"
-          data-count={flights.length}
-          style={{ "--tt-tv-cols": handoffGridColumns(flights.length) } as CSSProperties}
+          data-count={page(flights).length}
+          style={{ "--tt-tv-cols": handoffGridColumns(page(flights).length) } as CSSProperties}
         >
-          {flights.map((flight) => (
+          {page(flights).map((flight) => (
             <li key={flight.id}>
               <FlightHandoff flight={flight} teams={teams} size="tv" />
             </li>
@@ -153,8 +154,11 @@ function ScreenBody({ screen, event, teams }: { screen: TvScreen; event: TeamEve
     case "summary":
       return (
         <div className="tt-tv-summary">
-          <ChampionsPlate results={flightResults(event)} teams={teams} size="tv" />
-          <FinalPlacesPlate event={event} teams={teams} size="tv" />
+          <ChampionsPlate results={flightResults(event).filter(({ flightLetter }) => {
+              const index = flightLetter.charCodeAt(0) - 65;
+              return !screen.bugs || (index >= screen.bugs[0] && index < screen.bugs[1]);
+            })} teams={teams} size="tv" />
+          <FinalPlacesPlate event={event} teams={teams} size="tv" flights={screen.bugs} />
         </div>
       );
   }

@@ -8,8 +8,8 @@ import type { SetupTeam, TeamEventSetup } from "@/lib/team-tally/setup";
 
 const EMPTY: SetupFormState = {};
 
-/** Seven opening Matchups is fourteen Teams: Flights A to G. */
-const MAX_MATCHUPS = 7;
+/** 26 opening Matchups is 52 Teams: Flights A to Z. */
+const MAX_MATCHUPS = 26;
 const MIN_MATCHUPS = 2;
 
 /** `flagged` is the fields a pasted brief left unreadable, until the Organizer edits them. */
@@ -298,7 +298,7 @@ export function SetupForm({
           </button>
         )}
         <p className="text-sm text-(--tt-ink-dim)">
-          {matchups.length * 2} Teams, {matchups.length} Flights. Up to 14 Teams.
+          {matchups.length * 2} Teams, {matchups.length} Flights. Up to 52 Teams.
         </p>
       </div>
 

@@ -24,7 +24,11 @@ export type TvScreen = {
   label: string;
   /** How long the TV holds it before cutting to the next. */
   dwellMs: number;
-  /** A screen of score bugs: which of its stage's Matchups it shows, as a slice [from, to). */
+  /**
+   * A screen that is one page of several: which of its items it shows, as a
+   * slice [from, to). Score bugs and hand-off plates slice their Matchups;
+   * the standings slice their rows.
+   */
   bugs?: [number, number];
 };
 
@@ -44,28 +48,86 @@ const seconds = (n: number) => n * 1_000;
  */
 const BUGS_PER_SCREEN = 4;
 
+/** Flight hand-off plates on one screen: two rows of up to four. */
+const PLATES_PER_SCREEN = 8;
+
+/**
+ * Standings rows on one screen: two columns of up to four Flights. A bigger
+ * night pages its standings across screens, a whole Flight to a row pair.
+ */
+const STANDINGS_PER_SCREEN = 16;
+
+/** Splits `total` items into even pages of at most `perScreen`, as [from, to) slices. */
+function pageSlices(total: number, perScreen: number, unit = 1): [number, number][] {
+  const units = Math.ceil(total / unit);
+  const count = Math.max(1, Math.ceil(total / perScreen));
+  const size = Math.ceil(units / count) * unit;
+  return Array.from({ length: count }, (_, index) => {
+    const from = index * size;
+    return [from, Math.min(total, from + size)] as [number, number];
+  }).filter(([from, to]) => to > from || total === 0);
+}
+
+const pageId = (base: string, index: number) => (index === 0 ? base : `${base}-${index + 1}`);
+
 function bugScreens(
   kind: "matchups" | "flight-scores",
   matchups: Pick<DocMatchup, "stage" | "number" | "flightLetter">[],
   dwellMs: number,
 ): TvScreen[] {
   const base = kind === "matchups" ? "Matchups" : "Flight scores";
-  const count = Math.max(1, Math.ceil(matchups.length / BUGS_PER_SCREEN));
-  const size = Math.ceil(matchups.length / count);
+  const slices = pageSlices(matchups.length, BUGS_PER_SCREEN);
   const name = (matchup: (typeof matchups)[number]) =>
     matchup.stage === "flight" ? matchup.flightLetter : String(matchup.number);
 
-  return Array.from({ length: count }, (_, index) => {
-    const from = index * size;
-    const to = Math.min(matchups.length, from + size);
-    return {
-      id: index === 0 ? kind : `${kind}-${index + 1}`,
-      kind,
-      label: count === 1 ? base : `${base} ${name(matchups[from])} to ${name(matchups[to - 1])}`,
-      dwellMs,
-      bugs: [from, to],
-    };
-  });
+  return slices.map(([from, to], index) => ({
+    id: pageId(kind, index),
+    kind,
+    label: slices.length === 1 ? base : `${base} ${name(matchups[from])} to ${name(matchups[to - 1])}`,
+    dwellMs,
+    bugs: [from, to],
+  }));
+}
+
+const letterAt = (index: number) => String.fromCharCode(65 + index);
+
+/** The Flight hand-off, one screen per eight Flights. */
+function handoffScreens(flightCount: number, dwellMs: number): TvScreen[] {
+  const slices = pageSlices(flightCount, PLATES_PER_SCREEN);
+  return slices.map(([from, to], index) => ({
+    ...SCREEN.handoff,
+    id: pageId(SCREEN.handoff.id, index),
+    label: slices.length === 1 ? SCREEN.handoff.label : `Flights ${letterAt(from)} to ${letterAt(to - 1)}`,
+    dwellMs,
+    ...(slices.length > 1 && { bugs: [from, to] as [number, number] }),
+  }));
+}
+
+/** Flights on one Results screen: the 14-Team night's seven, champions beside Final places. */
+const RESULTS_PER_SCREEN = 7;
+
+/** The Results, one screen per seven Flights. */
+function summaryScreens(flightCount: number, dwellMs: number): TvScreen[] {
+  const slices = pageSlices(flightCount, RESULTS_PER_SCREEN);
+  return slices.map(([from, to], index) => ({
+    ...SCREEN.summary,
+    id: pageId(SCREEN.summary.id, index),
+    label: slices.length === 1 ? SCREEN.summary.label : `Results ${letterAt(from)} to ${letterAt(to - 1)}`,
+    dwellMs,
+    ...(slices.length > 1 && { bugs: [from, to] as [number, number] }),
+  }));
+}
+
+/** The standings, one screen per sixteen Teams, never splitting a Flight. */
+function standingsScreens(teamCount: number, dwellMs: number, label: string = SCREEN.standings.label): TvScreen[] {
+  const slices = pageSlices(teamCount, STANDINGS_PER_SCREEN, 2);
+  return slices.map(([from, to], index) => ({
+    ...SCREEN.standings,
+    id: pageId(SCREEN.standings.id, index),
+    label: slices.length === 1 ? label : `${label} ${letterAt(from / 2)} to ${letterAt((to - 1) >> 1)}`,
+    dwellMs,
+    ...(slices.length > 1 && { bugs: [from, to] as [number, number] }),
+  }));
 }
 
 /**
@@ -78,38 +140,41 @@ function bugScreens(
  */
 export function tvScreens(event: Pick<TeamEventDoc, "status" | "matchups">): TvScreen[] {
   const flights = flightMatchups(event);
+  const teamCount = openingMatchups(event).length * 2;
 
   if (event.status === "finished" && flights.length > 0) {
     return [
-      { ...SCREEN.summary, dwellMs: seconds(18) },
+      ...summaryScreens(flights.length, seconds(18)),
       ...bugScreens("flight-scores", flights, seconds(8)),
-      { ...SCREEN.standings, label: "Opening standings", dwellMs: seconds(8) },
+      ...standingsScreens(teamCount, seconds(8), "Opening standings"),
     ];
   }
 
   if (event.status === "flights" && flights.length > 0) {
     const underway = flights.some((flight) => flight.games.some(isScored));
-    if (!underway) return [{ ...SCREEN.handoff, dwellMs: seconds(16) }];
+    const handoff = handoffScreens(flights.length, seconds(16));
+    if (!underway) return handoff;
     return [
-      { ...SCREEN.handoff, dwellMs: seconds(16) },
+      ...handoff,
       ...bugScreens("flight-scores", flights, seconds(10)),
-      { ...SCREEN.standings, label: "Opening standings", dwellMs: seconds(6) },
+      ...standingsScreens(teamCount, seconds(6), "Opening standings"),
     ];
   }
 
-  return [{ ...SCREEN.standings, dwellMs: seconds(14) }, ...bugScreens("matchups", openingMatchups(event), seconds(10))];
+  return [...standingsScreens(teamCount, seconds(14)), ...bugScreens("matchups", openingMatchups(event), seconds(10))];
 }
 
 /** Three Flights, six Teams, on the left; the rest on the right. */
 const LEFT_ROWS = 6;
 
 /**
- * Splits the standings into the big screen's two columns: Flights A to C on
- * the left, D to G on the right. Setup caps a night at 14 Teams (seven
- * Flights), so one screen always holds them.
+ * Splits one standings screen into the big screen's two columns: Flights A
+ * to C on the left, D to G on the right at 14 Teams. A screen of 16 (a bigger
+ * night's page, `standingsScreens`) runs four Flights a side.
  */
 export function splitStandings<Row extends { position: number }>(rows: readonly Row[]): { left: Row[]; right: Row[] } {
-  return { left: rows.slice(0, LEFT_ROWS), right: rows.slice(LEFT_ROWS) };
+  const left = rows.length > 14 ? Math.ceil(rows.length / 4) * 2 : LEFT_ROWS;
+  return { left: rows.slice(0, left), right: rows.slice(left) };
 }
 
 /** Columns for a screen of score bugs: two across, so four fill two rows; a lone bug sits centred. */
