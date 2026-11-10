@@ -79,12 +79,20 @@ test("fewer than four Teams is refused", () => {
   assert.ok(problemsOf(setup).includes("A Team Event needs at least 4 Teams."));
 });
 
-test("more than fourteen Teams is refused, since Flights stop at G", () => {
+test("eighteen Teams is a night, Flights A to I", () => {
   const setup = fourTeamNight();
-  setup.teams = Array.from({ length: 16 }, (_, index) => team(`Captain ${index + 1}`, String(index + 1)));
-  setup.matchups = Array.from({ length: 8 }, (_, index) => ({ red: index * 2, blue: index * 2 + 1 }));
+  setup.teams = Array.from({ length: 18 }, (_, index) => team(`Captain ${index + 1}`, String(index + 1)));
+  setup.matchups = Array.from({ length: 9 }, (_, index) => ({ red: index * 2, blue: index * 2 + 1 }));
 
-  assert.ok(problemsOf(setup).includes("Team Tally runs up to 14 Teams."));
+  assert.deepEqual(problemsOf(setup), []);
+});
+
+test("more than 52 Teams is refused, since Flights stop at Z", () => {
+  const setup = fourTeamNight();
+  setup.teams = Array.from({ length: 54 }, (_, index) => team(`Captain ${index + 1}`, String(index + 1)));
+  setup.matchups = Array.from({ length: 27 }, (_, index) => ({ red: index * 2, blue: index * 2 + 1 }));
+
+  assert.ok(problemsOf(setup).includes("Team Tally runs up to 52 Teams."));
 });
 
 test("a Team in no Matchup is refused", () => {

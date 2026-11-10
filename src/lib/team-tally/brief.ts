@@ -36,10 +36,16 @@ export type BriefInput = {
   publicLink: string;
 };
 
-/** The Organizer's letter emoji for Flights A to G (a 14-Team night has 7). */
-const FLIGHT_EMOJI = ["🅰️", "🅱️", "🅲", "🅳", "🅴", "🅵", "🅶"];
+/**
+ * The Organizer's letter emoji for Flights A to G (a 14-Team night has 7),
+ * then the same negative-squared letters on to Z for a bigger night.
+ */
+const FLIGHT_EMOJI = [
+  "🅰️", "🅱️", "🅲", "🅳", "🅴", "🅵", "🅶", "🅷", "🅸", "🅹", "🅺", "🅻", "🅼",
+  "🅽", "🅾️", "🅿️", "🆀", "🆁", "🆂", "🆃", "🆄", "🆅", "🆆", "🆇", "🆈", "🆉",
+];
 
-const FLIGHT_LETTERS = ["A", "B", "C", "D", "E", "F", "G"];
+const FLIGHT_LETTERS = Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index));
 
 const OPENING = `🏓🔥 PICKLEBALL TEAM EVENT 🔥🏓
 Get ready for an evening of teamwork, competition, and fun! 🎉

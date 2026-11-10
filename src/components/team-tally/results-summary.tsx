@@ -64,20 +64,24 @@ export function ChampionsPlate({
 /**
  * Final places: Flight A's champion first, its runner-up second, Flight B's
  * champion third, and down. One row per Team. On the big screen the list runs
- * down two columns, places 1 to 7 and then 8 to 14.
+ * down two columns, places 1 to 7 and then 8 to 14. `flights` limits it to
+ * one big-screen page of Flights, as a slice [from, to) of Flight indexes.
  */
 export function FinalPlacesPlate({
   event,
   teams,
   myTeamId,
   size,
+  flights,
 }: {
   event: Pick<TeamEventDoc, "matchups">;
   teams: Teams;
   myTeamId?: string;
   size?: "tv";
+  flights?: [number, number];
 }) {
-  const places = finalPlaces(event);
+  const all = finalPlaces(event);
+  const places = flights ? all.filter((place) => place.place > flights[0] * 2 && place.place <= flights[1] * 2) : all;
   return (
     <section className="tt-plate tt-places" data-size={size} aria-label="Final places">
       <div className="tt-plate-bar">

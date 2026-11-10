@@ -95,6 +95,21 @@ test("a 14-Team event's Brief runs to Flight G", () => {
   assert.equal(brief, golden("brief-14-teams.txt"));
 });
 
+test("an 18-Team event's Brief runs to Flight I", () => {
+  const matchups = twelveTeamMatchups();
+  for (let index = 0; index < 3; index++) {
+    matchups.push({
+      red: team(`Red ${index}`, null, String(30 + index * 2), "A", "B", "C"),
+      blue: team(`Blue ${index}`, null, String(31 + index * 2), "A", "B", "C"),
+    });
+  }
+
+  const brief = generateBrief({ publicLink: `${SITE}/live/public-eighteen`, matchups });
+
+  assert.ok(brief.includes("🅶 Next 2 teams → Flight G\n🅷 Next 2 teams → Flight H\n🅸 Next 2 teams → Flight I\n"));
+  assert.doesNotMatch(brief, /undefined/);
+});
+
 test("a blank nickname prints like no nickname at all", () => {
   tokenCounter = 0;
   const brief = generateBrief({

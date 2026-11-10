@@ -103,8 +103,8 @@ export function parseSetup(json: string): TeamEventSetup | null {
   return { name, date, teams: parsedTeams, matchups: parsedMatchups };
 }
 
-/** The format's ceiling: Flights are lettered A to G, two Teams each. */
-export const MAX_TEAMS = 14;
+/** The format's ceiling: Flights are lettered A to Z, two Teams each. */
+export const MAX_TEAMS = 52;
 export const MIN_TEAMS = 4;
 
 const SLOT_FIELDS = [
