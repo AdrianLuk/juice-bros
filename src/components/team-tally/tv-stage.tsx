@@ -154,7 +154,10 @@ function ScreenBody({ screen, event, teams }: { screen: TvScreen; event: TeamEve
     case "summary":
       return (
         <div className="tt-tv-summary">
-          <ChampionsPlate results={page(flightResults(event))} teams={teams} size="tv" />
+          <ChampionsPlate results={flightResults(event).filter(({ flightLetter }) => {
+              const index = flightLetter.charCodeAt(0) - 65;
+              return !screen.bugs || (index >= screen.bugs[0] && index < screen.bugs[1]);
+            })} teams={teams} size="tv" />
           <FinalPlacesPlate event={event} teams={teams} size="tv" flights={screen.bugs} />
         </div>
       );
