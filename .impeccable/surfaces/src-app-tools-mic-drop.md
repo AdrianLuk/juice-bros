@@ -52,6 +52,11 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 - The line-up numbers rows in entry order with small muted "01", so it never reads as a rank.
 - Signed out, and an account off the allowlist, get the plain notice page used for "No such Poll".
 
+## Settled in the live Leaderboard (#670)
+
+- The Host's line-up stays in entry order and carries each Contestant's live count and bar, all paper white; "N phones in" sits in the field. Rows never move under the Host's thumb, and the ranked chart stays the Guest Link's job (Adrian, 2026-11-11).
+- A dropped connection, or reads that keep failing, swaps the field's live label for "Reconnecting…" with no dot, on the Guest's screen and the Host's.
+
 ## Unresolved
 
 - Remove per row and the two-step Close the Poll arrive with #671, inside this contract.
