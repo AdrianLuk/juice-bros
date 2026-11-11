@@ -93,7 +93,8 @@ body:has(.md-surface) {
   background: currentColor;
 }
 
-.md-field.is-final .md-live::before {
+.md-field.is-final .md-live::before,
+.md-live.is-stale::before {
   display: none;
 }
 
@@ -500,7 +501,9 @@ body:has(.md-surface) {
 .md-lineup li {
   counter-increment: md-lineup;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 7px;
   align-items: baseline;
   padding: 12px 4px;
   border-bottom: 1px solid var(--md-line);
@@ -516,6 +519,10 @@ body:has(.md-surface) {
   font-weight: 800;
   font-size: 1rem;
   color: var(--md-mute);
+}
+
+.md-lineup .md-count {
+  font-size: 1.25rem;
 }
 
 .md-host .md-empty {

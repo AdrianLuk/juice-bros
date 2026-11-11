@@ -1,20 +1,20 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { readPoll, vote } from "@/lib/mic-drop/actions/guest";
+import { vote } from "@/lib/mic-drop/actions/guest";
 import { guestId } from "@/lib/mic-drop/guest-id";
 import { barShare, chartRanks, nextChart, type ChartState, type Movement } from "@/lib/mic-drop/leaderboard";
 import type { GuestPoll } from "@/lib/mic-drop/polls";
 import { cn } from "@/lib/utils";
 import { QueryProvider } from "./query-provider";
+import { usePollSync } from "./use-poll-sync";
 
 /**
  * A Guest Link's screen: the Poll as a weekly chart (direction contract,
  * .impeccable/surfaces/src-app-tools-mic-drop.md). Tap a row to make it this
- * phone's Vote, tap another to switch. Counts are current as of the last read;
- * the live broadcast arrives with #670.
+ * phone's Vote, tap another to switch. Counts update live (issue #670).
  */
 export function GuestBoard({ token, initial }: { token: string; initial: GuestPoll }) {
   return (
@@ -37,13 +37,7 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
   const me = useGuestId();
   const queryClient = useQueryClient();
 
-  const { data } = useQuery({
-    queryKey: ["mic-drop", "poll", token, me],
-    queryFn: () => readPoll(token, me),
-    enabled: me !== null,
-    placeholderData: initial,
-  });
-  const poll = data ?? initial;
+  const { poll, reconnecting } = usePollSync(token, initial, { guestId: me, enabled: me !== null });
 
   const [problem, setProblem] = useState<string | null>(null);
   const voting = useMutation({
@@ -84,7 +78,9 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
         <div className="md-col">
           <h1>{poll.name}</h1>
           <div className="md-field-meta">
-            <span className="md-live">{poll.open ? "Live chart" : "Final chart"}</span>
+            <span role="status" className={cn("md-live", reconnecting && "is-stale")}>
+              {reconnecting ? "Reconnecting…" : poll.open ? "Live chart" : "Final chart"}
+            </span>
             <span>
               {poll.phonesIn} {poll.phonesIn === 1 ? "phone" : "phones"} in
             </span>
