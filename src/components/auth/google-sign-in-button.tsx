@@ -35,6 +35,7 @@ export function GoogleSignInButton({
   next,
   action,
   signInPath,
+  unavailableText = "Google sign-in isn't available in this browser. Try another method above.",
 }: {
   clientId: string;
   next: string;
@@ -46,6 +47,8 @@ export function GoogleSignInButton({
   action: (idToken: string, nonce: string, next: string) => Promise<void>;
   /** Where to send the browser if GSI itself can't complete the exchange. */
   signInPath: string;
+  /** Shown when the GSI script can't load. The default assumes other sign-in methods sit above. */
+  unavailableText?: string;
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,10 +93,7 @@ export function GoogleSignInButton({
 
   if (unavailable) {
     return (
-      <p className="text-center text-sm text-muted-foreground">
-        Google sign-in isn&apos;t available in this browser. Try another method
-        above.
-      </p>
+      <p className="text-center text-sm text-muted-foreground">{unavailableText}</p>
     );
   }
 

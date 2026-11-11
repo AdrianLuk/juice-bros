@@ -45,6 +45,11 @@ export type PollSummary = {
   createdAt: string;
 };
 
+/** One of the Host's Polls, with its line-up in entry order. */
+export type HostPoll = PollSummary & {
+  lineUp: { id: string; name: string }[];
+};
+
 /** Codes the Mic Drop functions raise with a reason meant for people. */
 const TOLD_CODES = new Set(["22023", "42501", "P0002"]);
 
@@ -147,17 +152,22 @@ export async function listPolls(supabase: SupabaseClient): Promise<PollSummary[]
 }
 
 /** One of the Host's own Polls, or null when it isn't theirs or doesn't exist. */
-export async function loadPoll(supabase: SupabaseClient, pollId: string): Promise<PollSummary | null> {
+export async function loadPoll(supabase: SupabaseClient, pollId: string): Promise<HostPoll | null> {
   const { data, error } = await supabase
     .from("mic_drop_polls")
-    .select(SUMMARY_COLUMNS)
+    .select(`${SUMMARY_COLUMNS}, lineUp:mic_drop_contestants(id, name, position)`)
     .eq("id", pollId)
     .maybeSingle();
   if (error) {
     if (error.code === "22P02") return null;
     throw new Error(`Loading the Poll failed: ${error.message}`);
   }
-  return data ? toSummary(data as unknown as SummaryRow) : null;
+  if (!data) return null;
+  const row = data as unknown as SummaryRow & { lineUp: { id: string; name: string; position: number }[] };
+  return {
+    ...toSummary(row),
+    lineUp: row.lineUp.toSorted((a, b) => a.position - b.position).map(({ id, name }) => ({ id, name })),
+  };
 }
 
 /** Adds a Contestant to the end of an open Poll's line-up. */

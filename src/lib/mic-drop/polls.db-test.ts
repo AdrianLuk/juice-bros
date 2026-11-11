@@ -90,7 +90,12 @@ test("a Host creates a Poll, types in its line-up and finds it in their Polls", 
     [{ name: "Karaoke Night", open: true, contestantCount: 3 }],
   );
   assert.ok(polls[0].guestToken.length >= 24);
-  assert.equal((await loadPoll(supabase, poll.id))?.guestToken, poll.guestToken);
+  const loaded = await loadPoll(supabase, poll.id);
+  assert.equal(loaded?.guestToken, poll.guestToken);
+  assert.deepEqual(
+    loaded?.lineUp.map(({ name }) => name),
+    ["Anna Leigh Waters", "JW Johnson & Dylan Frazier", "Ben Johns"],
+  );
 
   const read = await readGuestPoll(guests, poll.guestToken);
   assert.equal(read?.name, "Karaoke Night");
