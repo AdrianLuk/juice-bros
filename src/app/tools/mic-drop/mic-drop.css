@@ -1,0 +1,346 @@
+/* =========================================================================
+   Mic Drop: "the chart" (direction seed 6fdcb673)
+
+   The Leaderboard set like a weekly music chart: big rank numbers, a
+   movement mark under each, a thick light bar under every name. A dim room
+   at night, so the ground is night ink and nothing on the Guest phone is a
+   white field while voting is open. Chart coral carries the Poll's header
+   field, the No. 1 bar and "your vote"; green and salmon appear only in
+   movement marks. Contract: .impeccable/surfaces/src-app-tools-mic-drop.md.
+   Imported by the Mic Drop layout and scoped to `.md-surface`.
+   ========================================================================= */
+
+.md-surface {
+  --md-ground: #10131c;
+  --md-raised: #161b27;
+  --md-line: #1f2433;
+  --md-track: #2a3042;
+  --md-ink: #f4f1ea;
+  /* Secondary text, about 6.2:1 on the ground. */
+  --md-mute: #8c93a6;
+  --md-coral: #ff5a36;
+  --md-on-coral: #1a0b06;
+  --md-paper: #f4f1ea;
+  --md-up: #43e08a;
+  --md-down: #ff8b7a;
+  --md-mine: #1a2030;
+  --md-focus: #ffb199;
+
+  --md-chart: var(--font-md-chart), var(--font-md), ui-sans-serif, sans-serif;
+
+  background-color: var(--md-ground);
+  color: var(--md-ink);
+  font-family: var(--font-md), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The document behind the surface: overscroll on a phone. Literal, because
+   the token lives on the surface element. */
+body:has(.md-surface) {
+  background-color: #10131c;
+}
+
+.md-surface :focus-visible {
+  outline: 2px solid var(--md-focus);
+  outline-offset: 2px;
+}
+
+/* ---- The header field --------------------------------------------------- */
+
+.md-field {
+  background: var(--md-coral);
+  color: var(--md-on-coral);
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) max(20px, env(safe-area-inset-right, 0px)) 16px
+    max(20px, env(safe-area-inset-left, 0px));
+}
+
+.md-field.is-final {
+  background: var(--md-paper);
+}
+
+.md-field h1 {
+  margin: 0;
+  font-family: var(--md-chart);
+  font-weight: 900;
+  font-size: clamp(2.5rem, 11vw, 3.5rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.md-field-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.md-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.md-live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.md-field.is-final .md-live::before {
+  display: none;
+}
+
+/* ---- No. 1, once closed -------------------------------------------------- */
+
+.md-top {
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--md-line);
+}
+
+.md-top-label {
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--md-coral);
+}
+
+.md-top-names {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--md-chart);
+  font-weight: 900;
+  font-size: clamp(2rem, 9vw, 2.6rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.md-top p {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  color: var(--md-mute);
+}
+
+/* ---- The chart ------------------------------------------------------------ */
+
+.md-chart {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  position: relative;
+}
+
+.md-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 7px;
+  align-items: center;
+  width: 100%;
+  padding: 11px 18px 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--md-line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease-out;
+}
+
+.md-row:active:not([aria-disabled="true"]) {
+  background: var(--md-raised);
+}
+
+.md-row[aria-pressed="true"] {
+  background: var(--md-mine);
+  box-shadow: inset 4px 0 0 var(--md-coral);
+}
+
+.md-row[aria-disabled="true"] {
+  cursor: default;
+}
+
+.md-row.is-saving {
+  opacity: 0.6;
+}
+
+.md-rank {
+  grid-row: 1 / 3;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.md-rank b {
+  font-family: var(--md-chart);
+  font-weight: 900;
+  font-size: 2.1rem;
+  line-height: 0.9;
+}
+
+.md-rank b.is-unranked {
+  color: var(--md-mute);
+}
+
+.md-move {
+  font-weight: 800;
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--md-mute);
+  min-height: 0.6875rem;
+}
+
+.md-move.is-up {
+  color: var(--md-up);
+}
+
+.md-move.is-down {
+  color: var(--md-down);
+}
+
+.md-move.is-new {
+  color: var(--md-up);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* No change: a short dash drawn, not typed. */
+.md-move.is-same::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 2px;
+  margin-top: 4px;
+  background: var(--md-track);
+}
+
+.md-name {
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.md-mine-chip {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--md-coral);
+  color: var(--md-on-coral);
+  font-weight: 800;
+  font-size: 0.6875rem;
+  vertical-align: 2px;
+}
+
+.md-count {
+  font-family: var(--md-chart);
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+  text-align: right;
+}
+
+.md-bar {
+  grid-column: 2 / 4;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--md-track);
+  overflow: hidden;
+}
+
+.md-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--md-ink);
+  transform-origin: left center;
+  transition: transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.md-row.is-top .md-bar i {
+  background: var(--md-coral);
+}
+
+/* ---- Notes and the footer --------------------------------------------------- */
+
+.md-empty {
+  padding: 28px 20px;
+  color: var(--md-mute);
+}
+
+.md-foot {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 14px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px)
+    max(20px, env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--md-line);
+  background: var(--md-ground);
+  font-size: 0.875rem;
+  color: var(--md-mute);
+}
+
+.md-foot b {
+  color: var(--md-ink);
+  font-weight: 700;
+}
+
+.md-foot .is-problem {
+  color: var(--md-down);
+  font-weight: 700;
+}
+
+/* ---- No such Poll ------------------------------------------------------------- */
+
+.md-missing {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: calc(env(safe-area-inset-top, 0px) + 48px) 24px 48px;
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.md-missing h1 {
+  margin: 0;
+  font-family: var(--md-chart);
+  font-weight: 900;
+  font-size: 2.6rem;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.md-missing p {
+  margin: 0;
+  color: var(--md-mute);
+  line-height: 1.5;
+}
+
+/* One centred column on wider screens; a phone uses the whole width. Last in
+   the file so it wins over the block margins above (.md-chart's margin: 0). */
+.md-col {
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-bar i,
+  .md-row {
+    transition: none;
+  }
+}
