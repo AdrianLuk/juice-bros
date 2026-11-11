@@ -24,7 +24,7 @@
   --md-up: #43e08a;
   --md-down: #ff8b7a;
   --md-mine: #1a2030;
-  --md-focus: #ffb199;
+  --md-focus: #f4f1ea;
 
   --md-chart: var(--font-md-chart), var(--font-md), ui-sans-serif, sans-serif;
 
@@ -109,7 +109,7 @@ body:has(.md-surface) {
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--md-coral);
+  color: var(--md-mute);
 }
 
 .md-top-names {
@@ -299,8 +299,9 @@ body:has(.md-surface) {
   font-weight: 700;
 }
 
+/* White, not salmon: salmon means "down" on this chart and nothing else. */
 .md-foot .is-problem {
-  color: var(--md-down);
+  color: var(--md-ink);
   font-weight: 700;
 }
 

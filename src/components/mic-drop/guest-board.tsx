@@ -55,12 +55,10 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
     onError: () => setProblem(SIGNAL_PROBLEM),
   });
 
+  // A closed Poll's rows do nothing: the footer already says voting's closed.
   function tap(contestantId: string) {
-    if (!poll.open) {
-      setProblem("Voting's closed. This is the final result.");
-      return;
-    }
-    if (me === null || voting.isPending || contestantId === poll.myVote) return;
+    setProblem(null);
+    if (!poll.open || me === null || voting.isPending || contestantId === poll.myVote) return;
     voting.mutate(contestantId);
   }
 
@@ -126,7 +124,7 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
                   aria-disabled={!poll.open || undefined}
                   aria-label={`${contestant.name}, ${contestant.votes} ${contestant.votes === 1 ? "vote" : "votes"}${
                     rank === null ? "" : `, rank ${rank}`
-                  }${mine ? ", your vote" : ""}`}
+                  }${movementWords(current.marks[contestant.id])}${mine ? ", your vote" : ""}`}
                   onClick={() => tap(contestant.id)}
                 >
                   <span className="md-rank">
@@ -199,16 +197,23 @@ function MovementMark({ movement }: { movement: Movement | undefined }) {
  */
 function useRowSlide(orderKey: string) {
   const elements = useRef(new Map<string, HTMLElement>());
+  const refs = useRef(new Map<string, (element: HTMLElement | null) => () => void>());
   const lastTops = useRef(new Map<string, number>());
+  const lastOrder = useRef(orderKey);
 
+  // Measure after every commit, so a layout shift that isn't a re-sort (the
+  // winners block appearing, a chip wrapping, a rotation) never leaves stale
+  // positions behind; slide only when the order itself changed.
   useLayoutEffect(() => {
+    const resorted = lastOrder.current !== orderKey;
+    lastOrder.current = orderKey;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const tops = new Map<string, number>();
     for (const [id, element] of elements.current) {
       const top = element.offsetTop;
       tops.set(id, top);
       const was = lastTops.current.get(id);
-      if (!reduce && was !== undefined && was !== top) {
+      if (resorted && !reduce && was !== undefined && was !== top) {
         element.animate([{ transform: `translateY(${was - top}px)` }, { transform: "none" }], {
           duration: 450,
           easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
@@ -216,13 +221,26 @@ function useRowSlide(orderKey: string) {
       }
     }
     lastTops.current = tops;
-  }, [orderKey]);
+  });
 
-  return (id: string) => (element: HTMLElement | null) => {
-    if (!element) return;
-    elements.current.set(id, element);
-    return () => {
-      elements.current.delete(id);
-    };
+  // One stable ref callback per row, so a render doesn't detach and reattach every row.
+  return (id: string) => {
+    let ref = refs.current.get(id);
+    if (!ref) {
+      ref = (element: HTMLElement | null) => {
+        if (element) elements.current.set(id, element);
+        return () => {
+          elements.current.delete(id);
+        };
+      };
+      refs.current.set(id, ref);
+    }
+    return ref;
   };
+}
+
+function movementWords(movement: Movement | undefined): string {
+  if (!movement || movement.kind === "same") return "";
+  if (movement.kind === "new") return ", new";
+  return `, ${movement.kind} ${movement.by}`;
 }
