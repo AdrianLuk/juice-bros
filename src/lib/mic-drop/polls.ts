@@ -9,7 +9,7 @@
 
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
-/** A Host action's outcome: done, or refused with a reason the Host can read. */
+/** A write's outcome: done, or refused with a reason the Host or Guest can read. */
 export type Outcome<T = undefined> =
   | (T extends undefined ? { ok: true } : { ok: true; value: T })
   | { ok: false; problem: string };
@@ -46,13 +46,17 @@ export type PollSummary = {
 };
 
 /** Codes the Mic Drop functions raise with a reason meant for people. */
-const READABLE = new Set(["22023", "42501", "P0002"]);
+const TOLD_CODES = new Set(["22023", "42501", "P0002"]);
 
-function refusal(error: PostgrestError, notFound: string): { ok: false; problem: string } | null {
-  if (READABLE.has(error.code)) return { ok: false, problem: error.message };
-  // A malformed id from the page is "not found", not a crash.
-  if (error.code === "22P02") return { ok: false, problem: notFound };
-  return null;
+/**
+ * A write's error as an `Outcome`: a refusal the database worded for people
+ * comes back as `problem`; a malformed id from the page reads as `notFound`;
+ * anything else is a real failure and throws.
+ */
+function settle(error: PostgrestError, what: string, notFound?: string): { ok: false; problem: string } {
+  if (TOLD_CODES.has(error.code)) return { ok: false, problem: error.message };
+  if (notFound && error.code === "22P02") return { ok: false, problem: notFound };
+  throw new Error(`${what} failed: ${error.message}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -85,10 +89,7 @@ export async function castVote(
     p_guest_id: guestId,
     p_contestant_id: contestantId,
   });
-  if (!error) return { ok: true };
-  const refused = refusal(error, "That Contestant isn't in this Poll.");
-  if (refused) return refused;
-  throw new Error(`Voting failed: ${error.message}`);
+  return error ? settle(error, "Voting", "That Contestant isn't in this Poll.") : { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -108,50 +109,55 @@ export async function createPoll(
   name: string,
 ): Promise<Outcome<{ id: string; guestToken: string }>> {
   const { data, error } = await supabase.rpc("mic_drop_create_poll", { p_name: name });
-  if (!error) return { ok: true, value: data as { id: string; guestToken: string } };
-  const refused = refusal(error, "That Poll doesn't exist.");
-  if (refused) return refused;
-  throw new Error(`Creating the Poll failed: ${error.message}`);
+  return error
+    ? settle(error, "Creating the Poll")
+    : { ok: true, value: data as { id: string; guestToken: string } };
 }
 
-/** The Host's own Polls, newest first. */
-export async function listPolls(supabase: SupabaseClient): Promise<PollSummary[]> {
-  const { data, error } = await supabase
-    .from("mic_drop_polls")
-    .select("id, name, closed_at, guest_token, created_at, mic_drop_contestants(count)")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(`Listing Polls failed: ${error.message}`);
+const SUMMARY_COLUMNS = "id, name, closed_at, guest_token, created_at, mic_drop_contestants(count)";
 
-  return (data ?? []).map((row) => ({
+type SummaryRow = {
+  id: string;
+  name: string;
+  closed_at: string | null;
+  guest_token: string;
+  created_at: string;
+  mic_drop_contestants: { count: number }[];
+};
+
+function toSummary(row: SummaryRow): PollSummary {
+  return {
     id: row.id,
     name: row.name,
     open: row.closed_at === null,
     guestToken: row.guest_token,
-    contestantCount: (row.mic_drop_contestants as unknown as { count: number }[])[0]?.count ?? 0,
+    contestantCount: row.mic_drop_contestants[0]?.count ?? 0,
     createdAt: row.created_at,
-  }));
+  };
+}
+
+/** The Host's own Polls, newest first. Empty for an account that isn't a Host. */
+export async function listPolls(supabase: SupabaseClient): Promise<PollSummary[]> {
+  const { data, error } = await supabase
+    .from("mic_drop_polls")
+    .select(SUMMARY_COLUMNS)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`Listing Polls failed: ${error.message}`);
+  return ((data ?? []) as unknown as SummaryRow[]).map(toSummary);
 }
 
 /** One of the Host's own Polls, or null when it isn't theirs or doesn't exist. */
 export async function loadPoll(supabase: SupabaseClient, pollId: string): Promise<PollSummary | null> {
   const { data, error } = await supabase
     .from("mic_drop_polls")
-    .select("id, name, closed_at, guest_token, created_at, mic_drop_contestants(count)")
+    .select(SUMMARY_COLUMNS)
     .eq("id", pollId)
     .maybeSingle();
   if (error) {
     if (error.code === "22P02") return null;
     throw new Error(`Loading the Poll failed: ${error.message}`);
   }
-  if (!data) return null;
-  return {
-    id: data.id,
-    name: data.name,
-    open: data.closed_at === null,
-    guestToken: data.guest_token,
-    contestantCount: (data.mic_drop_contestants as unknown as { count: number }[])[0]?.count ?? 0,
-    createdAt: data.created_at,
-  };
+  return data ? toSummary(data as unknown as SummaryRow) : null;
 }
 
 /** Adds a Contestant to the end of an open Poll's line-up. */
@@ -164,10 +170,9 @@ export async function addContestant(
     p_poll_id: pollId,
     p_name: name,
   });
-  if (!error) return { ok: true, value: data as string };
-  const refused = refusal(error, "That Poll doesn't exist.");
-  if (refused) return refused;
-  throw new Error(`Adding the Contestant failed: ${error.message}`);
+  return error
+    ? settle(error, "Adding the Contestant", "That Poll doesn't exist.")
+    : { ok: true, value: data as string };
 }
 
 /** Removes a Contestant from an open Poll, and the Votes cast for them. */
@@ -178,10 +183,7 @@ export async function removeContestant(
   const { error } = await supabase.rpc("mic_drop_remove_contestant", {
     p_contestant_id: contestantId,
   });
-  if (!error) return { ok: true };
-  const refused = refusal(error, "That Contestant doesn't exist.");
-  if (refused) return refused;
-  throw new Error(`Removing the Contestant failed: ${error.message}`);
+  return error ? settle(error, "Removing the Contestant", "That Contestant doesn't exist.") : { ok: true };
 }
 
 /** Closes the Poll: the Leaderboard freezes and Votes are refused. */
@@ -196,8 +198,7 @@ export function reopenPoll(supabase: SupabaseClient, pollId: string): Promise<Ou
 
 async function setOpen(supabase: SupabaseClient, pollId: string, open: boolean): Promise<Outcome> {
   const { error } = await supabase.rpc("mic_drop_set_open", { p_poll_id: pollId, p_open: open });
-  if (!error) return { ok: true };
-  const refused = refusal(error, "That Poll doesn't exist.");
-  if (refused) return refused;
-  throw new Error(`${open ? "Reopening" : "Closing"} the Poll failed: ${error.message}`);
+  return error
+    ? settle(error, open ? "Reopening the Poll" : "Closing the Poll", "That Poll doesn't exist.")
+    : { ok: true };
 }

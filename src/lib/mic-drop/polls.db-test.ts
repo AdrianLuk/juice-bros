@@ -146,26 +146,59 @@ test("an account that isn't on the allowlist can't host", async () => {
   assert.equal(await isHost(supabase), false);
   assert.deepEqual(await createPoll(supabase, "Karaoke Night"), {
     ok: false,
-    problem: "This account can't host Mic Drop polls.",
+    problem: "This account can't host Mic Drop Polls.",
   });
   assert.deepEqual(await listPolls(supabase), []);
 });
 
-test("a Host can't see or change another Host's Poll", async () => {
+test("an account that isn't on the allowlist can't edit someone else's Poll", async () => {
   const { poll, ids } = await pollWith(["Ben Johns"]);
+  const { supabase } = await account();
+
+  const cantHost = { ok: false, problem: "This account can't host Mic Drop Polls." };
+  assert.deepEqual(await addContestant(supabase, poll.id, "Planted"), cantHost);
+  assert.deepEqual(await removeContestant(supabase, ids["Ben Johns"]), cantHost);
+  assert.deepEqual(await closePoll(supabase, poll.id), cantHost);
+  assert.equal(await loadPoll(supabase, poll.id), null);
+
+  const read = await readGuestPoll(guests, poll.guestToken);
+  assert.equal(read?.open, true);
+  assert.deepEqual(counts(read), [["Ben Johns", 0]]);
+});
+
+test("a Host can't see or change another Host's Poll", async () => {
+  const { supabase: owner, poll, ids } = await pollWith(["Ben Johns"]);
   const other = await host();
 
   assert.deepEqual(await listPolls(other.supabase), []);
   assert.equal(await loadPoll(other.supabase, poll.id), null);
 
-  const notFound = { ok: false, problem: "That Poll doesn't exist." };
-  assert.deepEqual(await addContestant(other.supabase, poll.id, "Planted"), notFound);
-  assert.deepEqual(await removeContestant(other.supabase, ids["Ben Johns"]), notFound);
-  assert.deepEqual(await closePoll(other.supabase, poll.id), notFound);
+  const noPoll = { ok: false, problem: "That Poll doesn't exist." };
+  assert.deepEqual(await addContestant(other.supabase, poll.id, "Planted"), noPoll);
+  assert.deepEqual(await removeContestant(other.supabase, ids["Ben Johns"]), {
+    ok: false,
+    problem: "That Contestant doesn't exist.",
+  });
+  assert.deepEqual(await closePoll(other.supabase, poll.id), noPoll);
+
+  await closePoll(owner, poll.id);
+  assert.deepEqual(await reopenPoll(other.supabase, poll.id), noPoll);
 
   const read = await readGuestPoll(guests, poll.guestToken);
-  assert.equal(read?.open, true);
+  assert.equal(read?.open, false);
   assert.deepEqual(counts(read), [["Ben Johns", 0]]);
+});
+
+test("a Host taken off the allowlist stops seeing their Polls", async () => {
+  const user = await host();
+  const poll = ok(await createPoll(user.supabase, "Karaoke Night"));
+  assert.equal((await listPolls(user.supabase)).length, 1);
+
+  const { error } = await serviceRoleClient().from("mic_drop_hosts").delete().eq("user_id", user.userId);
+  if (error) throw new Error(`Taking the Host off the allowlist failed: ${error.message}`);
+
+  assert.deepEqual(await listPolls(user.supabase), []);
+  assert.equal(await loadPoll(user.supabase, poll.id), null);
 });
 
 // ---------------------------------------------------------------------------
@@ -180,7 +213,7 @@ test("an unknown Guest Link reads as no Poll", async () => {
   assert.equal(await readGuestPoll(guests, ""), null);
   assert.deepEqual(
     await castVote(guests, "0123456789abcdef0123456789abcdef", phone(), randomUUID()),
-    { ok: false, problem: "There's no such poll." },
+    { ok: false, problem: "There's no such Poll." },
   );
 });
 

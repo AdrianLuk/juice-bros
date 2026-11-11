@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(46);
 
 select has_table('public', 'mic_drop_hosts', 'the Host allowlist is a table');
 select has_table('public', 'mic_drop_polls', 'Polls are a table');
@@ -70,7 +70,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.mic_drop_create_poll('Karaoke Night')$$,
-  '42501', 'This account can''t host Mic Drop polls.', 'an account off the allowlist can''t create a Poll'
+  '42501', 'This account can''t host Mic Drop Polls.', 'an account off the allowlist can''t create a Poll'
 );
 select throws_ok(
   $$select public.mic_drop_host_poll((select value::uuid from md_ids where key = 'poll'))$$,
@@ -103,12 +103,49 @@ select is(
 -- ---- who may execute what ------------------------------------------------------------
 reset role;
 
-select ok(has_function_privilege('anon', 'public.mic_drop_guest_poll(text, text)', 'execute'), 'anon can read a Poll by token');
-select ok(has_function_privilege('anon', 'public.mic_drop_cast_vote(text, text, uuid)', 'execute'), 'anon can vote by token');
-select ok(not has_function_privilege('anon', 'public.mic_drop_add_contestant(uuid, text)', 'execute'), 'anon can''t add a Contestant');
-select ok(not has_function_privilege('anon', 'public.mic_drop_set_open(uuid, boolean)', 'execute'), 'anon can''t close a Poll');
-select ok(not has_function_privilege('authenticated', 'public.mic_drop_guest_uuid(text)', 'execute'), 'nobody calls the Guest id helper directly');
-select ok(not has_function_privilege('authenticated', 'public.mic_drop_broadcast_change()', 'execute'), 'nobody calls the broadcast trigger function directly');
+-- Exhaustive on purpose, like team_tally_grants.test.sql: a new mic_drop_
+-- function fails the count below until it is listed here with its roles.
+create temporary table md_expected (fn text, args text[], anon boolean, signed_in boolean) on commit drop;
+insert into md_expected values
+  -- Guest Link holders and signed-in accounts.
+  ('mic_drop_guest_poll', array['text', 'text'], true, true),
+  ('mic_drop_cast_vote', array['text', 'text', 'uuid'], true, true),
+  -- Signed-in accounts (the functions check the allowlist themselves).
+  ('mic_drop_is_host', array[]::text[], false, true),
+  ('mic_drop_create_poll', array['text'], false, true),
+  ('mic_drop_add_contestant', array['uuid', 'text'], false, true),
+  ('mic_drop_remove_contestant', array['uuid'], false, true),
+  ('mic_drop_set_open', array['uuid', 'boolean'], false, true),
+  -- Internal.
+  ('mic_drop_require_host', array[]::text[], false, false),
+  ('mic_drop_host_poll', array['uuid'], false, false),
+  ('mic_drop_open_host_poll', array['uuid'], false, false),
+  ('mic_drop_clean_name', array['text', 'text'], false, false),
+  ('mic_drop_guest_uuid', array['text'], false, false),
+  ('mic_drop_broadcast_change', array[]::text[], false, false);
+
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname like 'mic\_drop\_%'),
+  (select count(*)::int from md_expected),
+  'every Mic Drop function is listed here with the roles it is for'
+);
+
+select function_privs_are(
+  'public', e.fn, e.args, 'anon',
+  case when e.anon then array['EXECUTE'] else array[]::text[] end,
+  format('%s: anon %s', e.fn, case when e.anon then 'may call it' else 'holds no grant' end)
+)
+from md_expected e
+order by e.fn;
+
+select function_privs_are(
+  'public', e.fn, e.args, 'authenticated',
+  case when e.signed_in then array['EXECUTE'] else array[]::text[] end,
+  format('%s: a signed-in account %s', e.fn, case when e.signed_in then 'may call it' else 'holds no grant' end)
+)
+from md_expected e
+order by e.fn;
 
 select * from finish();
 

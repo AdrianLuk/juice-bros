@@ -117,16 +117,18 @@ alter table public.mic_drop_polls enable row level security;
 alter table public.mic_drop_contestants enable row level security;
 alter table public.mic_drop_votes enable row level security;
 
+-- Listing is a Host action too (spec: "checked against the allowlist in the
+-- database"), so an account taken off the allowlist stops seeing its Polls.
 create policy "Hosts read their own Polls"
   on public.mic_drop_polls for select to authenticated
-  using (owner_id = (select auth.uid()));
+  using (owner_id = (select auth.uid()) and (select public.mic_drop_is_host()));
 
 create policy "Hosts read their own Polls' Contestants"
   on public.mic_drop_contestants for select to authenticated
   using (exists (
     select 1 from public.mic_drop_polls p
-    where p.id = poll_id and p.owner_id = (select auth.uid())
-  ));
+    where p.id = mic_drop_contestants.poll_id and p.owner_id = (select auth.uid())
+  ) and (select public.mic_drop_is_host()));
 
 -- Supabase's default privileges hand every new public table to anon and
 -- authenticated. Take them back: writes go through the functions below, and
@@ -139,11 +141,27 @@ grant select on public.mic_drop_polls, public.mic_drop_contestants to authentica
 -- Host functions
 -- ---------------------------------------------------------------------------
 
+/** Refuses a caller who isn't on the Host allowlist. Internal: every Host write starts here. */
+create function public.mic_drop_require_host()
+returns void
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.mic_drop_is_host() then
+    raise exception 'This account can''t host Mic Drop Polls.' using errcode = '42501';
+  end if;
+end;
+$$;
+
+revoke all on function public.mic_drop_require_host() from public, anon, authenticated;
+
 /**
  * The caller's own Poll, locked for the rest of the transaction, after
- * checking they are a Host. Internal: every Host write starts here, so the
- * allowlist and ownership checks live in one place. The row lock also makes
- * a Vote cast at the same moment (which takes a share lock) wait its turn.
+ * checking they are a Host. Internal. The row lock also makes a Vote cast at
+ * the same moment (which takes a share lock) wait its turn.
  */
 create function public.mic_drop_host_poll(p_poll_id uuid)
 returns public.mic_drop_polls
@@ -154,9 +172,7 @@ as $$
 declare
   v_poll public.mic_drop_polls;
 begin
-  if not public.mic_drop_is_host() then
-    raise exception 'This account can''t host Mic Drop polls.' using errcode = '42501';
-  end if;
+  perform public.mic_drop_require_host();
 
   select * into v_poll
   from public.mic_drop_polls
@@ -173,7 +189,34 @@ $$;
 
 revoke all on function public.mic_drop_host_poll(uuid) from public, anon, authenticated;
 
-/** A Poll or Contestant name, trimmed, or a readable refusal. Internal. */
+/**
+ * mic_drop_host_poll, refusing a closed Poll: a closed Poll is frozen
+ * (mic-drop/CONTEXT.md, "Poll"), so its line-up changes only after a reopen.
+ * Internal.
+ */
+create function public.mic_drop_open_host_poll(p_poll_id uuid)
+returns public.mic_drop_polls
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_poll public.mic_drop_polls := public.mic_drop_host_poll(p_poll_id);
+begin
+  if v_poll.closed_at is not null then
+    raise exception 'This Poll is closed. Reopen it to change the line-up.' using errcode = '22023';
+  end if;
+  return v_poll;
+end;
+$$;
+
+revoke all on function public.mic_drop_open_host_poll(uuid) from public, anon, authenticated;
+
+/**
+ * A Poll or Contestant name, trimmed, or a readable refusal. Internal. Trims
+ * the no-break and zero-width spaces a phone keyboard or a paste can bring,
+ * not just ASCII whitespace.
+ */
 create function public.mic_drop_clean_name(p_name text, p_what text)
 returns text
 language plpgsql
@@ -181,7 +224,10 @@ immutable
 set search_path = ''
 as $$
 declare
-  v_name text := btrim(coalesce(p_name, ''), E' \t\r\n');
+  v_name text := btrim(
+    coalesce(p_name, ''),
+    E' \t\r\n    ​ 　﻿'
+  );
 begin
   if char_length(v_name) = 0 then
     raise exception '% needs a name.', p_what using errcode = '22023';
@@ -205,9 +251,7 @@ as $$
 declare
   v_poll public.mic_drop_polls;
 begin
-  if not public.mic_drop_is_host() then
-    raise exception 'This account can''t host Mic Drop polls.' using errcode = '42501';
-  end if;
+  perform public.mic_drop_require_host();
 
   insert into public.mic_drop_polls (owner_id, name)
   values ((select auth.uid()), public.mic_drop_clean_name(p_name, 'A Poll'))
@@ -231,14 +275,10 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_poll public.mic_drop_polls := public.mic_drop_host_poll(p_poll_id);
+  v_poll public.mic_drop_polls := public.mic_drop_open_host_poll(p_poll_id);
   v_name text := public.mic_drop_clean_name(p_name, 'A Contestant');
   v_id uuid;
 begin
-  if v_poll.closed_at is not null then
-    raise exception 'This Poll is closed. Reopen it to change the line-up.' using errcode = '22023';
-  end if;
-
   if (select count(*) from public.mic_drop_contestants where poll_id = v_poll.id) >= 50 then
     raise exception 'A Poll can have at most 50 Contestants.' using errcode = '22023';
   end if;
@@ -270,21 +310,19 @@ set search_path = ''
 as $$
 declare
   v_poll_id uuid;
-  v_poll public.mic_drop_polls;
 begin
-  if not public.mic_drop_is_host() then
-    raise exception 'This account can''t host Mic Drop polls.' using errcode = '42501';
-  end if;
+  perform public.mic_drop_require_host();
 
-  select poll_id into v_poll_id from public.mic_drop_contestants where id = p_contestant_id;
+  -- Another Host's Contestant is "doesn't exist", the same as a missing one.
+  select c.poll_id into v_poll_id
+  from public.mic_drop_contestants c
+  join public.mic_drop_polls p on p.id = c.poll_id
+  where c.id = p_contestant_id and p.owner_id = (select auth.uid());
   if v_poll_id is null then
     raise exception 'That Contestant doesn''t exist.' using errcode = 'P0002';
   end if;
 
-  v_poll := public.mic_drop_host_poll(v_poll_id);
-  if v_poll.closed_at is not null then
-    raise exception 'This Poll is closed. Reopen it to change the line-up.' using errcode = '22023';
-  end if;
+  perform public.mic_drop_open_host_poll(v_poll_id);
 
   delete from public.mic_drop_contestants where id = p_contestant_id;
 end;
@@ -432,7 +470,7 @@ begin
   for share;
 
   if not found then
-    raise exception 'There''s no such poll.' using errcode = 'P0002';
+    raise exception 'There''s no such Poll.' using errcode = 'P0002';
   end if;
 
   if v_poll.closed_at is not null then
@@ -507,5 +545,5 @@ create trigger mic_drop_contestants_broadcast
 create trigger mic_drop_polls_broadcast
   after update on public.mic_drop_polls
   for each row
-  when (old.closed_at is distinct from new.closed_at or old.name is distinct from new.name)
+  when (old.closed_at is distinct from new.closed_at)
   execute function public.mic_drop_broadcast_change();
