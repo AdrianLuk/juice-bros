@@ -3,10 +3,12 @@ import {
   Anton,
   Archivo,
   Archivo_Narrow,
+  Big_Shoulders,
   Bricolage_Grotesque,
   Caveat,
   Geist,
   Geist_Mono,
+  Hanken_Grotesk,
   Libre_Franklin,
   Saira_Condensed,
   Schibsted_Grotesk,
@@ -122,6 +124,23 @@ const sofiaSansExtraCondensed = Sofia_Sans_Extra_Condensed({
   subsets: ["latin"],
 });
 
+// Mic Drop's world (direction seed 6fdcb673) — "the chart": the Leaderboard
+// set like a weekly music chart. Big Shoulders is the chart's heavy condensed
+// numerals and the Poll name; its optical-size axis keeps the big rank numbers
+// tight and the small counts open. Hanken Grotesk is every name and control,
+// picked to read fast on a phone in a dim room. Scoped to `.md-surface` in
+// src/app/tools/mic-drop/mic-drop.css.
+const bigShoulders = Big_Shoulders({
+  variable: "--font-md-chart",
+  subsets: ["latin"],
+  axes: ["opsz"],
+});
+
+const hankenGrotesk = Hanken_Grotesk({
+  variable: "--font-md",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -164,7 +183,7 @@ export default function RootLayout({
       // Next to suspend it for the scroll-restoration jump on a route change
       // so it doesn't animate against the page/View Transition.
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} ${schibstedGrotesk.variable} ${sofiaSans.variable} ${sofiaSansExtraCondensed.variable} h-full antialiased`}
+      className={`${geist.variable} ${bricolage.variable} ${geistMono.variable} ${sairaCondensed.variable} ${anton.variable} ${libreFranklin.variable} ${caveat.variable} ${archivo.variable} ${archivoNarrow.variable} ${schibstedGrotesk.variable} ${sofiaSans.variable} ${sofiaSansExtraCondensed.variable} ${bigShoulders.variable} ${hankenGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>

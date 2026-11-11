@@ -37,8 +37,14 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
+## Settled in the Guest screen (#669)
+
+- Movement marks compare with the Leaderboard this page view last showed and hold until the next change. A reload starts fresh, with every mark at "no change".
+- Tied rows share a rank, shown as "=2". A row with no Votes has no rank yet: a dash, and no movement mark under it (a second dash for "no change" was noise).
+- The Guest Link drops the site header and footer, so the coral field opens the screen. On wide screens the chart sits in a centred column of 42rem; the field stays full width.
+- A failed Vote or refusal shows in the footer in white, bold. Salmon stays for "down" marks only.
+
 ## Unresolved
 
-- Movement mark baseline: compared with the Leaderboard this phone last showed (recommended), held until the next change. Settle in the Guest screen ticket.
 - Host Poll list and Poll editor reuse the coral field and chart rows (LIVE or FINAL per Poll; Add a Contestant, remove per row, Copy Guest Link, two-step Close the Poll). Composed in their tickets, inside this contract.
 - The screen tickets (#668 to #671) build inside this contract; the last one ends with the finish review and DESIGN.md.
