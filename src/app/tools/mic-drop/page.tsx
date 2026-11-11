@@ -40,6 +40,7 @@ export default async function MicDropPage({ searchParams }: { searchParams: Prom
               next={MIC_DROP_ROOT}
               action={signInWithGoogleIdToken}
               signInPath={MIC_DROP_ROOT}
+              unavailableText="Google sign-in isn't available in this browser. Open this page in Safari or Chrome."
             />
           </div>
         ) : (
@@ -79,27 +80,27 @@ export default async function MicDropPage({ searchParams }: { searchParams: Prom
       </header>
       <div className="md-host">
         <div className="md-col">
-        <NewPollForm />
-        {polls.length > 0 && (
-          <ul className="md-polls">
-            {polls.map((poll) => (
-              <li key={poll.id}>
-                <Link href={pollPath(poll.id)} className="md-poll-row">
-                  <span className="md-poll-name">{poll.name}</span>
-                  <span className="md-poll-meta">
-                    <span className={poll.open ? "md-state is-live" : "md-state"}>
-                      {poll.open ? "Live" : "Final"}
+          <NewPollForm />
+          {polls.length > 0 && (
+            <ul className="md-polls">
+              {polls.map((poll) => (
+                <li key={poll.id}>
+                  <Link href={pollPath(poll.id)} className="md-poll-row">
+                    <span className="md-poll-name">{poll.name}</span>
+                    <span className="md-poll-meta">
+                      <span className={poll.open ? "md-state is-live" : "md-state"}>
+                        {poll.open ? "Live" : "Final"}
+                      </span>
+                      {poll.contestantCount} {poll.contestantCount === 1 ? "Contestant" : "Contestants"} ·{" "}
+                      {started(poll.createdAt)}
                     </span>
-                    {poll.contestantCount} {poll.contestantCount === 1 ? "Contestant" : "Contestants"} ·{" "}
-                    {started(poll.createdAt)}
-                  </span>
-                  <ChevronRight aria-hidden size={20} className="md-poll-go" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        <SignOut />
+                    <ChevronRight aria-hidden size={20} className="md-poll-go" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <SignOut />
         </div>
       </div>
     </>

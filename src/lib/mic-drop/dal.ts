@@ -15,7 +15,7 @@ import { createClient } from "./supabase/server.ts";
 export type Visitor =
   | { kind: "signed-out" }
   | { kind: "not-host" }
-  | { kind: "host"; userId: string };
+  | { kind: "host" };
 
 export const getVisitor = cache(async (): Promise<Visitor> => {
   const supabase = await createClient();
@@ -24,7 +24,7 @@ export const getVisitor = cache(async (): Promise<Visitor> => {
   } = await supabase.auth.getUser();
   if (!user) return { kind: "signed-out" };
   return (await isHost(supabase))
-    ? { kind: "host", userId: user.id }
+    ? { kind: "host" }
     : { kind: "not-host" };
 });
 
