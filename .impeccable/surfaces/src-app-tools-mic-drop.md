@@ -44,7 +44,15 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 - The Guest Link drops the site header and footer, so the coral field opens the screen. On wide screens the chart sits in a centred column of 42rem; the field stays full width.
 - A failed Vote or refusal shows in the footer in white, bold. Salmon stays for "down" marks only.
 
+## Settled in the Host screens (#668)
+
+- Every Mic Drop page drops the site header, footer and floating menu button, the Host's included: the site's orange header stacked on the coral field read as two clashing oranges, and the menu button covered the Add button on a phone.
+- The Host's pages open on the same coral field ("Your Polls", or the Poll's name with Live or Final), then one 42rem column padded like the field so its edge lines up with the name.
+- Primary buttons are paper white pills on night ink; coral stays reserved. Inputs are raised night with a track-colored hairline, 16px text so a phone doesn't zoom.
+- The line-up numbers rows in entry order with small muted "01", so it never reads as a rank.
+- Signed out, and an account off the allowlist, get the plain notice page used for "No such Poll".
+
 ## Unresolved
 
-- Host Poll list and Poll editor reuse the coral field and chart rows (LIVE or FINAL per Poll; Add a Contestant, remove per row, Copy Guest Link, two-step Close the Poll). Composed in their tickets, inside this contract.
+- Remove per row and the two-step Close the Poll arrive with #671, inside this contract.
 - The screen tickets (#668 to #671) build inside this contract; the last one ends with the finish review and DESIGN.md.

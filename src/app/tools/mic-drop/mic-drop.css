@@ -305,9 +305,9 @@ body:has(.md-surface) {
   font-weight: 700;
 }
 
-/* ---- No such Poll ------------------------------------------------------------- */
+/* ---- A notice page: no such Poll, sign in, can't host ------------------------ */
 
-.md-missing {
+.md-notice {
   display: grid;
   gap: 12px;
   align-content: start;
@@ -316,7 +316,7 @@ body:has(.md-surface) {
   margin: 0 auto;
 }
 
-.md-missing h1 {
+.md-notice h1 {
   margin: 0;
   font-family: var(--md-chart);
   font-weight: 900;
@@ -325,10 +325,218 @@ body:has(.md-surface) {
   text-transform: uppercase;
 }
 
-.md-missing p {
+.md-notice p {
   margin: 0;
   color: var(--md-mute);
   line-height: 1.5;
+}
+
+.md-notice .md-google {
+  margin-top: 12px;
+  max-width: 22rem;
+}
+
+/* ---- The Host's pages --------------------------------------------------------- */
+
+/* Padded like the field, so the column inside lines up with the Poll name. */
+.md-host > .md-col {
+  display: grid;
+  gap: 32px;
+  align-content: start;
+}
+
+.md-host {
+  padding: 24px max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 48px)
+    max(20px, env(safe-area-inset-left, 0px));
+}
+
+.md-label {
+  display: block;
+  margin: 0 0 10px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--md-mute);
+}
+
+.md-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.md-input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--md-track);
+  border-radius: 10px;
+  background: var(--md-raised);
+  color: var(--md-ink);
+  font: inherit;
+  /* 16px or more, so a phone doesn't zoom in on focus. */
+  font-size: 1rem;
+}
+
+.md-input::placeholder {
+  color: var(--md-mute);
+}
+
+.md-input:focus-visible {
+  outline-offset: 0;
+  border-color: var(--md-focus);
+}
+
+.md-btn {
+  height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--md-paper);
+  color: var(--md-ground);
+  font: inherit;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.md-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.md-quiet {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--md-mute);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* White, like the Guest footer's: salmon is the "down" mark's alone. */
+.md-problem,
+.md-notice .md-problem {
+  margin: 8px 0 0;
+  color: var(--md-ink);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.md-problem:empty {
+  display: none;
+}
+
+.md-polls,
+.md-lineup {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--md-line);
+}
+
+.md-poll-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--md-line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.md-poll-row:active {
+  background: var(--md-raised);
+}
+
+.md-poll-name {
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.md-poll-meta {
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--md-mute);
+}
+
+.md-poll-go {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  color: var(--md-mute);
+}
+
+.md-state {
+  font-weight: 800;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.md-state.is-live {
+  color: var(--md-ink);
+}
+
+.md-lineup {
+  counter-reset: md-lineup;
+}
+
+.md-lineup li {
+  counter-increment: md-lineup;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: baseline;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--md-line);
+  font-weight: 700;
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+
+/* Entry order, not a rank: small and muted, so it never reads as the chart. */
+.md-lineup li::before {
+  content: counter(md-lineup, decimal-leading-zero);
+  font-family: var(--md-chart);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--md-mute);
+}
+
+.md-host .md-empty {
+  padding: 0;
+}
+
+.md-share-url {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--md-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--md-track);
+  text-underline-offset: 3px;
+}
+
+.md-share-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--md-mute);
 }
 
 /* One centred column on wider screens; a phone uses the whole width. Last in

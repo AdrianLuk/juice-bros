@@ -11,9 +11,11 @@ import { usePathname } from "next/navigation";
  * - **`/on-deck/*` app surfaces** — the live-session, floor, display, and
  *   organizer pages run in On Deck's own bare shell. The marketing landing at
  *   exactly `/on-deck` keeps the global chrome.
- * - **`/tools/mic-drop/vote/*`** — a Mic Drop Guest Link, opened from a group
- *   chat at a karaoke night: the whole phone is the chart, with nothing to
- *   navigate to. The Host's pages keep the chrome.
+ * - **`/tools/mic-drop`** — an unlisted tool in its own world. A Guest Link,
+ *   opened from a group chat at a karaoke night, is the whole phone as the
+ *   chart with nothing to navigate to; the Host's pages open on the same coral
+ *   field, which the site's orange header and floating menu button would sit
+ *   on top of.
  *
  * `/s/[token]` — the Guest Slot Link page — keeps the global chrome: it's a
  * public marketing surface, not part of the app.
@@ -40,7 +42,7 @@ export function SiteChromeSlot({ children }: { children: ReactNode }) {
   // (exactly /on-deck) is marketing and keeps the global chrome.
   const isOnDeckApp = pathname.startsWith("/on-deck/");
 
-  const isMicDropGuest = pathname.startsWith("/tools/mic-drop/vote/");
+  const isMicDrop = pathname === "/tools/mic-drop" || pathname.startsWith("/tools/mic-drop/");
 
-  return isBookingBuddy || isOnDeckApp || isMicDropGuest ? null : <>{children}</>;
+  return isBookingBuddy || isOnDeckApp || isMicDrop ? null : <>{children}</>;
 }
