@@ -40,6 +40,9 @@ comment on table public.mic_drop_hosts is
 
 alter table public.mic_drop_hosts enable row level security;
 revoke all on public.mic_drop_hosts from anon, authenticated;
+-- Server-side admin only (this project's default privileges give service_role
+-- no table access): the db-tests allowlist a throwaway Host through it.
+grant select, insert, delete on public.mic_drop_hosts to service_role;
 
 /** True when the caller is on the Host allowlist. */
 create function public.mic_drop_is_host()
