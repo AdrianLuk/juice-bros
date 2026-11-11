@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { barShare } from "@/lib/mic-drop/leaderboard";
 import type { GuestPoll } from "@/lib/mic-drop/polls";
-import { cn } from "@/lib/utils";
+import { PollField } from "./poll-field";
 import { QueryProvider } from "./query-provider";
 import { usePollSync } from "./use-poll-sync";
 
@@ -44,19 +44,7 @@ function LiveLineUp({ token, initial, lineUp, share, children }: Props) {
 
   return (
     <>
-      <header className={cn("md-field", !poll.open && "is-final")}>
-        <div className="md-col">
-          <h1>{poll.name}</h1>
-          <div className="md-field-meta">
-            <span role="status" className={cn("md-live", reconnecting && "is-stale")}>
-              {reconnecting ? "Reconnecting…" : poll.open ? "Live" : "Final"}
-            </span>
-            <span>
-              {poll.phonesIn} {poll.phonesIn === 1 ? "phone" : "phones"} in
-            </span>
-          </div>
-        </div>
-      </header>
+      <PollField poll={poll} reconnecting={reconnecting} liveLabel="Live" finalLabel="Final" />
       <div className="md-host">
         <div className="md-col">
           {share}

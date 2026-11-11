@@ -18,6 +18,12 @@ import { deleteHost, seedPoll, type SeededPoll } from "./support/mic-drop.ts";
 const LINE_UP = ["Anna Leigh Waters", "Ben Johns", "JW Johnson & Dylan Frazier"];
 const PHONE = { viewport: { width: 390, height: 844 } };
 
+/**
+ * Under the 4-second fallback poll, so a live assertion can only pass on the
+ * broadcast, never on polling alone.
+ */
+const LIVE = { timeout: 3_000 };
+
 let poll: SeededPoll;
 
 test.beforeAll(async () => {
@@ -27,6 +33,18 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (poll) await deleteHost(poll);
 });
+
+/**
+ * Resolves once the page has joined the Poll's Realtime topic. Call before
+ * the page opens: until it has joined, updates arrive only by polling.
+ */
+function joined(page: Page): Promise<unknown> {
+  return page.waitForEvent("websocket").then((socket) =>
+    socket.waitForEvent("framereceived", {
+      predicate: (frame) => String(frame.payload).includes(`"realtime:mic-drop:${poll.pollId}","phx_reply"`),
+    }),
+  );
+}
 
 /** The Host signs in with a password through Team Tally's form (Mic Drop's own is Google only), then opens the Poll. */
 async function openAsHost(browser: Browser): Promise<Page> {
@@ -40,8 +58,10 @@ async function openAsHost(browser: Browser): Promise<Page> {
   await page.getByLabel("Password").fill(poll.hostPassword);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.waitForURL((url) => !url.pathname.includes("/sign-in"));
+  const live = joined(page);
   await page.goto(`/tools/mic-drop/polls/${poll.pollId}`);
   await expect(page.getByRole("heading", { level: 1, name: "Dink Dine & Drink karaoke" })).toBeVisible();
+  await live;
   return page;
 }
 
@@ -65,30 +85,34 @@ async function voteFor(guest: Page, name: string) {
 test("a Guest's Vote moves the Host's counts live, and a reload keeps the pick", async ({ browser }) => {
   const host = await openAsHost(browser);
   const guest = await (await browser.newContext(PHONE)).newPage();
+  const guestLive = joined(guest);
   await guest.goto(`/tools/mic-drop/vote/${poll.guestToken}`);
   await expect(guest.getByText("Live chart")).toBeVisible();
+  await guestLive;
 
   await expect(host.getByText("0 phones in")).toBeVisible();
   await expect(hostCount(host, "Anna Leigh Waters")).toHaveText("0");
 
   await voteFor(guest, "Anna Leigh Waters");
-  await expect(hostCount(host, "Anna Leigh Waters")).toHaveText("1");
+  await expect(hostCount(host, "Anna Leigh Waters")).toHaveText("1", LIVE);
   await expect(host.getByText("1 phone in")).toBeVisible();
 
   // Switching moves the Vote: the old count drops as the new one rises.
   await voteFor(guest, "Ben Johns");
-  await expect(hostCount(host, "Ben Johns")).toHaveText("1");
-  await expect(hostCount(host, "Anna Leigh Waters")).toHaveText("0");
+  await expect(hostCount(host, "Ben Johns")).toHaveText("1", LIVE);
+  await expect(hostCount(host, "Anna Leigh Waters")).toHaveText("0", LIVE);
   await expect(host.getByText("1 phone in")).toBeVisible();
 
+  const rejoined = joined(guest);
   await guest.reload();
   await expect(guestRow(guest, "Ben Johns")).toHaveAttribute("aria-pressed", "true");
   await expect(guest.getByText("Your vote: Ben Johns.")).toBeVisible();
+  await rejoined;
 
-  // A singer who decides on the spot shows up on the open Guest screen.
+  // A Contestant added on the spot shows up on the open Guest screen.
   await host.getByLabel("Add a Contestant").fill("Tyson McGuffin");
   await host.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(guestRow(guest, "Tyson McGuffin")).toBeVisible();
+  await expect(guestRow(guest, "Tyson McGuffin")).toBeVisible(LIVE);
 });
 
 test("a dropped connection says Reconnecting until it recovers", async ({ browser }) => {

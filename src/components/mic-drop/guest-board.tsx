@@ -8,6 +8,7 @@ import { guestId } from "@/lib/mic-drop/guest-id";
 import { barShare, chartRanks, nextChart, type ChartState, type Movement } from "@/lib/mic-drop/leaderboard";
 import type { GuestPoll } from "@/lib/mic-drop/polls";
 import { cn } from "@/lib/utils";
+import { PollField } from "./poll-field";
 import { QueryProvider } from "./query-provider";
 import { usePollSync } from "./use-poll-sync";
 
@@ -74,19 +75,7 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <header className={cn("md-field", !poll.open && "is-final")}>
-        <div className="md-col">
-          <h1>{poll.name}</h1>
-          <div className="md-field-meta">
-            <span role="status" className={cn("md-live", reconnecting && "is-stale")}>
-              {reconnecting ? "Reconnecting…" : poll.open ? "Live chart" : "Final chart"}
-            </span>
-            <span>
-              {poll.phonesIn} {poll.phonesIn === 1 ? "phone" : "phones"} in
-            </span>
-          </div>
-        </div>
-      </header>
+      <PollField poll={poll} reconnecting={reconnecting} liveLabel="Live chart" finalLabel="Final chart" />
 
       {winners.length > 0 && (
         <section className="md-top md-col" aria-label={winners.length > 1 ? "Joint winners" : "Winner"}>

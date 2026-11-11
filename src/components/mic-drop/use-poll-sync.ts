@@ -5,20 +5,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { readPoll } from "@/lib/mic-drop/actions/guest";
 import type { GuestPoll } from "@/lib/mic-drop/polls";
+import { pollIntervalFor, pollTopic, socketFrom, type SocketState } from "@/lib/mic-drop/live-sync";
 import { createClient } from "@/lib/mic-drop/supabase/client";
 
-/** While the socket carries the updates: a backstop for a missed broadcast. */
-const LIVE_POLL_MS = 15_000;
-/** While the socket connects or is down: often enough to still feel live. */
-const FALLBACK_POLL_MS = 4_000;
-
-type Socket = "connecting" | "live" | "dropped";
-
-function socketFrom(status: string): Socket {
-  if (status === "SUBSCRIBED") return "live";
-  if (status === "TIMED_OUT" || status === "CHANNEL_ERROR" || status === "CLOSED") return "dropped";
-  return "connecting";
-}
+/** Every read of one Poll, whichever phone's Vote it carries. */
+const pollKey = (token: string) => ["mic-drop", "poll", token];
 
 /**
  * A Poll read through its Guest Link that stays current (issue #670). Every
@@ -49,14 +40,14 @@ export function usePollSync(
       return null;
     }
   }, []);
-  const [socket, setSocket] = useState<Socket>(supabase ? "connecting" : "dropped");
+  const [socket, setSocket] = useState<SocketState>(supabase ? "connecting" : "dropped");
 
   useEffect(() => {
     if (!supabase) return;
     const channel = supabase
-      .channel(`mic-drop:${initial.id}`)
+      .channel(pollTopic(initial.id))
       .on("broadcast", { event: "changed" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["mic-drop", "poll", token] });
+        void queryClient.invalidateQueries({ queryKey: pollKey(token) });
       })
       .subscribe((status) => setSocket(socketFrom(status)));
     return () => {
@@ -65,11 +56,13 @@ export function usePollSync(
   }, [supabase, initial.id, token, queryClient]);
 
   const read = useQuery({
-    queryKey: ["mic-drop", "poll", token, guestId],
+    queryKey: [...pollKey(token), guestId],
     queryFn: () => readPoll(token, guestId),
     enabled,
     placeholderData: initial,
-    refetchInterval: socket === "live" ? LIVE_POLL_MS : FALLBACK_POLL_MS,
+    // One retry, not three: a lost signal closes no socket, so a failing read is the quicker tell.
+    retry: 1,
+    refetchInterval: pollIntervalFor(socket),
   });
 
   return { poll: read.data ?? initial, reconnecting: socket === "dropped" || read.isError };
