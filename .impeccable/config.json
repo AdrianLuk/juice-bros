@@ -26,6 +26,15 @@
         ],
         "createdAt": "2026-10-03T00:12:42.232Z",
         "reason": "Claude: test fixture reproducing Backyard Club's third-party email HTML verbatim, not our UI"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/app/tools/mic-drop/mic-drop.css"
+        ],
+        "createdAt": "2026-11-11T08:36:35.764Z",
+        "reason": "Claude: the coral left edge marks the Guest's own pick on a full-width chart row (a selection state, not a card accent); it is in the direction contract Adrian chose on round 3 ('your pick gets a coral edge', .impeccable/surfaces/src-app-tools-mic-drop.md)"
       }
     ]
   }
