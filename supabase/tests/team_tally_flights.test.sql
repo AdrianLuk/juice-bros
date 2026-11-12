@@ -25,7 +25,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(52);
+select plan(67);
 
 select has_function('public', 'team_tally_mark_done', array['text', 'uuid'], 'team_tally_mark_done(text, uuid) exists');
 select has_function('public', 'team_tally_set_dreambreaker', array['text', 'uuid', 'uuid'], 'team_tally_set_dreambreaker exists');
@@ -359,6 +359,111 @@ select is(
   'flights',
   'which puts the night back into its Flights'
 );
+
+-- ---- End the night and Resume the night (#684) --------------------------------------
+-- Flight A is done; Flight B is open with all six Games in and no tie, so ending the night closes it.
+select lives_ok(
+  $$select public.team_tally_organizer_end_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'the Organizer ends the night'
+);
+select is(
+  (select status from public.team_tally_events where id = (select value::uuid from tt_ids where key = 'event')),
+  'finished',
+  'which finishes it'
+);
+select is(
+  (select done_at is not null and done_by_team_id is null from public.team_tally_matchups
+    where id = (select value::uuid from tt_ids where key = 'flight_B')),
+  true,
+  'and marks the fully scored Flight done, as the Organizer'
+);
+select throws_ok(
+  $$select public.team_tally_organizer_resume_event((select value::uuid from tt_ids where key = 'event'))$$,
+  '22023',
+  'Every Flight is done. Reopen a Flight to play it again.',
+  'a night with every Flight done is resumed by reopening a Flight'
+);
+
+-- Flight B back open, and short of a score, so ending the night can't close it.
+select lives_ok(
+  $$select public.team_tally_organizer_reopen((select value::uuid from tt_ids where key = 'flight_B'))$$,
+  'the Organizer reopens Flight B'
+);
+reset role;
+update public.team_tally_games set red_score = null, blue_score = null
+  where id = (select value::uuid from tt_ids where key = 'fB_r1_captains');
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "24242424-0000-0000-0000-00000000000b", "role": "authenticated"}';
+select throws_ok(
+  $$select public.team_tally_organizer_end_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'P0002',
+  'Team Event not found',
+  'another User cannot end A''s night'
+);
+select throws_ok(
+  $$select public.team_tally_organizer_resume_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'P0002',
+  'Team Event not found',
+  'or resume it'
+);
+
+set local request.jwt.claims = '{"sub": "24242424-0000-0000-0000-00000000000a", "role": "authenticated"}';
+select lives_ok(
+  $$select public.team_tally_organizer_end_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'the Organizer ends the night with Flight B short of a score'
+);
+select results_eq(
+  $$select e.status, m.done_at is null
+    from public.team_tally_events e
+    join public.team_tally_matchups m on m.id = (select value::uuid from tt_ids where key = 'flight_B')
+    where e.id = (select value::uuid from tt_ids where key = 'event')$$,
+  $$values ('finished', true)$$,
+  'the night is finished and Flight B is still open'
+);
+select lives_ok(
+  $$select public.team_tally_organizer_resume_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'the Organizer resumes the night'
+);
+select is(
+  (select status from public.team_tally_events where id = (select value::uuid from tt_ids where key = 'event')),
+  'flights',
+  'which puts it back in its Flights'
+);
+
+-- A superadmin ends and resumes another Organizer's night.
+reset role;
+insert into auth.users (id, instance_id, aud, role, email) values
+  ('24242424-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'tt-flights-c@example.com');
+insert into public.team_tally_superadmins (user_id) values ('24242424-0000-0000-0000-00000000000c');
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "24242424-0000-0000-0000-00000000000c", "role": "authenticated"}';
+select lives_ok(
+  $$select public.team_tally_organizer_end_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'a superadmin ends another Organizer''s night'
+);
+select is(
+  (select status from public.team_tally_events where id = (select value::uuid from tt_ids where key = 'event')),
+  'finished',
+  'which finishes it'
+);
+select lives_ok(
+  $$select public.team_tally_organizer_resume_event((select value::uuid from tt_ids where key = 'event'))$$,
+  'and resumes it'
+);
+select is(
+  (select status from public.team_tally_events where id = (select value::uuid from tt_ids where key = 'event')),
+  'flights',
+  'back in its Flights'
+);
+
+-- The rest of the file runs as Organizer A, with Flight B scored again as it was.
+reset role;
+update public.team_tally_games set red_score = 11, blue_score = 7
+  where id = (select value::uuid from tt_ids where key = 'fB_r1_captains');
+delete from public.team_tally_superadmins where user_id = '24242424-0000-0000-0000-00000000000c';
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "24242424-0000-0000-0000-00000000000a", "role": "authenticated"}';
 
 -- ---- a second night: Seed now, and the Organizer's order on a full tie --------------
 insert into tt_ids

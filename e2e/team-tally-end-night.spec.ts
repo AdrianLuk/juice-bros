@@ -107,6 +107,7 @@ test.describe("ending a night with a Flight still open", () => {
     // The Public Link: Flight A's champion, and Flight B held open instead of a champion.
     const results = room.getByRole("region", { name: "Results" });
     await expect(results).toBeVisible({ timeout: 20_000 });
+    await expect(room.getByRole("region", { name: "Flights", exact: true })).toHaveCount(0);
     const champions = results.getByRole("region", { name: "Flight champions" });
     await expect(champions.getByRole("listitem")).toHaveCount(2);
     await expect(champions.getByRole("listitem").nth(0)).toContainText("Golden Set");
@@ -127,7 +128,10 @@ test.describe("ending a night with a Flight still open", () => {
 
     // Resume the night: the Public Link and the Score Link are live again.
     await clickUntil(resume.getByRole("button", { name: "Resume the night" }), page.getByRole("region", { name: "End the night" }));
-    await expect(room.getByRole("region", { name: "Results" })).toHaveCount(0, { timeout: 20_000 });
+    // The Public Link is the live layout again: Flights and standings, no results.
+    await expect(room.getByRole("region", { name: "Flights", exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(room.getByRole("region", { name: "Results" })).toHaveCount(0);
+    await expect(room.getByRole("region", { name: "Standings", exact: true })).toBeVisible();
     await expect(fed.getByRole("region", { name: "The night is over" })).toHaveCount(0, { timeout: 20_000 });
     await expect(fed.getByRole("region", { name: "Your Flight" })).toBeVisible();
   });

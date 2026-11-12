@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { anonClient, createTestUser, deleteTestUser, serviceRoleClient, type TestUser } from "../db-test-support.ts";
+import { anonClient, createTestUser, deleteTestUser, type TestUser } from "../db-test-support.ts";
 import { flightMatchups, type TeamEventDoc } from "./event-doc.ts";
 import { loadTeamEvent, saveTeamEvent } from "./events.ts";
 import { finalPlaces } from "./final-places.ts";
@@ -182,8 +182,8 @@ test("a night that finished on its own can't be resumed: reopening a Flight is t
   });
 });
 
-test("only the Organizer or a Superadmin may end or resume a night, and a Score Link may not", async () => {
-  const { eventId, read } = await nightInFlights();
+test("only the Organizer may end or resume a night, not another User or a Score Link (a Superadmin is in the pgTAP suite)", async () => {
+  const { organizer, eventId, read } = await nightInFlights();
   const stranger = await createTestUser("Team Tally Stranger");
   users.push(stranger);
 
@@ -192,14 +192,9 @@ test("only the Organizer or a Superadmin may end or resume a night, and a Score 
   assert.equal(anon.ok, false);
   assert.equal((await read()).status, "flights");
 
-  const superadmin = await createTestUser("Team Tally Superadmin");
-  users.push(superadmin);
-  const { error } = await serviceRoleClient().from("team_tally_superadmins").insert({ user_id: superadmin.userId });
-  assert.equal(error, null);
-
-  assert.deepEqual(await endNightAsOrganizer(superadmin.supabase, eventId), { ok: true });
+  assert.deepEqual(await endNightAsOrganizer(organizer.supabase, eventId), { ok: true });
   assert.deepEqual(await resumeNightAsOrganizer(stranger.supabase, eventId), { ok: false, problem: "Team Event not found" });
-  assert.deepEqual(await resumeNightAsOrganizer(superadmin.supabase, eventId), { ok: true });
+  assert.equal((await read()).status, "finished");
 });
 
 test("an ended night's Score Links are read-only until the night is resumed", async () => {
