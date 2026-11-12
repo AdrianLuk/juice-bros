@@ -22,7 +22,7 @@ import {
   load as loadSelection,
   save as saveSelection,
 } from "@/components/apps/match-mixer/lib/persistence/selection-storage";
-import { changeGameRule, clearScore, enterScore, startRound } from "@/lib/match-mixer/actions";
+import { changeGameRule, clearScore, enterScore, finishMixer, startRound } from "@/lib/match-mixer/actions";
 import type { LiveMixer } from "@/lib/match-mixer/live-mixers";
 
 import { GameRulePicker } from "./game-rule-picker";
@@ -39,15 +39,17 @@ import { liveMixerKey, useLiveMixer } from "./use-live-mixer";
  * come from the event log and stay current on every phone. Find-me works as
  * it does on the tool itself, and a Selection made here is the same Selection.
  *
- * The Organizer Link (`playerPath` and `organizerPath` both present) also
- * scores any Game, starts the next Round and sets the Game Rule. The Player
- * Link scores its Selection's own Games, up to the Current Round (#689).
+ * The Organizer Link also scores any Game, starts the next Round, sets the
+ * Game Rule and finishes the night. The Player Link scores its Selection's
+ * own Games, up to the Current Round (#689). A signed-in superadmin runs the
+ * night through either link, finished or not (#690). A finished Live Mixer
+ * shows its final scores and Standings and takes no writes from anyone else.
  */
 export function LiveBoard(props: {
   token: string;
   initial: LiveMixer;
-  /** Both present on the Organizer Link only. */
-  playerPath?: string;
+  playerPath: string;
+  /** The Organizer Link's own page only. */
   organizerPath?: string;
 }) {
   return (
@@ -65,7 +67,7 @@ function LiveSheet({
 }: {
   token: string;
   initial: LiveMixer;
-  playerPath?: string;
+  playerPath: string;
   organizerPath?: string;
 }) {
   const { mixer, reconnecting } = useLiveMixer(token, initial);
@@ -84,20 +86,33 @@ function LiveSheet({
     );
   }
 
-  const organizer = playerPath !== undefined && organizerPath !== undefined ? { playerPath, organizerPath } : null;
-  return <LiveFace token={token} live={live} reconnecting={reconnecting} organizer={organizer} />;
+  // The same rule the server holds (`runsTheNight`), which checks it again on every write.
+  const organizer =
+    mixer.role === "organizer" || mixer.superadmin
+      ? { playerPath, organizerPath, superadmin: mixer.superadmin }
+      : null;
+  const night: Night = mixer.finishedAt === null ? "running" : mixer.superadmin ? "fixing" : "finished";
+  return <LiveFace token={token} live={live} reconnecting={reconnecting} organizer={organizer} night={night} />;
 }
+
+/**
+ * "fixing": finished, but open to the superadmin, who can still change
+ * anything. "finished": final for everyone else.
+ */
+type Night = "running" | "finished" | "fixing";
 
 function LiveFace({
   token,
   live,
   reconnecting,
   organizer,
+  night,
 }: {
   token: string;
   live: RebuiltMixer;
   reconnecting: boolean;
-  organizer: { playerPath: string; organizerPath: string } | null;
+  organizer: { playerPath: string; organizerPath?: string; superadmin: boolean } | null;
+  night: Night;
 }) {
   const { draw } = live;
   const queryClient = useQueryClient();
@@ -137,12 +152,19 @@ function LiveFace({
   };
 
   // Which Games this link scores (#689): any on the Organizer Link; on the
-  // Player Link, the Selection's own, up to the Current Round. The server
-  // checks the same again.
+  // Player Link, the Selection's own, up to the Current Round; none once the
+  // night has finished (#690). The server checks the same again.
   const rounds = roundCount(draw);
+  const finished = night === "finished";
   const access = (at: GameAt): GameAccess =>
-    organizer ? "scores" : selected === null ? "not-yours" : playerAccess(draw, live.currentRound, selected, at);
-  const canScore = organizer !== null || selected !== null;
+    finished
+      ? "not-yours"
+      : organizer
+        ? "scores"
+        : selected === null
+          ? "not-yours"
+          : playerAccess(draw, live.currentRound, selected, at);
+  const canScore = !finished && (organizer !== null || selected !== null);
 
   // The keypad sheet, open on one Game at a time, and only while this link can score it.
   const [scoring, setScoring] = useState<GameAt | null>(null);
@@ -159,41 +181,65 @@ function LiveFace({
         <header className="mm-head">
           <div className="mm-headline">
             <h1 className="mm-title">Match Mixer</h1>
-            <p className="mm-meta">Live · {draw.numbers}</p>
+            <p className="mm-meta">
+              {night === "running" ? "Live" : "Finished"} · {draw.numbers}
+            </p>
           </div>
           <p className="mm-lede">
-            {organizer
-              ? "This board is live. Paste the Player Link into the group chat, then tap Score under a Game when it ends. Standings update on every phone."
-              : "Tonight’s board, live from the organizer. Tap your name to see your evening and score your own Games. Standings update on every phone."}
+            {night !== "running"
+              ? "This Live Mixer has finished. The scores and Standings below are final."
+              : organizer
+                ? "This board is live. Paste the Player Link into the group chat, then tap Score under a Game when it ends. Standings update on every phone."
+                : "Tonight’s board, live from the organizer. Tap your name to see your evening and score your own Games. Standings update on every phone."}
           </p>
         </header>
 
         <div className="mm-cols">
           <div className="mm-controls">
+            {organizer?.superadmin ? (
+              <p className="mm-note mb-6" role="note">
+                {night === "fixing"
+                  ? "You’re the superadmin, so you can still change anything on this finished night."
+                  : "You’re the superadmin, so you can run this night from any link."}
+              </p>
+            ) : null}
             {organizer ? (
               <>
-                <RoundControl token={token} current={live.currentRound} rounds={rounds} onSaved={reread} />
-                <RuleControl token={token} rule={live.rule} onSaved={reread} />
+                {finished ? null : (
+                  <>
+                    <RoundControl token={token} current={live.currentRound} rounds={rounds} onSaved={reread} />
+                    <RuleControl token={token} rule={live.rule} onSaved={reread} />
+                  </>
+                )}
                 <CopyLink
                   id="mm-player-link"
                   label="Player Link"
                   path={organizer.playerPath}
-                  note="For the group chat. Anyone with it sees the board and the Standings, and can score their own Games."
+                  note={
+                    finished
+                      ? "Anyone with it sees the board and the final Standings."
+                      : "For the group chat. Anyone with it sees the board and the Standings, and can score their own Games."
+                  }
                 />
-                <CopyLink
-                  id="mm-organizer-link"
-                  label="Organizer Link"
-                  path={organizer.organizerPath}
-                  note="Yours alone. Whoever holds it runs the night."
-                />
+                {organizer.organizerPath ? (
+                  <CopyLink
+                    id="mm-organizer-link"
+                    label="Organizer Link"
+                    path={organizer.organizerPath}
+                    note="Yours alone. Whoever holds it runs the night."
+                  />
+                ) : null}
+                {night === "running" ? <FinishControl token={token} onSaved={reread} /> : null}
               </>
             ) : (
               <>
                 <p className="mm-legend">Your Games</p>
                 <p className="mm-note mt-1" role="status">
-                  {selected === null
-                    ? "Tap your name on the board first. Then you can score your own Games."
-                    : `Tap Score under one of your Games when it ends, up to Round ${roundOn(live.currentRound, rounds)}. Tap your name again to see everyone.`}
+                  {finished
+                    ? "The night has finished. Tap your name to see how your evening went."
+                    : selected === null
+                      ? "Tap your name on the board first. Then you can score your own Games."
+                      : `Tap Score under one of your Games when it ends, up to Round ${roundOn(live.currentRound, rounds)}. Tap your name again to see everyone.`}
                 </p>
                 <p className="mm-legend mt-6">Game Rule</p>
                 <p className="mm-note mt-1">{describeGameRule(live.rule)}</p>
@@ -222,7 +268,11 @@ function LiveFace({
                 courtLabels={draw.config.courtLabels}
               />
             </div>
-            <StandingsTables standings={live.standings} pairs={draw.pools[0]?.score.format === "fixed"} />
+            <StandingsTables
+              standings={live.standings}
+              pairs={draw.pools[0]?.score.format === "fixed"}
+              final={night !== "running"}
+            />
           </div>
         </div>
       </div>
@@ -317,6 +367,66 @@ function RoundControl({
           {pending ? "Starting…" : `Start round ${next + 1}`}
         </button>
       ) : null}
+      <p className="mm-note mt-1" role="status" data-tone={problem ? "refused" : undefined}>
+        {problem}
+      </p>
+    </div>
+  );
+}
+
+const FINISH_UNREACHABLE = "Couldn't reach Match Mixer. Check your signal, then reload to see if the night finished.";
+
+/**
+ * The Organizer Link's "Finish Mixer" (#690), behind a second tap: finishing
+ * makes every score final for everyone, and only the superadmin can undo a
+ * mistake after it.
+ */
+function FinishControl({ token, onSaved }: { token: string; onSaved: () => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const finish = async () => {
+    setPending(true);
+    setProblem(null);
+    let outcome: Awaited<ReturnType<typeof finishMixer>>;
+    try {
+      outcome = await finishMixer(token);
+    } catch {
+      outcome = { ok: false, problem: FINISH_UNREACHABLE };
+    }
+    if (outcome.ok) await onSaved();
+    else setProblem(outcome.problem);
+    setPending(false);
+    setConfirming(false);
+  };
+
+  return (
+    <div className="mt-8">
+      <p className="mm-legend">Finish</p>
+      <p className="mm-note mt-1">
+        Once the last Game is in, finish the night so the Standings are final. It finishes on its own 12 hours after
+        going live.
+      </p>
+      {confirming ? (
+        <div role="group" aria-labelledby="mm-finish-confirm">
+          <p className="mm-note mt-2" id="mm-finish-confirm">
+            Finish now? After this, nobody can change a score.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className="mm-share" onClick={finish} disabled={pending}>
+              {pending ? "Finishing…" : "Yes, finish the night"}
+            </button>
+            <button type="button" className="mm-share" onClick={() => setConfirming(false)} disabled={pending}>
+              Keep playing
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="mm-share mt-2" onClick={() => setConfirming(true)}>
+          Finish Mixer
+        </button>
+      )}
       <p className="mm-note mt-1" role="status" data-tone={problem ? "refused" : undefined}>
         {problem}
       </p>

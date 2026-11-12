@@ -289,6 +289,73 @@ test("a player with a Selection scores their own Game, up to the Current Round, 
   await phone.close();
 });
 
+/**
+ * Holds a page's view of the night where it is: its re-reads (server action
+ * POSTs without a Game in them) never arrive, while its writes go through.
+ */
+async function freeze(on: Page): Promise<void> {
+  await on.route("**/tools/match-mixer/**", (route) => {
+    const post = route.request().method() === "POST";
+    return post && !(route.request().postData() ?? "").includes('"court":') ? route.abort() : route.continue();
+  });
+}
+
+test("the organizer finishes the night, and then a score from either link is refused (#690)", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await signIn(page);
+  await drawBoard(page, ROSTER.split("\n").slice(0, 8).join("\n"));
+  await page.getByRole("button", { name: "Go live" }).click();
+  await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
+  const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+  await page.getByRole("button", { name: "Round 1, Court 1: enter the score" }).click();
+  const keypad = page.getByRole("dialog", { name: "Round 1 · Court 1" });
+  for (const key of ["1", "1", "4"]) await keypad.getByRole("button", { name: key, exact: true }).click();
+
+  const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const player = await phone.newPage();
+  await player.goto(playerLink);
+  await player.getByRole("button", { name: "Ben Johns" }).first().click();
+  await player.getByRole("button", { name: /^Round 1, Court \d: enter the score$/ }).click();
+  const playerKeypad = player.getByRole("dialog", { name: /^Round 1 · Court \d$/ });
+  for (const key of ["1", "1", "7"]) await playerKeypad.getByRole("button", { name: key, exact: true }).click();
+
+  // Both keypads stay open on the night as it was, as on a phone that missed the news.
+  await freeze(page);
+  await freeze(player);
+
+  // The organizer finishes from another tab, behind a second tap.
+  const desk = await page.context().newPage();
+  await desk.goto(page.url());
+  await desk.getByRole("button", { name: "Finish Mixer" }).click();
+  await expect(desk.getByText("Finish now? After this, nobody can change a score.")).toBeVisible();
+  await desk.getByRole("button", { name: "Keep playing" }).click();
+  await expect(desk.getByRole("button", { name: "Yes, finish the night" })).toHaveCount(0);
+  await desk.getByRole("button", { name: "Finish Mixer" }).click();
+  await desk.getByRole("button", { name: "Yes, finish the night" }).click();
+  await expect(desk.getByRole("heading", { name: "Final Standings" })).toBeVisible();
+  await expect(desk.getByText("Finished ·", { exact: false })).toBeVisible();
+  await expect(desk.getByRole("button", { name: /enter the score|Finish Mixer|Start round/ })).toHaveCount(0);
+
+  // The server refuses both writes.
+  const finished = "This Live Mixer has finished, so its scores and Standings are final.";
+  await keypad.getByRole("button", { name: "Save score" }).click();
+  await expect(keypad.getByRole("status")).toHaveText(finished);
+  await playerKeypad.getByRole("button", { name: "Save score" }).click();
+  await expect(playerKeypad.getByRole("status")).toHaveText(finished);
+
+  // Read afresh, the Player Link shows the final Standings and nothing to score.
+  await player.unroute("**/tools/match-mixer/**");
+  await player.reload();
+  await expect(player.getByRole("heading", { name: "Final Standings" })).toBeVisible();
+  await expect(player.getByText("This Live Mixer has finished.", { exact: false })).toBeVisible();
+  await expect(player.getByRole("button", { name: /enter the score/ })).toHaveCount(0);
+  await expect(topRow(player)).toHaveText(["1", "0", "0", "0"]);
+  await phone.close();
+});
+
 test("signed out, Go Live asks for sign-in and leaves the board as it was", async ({ page }) => {
   const drawn = await drawBoard(page);
 

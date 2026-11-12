@@ -12,11 +12,20 @@ function signed(n: number): string {
  * Ranked by wins, then point differential, then head-to-head; a shared rank
  * prints once, with the rows level with it left blank.
  */
-export function StandingsTables({ standings, pairs }: { standings: readonly PoolStandings[]; pairs: boolean }) {
+export function StandingsTables({
+  standings,
+  pairs,
+  final = false,
+}: {
+  standings: readonly PoolStandings[];
+  pairs: boolean;
+  /** The Live Mixer has finished (#690). */
+  final?: boolean;
+}) {
   return (
     <section aria-labelledby="mm-standings-heading" className="mt-10">
       <h2 id="mm-standings-heading" className="mm-legend mm-rail">
-        Standings
+        {final ? "Final Standings" : "Standings"}
       </h2>
       <p className="mm-note mt-2">Wins first, then points won minus points lost, then who beat whom.</p>
       <div className="mm-standings mt-4">

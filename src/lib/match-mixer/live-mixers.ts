@@ -1,5 +1,5 @@
 /**
- * Match Mixer's Live Mixer store (ADR 0006, #687, #688, #689). Each function takes
+ * Match Mixer's Live Mixer store (ADR 0006, #687 to #690). Each function takes
  * the caller's `SupabaseClient`; the database checks the link tokens.
  *
  * Relative imports only, so `npm run test:db` loads it directly.
@@ -32,7 +32,10 @@ export type LiveMixer = {
   /** The Player Link's token, for the Organizer Link only. */
   playerToken: string | null;
   wentLiveAt: string;
+  /** Set once the organizer taps Finish Mixer, or 12 hours after going live (#690). */
   finishedAt: string | null;
+  /** The signed-in caller runs every Live Mixer, through either link, finished or not (#690). */
+  superadmin: boolean;
   /** The whole log, in replay order. */
   events: MixerEvent[];
 };
@@ -48,7 +51,7 @@ export const NO_SUCH_LIVE_MIXER = "There's no Live Mixer behind this link.";
 
 export const NOT_ON_THE_BOARD = "That Game isn't on this board. Reload the page to see the board as it is now.";
 
-export const FINISHED = "This Live Mixer has finished, so its scores can't change.";
+export const FINISHED = "This Live Mixer has finished, so its scores and Standings are final.";
 
 export const NOT_A_GAME_RULE = "That isn't a Game Rule Match Mixer knows.";
 
@@ -98,15 +101,20 @@ export async function readLiveMixer(
 
 const refusal = (problem: string) => ({ ok: false as const, problem });
 
+/** Whether this read may run the night: the Organizer Link, or a superadmin on either link (#690). */
+export function runsTheNight(mixer: Pick<LiveMixer, "role" | "superadmin">): boolean {
+  return mixer.role === "organizer" || mixer.superadmin;
+}
+
 /**
  * The Live Mixer behind either link's token, with its board redrawn and its
  * events replayed, or the refusal to hand back. Each write checks against
- * this before appending.
+ * this before appending. A finished one takes writes from a superadmin only.
  */
 async function openMixer(supabase: SupabaseClient, token: string) {
   const mixer = await readLiveMixer(supabase, token);
   if (!mixer) return refusal(NO_SUCH_LIVE_MIXER);
-  if (mixer.finishedAt) return refusal(FINISHED);
+  if (mixer.finishedAt && !mixer.superadmin) return refusal(FINISHED);
   const draw = redraw(mixer.config);
   if (!draw) return refusal(UNREADABLE_BOARD);
   return { ok: true as const, mixer, draw, replayed: replay(mixer.events) };
@@ -114,7 +122,7 @@ async function openMixer(supabase: SupabaseClient, token: string) {
 
 async function organizerMixer(supabase: SupabaseClient, token: string) {
   const open = await openMixer(supabase, token);
-  if (open.ok && open.mixer.role !== "organizer") return refusal(ORGANIZER_ONLY);
+  if (open.ok && !runsTheNight(open.mixer)) return refusal(ORGANIZER_ONLY);
   return open;
 }
 
@@ -123,13 +131,14 @@ async function organizerMixer(supabase: SupabaseClient, token: string) {
  * Organizer Link scores any Game in any Round. The Player Link scores the
  * Games its Selection sits in, up to the Current Round (#689): the board
  * rebuilt here from the stored Config is the guard, not the phone's check.
+ * A superadmin on either link scores as the Organizer Link does (#690).
  */
 async function scorableGame(supabase: SupabaseClient, token: string, at: unknown, selection: unknown) {
   const open = await openMixer(supabase, token);
   if (!open.ok) return open;
   const game = onBoard(open.draw, at);
   if (!game) return refusal(NOT_ON_THE_BOARD);
-  if (open.mixer.role === "player") {
+  if (!runsTheNight(open.mixer)) {
     const size = open.draw.config.roster.length;
     const player = Number.isInteger(selection) && (selection as number) >= 0 && (selection as number) < size;
     if (!player) return refusal(PICK_YOUR_NAME);
@@ -143,7 +152,7 @@ async function scorableGame(supabase: SupabaseClient, token: string, at: unknown
 async function append(
   supabase: SupabaseClient,
   token: string,
-  kind: "score_entered" | "score_cleared" | "game_rule_changed" | "round_started",
+  kind: "score_entered" | "score_cleared" | "game_rule_changed" | "round_started" | "finished",
   payload: object,
 ): Promise<Outcome<null>> {
   const { error } = await supabase.rpc("match_mixer_append", {
@@ -206,6 +215,20 @@ export async function startRound(supabase: SupabaseClient, token: string, round:
   if (round > currentRound + 1) return refusal(ONE_ROUND_AT_A_TIME);
   if (round >= roundCount(live.draw)) return refusal(LAST_ROUND);
   return append(supabase, token, "round_started", { round });
+}
+
+/**
+ * The Organizer Link's "Finish Mixer" (#690): the scores and Standings become
+ * final, and both links stop taking writes. A night already finished, by a tap
+ * or by the 12 hours, is done, so a second tap or a second phone changes
+ * nothing.
+ */
+export async function finishMixer(supabase: SupabaseClient, token: string): Promise<Outcome<null>> {
+  const mixer = await readLiveMixer(supabase, token);
+  if (!mixer) return refusal(NO_SUCH_LIVE_MIXER);
+  if (!runsTheNight(mixer)) return refusal(ORGANIZER_ONLY);
+  if (mixer.finishedAt) return { ok: true, value: null };
+  return append(supabase, token, "finished", {});
 }
 
 /** `at` off the wire, as a Game this board has, or null. */

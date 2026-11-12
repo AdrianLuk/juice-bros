@@ -17,6 +17,8 @@ import {
   changeGameRule,
   clearScore,
   enterScore,
+  FINISHED,
+  finishMixer,
   goLive,
   LAST_ROUND,
   NOT_ON_THE_BOARD,
@@ -54,9 +56,15 @@ async function organizer(): Promise<TestUser> {
 }
 
 let shared: TestUser | undefined;
+let sharedBoards = 0;
 
+/** A fresh Live Mixer, from an organizer who stays under 20 boards a day. */
 async function live() {
-  shared ??= await organizer();
+  if (!shared || sharedBoards === 20) {
+    shared = await organizer();
+    sharedBoards = 0;
+  }
+  sharedBoards++;
   const outcome = await goLive(shared.supabase, CONFIG);
   assert.ok(outcome.ok, "expected the board to go live");
   return outcome.value;
@@ -323,11 +331,67 @@ test("the database refuses a payload of the wrong shape, even from the Organizer
     ["game_rule_changed", { to: 12, winBy: 2 }],
     ["round_started", { round: "1" }],
     ["round_started", {}],
-    ["finished", {}],
+    ["player_added", {}],
   ] as const) {
     const { error } = await append(kind, payload);
     assert.equal(error?.code, "22023", `${kind} ${JSON.stringify(payload)}`);
   }
+});
+
+// #690: Finish. The 12-hour auto-finish and the superadmin are in
+// supabase/tests/match_mixer_finish.test.sql: no role here can backdate a
+// Live Mixer or add a superadmin.
+
+/** Every write either link makes, each as it would succeed on a running night. */
+async function everyWrite(organizerToken: string, playerToken: string) {
+  const own = courtOf(BEN, 0, true);
+  return {
+    "organizer score": await enterScore(anonClient(), organizerToken, FIRST, [11, 7]),
+    "organizer clear": await clearScore(anonClient(), organizerToken, FIRST),
+    "player score": await enterScore(anonClient(), playerToken, own, [11, 7], BEN),
+    "player clear": await clearScore(anonClient(), playerToken, own, BEN),
+    "start round": await startRound(anonClient(), organizerToken, 1),
+    "game rule": await changeGameRule(anonClient(), organizerToken, { to: 21, winBy: 2 }),
+  };
+}
+
+function assertAllFinished(outcomes: Record<string, unknown>) {
+  for (const [write, outcome] of Object.entries(outcomes)) {
+    assert.deepEqual(outcome, { ok: false, problem: FINISHED }, write);
+  }
+}
+
+test("the Organizer Link finishes the night, and then neither link can write", async () => {
+  const { organizerToken, playerToken } = await live();
+  assert.ok((await enterScore(anonClient(), organizerToken, FIRST, [11, 7])).ok);
+
+  assert.deepEqual(await finishMixer(anonClient(), organizerToken), { ok: true, value: null });
+
+  const mixer = await readLiveMixer(anonClient(), playerToken);
+  assert.notEqual(mixer?.finishedAt, null);
+  assert.deepEqual(mixer?.events.map((event) => event.kind), ["score_entered", "finished"]);
+  assert.deepEqual(replay(mixer!.events).scores.get(gameKey(0, 0)), [11, 7], "the final score stays");
+
+  assertAllFinished(await everyWrite(organizerToken, playerToken));
+});
+
+test("finishing a finished night changes nothing", async () => {
+  const { organizerToken, playerToken } = await live();
+  assert.ok((await finishMixer(anonClient(), organizerToken)).ok);
+  assert.deepEqual(await finishMixer(anonClient(), organizerToken), { ok: true, value: null });
+  assert.equal((await readLiveMixer(anonClient(), playerToken))?.events.length, 1);
+});
+
+test("the Player Link can't finish the night, through the server or the database", async () => {
+  const { playerToken } = await live();
+  assert.deepEqual(await finishMixer(anonClient(), playerToken), { ok: false, problem: ORGANIZER_ONLY });
+  const direct = await anonClient().rpc("match_mixer_append", {
+    p_token: playerToken,
+    p_kind: "finished",
+    p_payload: {},
+  });
+  assert.equal(direct.error?.code, "42501");
+  assert.equal((await readLiveMixer(anonClient(), playerToken))?.finishedAt, null);
 });
 
 test("the tables themselves are shut, signed in or out", async () => {

@@ -78,6 +78,11 @@ export async function startRound(token: string, round: number): Promise<Outcome<
   return settle(async () => liveMixers.startRound(await createClient(), String(token), round));
 }
 
+/** The Organizer Link's "Finish Mixer": the scores and Standings become final (#690). */
+export async function finishMixer(token: string): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.finishMixer(await createClient(), String(token)));
+}
+
 /** The Organizer Link changes the Game Rule for scores from now on. */
 export async function changeGameRule(token: string, rule: GameRule): Promise<Outcome<null>> {
   return settle(async () => liveMixers.changeGameRule(await createClient(), String(token), rule));
