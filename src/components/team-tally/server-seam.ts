@@ -3,11 +3,13 @@
 import { useMemo } from "react";
 
 import {
+  endNight,
   markMatchupDone,
   orderTiedTeams,
   putTeamAhead,
   recordDreambreaker,
   reopenMatchup,
+  resumeNight,
   saveGameScore,
   saveRoster,
   seedFlightsNow,
@@ -74,6 +76,8 @@ export function useServerSeam(reader: Exclude<LiveReader, { kind: "public" }>, i
       swapFlightCourts: (flightId, otherFlightId) => thenRefresh(swapFlightCourts(flightId, otherFlightId)),
       putTeamAhead: (teamId) => thenRefresh(putTeamAhead(eventId, teamId)),
       orderTiedTeams: (teamIds) => thenRefresh(orderTiedTeams(eventId, teamIds)),
+      endNight: () => thenRefresh(endNight(eventId)),
+      resumeNight: () => thenRefresh(resumeNight(eventId)),
     };
   }, [readerKey, eventId, refresh]);
 

@@ -10,7 +10,7 @@ import {
   type DocTeam,
   type TeamEventDoc,
 } from "@/lib/team-tally/event-doc";
-import { flightResults } from "@/lib/team-tally/final-places";
+import { flightResults, openFlights } from "@/lib/team-tally/final-places";
 import { computeStandings } from "@/lib/team-tally/standings";
 import {
   bugGridColumns,
@@ -71,7 +71,9 @@ function stageOf(event: TeamEventDoc): { name: string; progress: string; live?: 
   const opening = openingMatchups(event);
   const flights = flightMatchups(event);
   if (event.status === "finished") {
-    return { name: "Final", progress: `${flights.length} Flights played` };
+    // A night ended with a Flight still open (issue #684) says how many were played.
+    const played = flights.every((flight) => flight.doneAt !== null) ? `${flights.length}` : doneCount(flights);
+    return { name: "Final", progress: `${played} Flights played` };
   }
   if (event.status === "flights") {
     return { name: "Flights", progress: `${doneCount(flights)} Flights done`, live: "Now" };
@@ -130,6 +132,10 @@ function StandingsScreen({ event, rows }: { event: TeamEventDoc; rows?: [number,
 function ScreenBody({ screen, event, teams }: { screen: TvScreen; event: TeamEventDoc; teams: Map<string, DocTeam> }) {
   const flights = flightMatchups(event);
   const page = (matchups: DocMatchup[]) => (screen.bugs ? matchups.slice(...screen.bugs) : matchups);
+  const onPage = (flightLetter: string) => {
+    const index = flightLetter.charCodeAt(0) - 65;
+    return !screen.bugs || (index >= screen.bugs[0] && index < screen.bugs[1]);
+  };
   switch (screen.kind) {
     case "standings":
       return <StandingsScreen event={event} rows={screen.bugs} />;
@@ -154,10 +160,12 @@ function ScreenBody({ screen, event, teams }: { screen: TvScreen; event: TeamEve
     case "summary":
       return (
         <div className="tt-tv-summary">
-          <ChampionsPlate results={flightResults(event).filter(({ flightLetter }) => {
-              const index = flightLetter.charCodeAt(0) - 65;
-              return !screen.bugs || (index >= screen.bugs[0] && index < screen.bugs[1]);
-            })} teams={teams} size="tv" />
+          <ChampionsPlate
+            results={flightResults(event).filter(({ flightLetter }) => onPage(flightLetter))}
+            open={openFlights(event).filter(({ flightLetter }) => onPage(flightLetter))}
+            teams={teams}
+            size="tv"
+          />
           <FinalPlacesPlate event={event} teams={teams} size="tv" flights={screen.bugs} />
         </div>
       );
