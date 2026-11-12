@@ -45,6 +45,7 @@ export default async function HostPollPage({ params }: Props) {
 
   return (
     <HostBoard
+      pollId={poll.id}
       token={poll.guestToken}
       initial={initial}
       lineUp={poll.lineUp}

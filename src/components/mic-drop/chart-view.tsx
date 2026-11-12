@@ -118,7 +118,7 @@ export function ChartView({ poll, reconnecting, problem, saving, onTap, liveLabe
             </>
           ) : myPick ? (
             <>
-              <b>Your vote: {myPick.name}.</b> Tap another name to switch.
+              <b>Your vote: {myPick.name}.</b> Tap another name to switch, or tap it again to take it back.
             </>
           ) : (
             <>

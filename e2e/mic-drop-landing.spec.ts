@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
  * Mic Drop's signed-out landing: a preview with a demo chart that runs in the
- * browser only. A visitor votes, switches, closes voting to see No. 1, and
+ * browser only. A visitor votes, switches, takes it back, closes voting to see No. 1, and
  * finds the Host's sign-in at the bottom. No database involved.
  */
 
@@ -20,7 +20,7 @@ async function voteFor(page: Page, name: string) {
   }).toPass({ timeout: 15_000 });
 }
 
-test("a visitor votes in the demo, switches, and closes voting to see No. 1", async ({ browser }) => {
+test("a visitor votes in the demo, switches, takes it back, and closes voting to see No. 1", async ({ browser }) => {
   const page = await (await browser.newContext(PHONE)).newPage();
   await page.goto("/tools/mic-drop");
 
@@ -33,6 +33,12 @@ test("a visitor votes in the demo, switches, and closes voting to see No. 1", as
   await voteFor(page, "Federico Staksrud");
   await expect(row(page, "Anna Bright")).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText("Your vote: Federico Staksrud.")).toBeVisible();
+
+  // Tapping your own pick again takes it back.
+  await row(page, "Federico Staksrud").click();
+  await expect(row(page, "Federico Staksrud")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText("Tap a name to vote.")).toBeVisible();
+  await voteFor(page, "Federico Staksrud");
 
   await page.getByRole("button", { name: "Close voting" }).click();
   await expect(page.getByText("Final chart")).toBeVisible();

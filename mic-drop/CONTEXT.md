@@ -21,7 +21,7 @@ Anyone who opens the Guest Link. A Guest has no account and no name. The app kno
 _Avoid_: Voter, user, attendee
 
 **Vote**:
-A Guest's current pick: one Contestant per phone per Poll. A Guest can change it any time while the Poll is open, and only the latest pick counts. A Guest can be left with no Vote, either before they pick or after their Contestant is removed.
+A Guest's current pick: one Contestant per phone per Poll. A Guest can change it any time while the Poll is open, and only the latest pick counts. Tapping their own pick again takes it back. A Guest can be left with no Vote: before they pick, after taking it back, or after their Contestant is removed.
 _Avoid_: Ballot, rating, score
 
 **Leaderboard**:
