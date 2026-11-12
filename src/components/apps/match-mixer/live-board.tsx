@@ -120,9 +120,7 @@ export function LiveBoard({
                 />
               </>
             ) : (
-              <p className="mm-note">
-                The board updates from the organizer&rsquo;s link. Tap your name again to see everyone.
-              </p>
+              <p className="mm-note">Tap your name again to see everyone.</p>
             )}
           </div>
 
