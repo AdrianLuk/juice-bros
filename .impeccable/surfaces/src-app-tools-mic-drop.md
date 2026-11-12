@@ -7,7 +7,7 @@ related_targets: ["mic-drop/CONTEXT.md"]
 
 ## Scope and mode
 
-Mic Drop, every surface under `/tools/mic-drop`: the Guest's vote and Leaderboard screen (the Guest Link), the Host's Poll list, the Host's Poll editor, and the Host sign-in and not-allowed states. Visitor mode **Operate** throughout. Unlisted: no landing page.
+Mic Drop, every surface under `/tools/mic-drop`: the Guest's vote and Leaderboard screen (the Guest Link), the Host's Poll list, the Host's Poll editor, and the not-allowed state: visitor mode **Operate**. The signed-out landing at `/tools/mic-drop` (Adrian asked for one on 2026-11-11, to show friends a preview) is **Persuade**. Still unlisted: not on the Tools page, kept out of search.
 
 Mic Drop is its own world, outside the marketing site's Broadcast Dark scope, like Team Tally, Match Mixer and Drum Roll. The route goes in `SiteShell`'s `DARK_EXCEPTIONS`. Spec: GitHub #666; glossary `mic-drop/CONTEXT.md`.
 
@@ -56,6 +56,20 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 
 - The Host's line-up stays in entry order and carries each Contestant's live count and bar, all paper white; "N phones in" sits in the field. Rows never move under the Host's thumb, and the ranked chart stays the Guest Link's job (Adrian, 2026-11-11).
 - A dropped connection, or reads that keep failing, swaps the field's live label for "Reconnecting…" with no dot, on the Guest's screen and the Host's.
+
+## Landing contract (signed out, Persuade)
+
+**THESIS:** The pitch is the product running. A made-up karaoke night's chart sits in the first viewport and takes taps, while a made-up room votes around the visitor. Refuses the screenshot-and-feature-grid tool page.
+
+**OWN-WORLD:** The app's world unchanged: night ink ground, paper type, Big Shoulders caps for the title, headings and step numbers, Hanken Grotesk for everything else, hairline rows, no cards. Coral appears only inside the demo chart, where the chart already uses it.
+
+**STORY:** A friend opens the link, sees MIC DROP and one sentence, taps a name, watches the chart re-sort and their pick move, closes voting to see No. 1, then reads how a night runs, the house rules and the questions. A Host signs in at the bottom.
+
+**FIRST VIEWPORT:** Phone: the title at display size, the lead, the free/no-install line, "Try it", then the demo edge to edge, its coral field and first rows on screen. Desktop: the pitch left, the demo right as a framed phone-width screen with Close voting and Start over under it.
+
+**FORM:** Pinned by Adrian: the sibling tools' landing pattern (Team Tally's: a real component on made-up data, how it runs, rules, questions, a closing action) plus a tap demo. seed: none (unavailable)
+
+**FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Unresolved
 

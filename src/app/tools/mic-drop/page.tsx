@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { NewPollForm } from "@/components/mic-drop/host-controls";
+import { MicDropLanding } from "@/components/mic-drop/landing";
 import { signInWithGoogleIdToken, signOut } from "@/lib/mic-drop/actions/host";
 import { getVisitor } from "@/lib/mic-drop/dal";
 import { readGoogleSignInClientId } from "@/lib/mic-drop/env";
@@ -11,12 +12,17 @@ import { listPolls } from "@/lib/mic-drop/polls";
 import { MIC_DROP_ROOT, pollPath } from "@/lib/mic-drop/routes";
 import { createClient } from "@/lib/mic-drop/supabase/server";
 
-export const metadata: Metadata = { title: "Mic Drop" };
+export const metadata: Metadata = {
+  title: "Mic Drop: the karaoke vote",
+  description:
+    "Everyone backs their favourite Contestant from their own phone, and the chart re-sorts as the Votes come in. Free, nothing to install, and Guests don't sign in.",
+};
 
 /**
- * Mic Drop's front door, for the Host only (issue #668). Unlisted, so there
- * is no landing page: signed out it offers Google sign-in, an account off the
- * allowlist is told it can't host, and a Host gets their Polls.
+ * Mic Drop's front door (issue #668). Signed out it's the landing, a preview
+ * with a demo chart and the Host's Google sign-in at the bottom; an account
+ * off the allowlist is told it can't host, and a Host gets their Polls.
+ * Unlisted: the layout keeps it out of search and off the Tools page.
  */
 export default async function MicDropPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const visitor = await getVisitor();
@@ -25,9 +31,9 @@ export default async function MicDropPage({ searchParams }: { searchParams: Prom
     const { error } = await searchParams;
     const clientId = readGoogleSignInClientId();
     return (
-      <div className="md-notice">
-        <h1>Mic Drop</h1>
-        <p>Sign in to run a Poll. Guests vote from the Guest Link and don&apos;t need an account.</p>
+      <MicDropLanding
+        hostSignIn={
+          <>
         {error && (
           <p role="alert" className="md-problem">
             Google sign-in didn&apos;t work. Try again.
@@ -46,7 +52,9 @@ export default async function MicDropPage({ searchParams }: { searchParams: Prom
         ) : (
           <p className="md-problem">Google sign-in isn&apos;t set up on this copy of the site.</p>
         )}
-      </div>
+          </>
+        }
+      />
     );
   }
 

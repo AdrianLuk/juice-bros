@@ -11,16 +11,19 @@ export function PollField({
   reconnecting,
   liveLabel,
   finalLabel,
+  Title = "h1",
 }: {
   poll: GuestPoll;
   reconnecting: boolean;
   liveLabel: string;
   finalLabel: string;
+  /** h1 on the Poll's own screens; lower where the Poll sits inside another page (the landing's demo). */
+  Title?: "h1" | "h3";
 }) {
   return (
     <header className={cn("md-field", !poll.open && "is-final")}>
       <div className="md-col">
-        <h1>{poll.name}</h1>
+        <Title>{poll.name}</Title>
         <div className="md-field-meta">
           <span role="status" className={cn("md-live", reconnecting && "is-stale")}>
             {reconnecting ? "Reconnecting…" : poll.open ? liveLabel : finalLabel}
