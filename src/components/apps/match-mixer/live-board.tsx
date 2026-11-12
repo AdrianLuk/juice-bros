@@ -8,14 +8,20 @@ import { locate, poolName } from "@/components/apps/match-mixer/lib/engine/pools
 import type { PlayerIndex } from "@/components/apps/match-mixer/lib/engine/types";
 import { gameKey, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
 import { describeGameRule, type GameRule, type GameScore } from "@/components/apps/match-mixer/lib/live/game-rule";
-import { gameOn, rebuild, type RebuiltMixer } from "@/components/apps/match-mixer/lib/live/rebuild";
+import {
+  gameOn,
+  playerAccess,
+  rebuild,
+  roundCount,
+  type RebuiltMixer,
+} from "@/components/apps/match-mixer/lib/live/rebuild";
 import {
   boardIdentity,
   clear as clearSelection,
   load as loadSelection,
   save as saveSelection,
 } from "@/components/apps/match-mixer/lib/persistence/selection-storage";
-import { changeGameRule, clearScore, enterScore } from "@/lib/match-mixer/actions";
+import { changeGameRule, clearScore, enterScore, startRound } from "@/lib/match-mixer/actions";
 import type { LiveMixer } from "@/lib/match-mixer/live-mixers";
 
 import { GameRulePicker } from "./game-rule-picker";
@@ -33,7 +39,8 @@ import { liveMixerKey, useLiveMixer } from "./use-live-mixer";
  * it does on the tool itself, and a Selection made here is the same Selection.
  *
  * The Organizer Link (`playerPath` and `organizerPath` both present) also
- * enters scores and sets the Game Rule.
+ * scores any Game, starts the next Round and sets the Game Rule. The Player
+ * Link scores its Selection's own Games, up to the Current Round (#689).
  */
 export function LiveBoard(props: {
   token: string;
@@ -128,13 +135,22 @@ function LiveFace({
     if (member !== undefined) selectPlayer(member);
   };
 
-  // The keypad sheet, open on one Game at a time.
+  // Which Games this link scores (#689): any on the Organizer Link; on the
+  // Player Link, the Selection's own, up to the Current Round. The server
+  // checks the same again.
+  const rounds = roundCount(draw);
+  const access = (at: GameAt) =>
+    organizer ? ("scores" as const) : selected === null ? ("not-yours" as const) : playerAccess(draw, live.currentRound, selected, at);
+  const scores = organizer || selected !== null;
+
+  // The keypad sheet, open on one Game at a time, and only while this link can score it.
   const [scoring, setScoring] = useState<GameAt | null>(null);
-  const sheet = scoring ? sheetFor(live, scoring) : null;
+  const sheet = scoring && access(scoring) === "scores" ? sheetFor(live, scoring) : null;
   const afterWrite = async (outcome: Awaited<ReturnType<typeof enterScore>>) => {
     if (outcome.ok) await reread();
     return outcome;
   };
+  const selection = organizer ? null : selected;
 
   return (
     <div className="mm-sheet">
@@ -147,7 +163,7 @@ function LiveFace({
           <p className="mm-lede">
             {organizer
               ? "This board is live. Paste the Player Link into the group chat, then tap Score under a Game when it ends. Standings update on every phone."
-              : "Tonight’s board, live from the organizer. Tap your name to see your evening. Scores and Standings update as the organizer enters them."}
+              : "Tonight’s board, live from the organizer. Tap your name to see your evening and score your own Games. Standings update on every phone."}
           </p>
         </header>
 
@@ -155,12 +171,13 @@ function LiveFace({
           <div className="mm-controls">
             {organizer ? (
               <>
+                <RoundControl token={token} current={live.currentRound} rounds={rounds} onSaved={reread} />
                 <RuleControl token={token} rule={live.rule} onSaved={reread} />
                 <CopyLink
                   id="mm-player-link"
                   label="Player Link"
                   path={organizer.playerPath}
-                  note="For the group chat. Anyone with it can see the board and the Standings."
+                  note="For the group chat. Anyone with it sees the board and the Standings, and can score their own Games."
                 />
                 <CopyLink
                   id="mm-organizer-link"
@@ -171,9 +188,14 @@ function LiveFace({
               </>
             ) : (
               <>
-                <p className="mm-legend">Game Rule</p>
+                <p className="mm-legend">Your Games</p>
+                <p className="mm-note mt-1" role="status">
+                  {selected === null
+                    ? "Tap your name on the board first. Then you can score your own Games."
+                    : `Tap Score under one of your Games when it ends, up to Round ${roundOn(live.currentRound, rounds)}. Tap your name again to see everyone.`}
+                </p>
+                <p className="mm-legend mt-6">Game Rule</p>
                 <p className="mm-note mt-1">{describeGameRule(live.rule)}</p>
-                <p className="mm-note mt-4">Tap your name again to see everyone.</p>
               </>
             )}
           </div>
@@ -195,7 +217,7 @@ function LiveFace({
                 bands={bands}
                 selected={bandSelected}
                 onSelect={selectInBand}
-                scoring={{ scores: live.scores, onScore: organizer ? setScoring : undefined }}
+                scoring={{ scores: live.scores, onScore: scores ? setScoring : undefined, access }}
                 courtLabels={draw.config.courtLabels}
               />
             </div>
@@ -204,13 +226,13 @@ function LiveFace({
         </div>
       </div>
 
-      {organizer && scoring && sheet ? (
+      {scoring && sheet ? (
         <ScoreSheet
           key={gameKey(scoring.round, scoring.court)}
           game={sheet}
           rule={live.rule}
-          onSave={async (score: GameScore) => afterWrite(await enterScore(token, scoring, score))}
-          onClear={async () => afterWrite(await clearScore(token, scoring))}
+          onSave={async (score: GameScore) => afterWrite(await enterScore(token, scoring, score, selection))}
+          onClear={async () => afterWrite(await clearScore(token, scoring, selection))}
           onClose={() => setScoring(null)}
         />
       ) : null}
@@ -237,6 +259,68 @@ function sheetFor(live: RebuiltMixer, at: GameAt): SheetGame | null {
     sides: [names(found.game.sides[0]), names(found.game.sides[1])],
     score: live.scores.get(gameKey(at.round, at.court)) ?? null,
   };
+}
+
+/** The Round on, as people count them, for a Current Round that a score in the last Round carries past the board. */
+function roundOn(currentRound: number, rounds: number): number {
+  return Math.min(currentRound, rounds - 1) + 1;
+}
+
+const ROUND_UNREACHABLE = "Couldn't reach Match Mixer. Check your signal, then reload to see if the Round started.";
+
+/**
+ * The Organizer Link's one Round control (#689): "Start round N+1", never a
+ * choice of Round, so a wrong tap costs at most one. Scores move the night on
+ * without it; the tap lets players score the next Round before anyone has
+ * finished this one.
+ */
+function RoundControl({
+  token,
+  current,
+  rounds,
+  onSaved,
+}: {
+  token: string;
+  current: number;
+  rounds: number;
+  onSaved: () => Promise<void>;
+}) {
+  const [pending, setPending] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const on = roundOn(current, rounds);
+  const next = current + 1;
+
+  const start = async () => {
+    setPending(true);
+    setProblem(null);
+    let outcome: Awaited<ReturnType<typeof startRound>>;
+    try {
+      outcome = await startRound(token, next);
+    } catch {
+      outcome = { ok: false, problem: ROUND_UNREACHABLE };
+    }
+    if (outcome.ok) await onSaved();
+    else setProblem(outcome.problem);
+    setPending(false);
+  };
+
+  return (
+    <div className="mb-6">
+      <p className="mm-legend">Round</p>
+      <p className="mm-note mt-1">
+        {next < rounds ? `Round ${on} of ${rounds} is on.` : `Round ${on} of ${rounds}, the last one, is on.`} Players
+        can score their Games up to it, and a score in it starts the next.
+      </p>
+      {next < rounds ? (
+        <button type="button" className="mm-share mt-2" onClick={start} disabled={pending}>
+          {pending ? "Starting…" : `Start round ${next + 1}`}
+        </button>
+      ) : null}
+      <p className="mm-note mt-1" role="status" data-tone={problem ? "refused" : undefined}>
+        {problem}
+      </p>
+    </div>
+  );
 }
 
 // The change may still have landed, so this says to look rather than "it didn't change" (Mic Drop's #671).

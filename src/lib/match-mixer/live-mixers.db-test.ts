@@ -12,16 +12,21 @@ import { anonClient, createTestUser, deleteTestUser, type TestUser } from "../db
 import { encodeSharePayload } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 import { parseRoster } from "../../components/apps/match-mixer/lib/engine/roster.ts";
 import { gameKey, replay, type GameAt } from "../../components/apps/match-mixer/lib/live/events.ts";
-import { gameOn, redraw } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
+import { gameOn, playsIn, redraw } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import {
   changeGameRule,
   clearScore,
   enterScore,
   goLive,
+  LAST_ROUND,
   NOT_ON_THE_BOARD,
+  NOT_YOUR_GAME,
+  ONE_ROUND_AT_A_TIME,
   ORGANIZER_ONLY,
+  PICK_YOUR_NAME,
   readLiveMixer,
   SIGN_IN_TO_GO_LIVE,
+  startRound,
   UNREADABLE_BOARD,
 } from "./live-mixers.ts";
 
@@ -166,12 +171,117 @@ test("a score the Game Rule refuses is refused, and changing the rule keeps scor
   assert.match(!now.ok ? now.problem : "", /21/);
 });
 
-test("the Player Link can't score, clear or change the Game Rule", async () => {
+test("the Player Link can't change the Game Rule or start a Round", async () => {
   const { playerToken } = await live();
   const refusal = { ok: false, problem: ORGANIZER_ONLY };
-  assert.deepEqual(await enterScore(anonClient(), playerToken, FIRST, [11, 7]), refusal);
-  assert.deepEqual(await clearScore(anonClient(), playerToken, FIRST), refusal);
   assert.deepEqual(await changeGameRule(anonClient(), playerToken, { to: 21, winBy: 1 }), refusal);
+  assert.deepEqual(await startRound(anonClient(), playerToken, 1), refusal);
+});
+
+// #689: players score their own Games, and the Current Round.
+
+const BOARD = redraw(CONFIG)!;
+const BEN = 0;
+
+/** The court of the Game a Roster index plays in that Round, or of one it doesn't. */
+function courtOf(player: number, round: number, theirs: boolean): GameAt {
+  for (let court = 0; court < 2; court++) {
+    const at = { round, court };
+    if (gameOn(BOARD, at) && playsIn(BOARD, at, player) === theirs) return at;
+  }
+  throw new Error(`CONFIG's board has no such Game in Round ${round + 1}`);
+}
+
+async function currentRoundAt(token: string) {
+  return (await replayedAt(token)).currentRound;
+}
+
+test("a Player Link with a Selection enters, changes and clears its own Game's score, signed out", async () => {
+  const { playerToken } = await live();
+  const own = courtOf(BEN, 0, true);
+
+  assert.deepEqual(await enterScore(anonClient(), playerToken, own, [11, 7], BEN), { ok: true, value: null });
+  assert.deepEqual((await replayedAt(playerToken)).scores.get(gameKey(own.round, own.court)), [11, 7]);
+  assert.ok((await enterScore(anonClient(), playerToken, own, [7, 11], BEN)).ok);
+  assert.ok((await clearScore(anonClient(), playerToken, own, BEN)).ok);
+  assert.equal((await replayedAt(playerToken)).scores.has(gameKey(own.round, own.court)), false);
+});
+
+test("a Player Link without a Selection can't score", async () => {
+  const { playerToken } = await live();
+  const own = courtOf(BEN, 0, true);
+  for (const selection of [undefined, null, -1, 8, 1.5, "0"]) {
+    assert.deepEqual(
+      await enterScore(anonClient(), playerToken, own, [11, 7], selection as number),
+      { ok: false, problem: PICK_YOUR_NAME },
+      `selection ${String(selection)}`,
+    );
+  }
+  assert.deepEqual(await clearScore(anonClient(), playerToken, own), { ok: false, problem: PICK_YOUR_NAME });
+});
+
+test("a Game the Selection doesn't sit in is refused", async () => {
+  const { playerToken } = await live();
+  const other = courtOf(BEN, 0, false);
+  const refusal = { ok: false, problem: NOT_YOUR_GAME };
+  assert.deepEqual(await enterScore(anonClient(), playerToken, other, [11, 7], BEN), refusal);
+  assert.deepEqual(await clearScore(anonClient(), playerToken, other, BEN), refusal);
+});
+
+test("a player scores up to the Current Round, and a later Round hasn't started yet", async () => {
+  const { playerToken } = await live();
+  assert.equal(await currentRoundAt(playerToken), 0);
+
+  assert.deepEqual(await enterScore(anonClient(), playerToken, courtOf(BEN, 1, true), [11, 7], BEN), {
+    ok: false,
+    problem: "Round 2 hasn't started yet.",
+  });
+
+  // A score in the Current Round moves the night on by one, and no further.
+  assert.ok((await enterScore(anonClient(), playerToken, courtOf(BEN, 0, true), [11, 7], BEN)).ok);
+  assert.equal(await currentRoundAt(playerToken), 1);
+  assert.ok((await enterScore(anonClient(), playerToken, courtOf(BEN, 1, true), [11, 7], BEN)).ok);
+  assert.equal(await currentRoundAt(playerToken), 2);
+  assert.deepEqual(await enterScore(anonClient(), playerToken, courtOf(BEN, 3, true), [11, 7], BEN), {
+    ok: false,
+    problem: "Round 4 hasn't started yet.",
+  });
+});
+
+test("the Organizer Link starts the next Round, one at a time, and a second tap changes nothing", async () => {
+  const { organizerToken, playerToken } = await live();
+  assert.deepEqual(await startRound(anonClient(), organizerToken, 1), { ok: true, value: null });
+  assert.equal(await currentRoundAt(playerToken), 1);
+
+  // The same tap again, from a second phone or a slow one, is already done.
+  assert.ok((await startRound(anonClient(), organizerToken, 1)).ok);
+  assert.equal((await readLiveMixer(anonClient(), playerToken))?.events.length, 1);
+
+  assert.deepEqual(await startRound(anonClient(), organizerToken, 3), { ok: false, problem: ONE_ROUND_AT_A_TIME });
+
+  // Now Round 2 is on, its players can score it.
+  assert.ok((await enterScore(anonClient(), playerToken, courtOf(BEN, 1, true), [11, 7], BEN)).ok);
+});
+
+test("the last Round is as far as the night goes", async () => {
+  const { organizerToken } = await live();
+  for (const round of [1, 2, 3]) assert.ok((await startRound(anonClient(), organizerToken, round)).ok);
+  assert.deepEqual(await startRound(anonClient(), organizerToken, 4), { ok: false, problem: LAST_ROUND });
+});
+
+test("the Organizer Link scores any Game in any Round, whatever the Current Round", async () => {
+  const { organizerToken, playerToken } = await live();
+  assert.ok((await enterScore(anonClient(), organizerToken, { round: 3, court: 1 }, [11, 7])).ok);
+  assert.equal(await currentRoundAt(playerToken), 4);
+});
+
+test("the database lets the Player Link token write scores and nothing else", async () => {
+  const { playerToken } = await live();
+  const append = (kind: string, payload: unknown) =>
+    anonClient().rpc("match_mixer_append", { p_token: playerToken, p_kind: kind, p_payload: payload });
+  assert.equal((await append("round_started", { round: 1 })).error?.code, "42501");
+  assert.equal((await append("game_rule_changed", { to: 21, winBy: 2 })).error?.code, "42501");
+  assert.equal((await append("score_entered", { round: 0, court: 0, score: [11, 7] })).error, null);
 });
 
 test("a Game that isn't on the board can't be scored", async () => {
@@ -192,6 +302,8 @@ test("the database refuses a payload of the wrong shape, even from the Organizer
     ["score_entered", { round: -1, court: 0, score: [11, 7] }],
     ["score_entered", { round: 0, court: 0, score: ["11", 7] }],
     ["game_rule_changed", { to: 12, winBy: 2 }],
+    ["round_started", { round: "1" }],
+    ["round_started", {}],
     ["finished", {}],
   ] as const) {
     const { error } = await append(kind, payload);

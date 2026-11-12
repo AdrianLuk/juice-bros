@@ -78,11 +78,11 @@ async function plates(page: Page): Promise<string> {
 }
 
 /** Pastes the Roster and draws it, retrying the fill until React has hydrated. */
-async function drawBoard(page: Page): Promise<string> {
+async function drawBoard(page: Page, roster = ROSTER): Promise<string> {
   await page.goto(ROUTE);
   const make = page.getByRole("button", { name: "Make the board" });
   await expect(async () => {
-    await page.getByRole("textbox", { name: "Tonight" }).fill(ROSTER);
+    await page.getByRole("textbox", { name: "Tonight" }).fill(roster);
     await expect(make).toBeEnabled({ timeout: 1_000 });
   }).toPass();
   await make.click();
@@ -196,7 +196,7 @@ test("the organizer enters a score and the Player Link shows it, with the Standi
   await player.goto(playerLink);
   await expect(player.getByText("To 15, win by 2")).toBeVisible();
   await expect(topRow(player)).toHaveText(["1", "0", "0", "0"]);
-  // The Player Link can't score yet (RR-2.4).
+  // Without a Selection, the Player Link can't score.
   await expect(player.getByRole("button", { name: /enter the score/ })).toHaveCount(0);
 
   // Tap a Game, the keypad, two scores.
@@ -218,6 +218,74 @@ test("the organizer enters a score and the Player Link shows it, with the Standi
   // Another phone sees it within a few seconds, and the winners top the table.
   await expect(player.getByText("Score 15 to 9")).toBeAttached({ timeout: 10_000 });
   await expect(topRow(player)).toHaveText(["1", "1", "0", "+6"]);
+  await phone.close();
+});
+
+test("a player with a Selection scores their own Game, up to the Current Round, and the server refuses anyone else's", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  // Eight Players on two courts: everyone plays every Round, so no Byes to step around.
+  await signIn(page);
+  await drawBoard(page, ROSTER.split("\n").slice(0, 8).join("\n"));
+  await page.getByRole("button", { name: "Go live" }).click();
+  await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
+  const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+  await expect(page.getByText("Round 1 of", { exact: false })).toBeVisible();
+
+  const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const player = await phone.newPage();
+  await player.goto(playerLink);
+
+  // No Selection: told to pick a name, and nothing to score.
+  await expect(player.getByText("Tap your name on the board first.", { exact: false })).toBeVisible();
+  await expect(player.getByRole("button", { name: /enter the score/ })).toHaveCount(0);
+
+  const name = player.getByRole("button", { name: "Ben Johns" }).first();
+  await name.click();
+  await expect(name).toHaveAttribute("aria-pressed", "true");
+  // Their own Game in Round 1, and only that one; Round 2 hasn't started.
+  const own = player.getByRole("button", { name: /^Round 1, Court \d: enter the score$/ });
+  await expect(own).toHaveCount(1);
+  await expect(player.getByRole("button", { name: /^Round 2, / })).toHaveCount(0);
+  await expect(player.getByText("Round 2 hasn't started yet.")).toBeAttached();
+
+  // The organizer's one Round control starts Round 2, and the player can score it now.
+  await page.getByRole("button", { name: "Start round 2" }).click();
+  await expect(page.getByRole("button", { name: "Start round 3" })).toBeVisible();
+  await expect(player.getByRole("button", { name: /^Round 2, Court \d: enter the score$/ })).toHaveCount(1, {
+    timeout: 10_000,
+  });
+  await expect(player.getByText("Round 3 hasn't started yet.")).toBeAttached();
+
+  const court = Number((await own.getAttribute("aria-label"))!.match(/Court (\d)/)![1]);
+  const other = court === 1 ? 2 : 1;
+  await own.click();
+  const keypad = player.getByRole("dialog", { name: `Round 1 · Court ${court}` });
+  for (const key of ["1", "1", "7"]) await keypad.getByRole("button", { name: key, exact: true }).click();
+
+  // The phone's own check is a convenience: a write for a Game the Selection
+  // isn't in, sent anyway, is refused by the server.
+  await player.route("**/tools/match-mixer/player/**", (route) => {
+    const body = route.request().postData() ?? "";
+    if (route.request().method() !== "POST" || !body.includes('"court":')) return route.continue();
+    return route.continue({ postData: body.replace(`"court":${court - 1}`, `"court":${other - 1}`) });
+  });
+  await keypad.getByRole("button", { name: "Save score" }).click();
+  await expect(keypad.getByRole("status")).toHaveText("You can score your own Games only. The organizer can fix any other.");
+  await player.unroute("**/tools/match-mixer/player/**");
+
+  await keypad.getByRole("button", { name: "Save score" }).click();
+  await expect(keypad).toBeHidden();
+  await expect(page.getByRole("button", { name: `Round 1, Court ${court}: 11 to 7. Change the score` })).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByRole("button", { name: `Round 1, Court ${other}: enter the score` })).toBeVisible();
+
+  // Clearing the Selection takes the Score controls away again.
+  await name.click();
+  await expect(player.getByRole("button", { name: /enter the score|Change the score/ })).toHaveCount(0);
   await phone.close();
 });
 

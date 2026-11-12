@@ -9,7 +9,7 @@
 
 import { EMPTY, restore, type DrawnBoard } from "../board-editor.ts";
 import { poolName } from "../engine/pools.ts";
-import type { Game } from "../engine/types.ts";
+import type { Game, PlayerIndex } from "../engine/types.ts";
 import { decodeShareLink } from "../persistence/share-link.ts";
 import { replay, type GameAt, type MixerEvent, type Replay } from "./events.ts";
 import { standings, type StandingsRow } from "./standings.ts";
@@ -27,6 +27,38 @@ export function gameOn(draw: DrawnBoard, { round, court }: GameAt): { pool: numb
     if (game) return { pool, game };
   }
   return null;
+}
+
+/** How many Rounds the board has. The count is shared by every Pool (ADR 0004). */
+export function roundCount(draw: DrawnBoard): number {
+  return Math.max(0, ...draw.pools.map((pool) => pool.schedule.rounds.length));
+}
+
+/** Whether a Roster index sits in the Game at this Round and court. */
+export function playsIn(draw: DrawnBoard, at: GameAt, player: PlayerIndex): boolean {
+  const found = gameOn(draw, at);
+  if (!found) return false;
+  const { members } = draw.pools[found.pool];
+  return found.game.sides.some((side) => side.some((index) => members[index] === player));
+}
+
+export function notStarted(round: number): string {
+  return `Round ${round + 1} hasn't started yet.`;
+}
+
+/**
+ * What a Player Link with this Selection may do with one Game (#689): score it
+ * when the Selection sits in it and its Round is no later than the Current
+ * Round. The board checks this for convenience; the server checks it again.
+ */
+export function playerAccess(
+  draw: DrawnBoard,
+  currentRound: number,
+  player: PlayerIndex,
+  at: GameAt,
+): "scores" | "not-yours" | "not-started" {
+  if (!playsIn(draw, at, player)) return "not-yours";
+  return at.round > currentRound ? "not-started" : "scores";
 }
 
 export interface PoolStandings {
