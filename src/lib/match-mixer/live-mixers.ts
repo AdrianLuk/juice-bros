@@ -109,7 +109,7 @@ async function openMixer(supabase: SupabaseClient, token: string) {
   if (mixer.finishedAt) return refusal(FINISHED);
   const draw = redraw(mixer.config);
   if (!draw) return refusal(UNREADABLE_BOARD);
-  return { ok: true as const, mixer, draw, night: replay(mixer.events) };
+  return { ok: true as const, mixer, draw, replayed: replay(mixer.events) };
 }
 
 async function organizerMixer(supabase: SupabaseClient, token: string) {
@@ -133,11 +133,11 @@ async function scorableGame(supabase: SupabaseClient, token: string, at: unknown
     const size = open.draw.config.roster.length;
     const player = Number.isInteger(selection) && (selection as number) >= 0 && (selection as number) < size;
     if (!player) return refusal(PICK_YOUR_NAME);
-    const access = playerAccess(open.draw, open.night.currentRound, selection as number, game);
+    const access = playerAccess(open.draw, open.replayed.currentRound, selection as number, game);
     if (access === "not-yours") return refusal(NOT_YOUR_GAME);
     if (access === "not-started") return refusal(notStarted(game.round));
   }
-  return { ok: true as const, game, night: open.night };
+  return { ok: true as const, game, replayed: open.replayed };
 }
 
 async function append(
@@ -153,7 +153,8 @@ async function append(
   });
   if (error?.code === "42501") return { ok: false, problem: ORGANIZER_ONLY };
   if (error?.code === "55000") return { ok: false, problem: FINISHED };
-  if (error?.code === "54000") return { ok: false, problem: error.message };
+  // 54000: the log is full. MMR01: the database's own Current Round check, met only in a race.
+  if (error?.code === "54000" || error?.code === "MMR01") return { ok: false, problem: error.message };
   if (error) throw new Error(`Saving to the Live Mixer failed: ${error.message}`);
   return { ok: true, value: null };
 }
@@ -174,7 +175,7 @@ export async function enterScore(
   const scorable = await scorableGame(supabase, token, at, selection);
   if (!scorable.ok) return scorable;
   const pair: GameScore = Array.isArray(score) ? [score[0], score[1]] : [Number.NaN, Number.NaN];
-  const problem = scoreProblem(scorable.night.rule, pair);
+  const problem = scoreProblem(scorable.replayed.rule, pair);
   if (problem) return refusal(problem);
   return append(supabase, token, "score_entered", { ...scorable.game, score: pair });
 }
@@ -200,7 +201,7 @@ export async function startRound(supabase: SupabaseClient, token: string, round:
   const live = await organizerMixer(supabase, token);
   if (!live.ok) return live;
   if (!Number.isInteger(round) || round < 0) return refusal(ONE_ROUND_AT_A_TIME);
-  const { currentRound } = live.night;
+  const { currentRound } = live.replayed;
   if (round <= currentRound) return { ok: true, value: null };
   if (round > currentRound + 1) return refusal(ONE_ROUND_AT_A_TIME);
   if (round >= roundCount(live.draw)) return refusal(LAST_ROUND);

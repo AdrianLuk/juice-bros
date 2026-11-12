@@ -46,17 +46,15 @@ export function notStarted(round: number): string {
   return `Round ${round + 1} hasn't started yet.`;
 }
 
+/** What a link may do with one Game's score. */
+export type GameAccess = "scores" | "not-yours" | "not-started";
+
 /**
  * What a Player Link with this Selection may do with one Game (#689): score it
  * when the Selection sits in it and its Round is no later than the Current
  * Round. The board checks this for convenience; the server checks it again.
  */
-export function playerAccess(
-  draw: DrawnBoard,
-  currentRound: number,
-  player: PlayerIndex,
-  at: GameAt,
-): "scores" | "not-yours" | "not-started" {
+export function playerAccess(draw: DrawnBoard, currentRound: number, player: PlayerIndex, at: GameAt): GameAccess {
   if (!playsIn(draw, at, player)) return "not-yours";
   return at.round > currentRound ? "not-started" : "scores";
 }

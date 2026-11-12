@@ -284,6 +284,25 @@ test("the database lets the Player Link token write scores and nothing else", as
   assert.equal((await append("score_entered", { round: 0, court: 0, score: [11, 7] })).error, null);
 });
 
+test("called directly, the Player Link token still can't score past the Current Round", async () => {
+  const { playerToken } = await live();
+  const append = (kind: string, round: number) =>
+    anonClient().rpc("match_mixer_append", {
+      p_token: playerToken,
+      p_kind: kind,
+      p_payload: { round, court: 0, score: [11, 7] },
+    });
+  const far = await append("score_entered", 998);
+  assert.equal(far.error?.code, "MMR01");
+  assert.equal(far.error?.message, "Round 999 hasn't started yet.");
+  assert.equal((await append("score_cleared", 2)).error?.code, "MMR01");
+  assert.equal(await currentRoundAt(playerToken), 0);
+
+  assert.equal((await append("score_entered", 0)).error, null);
+  assert.equal((await append("score_entered", 1)).error, null);
+  assert.equal(await currentRoundAt(playerToken), 2);
+});
+
 test("a Game that isn't on the board can't be scored", async () => {
   const { organizerToken } = await live();
   assert.deepEqual(await enterScore(anonClient(), organizerToken, { round: 99, court: 0 }, [11, 7]), {

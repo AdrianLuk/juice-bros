@@ -17,7 +17,7 @@ import type {
   Side as GameSide,
 } from "@/components/apps/match-mixer/lib/engine/types";
 import { gameKey, type GameAt, type Scores } from "@/components/apps/match-mixer/lib/live/events";
-import { notStarted } from "@/components/apps/match-mixer/lib/live/rebuild";
+import { notStarted, type GameAccess } from "@/components/apps/match-mixer/lib/live/rebuild";
 
 /**
  * A Live Mixer's scores on the board (#688, #689). Absent on a board that
@@ -29,8 +29,8 @@ import { notStarted } from "@/components/apps/match-mixer/lib/live/rebuild";
 export interface BoardScores {
   readonly scores: Scores;
   readonly onScore?: (at: GameAt) => void;
-  /** Which Games `onScore` covers; every one when absent. */
-  readonly access?: (at: GameAt) => "scores" | "not-yours" | "not-started";
+  /** Which Games `onScore` covers. */
+  readonly access: (at: GameAt) => GameAccess;
 }
 
 /** A Game's score, or this link's way to enter one. */
@@ -47,7 +47,7 @@ function ScoreMark({
 }) {
   const score = scoring.scores.get(gameKey(round, court)) ?? null;
   const said = score ? `${score[0]} to ${score[1]}` : null;
-  const access = scoring.onScore ? (scoring.access?.({ round, court }) ?? "scores") : "not-yours";
+  const access = scoring.onScore ? scoring.access({ round, court }) : "not-yours";
   if (access === "not-started" && !score) {
     return (
       <span className="mm-score" data-later="true">

@@ -13,6 +13,7 @@ import {
   playerAccess,
   rebuild,
   roundCount,
+  type GameAccess,
   type RebuiltMixer,
 } from "@/components/apps/match-mixer/lib/live/rebuild";
 import {
@@ -139,9 +140,9 @@ function LiveFace({
   // Player Link, the Selection's own, up to the Current Round. The server
   // checks the same again.
   const rounds = roundCount(draw);
-  const access = (at: GameAt) =>
-    organizer ? ("scores" as const) : selected === null ? ("not-yours" as const) : playerAccess(draw, live.currentRound, selected, at);
-  const scores = organizer || selected !== null;
+  const access = (at: GameAt): GameAccess =>
+    organizer ? "scores" : selected === null ? "not-yours" : playerAccess(draw, live.currentRound, selected, at);
+  const canScore = organizer !== null || selected !== null;
 
   // The keypad sheet, open on one Game at a time, and only while this link can score it.
   const [scoring, setScoring] = useState<GameAt | null>(null);
@@ -217,7 +218,7 @@ function LiveFace({
                 bands={bands}
                 selected={bandSelected}
                 onSelect={selectInBand}
-                scoring={{ scores: live.scores, onScore: scores ? setScoring : undefined, access }}
+                scoring={{ scores: live.scores, onScore: canScore ? setScoring : undefined, access }}
                 courtLabels={draw.config.courtLabels}
               />
             </div>
@@ -287,7 +288,7 @@ function RoundControl({
 }) {
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const on = roundOn(current, rounds);
+  const shown = roundOn(current, rounds);
   const next = current + 1;
 
   const start = async () => {
@@ -308,7 +309,7 @@ function RoundControl({
     <div className="mb-6">
       <p className="mm-legend">Round</p>
       <p className="mm-note mt-1">
-        {next < rounds ? `Round ${on} of ${rounds} is on.` : `Round ${on} of ${rounds}, the last one, is on.`} Players
+        {next < rounds ? `Round ${shown} of ${rounds} is on.` : `Round ${shown} of ${rounds}, the last one, is on.`} Players
         can score their Games up to it, and a score in it starts the next.
       </p>
       {next < rounds ? (

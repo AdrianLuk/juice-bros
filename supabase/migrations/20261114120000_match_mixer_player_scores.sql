@@ -2,14 +2,13 @@
 --
 -- No new tables. Two changes to match_mixer_append (#688):
 --
---   * The Player Link token may now append score_entered and score_cleared.
---     The database can't redraw a board, so the server checks the rest
---     before it calls: that the Selection sent with the score sits in the
---     Game on the board rebuilt from the Config, and that the Game's Round is
---     no later than the Current Round. As with the Organizer Link, a holder
---     of the token who calls this directly skips those checks; the Selection
---     guards against honest mistakes only (#685), and the organizer corrects
---     anything wrong.
+--   * The Player Link token may now append score_entered and score_cleared,
+--     for Rounds up to the Current Round (MMR01 otherwise). The database
+--     can't redraw a board, so the server checks the rest before it calls:
+--     that the Game is on the board rebuilt from the Config and the Selection
+--     sent with the score sits in it. A holder of the token who calls this
+--     directly skips that check; the Selection guards against honest mistakes
+--     only (#685), and the organizer corrects any wrong score.
 --   * The Organizer Link may append round_started { round }, its
 --     "Start round N+1". Everything else stays the Organizer Link's alone.
 --
@@ -18,8 +17,9 @@
 
 /**
  * Appends one event to the Live Mixer behind a link's token. The Organizer
- * Link writes any kind below; the Player Link writes scores only. Refuses a
- * token that isn't one, or a kind its link can't write (42501), a finished
+ * Link writes any kind below; the Player Link writes scores only, up to the
+ * Current Round. Refuses a token that isn't one, or a kind its link can't
+ * write (42501), a Player Link score past the Current Round (MMR01), a finished
  * Live Mixer (55000), a payload of the wrong shape (22023) and a log past
  * 5,000 events (54000). Stores the payload rebuilt from the fields it
  * checked, never as sent.
@@ -34,6 +34,7 @@ declare
   v_token text := btrim(coalesce(p_token, ''));
   v_mixer public.match_mixer_live_mixers;
   v_payload jsonb;
+  v_current integer;
 begin
   select * into v_mixer
   from public.match_mixer_live_mixers
@@ -78,6 +79,25 @@ begin
 
   if v_payload is null then
     raise exception 'That isn''t something this link can write.' using errcode = '22023';
+  end if;
+
+  -- The Player Link scores up to the Current Round, here as well as on the
+  -- server: a token pasted into a group chat must not be able to lock every
+  -- Round for good with one direct call, since locks never undo. Same rule
+  -- as replay() in lib/live/events.ts; stored payloads were shape-checked on
+  -- the way in, so the casts hold.
+  if v_mixer.organizer_token <> v_token then
+    select greatest(
+      coalesce(max((e.payload ->> 'round')::integer) filter (where e.kind = 'round_started'), 0),
+      coalesce(max((e.payload ->> 'round')::integer + 1) filter (where e.kind = 'score_entered'), 0)
+    ) into v_current
+    from public.match_mixer_events e
+    where e.live_mixer_id = v_mixer.id;
+
+    if (v_payload ->> 'round')::integer > v_current then
+      raise exception 'Round % hasn''t started yet.', (v_payload ->> 'round')::integer + 1
+        using errcode = 'MMR01';
+    end if;
   end if;
 
   if (select count(*) from public.match_mixer_events where live_mixer_id = v_mixer.id) >= 5000 then
