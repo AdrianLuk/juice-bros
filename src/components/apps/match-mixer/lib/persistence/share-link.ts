@@ -161,10 +161,7 @@ function poolsField(pools: number | undefined): string | null {
  * budget is not tight enough to pay that.
  */
 export function encodeShareLink(
-  config: ResolvedConfig & {
-    readonly pools?: number;
-    readonly headers?: readonly PoolHeader[];
-  },
+  config: SharedConfig,
   base: string,
 ): string | null {
   let url: URL;
@@ -174,6 +171,24 @@ export function encodeShareLink(
     return null;
   }
 
+  url.hash = "";
+  url.searchParams.set(SHARE_PARAM, encodeSharePayload(config));
+
+  const link = url.toString();
+  return link.length > MAX_LINK_LENGTH ? null : link;
+}
+
+type SharedConfig = ResolvedConfig & {
+  readonly pools?: number;
+  readonly headers?: readonly PoolHeader[];
+};
+
+/**
+ * The share parameter's value on its own. A Live Mixer stores exactly this
+ * (ADR 0006), so it carries no URL and no length ceiling: the database is not
+ * a chat client, and `decodeShareLink` reads it back the same way.
+ */
+export function encodeSharePayload(config: SharedConfig): string {
   // The lines as typed, not the names: a marker parsed off one end of the
   // journey and dropped at the other would open an unmixed board that looks
   // exactly like the mixed one that was shared, and the reader would have no
@@ -202,13 +217,7 @@ export function encodeShareLink(
   const pools = headers.length > 0 ? null : poolsField(config.pools);
   if (config.mixed || pools) numbers.push(config.mixed ? MIXED_CODE : "");
   if (pools) numbers.push(pools);
-  const payload = [numbers.join(FIELD), names].join(LINE);
-
-  url.hash = "";
-  url.searchParams.set(SHARE_PARAM, payload);
-
-  const link = url.toString();
-  return link.length > MAX_LINK_LENGTH ? null : link;
+  return [numbers.join(FIELD), names].join(LINE);
 }
 
 /**
