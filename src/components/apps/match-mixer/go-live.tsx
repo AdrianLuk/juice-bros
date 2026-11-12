@@ -13,7 +13,7 @@ import {
 import { encodeSharePayload } from "@/components/apps/match-mixer/lib/persistence/share-link";
 import { goLive } from "@/lib/match-mixer/actions";
 
-export const UNREACHABLE =
+const UNREACHABLE =
   "Couldn't reach Match Mixer, so the board didn't go live. Your board is still here. Check your signal and try again.";
 
 /**

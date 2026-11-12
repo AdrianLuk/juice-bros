@@ -98,7 +98,7 @@ export function LiveBoard({
           <p className="mm-lede">
             {organizer
               ? "This board is live. Paste the Player Link into the group chat so everyone can open it on their phone, and keep the Organizer Link for yourself."
-              : "Tonight’s board, live from the organizer. Tap your name to see just your games."}
+              : "Tonight’s board, live from the organizer. Tap your name to see your evening."}
           </p>
         </header>
 
