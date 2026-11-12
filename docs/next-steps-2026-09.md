@@ -161,7 +161,7 @@ order they already held relative to each other.
 | 5 | ✅ | **OD-6 The adoption release** (demo night, self-serve Club, first-night kit, landing flip, funnel) | Shipped 2026-09-14 to 2026-09-18 (#512; tickets #514 to #524). Specced out of a grilling session that cut co-owners, dropped the one-release rule in favour of shipping continuously, and narrowed the target user. **#512 is the authority on what this is, not the OD-6 section below.** The front door exists: demo night at `/on-deck/demo`, self-serve Club creation, a first-night kit, a landing page that claims nothing it cannot show, a Session that closes itself, and six funnel counters live before anyone is told |
 | 6 | ✅ | **RR-6 Pools (#392)** | Shipped 2026-09-23 to 2026-09-24 (#392; tickets #552, #553, #554). Grilled, built and closed inside two days. A Pool count deals the Roster, `---` lines in the Roster declare the pools instead, courts are allocated once for the night, and the board is one field with a band per pool. The Impeccable pass it was still waiting on happened inside RR-6.1 (sticky band names, summary lines stacked where the one line always sat). `GENERATOR_VERSION` stayed at 1, and `unchanged-boards.test.ts` pins twelve pre-pools boards to prove a one-pool link still draws what it drew |
 | 7 | ✅ | **BB-1 Standing Games (#576)** | Shipped 2026-10-06 (#576; tickets #577 to #582, PR #598), with #572 and #573 from the same grill landing alongside. A game can repeat weekly. Each week posts 7 days ahead, or earlier when the Booking Window opens sooner. Regulars get a Weekly Invite they can answer without signing in (ADR 0022). An organizer can skip a week, turn a one-off into a weekly game, and attach this week's court with one tap. #576, ADRs 0022 and 0023 and `booking-buddy/CONTEXT.md` are the authority; the BB-1 section below is a pointer |
-| 8 |  | **RR-2 Courtside mode** | **First unstarted row as of the ninth pass**, 2026-10-07. Turns the generator into the thing that stays open on the bench. The Schedule shape it was held behind is settled and shipped, so nothing ahead of it is Match Mixer work any more. Grill it against the pooled shape (see RR-2's new question 6) |
+| 8 |  | **RR-2 Courtside mode** | **First unstarted row as of the ninth pass**, 2026-10-07. Turns the generator into the thing that stays open on the bench. The Schedule shape it was held behind is settled and shipped, so nothing ahead of it is Match Mixer work any more. Grill it against the pooled shape (see RR-2's new question 6). **#685 is now the authority on this row**, merged with RR-5: scores, Standings and late arrivals built directly on a backend (Live Mixers, ADR 0006) instead of one phone first. The round timer stays in RR-2 and is out of scope for #685 |
 | 9 |  | BB-3 Slot Link as the growth surface | Unblocked 2026-10-06: BB-1 gave it a "next week" to hook onto. Grill it against what shipped, since Regulars and the Weekly Invite already cover part of its question 2 |
 | 10 | ✅ | **BB-4 Copy for group chat** | Shipped 2026-10-07 (PR #604), taken ahead of rows 8 and 9 as the small one. The organizer's game page builds a plain-text message (day and time, weekly or not, facility and courts, "N in, M maybe", the invite link): the share sheet on a phone, the clipboard elsewhere. Owner-only, because the invite link is. The dashboard card never got the button, because the whole card is a link and a button can't sit inside one |
 | 11 | ✅ | **RR-4 Constraint toggles (#391)** | Shipped 2026-09-19 to 2026-09-20 (#391; tickets #543, #544, #545). Three of the four features specced, and skill balance cut rather than deferred — a lopsided skill pairing comes out in the wash over eight rounds, which is the argument mixed doubles cannot make and is why that one got a hard constraint instead. Three of the four also turned out not to be Formats at all (ADR 0003): the row holds rotating, fixed partners and singles, and mixed doubles is a checkbox under rotating. Still orthogonal to RR-6 — each pool runs whichever Format is picked |
@@ -1169,6 +1169,12 @@ reasons from the superseded version:
 
 ### RR-2 · Courtside mode
 
+> **#685 is the authority** for scores, Standings, the Current Round and late
+> arrivals, merged with RR-5 and built on a backend from the start (ADR 0006,
+> `match-mixer/docs/adr/`). Where the text below disagrees with #685, #685 wins. The
+> round timer is not in #685: it stays here as RR-2's question 1, a clean follow-up
+> once the Current Round exists.
+
 **Size:** L. **Blocked by:** nothing. RR-1 is done, and RR-6, which it was ordered behind
 on 2026-09-08 so it would be built once against the pooled shape instead of twice, shipped
 2026-09-24. Row 8.
@@ -1285,6 +1291,12 @@ checkbox that appears under rotating alone.
    the counts cannot fill.
 
 ### RR-5 · Live score sync (v2, gated)
+
+> **#685 is the authority**, and it has started: RR-5 is merged into it rather than
+> waiting on RR-2. The gate below ("evidence that organizers use scores") was met by a
+> direct request from an organizer who wants to run weekly mixers. "No accounts" under
+> *Already decided* is reversed: an organizer may sign in, optionally; players never
+> do. See ADR 0006 in `match-mixer/docs/adr/`.
 
 **Size:** L. **Blocked by:** RR-2, RR-3, and real usage of v1. Do not start before there
 is evidence that organizers use scores.
