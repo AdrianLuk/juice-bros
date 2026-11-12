@@ -9,7 +9,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { decodeShareLink } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 
-export type Outcome<T> = { ok: true; value: T } | { ok: false; problem: string };
+/** `signIn` marks the one refusal that signing in fixes. */
+export type Outcome<T> = { ok: true; value: T } | { ok: false; problem: string; signIn?: true };
 
 /** A Live Mixer as one of its two links sees it. */
 export type LiveMixer = {
@@ -25,11 +26,13 @@ export type LiveMixer = {
 export const UNREADABLE_BOARD =
   "This board can't go live: this version of Match Mixer can't redraw it. Make the board again, then go live.";
 
+export const SIGN_IN_TO_GO_LIVE = "Sign in with Google to go live. Every board you take live is saved to your account.";
+
 /**
- * Commits a drawn board and returns both links' tokens. The Config goes
- * through the Share Link reader first, the same one an opened link uses, and
- * must be minted by this build's generator: a Live Mixer is redrawn from it on
- * every phone for the rest of the night.
+ * Commits a drawn board for the signed-in organizer and returns both links'
+ * tokens. The Config goes through the Share Link reader first, the same one an
+ * opened link uses, and must be minted by this build's generator: a Live Mixer
+ * is redrawn from it on every phone for the rest of the night.
  */
 export async function goLive(
   supabase: SupabaseClient,
@@ -38,6 +41,8 @@ export async function goLive(
   if (!decodeShareLink(config)?.current) return { ok: false, problem: UNREADABLE_BOARD };
 
   const { data, error } = await supabase.rpc("match_mixer_go_live", { p_config: config });
+  if (error?.code === "42501") return { ok: false, problem: SIGN_IN_TO_GO_LIVE, signIn: true };
+  if (error?.code === "54000") return { ok: false, problem: error.message };
   if (error?.code === "22023") return { ok: false, problem: UNREADABLE_BOARD };
   if (error) throw new Error(`Going live failed: ${error.message}`);
   return { ok: true, value: data as { organizerToken: string; playerToken: string } };

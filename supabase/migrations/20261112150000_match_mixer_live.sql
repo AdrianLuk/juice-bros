@@ -3,8 +3,8 @@
 --   match_mixer_live_mixers  one board committed at Go Live: its Config as the
 --                            Share Link payload string (which pins
 --                            GENERATOR_VERSION), the two unguessable tokens
---                            behind the Organizer Link and the Player Link, an
---                            optional Owner, and when it went live and finished
+--                            behind the Organizer Link and the Player Link, its
+--                            Owner, and when it went live and finished
 --   match_mixer_events       the append-only log above that Config (ADR 0001):
 --                            empty until the scoring and late-arrival slices
 --                            write to it
@@ -14,13 +14,16 @@
 --
 -- Access (Mic Drop's and Team Tally's token posture):
 --
+--   * Going live needs a signed-in organizer, who becomes the Owner (the beta
+--     amendment to ADR 0006): no anonymous writes, and at most 20 Live
+--     Mixers per Owner per day. Running and viewing a night need only a
+--     link's token, no account.
 --   * `anon` and `authenticated` have no table access at all. Going live and
---     reading a Live Mixer go through the SECURITY DEFINER functions below,
---     keyed on a link's token.
+--     reading a Live Mixer go through the SECURITY DEFINER functions below.
 --   * The server validates the Config with the Share Link reader before it
 --     calls match_mixer_go_live. The database only bounds its size: an
 --     unreadable Config is a board nobody can open, not a leak.
---   * The Player Link token never reveals the Organizer Link token.
+--   * The Player Link token never reveals the Organizer Link token or the Owner.
 
 -- ---------------------------------------------------------------------------
 -- Live Mixers
@@ -38,8 +41,8 @@ create table public.match_mixer_live_mixers (
   player_token text not null unique
     default replace(gen_random_uuid()::text, '-', '')
     check (char_length(player_token) between 24 and 128),
-  -- Optional (ADR 0006): set once an organizer signs in. A night never needs it.
-  owner_id uuid references auth.users (id) on delete set null,
+  -- The organizer who went live. Deleting the account deletes their nights.
+  owner_id uuid not null references auth.users (id) on delete cascade,
   went_live_at timestamptz not null default now(),
   -- Null while the night is running.
   finished_at timestamptz,
@@ -47,8 +50,7 @@ create table public.match_mixer_live_mixers (
 );
 
 create index match_mixer_live_mixers_owner_idx
-  on public.match_mixer_live_mixers (owner_id, went_live_at desc)
-  where owner_id is not null;
+  on public.match_mixer_live_mixers (owner_id, went_live_at desc);
 
 comment on column public.match_mixer_live_mixers.organizer_token is
   'Bearer secret behind the Organizer Link. Returned only to the browser that went live and to a holder of this same token.';
@@ -108,17 +110,15 @@ alter table public.match_mixer_events enable row level security;
 -- authenticated. Take them back: everything goes through the functions below.
 revoke all on public.match_mixer_live_mixers, public.match_mixer_events
   from anon, authenticated;
--- The db-tests clean up the ownerless Live Mixers they make through it.
-grant select, delete on public.match_mixer_live_mixers to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Functions
 -- ---------------------------------------------------------------------------
 
 /**
- * Commits a drawn board. Returns both tokens; this is the only call that
- * hands out the Organizer Link token without being given it first. Callable
- * signed out: no account is needed to run a night.
+ * Commits a drawn board for the signed-in organizer, who becomes its Owner.
+ * Returns both tokens; this is the only call that hands out the Organizer
+ * Link token without being given it first. At most 20 per Owner per day.
  */
 create function public.match_mixer_go_live(p_config text)
 returns jsonb
@@ -129,12 +129,25 @@ as $$
 declare
   v_mixer public.match_mixer_live_mixers;
 begin
+  if (select auth.uid()) is null then
+    raise exception 'Sign in to go live.' using errcode = '42501';
+  end if;
+
+  -- A real organizer takes a night or two live a day; this stops a script.
+  if (
+    select count(*) from public.match_mixer_live_mixers
+    where owner_id = (select auth.uid()) and went_live_at > now() - interval '1 day'
+  ) >= 20 then
+    raise exception 'That''s 20 boards live in a day, the most one account can take. Try again tomorrow.'
+      using errcode = '54000';
+  end if;
+
   if char_length(coalesce(p_config, '')) not between 1 and 8000 then
     raise exception 'That board can''t go live.' using errcode = '22023';
   end if;
 
-  insert into public.match_mixer_live_mixers (config)
-  values (p_config)
+  insert into public.match_mixer_live_mixers (config, owner_id)
+  values (p_config, (select auth.uid()))
   returning * into v_mixer;
 
   return jsonb_build_object(
@@ -144,8 +157,8 @@ begin
 end;
 $$;
 
-revoke all on function public.match_mixer_go_live(text) from public;
-grant execute on function public.match_mixer_go_live(text) to anon, authenticated;
+revoke all on function public.match_mixer_go_live(text) from public, anon;
+grant execute on function public.match_mixer_go_live(text) to authenticated;
 
 /**
  * The Live Mixer behind either link's token, or null for any token that isn't

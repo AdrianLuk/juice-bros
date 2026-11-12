@@ -33,3 +33,21 @@ export async function goLive(
     },
   };
 }
+
+/**
+ * Called with the ID token Google returned, from the Go Live control. No
+ * redirect, unlike Mic Drop's: the board on screen may be a borrowed one that
+ * a reload wouldn't bring back, so the control goes live straight after.
+ * `nonce` is the raw value: Supabase hashes it itself.
+ */
+export async function signInWithGoogleIdToken(
+  idToken: string,
+  nonce: string,
+): Promise<{ ok: boolean }> {
+  const { error } = await (await createClient()).auth.signInWithIdToken({
+    provider: "google",
+    token: idToken,
+    nonce,
+  });
+  return { ok: !error };
+}

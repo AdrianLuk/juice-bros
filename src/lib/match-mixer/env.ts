@@ -18,6 +18,16 @@ function requireEnv(source: EnvSource, name: string): string {
   return value;
 }
 
+/** The Google sign-in client id, or undefined where Google sign-in isn't set up. */
+export function readGoogleSignInClientId(
+  source: EnvSource = {
+    NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID,
+  },
+): string | undefined {
+  const value = source.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID;
+  return value && value.trim() !== "" ? value : undefined;
+}
+
 export function readPublicSupabaseEnv(
   source: EnvSource = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
