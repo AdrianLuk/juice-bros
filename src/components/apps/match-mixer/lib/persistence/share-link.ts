@@ -81,7 +81,8 @@ export interface SharedBoard {
  * RR-6 adds Pool Count, and it is how RR-4.1's Format arrived: a sixth field
  * after the checksum, absent in every link already sitting in a group chat,
  * and absent reads as rotating. RR-4.3's mixed doubles is the seventh, on the
- * same terms, and RR-6's Pool count is the eighth.
+ * same terms, RR-6's Pool count is the eighth, and #697's Court Labels the
+ * ninth.
  *
  * The number line carries a checksum over the Roster block, which is the one
  * thing in the payload not implied by the rest of it. It is there because a

@@ -659,7 +659,8 @@ function relabel(
   labels: readonly number[] | null,
 ): DrawnBoard | null {
   if (!draw) return null;
-  const { courtLabels: _dropped, ...rest } = draw.config;
+  const rest = { ...draw.config };
+  delete (rest as { courtLabels?: readonly number[] }).courtLabels;
   return { ...draw, config: labels ? { ...rest, courtLabels: labels } : rest };
 }
 
