@@ -10,6 +10,7 @@ import { MAX_ROSTER_SIZE } from "../engine/types.ts";
 import {
   decodeShareLink,
   encodeShareLink,
+  encodeSharePayload,
   GENERATOR_VERSION,
   MAX_LINK_LENGTH,
   SHARE_PARAM,
@@ -96,6 +97,22 @@ test("the board a link opens is the board that was shared", () => {
   assert.deepEqual(
     generateSchedule(shared.config),
     generateSchedule(config),
+  );
+});
+
+test("the payload a Live Mixer stores is the link's own, with no length cap", () => {
+  // Go Live stores the payload rather than a URL (#687), so it must be the
+  // exact string a link carries and must not inherit the URL's ceiling.
+  assert.equal(encodeSharePayload(config), encoded());
+  const long = parseRoster(
+    Array.from({ length: 32 }, (_, i) => `Player ${i} ${"x".repeat(60)}`).join("\n"),
+  );
+  const big = { ...config, roster: long, courts: 8, rounds: 8 };
+  assert.equal(encodeShareLink(big, BASE), null);
+  const payload = encodeSharePayload(big);
+  assert.deepEqual(
+    decodeShareLink(payload)?.config.roster.map((p) => p.name),
+    long.map((p) => p.name),
   );
 });
 

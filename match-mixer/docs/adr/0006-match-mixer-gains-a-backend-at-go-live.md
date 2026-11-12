@@ -95,3 +95,30 @@ correct anything wrong.
 - The page's own copy, which already says a Share Link means "it is no longer true
   that nothing leaves the browser", must say plainly that Go Live is the step where
   something does.
+
+## Amendment, 2026-11-12: going live requires sign-in during the beta
+
+Decided while building Go Live (#687), before anyone used it. The text above
+says the account is optional and no account is needed to run a night. For the
+beta, going live now requires a signed-in organizer, who becomes the Owner.
+
+Why:
+
+- **Security.** An anonymous Go Live is the first write in this repo that needs
+  neither an account nor an existing token, so anyone holding the public key
+  could fill the table. Requiring sign-in removes anonymous writes entirely and
+  makes the rate limit a simple per-account one (20 Live Mixers a day), with no
+  IP hashing.
+- **The first user runs repeat events.** Every Live Mixer has an Owner from the
+  first one, so My Mixers and Run it again (#691) have history to show.
+- **One path.** Later slices build on a signed-in Owner instead of handling
+  owned and ownerless Live Mixers twice.
+
+What it does not change: drawing, printing, find-me and Share Links stay
+account-free and offline; players never sign in; running a night needs only
+the Organizer Link, so a co-organizer it is handed to needs no account.
+
+Google is the only sign-in method for now. Email sign-in waits until someone
+is turned away by it: it needs a custom mail server for Supabase and its own
+abuse limit. If growth ever needs account-free Go Live, the fallback is the
+server validating every Config before insert plus a per-IP rate limit.

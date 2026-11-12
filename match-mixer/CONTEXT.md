@@ -1,6 +1,6 @@
 # Match Mixer
 
-A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. Drawing a board needs no account, no database and no network — it runs in the browser so it works on rec-centre wifi. One opt-in step, **Go Live**, is the exception: it commits the board to a database and gives the organizer links for entering scores from every phone ([ADR 0006](docs/adr/0006-match-mixer-gains-a-backend-at-go-live.md)). A board that never goes live is untouched.
+A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. Drawing a board needs no account, no database and no network — it runs in the browser so it works on rec-centre wifi. One opt-in step, **Go Live**, is the exception: a signed-in organizer commits the board to a database and gets links for entering scores from every phone ([ADR 0006](docs/adr/0006-match-mixer-gains-a-backend-at-go-live.md)). A board that never goes live is untouched.
 
 Since #543 that rotation is one **Format** of several rather than the only thing the tool knows. Rotating partners is still the default and still what the sentence above describes; fixed partners is the same board drawn for a night where people turn up already partnered; singles (#544) is the one where a side is a single Player and the word "doubles" in the sentence above stops being true. Read every claim below about partners, Byes and balance as a claim about rotating unless it says otherwise, because the Format is what decides which of them still hold.
 
@@ -198,7 +198,7 @@ A board committed by **Go Live**: its Config (as the Share Link payload string, 
 _Avoid_: Session, event, night (as a noun for the record), tournament
 
 **Organizer Link**:
-The unguessable link a Live Mixer always has, which can do everything: score any Game in any Round, start the next Round, change the Game Rule, add or remove Players, finish. It is the only thing needed to run a night, so no account is required.
+The unguessable link a Live Mixer always has, which can do everything: score any Game in any Round, start the next Round, change the Game Rule, add or remove Players, finish. Going live needs a signed-in organizer, but running the night needs only this link, so a co-organizer it is handed to needs no account.
 _Avoid_: Admin link, host link (Mic Drop's **Host** is a separate model), Volunteer Link (On Deck's)
 
 **Player Link**:
@@ -206,7 +206,7 @@ The link for the group chat. Anyone holding it sees the board and the **Standing
 _Avoid_: Share Link (carries a plan, not a night in progress), Invite Link (Booking Buddy's)
 
 **Owner**:
-The organizer who signed in and so has a Live Mixer attached to their account, which gives them My Mixers and **Run it again**. Optional: a Live Mixer with no Owner is still fully run through its Organizer Link. Authorization is one check: holds the Organizer Link token, OR is the Owner, OR is a superadmin. Players never have accounts.
+The signed-in organizer who took a Live Mixer live, which gives them My Mixers and **Run it again**. Every Live Mixer has one: going live requires sign-in during the beta (ADR 0006, amended), and deleting the account deletes its Live Mixers. Authorization is one check: holds the Organizer Link token, OR is the Owner, OR is a superadmin. Players never have accounts.
 _Avoid_: Organizer when the account is meant (the Organizer here is whoever holds the link, signed in or not), host, admin, user (Booking Buddy's)
 
 **Game Rule**:

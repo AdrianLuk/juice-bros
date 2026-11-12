@@ -65,6 +65,7 @@ import {
   type PlayerIndex,
 } from "@/components/apps/match-mixer/lib/engine/types";
 
+import { GoLive } from "./go-live";
 import { ScheduleGrid, type Band, type BandPlayer } from "./schedule-grid";
 
 /**
@@ -469,8 +470,8 @@ export function MatchMixer() {
           <p className="mm-lede">
             {mixing ? MIXED_LEDE : LEDE[format]}{" "}
             Your list stays in this browser and waits here for next week. There
-            is no account to make and no database behind this: nothing you type
-            is kept on a server.
+            is no account to make, and nothing you type is kept on a server
+            unless you take the board live.
           </p>
         </header>
 
@@ -667,6 +668,12 @@ export function MatchMixer() {
             {draw ? (
               <ShareBoard key={draw.config.seed} config={draw.config} />
             ) : null}
+            {/* Keyed like the share plate, so a problem said over one draw
+                isn't left standing over the next. */}
+            <GoLive
+              key={draw?.config.seed}
+              config={draw && !stale ? draw.config : null}
+            />
           </div>
 
           <div className="min-w-0">

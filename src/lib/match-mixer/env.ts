@@ -1,0 +1,41 @@
+/**
+ * Env access for Match Mixer's Supabase connection, used only once a board
+ * goes live (ADR 0006). Its own copy, like Mic Drop's and Team Tally's: a few
+ * lines of deliberate duplication keep the contexts independent. Each variable
+ * is spelled out as a literal `process.env.X`, because Next.js only inlines a
+ * `NEXT_PUBLIC_` variable into the browser bundle where it appears verbatim.
+ */
+
+type EnvSource = Record<string, string | undefined>;
+
+function requireEnv(source: EnvSource, name: string): string {
+  const value = source[name];
+  if (value === undefined || value.trim() === "") {
+    throw new Error(
+      `Missing required environment variable ${name}. See .env.example for what it should hold.`,
+    );
+  }
+  return value;
+}
+
+/** The Google sign-in client id, or undefined where Google sign-in isn't set up. */
+export function readGoogleSignInClientId(
+  source: EnvSource = {
+    NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID,
+  },
+): string | undefined {
+  const value = source.NEXT_PUBLIC_GOOGLE_SIGN_IN_CLIENT_ID;
+  return value && value.trim() !== "" ? value : undefined;
+}
+
+export function readPublicSupabaseEnv(
+  source: EnvSource = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  },
+): { url: string; anonKey: string } {
+  return {
+    url: requireEnv(source, "NEXT_PUBLIC_SUPABASE_URL"),
+    anonKey: requireEnv(source, "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  };
+}
