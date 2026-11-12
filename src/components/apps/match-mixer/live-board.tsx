@@ -1,56 +1,68 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { EMPTY, restore } from "@/components/apps/match-mixer/lib/board-editor";
 import { locate, poolName } from "@/components/apps/match-mixer/lib/engine/pools";
 import type { PlayerIndex } from "@/components/apps/match-mixer/lib/engine/types";
+import { gameKey, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
+import { describeGameRule, type GameRule, type GameScore } from "@/components/apps/match-mixer/lib/live/game-rule";
+import { gameOn, rebuild, type LiveNight } from "@/components/apps/match-mixer/lib/live/night";
 import {
   boardIdentity,
   clear as clearSelection,
   load as loadSelection,
   save as saveSelection,
 } from "@/components/apps/match-mixer/lib/persistence/selection-storage";
-import { decodeShareLink } from "@/components/apps/match-mixer/lib/persistence/share-link";
+import { changeGameRule, clearScore, enterScore } from "@/lib/match-mixer/actions";
+import type { LiveMixer } from "@/lib/match-mixer/live-mixers";
 
+import { GameRulePicker } from "./game-rule-picker";
+import { QueryProvider } from "./query-provider";
 import { ScheduleGrid, type Band, type BandPlayer } from "./schedule-grid";
+import { ScoreSheet, type SheetGame } from "./score-sheet";
+import { StandingsTables } from "./standings-tables";
+import { liveMixerKey, useLiveMixer } from "./use-live-mixer";
 
 /**
- * A Live Mixer's board, as its Organizer Link or Player Link opens it (#687).
- * Redrawn from the stored Config exactly as an opened Share Link is (ADR
- * 0001, ADR 0006): the Schedule is never stored. Find-me works as it does on
- * the tool itself, and a Selection made here is the same Selection.
+ * A Live Mixer's board, as its Organizer Link or Player Link opens it (#687,
+ * #688). Redrawn from the stored Config exactly as an opened Share Link is
+ * (ADR 0001, ADR 0006): the Schedule is never stored. Scores and Standings
+ * come from the event log and stay current on every phone. Find-me works as
+ * it does on the tool itself, and a Selection made here is the same Selection.
+ *
+ * The Organizer Link (`playerPath` and `organizerPath` both present) also
+ * enters scores and sets the Game Rule.
  */
-export function LiveBoard({
-  config,
-  playerPath,
-  organizerPath,
-}: {
-  config: string;
+export function LiveBoard(props: {
+  token: string;
+  initial: LiveMixer;
   /** Both present on the Organizer Link only. */
   playerPath?: string;
   organizerPath?: string;
 }) {
-  const draw = useMemo(() => {
-    const shared = decodeShareLink(config);
-    return shared ? restore(EMPTY, { from: "link", board: shared }).draw : null;
-  }, [config]);
+  return (
+    <QueryProvider>
+      <LiveSheet {...props} />
+    </QueryProvider>
+  );
+}
 
-  // Find-me, as `MatchMixer` does it: a Roster index held against the board
-  // it was picked on, resolved to a band on the way in and back on the way out.
-  const [found, setFound] = useState<{ board: string; player: PlayerIndex } | null>(null);
-  const board = draw ? boardIdentity(draw.key, draw.config.seed) : null;
-  const size = draw?.config.roster.length ?? 0;
-  const selected = found && found.board === board && found.player < size ? found.player : null;
+function LiveSheet({
+  token,
+  initial,
+  playerPath,
+  organizerPath,
+}: {
+  token: string;
+  initial: LiveMixer;
+  playerPath?: string;
+  organizerPath?: string;
+}) {
+  const { mixer, reconnecting } = useLiveMixer(token, initial);
+  const night = useMemo(() => rebuild(mixer.config, mixer.events), [mixer.config, mixer.events]);
 
-  useEffect(() => {
-    if (!board) return;
-    const player = loadSelection(board, size);
-    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of an external store when the board changes */
-    setFound(player === null ? null : { board, player });
-  }, [board, size]);
-
-  if (!draw || !board) {
+  if (!night) {
     return (
       <div className="mm-sheet">
         <div className="mm-face mm-fixings">
@@ -62,6 +74,38 @@ export function LiveBoard({
       </div>
     );
   }
+
+  const organizer = playerPath !== undefined && organizerPath !== undefined ? { playerPath, organizerPath } : null;
+  return <LiveFace token={token} night={night} reconnecting={reconnecting} organizer={organizer} />;
+}
+
+function LiveFace({
+  token,
+  night,
+  reconnecting,
+  organizer,
+}: {
+  token: string;
+  night: LiveNight;
+  reconnecting: boolean;
+  organizer: { playerPath: string; organizerPath: string } | null;
+}) {
+  const { draw } = night;
+  const queryClient = useQueryClient();
+  const reread = () => queryClient.invalidateQueries({ queryKey: liveMixerKey(token) });
+
+  // Find-me, as `MatchMixer` does it: a Roster index held against the board
+  // it was picked on, resolved to a band on the way in and back on the way out.
+  const [found, setFound] = useState<{ board: string; player: PlayerIndex } | null>(null);
+  const board = boardIdentity(draw.key, draw.config.seed);
+  const size = draw.config.roster.length;
+  const selected = found && found.board === board && found.player < size ? found.player : null;
+
+  useEffect(() => {
+    const player = loadSelection(board, size);
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read of an external store when the board changes */
+    setFound(player === null ? null : { board, player });
+  }, [board, size]);
 
   const selectPlayer = (player: PlayerIndex) => {
     const next = selected === player ? null : player;
@@ -77,15 +121,19 @@ export function LiveBoard({
     score: pool.score,
   }));
   const located = selected !== null ? locate(draw.pools, selected) : null;
-  const bandSelected: BandPlayer | null = located
-    ? { band: located.pool, player: located.index }
-    : null;
+  const bandSelected: BandPlayer | null = located ? { band: located.pool, player: located.index } : null;
   const selectInBand = ({ band, player }: BandPlayer) => {
     const member = draw.pools[band]?.members[player];
     if (member !== undefined) selectPlayer(member);
   };
 
-  const organizer = playerPath !== undefined && organizerPath !== undefined;
+  // The keypad sheet, open on one Game at a time.
+  const [scoring, setScoring] = useState<GameAt | null>(null);
+  const sheet = scoring ? sheetFor(night, scoring) : null;
+  const afterWrite = async (outcome: Awaited<ReturnType<typeof enterScore>>) => {
+    if (outcome.ok) await reread();
+    return outcome;
+  };
 
   return (
     <div className="mm-sheet">
@@ -97,8 +145,8 @@ export function LiveBoard({
           </div>
           <p className="mm-lede">
             {organizer
-              ? "This board is live. Paste the Player Link into the group chat so everyone can open it on their phone, and keep the Organizer Link for yourself."
-              : "Tonight’s board, live from the organizer. Tap your name to see your evening."}
+              ? "This board is live. Paste the Player Link into the group chat, keep the Organizer Link for yourself, and tap Score on a Game when it finishes. Standings update on every phone."
+              : "Tonight’s board, live from the organizer. Tap your name to see your evening. Scores and Standings update as the organizer enters them."}
           </p>
         </header>
 
@@ -106,25 +154,35 @@ export function LiveBoard({
           <div className="mm-controls">
             {organizer ? (
               <>
+                <RuleControl token={token} rule={night.rule} onSaved={reread} />
                 <CopyLink
                   id="mm-player-link"
                   label="Player Link"
-                  path={playerPath}
-                  note="For the group chat. Anyone with it can see the board."
+                  path={organizer.playerPath}
+                  note="For the group chat. Anyone with it can see the board and the Standings."
                 />
                 <CopyLink
                   id="mm-organizer-link"
                   label="Organizer Link"
-                  path={organizerPath}
+                  path={organizer.organizerPath}
                   note="Yours alone. Whoever holds it runs the night."
                 />
               </>
             ) : (
-              <p className="mm-note">Tap your name again to see everyone.</p>
+              <>
+                <p className="mm-legend">Game Rule</p>
+                <p className="mm-note mt-1">{describeGameRule(night.rule)}</p>
+                <p className="mm-note mt-4">Tap your name again to see everyone.</p>
+              </>
             )}
           </div>
 
           <div className="min-w-0">
+            {reconnecting ? (
+              <p className="mm-notice mb-4" role="status">
+                Lost the connection to Match Mixer, so scores here may be behind. This page catches up on its own.
+              </p>
+            ) : null}
             {draw.outdated ? (
               <p className="mm-notice mb-4">
                 Match Mixer has changed how boards are drawn since this one went live, so the board below may not
@@ -132,11 +190,28 @@ export function LiveBoard({
               </p>
             ) : null}
             <div className="mm-draw">
-              <ScheduleGrid bands={bands} selected={bandSelected} onSelect={selectInBand} />
+              <ScheduleGrid
+                bands={bands}
+                selected={bandSelected}
+                onSelect={selectInBand}
+                scoring={{ scores: night.scores, onScore: organizer ? setScoring : undefined }}
+              />
             </div>
+            <StandingsTables standings={night.standings} pairs={draw.pools[0]?.score.format === "fixed"} />
           </div>
         </div>
       </div>
+
+      {organizer && scoring && sheet ? (
+        <ScoreSheet
+          key={`${scoring.round}:${scoring.court}`}
+          game={sheet}
+          rule={night.rule}
+          onSave={async (score: GameScore) => afterWrite(await enterScore(token, scoring, score))}
+          onClear={async () => afterWrite(await clearScore(token, scoring))}
+          onClose={() => setScoring(null)}
+        />
+      ) : null}
 
       <div className="mm-tray" aria-hidden>
         <span className="mm-pen" data-ink="black" data-tray-extra />
@@ -145,6 +220,59 @@ export function LiveBoard({
         <span className="mm-magnet" data-tray-extra />
         <span className="mm-tray-mark">Juice Bros Pickleball</span>
       </div>
+    </div>
+  );
+}
+
+/** The keypad sheet's view of one Game: its place on the board and both Sides' names. */
+function sheetFor(night: LiveNight, at: GameAt): SheetGame | null {
+  const found = gameOn(night.draw, at);
+  if (!found) return null;
+  const { roster } = night.draw.pools[found.pool];
+  const names = (side: readonly PlayerIndex[]) => side.map((player) => roster[player]?.name ?? "").join(" / ");
+  return {
+    title: `Round ${at.round + 1} · Court ${at.court + 1}`,
+    sides: [names(found.game.sides[0]), names(found.game.sides[1])],
+    score: night.scores.get(gameKey(at.round, at.court)) ?? null,
+  };
+}
+
+const RULE_UNREACHABLE = "Couldn't reach Match Mixer, so the Game Rule didn't change. Try again.";
+
+/** The Organizer Link's Game Rule: saved the moment it changes, for scores from then on. */
+function RuleControl({ token, rule, onSaved }: { token: string; rule: GameRule; onSaved: () => Promise<void> }) {
+  const [pending, setPending] = useState<GameRule | null>(null);
+  const [said, setSaid] = useState<{ tone: "done" | "refused"; text: string } | null>(null);
+
+  const change = async (next: GameRule) => {
+    setPending(next);
+    setSaid(null);
+    let outcome: Awaited<ReturnType<typeof changeGameRule>>;
+    try {
+      outcome = await changeGameRule(token, next);
+    } catch {
+      outcome = { ok: false, problem: RULE_UNREACHABLE };
+    }
+    if (outcome.ok) await onSaved();
+    setPending(null);
+    setSaid(
+      outcome.ok
+        ? { tone: "done", text: `Saved. Scores from now on play ${describeGameRule(next).toLowerCase()}.` }
+        : { tone: "refused", text: outcome.problem },
+    );
+  };
+
+  return (
+    <div className="mb-6">
+      <GameRulePicker
+        value={pending ?? rule}
+        onChange={change}
+        disabled={pending !== null}
+        note="Change it any time. Scores already in stay as they are."
+      />
+      <p className="mm-note -mt-4" role="status" data-tone={said?.tone}>
+        {said?.text}
+      </p>
     </div>
   );
 }

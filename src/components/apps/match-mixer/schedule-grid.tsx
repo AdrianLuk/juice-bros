@@ -15,6 +15,44 @@ import type {
   ScorerResult,
   Side as GameSide,
 } from "@/components/apps/match-mixer/lib/engine/types";
+import { gameKey, type GameAt, type Scores } from "@/components/apps/match-mixer/lib/live/events";
+
+/**
+ * A Live Mixer's scores on the board (#688). Absent on a board that never
+ * went live, which draws exactly what it always drew. `onScore` is the
+ * Organizer Link's: with it, every Game carries a control that opens the
+ * keypad; without it, a scored Game just shows its score.
+ */
+export interface BoardScores {
+  readonly scores: Scores;
+  readonly onScore?: (at: GameAt) => void;
+}
+
+/** A Game's score, or the Organizer Link's way to enter one. */
+function ScoreMark({ round, court, scoring }: { round: number; court: number; scoring: BoardScores }) {
+  const score = scoring.scores.get(gameKey(round, court)) ?? null;
+  const said = score ? `${score[0]} to ${score[1]}` : null;
+  if (scoring.onScore) {
+    return (
+      <button
+        type="button"
+        className="mm-score"
+        data-scored={score ? "true" : undefined}
+        aria-label={`Round ${round + 1}, Court ${court + 1}: ${said ? `${said}. Change the score` : "enter the score"}`}
+        onClick={() => scoring.onScore?.({ round, court })}
+      >
+        {score ? `${score[0]}-${score[1]}` : "Score"}
+      </button>
+    );
+  }
+  if (!score) return null;
+  return (
+    <span className="mm-score" data-scored="true">
+      <span aria-hidden="true">{`${score[0]}-${score[1]}`}</span>
+      <span className="sr-only">{`Score ${said}`}</span>
+    </span>
+  );
+}
 
 /**
  * The ruled field of the board: rounds run down, courts run across, the way
@@ -429,7 +467,9 @@ function BandCells({
   away,
   selected,
   onSelect,
+  scoring,
 }: {
+  scoring?: BoardScores;
   band: Band;
   round: number;
   /** The courts this band's columns head, in order. */
@@ -482,6 +522,7 @@ function BandCells({
             selected={selected}
             onSelect={onSelect}
           />
+          {scoring ? <ScoreMark round={round} court={game.court} scoring={scoring} /> : null}
         </td>
       ))}
       {courts.slice(courts.length - idle).map((court) => (
@@ -599,8 +640,11 @@ export function ScheduleGrid({
   headingHidden = false,
   selected = null,
   onSelect,
+  scoring,
 }: {
   bands: readonly Band[];
+  /** A Live Mixer's scores; absent everywhere else. */
+  scoring?: BoardScores;
   /** Overridden by the zero state, which shows a second grid of its own. */
   headingId?: string;
   /**
@@ -797,6 +841,7 @@ export function ScheduleGrid({
                       here={band === pickedBand ? here : null}
                       away={pickedBand !== null && band !== pickedBand}
                       selected={band === pickedBand ? picked : null}
+                      scoring={scoring}
                       onSelect={
                         onSelect
                           ? (player) => onSelect({ band: which, player })

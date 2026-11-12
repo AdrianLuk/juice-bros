@@ -13,7 +13,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** A Live Mixer's Organizer Link (#687): the board, plus both links to copy. */
+/**
+ * A Live Mixer's Organizer Link (#687): the board, both links to copy, and
+ * score entry, the Game Rule and Standings (#688).
+ */
 export default async function OrganizerLinkPage({ params }: Props) {
   const { token } = await params;
   const mixer = await readLiveMixer(await createClient(), token);
@@ -22,7 +25,8 @@ export default async function OrganizerLinkPage({ params }: Props) {
   return (
     <div className="flex w-full flex-1 flex-col">
       <LiveBoard
-        config={mixer.config}
+        token={token}
+        initial={mixer}
         organizerPath={organizerLinkPath(token)}
         playerPath={playerLinkPath(mixer.playerToken)}
       />

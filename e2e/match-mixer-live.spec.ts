@@ -67,6 +67,16 @@ function boardGrid(page: Page): Locator {
   return page.getByRole("region", { name: "The board" }).getByRole("table");
 }
 
+/** The board's names and rounds, without the scores a Live Mixer writes under its Games. */
+async function plates(page: Page): Promise<string> {
+  await expect(boardGrid(page)).toBeVisible();
+  return boardGrid(page).evaluate((table) => {
+    const copy = table.cloneNode(true) as HTMLElement;
+    for (const score of copy.querySelectorAll(".mm-score")) score.remove();
+    return copy.textContent ?? "";
+  });
+}
+
 /** Pastes the Roster and draws it, retrying the fill until React has hydrated. */
 async function drawBoard(page: Page): Promise<string> {
   await page.goto(ROUTE);
@@ -76,8 +86,7 @@ async function drawBoard(page: Page): Promise<string> {
     await expect(make).toBeEnabled({ timeout: 1_000 });
   }).toPass();
   await make.click();
-  await expect(boardGrid(page)).toBeVisible();
-  return (await boardGrid(page).textContent()) ?? "";
+  return plates(page);
 }
 
 test("a signed-in organizer goes live and the Player Link opens the same board elsewhere", async ({
@@ -97,7 +106,7 @@ test("a signed-in organizer goes live and the Player Link opens the same board e
 
   await page.getByRole("button", { name: "Go live" }).click();
   await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
-  await expect(boardGrid(page)).toHaveText(drawn);
+  expect(await plates(page)).toBe(drawn);
 
   const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
   expect(playerLink).toMatch(/\/tools\/match-mixer\/player\/[0-9a-f]{32}$/);
@@ -108,7 +117,7 @@ test("a signed-in organizer goes live and the Player Link opens the same board e
   const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
   const player = await phone.newPage();
   await player.goto(playerLink);
-  await expect(boardGrid(player)).toHaveText(drawn);
+  expect(await plates(player)).toBe(drawn);
   // The Player Link never shows the Organizer Link.
   await expect(player.getByRole("textbox", { name: "Organizer Link" })).toHaveCount(0);
   expect(await player.content()).not.toContain(organizerLink.split("/").pop()!);
@@ -123,6 +132,56 @@ test("a signed-in organizer goes live and the Player Link opens the same board e
   await page.goto(ROUTE);
   await page.getByRole("link", { name: "Open its Organizer Link" }).click();
   await page.waitForURL(organizerLink);
+});
+
+/** The first row of a Standings table, as [rank, W, L, +/-]. */
+function topRow(page: Page): Locator {
+  return page.getByRole("region", { name: "Standings" }).getByRole("table").first().locator("tbody tr").first().getByRole("cell");
+}
+
+test("the organizer enters a score and the Player Link shows it, with the Standings moved", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await signIn(page);
+  await drawBoard(page);
+
+  // The Game Rule is set at Go Live.
+  await page.getByRole("radio", { name: "To 15" }).check();
+  await page.getByRole("button", { name: "Go live" }).click();
+  await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
+  await expect(page.getByRole("radio", { name: "To 15" })).toBeChecked();
+  const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+
+  const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const player = await phone.newPage();
+  await player.goto(playerLink);
+  await expect(player.getByText("To 15, win by 2")).toBeVisible();
+  await expect(topRow(player)).toHaveText(["1", "0", "0", "0"]);
+  // The Player Link can't score yet (RR-2.4).
+  await expect(player.getByRole("button", { name: /enter the score/ })).toHaveCount(0);
+
+  // Tap a Game, the keypad, two scores.
+  await page.getByRole("button", { name: "Round 1, Court 1: enter the score" }).click();
+  const keypad = page.getByRole("dialog", { name: "Round 1 · Court 1" });
+  await expect(keypad).toBeVisible();
+  for (const key of ["1", "5", "1", "4"]) await keypad.getByRole("button", { name: key, exact: true }).click();
+  await keypad.getByRole("button", { name: "Save score" }).click();
+  // 15 to 14 isn't over playing to 15, win by 2: refused before anything is sent.
+  await expect(keypad.getByRole("status")).toHaveText(/Win by 2/);
+
+  await keypad.getByRole("button", { name: "Delete" }).click();
+  await keypad.getByRole("button", { name: "Delete" }).click();
+  await keypad.getByRole("button", { name: "9", exact: true }).click();
+  await keypad.getByRole("button", { name: "Save score" }).click();
+  await expect(keypad).toBeHidden();
+  await expect(page.getByRole("button", { name: "Round 1, Court 1: 15 to 9. Change the score" })).toBeVisible();
+
+  // Another phone sees it within a few seconds, and the winners top the table.
+  await expect(player.getByText("Score 15 to 9")).toBeAttached({ timeout: 10_000 });
+  await expect(topRow(player)).toHaveText(["1", "1", "0", "+6"]);
+  await phone.close();
 });
 
 test("signed out, Go Live asks for sign-in and leaves the board as it was", async ({ page }) => {

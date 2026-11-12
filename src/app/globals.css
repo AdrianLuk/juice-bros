@@ -4962,6 +4962,282 @@ html:has(.bb-app-chrome) {
     color: var(--mm-vinyl);
   }
 
+  /* ---- A Live Mixer's scores (#688) ------------------------------------------ */
+
+  /* The Game Rule: the Format picker's plates, two across, so the controls
+     column holds them at a phone's width. Timed has no margin, so the win-by
+     row moves its ink back rather than fading. */
+  .mm-rule-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+  .mm-rule .mm-format {
+    align-items: center;
+    padding: 0.36rem 0.45rem;
+  }
+  .mm-rule .mm-format + .mm-format {
+    margin-top: 0;
+  }
+  .mm-rule .mm-format input {
+    grid-row: auto;
+    margin: 0;
+  }
+  .mm-rule-row[data-quiet] .mm-format {
+    cursor: default;
+  }
+  .mm-rule-row[data-quiet] .mm-format-name {
+    color: var(--mm-vinyl-2);
+    font-weight: 500;
+  }
+  .mm-rule:disabled .mm-format {
+    cursor: progress;
+  }
+
+  /* A score is written on the board in the red marker from the tray, under
+     the Game it belongs to. An unscored Game on the Organizer Link is an empty
+     slot ruled in dashes, waiting for it. */
+  .mm-score {
+    display: inline-block;
+    margin-top: 0.4rem;
+    color: var(--mm-mark-red);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  button.mm-score {
+    min-height: 1.75rem;
+    min-width: 3.25rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px dashed rgb(27 32 35 / 0.38);
+    border-radius: 2px;
+    background: none;
+    color: var(--mm-vinyl);
+    font-size: 0.625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+  }
+  button.mm-score[data-scored] {
+    border-color: transparent;
+    color: var(--mm-mark-red);
+    font-size: 0.9375rem;
+    letter-spacing: 0.04em;
+    text-decoration: underline dashed;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+  button.mm-score:hover {
+    border-color: var(--mm-vinyl);
+  }
+  button.mm-score[data-scored]:hover {
+    border-color: transparent;
+    text-decoration-style: solid;
+  }
+
+  /* Standings: one ruled table per Pool, the field's own rails and hairlines,
+     side by side where the board is wide enough. */
+  .mm-standings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: 1.75rem;
+  }
+  .mm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .mm-table-caption {
+    caption-side: top;
+    text-align: left;
+    padding-bottom: 0.4rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .mm-table th,
+  .mm-table td {
+    padding: 0.38rem 0 0.38rem 0.7rem;
+    border-bottom: 1px solid var(--mm-rule);
+    text-align: right;
+    vertical-align: baseline;
+  }
+  .mm-table thead th {
+    padding-top: 0;
+    padding-bottom: 0.22rem;
+    border-bottom: 2px solid var(--mm-vinyl);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.5625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mm-vinyl-2);
+  }
+  .mm-table thead abbr {
+    text-decoration: none;
+  }
+  .mm-table th:first-child,
+  .mm-table td:first-child {
+    padding-left: 0;
+  }
+  .mm-table thead th:nth-child(2),
+  .mm-table .mm-table-name {
+    text-align: left;
+  }
+  .mm-table-rank {
+    width: 1.75rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+  }
+  .mm-table .mm-table-rank {
+    text-align: left;
+  }
+  .mm-table-name {
+    width: 100%;
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+  .mm-table tbody td {
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+  }
+
+  /* The keypad: an enamel card lifted over the board, a bottom sheet on a
+     phone. Two plates say whose score is being typed; the keys are plates too. */
+  .mm-keypad {
+    width: min(22rem, calc(100vw - 2rem));
+    max-width: none;
+    padding: 1.1rem 1.1rem 1.2rem;
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--mm-enamel), var(--mm-enamel-2));
+    color: var(--mm-vinyl);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 24px 48px -16px rgb(0 0 0 / 0.55);
+  }
+  .mm-keypad::backdrop {
+    background: rgb(27 32 35 / 0.5);
+  }
+  @media (max-width: 639px) {
+    .mm-keypad {
+      width: 100%;
+      max-height: 100dvh;
+      margin: auto 0 0;
+      border-radius: 0;
+      border-width: 1px 0 0;
+      padding-bottom: max(1.2rem, env(safe-area-inset-bottom));
+    }
+  }
+  .mm-keypad-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    border-bottom: 2px solid var(--mm-vinyl);
+    padding-bottom: 0.3rem;
+  }
+  .mm-keypad-title {
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .mm-keypad-sides {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+  }
+  .mm-keypad-side,
+  .mm-key {
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    background: var(--mm-plate);
+    color: var(--mm-vinyl);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -2px rgb(24 32 36 / 0.2);
+    cursor: pointer;
+  }
+  .mm-keypad-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.3rem;
+    min-height: 6rem;
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+  }
+  .mm-keypad-side[aria-pressed="true"] {
+    border-color: var(--mm-mark-red);
+    box-shadow:
+      inset 0 0 0 1px var(--mm-mark-red),
+      0 1px 0 rgb(24 32 36 / 0.16),
+      0 3px 5px -2px rgb(24 32 36 / 0.2);
+  }
+  .mm-keypad-names {
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+  .mm-keypad-score {
+    min-height: 2.5rem;
+    color: var(--mm-mark-red);
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 2.25rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .mm-keypad-keys {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+  }
+  .mm-key {
+    min-height: 3rem;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 1.375rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .mm-key[data-word] {
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .mm-key:active,
+  .mm-keypad-side:active {
+    transform: translateY(1px);
+    box-shadow: 0 0 0 rgb(0 0 0 / 0.1);
+  }
+  .mm-keypad-actions {
+    margin-top: 0.4rem;
+  }
+  .mm-keypad-quiet {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.1rem;
+    padding: 0 0.3rem;
+  }
+  .mm-keypad-quiet > :only-child {
+    margin-left: auto;
+  }
+
   /* ---- The example board ----------------------------------------------------- */
 
   /* The same board the tool produces, with somebody else's night on it. Held
