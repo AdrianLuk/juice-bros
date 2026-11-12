@@ -67,7 +67,7 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 
 **FIRST VIEWPORT:** Phone: the title at display size, the lead, the free/no-install line, "Try it", then the demo edge to edge, its coral field and first rows on screen. Desktop: the pitch left, the demo right as a framed phone-width screen with Close voting and Start over under it.
 
-**FORM:** Pinned by Adrian: the sibling tools' landing pattern (Team Tally's: a real component on made-up data, how it runs, rules, questions, a closing action) plus a tap demo. seed: none (unavailable)
+**FORM:** Pinned by Adrian: the sibling tools' landing pattern (Team Tally's: a real component on made-up data, how it runs, rules, questions, a closing action) plus a tap demo. seed: none (roll skipped: Adrian pinned the form)
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 

@@ -15,7 +15,7 @@ import { createClient } from "@/lib/mic-drop/supabase/server";
 export const metadata: Metadata = {
   title: "Mic Drop: the karaoke vote",
   description:
-    "Everyone backs their favourite Contestant from their own phone, and the chart re-sorts as the Votes come in. Free, nothing to install, and Guests don't sign in.",
+    "Everyone backs their favourite Contestant from their own phone, and the chart re-sorts as the votes come in. Free, and Guests just open a link.",
 };
 
 /**
@@ -34,24 +34,24 @@ export default async function MicDropPage({ searchParams }: { searchParams: Prom
       <MicDropLanding
         hostSignIn={
           <>
-        {error && (
-          <p role="alert" className="md-problem">
-            Google sign-in didn&apos;t work. Try again.
-          </p>
-        )}
-        {clientId ? (
-          <div className="md-google">
-            <GoogleSignInButton
-              clientId={clientId}
-              next={MIC_DROP_ROOT}
-              action={signInWithGoogleIdToken}
-              signInPath={MIC_DROP_ROOT}
-              unavailableText="Google sign-in isn't available in this browser. Open this page in Safari or Chrome."
-            />
-          </div>
-        ) : (
-          <p className="md-problem">Google sign-in isn&apos;t set up on this copy of the site.</p>
-        )}
+            {error && (
+              <p role="alert" className="md-problem">
+                Google sign-in didn&apos;t work. Try again.
+              </p>
+            )}
+            {clientId ? (
+              <div className="md-google">
+                <GoogleSignInButton
+                  clientId={clientId}
+                  next={MIC_DROP_ROOT}
+                  action={signInWithGoogleIdToken}
+                  signInPath={MIC_DROP_ROOT}
+                  unavailableText="Google sign-in isn't available in this browser. Open this page in Safari or Chrome."
+                />
+              </div>
+            ) : (
+              <p className="md-problem">Google sign-in isn&apos;t set up on this copy of the site.</p>
+            )}
           </>
         }
       />

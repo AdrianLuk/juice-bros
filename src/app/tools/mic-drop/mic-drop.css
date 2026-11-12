@@ -797,13 +797,18 @@ body:has(.md-surface) {
   .md-land-hero {
     grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
     column-gap: 72px;
-    align-items: center;
+    /* Top, not centre: the demo grows when voting closes, and the pitch mustn't move with it. */
+    align-items: start;
     padding-top: 72px;
     padding-bottom: 96px;
   }
 
   .md-land-lead {
     font-size: 1.25rem;
+  }
+
+  .md-land-pitch {
+    padding-top: 120px;
   }
 
   .md-demo-screen {

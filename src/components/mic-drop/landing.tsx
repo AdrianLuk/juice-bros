@@ -24,12 +24,12 @@ const NIGHT = [
 
 const RULES = [
   {
-    title: "One phone, one Vote",
+    title: "One phone, one vote",
     text: "Your phone remembers your pick. Close the tab, open the link again, and you're still backing the same Contestant.",
   },
   {
     title: "Change your mind all night",
-    text: "A later Contestant blew you away? Tap them. Your old Vote stops counting the moment you switch.",
+    text: "A later Contestant blew you away? Tap them. Your old vote stops counting the moment you switch.",
   },
   {
     title: "Nobody sees your pick",
@@ -49,7 +49,7 @@ const QUESTIONS = [
   {
     question: "What if my signal drops?",
     answer:
-      "The chart says Reconnecting until it's back, so you never mistake old counts for live ones. Your Vote is already saved.",
+      "The chart says Reconnecting until it's back, so you never mistake old counts for live ones. A vote you cast before it dropped still counts.",
   },
   {
     question: "Who can host?",
@@ -76,10 +76,10 @@ export function MicDropLanding({ hostSignIn }: { hostSignIn: ReactNode }) {
           </h1>
           <p className="md-land-lead">
             The vote for karaoke night. Everyone backs their favourite Contestant from their own phone, and the chart
-            re-sorts as the Votes come in.
+            re-sorts as the votes come in.
           </p>
-          <p className="md-land-meta">Free · Nothing to install · Guests don&apos;t sign in</p>
-          <p className="md-land-try">Try it: tap a name in the chart, then tap another to switch.</p>
+          <p className="md-land-meta">Free, and Guests just open a link.</p>
+          <p className="md-land-try">Try it: the demo room is already voting.</p>
         </div>
         <DemoBoard />
       </section>
