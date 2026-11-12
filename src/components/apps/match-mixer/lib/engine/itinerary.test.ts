@@ -294,6 +294,13 @@ test("the sentence names the court and the rounds played", () => {
   );
 });
 
+test("on a labelled board the sentence names the court the facility printed (#697)", () => {
+  assert.equal(
+    describeItinerary(itinerary(full, 0), [14, 17]),
+    "You're on Court 14 in rounds 1, 2 and 3. You never sit out.",
+  );
+});
+
 test("each court gets its own clause, so no two lists share an 'and'", () => {
   const split = schedule(
     round([

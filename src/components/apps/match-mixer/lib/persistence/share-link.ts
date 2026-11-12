@@ -1,3 +1,4 @@
+import { isCourtLabels } from "../court-labels.ts";
 import type { ResolvedConfig } from "../engine/config.ts";
 import { FORMATS } from "../engine/format.ts";
 import {
@@ -80,7 +81,8 @@ export interface SharedBoard {
  * RR-6 adds Pool Count, and it is how RR-4.1's Format arrived: a sixth field
  * after the checksum, absent in every link already sitting in a group chat,
  * and absent reads as rotating. RR-4.3's mixed doubles is the seventh, on the
- * same terms, and RR-6's Pool count is the eighth.
+ * same terms, RR-6's Pool count is the eighth, and #697's Court Labels the
+ * ninth.
  *
  * The number line carries a checksum over the Roster block, which is the one
  * thing in the payload not implied by the rest of it. It is there because a
@@ -148,6 +150,34 @@ function poolsField(pools: number | undefined): string | null {
 }
 
 /**
+ * Court labels (#697), as a ninth field, present only when the board has them:
+ * the numbers the facility prints on tonight's courts, in court order, joined
+ * on `-` because `.` already separates the fields. A board without labels is
+ * byte-for-byte the link minted before labels existed.
+ *
+ * No Generator Version bump: a label names a column and never moves a seat,
+ * so the same Config with or without them draws the same Schedule.
+ */
+const LABEL_SEPARATOR = "-";
+
+function labelsField(labels: readonly number[] | undefined): string | null {
+  return labels && labels.length > 0 ? labels.join(LABEL_SEPARATOR) : null;
+}
+
+/**
+ * The label field as numbers. Absent or empty is no labels. Anything else has
+ * to be whole numbers this build mints, or the read is refused: a hand-edited
+ * list naming two courts the same would print a board nobody can find a court
+ * on. Whether there are enough of them is asked once the court count is known.
+ */
+function toLabels(field: string | undefined): number[] | null | undefined {
+  if (field === undefined || field.trim() === "") return null;
+  const parts = field.trim().split(LABEL_SEPARATOR);
+  if (parts.some((part) => !/^\d+$/.test(part))) return undefined;
+  return parts.map(Number);
+}
+
+/**
  * The link for a drawn board, or `null` if the Roster is too long to fit one.
  *
  * `base` is the address of the tool itself, normally `window.location.href`.
@@ -181,6 +211,7 @@ export function encodeShareLink(
 type SharedConfig = ResolvedConfig & {
   readonly pools?: number;
   readonly headers?: readonly PoolHeader[];
+  readonly courtLabels?: readonly number[];
 };
 
 /**
@@ -215,8 +246,10 @@ export function encodeSharePayload(config: SharedConfig): string {
   // be a second, redundant way to say the same thing, and one a hand-edited
   // link could contradict.
   const pools = headers.length > 0 ? null : poolsField(config.pools);
-  if (config.mixed || pools) numbers.push(config.mixed ? MIXED_CODE : "");
-  if (pools) numbers.push(pools);
+  const labels = labelsField(config.courtLabels);
+  if (config.mixed || pools || labels) numbers.push(config.mixed ? MIXED_CODE : "");
+  if (pools || labels) numbers.push(pools ?? "");
+  if (labels) numbers.push(labels);
   return [numbers.join(FIELD), names].join(LINE);
 }
 
@@ -276,6 +309,7 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
     rawFormat,
     rawMixed,
     rawPools,
+    rawLabels,
   ] = numbers.split(FIELD);
 
   // Required. A payload that cannot say which generator drew it, or with what
@@ -385,6 +419,12 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
     return null;
   }
 
+  // Labels name the courts the board actually uses, so they are checked
+  // against the settled court count: one per court at least, none repeated.
+  const courtLabels = toLabels(rawLabels);
+  if (courtLabels === undefined) return null;
+  if (courtLabels && !isCourtLabels(courtLabels, numbersFor.courts)) return null;
+
   return {
     config: {
       roster,
@@ -393,6 +433,7 @@ export function decodeShareLink(value: unknown): SharedBoard | null {
       mixed,
       ...numbersFor,
       ...(headers.length > 0 ? { headers } : {}),
+      ...(courtLabels ? { courtLabels } : {}),
     },
     version,
     current: version === GENERATOR_VERSION,

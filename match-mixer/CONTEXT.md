@@ -66,9 +66,20 @@ The number that makes generation reproducible. The same Config with the same See
 _Avoid_: Shuffle, randomiser
 
 **Court**:
-A column of the grid — one of the places a Game can happen within a Round. Here a court is a count, not a place: it has no name, no venue and no existence outside the Config.
+A column of the grid — one of the places a Game can happen within a Round. To the engine a court is only a position across the night, and nothing that draws a board knows any more about it. What it is *called* on screen is its **Court Label** when the board has them, and 1 to N when it does not.
 On a board dealt into **Pools** its number counts across the whole night rather than being a column index, so two Pools can never both send somebody to court 1. Each Pool's generator numbers its courts from zero, and the pool layer moves every Game onto its real court. On the board a column is a court for the whole evening, grouped into one band per Pool, and a court no Pool has the players to fill stands empty and the consequence line says which.
 _Avoid_: Court as On Deck uses it (a physical, named court belonging to a Club).
+
+**Court Label**:
+The number a facility prints on one of tonight's courts (#697), carried in court order: the first label names the first court, and so on. Court order is ascending court number, which is how a Venue's booked courts come off the grid, so courts 14, 3 and 9 make a board whose columns read 3, 9, 14. Labels come from a **Venue**, never typed one by one, and they name things and nothing else: the column headers, find-me's line, the keypad's title, the consequence line's Pools. No draw reads them, so a labelled board seats every name exactly where the unlabelled one does, they are not in the draw key, and changing them relabels the board on screen rather than staling it. A court count set by hand that no longer matches them drops them, because a third court beside 14 and 17 would have nothing to be called that could not collide with a real number. When the Roster seats fewer courts than were booked, the first labels are the ones used and the line under the Courts dial says so.
+_Avoid_: Court name (a label is a number), court ID
+
+**Venue**:
+A facility an organizer has drawn on the court grid and kept under a name, so next week is a tap rather than a drawing. As many as the organizer plays at, saved in this browser beside the Config; following the account once an organizer signs in is later work. Picking tonight's courts from a Venue is what sets the court count and the **Court Labels**; a one-off night draws and picks without saving one. A Venue is not a Club (On Deck's word): it owns nothing and nobody belongs to it.
+_Avoid_: Club, location, facility (as a term), floorplan
+
+**Court grid**:
+The drawing a Venue is made of: squares, one court per square, numbered the way the facility numbers them. Two courts **touch** when they share an edge. Match Mixer reads only the numbers; touching is what Team Tally pairs courts by. The grid is shared UI (`src/components/court-grid/`, model in `src/lib/court-grid/`) and knows nothing about either app.
 
 ### The output
 
@@ -103,6 +114,8 @@ _Avoid_: Sit-out as a noun, rest, bench
 A URL carrying a whole Config in one query parameter — the Generator Version, the court count, the Round count, the Seed, a checksum over the names, the Format, and then the names. The Format is last because a field is always appended and never inserted: a link minted before Formats existed carries five fields, reads as rotating, and goes on drawing the board it named. The Format rides as one character (`r`, `f`, `s`), so a new Format costs a link nothing — which is what #544 was able to demonstrate. Whoever opens it generates the same Schedule again in their own browser, so a link is transport and never storage: nothing is uploaded, nothing is looked up, and the link keeps working after the organizer closes the tab. Player ids are not carried; the engine works in positions and ids are made again on arrival exactly as they are for a pasted list.
 
 Mixed doubles is the seventh field and the **Pool** count the eighth, both appended only when they say something: a one-Pool link on an unmixed board is byte-for-byte the link minted before either existed, and a pooled unmixed link leaves the seventh empty to reach the eighth. The link carries the count and never the deal, so the reader's browser deals the same Pools again off the same Seed. Neither bumped the Generator Version, because a Config with no Pool count is one Pool and draws the board it always did; `unchanged-boards.test.ts` pins that with boards minted by the engine before Pools.
+
+**Court Labels** are the ninth field (#697), joined on `-` because `.` already separates the fields, and appended only when the board has them: an unlabelled link is byte-for-byte the link minted before labels existed, and a labelled one leaves the seventh and eighth empty to reach the ninth. A list with a repeat, a zero, fewer labels than courts or anything that is not a whole number is refused rather than guessed at. No Generator Version bump: a label never moves a seat.
 _Avoid_: Invite Link (Booking Buddy's word, and an account-bound one), permalink, share code, export
 
 **Generator Version**:

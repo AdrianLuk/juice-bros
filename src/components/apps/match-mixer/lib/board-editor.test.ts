@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { bookedNumbers, PRESETS } from "../../../../lib/court-grid/grid.ts";
+import { courtLabel } from "./court-labels.ts";
 import { decodeShareLink } from "./persistence/share-link.ts";
 import {
+  chooseCourtLabels,
   chooseCourts,
   chooseFormat,
   chooseMixed,
@@ -226,4 +229,100 @@ test("a redraw claims a borrowed board, and saves the board it drew", () => {
   const redrawn = generate(opened(), 42);
   assert.equal(redrawn.draw?.config.seed, 42);
   assert.equal(saveFor(redrawn)?.drawn?.seed, 42);
+});
+
+/** Court labels (#697): tonight's courts, by the numbers the facility prints. */
+
+function fresh(text: string): EditorState {
+  return editRoster(restore(EMPTY, { from: "visit", visit: null }), text);
+}
+
+test("tonight's courts set the court count and label the board drawn next", () => {
+  const state = generate(chooseCourtLabels(fresh(EIGHT.join("\n")), [14, 17]), 5);
+  assert.equal(derive(state).courts, 2);
+  assert.deepEqual(state.draw?.config.courtLabels, [14, 17]);
+});
+
+const TWENTY = Array.from({ length: 20 }, (_, i) => `Player ${i + 1}`).join("\n");
+
+test("a plus-shaped booking from a 4 x 3 hall gives a 5-court board named by it", () => {
+  // Courts 1 to 12 in a 4 x 3 hall; tonight is the plus around court 6.
+  const tonight = bookedNumbers(
+    PRESETS.find((preset) => preset.id === "hall-4x3")!.grid(),
+    new Set([2, 5, 6, 7, 10]),
+  );
+  const state = generate(chooseCourtLabels(fresh(TWENTY), tonight), 5);
+  assert.equal(derive(state).courts, 5);
+  const courts = new Set(
+    state.draw!.pools.flatMap((pool) =>
+      pool.schedule.rounds.flatMap((round) => round.games.map((game) => game.court)),
+    ),
+  );
+  assert.deepEqual(
+    [...courts].sort((a, b) => a - b).map((court) => courtLabel(court, state.draw!.config.courtLabels)),
+    ["2", "5", "6", "7", "10"],
+  );
+});
+
+test("on a pooled board each Game carries the label of its real court", () => {
+  const state = generate(chooseCourtLabels(choosePools(fresh(TWENTY), 2), [3, 4, 7, 8]), 5);
+  const [first, second] = state.draw!.pools;
+  const labelsOf = (pool: typeof first) =>
+    new Set(
+      pool.schedule.rounds.flatMap((round) =>
+        round.games.map((game) => courtLabel(game.court, state.draw!.config.courtLabels)),
+      ),
+    );
+  assert.deepEqual([...labelsOf(first)].sort(), ["3", "4"]);
+  assert.deepEqual([...labelsOf(second)].sort(), ["7", "8"]);
+});
+
+test("relabelling a drawn board keeps every seat and needs no redraw", () => {
+  const drawn = generate(chooseCourts(fresh(EIGHT.join("\n")), 2), 5);
+  const relabelled = chooseCourtLabels(drawn, [3, 9]);
+  assert.equal(derive(relabelled).stale, false);
+  assert.deepEqual(relabelled.draw?.pools, drawn.draw?.pools);
+  assert.deepEqual(relabelled.draw?.config.courtLabels, [3, 9]);
+});
+
+test("labels never move the draw key, so a stored Selection still finds its board", () => {
+  const plain = generate(chooseCourts(fresh(EIGHT.join("\n")), 2), 5);
+  assert.equal(chooseCourtLabels(plain, [3, 9]).draw?.key, plain.draw?.key);
+});
+
+test("setting a different court count by hand drops the labels", () => {
+  const labelled = generate(chooseCourtLabels(fresh(EIGHT.join("\n")), [14, 17]), 5);
+  const one = chooseCourts(labelled, 1);
+  assert.equal(one.courtLabels, null);
+  assert.equal(generate(one, 5).draw?.config.courtLabels, undefined);
+  assert.deepEqual(chooseCourts(labelled, 2).courtLabels, [14, 17]);
+});
+
+test("clearing the labels goes back to courts 1 to N and keeps the count", () => {
+  const labelled = generate(chooseCourtLabels(fresh(EIGHT.join("\n")), [14, 17]), 5);
+  const cleared = chooseCourtLabels(labelled, null);
+  assert.equal(derive(cleared).courts, 2);
+  assert.equal(cleared.draw?.config.courtLabels, undefined);
+});
+
+test("labels are saved with the board and come back with it", () => {
+  const labelled = generate(chooseCourtLabels(fresh(EIGHT.join("\n")), [14, 17]), 5);
+  const save = saveFor(labelled);
+  assert.deepEqual(save?.edited.courtLabels, [14, 17]);
+  const back = restore(EMPTY, {
+    from: "visit",
+    visit: { schema: 2, savedAt: 0, edited: save!.edited, drawn: save!.drawn },
+  });
+  assert.deepEqual(back.courtLabels, [14, 17]);
+  assert.deepEqual(back.draw?.config.courtLabels, [14, 17]);
+});
+
+test("a labelled link opens labelled, and relabelling it claims it", () => {
+  const names = Array.from({ length: 8 }, (_, i) => `Player ${i + 1}`).join("\n");
+  const shared = decodeShareLink(`1.2.7.3.1vpp81p.r...14-17\n${names}`);
+  assert.ok(shared, "the labelled link no longer opens");
+  const borrowed = restore(EMPTY, { from: "link", board: shared });
+  assert.deepEqual(borrowed.courtLabels, [14, 17]);
+  assert.equal(saveFor(borrowed), null);
+  assert.notEqual(saveFor(chooseCourtLabels(borrowed, [1, 2])), null);
 });

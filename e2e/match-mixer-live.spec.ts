@@ -134,6 +134,43 @@ test("a signed-in organizer goes live and the Player Link opens the same board e
   await page.waitForURL(organizerLink);
 });
 
+test("a board with tonight's court numbers goes live with them on both links (#697)", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await signIn(page);
+  await drawBoard(page);
+
+  // A plus-sign venue, booking only its middle and right arm: courts 3 and 4.
+  await page.getByRole("button", { name: "Use your venue’s court numbers" }).click();
+  const picker = page.getByRole("dialog");
+  await picker.getByRole("button", { name: "Plus sign" }).click();
+  await picker.getByRole("button", { name: "2. Tonight’s courts" }).click();
+  for (const court of [1, 2, 5]) {
+    await picker.getByRole("button", { name: `Court ${court}, booked tonight` }).click();
+  }
+  await picker.getByRole("button", { name: "Use courts 3 and 4" }).click();
+
+  await page.getByRole("button", { name: "Go live" }).click();
+  await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
+  const headers = (on: Page) => boardGrid(on).getByRole("columnheader", { name: /^Court / });
+  await expect(headers(page)).toHaveText(["Court 3", "Court 4"]);
+  await page.getByRole("button", { name: "Round 1, Court 3: enter the score" }).click();
+  await expect(page.getByRole("dialog", { name: "Round 1 · Court 3" })).toBeVisible();
+
+  const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+  const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const player = await phone.newPage();
+  await player.goto(playerLink);
+  // A phone hides the header row and each Game's cell names its court instead.
+  const cells = (name: RegExp) => boardGrid(player).getByRole("cell", { name });
+  await expect(cells(/^Court 3 /).first()).toBeVisible();
+  await expect(cells(/^Court 4 /).first()).toBeVisible();
+  await expect(cells(/^Court 1 /)).toHaveCount(0);
+  await phone.close();
+});
+
 /** The first row of a Standings table, as [rank, W, L, +/-]. */
 function topRow(page: Page): Locator {
   return page.getByRole("region", { name: "Standings" }).getByRole("table").first().locator("tbody tr").first().getByRole("cell");

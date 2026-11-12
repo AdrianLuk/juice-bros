@@ -1,3 +1,4 @@
+import { isCourtLabels } from "../court-labels.ts";
 import { resolveMixed } from "../engine/mixed.ts";
 import {
   boardObjection,
@@ -114,6 +115,11 @@ export interface EditedConfig {
    * count above decides the split.
    */
   readonly headers: readonly PoolHeader[];
+  /**
+   * Tonight's courts by the facility's own numbers (#697), or null for 1 to N.
+   * Optional so a save written before labels existed reads exactly as it did.
+   */
+  readonly courtLabels?: readonly number[] | null;
 }
 
 export interface SavedVisit {
@@ -227,6 +233,10 @@ function readEdited(value: unknown): EditedConfig | null {
     return null;
   }
   if (headers === undefined || !headersInBounds(roster, headers)) return null;
+  // A label list that could not name its own courts is dropped rather than
+  // refusing the whole save: the courts go back to 1 to N, everything else
+  // the organizer typed comes back.
+  const courtLabels = readLabels(value.courtLabels, courts ?? 1);
   // Normalized rather than restored as written: mixed doubles is a qualifier
   // on rotating, and a box that came back ticked under fixed partners would be
   // applying to nothing. The screen never writes that pair, so this is only
@@ -239,7 +249,15 @@ function readEdited(value: unknown): EditedConfig | null {
     mixed: resolveMixed(format, mixed),
     pools,
     headers,
+    ...(courtLabels ? { courtLabels } : {}),
   };
+}
+
+/** Stored labels, or null for none or for a list that could not name `courts` courts. */
+function readLabels(value: unknown, courts: number): readonly number[] | null {
+  if (!Array.isArray(value)) return null;
+  if (!value.every((label) => typeof label === "number")) return null;
+  return isCourtLabels(value, courts) ? value : null;
 }
 
 function readDrawn(value: unknown): BoardConfig | null {
@@ -286,6 +304,7 @@ function readDrawn(value: unknown): BoardConfig | null {
   ) {
     return null;
   }
+  const courtLabels = readLabels(value.courtLabels, numbers.courts);
   return {
     roster,
     seed,
@@ -293,5 +312,6 @@ function readDrawn(value: unknown): BoardConfig | null {
     mixed,
     ...numbers,
     ...(headers.length > 0 ? { headers } : {}),
+    ...(courtLabels ? { courtLabels } : {}),
   };
 }

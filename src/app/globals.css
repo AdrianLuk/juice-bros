@@ -5375,6 +5375,274 @@ html:has(.bb-app-chrome) {
       display: none;
     }
   }
+
+  /* ---- Tonight's courts (#697) ---------------------------------------------- */
+
+  /* Under the Courts dial: which courts the board names, and the way in. */
+  .mm-venue-line {
+    margin-top: 0.85rem;
+    display: grid;
+    gap: 0.45rem;
+  }
+  .mm-venue-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    padding: 0.4rem 0.3rem 0;
+  }
+
+  /* The picker is the keypad's card, wider, and scrolls on a short phone. The
+     court grid inside takes the board's own materials: an empty square is a
+     pencilled box on the enamel, a court is a white plate, a court booked
+     tonight is the dark vinyl the board's lettering is cut from. */
+  .mm-venue {
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    --cg-ink: var(--mm-vinyl);
+    --cg-ink-2: var(--mm-vinyl-2);
+    --cg-paper: var(--mm-plate);
+    --cg-edge: var(--mm-plate-edge);
+    --cg-rule: var(--mm-rule);
+    --cg-court: var(--mm-vinyl);
+    --cg-court-ink: var(--mm-enamel);
+    --cg-accent: var(--mm-mark-green);
+    --cg-warn: var(--mm-mark-red);
+    --cg-label-font: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+  }
+  @media (max-width: 639px) {
+    .mm-venue {
+      max-height: 92dvh;
+    }
+  }
+  .mm-venue > * + * {
+    margin-top: 0.85rem;
+  }
+  .mm-venue-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .mm-venue-chip,
+  .mm-venue-step {
+    min-height: 2.75rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--mm-plate-edge);
+    border-radius: 2px;
+    background: var(--mm-plate);
+    color: var(--mm-vinyl);
+    font-family: var(--font-mm-plate), "Archivo", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 0 rgb(24 32 36 / 0.16);
+  }
+  .mm-venue-chip[aria-pressed="true"],
+  .mm-venue-step[aria-pressed="true"] {
+    background: var(--mm-vinyl);
+    border-color: var(--mm-vinyl);
+    color: var(--mm-enamel);
+    box-shadow: none;
+  }
+  .mm-venue-chip[data-new] {
+    border-style: dashed;
+    background: transparent;
+    box-shadow: none;
+  }
+  .mm-venue-chip[data-shape] {
+    min-height: 2.75rem;
+    font-weight: 500;
+  }
+  .mm-venue-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  .mm-venue-step:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .mm-venue-hint {
+    max-width: none;
+  }
+  .mm-venue-tools {
+    display: flex;
+    gap: 1.4rem;
+    padding: 0 0.3rem;
+  }
+  .mm-venue-save {
+    display: grid;
+    gap: 0.35rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--mm-rule);
+  }
+  .mm-venue-save .mm-quiet {
+    justify-self: start;
+    margin-top: 0.2rem;
+  }
+  .mm-venue-save-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .mm-venue-name {
+    flex: 1;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0 0.6rem;
+    font-size: 1rem;
+  }
+  .mm-venue-keep {
+    width: auto;
+    flex: none;
+    padding-inline: 1rem;
+  }
+
+  /* ---- The court grid (shared, #697) -----------------------------------------
+
+     The painter is shared UI (`src/components/court-grid/`), so it is styled
+     only through `--cg-*` properties an app sets on an ancestor. These
+     fallbacks are neutral enough to read on any surface. */
+  .cg {
+    display: grid;
+    gap: 0.75rem;
+    color: var(--cg-ink, #1b2023);
+  }
+  .cg-field {
+    overflow-x: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--cg-rule, rgb(27 32 35 / 0.16));
+    border-radius: 2px;
+    background-image: radial-gradient(var(--cg-rule, rgb(27 32 35 / 0.16)) 1px, transparent 1px);
+    background-size: 0.75rem 0.75rem;
+  }
+  .cg-grid {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .cg-square {
+    aspect-ratio: 1;
+    min-height: 2.75rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--cg-edge, #b7c0c2);
+    border-radius: 2px;
+    background: var(--cg-paper, #fff);
+    color: var(--cg-ink, #1b2023);
+    font-family: var(--cg-label-font, system-ui, sans-serif);
+    font-weight: 700;
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .cg-square[data-state="empty"] {
+    border-style: dashed;
+    border-color: var(--cg-rule, rgb(27 32 35 / 0.25));
+    background: transparent;
+    color: var(--cg-ink-2, #545d62);
+    font-weight: 400;
+  }
+  .cg-square[data-state="empty"]:disabled {
+    border-color: transparent;
+    cursor: default;
+  }
+  .cg-square[data-state="booked"],
+  .cg-square[data-state="court"] {
+    border-color: var(--cg-court, #1b2023);
+    background: var(--cg-court, #1b2023);
+    color: var(--cg-court-ink, #fff);
+  }
+  .cg-square[data-state="selected"] {
+    border-color: var(--cg-accent, #1f6039);
+    background: var(--cg-accent, #1f6039);
+    color: #fff;
+    box-shadow: 0 0 0 3px var(--cg-paper, #fff), 0 0 0 5px var(--cg-accent, #1f6039);
+  }
+  .cg-square[data-touching] {
+    box-shadow: inset 0 0 0 3px var(--cg-accent, #1f6039);
+  }
+  .cg-square[data-state="off"] {
+    color: var(--cg-ink-2, #545d62);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+  .cg-square[data-repeated] {
+    outline: 2px dashed var(--cg-warn, #c0392f);
+    outline-offset: 2px;
+  }
+  .cg-court {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--cg-accent, #1f6039);
+    border-radius: 2px;
+    background: var(--cg-paper, #fff);
+  }
+  .cg-court-label {
+    font-family: var(--cg-label-font, system-ui, sans-serif);
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .cg-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .cg-step,
+  .cg-number {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--cg-edge, #b7c0c2);
+    border-radius: 2px;
+    background: var(--cg-paper, #fff);
+    color: var(--cg-ink, #1b2023);
+    font-family: var(--cg-label-font, system-ui, sans-serif);
+    font-weight: 700;
+    font-size: 1.125rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .cg-step {
+    cursor: pointer;
+  }
+  .cg-step:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .cg-number {
+    width: 3.5rem;
+  }
+  .cg-warning {
+    grid-column: 1 / -1;
+    color: var(--cg-warn, #c0392f);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .cg-remove {
+    grid-column: 1 / -1;
+    justify-self: start;
+    min-height: 2.75rem;
+    padding: 0 0.2rem;
+    border: 0;
+    background: none;
+    color: var(--cg-warn, #c0392f);
+    font-family: var(--cg-label-font, system-ui, sans-serif);
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+    cursor: pointer;
+  }
 }
 
 /* ---- On paper ----------------------------------------------------------

@@ -55,7 +55,9 @@ function payloadOf(link: string): string {
   return new URL(link).searchParams.get(SHARE_PARAM)!;
 }
 
-function encoded(from: ResolvedConfig & { pools?: number } = config): string {
+function encoded(
+  from: ResolvedConfig & { pools?: number; courtLabels?: readonly number[] } = config,
+): string {
   const link = encodeShareLink(from, BASE);
   assert.ok(link, "expected a link");
   return payloadOf(link);
@@ -702,4 +704,51 @@ test("a header on an odd boundary in fixed partners is refused on a link too", (
     pools: 2,
   };
   assert.equal(decodeShareLink(encoded(declared)), null);
+});
+
+/**
+ * Court labels (#697): the numbers the facility prints on the courts booked
+ * tonight, as a ninth field. They name the columns and never move a seat, so
+ * a board with labels draws exactly the Schedule the same board without them
+ * draws.
+ */
+
+const LABELS_FIELD = 8;
+
+function numberLine(payload: string): string[] {
+  return payload.slice(0, payload.indexOf("\n")).split(".");
+}
+
+test("court labels travel, and the board under them is the same board", () => {
+  const shared = decodeShareLink(encoded({ ...config, courtLabels: [14, 17] }));
+  assert.ok(shared);
+  assert.deepEqual(shared.config.courtLabels, [14, 17]);
+  assert.deepEqual(generateSchedule(shared.config), generateSchedule(config));
+});
+
+test("a link with no labels carries no label field, byte-for-byte today's link", () => {
+  assert.equal(numberLine(encoded()).length, 6);
+  assert.equal(decodeShareLink(encoded())?.config.courtLabels, undefined);
+});
+
+test("labels on an unmixed one-pool board leave the two fields before them empty", () => {
+  const fields = numberLine(encoded({ ...config, courtLabels: [14, 17] }));
+  assert.equal(fields.length, 9);
+  assert.equal(fields[MIXED_FIELD], "");
+  assert.equal(fields[POOLS_FIELD], "");
+});
+
+test("labels ride beside a pooled board's own fields", () => {
+  const shared = decodeShareLink(encoded({ ...pooledConfig, courtLabels: [3, 4, 7, 8] }));
+  assert.ok(shared);
+  assert.equal(shared.config.pools, 2);
+  assert.deepEqual(shared.config.courtLabels, [3, 4, 7, 8]);
+});
+
+test("labels that cannot name tonight's courts are refused, not guessed at", () => {
+  const payload = encoded({ ...config, courtLabels: [14, 17] });
+  for (const bad of ["14", "14-14", "14-0", "14-x", "14--17", "14-1000"]) {
+    assert.equal(decodeShareLink(withField(payload, LABELS_FIELD, bad)), null, bad);
+  }
+  assert.equal(decodeShareLink(withField(payload, LABELS_FIELD, ""))?.config.courtLabels, undefined);
 });
