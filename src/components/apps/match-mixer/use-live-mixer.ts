@@ -42,7 +42,13 @@ export function useLiveMixer(token: string, initial: LiveMixer): { mixer: LiveMi
       .on("broadcast", { event: "changed" }, () => {
         void queryClient.invalidateQueries({ queryKey: liveMixerKey(token) });
       })
-      .subscribe((status) => setSocket(socketFrom(status)));
+      .subscribe((status) => {
+        const next = socketFrom(status);
+        setSocket(next);
+        // A score saved while the socket was joining was never broadcast to
+        // it, and the live backstop is 15 seconds away: read once on joining.
+        if (next === "live") void queryClient.invalidateQueries({ queryKey: liveMixerKey(token) });
+      });
     return () => {
       void supabase.removeChannel(channel);
     };

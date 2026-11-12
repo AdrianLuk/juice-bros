@@ -4998,7 +4998,11 @@ html:has(.bb-app-chrome) {
      the Game it belongs to. An unscored Game on the Organizer Link is an empty
      slot ruled in dashes, waiting for it. */
   .mm-score {
-    display: inline-block;
+    /* Its own line under the Game, cut to its text: a Pool's first court is a
+       flex column on a phone, and would otherwise stretch it across. */
+    display: block;
+    width: fit-content;
+    align-self: flex-start;
     margin-top: 0.4rem;
     color: var(--mm-mark-red);
     font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
@@ -5078,6 +5082,10 @@ html:has(.bb-app-chrome) {
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--mm-vinyl-2);
+    white-space: nowrap;
+  }
+  .mm-table td {
+    white-space: nowrap;
   }
   .mm-table thead abbr {
     text-decoration: none;
@@ -5117,6 +5125,8 @@ html:has(.bb-app-chrome) {
   .mm-keypad {
     width: min(22rem, calc(100vw - 2rem));
     max-width: none;
+    /* Centred, as a modal dialog is before the reset zeroes its margin. */
+    margin: auto;
     padding: 1.1rem 1.1rem 1.2rem;
     border: 1px solid var(--mm-plate-edge);
     border-radius: 3px;
