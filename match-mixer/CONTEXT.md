@@ -1,6 +1,6 @@
 # Match Mixer
 
-A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. No account, no database, no network — the whole thing runs in the browser so it works on rec-centre wifi.
+A client-side pickleball round robin generator at `/tools/match-mixer`. Paste a list of names and get a balanced doubles rotation: every Round assigns partners and opponents across the available courts, nobody partners the same person twice, Byes spread evenly, and it prints. Drawing a board needs no account, no database and no network — it runs in the browser so it works on rec-centre wifi. One opt-in step, **Go Live**, is the exception: it commits the board to a database and gives the organizer links for entering scores from every phone ([ADR 0006](docs/adr/0006-match-mixer-gains-a-backend-at-go-live.md)). A board that never goes live is untouched.
 
 Since #543 that rotation is one **Format** of several rather than the only thing the tool knows. Rotating partners is still the default and still what the sentence above describes; fixed partners is the same board drawn for a night where people turn up already partnered; singles (#544) is the one where a side is a single Player and the word "doubles" in the sentence above stops being true. Read every claim below about partners, Byes and balance as a claim about rotating unless it says otherwise, because the Format is what decides which of them still hold.
 
@@ -187,13 +187,43 @@ _Avoid_: Group (too loose to mean anything), flight, division, heat, bracket (no
 
 ### Not built yet
 
+Everything below is specced in #685 (RR-2 + RR-5) and not yet built. It is the one part of Match Mixer with a backend, and it only exists after **Go Live** ([ADR 0006](docs/adr/0006-match-mixer-gains-a-backend-at-go-live.md)). Drawing a board is unchanged.
+
 **Mixer**:
-A Schedule plus everything that has since happened to it — Rounds locked, scores entered, people arriving and leaving. A Config and its Schedule describe a plan; a Mixer is a plan being run.
+A Schedule plus everything that has since happened to it — Rounds locked, scores entered, people arriving and leaving. A Config and its Schedule describe a plan; a Mixer is a plan being run. A **Live Mixer** is a Mixer that has been committed to the database.
 _Avoid_: Session (On Deck's word for one night at a club), event, tournament
 
+**Live Mixer**:
+A board committed by **Go Live**: its Config (as the Share Link payload string, which pins the Generator Version) plus an append-only list of events — round started, score entered, score cleared, Game Rule changed, player added, player left, finished. The Schedule is still never stored; every phone and the server rebuild it from the Config plus the player added and player left events, so regeneration after a late arrival must be deterministic. This is where [ADR 0001](docs/adr/0001-config-and-schedule-are-not-event-sourced.md)'s event log begins. It finishes when the organizer taps **Finish Mixer** or 12 hours after it went live, and is then read-only for everyone except the superadmin.
+_Avoid_: Session, event, night (as a noun for the record), tournament
+
+**Organizer Link**:
+The unguessable link a Live Mixer always has, which can do everything: score any Game in any Round, start the next Round, change the Game Rule, add or remove Players, finish. It is the only thing needed to run a night, so no account is required.
+_Avoid_: Admin link, host link (Mic Drop's **Host** is a separate model), Volunteer Link (On Deck's)
+
+**Player Link**:
+The link for the group chat. Anyone holding it sees the board and the **Standings**. With a **Selection** it also lets that player score their own Games, in Rounds up to the **Current Round**. Without one it is read-only. The Selection guards against honest mistakes only; the organizer corrects anything wrong.
+_Avoid_: Share Link (carries a plan, not a night in progress), Invite Link (Booking Buddy's)
+
+**Owner**:
+The organizer who signed in and so has a Live Mixer attached to their account, which gives them My Mixers and **Run it again**. Optional: a Live Mixer with no Owner is still fully run through its Organizer Link. Authorization is one check: holds the Organizer Link token, OR is the Owner, OR is a superadmin. Players never have accounts.
+_Avoid_: Organizer when the account is meant (the Organizer here is whoever holds the link, signed in or not), host, admin, user (Booking Buddy's)
+
+**Game Rule**:
+How a Game is scored, set at Go Live and changeable at any time: to 11, to 15, to 21, or timed, win by 2 by default with win by 1 as an option. A score is validated against the rule in force when it is entered, and a later change never invalidates scores already in. Timed accepts any two whole numbers 0 to 99. No rule accepts a tie, because Standings count wins.
+_Avoid_: Scoring mode, format (the **Format** is how a Round is put together, a different thing), settings
+
+**Current Round**:
+The higher of the Round the organizer started and the latest Round with any score plus one. Before anything happens it is Round 1, because going live means Round 1 is starting. Rounds up to the Current Round are **locked**: late arrivals and departures never reshuffle them, and locks never undo, so deleting a score does not unlock a Round. Players may score up to the Current Round; a score one Round ahead advances it by one and two or more ahead is refused. The organizer's button only offers "Start round N+1". One number for the whole Live Mixer, because the Round count is global across Pools ([ADR 0004](docs/adr/0004-pools-partition-above-a-pool-blind-engine.md)).
+_Avoid_: Active round, live round, this round
+
 **Lock**:
-Marking a Round as played so it stops being rebuilt when the Roster changes. Locking is what makes a Mixer more than a Schedule: later Rounds may be regenerated around someone who arrived or left, and locked Rounds never move.
+A Round at or before the Current Round: it stops being rebuilt when the Roster changes. Locking is what makes a Mixer more than a Schedule — later Rounds may be regenerated around someone who arrived or left, and locked Rounds never move. It is no longer an action the organizer takes; it follows from the Current Round.
 _Avoid_: Commit, freeze, finalise
+
+**Standings**:
+One table per Pool, computed from the scores every time and never stored. Ranked by wins, then point differential, then head-to-head. Wins, not win percentage, so a late arrival who won their only Game does not top the table; their row says which Round they joined. Rows are Players in rotating partners and singles and Pairings in fixed partners. There is no verdict across Pools. Visible to everyone, live, all night.
+_Avoid_: Leaderboard (Mic Drop's word for a live vote tally, and a different model), ranking, results, scoreboard (Pickle Point Pal's scored match)
 
 ### Retired
 
