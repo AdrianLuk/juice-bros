@@ -3,6 +3,10 @@
  * ADR 0006, #688). Nothing is updated in place: a Game's score is its latest
  * "score entered" or "score cleared", and the Game Rule is its latest change.
  *
+ * The Current Round (#689) is the higher of the latest Round the organizer
+ * started and the latest Round ever scored, plus one. "Ever": a cleared score
+ * never lowers it, which is what makes locks never undo.
+ *
  * The server checks a score against the rule in force before it appends one;
  * this reader checks only what holds under every rule, so an event it can't
  * make sense of is skipped rather than taking the board down.
@@ -35,6 +39,8 @@ export type Scores = ReadonlyMap<string, GameScore>;
 export interface Replay {
   readonly rule: GameRule;
   readonly scores: Scores;
+  /** As a Round index, like a Game's `round`: Round 1 is 0. */
+  readonly currentRound: number;
 }
 
 const index = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;
@@ -56,8 +62,13 @@ function readScore(value: unknown): GameScore | null {
 export function replay(events: readonly MixerEvent[]): Replay {
   let rule = DEFAULT_GAME_RULE;
   const scores = new Map<string, GameScore>();
+  let currentRound = 0;
 
   for (const { kind, payload } of events) {
+    if (kind === "round_started") {
+      if (index(payload.round)) currentRound = Math.max(currentRound, payload.round);
+      continue;
+    }
     if (kind === "game_rule_changed") {
       rule = readGameRule(payload) ?? rule;
       continue;
@@ -71,8 +82,10 @@ export function replay(events: readonly MixerEvent[]): Replay {
       continue;
     }
     const score = readScore(payload.score);
-    if (score) scores.set(key, score);
+    if (!score) continue;
+    scores.set(key, score);
+    currentRound = Math.max(currentRound, at.round + 1);
   }
 
-  return { rule, scores };
+  return { rule, scores, currentRound };
 }

@@ -17,20 +17,23 @@ import type {
   Side as GameSide,
 } from "@/components/apps/match-mixer/lib/engine/types";
 import { gameKey, type GameAt, type Scores } from "@/components/apps/match-mixer/lib/live/events";
+import { notStarted, type GameAccess } from "@/components/apps/match-mixer/lib/live/rebuild";
 
 /**
- * A Live Mixer's scores on the board (#688). Absent on a board that never
- * went live, which draws exactly what it always drew. `onScore` is the
- * Organizer Link's: with it, every Game carries a control that opens the
- * keypad; without it, a scored Game just shows its score.
+ * A Live Mixer's scores on the board (#688, #689). Absent on a board that
+ * never went live, which draws exactly what it always drew. With `onScore`,
+ * a Game carries a control that opens the keypad: every Game on the Organizer
+ * Link, and on the Player Link the Games `access` says the Selection may
+ * score. Anywhere else, a scored Game just shows its score.
  */
 export interface BoardScores {
   readonly scores: Scores;
   readonly onScore?: (at: GameAt) => void;
+  /** Which Games `onScore` covers. */
+  readonly access: (at: GameAt) => GameAccess;
 }
 
-
-/** A Game's score, or the Organizer Link's way to enter one. */
+/** A Game's score, or this link's way to enter one. */
 function ScoreMark({
   round,
   court,
@@ -44,7 +47,15 @@ function ScoreMark({
 }) {
   const score = scoring.scores.get(gameKey(round, court)) ?? null;
   const said = score ? `${score[0]} to ${score[1]}` : null;
-  if (scoring.onScore) {
+  const access = scoring.onScore ? scoring.access({ round, court }) : "not-yours";
+  if (access === "not-started" && !score) {
+    return (
+      <span className="mm-score" data-later="true">
+        {notStarted(round)}
+      </span>
+    );
+  }
+  if (access === "scores") {
     return (
       <button
         type="button"

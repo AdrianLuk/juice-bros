@@ -55,14 +55,27 @@ async function settle(write: () => Promise<Outcome<null>>): Promise<Outcome<null
   }
 }
 
-/** The Organizer Link enters or changes one Game's score. */
-export async function enterScore(token: string, at: GameAt, score: GameScore): Promise<Outcome<null>> {
-  return settle(async () => liveMixers.enterScore(await createClient(), String(token), at, score));
+/**
+ * Either link enters or changes one Game's score. `selection` is the Player
+ * Link's find-me Selection, checked on the server against the rebuilt board.
+ */
+export async function enterScore(
+  token: string,
+  at: GameAt,
+  score: GameScore,
+  selection: number | null,
+): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.enterScore(await createClient(), String(token), at, score, selection));
 }
 
-/** The Organizer Link takes one Game's score off. */
-export async function clearScore(token: string, at: GameAt): Promise<Outcome<null>> {
-  return settle(async () => liveMixers.clearScore(await createClient(), String(token), at));
+/** Either link takes one Game's score off, on the same terms as entering it. */
+export async function clearScore(token: string, at: GameAt, selection: number | null): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.clearScore(await createClient(), String(token), at, selection));
+}
+
+/** The Organizer Link's "Start round N+1", with `round` as the index the button showed. */
+export async function startRound(token: string, round: number): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.startRound(await createClient(), String(token), round));
 }
 
 /** The Organizer Link changes the Game Rule for scores from now on. */
