@@ -1,4 +1,4 @@
-import { courtName } from "../court-labels.ts";
+import { courtLabel } from "../court-labels.ts";
 import type { PlayerIndex, Schedule } from "./types.ts";
 
 /**
@@ -119,7 +119,7 @@ export function describeItinerary(
   // twice. A full stop is the one separator that cannot be misread, and this
   // is a line somebody reads once, walking.
   const where = courts
-    .map((group) => `Court ${courtName(group.court, labels)} in ${rounds(group.rounds)}`)
+    .map((group) => `Court ${courtLabel(group.court, labels)} in ${rounds(group.rounds)}`)
     .join(". ");
 
   const rest =

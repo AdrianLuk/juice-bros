@@ -6,7 +6,7 @@ import {
   addCourt,
   courtAt,
   duplicateNumbers,
-  GRID_COLUMNS,
+  gridColumns,
   gridRows,
   MAX_COURT_NUMBER,
   removeCourt,
@@ -33,7 +33,7 @@ function NumberDraft({ value, onCommit }: { value: number; onCommit: (value: num
       type="text"
       inputMode="numeric"
       pattern="[0-9]*"
-      maxLength={3}
+      maxLength={String(MAX_COURT_NUMBER).length}
       aria-label="Court number"
       value={draft}
       onChange={(event) => setDraft(event.target.value.replace(/\D/g, ""))}
@@ -47,6 +47,9 @@ function NumberDraft({ value, onCommit }: { value: number; onCommit: (value: num
     />
   );
 }
+
+/** Drawing the venue, or tapping tonight's courts on it. */
+export type GridMode = "draw" | "book";
 
 /**
  * The court grid painter (#697): a facility drawn as squares, one court per
@@ -70,7 +73,7 @@ export function CourtGrid({
   label = "Court grid",
 }: {
   grid: Grid;
-  mode: "draw" | "book";
+  mode: GridMode;
   booked: ReadonlySet<number>;
   onGridChange: (grid: Grid) => void;
   onBookedChange: (booked: ReadonlySet<number>) => void;
@@ -82,6 +85,7 @@ export function CourtGrid({
   const touching = selected ? touchingCourts(grid, selected.row, selected.col) : [];
   const repeated = new Set(duplicateNumbers(grid));
   const rows = gridRows(grid);
+  const columns = gridColumns(grid);
 
   const tap = (row: number, col: number) => {
     const court = courtAt(grid, row, col);
@@ -109,8 +113,9 @@ export function CourtGrid({
 
   const renumberSelected = (number: number) => {
     if (!selected) return;
-    const clamped = Math.min(MAX_COURT_NUMBER, Math.max(1, number));
-    onGridChange(setCourtNumber(grid, selected.row, selected.col, clamped));
+    const next = setCourtNumber(grid, selected.row, selected.col, number);
+    const clamped = courtAt(next, selected.row, selected.col)?.number ?? selected.number;
+    onGridChange(next);
     // The booking follows the court, not the old number.
     if (booked.has(selected.number)) {
       const next = new Set(booked);
@@ -133,7 +138,7 @@ export function CourtGrid({
 
   const squares = [];
   for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < GRID_COLUMNS; col++) {
+    for (let col = 0; col < columns; col++) {
       const court = courtAt(grid, row, col);
       const isSelected = selected !== undefined && court === selected;
       const isTouching = court !== undefined && touching.includes(court);
@@ -173,7 +178,12 @@ export function CourtGrid({
   return (
     <div className="cg">
       <div className="cg-field" role="group" aria-label={label}>
-        <div className="cg-grid" style={{ gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))` }}>
+        <div
+          className="cg-grid"
+          // Six squares share the width; past six each keeps its tap size and
+          // the field scrolls sideways.
+          style={{ gridTemplateColumns: `repeat(${columns}, minmax(2.75rem, 1fr))` }}
+        >
           {squares}
         </div>
       </div>

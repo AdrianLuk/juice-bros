@@ -150,7 +150,7 @@ export function describeConfig(shape: ConfigShape): string {
 
 /**
  * "court 3", "courts 3 and 4", "courts 3 to 6": one-based, as the board prints
- * them. Under tonight's labels (#697) the courts are listed by name instead,
+ * them. Under tonight's labels (#697) the courts are listed one by one instead,
  * because a facility's numbers need not run in a row.
  */
 function courtRange(first: number, count: number, labels?: readonly number[] | null): string {

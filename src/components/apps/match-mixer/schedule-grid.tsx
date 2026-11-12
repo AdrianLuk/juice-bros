@@ -1,6 +1,6 @@
 import { Fragment, useRef, type CSSProperties } from "react";
 
-import { courtName } from "@/components/apps/match-mixer/lib/court-labels";
+import { courtLabel, type CourtLabels } from "@/components/apps/match-mixer/lib/court-labels";
 import {
   describeItinerary,
   itinerary,
@@ -29,8 +29,6 @@ export interface BoardScores {
   readonly onScore?: (at: GameAt) => void;
 }
 
-/** Tonight's court numbers (#697), or null for courts 1 to N. */
-type Labels = readonly number[] | null | undefined;
 
 /** A Game's score, or the Organizer Link's way to enter one. */
 function ScoreMark({
@@ -42,7 +40,7 @@ function ScoreMark({
   round: number;
   court: number;
   scoring: BoardScores;
-  labels: Labels;
+  labels: CourtLabels;
 }) {
   const score = scoring.scores.get(gameKey(round, court)) ?? null;
   const said = score ? `${score[0]} to ${score[1]}` : null;
@@ -52,7 +50,7 @@ function ScoreMark({
         type="button"
         className="mm-score"
         data-scored={score ? "true" : undefined}
-        aria-label={`Round ${round + 1}, Court ${courtName(court, labels)}: ${said ? `${said}. Change the score` : "enter the score"}`}
+        aria-label={`Round ${round + 1}, Court ${courtLabel(court, labels)}: ${said ? `${said}. Change the score` : "enter the score"}`}
         onClick={() => scoring.onScore?.({ round, court })}
       >
         {score ? `${score[0]}-${score[1]}` : "Score"}
@@ -390,7 +388,7 @@ function FoundLine({
   band: string | null;
   evening: readonly ItineraryEntry[] | null;
   onClear: () => void;
-  labels: Labels;
+  labels: CourtLabels;
 }) {
   return (
     <div className="mm-found" data-found={evening ? "true" : undefined}>
@@ -487,7 +485,7 @@ function BandCells({
   labels,
 }: {
   scoring?: BoardScores;
-  labels: Labels;
+  labels: CourtLabels;
   band: Band;
   round: number;
   /** The courts this band's columns head, in order. */
@@ -518,7 +516,7 @@ function BandCells({
       {slot.games.map((game, position) => (
         <td
           key={game.court}
-          data-court={`Court ${courtName(game.court, labels)}`}
+          data-court={`Court ${courtLabel(game.court, labels)}`}
           data-band-start={start && position === 0 ? "true" : undefined}
           data-dim={
             away ||
@@ -548,7 +546,7 @@ function BandCells({
       {courts.slice(courts.length - idle).map((court) => (
         <td
           key={court}
-          data-court={`Court ${courtName(court, labels)}`}
+          data-court={`Court ${courtLabel(court, labels)}`}
           data-dim={away || here ? "true" : undefined}
         />
       ))}
@@ -836,7 +834,7 @@ export function ScheduleGrid({
                         index > 0 && position === 0 ? "true" : undefined
                       }
                     >
-                      Court {courtName(court, courtLabels)}
+                      Court {courtLabel(court, courtLabels)}
                     </th>
                   ))}
                   {band.byes ? <th scope="col">Off</th> : null}

@@ -5511,9 +5511,10 @@ html:has(.bb-app-chrome) {
     color: var(--cg-ink, #1b2023);
   }
   .cg-field {
+    overflow-x: auto;
     padding: 0.5rem;
     border: 1px solid var(--cg-rule, rgb(27 32 35 / 0.16));
-    border-radius: 3px;
+    border-radius: 2px;
     background-image: radial-gradient(var(--cg-rule, rgb(27 32 35 / 0.16)) 1px, transparent 1px);
     background-size: 0.75rem 0.75rem;
   }

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { bookedNumbers, PRESETS } from "../../../../lib/court-grid/grid.ts";
+import { courtLabel } from "./court-labels.ts";
 import { decodeShareLink } from "./persistence/share-link.ts";
 import {
   chooseCourtLabels,
@@ -239,6 +241,40 @@ test("tonight's courts set the court count and label the board drawn next", () =
   const state = generate(chooseCourtLabels(fresh(EIGHT.join("\n")), [14, 17]), 5);
   assert.equal(derive(state).courts, 2);
   assert.deepEqual(state.draw?.config.courtLabels, [14, 17]);
+});
+
+const TWENTY = Array.from({ length: 20 }, (_, i) => `Player ${i + 1}`).join("\n");
+
+test("a plus-shaped booking from a 4 x 3 hall gives a 5-court board named by it", () => {
+  // Courts 1 to 12 in a 4 x 3 hall; tonight is the plus around court 6.
+  const tonight = bookedNumbers(
+    PRESETS.find((preset) => preset.id === "hall-4x3")!.grid(),
+    new Set([2, 5, 6, 7, 10]),
+  );
+  const state = generate(chooseCourtLabels(fresh(TWENTY), tonight), 5);
+  assert.equal(derive(state).courts, 5);
+  const courts = new Set(
+    state.draw!.pools.flatMap((pool) =>
+      pool.schedule.rounds.flatMap((round) => round.games.map((game) => game.court)),
+    ),
+  );
+  assert.deepEqual(
+    [...courts].sort((a, b) => a - b).map((court) => courtLabel(court, state.draw!.config.courtLabels)),
+    ["2", "5", "6", "7", "10"],
+  );
+});
+
+test("on a pooled board each Game carries the label of its real court", () => {
+  const state = generate(chooseCourtLabels(choosePools(fresh(TWENTY), 2), [3, 4, 7, 8]), 5);
+  const [first, second] = state.draw!.pools;
+  const labelsOf = (pool: typeof first) =>
+    new Set(
+      pool.schedule.rounds.flatMap((round) =>
+        round.games.map((game) => courtLabel(game.court, state.draw!.config.courtLabels)),
+      ),
+    );
+  assert.deepEqual([...labelsOf(first)].sort(), ["3", "4"]);
+  assert.deepEqual([...labelsOf(second)].sort(), ["7", "8"]);
 });
 
 test("relabelling a drawn board keeps every seat and needs no redraw", () => {

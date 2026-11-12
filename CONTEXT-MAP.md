@@ -17,14 +17,13 @@ Several words collide across the contexts. Check the right glossary before reusi
 
 - **Player** — a name on a past Booking in Booking Buddy; a live participant in the Queue in On Deck; one line of the Roster in Match Mixer.
 - **Court** — a physical, named court belonging to a Club in On Deck; a column count in Match Mixer, called by a **Court Label** when the organizer picked tonight's courts from a **Venue**.
-- **Venue** — a facility drawn on the court grid and kept by name, in Match Mixer. Not a Club: it owns nothing and nobody belongs to it.
-
-The **court grid** (`src/components/court-grid/`, model in `src/lib/court-grid/`) is shared UI, the way the Google sign-in button is: Match Mixer draws Venues with it today and Team Tally will pair touching courts with it (#698). The Venues themselves are not shared data; each app keeps its own.
 - **Game** — a foursome playing until they report done in On Deck; two Sides on one court within one Round in Match Mixer, which is four Players in doubles and two in singles; one scored game to 11 in Team Tally. A Game has a score in Team Tally and, once a Match Mixer board goes live, in Match Mixer too, where it is scored to the Live Mixer's **Game Rule**.
 - **Round** — a synchronized set of Games across the courts in Match Mixer; a captains' game and a teammates' game played together inside one Matchup in Team Tally. On Deck has no Rounds.
 - **Organizer** — the account that runs a Club's Sessions in On Deck; the account that owns a Team Event in Team Tally; whoever holds a Live Mixer's Organizer Link in Match Mixer, which is a link first and optionally an account (the **Owner**). Separate models, even when one person is both.
 - **Organizer** is not Mic Drop's word: its equivalent is the **Host**, and its night is a **Poll**.
 - **Session** — one night at a club in On Deck. Match Mixer avoids the word entirely and calls its equivalent a **Mixer**; Team Tally calls its night a **Team Event**.
 - **User**, **Org**, **Connection** and **Invite Link** are Booking Buddy's alone, and are explicitly avoided in On Deck and Match Mixer.
+
+The **court grid** (`src/components/court-grid/`, model in `src/lib/court-grid/`) is shared UI, the way the Google sign-in button is: Match Mixer draws Venues with it today and Team Tally will pair touching courts with it (#698). The Venues themselves are not shared data; each app keeps its own.
 
 Pickle Point Pal (`/tools/pickle-point-pal`) is deliberately not a context: its vocabulary is standard pickleball rules language that needs no disambiguation, and its build notes live beside the code in `src/components/apps/pickle-point-pal/BRIEF.md`. It does own **Match** as a scored contest between two sides, which is why Match Mixer's unit is a **Game** and Team Tally's is a **Matchup**.

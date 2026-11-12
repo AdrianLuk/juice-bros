@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { courtName } from "@/components/apps/match-mixer/lib/court-labels";
+import { courtLabel } from "@/components/apps/match-mixer/lib/court-labels";
 import { locate, poolName } from "@/components/apps/match-mixer/lib/engine/pools";
 import type { PlayerIndex } from "@/components/apps/match-mixer/lib/engine/types";
 import { gameKey, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
@@ -233,7 +233,7 @@ function sheetFor(live: RebuiltMixer, at: GameAt): SheetGame | null {
   const { roster } = live.draw.pools[found.pool];
   const names = (side: readonly PlayerIndex[]) => side.map((player) => roster[player]?.name ?? "").join(" / ");
   return {
-    title: `Round ${at.round + 1} · Court ${courtName(at.court, live.draw.config.courtLabels)}`,
+    title: `Round ${at.round + 1} · Court ${courtLabel(at.court, live.draw.config.courtLabels)}`,
     sides: [names(found.game.sides[0]), names(found.game.sides[1])],
     score: live.scores.get(gameKey(at.round, at.court)) ?? null,
   };

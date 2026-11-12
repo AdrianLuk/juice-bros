@@ -7,17 +7,29 @@
  * Relative imports only, so `node --test` loads it.
  */
 
-/** The highest number a facility prints on a court. Matches the court grid. */
-export const MAX_COURT_LABEL = 999;
+import { MAX_COURT_NUMBER } from "../../../../lib/court-grid/grid.ts";
+
+/** The highest number a facility prints on a court: the court grid's own limit. */
+export const MAX_COURT_LABEL = MAX_COURT_NUMBER;
+
+/**
+ * Tonight's Court Labels, by court: the first names court 0. Ascending court
+ * number, because that is the order a Venue's booked courts come off the grid.
+ * `null` or absent is a board numbered 1 to N.
+ */
+export type CourtLabels = readonly number[] | null | undefined;
 
 /** What a court is called: its label when the board has them, else 1 to N. */
-export function courtName(court: number, labels?: readonly number[] | null): string {
+export function courtLabel(court: number, labels?: CourtLabels): string {
   return String(labels?.[court] ?? court + 1);
 }
 
-/** The courts as a reader would list them: "court 3", "courts 14 and 17", "courts 3, 4 and 9". */
-export function courtList(courts: readonly number[], labels?: readonly number[] | null): string {
-  const names = courts.map((court) => courtName(court, labels));
+/**
+ * Courts listed the way a reader says them, from court positions:
+ * "court 3", "courts 14 and 17", "courts 3, 4 and 9".
+ */
+export function courtList(courts: readonly number[], labels?: CourtLabels): string {
+  const names = courts.map((court) => courtLabel(court, labels));
   if (names.length === 1) return `court ${names[0]}`;
   return `courts ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }

@@ -7,7 +7,9 @@ import {
   courtAt,
   duplicateNumbers,
   EMPTY_GRID,
-  GRID_COLUMNS,
+  GRID_MAX_COLUMNS,
+  GRID_MIN_COLUMNS,
+  gridColumns,
   PRESETS,
   readGrid,
   renumber,
@@ -36,7 +38,19 @@ describe("painting and numbering", () => {
   it("ignores a tap on a square that already has a court, or off the grid", () => {
     const grid = addCourt(EMPTY_GRID, 0, 0);
     assert.equal(addCourt(grid, 0, 0), grid);
-    assert.equal(addCourt(grid, 0, GRID_COLUMNS), grid);
+    assert.equal(addCourt(grid, 0, GRID_MAX_COLUMNS), grid);
+    assert.equal(addCourt(grid, -1, 0), grid);
+  });
+
+  it("grows a column to the right of the widest court, so a row of eight fits", () => {
+    assert.equal(gridColumns(EMPTY_GRID), GRID_MIN_COLUMNS);
+    let grid = EMPTY_GRID;
+    for (let col = 0; col < 8; col++) {
+      assert.equal(col < gridColumns(grid), true, `column ${col} is on screen to tap`);
+      grid = addCourt(grid, 0, col);
+    }
+    assert.equal(grid.courts.length, 8);
+    assert.equal(gridColumns(grid), 9);
   });
 
   it("renumbers 1 to N across each row, top to bottom", () => {
@@ -68,7 +82,7 @@ describe("readGrid", () => {
   });
 
   it("refuses courts off the grid, sharing a square, or with no usable number", () => {
-    assert.equal(readGrid({ courts: [{ row: 0, col: GRID_COLUMNS, number: 1 }] }), null);
+    assert.equal(readGrid({ courts: [{ row: 0, col: GRID_MAX_COLUMNS, number: 1 }] }), null);
     assert.equal(
       readGrid({
         courts: [

@@ -12,8 +12,15 @@
  * storage, no React, relative imports only so `node --test` loads it.
  */
 
-/** Squares across. Fixed, so a drawing reads the same on every phone. */
-export const GRID_COLUMNS = 6;
+/**
+ * Squares across before anything is drawn. The grid grows a column to the
+ * right of the widest court, the same way it grows a row below the lowest,
+ * so a row of eight or two halls side by side can be drawn and the field
+ * scrolls sideways once it is wider than the screen.
+ */
+export const GRID_MIN_COLUMNS = 6;
+/** How far across the grid can grow. */
+export const GRID_MAX_COLUMNS = 16;
 /** Squares down before anything is drawn; the grid grows past it. */
 export const GRID_MIN_ROWS = 7;
 /** How far down the grid can grow. Far past any facility's court count. */
@@ -45,7 +52,7 @@ function inBounds(row: number, col: number): boolean {
     row >= 0 &&
     row < GRID_MAX_ROWS &&
     col >= 0 &&
-    col < GRID_COLUMNS
+    col < GRID_MAX_COLUMNS
   );
 }
 
@@ -53,6 +60,12 @@ function inBounds(row: number, col: number): boolean {
 export function gridRows(grid: CourtGrid): number {
   const lowest = grid.courts.reduce((max, court) => Math.max(max, court.row), -1);
   return Math.min(GRID_MAX_ROWS, Math.max(GRID_MIN_ROWS, lowest + 2));
+}
+
+/** How many columns to show: the minimum, or one empty column right of the widest court. */
+export function gridColumns(grid: CourtGrid): number {
+  const widest = grid.courts.reduce((max, court) => Math.max(max, court.col), -1);
+  return Math.min(GRID_MAX_COLUMNS, Math.max(GRID_MIN_COLUMNS, widest + 2));
 }
 
 /** A court on an empty square, numbered one past the highest so far. */

@@ -150,7 +150,7 @@ test("a board with tonight's court numbers goes live with them on both links (#6
   for (const court of [1, 2, 5]) {
     await picker.getByRole("button", { name: `Court ${court}, booked tonight` }).click();
   }
-  await picker.getByRole("button", { name: "Use courts 3, 4" }).click();
+  await picker.getByRole("button", { name: "Use courts 3 and 4" }).click();
 
   await page.getByRole("button", { name: "Go live" }).click();
   await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);

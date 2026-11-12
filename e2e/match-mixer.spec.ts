@@ -150,7 +150,7 @@ test("a venue drawn, saved and used names the board's courts, across a reload an
   for (const court of [1, 2, 5]) {
     await picker.getByRole("button", { name: `Court ${court}, booked tonight` }).click();
   }
-  await picker.getByRole("button", { name: "Use courts 4, 14" }).click();
+  await picker.getByRole("button", { name: "Use courts 4 and 14" }).click();
   await expect(picker).toBeHidden();
 
   // The same seats, under the facility's numbers: no redraw needed.
@@ -167,7 +167,7 @@ test("a venue drawn, saved and used names the board's courts, across a reload an
     "aria-pressed",
     "true",
   );
-  await expect(again.getByRole("button", { name: "Use courts 4, 14" })).toBeVisible();
+  await expect(again.getByRole("button", { name: "Use courts 4 and 14" })).toBeVisible();
   await again.getByRole("button", { name: "Cancel" }).click();
 
   // Whoever opens the link sees the same court numbers.
@@ -183,6 +183,37 @@ test("a venue drawn, saved and used names the board's courts, across a reload an
 
   // Numbering 1 to N again puts the plain board back.
   await page.getByRole("button", { name: "Number 1 to 2" }).click();
+  await expect(courtHeaders(page)).toHaveText(["Court 1", "Court 2"]);
+});
+
+test("a venue painted square by square names the courts it was given (#697)", async ({ page }) => {
+  await drawBoard(page, OWN_ROSTER);
+  await page.getByRole("button", { name: "Use your venue’s court numbers" }).click();
+  const picker = page.getByRole("dialog");
+
+  // Three courts along the top row, numbered 1 to 3 as they are added.
+  for (const column of [1, 2, 3]) {
+    await picker.getByRole("button", { name: `Add a court, row 1, column ${column}` }).click();
+  }
+  await expect(picker.getByRole("button", { name: "Court 3, selected" })).toBeVisible();
+
+  // The last one is really court 4, and the first isn't ours at all.
+  await picker.getByRole("button", { name: "Raise the number" }).click();
+  await expect(picker.getByRole("button", { name: "Court 4, selected" })).toBeVisible();
+  await picker.getByRole("button", { name: "Court 1", exact: true }).click();
+  await picker.getByRole("button", { name: "Remove court 1" }).click();
+  await expect(picker.getByRole("button", { name: /^Court 1\b/ })).toHaveCount(0);
+
+  await picker.getByRole("button", { name: "2. Tonight’s courts" }).click();
+  await picker.getByRole("button", { name: "Use courts 2 and 4" }).click();
+  await expect(courtHeaders(page)).toHaveText(["Court 2", "Court 4"]);
+
+  // Renumbering in reading order gives 1 and 2 back.
+  await page.getByRole("button", { name: "Change courts" }).click();
+  await picker.getByRole("button", { name: "1. Draw the venue" }).click();
+  await picker.getByRole("button", { name: "Renumber 1 to 2" }).click();
+  await picker.getByRole("button", { name: "2. Tonight’s courts" }).click();
+  await picker.getByRole("button", { name: "Use courts 1 and 2" }).click();
   await expect(courtHeaders(page)).toHaveText(["Court 1", "Court 2"]);
 });
 

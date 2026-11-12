@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { CourtGrid } from "@/components/court-grid/court-grid";
+import { CourtGrid, type GridMode } from "@/components/court-grid/court-grid";
 import { courtList } from "@/components/apps/match-mixer/lib/court-labels";
 import {
   deleteVenue,
@@ -73,10 +73,35 @@ export function VenueCourts({
   );
 }
 
-type Step = "draw" | "book";
+/** What the save row last said, and whether it was a save or a refusal. */
+type SaveNote = { readonly text: string; readonly tone: "done" | "refused" } | null;
 
 function bookAll(grid: Grid): Set<number> {
   return new Set(grid.courts.map((court) => court.number));
+}
+
+/**
+ * What the picker opens on. The venue tonight's courts came from, with those
+ * courts booked, when a saved venue holds every one of them. Tonight's courts
+ * in a row, when they came from a drawing nobody saved. Otherwise the first
+ * saved venue, or an empty grid to draw on.
+ */
+function openingOf(
+  venues: readonly Venue[],
+  labels: readonly number[] | null,
+): { venue: string | null; grid: Grid; booked: Set<number>; step: GridMode } {
+  if (labels) {
+    const from = venues.find((venue) => {
+      const numbers = bookAll(venue.grid);
+      return labels.every((label) => numbers.has(label));
+    });
+    if (from) return { venue: from.name, grid: from.grid, booked: new Set(labels), step: "book" };
+    const row: Grid = { courts: labels.map((number, col) => ({ row: 0, col, number })) };
+    return { venue: null, grid: row, booked: new Set(labels), step: "book" };
+  }
+  const first = venues[0];
+  if (first) return { venue: first.name, grid: first.grid, booked: bookAll(first.grid), step: "book" };
+  return { venue: null, grid: EMPTY_GRID, booked: new Set(), step: "draw" };
 }
 
 /**
@@ -98,18 +123,13 @@ function VenueDialog({
   // Read once, on open: storage does not exist on the server, and this only
   // ever mounts in the browser after a tap.
   const [venues, setVenues] = useState<Venue[]>(() => loadVenues());
-  const first = venues[0] ?? null;
-  const [current, setCurrent] = useState<string | null>(first?.name ?? null);
-  const [grid, setGrid] = useState<Grid>(first?.grid ?? EMPTY_GRID);
-  const [booked, setBooked] = useState<ReadonlySet<number>>(() => {
-    if (!first) return new Set();
-    // Reopening on the courts already chosen, when this venue has them all.
-    const numbers = bookAll(first.grid);
-    return labels && labels.every((label) => numbers.has(label)) ? new Set(labels) : numbers;
-  });
-  const [step, setStep] = useState<Step>(first ? "book" : "draw");
-  const [name, setName] = useState(first?.name ?? "");
-  const [saved, setSaved] = useState<string | null>(null);
+  const [opening] = useState(() => openingOf(venues, labels));
+  const [current, setCurrent] = useState<string | null>(opening.venue);
+  const [grid, setGrid] = useState<Grid>(opening.grid);
+  const [booked, setBooked] = useState<ReadonlySet<number>>(opening.booked);
+  const [step, setStep] = useState<GridMode>(opening.step);
+  const [name, setName] = useState(opening.venue ?? "");
+  const [saved, setSaved] = useState<SaveNote>(null);
 
   useEffect(() => {
     const element = dialog.current;
@@ -128,11 +148,20 @@ function VenueDialog({
     setSaved(null);
   };
 
-  const startNew = (from: Grid = EMPTY_GRID) => {
+  /** A fresh venue: no name, nothing saved, an empty grid. */
+  const startNew = () => {
     setCurrent(null);
+    setName("");
+    redraw(EMPTY_GRID);
+  };
+
+  /**
+   * A new drawing for the venue being edited: a shape, or a cleared grid. The
+   * name stays, so saving updates this venue rather than asking for it again.
+   */
+  const redraw = (from: Grid) => {
     setGrid(from);
     setBooked(bookAll(from));
-    setName("");
     setStep("draw");
     setSaved(null);
   };
@@ -140,12 +169,13 @@ function VenueDialog({
   const keep = () => {
     const next = saveVenue(name, grid);
     if (!next) {
-      setSaved(grid.courts.length === 0 ? "Add a court first." : "Give the venue a name first.");
+      const text = grid.courts.length === 0 ? "Add a court first." : "Give the venue a name first.";
+      setSaved({ text, tone: "refused" });
       return;
     }
     setVenues(next);
     setCurrent(name.trim());
-    setSaved(`Saved ${name.trim()}.`);
+    setSaved({ text: `Saved ${name.trim()}.`, tone: "done" });
   };
 
   const forget = () => {
@@ -223,7 +253,7 @@ function VenueDialog({
               type="button"
               className="mm-venue-chip"
               data-shape
-              onClick={() => startNew(preset.grid())}
+              onClick={() => redraw(preset.grid())}
             >
               {preset.label}
             </button>
@@ -256,7 +286,7 @@ function VenueDialog({
           >
             Renumber 1 to {grid.courts.length}
           </button>
-          <button type="button" className="mm-quiet" onClick={() => startNew()}>
+          <button type="button" className="mm-quiet" onClick={() => redraw(EMPTY_GRID)}>
             Clear grid
           </button>
         </div>
@@ -283,8 +313,8 @@ function VenueDialog({
             Save
           </button>
         </div>
-        <p className="mm-note" role="status" data-tone={saved?.startsWith("Saved") ? "done" : saved ? "refused" : undefined}>
-          {saved ?? "Optional. Skip it for a one-off night."}
+        <p className="mm-note" role="status" data-tone={saved?.tone}>
+          {saved?.text ?? "Optional. Skip it for a one-off night."}
         </p>
         {current ? (
           <button type="button" className="mm-quiet" onClick={forget}>
@@ -306,7 +336,7 @@ function VenueDialog({
       >
         {tonight.length === 0
           ? "Pick tonight’s courts"
-          : `Use ${tonight.length === 1 ? "court" : "courts"} ${tonight.join(", ")}`}
+          : `Use ${courtList(tonight.map((_, court) => court), tonight)}`}
       </button>
     </dialog>
   );
