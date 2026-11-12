@@ -71,7 +71,9 @@ function stageOf(event: TeamEventDoc): { name: string; progress: string; live?: 
   const opening = openingMatchups(event);
   const flights = flightMatchups(event);
   if (event.status === "finished") {
-    return { name: "Final", progress: `${flights.length} Flights played` };
+    // A night ended with a Flight still open (issue #684) says how many were played.
+    const played = flights.every((flight) => flight.doneAt !== null) ? `${flights.length}` : doneCount(flights);
+    return { name: "Final", progress: `${played} Flights played` };
   }
   if (event.status === "flights") {
     return { name: "Flights", progress: `${doneCount(flights)} Flights done`, live: "Now" };
