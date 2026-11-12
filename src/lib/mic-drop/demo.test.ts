@@ -21,11 +21,19 @@ test("tapping another Contestant moves the Vote: the old count drops, no new pho
   assert.equal(counts(switched)["ben-johns"], 4);
 });
 
-test("tapping your own Vote, or any row once closed, changes nothing", () => {
-  const voted = demoReduce(demoStart(), { kind: "tap", contestantId: "ben-johns" });
-  assert.equal(demoReduce(voted, { kind: "tap", contestantId: "ben-johns" }), voted);
-  const closed = demoReduce(voted, { kind: "close" });
+test("tapping your own Vote again takes it back: the count and the phone both drop", () => {
+  const start = demoStart();
+  const voted = demoReduce(start, { kind: "tap", contestantId: "ben-johns" });
+  const unvoted = demoReduce(voted, { kind: "tap", contestantId: "ben-johns" });
+  assert.equal(unvoted.myVote, null);
+  assert.equal(unvoted.phonesIn, start.phonesIn);
+  assert.deepEqual(unvoted.votes, start.votes);
+});
+
+test("once closed, no tap changes anything, your own pick included", () => {
+  const closed = demoReduce(demoReduce(demoStart(), { kind: "tap", contestantId: "ben-johns" }), { kind: "close" });
   assert.equal(demoReduce(closed, { kind: "tap", contestantId: "anna-bright" }), closed);
+  assert.equal(demoReduce(closed, { kind: "tap", contestantId: "ben-johns" }), closed);
 });
 
 test("the chart reads most Votes first, entry order breaking ties", () => {

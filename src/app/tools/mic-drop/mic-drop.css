@@ -524,6 +524,71 @@ body:has(.md-surface) {
   overflow-wrap: anywhere;
 }
 
+/* While open, a remove control at the row's end; the bar stays under name and count. */
+.md-lineup li.is-editable {
+  grid-template-columns: 40px minmax(0, 1fr) auto 44px;
+}
+
+.md-remove {
+  grid-column: 4;
+  grid-row: 1;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-block: -10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--md-mute);
+  cursor: pointer;
+}
+
+.md-remove:hover {
+  background: var(--md-raised);
+  color: var(--md-ink);
+}
+
+.md-remove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.md-confirm {
+  display: grid;
+  gap: 12px;
+}
+
+.md-lineup .md-confirm {
+  grid-column: 2 / -1;
+  padding-top: 6px;
+}
+
+.md-confirm p,
+.md-close-result {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--md-ink);
+}
+
+.md-close {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.md-close .md-label {
+  margin: 0;
+}
+
+.md-notice .md-btn {
+  justify-self: start;
+  margin-top: 8px;
+}
+
 /* Entry order, not a rank: small and muted, so it never reads as the chart. */
 .md-lineup li::before {
   content: counter(md-lineup, decimal-leading-zero);

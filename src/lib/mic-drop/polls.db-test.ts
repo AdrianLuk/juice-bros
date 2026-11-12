@@ -26,6 +26,7 @@ import {
   readGuestPoll,
   removeContestant,
   reopenPoll,
+  withdrawVote,
   type GuestPoll,
 } from "./polls.ts";
 
@@ -247,6 +248,31 @@ test("each phone has one Vote, and a changed Vote replaces the old one", async (
     ["Ben Johns", 1],
     ["Anna Leigh Waters", 0],
   ]);
+});
+
+test("a phone can take its Vote back, but not once the Poll is closed", async () => {
+  const { supabase, poll, ids } = await pollWith(["Anna Leigh Waters", "Ben Johns"]);
+  const mine = phone();
+  const theirs = phone();
+  await castVote(guests, poll.guestToken, mine, ids["Anna Leigh Waters"]);
+  await castVote(guests, poll.guestToken, theirs, ids["Anna Leigh Waters"]);
+
+  assert.deepEqual(await withdrawVote(guests, poll.guestToken, mine), { ok: true });
+  let read = await readGuestPoll(guests, poll.guestToken, mine);
+  assert.equal(read?.myVote, null);
+  assert.equal(read?.phonesIn, 1, "only the phone that still has a Vote is in");
+  assert.deepEqual(counts(read), [
+    ["Anna Leigh Waters", 1],
+    ["Ben Johns", 0],
+  ]);
+
+  // A phone with no Vote taking it back again: nothing changes.
+  assert.deepEqual(await withdrawVote(guests, poll.guestToken, mine), { ok: true });
+
+  await closePoll(supabase, poll.id);
+  assert.deepEqual(await withdrawVote(guests, poll.guestToken, theirs), { ok: false, problem: "Voting is closed." });
+  read = await readGuestPoll(guests, poll.guestToken, theirs);
+  assert.equal(read?.myVote, ids["Anna Leigh Waters"], "a closed Poll keeps the Vote");
 });
 
 test("the Leaderboard is highest first, with entry order breaking ties", async () => {

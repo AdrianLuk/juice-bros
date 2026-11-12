@@ -29,7 +29,7 @@ const RULES = [
   },
   {
     title: "Change your mind all night",
-    text: "A later Contestant blew you away? Tap them. Your old vote stops counting the moment you switch.",
+    text: "A later Contestant blew you away? Tap them. Your old vote stops counting the moment you switch, and tapping your pick again takes it back.",
   },
   {
     title: "Nobody sees your pick",

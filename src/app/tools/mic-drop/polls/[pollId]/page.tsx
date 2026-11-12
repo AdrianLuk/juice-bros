@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
@@ -12,7 +11,7 @@ import {
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { verifyHost } from "@/lib/mic-drop/dal";
 import { loadPoll, readGuestPoll } from "@/lib/mic-drop/polls";
-import { MIC_DROP_ROOT, guestLinkPath } from "@/lib/mic-drop/routes";
+import { guestLinkPath } from "@/lib/mic-drop/routes";
 import { createClient } from "@/lib/mic-drop/supabase/server";
 
 type Props = { params: Promise<{ pollId: string }> };
@@ -45,15 +44,13 @@ export default async function HostPollPage({ params }: Props) {
 
   return (
     <HostBoard
+      pollId={poll.id}
       token={poll.guestToken}
       initial={initial}
       lineUp={poll.lineUp}
       share={<CopyGuestLink url={guestLink} />}
     >
       {poll.open && <AddContestantForm pollId={poll.id} />}
-      <Link href={MIC_DROP_ROOT} className="md-quiet">
-        All your Polls
-      </Link>
     </HostBoard>
   );
 }

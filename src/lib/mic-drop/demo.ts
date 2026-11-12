@@ -1,6 +1,7 @@
 /**
  * The landing page's demo Poll: a made-up karaoke night that runs entirely in
- * the browser. The visitor's taps are one phone; a made-up crowd votes and
+ * the browser. The visitor's taps are one phone (tap to vote, another to
+ * switch, the same one again to take it back); a made-up crowd votes and
  * switches around them, so the chart re-sorts the way it does on the night.
  * Nothing touches the database. Pure, for `node --test`.
  */
@@ -62,7 +63,16 @@ function moveVote(votes: Record<string, number>, to: string, from: string | null
 export function demoReduce(state: DemoState, event: DemoEvent): DemoState {
   switch (event.kind) {
     case "tap":
-      if (!state.open || event.contestantId === state.myVote || !(event.contestantId in state.votes)) return state;
+      if (!state.open || !(event.contestantId in state.votes)) return state;
+      // Your own pick again: take it back.
+      if (event.contestantId === state.myVote) {
+        return {
+          ...state,
+          votes: { ...state.votes, [state.myVote]: state.votes[state.myVote] - 1 },
+          phonesIn: state.phonesIn - 1,
+          myVote: null,
+        };
+      }
       return {
         ...state,
         votes: moveVote(state.votes, event.contestantId, state.myVote),

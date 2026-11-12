@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { addContestant, createPoll } from "../polls.ts";
+import { addContestant, closePoll, createPoll, removeContestant, reopenPoll, type Outcome } from "../polls.ts";
 import { MIC_DROP_ROOT, pollPath } from "../routes.ts";
 import { createClient } from "../supabase/server.ts";
 
@@ -64,4 +64,22 @@ export async function addToLineUp(
   if (!outcome.ok) return { problem: outcome.problem, name };
   revalidatePath(pollPath(pollId));
   return {};
+}
+
+/** Takes a Contestant off the line-up, and the Votes cast for them. */
+export async function removeFromLineUp(pollId: string, contestantId: string): Promise<Outcome> {
+  const outcome = await removeContestant(await createClient(), contestantId);
+  if (outcome.ok) revalidatePath(pollPath(pollId));
+  return outcome;
+}
+
+/** Closes the Poll (the chart freezes and the leader is No. 1), or reopens it. */
+export async function setPollOpen(pollId: string, open: boolean): Promise<Outcome> {
+  const supabase = await createClient();
+  const outcome = open ? await reopenPoll(supabase, pollId) : await closePoll(supabase, pollId);
+  if (outcome.ok) {
+    revalidatePath(pollPath(pollId));
+    revalidatePath(MIC_DROP_ROOT);
+  }
+  return outcome;
 }

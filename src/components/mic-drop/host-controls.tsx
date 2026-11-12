@@ -7,6 +7,7 @@ import {
   startPoll,
   type FormState,
 } from "@/lib/mic-drop/actions/host";
+import { UNANSWERED } from "@/lib/mic-drop/settle-write";
 
 const EMPTY: FormState = {};
 
@@ -40,8 +41,15 @@ export function NewPollForm() {
 
 /** Types a Contestant onto the end of the line-up, then is ready for the next one. */
 export function AddContestantForm({ pollId }: { pollId: string }) {
+  // No signal says so under the field, instead of taking the page down (#671).
   const [state, action, pending] = useActionState(
-    addToLineUp.bind(null, pollId),
+    async (previous: FormState, formData: FormData): Promise<FormState> => {
+      try {
+        return await addToLineUp(pollId, previous, formData);
+      } catch {
+        return { problem: UNANSWERED, name: String(formData.get("name") ?? "") };
+      }
+    },
     EMPTY,
   );
   const input = useRef<HTMLInputElement>(null);

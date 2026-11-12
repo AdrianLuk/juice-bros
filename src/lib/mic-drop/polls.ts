@@ -97,6 +97,12 @@ export async function castVote(
   return error ? settle(error, "Voting", "That Contestant isn't in this Poll.") : { ok: true };
 }
 
+/** Takes back this phone's Vote, leaving it with none. A phone with no Vote is left as it was. */
+export async function withdrawVote(supabase: SupabaseClient, token: string, guestId: string): Promise<Outcome> {
+  const { error } = await supabase.rpc("mic_drop_withdraw_vote", { p_token: token, p_guest_id: guestId });
+  return error ? settle(error, "Taking the Vote back") : { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Hosts
 // ---------------------------------------------------------------------------
