@@ -1,12 +1,16 @@
 "use server";
 
+import type { GameAt } from "../../components/apps/match-mixer/lib/live/events.ts";
+import type { GameRule, GameScore } from "../../components/apps/match-mixer/lib/live/game-rule.ts";
 import * as liveMixers from "./live-mixers.ts";
-import type { Outcome } from "./live-mixers.ts";
+import type { LiveMixer, Outcome } from "./live-mixers.ts";
 import { organizerLinkPath, playerLinkPath } from "./routes.ts";
 import { createClient } from "./supabase/server.ts";
 
 const SERVER_FAILED =
   "Match Mixer couldn't save the board just now, so it didn't go live. Your board is still here. Try again in a minute.";
+
+const WRITE_FAILED = "Match Mixer couldn't save that just now. Try again in a minute.";
 
 /**
  * Go Live, the one call `/tools/match-mixer` makes over the network (ADR
@@ -14,11 +18,12 @@ const SERVER_FAILED =
  */
 export async function goLive(
   config: string,
+  rule?: GameRule,
 ): Promise<Outcome<{ organizerPath: string; playerPath: string }>> {
   if (typeof config !== "string") return { ok: false, problem: "That isn't a board." };
   let outcome: Awaited<ReturnType<typeof liveMixers.goLive>>;
   try {
-    outcome = await liveMixers.goLive(await createClient(), config);
+    outcome = await liveMixers.goLive(await createClient(), config, rule);
   } catch (error) {
     // Reached the server, failed behind it: not the organizer's signal.
     console.error(error);
@@ -32,6 +37,37 @@ export async function goLive(
       playerPath: playerLinkPath(outcome.value.playerToken),
     },
   };
+}
+
+/** Either link's Live Mixer, for the live screens' re-reads (#688). */
+export async function readLiveMixer(token: string): Promise<LiveMixer | null> {
+  if (typeof token !== "string") return null;
+  return liveMixers.readLiveMixer(await createClient(), token);
+}
+
+/** A write that failed behind the server reads as a refusal, not a crash. */
+async function settle(write: () => Promise<Outcome<null>>): Promise<Outcome<null>> {
+  try {
+    return await write();
+  } catch (error) {
+    console.error(error);
+    return { ok: false, problem: WRITE_FAILED };
+  }
+}
+
+/** The Organizer Link enters or changes one Game's score. */
+export async function enterScore(token: string, at: GameAt, score: GameScore): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.enterScore(await createClient(), String(token), at, score));
+}
+
+/** The Organizer Link takes one Game's score off. */
+export async function clearScore(token: string, at: GameAt): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.clearScore(await createClient(), String(token), at));
+}
+
+/** The Organizer Link changes the Game Rule for scores from now on. */
+export async function changeGameRule(token: string, rule: GameRule): Promise<Outcome<null>> {
+  return settle(async () => liveMixers.changeGameRule(await createClient(), String(token), rule));
 }
 
 /**

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import type { BoardConfig } from "@/components/apps/match-mixer/lib/engine/pools";
+import { DEFAULT_GAME_RULE, type GameRule } from "@/components/apps/match-mixer/lib/live/game-rule";
 import {
   recall,
   remember,
@@ -15,6 +16,8 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { goLive, signInWithGoogleIdToken } from "@/lib/match-mixer/actions";
 import { readGoogleSignInClientId } from "@/lib/match-mixer/env";
 import { MATCH_MIXER_ROOT } from "@/lib/match-mixer/routes";
+
+import { GameRulePicker } from "./game-rule-picker";
 
 const UNREACHABLE =
   "Couldn't reach Match Mixer, so the board didn't go live. Your board is still here. Check your signal and try again.";
@@ -32,6 +35,8 @@ export function GoLive({ config }: { config: BoardConfig | null }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // What the night is played to (#688); the Organizer Link can change it later.
+  const [rule, setRule] = useState<GameRule>(DEFAULT_GAME_RULE);
   const [remembered, setRemembered] = useState<RememberedLive | null>(null);
 
   useEffect(() => {
@@ -50,7 +55,7 @@ export function GoLive({ config }: { config: BoardConfig | null }) {
     setProblem(null);
     let outcome: Awaited<ReturnType<typeof goLive>>;
     try {
-      outcome = await goLive(encodeSharePayload(config));
+      outcome = await goLive(encodeSharePayload(config), rule);
     } catch {
       outcome = { ok: false, problem: UNREACHABLE };
     }
@@ -79,6 +84,7 @@ export function GoLive({ config }: { config: BoardConfig | null }) {
     <div className="mt-6">
       {config ? (
         <>
+          <GameRulePicker value={rule} onChange={setRule} disabled={pending} />
           <button
             type="button"
             className="mm-share"

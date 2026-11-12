@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** A Live Mixer's Player Link (#687): the board the organizer drew, read-only, with find-me. */
+/**
+ * A Live Mixer's Player Link (#687): the board the organizer drew, with
+ * find-me, and its scores and Standings kept live (#688). Read-only for now.
+ */
 export default async function PlayerLinkPage({ params }: Props) {
   const { token } = await params;
   const mixer = await readLiveMixer(await createClient(), token);
@@ -20,7 +23,7 @@ export default async function PlayerLinkPage({ params }: Props) {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <LiveBoard config={mixer.config} />
+      <LiveBoard token={token} initial={mixer} />
     </div>
   );
 }
