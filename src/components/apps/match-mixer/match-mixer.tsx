@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
+  chooseCourtLabels,
   chooseCourts,
   chooseFormat,
   chooseMixed,
@@ -67,6 +68,7 @@ import {
 
 import { GoLive } from "./go-live";
 import { ScheduleGrid, type Band, type BandPlayer } from "./schedule-grid";
+import { VenueCourts } from "./venue-courts";
 
 /**
  * Match Mixer's only screen. Paste a Roster, set your courts, draw the
@@ -632,6 +634,13 @@ export function MatchMixer() {
                 />
               </div>
             ) : null}
+            {supported ? (
+              <VenueCourts
+                labels={editor.courtLabels}
+                courts={courts}
+                onChoose={(labels) => setEditor((state) => chooseCourtLabels(state, labels))}
+              />
+            ) : null}
 
             {/* The fast speed: pure arithmetic, so it can afford to keep up
                 with the keystrokes the Schedule deliberately does not. Neither
@@ -666,12 +675,17 @@ export function MatchMixer() {
                 over a different board is the one thing this control must not
                 say. */}
             {draw ? (
-              <ShareBoard key={draw.config.seed} config={draw.config} />
+              <ShareBoard
+                // Relabelled courts are a different link, so a copied
+                // confirmation never stands over the board it no longer names.
+                key={`share-${draw.config.seed}-${draw.config.courtLabels?.join("-") ?? ""}`}
+                config={draw.config}
+              />
             ) : null}
             {/* Keyed like the share plate, so a problem said over one draw
                 isn't left standing over the next. */}
             <GoLive
-              key={draw?.config.seed}
+              key={`live-${draw?.config.seed ?? "none"}`}
               config={draw && !stale ? draw.config : null}
             />
           </div>
@@ -718,6 +732,7 @@ export function MatchMixer() {
                     bands={bands}
                     selected={bandSelected}
                     onSelect={selectInBand}
+                    courtLabels={draw.config.courtLabels}
                   />
                 </div>
               </>

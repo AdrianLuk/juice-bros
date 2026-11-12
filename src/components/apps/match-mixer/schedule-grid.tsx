@@ -1,5 +1,6 @@
 import { Fragment, useRef, type CSSProperties } from "react";
 
+import { courtName } from "@/components/apps/match-mixer/lib/court-labels";
 import {
   describeItinerary,
   itinerary,
@@ -28,8 +29,21 @@ export interface BoardScores {
   readonly onScore?: (at: GameAt) => void;
 }
 
+/** Tonight's court numbers (#697), or null for courts 1 to N. */
+type Labels = readonly number[] | null | undefined;
+
 /** A Game's score, or the Organizer Link's way to enter one. */
-function ScoreMark({ round, court, scoring }: { round: number; court: number; scoring: BoardScores }) {
+function ScoreMark({
+  round,
+  court,
+  scoring,
+  labels,
+}: {
+  round: number;
+  court: number;
+  scoring: BoardScores;
+  labels: Labels;
+}) {
   const score = scoring.scores.get(gameKey(round, court)) ?? null;
   const said = score ? `${score[0]} to ${score[1]}` : null;
   if (scoring.onScore) {
@@ -38,7 +52,7 @@ function ScoreMark({ round, court, scoring }: { round: number; court: number; sc
         type="button"
         className="mm-score"
         data-scored={score ? "true" : undefined}
-        aria-label={`Round ${round + 1}, Court ${court + 1}: ${said ? `${said}. Change the score` : "enter the score"}`}
+        aria-label={`Round ${round + 1}, Court ${courtName(court, labels)}: ${said ? `${said}. Change the score` : "enter the score"}`}
         onClick={() => scoring.onScore?.({ round, court })}
       >
         {score ? `${score[0]}-${score[1]}` : "Score"}
@@ -369,12 +383,14 @@ function FoundLine({
   band,
   evening,
   onClear,
+  labels,
 }: {
   roster: Roster;
   selected: PlayerIndex | null;
   band: string | null;
   evening: readonly ItineraryEntry[] | null;
   onClear: () => void;
+  labels: Labels;
 }) {
   return (
     <div className="mm-found" data-found={evening ? "true" : undefined}>
@@ -388,7 +404,7 @@ function FoundLine({
             {/* A real space, not the margin under the label: this is one
                 string to a screen reader and to anyone who copies the line. */}
             {" "}
-            {describeItinerary(evening)}
+            {describeItinerary(evening, labels)}
           </>
         ) : null}
       </p>
@@ -468,8 +484,10 @@ function BandCells({
   selected,
   onSelect,
   scoring,
+  labels,
 }: {
   scoring?: BoardScores;
+  labels: Labels;
   band: Band;
   round: number;
   /** The courts this band's columns head, in order. */
@@ -500,7 +518,7 @@ function BandCells({
       {slot.games.map((game, position) => (
         <td
           key={game.court}
-          data-court={`Court ${game.court + 1}`}
+          data-court={`Court ${courtName(game.court, labels)}`}
           data-band-start={start && position === 0 ? "true" : undefined}
           data-dim={
             away ||
@@ -522,13 +540,15 @@ function BandCells({
             selected={selected}
             onSelect={onSelect}
           />
-          {scoring ? <ScoreMark round={round} court={game.court} scoring={scoring} /> : null}
+          {scoring ? (
+            <ScoreMark round={round} court={game.court} scoring={scoring} labels={labels} />
+          ) : null}
         </td>
       ))}
       {courts.slice(courts.length - idle).map((court) => (
         <td
           key={court}
-          data-court={`Court ${court + 1}`}
+          data-court={`Court ${courtName(court, labels)}`}
           data-dim={away || here ? "true" : undefined}
         />
       ))}
@@ -641,10 +661,16 @@ export function ScheduleGrid({
   selected = null,
   onSelect,
   scoring,
+  courtLabels,
 }: {
   bands: readonly Band[];
   /** A Live Mixer's scores; absent everywhere else. */
   scoring?: BoardScores;
+  /**
+   * Tonight's court numbers (#697), by court. They name the column headers,
+   * the find-me line and every label a court carries; absent is 1 to N.
+   */
+  courtLabels?: readonly number[] | null;
   /** Overridden by the zero state, which shows a second grid of its own. */
   headingId?: string;
   /**
@@ -745,6 +771,7 @@ export function ScheduleGrid({
           band={pickedBand?.label ?? null}
           evening={evening}
           onClear={clearAndReturn}
+          labels={courtLabels}
         />
       ) : null}
 
@@ -809,7 +836,7 @@ export function ScheduleGrid({
                         index > 0 && position === 0 ? "true" : undefined
                       }
                     >
-                      Court {court + 1}
+                      Court {courtName(court, courtLabels)}
                     </th>
                   ))}
                   {band.byes ? <th scope="col">Off</th> : null}
@@ -842,6 +869,7 @@ export function ScheduleGrid({
                       away={pickedBand !== null && band !== pickedBand}
                       selected={band === pickedBand ? picked : null}
                       scoring={scoring}
+                      labels={courtLabels}
                       onSelect={
                         onSelect
                           ? (player) => onSelect({ band: which, player })

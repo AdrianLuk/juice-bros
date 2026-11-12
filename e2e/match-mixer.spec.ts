@@ -118,6 +118,74 @@ test("opening a Share Link leaves your own saved Roster untouched", async ({
   await expect(boardGrid(page)).toHaveText(ownGrid);
 });
 
+/** The board's column headers, "Court 1" and so on, in order. */
+function courtHeaders(page: Page): Locator {
+  return boardGrid(page).getByRole("columnheader", { name: /^Court / });
+}
+
+test("a venue drawn, saved and used names the board's courts, across a reload and a link (#697)", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await drawBoard(page, OWN_ROSTER);
+  await expect(courtHeaders(page)).toHaveText(["Court 1", "Court 2"]);
+
+  // Draw the venue: a plus sign, with the middle court renumbered to 14.
+  await page.getByRole("button", { name: "Use your venue’s court numbers" }).click();
+  const picker = page.getByRole("dialog");
+  await picker.getByRole("button", { name: "Plus sign" }).click();
+  await picker.getByRole("button", { name: "Court 3", exact: true }).click();
+  const number = picker.getByRole("textbox", { name: "Court number" });
+  await number.fill("14");
+  await number.press("Enter");
+  await expect(picker.getByRole("button", { name: "Court 14, selected" })).toBeVisible();
+
+  await picker.getByLabel("Save this venue as").fill("Rec Centre North");
+  await picker.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(picker.getByText("Saved Rec Centre North.")).toBeVisible();
+
+  // Tonight only the middle and the right arm are booked.
+  await picker.getByRole("button", { name: "2. Tonight’s courts" }).click();
+  for (const court of [1, 2, 5]) {
+    await picker.getByRole("button", { name: `Court ${court}, booked tonight` }).click();
+  }
+  await picker.getByRole("button", { name: "Use courts 4, 14" }).click();
+  await expect(picker).toBeHidden();
+
+  // The same seats, under the facility's numbers: no redraw needed.
+  await expect(courtHeaders(page)).toHaveText(["Court 4", "Court 14"]);
+  await expect(page.getByText("Tonight: courts 4 and 14.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Wipe & redraw" })).toBeVisible();
+
+  // A reload keeps the labels, and the venue is still saved.
+  await page.reload();
+  await expect(courtHeaders(page)).toHaveText(["Court 4", "Court 14"]);
+  await page.getByRole("button", { name: "Change courts" }).click();
+  const again = page.getByRole("dialog");
+  await expect(again.getByRole("button", { name: "Rec Centre North", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(again.getByRole("button", { name: "Use courts 4, 14" })).toBeVisible();
+  await again.getByRole("button", { name: "Cancel" }).click();
+
+  // Whoever opens the link sees the same court numbers.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Copy the link to this board" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Copied." })).toBeVisible();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  const reader = await browser.newContext({ baseURL });
+  const theirs = await reader.newPage();
+  await theirs.goto(link);
+  await expect(courtHeaders(theirs)).toHaveText(["Court 4", "Court 14"]);
+  await reader.close();
+
+  // Numbering 1 to N again puts the plain board back.
+  await page.getByRole("button", { name: "Number 1 to 2" }).click();
+  await expect(courtHeaders(page)).toHaveText(["Court 1", "Court 2"]);
+});
+
 test("editing the Roster after drawing marks the board stale", async ({ page }) => {
   const drawn = await drawBoard(page, OWN_ROSTER);
   await expect(page.getByText(/^Superseded · /)).toHaveCount(0);
