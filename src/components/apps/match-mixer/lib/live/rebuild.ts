@@ -1,5 +1,5 @@
 /**
- * A Live Mixer's night, rebuilt (ADR 0001, ADR 0006, #688): the board from
+ * A Live Mixer, rebuilt (ADR 0001, ADR 0006, #688): the board from
  * its Config, the scores and Game Rule from its events, the Standings from
  * both. Every phone and the server read it the same way; nothing here is
  * stored.
@@ -11,7 +11,7 @@ import { EMPTY, restore, type DrawnBoard } from "../board-editor.ts";
 import { poolName } from "../engine/pools.ts";
 import type { Game } from "../engine/types.ts";
 import { decodeShareLink } from "../persistence/share-link.ts";
-import { replay, type GameAt, type MixerEvent, type Night } from "./events.ts";
+import { replay, type GameAt, type MixerEvent, type Replay } from "./events.ts";
 import { standings, type StandingsRow } from "./standings.ts";
 
 /** The board a Config draws, or null when this build can't read it. */
@@ -35,22 +35,22 @@ export interface PoolStandings {
   readonly rows: readonly StandingsRow[];
 }
 
-export interface LiveNight extends Night {
+export interface RebuiltMixer extends Replay {
   readonly draw: DrawnBoard;
   /** One table per Pool. There is no verdict across Pools (ADR 0004). */
   readonly standings: readonly PoolStandings[];
 }
 
-export function rebuild(config: string, events: readonly MixerEvent[]): LiveNight | null {
+export function rebuild(config: string, events: readonly MixerEvent[]): RebuiltMixer | null {
   const draw = redraw(config);
   if (!draw) return null;
-  const night = replay(events);
+  const live = replay(events);
   return {
-    ...night,
+    ...live,
     draw,
     standings: draw.pools.map((pool) => ({
       label: draw.pools.length > 1 ? poolName(pool.label) : null,
-      rows: standings({ format: pool.score.format, roster: pool.roster, schedule: pool.schedule }, night.scores),
+      rows: standings({ format: pool.score.format, roster: pool.roster, schedule: pool.schedule }, live.scores),
     })),
   };
 }

@@ -32,7 +32,7 @@ export function gameKey(round: number, court: number): string {
 /** Scores keyed by `gameKey`. */
 export type Scores = ReadonlyMap<string, GameScore>;
 
-export interface Night {
+export interface Replay {
   readonly rule: GameRule;
   readonly scores: Scores;
 }
@@ -53,7 +53,7 @@ function readScore(value: unknown): GameScore | null {
   return points(a) && points(b) && a !== b ? [a, b] : null;
 }
 
-export function replay(events: readonly MixerEvent[]): Night {
+export function replay(events: readonly MixerEvent[]): Replay {
   let rule = DEFAULT_GAME_RULE;
   const scores = new Map<string, GameScore>();
 

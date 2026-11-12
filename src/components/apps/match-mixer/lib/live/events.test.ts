@@ -10,15 +10,15 @@ const entered = (round: number, court: number, score: [number, number]) =>
 const cleared = (round: number, court: number) => event("score_cleared", { round, court });
 
 test("a Live Mixer with no events plays to 11, win by 2, with no scores", () => {
-  const night = replay([]);
-  assert.deepEqual(night.rule, { to: 11, winBy: 2 });
-  assert.equal(night.scores.size, 0);
+  const live = replay([]);
+  assert.deepEqual(live.rule, { to: 11, winBy: 2 });
+  assert.equal(live.scores.size, 0);
 });
 
 test("a Game's score is its latest event", () => {
-  const night = replay([entered(0, 0, [11, 4]), entered(0, 1, [3, 11]), entered(0, 0, [11, 9])]);
-  assert.deepEqual(night.scores.get(gameKey(0, 0)), [11, 9]);
-  assert.deepEqual(night.scores.get(gameKey(0, 1)), [3, 11]);
+  const live = replay([entered(0, 0, [11, 4]), entered(0, 1, [3, 11]), entered(0, 0, [11, 9])]);
+  assert.deepEqual(live.scores.get(gameKey(0, 0)), [11, 9]);
+  assert.deepEqual(live.scores.get(gameKey(0, 1)), [3, 11]);
 });
 
 test("a cleared score is gone, and can be entered again", () => {
@@ -30,17 +30,17 @@ test("a cleared score is gone, and can be entered again", () => {
 });
 
 test("the Game Rule is the latest change, and changing it keeps every score already in", () => {
-  const night = replay([
+  const live = replay([
     event("game_rule_changed", { to: 21, winBy: 1 }),
     entered(0, 0, [21, 20]),
     event("game_rule_changed", { to: 11, winBy: 2 }),
   ]);
-  assert.deepEqual(night.rule, { to: 11, winBy: 2 });
-  assert.deepEqual(night.scores.get(gameKey(0, 0)), [21, 20]);
+  assert.deepEqual(live.rule, { to: 11, winBy: 2 });
+  assert.deepEqual(live.scores.get(gameKey(0, 0)), [21, 20]);
 });
 
 test("an event the reader can't make sense of is skipped, not fatal", () => {
-  const night = replay([
+  const live = replay([
     entered(0, 0, [11, 4]),
     event("score_entered", { round: 0, court: 0, score: [5, 5] }),
     event("score_entered", { round: -1, court: 0, score: [11, 4] }),
@@ -48,7 +48,7 @@ test("an event the reader can't make sense of is skipped, not fatal", () => {
     event("game_rule_changed", { to: 12, winBy: 2 }),
     event("player_added", { name: "Ben Johns" }),
   ]);
-  assert.deepEqual(night.scores.get(gameKey(0, 0)), [11, 4]);
-  assert.equal(night.scores.size, 1);
-  assert.deepEqual(night.rule, { to: 11, winBy: 2 });
+  assert.deepEqual(live.scores.get(gameKey(0, 0)), [11, 4]);
+  assert.equal(live.scores.size, 1);
+  assert.deepEqual(live.rule, { to: 11, winBy: 2 });
 });

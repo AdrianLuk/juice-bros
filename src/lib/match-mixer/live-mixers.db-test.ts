@@ -12,7 +12,7 @@ import { anonClient, createTestUser, deleteTestUser, type TestUser } from "../db
 import { encodeSharePayload } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 import { parseRoster } from "../../components/apps/match-mixer/lib/engine/roster.ts";
 import { gameKey, replay, type GameAt } from "../../components/apps/match-mixer/lib/live/events.ts";
-import { gameOn, redraw } from "../../components/apps/match-mixer/lib/live/night.ts";
+import { gameOn, redraw } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import {
   changeGameRule,
   clearScore,
@@ -117,7 +117,7 @@ test("one account can take 20 boards live in a day, not 21", async () => {
 const FIRST: GameAt = { round: 0, court: 0 };
 const SECOND: GameAt = { round: 0, court: 1 };
 
-async function nightAt(token: string) {
+async function replayedAt(token: string) {
   const mixer = await readLiveMixer(anonClient(), token);
   assert.ok(mixer, "expected a Live Mixer");
   return replay(mixer.events);
@@ -127,11 +127,11 @@ test("going live with a Game Rule makes it the night's rule; without one it play
   const user = await organizer();
   const picked = await goLive(user.supabase, CONFIG, { to: 15, winBy: 1 });
   assert.ok(picked.ok);
-  assert.deepEqual((await nightAt(picked.value.playerToken)).rule, { to: 15, winBy: 1 });
+  assert.deepEqual((await replayedAt(picked.value.playerToken)).rule, { to: 15, winBy: 1 });
 
   const plain = await goLive(user.supabase, CONFIG);
   assert.ok(plain.ok);
-  assert.deepEqual((await nightAt(plain.value.playerToken)).rule, { to: 11, winBy: 2 });
+  assert.deepEqual((await replayedAt(plain.value.playerToken)).rule, { to: 11, winBy: 2 });
 });
 
 test("the Organizer Link enters, changes and clears a score, signed out, and the Player Link reads it", async () => {
@@ -139,13 +139,13 @@ test("the Organizer Link enters, changes and clears a score, signed out, and the
   assert.ok(gameOn(redraw(CONFIG)!, FIRST), "CONFIG's board has a Game on court 1 in Round 1");
 
   assert.deepEqual(await enterScore(anonClient(), organizerToken, FIRST, [11, 7]), { ok: true, value: null });
-  assert.deepEqual((await nightAt(playerToken)).scores.get(gameKey(0, 0)), [11, 7]);
+  assert.deepEqual((await replayedAt(playerToken)).scores.get(gameKey(0, 0)), [11, 7]);
 
   assert.ok((await enterScore(anonClient(), organizerToken, FIRST, [13, 11])).ok);
-  assert.deepEqual((await nightAt(playerToken)).scores.get(gameKey(0, 0)), [13, 11]);
+  assert.deepEqual((await replayedAt(playerToken)).scores.get(gameKey(0, 0)), [13, 11]);
 
   assert.ok((await clearScore(anonClient(), organizerToken, FIRST)).ok);
-  assert.equal((await nightAt(playerToken)).scores.has(gameKey(0, 0)), false);
+  assert.equal((await replayedAt(playerToken)).scores.has(gameKey(0, 0)), false);
 });
 
 test("a score the Game Rule refuses is refused, and changing the rule keeps scores already in", async () => {
@@ -157,9 +157,9 @@ test("a score the Game Rule refuses is refused, and changing the rule keeps scor
   assert.ok((await enterScore(anonClient(), organizerToken, FIRST, [11, 7])).ok);
   assert.ok((await changeGameRule(anonClient(), organizerToken, { to: 21, winBy: 2 })).ok);
 
-  const night = await nightAt(playerToken);
-  assert.deepEqual(night.rule, { to: 21, winBy: 2 });
-  assert.deepEqual(night.scores.get(gameKey(0, 0)), [11, 7]);
+  const replayed = await replayedAt(playerToken);
+  assert.deepEqual(replayed.rule, { to: 21, winBy: 2 });
+  assert.deepEqual(replayed.scores.get(gameKey(0, 0)), [11, 7]);
 
   const now = await enterScore(anonClient(), organizerToken, SECOND, [11, 7]);
   assert.equal(now.ok, false);

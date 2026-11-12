@@ -10,7 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GameAt, MixerEvent } from "../../components/apps/match-mixer/lib/live/events.ts";
 import { readGameAt, replay } from "../../components/apps/match-mixer/lib/live/events.ts";
 import { readGameRule, scoreProblem, type GameRule, type GameScore } from "../../components/apps/match-mixer/lib/live/game-rule.ts";
-import { gameOn, redraw } from "../../components/apps/match-mixer/lib/live/night.ts";
+import { gameOn, redraw } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import { decodeShareLink } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 
 /** `signIn` marks the one refusal that signing in fixes. */
@@ -84,7 +84,7 @@ export async function readLiveMixer(
  * The Live Mixer behind an Organizer Link token, with its board redrawn, or
  * the refusal to hand back. Each write checks against this before appending.
  */
-async function organizerNight(supabase: SupabaseClient, token: string) {
+async function organizerMixer(supabase: SupabaseClient, token: string) {
   const mixer = await readLiveMixer(supabase, token);
   if (mixer?.role !== "organizer") return { ok: false as const, problem: ORGANIZER_ONLY };
   if (mixer.finishedAt) return { ok: false as const, problem: FINISHED };
@@ -121,21 +121,21 @@ export async function enterScore(
   at: GameAt,
   score: GameScore,
 ): Promise<Outcome<null>> {
-  const night = await organizerNight(supabase, token);
-  if (!night.ok) return night;
-  const game = onBoard(night.draw, at);
+  const live = await organizerMixer(supabase, token);
+  if (!live.ok) return live;
+  const game = onBoard(live.draw, at);
   if (!game) return { ok: false, problem: NOT_ON_THE_BOARD };
   const pair: GameScore = Array.isArray(score) ? [score[0], score[1]] : [Number.NaN, Number.NaN];
-  const problem = scoreProblem(replay(night.mixer.events).rule, pair);
+  const problem = scoreProblem(replay(live.mixer.events).rule, pair);
   if (problem) return { ok: false, problem };
   return append(supabase, token, "score_entered", { ...game, score: pair });
 }
 
 /** Takes one Game's score off. */
 export async function clearScore(supabase: SupabaseClient, token: string, at: GameAt): Promise<Outcome<null>> {
-  const night = await organizerNight(supabase, token);
-  if (!night.ok) return night;
-  const game = onBoard(night.draw, at);
+  const live = await organizerMixer(supabase, token);
+  if (!live.ok) return live;
+  const game = onBoard(live.draw, at);
   if (!game) return { ok: false, problem: NOT_ON_THE_BOARD };
   return append(supabase, token, "score_cleared", game);
 }
@@ -154,7 +154,7 @@ export async function changeGameRule(
 ): Promise<Outcome<null>> {
   const checked = readGameRule(rule);
   if (!checked) return { ok: false, problem: NOT_A_GAME_RULE };
-  const night = await organizerNight(supabase, token);
-  if (!night.ok) return night;
+  const live = await organizerMixer(supabase, token);
+  if (!live.ok) return live;
   return append(supabase, token, "game_rule_changed", checked);
 }

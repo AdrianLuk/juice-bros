@@ -1,4 +1,4 @@
-import type { PoolStandings } from "@/components/apps/match-mixer/lib/live/night";
+import type { PoolStandings } from "@/components/apps/match-mixer/lib/live/rebuild";
 
 /** "+4", "0", "−2": a real minus, so the column lines up. */
 function signed(n: number): string {

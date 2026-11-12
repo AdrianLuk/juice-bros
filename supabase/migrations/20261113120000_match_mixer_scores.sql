@@ -32,12 +32,13 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select coalesce(
-    jsonb_typeof(p_value) = 'number'
-      and (p_value::text)::numeric between 0 and p_max
-      and (p_value::text)::numeric % 1 = 0,
-    false
-  );
+  -- A case, not an `and`: Postgres doesn't promise to check the type first,
+  -- and casting a string to numeric would raise instead of answering false.
+  select case
+    when jsonb_typeof(p_value) = 'number' then
+      (p_value::text)::numeric between 0 and p_max and (p_value::text)::numeric % 1 = 0
+    else false
+  end;
 $$;
 
 /** A Game Rule, as { to, winBy } and nothing else, or null when it isn't one. */

@@ -19,7 +19,8 @@ export interface SheetGame {
   readonly score: GameScore | null;
 }
 
-const UNREACHABLE = "Couldn't reach Match Mixer, so that didn't save. Check your signal and try again.";
+// The write may still have landed, so this says to look rather than "it didn't save" (Mic Drop's #671).
+const UNREACHABLE = "Couldn't reach Match Mixer. Check your signal, then reload to see if the score saved.";
 
 /**
  * Entering a score (#688, RR-2's decided answer): tap a Game, a numeric

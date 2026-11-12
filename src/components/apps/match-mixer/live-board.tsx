@@ -7,7 +7,7 @@ import { locate, poolName } from "@/components/apps/match-mixer/lib/engine/pools
 import type { PlayerIndex } from "@/components/apps/match-mixer/lib/engine/types";
 import { gameKey, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
 import { describeGameRule, type GameRule, type GameScore } from "@/components/apps/match-mixer/lib/live/game-rule";
-import { gameOn, rebuild, type LiveNight } from "@/components/apps/match-mixer/lib/live/night";
+import { gameOn, rebuild, type RebuiltMixer } from "@/components/apps/match-mixer/lib/live/rebuild";
 import {
   boardIdentity,
   clear as clearSelection,
@@ -60,9 +60,9 @@ function LiveSheet({
   organizerPath?: string;
 }) {
   const { mixer, reconnecting } = useLiveMixer(token, initial);
-  const night = useMemo(() => rebuild(mixer.config, mixer.events), [mixer.config, mixer.events]);
+  const live = useMemo(() => rebuild(mixer.config, mixer.events), [mixer.config, mixer.events]);
 
-  if (!night) {
+  if (!live) {
     return (
       <div className="mm-sheet">
         <div className="mm-face mm-fixings">
@@ -76,21 +76,21 @@ function LiveSheet({
   }
 
   const organizer = playerPath !== undefined && organizerPath !== undefined ? { playerPath, organizerPath } : null;
-  return <LiveFace token={token} night={night} reconnecting={reconnecting} organizer={organizer} />;
+  return <LiveFace token={token} live={live} reconnecting={reconnecting} organizer={organizer} />;
 }
 
 function LiveFace({
   token,
-  night,
+  live,
   reconnecting,
   organizer,
 }: {
   token: string;
-  night: LiveNight;
+  live: RebuiltMixer;
   reconnecting: boolean;
   organizer: { playerPath: string; organizerPath: string } | null;
 }) {
-  const { draw } = night;
+  const { draw } = live;
   const queryClient = useQueryClient();
   const reread = () => queryClient.invalidateQueries({ queryKey: liveMixerKey(token) });
 
@@ -129,7 +129,7 @@ function LiveFace({
 
   // The keypad sheet, open on one Game at a time.
   const [scoring, setScoring] = useState<GameAt | null>(null);
-  const sheet = scoring ? sheetFor(night, scoring) : null;
+  const sheet = scoring ? sheetFor(live, scoring) : null;
   const afterWrite = async (outcome: Awaited<ReturnType<typeof enterScore>>) => {
     if (outcome.ok) await reread();
     return outcome;
@@ -145,7 +145,7 @@ function LiveFace({
           </div>
           <p className="mm-lede">
             {organizer
-              ? "This board is live. Paste the Player Link into the group chat, keep the Organizer Link for yourself, and tap Score on a Game when it finishes. Standings update on every phone."
+              ? "This board is live. Paste the Player Link into the group chat, then tap Score under a Game when it ends. Standings update on every phone."
               : "Tonight’s board, live from the organizer. Tap your name to see your evening. Scores and Standings update as the organizer enters them."}
           </p>
         </header>
@@ -154,7 +154,7 @@ function LiveFace({
           <div className="mm-controls">
             {organizer ? (
               <>
-                <RuleControl token={token} rule={night.rule} onSaved={reread} />
+                <RuleControl token={token} rule={live.rule} onSaved={reread} />
                 <CopyLink
                   id="mm-player-link"
                   label="Player Link"
@@ -171,7 +171,7 @@ function LiveFace({
             ) : (
               <>
                 <p className="mm-legend">Game Rule</p>
-                <p className="mm-note mt-1">{describeGameRule(night.rule)}</p>
+                <p className="mm-note mt-1">{describeGameRule(live.rule)}</p>
                 <p className="mm-note mt-4">Tap your name again to see everyone.</p>
               </>
             )}
@@ -194,19 +194,19 @@ function LiveFace({
                 bands={bands}
                 selected={bandSelected}
                 onSelect={selectInBand}
-                scoring={{ scores: night.scores, onScore: organizer ? setScoring : undefined }}
+                scoring={{ scores: live.scores, onScore: organizer ? setScoring : undefined }}
               />
             </div>
-            <StandingsTables standings={night.standings} pairs={draw.pools[0]?.score.format === "fixed"} />
+            <StandingsTables standings={live.standings} pairs={draw.pools[0]?.score.format === "fixed"} />
           </div>
         </div>
       </div>
 
       {organizer && scoring && sheet ? (
         <ScoreSheet
-          key={`${scoring.round}:${scoring.court}`}
+          key={gameKey(scoring.round, scoring.court)}
           game={sheet}
-          rule={night.rule}
+          rule={live.rule}
           onSave={async (score: GameScore) => afterWrite(await enterScore(token, scoring, score))}
           onClear={async () => afterWrite(await clearScore(token, scoring))}
           onClose={() => setScoring(null)}
@@ -225,19 +225,20 @@ function LiveFace({
 }
 
 /** The keypad sheet's view of one Game: its place on the board and both Sides' names. */
-function sheetFor(night: LiveNight, at: GameAt): SheetGame | null {
-  const found = gameOn(night.draw, at);
+function sheetFor(live: RebuiltMixer, at: GameAt): SheetGame | null {
+  const found = gameOn(live.draw, at);
   if (!found) return null;
-  const { roster } = night.draw.pools[found.pool];
+  const { roster } = live.draw.pools[found.pool];
   const names = (side: readonly PlayerIndex[]) => side.map((player) => roster[player]?.name ?? "").join(" / ");
   return {
     title: `Round ${at.round + 1} · Court ${at.court + 1}`,
     sides: [names(found.game.sides[0]), names(found.game.sides[1])],
-    score: night.scores.get(gameKey(at.round, at.court)) ?? null,
+    score: live.scores.get(gameKey(at.round, at.court)) ?? null,
   };
 }
 
-const RULE_UNREACHABLE = "Couldn't reach Match Mixer, so the Game Rule didn't change. Try again.";
+// The change may still have landed, so this says to look rather than "it didn't change" (Mic Drop's #671).
+const RULE_UNREACHABLE = "Couldn't reach Match Mixer. Check your signal, then reload to see if the Game Rule changed.";
 
 /** The Organizer Link's Game Rule: saved the moment it changes, for scores from then on. */
 function RuleControl({ token, rule, onSaved }: { token: string; rule: GameRule; onSaved: () => Promise<void> }) {

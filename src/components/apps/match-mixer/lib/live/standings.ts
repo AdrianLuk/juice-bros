@@ -29,7 +29,6 @@ export interface StandingsRow {
   /** The Pool's Players this row stands for: one, or a Pairing's two. */
   readonly players: readonly PlayerIndex[];
   readonly name: string;
-  readonly played: number;
   readonly wins: number;
   readonly losses: number;
   readonly pointDiff: number;
@@ -53,7 +52,6 @@ export function standings(board: StandingsBoard, scores: Scores): StandingsRow[]
   const tally = Array.from({ length: count }, (_, row) => ({
     row,
     players: fixed ? [row * 2, row * 2 + 1] : [row],
-    played: 0,
     wins: 0,
     losses: 0,
     pointDiff: 0,
@@ -69,12 +67,10 @@ export function standings(board: StandingsBoard, scores: Scores): StandingsRow[]
       const winners = rowsOf(game.sides[won]);
       const losers = rowsOf(game.sides[1 - won]);
       for (const row of winners) {
-        tally[row].played++;
         tally[row].wins++;
         tally[row].pointDiff += margin;
       }
       for (const row of losers) {
-        tally[row].played++;
         tally[row].losses++;
         tally[row].pointDiff -= margin;
       }
@@ -121,7 +117,6 @@ export function standings(board: StandingsBoard, scores: Scores): StandingsRow[]
   return ordered.map((entry, position) => ({
     players: entry.players,
     name: entry.players.map((player) => board.roster[player]?.name ?? "").join(" / "),
-    played: entry.played,
     wins: entry.wins,
     losses: entry.losses,
     pointDiff: entry.pointDiff,
