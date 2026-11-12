@@ -59,6 +59,15 @@ export function playerAccess(draw: DrawnBoard, currentRound: number, player: Pla
   return at.round > currentRound ? "not-started" : "scores";
 }
 
+/**
+ * Whether a read of a Live Mixer may run the night: through the Organizer
+ * Link, or as a superadmin through either link (#690). The board shows the
+ * controls by it; the server checks it on every write.
+ */
+export function runsTheNight(read: { readonly role: "organizer" | "player"; readonly superadmin: boolean }): boolean {
+  return read.role === "organizer" || read.superadmin;
+}
+
 export interface PoolStandings {
   /** "Pool A", or null on a one-Pool board. */
   readonly label: string | null;

@@ -16,6 +16,7 @@ import {
   playerAccess,
   redraw,
   roundCount,
+  runsTheNight,
 } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import { decodeShareLink } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 
@@ -100,11 +101,6 @@ export async function readLiveMixer(
 }
 
 const refusal = (problem: string) => ({ ok: false as const, problem });
-
-/** Whether this read may run the night: the Organizer Link, or a superadmin on either link (#690). */
-export function runsTheNight(mixer: Pick<LiveMixer, "role" | "superadmin">): boolean {
-  return mixer.role === "organizer" || mixer.superadmin;
-}
 
 /**
  * The Live Mixer behind either link's token, with its board redrawn and its
