@@ -1427,6 +1427,15 @@ body:has(.tt-surface) {
   text-align: center;
 }
 .tt-place-name { font-size: 1.125rem; font-weight: 700; }
+/* A Flight the Organizer ended the night without: its row stays, dimmed, so
+   nobody reads the missing places as a gap or as a champion. */
+.tt-champ-row[data-open] .tt-champ-name,
+.tt-place-row[data-open] .tt-place-name,
+.tt-place-row[data-open] .tt-place-num { color: var(--tt-plate-dim); }
+.tt-champ-row[data-open] .tt-champ-name { font-size: 1.125rem; }
+.tt-place-row[data-open] .tt-place-num { font-size: 1.0625rem; }
+.tt-tv .tt-champ-row[data-open] .tt-champ-name { font-size: 1.2em; }
+.tt-tv .tt-place-row[data-open] .tt-place-num { font-size: 1.15em; }
 /* Your own Team's place: the raised row and an outlined chip. Results only
    exist once the night is over, and with nothing live there is no yellow. */
 .tt-place-row[data-mine] .tt-place-num {

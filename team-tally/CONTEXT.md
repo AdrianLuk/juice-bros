@@ -11,7 +11,7 @@ Team Tally shares the site's sign-in with Booking Buddy and On Deck and nothing 
 ### The night
 
 **Team Event**:
-One night of captained team play, owned by the Organizer who built it. It runs in two stages, the opening round and the Flights, and then ends on its results page, which stays up.
+One night of captained team play, owned by the Organizer who built it. It runs in two stages, the opening round and the Flights, and then ends on its results page, which stays up. It ends when its last Flight is done, or when the Organizer ends the night with a Flight still open.
 _Avoid_: Session (On Deck's word for an open-play night), tournament, league night
 
 **Organizer**:
@@ -76,12 +76,18 @@ A performance division of two Teams, ranked by Seeding: the top two are Flight A
 _Avoid_: bracket, pool (Match Mixer's word)
 
 **Final places**:
-Every Team's finishing position: Flight A's champion first, its runner-up second, Flight B's champion third, and down. The summary at the top of the results page leads with the champions, then the final places.
+Every Team's finishing position: Flight A's champion first, its runner-up second, Flight B's champion third, and down. The summary at the top of the results page leads with the champions, then the final places. A Flight that was never done leaves its two places blank, and the results mark it "Not played out" rather than sliding later Flights up.
+
+**End the night**:
+The Organizer ends a night that is in its Flights without every Flight played out, for a night that broke up early. Each open Flight that could be marked done is, as the Organizer; every other open Flight keeps its scores and its places stay blank. The Superadmin can do it too. It needs the Flights placed, and a night still in its opening round is deleted instead.
+
+**Resume the night**:
+The undo of End the night: a night ended with a Flight still open goes back to its Flights, and that Flight's Score Link takes scores again. Flights that End the night marked done stay done; reopen one to change it. A night that finished on its own has every Flight done, so reopening a Flight is its way back.
 
 ### Links
 
 **Score Link**:
-A Team's link, carrying a random token, printed under that Team in the Brief. Whoever holds it can enter scores for that Team's Matchups, edit the Team's slots and tap Matchup done. It needs no account and turns read-only when the Team Event ends.
+A Team's link, carrying a random token, printed under that Team in the Brief. Whoever holds it can enter scores for that Team's Matchups, edit the Team's slots and tap Matchup done. It needs no account and turns read-only when the Team Event ends, and takes scores again if the Organizer resumes the night.
 
 **Public Link**:
 The read-only link to standings, Matchups, Flights and the results. It lays itself out for whatever screen opens it: a big-screen layout for a venue TV or a laptop, a scrolling one for a phone.

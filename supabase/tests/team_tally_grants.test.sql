@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(73);
+select plan(77);
 
 create temporary table tt_expected (fn text, args text[], anon boolean, signed_in boolean) on commit drop;
 insert into tt_expected values
@@ -41,6 +41,8 @@ insert into tt_expected values
   ('team_tally_organizer_set_tie_order', array['uuid', 'uuid[]'], false, true),
   ('team_tally_organizer_swap_flight_courts', array['uuid', 'uuid'], false, true),
   ('team_tally_organizer_put_ahead', array['uuid', 'uuid'], false, true),
+  ('team_tally_organizer_end_event', array['uuid'], false, true),
+  ('team_tally_organizer_resume_event', array['uuid'], false, true),
   -- Internal.
   ('team_tally_event_doc', array['uuid'], false, false),
   ('team_tally_team_for_token', array['text'], false, false),

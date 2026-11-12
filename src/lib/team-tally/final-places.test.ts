@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { DocGame, DocMatchup } from "./event-doc.ts";
-import { finalPlaces, flightResults, ordinal } from "./final-places.ts";
+import { finalPlaces, flightResults, openFlights, ordinal } from "./final-places.ts";
 
 function games(scores: ([number, number] | null)[]): DocGame[] {
   return scores.map((score, index) => ({
@@ -58,6 +58,8 @@ const BLUE_WINS: [number, number][] = [
   [11, 9],
   [4, 11],
 ]; // 49-60
+
+const ONE_GAME: ([number, number] | null)[] = [[11, 6], null, null, null, null, null];
 
 const LEVEL: [number, number][] = [
   [11, 9],
@@ -131,6 +133,41 @@ test("Final places: Flight A's champion first, its runner-up second, Flight B's 
       [5, "lea", "C", "champion"],
       [6, "tyr", "C", "runner-up"],
     ],
+  );
+});
+
+test("a Flight not played out is listed with the two places it leaves blank, in Flight order", () => {
+  const unplayedFlights = openFlights({
+    matchups: [
+      flight("C", "e", "f", ONE_GAME, { doneAt: null }),
+      flight("A", "a", "b", RED_WINS, { doneAt: null }),
+      flight("B", "c", "d", RED_WINS),
+    ],
+  });
+
+  assert.deepEqual(unplayedFlights, [
+    { flightLetter: "A", places: [1, 2] },
+    { flightLetter: "C", places: [5, 6] },
+  ]);
+});
+
+test("a night with every Flight done has no Flight left blank", () => {
+  assert.deepEqual(openFlights({ matchups: [flight("A", "a", "b", RED_WINS), flight("B", "c", "d", BLUE_WINS)] }), []);
+  assert.deepEqual(openFlights({ matchups: [] }), []);
+});
+
+test("Final places on an ended night with Flight A open run from third", () => {
+  const places = finalPlaces({
+    matchups: [
+      flight("A", "ben", "fed", ONE_GAME, { doneAt: null }),
+      flight("B", "hay", "chr", RED_WINS),
+      flight("C", "lea", "tyr", BLUE_WINS),
+    ],
+  });
+
+  assert.deepEqual(
+    places.map(({ place }) => place),
+    [3, 4, 5, 6],
   );
 });
 

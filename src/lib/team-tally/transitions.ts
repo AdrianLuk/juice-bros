@@ -5,7 +5,9 @@
  *
  * - the last opening Matchup done places the Flights
  *   (`team_tally_finish_matchup` calling `team_tally_seed_flights`);
- * - the last Flight Matchup done ends the night.
+ * - the last Flight Matchup done ends the night;
+ *
+ * and the Organizer's two moves on it, End the night and Resume the night.
  *
  * The database stays the authority for a real night. `transitions.db-test.ts`
  * plays the same night through both and checks they agree, so a change to
@@ -121,4 +123,43 @@ export function finishMatchup(
 
   const lastFlight = flightMatchups(marked).every((m) => m.doneAt !== null);
   return { ok: true, event: lastFlight ? { ...marked, status: "finished" } : marked };
+}
+
+/**
+ * The Organizer ends a night that is in its Flights (issue #684), whether or
+ * not every Flight was played out. Each open Flight that could be marked done
+ * is (all six Games in, a Dreambreaker winner if tied), by the Organizer;
+ * every other open Flight stays open with its scores as they were, and its
+ * places stay blank in Final places. Mirrors `team_tally_organizer_end_event`.
+ */
+export function endNight(event: TeamEventDoc, at: string): Transition {
+  if (event.status === "opening") return { ok: false, problem: "The Flights aren't placed yet." };
+  if (event.status === "finished") return { ok: false, problem: "This Team Event has already finished." };
+
+  return {
+    ok: true,
+    event: {
+      ...event,
+      status: "finished",
+      matchups: event.matchups.map((matchup) =>
+        matchup.stage === "flight" && matchup.doneAt === null && doneProblem(matchup) === null
+          ? { ...matchup, doneAt: at, doneByTeamId: null }
+          : matchup,
+      ),
+    },
+  };
+}
+
+/**
+ * The Organizer puts an ended night back in its Flights (issue #684). Only
+ * while a Flight is still open: a night that finished on its own has every
+ * Flight done, and reopening one of those already brings it back. Flights that
+ * End the night marked done stay done. Mirrors `team_tally_organizer_resume_event`.
+ */
+export function resumeNight(event: TeamEventDoc): Transition {
+  if (event.status !== "finished") return { ok: false, problem: "This Team Event is still running." };
+  if (flightMatchups(event).every((flight) => flight.doneAt !== null)) {
+    return { ok: false, problem: "Every Flight is done. Reopen a Flight to play it again." };
+  }
+  return { ok: true, event: { ...event, status: "flights" } };
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { flightMatchups, type DocGame, type DocMatchup, type TeamEventDoc } from "./event-doc.ts";
-import { finishMatchup, placeFlights } from "./transitions.ts";
+import { endNight, finishMatchup, placeFlights, resumeNight } from "./transitions.ts";
 
 type Score = [number, number] | null;
 
@@ -204,5 +204,115 @@ test("the last Flight Matchup done ends the night", () => {
   assert.deepEqual(finishMatchup(over, flightA.id, null, AT), {
     ok: false,
     problem: "This Team Event has finished, so its scores are final.",
+  });
+});
+
+// ---------------------------------------------------------------------------
+// End the night and Resume the night (issue #684)
+// ---------------------------------------------------------------------------
+
+const LEVEL_60_60: Score[] = [
+  [11, 9],
+  [9, 11],
+  [11, 9],
+  [9, 11],
+  [11, 9],
+  [9, 11],
+];
+const ONE_GAME: Score[] = [[11, 6], null, null, null, null, null];
+
+/** A night in its Flights: Flight A is t4 v t1, Flight B is t3 v t2. Each Flight takes the given scores. */
+function inFlights(a: Score[], b: Score[], dreambreaker: { a?: string; b?: string } = {}): TeamEventDoc {
+  const seeded = done(done(night(), "m1"), "m2");
+  const scores: Record<string, { scores: Score[]; winner: string | null }> = {
+    A: { scores: a, winner: dreambreaker.a ?? null },
+    B: { scores: b, winner: dreambreaker.b ?? null },
+  };
+  return {
+    ...seeded,
+    matchups: seeded.matchups.map((matchup) =>
+      matchup.stage === "flight"
+        ? {
+            ...matchup,
+            games: games(matchup.id, scores[matchup.flightLetter!].scores),
+            dreambreakerWinnerId: scores[matchup.flightLetter!].winner,
+          }
+        : matchup,
+    ),
+  };
+}
+
+function ended(event: TeamEventDoc): TeamEventDoc {
+  const result = endNight(event, AT);
+  assert.ok(result.ok, result.ok ? "" : result.problem);
+  return result.event;
+}
+
+const flightNamed = (event: TeamEventDoc, letter: string) =>
+  flightMatchups(event).find((flight) => flight.flightLetter === letter)!;
+
+test("End the night marks done a fully scored untied Flight and leaves a partly scored one open, scores untouched", () => {
+  const before = inFlights(RED_60_49, ONE_GAME);
+  const after = ended(before);
+
+  assert.equal(after.status, "finished");
+  const a = flightNamed(after, "A");
+  assert.equal(a.doneAt, AT);
+  assert.equal(a.doneByTeamId, null);
+  const b = flightNamed(after, "B");
+  assert.equal(b.doneAt, null);
+  assert.deepEqual(b.games, flightNamed(before, "B").games);
+  assert.deepEqual(a.games, flightNamed(before, "A").games);
+});
+
+test("End the night marks done a tied Flight with a Dreambreaker winner and leaves one without open", () => {
+  const withWinner = ended(inFlights(LEVEL_60_60, UNSCORED, { a: "t4" }));
+  assert.equal(flightNamed(withWinner, "A").doneAt, AT);
+
+  const without = ended(inFlights(LEVEL_60_60, UNSCORED));
+  assert.equal(flightNamed(without, "A").doneAt, null);
+  assert.equal(without.status, "finished");
+});
+
+test("End the night leaves Flights that were already done as they are", () => {
+  const scored = inFlights(RED_60_49, RED_60_49);
+  const early = done(scored, flightNamed(scored, "A").id, "t4");
+  const after = ended(early);
+  assert.equal(flightNamed(after, "A").doneByTeamId, "t4");
+  assert.equal(flightNamed(after, "B").doneAt, AT);
+});
+
+test("End the night is refused in the opening round and once the night has finished", () => {
+  assert.deepEqual(endNight(night(), AT), { ok: false, problem: "The Flights aren't placed yet." });
+  assert.deepEqual(endNight(ended(inFlights(RED_60_49, ONE_GAME)), AT), {
+    ok: false,
+    problem: "This Team Event has already finished.",
+  });
+});
+
+test("Resume the night puts an ended night back in its Flights and leaves the Flights End the night closed done", () => {
+  const over = ended(inFlights(RED_60_49, ONE_GAME));
+  const result = resumeNight(over);
+  assert.ok(result.ok, result.ok ? "" : result.problem);
+
+  assert.equal(result.event.status, "flights");
+  assert.equal(flightNamed(result.event, "A").doneAt, AT);
+  assert.equal(flightNamed(result.event, "B").doneAt, null);
+  assert.deepEqual(flightNamed(result.event, "B").games, flightNamed(over, "B").games);
+});
+
+test("Resume the night is refused while the night is running and when every Flight is done", () => {
+  assert.deepEqual(resumeNight(inFlights(RED_60_49, ONE_GAME)), {
+    ok: false,
+    problem: "This Team Event is still running.",
+  });
+  assert.deepEqual(resumeNight(night()), { ok: false, problem: "This Team Event is still running." });
+
+  const scored = inFlights(RED_60_49, RED_60_49);
+  const everyFlightDone = done(done(scored, flightNamed(scored, "A").id), flightNamed(scored, "B").id);
+  assert.equal(everyFlightDone.status, "finished");
+  assert.deepEqual(resumeNight(everyFlightDone), {
+    ok: false,
+    problem: "Every Flight is done. Reopen a Flight to play it again.",
   });
 });

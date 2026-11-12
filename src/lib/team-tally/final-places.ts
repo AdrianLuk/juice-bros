@@ -71,6 +71,27 @@ export function finalPlaces(event: Flights): FinalPlace[] {
   });
 }
 
+/** A Flight that was never done, and the two places it leaves blank. */
+export type OpenFlight = {
+  flightLetter: string;
+  places: [number, number];
+};
+
+/**
+ * The Flights not played out, Flight A first: a night the Organizer ended
+ * with a Flight still open (issue #684). Their places stay blank in
+ * `finalPlaces`; the results say so instead of leaving a gap.
+ */
+export function openFlights(event: Flights): OpenFlight[] {
+  return event.matchups
+    .filter((matchup) => matchup.stage === "flight" && !matchup.doneAt && matchup.flightLetter)
+    .map((matchup) => {
+      const first = (matchup.flightLetter!.charCodeAt(0) - 65) * 2 + 1;
+      return { flightLetter: matchup.flightLetter!, places: [first, first + 1] as [number, number] };
+    })
+    .sort((a, b) => a.flightLetter.localeCompare(b.flightLetter));
+}
+
 /** "1st", "2nd", "3rd", "11th": for a place read aloud. */
 export function ordinal(place: number): string {
   const tens = place % 100;

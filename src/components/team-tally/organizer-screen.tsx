@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { type DocMatchup, flightMatchups, matchupLabel, openingMatchups, scoredRoundsFor, teamName } from "@/lib/team-tally/event-doc";
 import type { LiveSeam, OrganizerWrites } from "@/lib/team-tally/live-seam";
 import { isStale } from "@/lib/team-tally/live-sync";
+import { EndNightPanel } from "./end-night-panel";
 import { FlightHandoff } from "./flight-handoff";
 import { MatchupBug } from "./matchup-bug";
 import { MatchupDonePanel } from "./matchup-done-panel";
@@ -31,18 +32,22 @@ export function OrganizerScreen({ live }: { live: LiveSeam<{ by: "organizer" } &
   const flights = flightMatchups(event);
   const opening = openingMatchups(event);
   const openLeft = opening.filter((matchup) => matchup.doneAt === null).length;
+  const ended = event.status === "finished";
 
   const matchupSection = (matchup: DocMatchup) => (
     <section key={matchup.id} aria-label={matchupLabel(matchup)} className="grid content-start gap-3">
       {matchup.stage === "flight" && <FlightHandoff flight={matchup} teams={teams} size="compact" />}
       <MatchupBug matchup={matchup} teams={teams} />
-      <MatchupRounds matchup={matchup} teams={teams} writes={writes} />
-      <MatchupDonePanel
-        matchup={matchup}
-        teams={teams}
-        writes={writes}
-        lastOpening={matchup.stage === "opening" && event.status === "opening" && openLeft === 1}
-      />
+      <MatchupRounds matchup={matchup} teams={teams} writes={writes} locked={matchup.doneAt !== null || ended} />
+      {/* An ended night's open Flight takes no more scores or Matchup done until the night is resumed. */}
+      {!(ended && matchup.doneAt === null) && (
+        <MatchupDonePanel
+          matchup={matchup}
+          teams={teams}
+          writes={writes}
+          lastOpening={matchup.stage === "opening" && event.status === "opening" && openLeft === 1}
+        />
+      )}
       <details className="tt-round">
         <summary className="tt-round-summary">
           <b>Rosters</b>
@@ -73,7 +78,10 @@ export function OrganizerScreen({ live }: { live: LiveSeam<{ by: "organizer" } &
           <h2 className="sr-only">Standings</h2>
           <StandingsTower event={event} />
         </section>
-        <SeedingPanel event={event} writes={writes} />
+        <div className="grid content-start gap-4">
+          <SeedingPanel event={event} writes={writes} />
+          <EndNightPanel event={event} writes={writes} />
+        </div>
       </div>
 
       {flights.length > 0 && <div className="tt-organizer-matchups">{flights.map(matchupSection)}</div>}

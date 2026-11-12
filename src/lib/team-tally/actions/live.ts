@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { verifyOrganizer } from "../dal.ts";
 import type { LiveView } from "../live-seam.ts";
 import {
+  endNightAsOrganizer,
   loadOrganizerEvent,
   loadPublicEvent,
   loadScoreLinkEvent,
@@ -12,6 +13,7 @@ import {
   markDoneByLink,
   putAheadAsOrganizer,
   reopenAsOrganizer,
+  resumeNightAsOrganizer,
   saveScoreAsOrganizer,
   saveScoreByLink,
   seedNowAsOrganizer,
@@ -179,6 +181,22 @@ export async function seedFlightsNow(eventId: string): Promise<WriteResult> {
   return asOrganizerOnly(
     (supabase) => seedNowAsOrganizer(supabase, String(eventId)),
     "Couldn't place the Flights. Try again.",
+  );
+}
+
+/** End the night (issue #684): the Organizer ends a night in its Flights, played out or not. */
+export async function endNight(eventId: string): Promise<WriteResult> {
+  return asOrganizerOnly(
+    (supabase) => endNightAsOrganizer(supabase, String(eventId)),
+    "Couldn't end the night. Try again.",
+  );
+}
+
+/** Resume the night: the Organizer puts an ended night with a Flight still open back in its Flights. */
+export async function resumeNight(eventId: string): Promise<WriteResult> {
+  return asOrganizerOnly(
+    (supabase) => resumeNightAsOrganizer(supabase, String(eventId)),
+    "Couldn't resume the night. Try again.",
   );
 }
 

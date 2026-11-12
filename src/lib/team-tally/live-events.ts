@@ -189,6 +189,19 @@ export async function seedNowAsOrganizer(supabase: SupabaseClient, eventId: stri
   return call(supabase, "team_tally_organizer_seed_now", { p_event_id: eventId }, "Placing the Flights");
 }
 
+/**
+ * End the night (issue #684): a night in its Flights ends, played out or not.
+ * Every open Flight that could be marked done is; the rest stay open.
+ */
+export async function endNightAsOrganizer(supabase: SupabaseClient, eventId: string): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_end_event", { p_event_id: eventId }, "Ending the night");
+}
+
+/** Resume the night: an ended night with a Flight still open goes back to its Flights. */
+export async function resumeNightAsOrganizer(supabase: SupabaseClient, eventId: string): Promise<WriteResult> {
+  return call(supabase, "team_tally_organizer_resume_event", { p_event_id: eventId }, "Resuming the night");
+}
+
 /** The Organizer orders Teams level on every count, first ahead. */
 export async function setTieOrderAsOrganizer(
   supabase: SupabaseClient,

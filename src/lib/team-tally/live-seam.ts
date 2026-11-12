@@ -44,6 +44,14 @@ export type OrganizerWrites = TeamWrites & {
   putTeamAhead(teamId: string): Promise<WriteResult>;
   /** Before Seeding: Teams level on every count, first ahead. */
   orderTiedTeams(teamIds: string[]): Promise<WriteResult>;
+  /**
+   * End the night (issue #684): a night in its Flights ends, played out or not.
+   * Optional because the demo night's adapter doesn't offer it; the screen
+   * shows the control only where it is here.
+   */
+  endNight?(): Promise<WriteResult>;
+  /** Resume the night: an ended night with a Flight still open goes back to its Flights. */
+  resumeNight?(): Promise<WriteResult>;
 };
 
 /** Who is writing decides what a screen offers: only the Organizer reopens. */
