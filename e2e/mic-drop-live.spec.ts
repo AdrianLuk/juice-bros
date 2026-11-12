@@ -191,6 +191,7 @@ test("the Host removes, closes and reopens while the Guest watches, and a Vote c
     // Reopening takes Votes again.
     await host.getByRole("button", { name: "Reopen the Poll" }).click();
     await expect(guest.getByText("Live chart")).toBeVisible(LIVE);
+    await expect(guest.getByText("Voting's closed, so that tap didn't count.")).toHaveCount(0);
     await guestRow(guest, "Anna Leigh Waters").click();
     await expect(hostCount(host, "Anna Leigh Waters")).toHaveText("0", LIVE);
   } finally {

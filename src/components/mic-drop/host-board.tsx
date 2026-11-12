@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
 
 import { removeFromLineUp, setPollOpen } from "@/lib/mic-drop/actions/host";
 import { barShare } from "@/lib/mic-drop/leaderboard";
+import { MIC_DROP_ROOT } from "@/lib/mic-drop/routes";
 import type { GuestPoll } from "@/lib/mic-drop/polls";
 import { settleWrite } from "@/lib/mic-drop/settle-write";
 import { PollField } from "./poll-field";
@@ -71,6 +73,9 @@ function LiveLineUp({ pollId, token, initial, lineUp, share, children }: Props) 
           </section>
           {children}
           <ClosePoll pollId={pollId} poll={poll} />
+          <Link href={MIC_DROP_ROOT} className="md-quiet">
+            All your Polls
+          </Link>
         </div>
       </div>
     </>

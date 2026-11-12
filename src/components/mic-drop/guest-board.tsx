@@ -63,9 +63,13 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
     onError: () => setProblem(SIGNAL_PROBLEM),
   });
 
-  // Your own pick again takes it back; a closed Poll says why the tap did nothing.
+  // Your own pick again takes it back; a closed Poll says why the tap did nothing,
+  // for as long as it stays closed (a reopen clears it).
+  const [tappedClosed, setTappedClosed] = useState(false);
+  if (poll.open && tappedClosed) setTappedClosed(false);
   function tap(contestantId: string) {
-    setProblem(poll.open ? null : CLOSED_TAP);
+    setProblem(null);
+    setTappedClosed(!poll.open);
     if (!poll.open || me === null || voting.isPending) return;
     voting.mutate(contestantId === poll.myVote ? null : contestantId);
   }
@@ -74,7 +78,7 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
     <ChartView
       poll={poll}
       reconnecting={reconnecting}
-      problem={problem ?? (pickRemoved ? PICK_REMOVED : null)}
+      problem={problem ?? (tappedClosed && !poll.open ? CLOSED_TAP : null) ?? (pickRemoved ? PICK_REMOVED : null)}
       saving={voting.isPending ? (voting.variables ?? poll.myVote) : null}
       onTap={tap}
     />
