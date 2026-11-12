@@ -29,7 +29,7 @@ export async function signInWithGoogleIdToken(
     token: idToken,
     nonce,
   });
-  if (error) redirect(`${MIC_DROP_ROOT}?error=google_unavailable`);
+  if (error) redirect(`${MIC_DROP_ROOT}?error=google_unavailable#host`);
   revalidatePath(MIC_DROP_ROOT, "layout");
   redirect(MIC_DROP_ROOT);
 }
