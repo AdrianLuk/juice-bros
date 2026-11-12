@@ -84,6 +84,13 @@ export type BoardConfig = ResolvedConfig & {
    * one that happens to carry a name nobody asked to see.
    */
   readonly headers?: readonly PoolHeader[];
+  /**
+   * The numbers the facility prints on tonight's courts, in court order
+   * (#697). They name the columns and nothing else: no draw reads them, so a
+   * labelled board seats every name exactly where the unlabelled one does.
+   * When present there is one for every court; absent, courts read 1 to N.
+   */
+  readonly courtLabels?: readonly number[];
 };
 
 /** Every Pool needs a court's worth of names, so a Roster holds this many. */

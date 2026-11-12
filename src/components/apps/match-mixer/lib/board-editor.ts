@@ -135,6 +135,13 @@ export interface EditorState {
    * otherwise, and clamped to what the Roster can make wherever it is read.
    */
   readonly pools: number;
+  /**
+   * Tonight's courts by the numbers the facility prints on them, in court
+   * order (#697), or null for courts 1 to N. Picked from a Venue, never typed.
+   * They name the columns and never move a seat, so they are not in the draw
+   * key and changing them relabels the board on screen rather than staling it.
+   */
+  readonly courtLabels: readonly number[] | null;
   readonly draw: DrawnBoard | null;
   /**
    * Whether the saved Config has been read yet, which is only ever asked so
@@ -180,6 +187,7 @@ export const EMPTY: EditorState = {
   format: DEFAULT_FORMAT,
   mixed: false,
   pools: 1,
+  courtLabels: null,
   draw: null,
   restored: false,
   cleared: null,
@@ -397,7 +405,9 @@ export function derive(state: EditorState): Derived {
   const consequence = !supported
     ? describeUnsupportedRoster(size)
     : (objection ??
-      (plan ? describePooledConfig(shape, plan) : describeConfig(shape)));
+      (plan
+        ? describePooledConfig(shape, plan, state.courtLabels)
+        : describeConfig(shape)));
   const key = drawKey({ roster, courts, rounds, format, mixed: mixing, pools, headers });
 
   return {
@@ -438,7 +448,7 @@ function borrowKey(
   state: EditorState,
   headers: readonly PoolHeader[] = parsePoolHeaders(state.text),
 ): string {
-  const { roster, courts, rounds, format, mixed, pools, draw } = state;
+  const { roster, courts, rounds, format, mixed, pools, courtLabels, draw } = state;
   const entries = roster.map((player) => `${player.id}=${rosterLine(player)}`);
   return [
     draw?.config.seed ?? "",
@@ -448,6 +458,7 @@ function borrowKey(
     mixed ? "mixed" : "",
     pools,
     headerLine(headers),
+    courtLabels?.join("-") ?? "",
     ...entries,
   ].join("\n");
 }
@@ -515,6 +526,7 @@ export function restore(state: EditorState, source: Source): EditorState {
       format: config.format,
       mixed: config.mixed,
       pools: config.pools,
+      courtLabels: config.courtLabels ?? null,
       // Generated again from the values the link carried rather than sent as
       // a grid, which is what ADR 0001's determinism was for. `!current` is
       // never a decode failure (#494): an unrecognised or future version
@@ -549,6 +561,7 @@ export function restore(state: EditorState, source: Source): EditorState {
     format: edited.format,
     mixed: edited.mixed,
     pools: edited.pools,
+    courtLabels: edited.courtLabels ?? null,
     // The board is generated again rather than stored, so what comes back is
     // the same board down to the seat every name sat in.
     draw: visit?.drawn ? drawFrom(visit.drawn) : null,
@@ -586,7 +599,7 @@ export function saveFor(state: EditorState): Save | null {
  * number stays `null` and keeps following the Roster when it is read back.
  */
 function editedOf(state: EditorState): EditedConfig {
-  const { roster, courts, rounds, format, mixed, pools, text } = state;
+  const { roster, courts, rounds, format, mixed, pools, courtLabels, text } = state;
   return {
     roster,
     courts,
@@ -595,6 +608,7 @@ function editedOf(state: EditorState): EditedConfig {
     mixed,
     pools,
     headers: parsePoolHeaders(text),
+    courtLabels,
   };
 }
 
@@ -610,8 +624,43 @@ export function editRoster(state: EditorState, text: string): EditorState {
   });
 }
 
+/**
+ * A court count set by hand that no longer matches tonight's courts drops the
+ * labels, from the board on screen too: courts 14 and 17 plus a third would
+ * have nothing to call the third that could not collide with a real number.
+ */
 export function chooseCourts(state: EditorState, courts: number | null): EditorState {
-  return settle({ ...state, courts });
+  const keeps = state.courtLabels !== null && courts === state.courtLabels.length;
+  if (state.courtLabels === null || keeps) return settle({ ...state, courts });
+  return settle({ ...state, courts, courtLabels: null, draw: relabel(state.draw, null) });
+}
+
+/**
+ * Tonight's courts from a Venue (#697): the count follows them, and the board
+ * on screen takes the new names at once. No redraw, because a label never
+ * moves a seat. `null` goes back to courts 1 to N and keeps the count.
+ */
+export function chooseCourtLabels(
+  state: EditorState,
+  labels: readonly number[] | null,
+): EditorState {
+  const courtLabels = labels && labels.length > 0 ? [...labels] : null;
+  return settle({
+    ...state,
+    courts: courtLabels ? courtLabels.length : state.courts,
+    courtLabels,
+    draw: relabel(state.draw, courtLabels),
+  });
+}
+
+/** The board on screen under new court names, every seat where it was. */
+function relabel(
+  draw: DrawnBoard | null,
+  labels: readonly number[] | null,
+): DrawnBoard | null {
+  if (!draw) return null;
+  const { courtLabels: _dropped, ...rest } = draw.config;
+  return { ...draw, config: labels ? { ...rest, courtLabels: labels } : rest };
 }
 
 export function chooseRounds(state: EditorState, rounds: number | null): EditorState {
@@ -766,6 +815,7 @@ export function generate(state: EditorState, seed: number): EditorState {
       pools,
       headers: declared ? headers : undefined,
       seed,
+      ...(state.courtLabels ? { courtLabels: state.courtLabels } : {}),
     }),
   });
 }

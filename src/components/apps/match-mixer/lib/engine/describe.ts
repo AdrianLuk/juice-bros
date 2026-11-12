@@ -1,3 +1,4 @@
+import { courtList } from "../court-labels.ts";
 import { naturalLength } from "./config.ts";
 import { formatName, seatsPerCourt } from "./format.ts";
 import {
@@ -147,8 +148,13 @@ export function describeConfig(shape: ConfigShape): string {
   return [describeNumbers(shape), seating, supply].join(". ").concat(".");
 }
 
-/** "court 3", "courts 3 and 4", "courts 3 to 6": one-based, as the board prints them. */
-function courtRange(first: number, count: number): string {
+/**
+ * "court 3", "courts 3 and 4", "courts 3 to 6": one-based, as the board prints
+ * them. Under tonight's labels (#697) the courts are listed by name instead,
+ * because a facility's numbers need not run in a row.
+ */
+function courtRange(first: number, count: number, labels?: readonly number[] | null): string {
+  if (labels) return courtList(Array.from({ length: count }, (_, i) => first + i), labels);
   const from = first + 1;
   const to = first + count;
   if (count === 1) return `court ${from}`;
@@ -201,11 +207,15 @@ function pooledSupply(plan: PoolPlan, rounds: number, format: Format): string {
  * how many of its people are waiting at the fence, never whether a draw came
  * out balanced, which each Pool's own summary line reads off its own Scorer.
  */
-export function describePooledConfig(shape: ConfigShape, plan: PoolPlan): string {
+export function describePooledConfig(
+  shape: ConfigShape,
+  plan: PoolPlan,
+  labels?: readonly number[] | null,
+): string {
   const { format, rounds } = shape;
   const pools = plan.shapes.map(
     (pool) =>
-      `${poolName(pool.label)}: ${plural(pool.size, "player")} on ${courtRange(pool.firstCourt, pool.courts)}, ${poolSeating(pool, format)}`,
+      `${poolName(pool.label)}: ${plural(pool.size, "player")} on ${courtRange(pool.firstCourt, pool.courts, labels)}, ${poolSeating(pool, format)}`,
   );
 
   // More courts than the Pools can fill is not refused, on mixed doubles'
@@ -214,7 +224,7 @@ export function describePooledConfig(shape: ConfigShape, plan: PoolPlan): string
   const empty = plan.courts - plan.used;
   const unused =
     empty > 0
-      ? `${capitalise(courtRange(plan.used, empty))} ${empty === 1 ? "stands" : "stand"} empty, because no pool has the players to fill ${empty === 1 ? "it" : "them"}`
+      ? `${capitalise(courtRange(plan.used, empty, labels))} ${empty === 1 ? "stands" : "stand"} empty, because no pool has the players to fill ${empty === 1 ? "it" : "them"}`
       : null;
 
   return [

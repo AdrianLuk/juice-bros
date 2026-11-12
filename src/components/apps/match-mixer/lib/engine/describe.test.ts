@@ -233,6 +233,22 @@ test("the supply clause counts M x F while the constraint is on", () => {
  * out first.
  */
 
+test("a pooled line names each pool's courts by tonight's labels (#697)", () => {
+  const roster = parseRoster(
+    Array.from({ length: 20 }, (_, i) => `Player ${i + 1}`).join("\n"),
+  );
+  const numbers = resolveBoard(roster, 4, 8, "rotating", false, 2);
+  const plan = planPools(roster, "rotating", false, numbers.pools, numbers.courts);
+  assert.ok(plan);
+  const line = describePooledConfig(
+    { players: 20, courts: 4, rounds: 8, format: "rotating", pools: 2 },
+    plan,
+    [14, 17, 20, 23],
+  );
+  assert.match(line, /Pool A: 10 players on courts 14 and 17,/);
+  assert.match(line, /Pool B: 10 players on courts 20 and 23,/);
+});
+
 function pooled(
   players: number,
   pools: number,

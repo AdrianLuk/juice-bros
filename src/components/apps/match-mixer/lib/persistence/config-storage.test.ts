@@ -79,6 +79,24 @@ test("round-trips the edited config and the drawn one", () => {
   assert.equal(typeof loaded.savedAt, "number");
 });
 
+test("court labels survive a reload on both halves (#697)", () => {
+  clear();
+  save({ ...edited, courtLabels: [14, 17] }, { ...drawn, courtLabels: [14, 17] });
+  const loaded = load();
+  assert.deepEqual(loaded?.edited.courtLabels, [14, 17]);
+  assert.deepEqual(loaded?.drawn?.courtLabels, [14, 17]);
+});
+
+test("labels that cannot name the courts are dropped, and the rest of the save comes back", () => {
+  clear();
+  save({ ...edited, courtLabels: [14, 14] }, { ...drawn, courtLabels: [14] });
+  const loaded = load();
+  assert.ok(loaded?.drawn);
+  assert.equal(loaded.edited.courtLabels, undefined);
+  assert.equal(loaded.drawn.courtLabels, undefined);
+  assert.equal(loaded.edited.roster.length, 8);
+});
+
 test("keeps every player's id, so identity survives a reload", () => {
   clear();
   save(edited, drawn);
