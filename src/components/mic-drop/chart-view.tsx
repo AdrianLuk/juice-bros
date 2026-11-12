@@ -48,7 +48,10 @@ export function ChartView({ poll, reconnecting, problem, saving, onTap, liveLabe
 
       {winners.length > 0 && (
         <section className="md-top md-col" aria-label={winners.length > 1 ? "Joint winners" : "Winner"}>
-          <div className="md-top-label">{winners.length > 1 ? "No. 1 · joint winners" : "No. 1"}</div>
+          {/* The chart's own rank numeral, in the rank column: a chart names its No. 1 by number. */}
+          <b className="md-top-rank" aria-hidden>
+            {winners.length > 1 ? "=1" : "1"}
+          </b>
           <ul className="md-top-names">
             {winners.map((winner) => (
               <li key={winner.id}>{winner.name}</li>

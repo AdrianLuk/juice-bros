@@ -43,6 +43,7 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 - Tied rows share a rank, shown as "=2". A row with no Votes has no rank yet: a dash, and no movement mark under it (a second dash for "no change" was noise).
 - The Guest Link drops the site header and footer, so the coral field opens the screen. On wide screens the chart sits in a centred column of 42rem; the field stays full width.
 - A failed Vote or refusal shows in the footer in white, bold. Salmon stays for "down" marks only.
+- The closed No. 1 block names its winner by the chart's own rank numeral, "1" or "=1" for joint winners, in the rows' rank column; no caption above the names (finish review on the landing, #680, Adrian 2026-11-11).
 
 ## Settled in the Host screens (#668)
 

@@ -105,21 +105,28 @@ body:has(.md-surface) {
 
 /* ---- No. 1, once closed -------------------------------------------------- */
 
+/* Lined up with the chart's rows: the numeral in their 52px rank column. */
 .md-top {
-  padding: 18px 20px 16px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  padding: 18px 18px 16px 14px;
   border-bottom: 1px solid var(--md-line);
 }
 
-.md-top-label {
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--md-mute);
+.md-top-rank {
+  grid-row: 1 / 3;
+  font-family: var(--md-chart);
+  font-weight: 900;
+  font-size: clamp(3.25rem, 14vw, 4rem);
+  line-height: 0.8;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .md-top-names {
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   font-family: var(--md-chart);
