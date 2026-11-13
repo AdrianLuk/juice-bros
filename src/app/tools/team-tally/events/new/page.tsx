@@ -8,6 +8,8 @@ import { verifyOrganizer } from "@/lib/team-tally/dal";
 import { clubToday } from "@/lib/team-tally/format";
 import { TEAM_TALLY_NEW_EVENT_PATH, TEAM_TALLY_ROOT } from "@/lib/team-tally/routes";
 import { comingTuesday } from "@/lib/team-tally/setup";
+import { createClient } from "@/lib/team-tally/supabase/server";
+import { listVenues } from "@/lib/team-tally/venues";
 
 export const metadata: Metadata = pageMetadata({
   title: "New Team Event",
@@ -16,7 +18,8 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function NewTeamEventPage() {
-  await verifyOrganizer();
+  const organizer = await verifyOrganizer();
+  const venues = await listVenues(await createClient(), organizer.userId);
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -25,7 +28,7 @@ export default async function NewTeamEventPage() {
         lead="Enter each Matchup's two Teams. A Matchup plays on its two Teams' home courts."
       />
       <section className="tt-wrap pb-20 sm:pb-28">
-        <SetupForm defaultDate={comingTuesday(clubToday())} />
+        <SetupForm defaultDate={comingTuesday(clubToday())} venues={venues} />
         <Link href={TEAM_TALLY_ROOT} className="tt-quietlink mt-10 inline-block">
           Back to your Team Events
         </Link>

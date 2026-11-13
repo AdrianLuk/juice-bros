@@ -24,6 +24,6 @@ Several words collide across the contexts. Check the right glossary before reusi
 - **Session** — one night at a club in On Deck. Match Mixer avoids the word entirely and calls its equivalent a **Mixer**; Team Tally calls its night a **Team Event**.
 - **User**, **Org**, **Connection** and **Invite Link** are Booking Buddy's alone, and are explicitly avoided in On Deck and Match Mixer.
 
-The **court grid** (`src/components/court-grid/`, model in `src/lib/court-grid/`) is shared UI, the way the Google sign-in button is: Match Mixer draws Venues with it today and Team Tally will pair touching courts with it (#698). The Venues themselves are not shared data; each app keeps its own.
+The **court grid** (`src/components/court-grid/`, model in `src/lib/court-grid/`) is shared UI, the way the Google sign-in button is: both Match Mixer and Team Tally draw Venues with it, and Team Tally pairs touching courts on it into a Matchup's Court pair (#698). **Venue** means the same kind of drawing in both, but the Venues themselves are not shared data: Match Mixer keeps its in the browser, Team Tally on the Organizer's account.
 
 Pickle Point Pal (`/tools/pickle-point-pal`) is deliberately not a context: its vocabulary is standard pickleball rules language that needs no disambiguation, and its build notes live beside the code in `src/components/apps/pickle-point-pal/BRIEF.md`. It does own **Match** as a scored contest between two sides, which is why Match Mixer's unit is a **Game** and Team Tally's is a **Matchup**.

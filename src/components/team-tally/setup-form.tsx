@@ -2,9 +2,12 @@
 
 import { useActionState, useId, useState } from "react";
 
+import { VenueCourts, type MapMatchup } from "@/components/team-tally/venue-courts";
 import { saveTeamEventAction, type SetupFormState } from "@/lib/team-tally/actions/events";
+import { courtOnVenue, firstOpen, offVenue, placedPairs, type TapResult } from "@/lib/team-tally/court-pairs";
 import { parseBrief, type ParsedBrief, type ParsedTeam, type TeamField } from "@/lib/team-tally/parse-brief";
 import type { SetupTeam, TeamEventSetup } from "@/lib/team-tally/setup";
+import type { Venue } from "@/lib/team-tally/venues";
 
 const EMPTY: SetupFormState = {};
 
@@ -84,6 +87,22 @@ function toSetup(name: string, date: string, matchups: MatchupDraft[]): TeamEven
   };
 }
 
+/** What the map calls a Team: its nickname, its captain's Team name, or its side. */
+function mapName(team: TeamDraft, side: "red" | "blue"): string {
+  return team.nickname.trim() || (team.captain.trim() ? `Team ${team.captain.trim()}` : `the ${side} Team`);
+}
+
+/**
+ * The Venue setup opens on. A saved night opens on the Venue holding every
+ * one of its Home courts, else none, so its text boxes show as they were
+ * typed. A new night opens on the Venue saved most recently.
+ */
+function openingVenue(venues: Venue[], initial: TeamEventSetup | undefined): string {
+  if (!initial) return venues[0]?.id ?? "";
+  const courts = initial.teams.map((team) => team.homeCourt);
+  return venues.find((venue) => courts.every((court) => courtOnVenue(venue.grid, court) !== null))?.id ?? "";
+}
+
 /**
  * The Organizer's setup form: the night, then each opening Matchup as its two
  * Teams. Building it Matchup by Matchup puts every Team in exactly one
@@ -96,10 +115,13 @@ export function SetupForm({
   eventId,
   initial,
   defaultDate,
+  venues: savedVenues,
 }: {
   eventId?: string;
   initial?: TeamEventSetup;
   defaultDate: string;
+  /** The Organizer's own Venues, most recently saved first. */
+  venues: Venue[];
 }) {
   const [state, formAction, pending] = useActionState(saveTeamEventAction, EMPTY);
   const [name, setName] = useState(initial?.name ?? "");
@@ -114,6 +136,29 @@ export function SetupForm({
   // A pasted brief read while the form already has Teams in it: held here
   // until the Organizer confirms the replacement.
   const [awaiting, setAwaiting] = useState<ParsedBrief | null>(null);
+
+  const [venues, setVenues] = useState(savedVenues);
+  const [venueId, setVenueId] = useState(() => openingVenue(savedVenues, initial));
+  const venue = venues.find((each) => each.id === venueId);
+  // The Matchup being placed on the map, by key so it survives adding and removing Matchups.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const mapMatchups: MapMatchup[] = matchups.map(({ key, red, blue }) => ({
+    key,
+    red: red.homeCourt,
+    blue: blue.homeCourt,
+    redName: mapName(red, "red"),
+    blueName: mapName(blue, "blue"),
+  }));
+  const keyedActive = matchups.findIndex((matchup) => matchup.key === activeKey);
+  const active =
+    keyedActive !== -1 ? keyedActive : venue ? firstOpen(placedPairs(venue.grid, mapMatchups)) : 0;
+
+  function placeCourts({ writes, active: next }: TapResult) {
+    for (const { index, side, homeCourt } of writes) {
+      updateTeam(matchups[index].key, side, "homeCourt", homeCourt);
+    }
+    setActiveKey(matchups[next]?.key ?? null);
+  }
 
   function updateTeam(matchupKey: string, side: "red" | "blue", field: keyof SetupTeam, value: string) {
     setMatchups((current) =>
@@ -136,7 +181,12 @@ export function SetupForm({
     setMatchups(drafts);
     setAwaiting(null);
     setPasted("");
+    setActiveKey(null);
     const cut = brief.matchups.length - Math.min(brief.matchups.length, MAX_MATCHUPS);
+    // Courts the paste read but the picked Venue has no court for: flagged on their boxes.
+    const offMap = venue
+      ? drafts.flatMap(({ red, blue }) => [red, blue]).filter((team) => offVenue(venue.grid, team.homeCourt)).length
+      : 0;
     setPasteNotice(
       [
         `Filled in ${brief.matchups.length - cut} Matches from the brief.`,
@@ -144,6 +194,9 @@ export function SetupForm({
         unreadable > 0
           ? `${unreadable} ${unreadable === 1 ? "field" : "fields"} could not be read and ${unreadable === 1 ? "is" : "are"} highlighted. Check ${unreadable === 1 ? "it" : "them"}, then save.`
           : "Check the Teams, then save.",
+        venue && offMap > 0
+          ? `${offMap} home ${offMap === 1 ? "court is" : "courts are"} not on ${venue.name} and ${offMap === 1 ? "is" : "are"} highlighted.`
+          : "",
       ]
         .filter(Boolean)
         .join(" "),
@@ -249,6 +302,24 @@ export function SetupForm({
         </div>
       </div>
 
+      <VenueCourts
+        venues={venues}
+        venueId={venueId}
+        matchups={mapMatchups}
+        active={active}
+        onVenues={(next, picked) => {
+          setVenues(next);
+          setVenueId(picked);
+          setActiveKey(null);
+        }}
+        onPick={(picked) => {
+          setVenueId(picked);
+          setActiveKey(null);
+        }}
+        onTap={placeCourts}
+        onActive={(index) => setActiveKey(matchups[index]?.key ?? null)}
+      />
+
       <ol className="flex flex-col gap-6">
         {matchups.map((matchup, index) => (
           <li key={matchup.key} className="tt-sheet">
@@ -265,12 +336,14 @@ export function SetupForm({
                 legend={`Match ${index + 1}, team 1`}
                 side="red"
                 team={matchup.red}
+                offVenue={venue ? offVenue(venue.grid, matchup.red.homeCourt) : false}
                 onChange={(field, value) => updateTeam(matchup.key, "red", field, value)}
               />
               <TeamFields
                 legend={`Match ${index + 1}, team 2`}
                 side="blue"
                 team={matchup.blue}
+                offVenue={venue ? offVenue(venue.grid, matchup.blue.homeCourt) : false}
                 onChange={(field, value) => updateTeam(matchup.key, "blue", field, value)}
               />
             </div>
@@ -334,11 +407,14 @@ function TeamFields({
   legend,
   side,
   team,
+  offVenue,
   onChange,
 }: {
   legend: string;
   side: "red" | "blue";
   team: TeamDraft;
+  /** The Home court names no court on the picked Venue. */
+  offVenue: boolean;
   onChange: (field: keyof SetupTeam, value: string) => void;
 }) {
   const id = useId();
@@ -351,13 +427,16 @@ function TeamFields({
       </legend>
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4">
         {TEAM_FIELDS.map(({ field, label, optional, short, wide }) => {
-          const flagged = team.flagged?.includes(field as TeamField) ?? false;
+          const unread = team.flagged?.includes(field as TeamField) ?? false;
+          const offMap = field === "homeCourt" && offVenue && !unread;
+          const flagged = unread || offMap;
           return (
             <div key={field} className={`flex min-w-0 flex-col gap-2 ${wide ? "col-span-2 sm:col-span-1" : ""}`}>
               <label htmlFor={`${id}-${field}`} className="tt-label">
                 {label}
                 {optional && <span className="font-normal text-(--tt-ink-dim)"> (optional)</span>}
-                {flagged && <span className="tt-flag-note"> (check this)</span>}
+                {unread && <span className="tt-flag-note"> (check this)</span>}
+                {offMap && <span className="tt-flag-note"> (not on this venue)</span>}
               </label>
               <input
                 id={`${id}-${field}`}

@@ -2211,3 +2211,145 @@ html:has(.tt-public[data-view="tv"]) { overflow: hidden; }
   background: none;
   box-shadow: inset 0 0 0 1.5px var(--tt-plate-ink);
 }
+
+/* ---- setup: Courts on a Venue (#698) ------------------------------------
+   The shared court grid (src/components/court-grid/) themed through its
+   --cg-* properties. On the pairing map the courts read like the brief: red
+   and blue for the Match being placed, a navy plate for a court another
+   Match holds, a dashed blue outline for a court that can pair. */
+
+.tt-courts {
+  --cg-ink: var(--tt-ink);
+  --cg-ink-2: var(--tt-ink-dim);
+  --cg-paper: var(--tt-sheet);
+  --cg-edge: var(--tt-rule-strong);
+  --cg-rule: var(--tt-rule);
+  --cg-court: var(--tt-plate);
+  --cg-court-ink: var(--tt-plate-ink);
+  --cg-accent: var(--tt-blue);
+  --cg-warn: var(--tt-red);
+  --cg-label-font: var(--tt-cond);
+}
+
+.tt-venue-select { width: auto; max-width: 100%; min-width: 14rem; }
+
+.tt-shape {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1.5px solid var(--tt-rule-strong);
+  border-radius: 999px;
+  background: var(--tt-sheet);
+  color: var(--tt-ink);
+  font-family: var(--tt-cond);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.tt-shape:hover { border-color: var(--tt-ink); }
+
+.tt-pair-square {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 1.375rem;
+  transition: background-color 120ms ease-out, opacity 120ms ease-out;
+}
+.tt-pair-tag {
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tt-pair-square[data-state="free"] { border: 1.5px solid var(--tt-rule-strong); }
+.tt-pair-square[data-state="faded"] {
+  border: 1.5px solid var(--tt-rule);
+  color: var(--tt-ink-dim);
+}
+.tt-pair-square[data-state="red"],
+.tt-pair-key[data-state="red"] {
+  border-color: var(--tt-red);
+  background: var(--tt-red);
+  color: #ffffff;
+}
+.tt-pair-square[data-state="blue"],
+.tt-pair-key[data-state="blue"] {
+  border-color: var(--tt-blue);
+  background: var(--tt-blue);
+  color: #ffffff;
+}
+.tt-pair-square[data-state="taken"],
+.tt-pair-key[data-state="taken"] {
+  border-color: var(--tt-plate);
+  background: var(--tt-plate);
+  color: var(--tt-plate-dim);
+}
+.tt-pair-square[data-state="can-pair"],
+.tt-pair-key[data-state="can-pair"] {
+  border: 2px dashed var(--tt-blue);
+  background: var(--tt-sheet);
+  color: var(--tt-blue);
+}
+
+.tt-pair-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--tt-ink-dim);
+}
+.tt-pair-legend li { display: flex; align-items: center; gap: 0.375rem; }
+.tt-pair-key {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 1px solid transparent;
+  border-radius: 2px;
+}
+
+.tt-pair-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tt-pair-match {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--tt-rule);
+  border-radius: 0.5rem;
+  background: var(--tt-sheet);
+  color: var(--tt-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.tt-pair-match:hover { border-color: var(--tt-rule-strong); }
+.tt-pair-match[aria-current] {
+  border-color: var(--tt-blue);
+  box-shadow: 0 2px 8px -2px oklch(0.55 0.2 262 / 0.3);
+}
+.tt-pair-match-name {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tt-ink-dim);
+}
+.tt-pair-match-courts {
+  font-family: var(--tt-cond);
+  font-weight: 800;
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}

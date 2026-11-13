@@ -11,6 +11,7 @@ import { loadTeamEvent } from "@/lib/team-tally/events";
 import { loadOrganizerEvent } from "@/lib/team-tally/live-events";
 import { editTeamEventPath, teamEventPath } from "@/lib/team-tally/routes";
 import { createClient } from "@/lib/team-tally/supabase/server";
+import { listVenues } from "@/lib/team-tally/venues";
 
 export async function generateMetadata({
   params,
@@ -30,9 +31,13 @@ export async function generateMetadata({
 
 export default async function EditTeamEventPage({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
-  await verifyOrganizer();
+  const organizer = await verifyOrganizer();
   const supabase = await createClient();
-  const [event, live] = await Promise.all([loadTeamEvent(supabase, eventId), loadOrganizerEvent(supabase, eventId)]);
+  const [event, live, venues] = await Promise.all([
+    loadTeamEvent(supabase, eventId),
+    loadOrganizerEvent(supabase, eventId),
+    listVenues(supabase, organizer.userId),
+  ]);
   if (!event || !live) notFound();
 
   // Once play has started the database refuses a setup save; say so up front.
@@ -62,6 +67,7 @@ export default async function EditTeamEventPage({ params }: { params: Promise<{ 
         <SetupForm
           eventId={event.id}
           defaultDate={event.date}
+          venues={venues}
           initial={{
             name: event.name,
             date: event.date,
