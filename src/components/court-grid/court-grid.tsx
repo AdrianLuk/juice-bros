@@ -53,8 +53,8 @@ export type GridMode = "draw" | "book";
 
 /**
  * The court grid painter (#697): a facility drawn as squares, one court per
- * square. Shared UI with no app in it. Match Mixer uses it today and Team
- * Tally next. Each app themes it by setting the `--cg-*` custom properties on
+ * square. Shared UI with no app in it. Match Mixer and Team Tally both draw
+ * Venues with it. Each app themes it by setting the `--cg-*` custom properties on
  * an ancestor; the defaults are plain enough to read anywhere.
  *
  * Two modes:

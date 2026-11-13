@@ -36,7 +36,7 @@ The first player on a Team's line. The captain plays every Round, partnering a d
 A, B or C: the order in which the captain partners their three teammates. The Organizer sets it from what they know of the players; either captain can rename their own team's slots at any point on the night, and reorder any slot whose Round has no score yet in the Team's current Matchup (its Flight once it has one). Players are names only, never accounts, and a slot holding a substitute is the same slot, so a rename is always allowed.
 
 **Home court**:
-The court a Team meets on, one of its Matchup's court pair. It decides nothing about who plays where.
+The court a Team meets on, one of its Matchup's court pair. It decides nothing about who plays where. The Organizer types it, or taps it on a Venue's map: the first court tapped for a Matchup is the red Team's, the second the blue Team's. Either way it is stored as the same text.
 
 ### Play
 
@@ -45,7 +45,11 @@ Two Teams playing three Rounds on a pair of adjacent courts. The term is Matchup
 _Avoid_: Match, outside that label (Pickle Point Pal's word for a scored contest between two sides)
 
 **Court pair**:
-The two adjacent courts a Matchup plays on. Which of the two is the captains' court does not matter and is not recorded.
+The two adjacent courts a Matchup plays on. Which of the two is the captains' court does not matter and is not recorded. Adjacent means touching on the Venue's grid: two courts that share an edge, never a corner. With a Venue picked, setup only lets a pair be tapped that way; typed Home courts are taken as the Organizer typed them.
+
+**Venue**:
+A facility the Organizer drew once on the court grid (shared UI, see `CONTEXT-MAP.md`) and saved to their account by name, as many as they want. In setup they pick one and tap each opening Matchup's Court pair on it. A Venue is only a way to fill in Home courts: a Team Event never records which Venue it used, so forgetting a Venue changes no night. Without one, setup takes typed Home courts as it always has.
+_Avoid_: facility, club (Team Tally owns no Club), layout
 
 **Round**:
 Two Games played at the same time: a captains' game and a teammates' game. A Matchup has three. Round 1 is the captains with their Player A, Round 2 with B, Round 3 with C.
