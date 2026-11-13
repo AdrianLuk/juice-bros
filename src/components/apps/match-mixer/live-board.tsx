@@ -13,6 +13,7 @@ import {
   playerAccess,
   rebuild,
   roundCount,
+  runsTheNight,
   type GameAccess,
   type RebuiltMixer,
 } from "@/components/apps/match-mixer/lib/live/rebuild";
@@ -22,8 +23,8 @@ import {
   load as loadSelection,
   save as saveSelection,
 } from "@/components/apps/match-mixer/lib/persistence/selection-storage";
-import { changeGameRule, clearScore, enterScore, startRound } from "@/lib/match-mixer/actions";
-import type { LiveMixer } from "@/lib/match-mixer/live-mixers";
+import { changeGameRule, clearScore, enterScore, finishMixer, startRound } from "@/lib/match-mixer/actions";
+import type { LiveMixer, Outcome } from "@/lib/match-mixer/live-mixers";
 
 import { GameRulePicker } from "./game-rule-picker";
 import { QueryProvider } from "./query-provider";
@@ -39,15 +40,17 @@ import { liveMixerKey, useLiveMixer } from "./use-live-mixer";
  * come from the event log and stay current on every phone. Find-me works as
  * it does on the tool itself, and a Selection made here is the same Selection.
  *
- * The Organizer Link (`playerPath` and `organizerPath` both present) also
- * scores any Game, starts the next Round and sets the Game Rule. The Player
- * Link scores its Selection's own Games, up to the Current Round (#689).
+ * The Organizer Link also scores any Game, starts the next Round, sets the
+ * Game Rule and finishes the night. The Player Link scores its Selection's
+ * own Games, up to the Current Round (#689). A signed-in superadmin runs the
+ * night through either link, finished or not (#690). A finished Live Mixer
+ * shows its final scores and Standings and takes no writes from anyone else.
  */
 export function LiveBoard(props: {
   token: string;
   initial: LiveMixer;
-  /** Both present on the Organizer Link only. */
-  playerPath?: string;
+  playerPath: string;
+  /** The Organizer Link's own page only. */
   organizerPath?: string;
 }) {
   return (
@@ -65,7 +68,7 @@ function LiveSheet({
 }: {
   token: string;
   initial: LiveMixer;
-  playerPath?: string;
+  playerPath: string;
   organizerPath?: string;
 }) {
   const { mixer, reconnecting } = useLiveMixer(token, initial);
@@ -84,20 +87,34 @@ function LiveSheet({
     );
   }
 
-  const organizer = playerPath !== undefined && organizerPath !== undefined ? { playerPath, organizerPath } : null;
-  return <LiveFace token={token} live={live} reconnecting={reconnecting} organizer={organizer} />;
+  // The server checks the same rule again on every write.
+  const runner = runsTheNight(mixer) ? { playerPath, organizerPath, superadmin: mixer.superadmin } : null;
+  const night: Night = mixer.finishedAt === null ? "running" : mixer.superadmin ? "fixing" : "finished";
+  return <LiveFace token={token} live={live} reconnecting={reconnecting} runner={runner} night={night} />;
 }
+
+/**
+ * "fixing": finished, but open to the superadmin, who can still change
+ * anything. "finished": final for everyone else.
+ */
+type Night = "running" | "finished" | "fixing";
+
+/** Whoever runs the night on this screen: the Organizer Link, or a superadmin on either link. */
+type Runner = { playerPath: string; organizerPath?: string; superadmin: boolean };
 
 function LiveFace({
   token,
   live,
   reconnecting,
-  organizer,
+  runner,
+  night,
 }: {
   token: string;
   live: RebuiltMixer;
   reconnecting: boolean;
-  organizer: { playerPath: string; organizerPath: string } | null;
+  /** Null for a player. */
+  runner: Runner | null;
+  night: Night;
 }) {
   const { draw } = live;
   const queryClient = useQueryClient();
@@ -137,12 +154,21 @@ function LiveFace({
   };
 
   // Which Games this link scores (#689): any on the Organizer Link; on the
-  // Player Link, the Selection's own, up to the Current Round. The server
-  // checks the same again.
+  // Player Link, the Selection's own, up to the Current Round; none once the
+  // night has finished (#690). The server checks the same again.
   const rounds = roundCount(draw);
+  // `over`: the night has finished. `finished`: and this screen can't change it.
+  const over = night !== "running";
+  const finished = night === "finished";
   const access = (at: GameAt): GameAccess =>
-    organizer ? "scores" : selected === null ? "not-yours" : playerAccess(draw, live.currentRound, selected, at);
-  const canScore = organizer !== null || selected !== null;
+    finished
+      ? "not-yours"
+      : runner
+        ? "scores"
+        : selected === null
+          ? "not-yours"
+          : playerAccess(draw, live.currentRound, selected, at);
+  const canScore = !finished && (runner !== null || selected !== null);
 
   // The keypad sheet, open on one Game at a time, and only while this link can score it.
   const [scoring, setScoring] = useState<GameAt | null>(null);
@@ -151,7 +177,7 @@ function LiveFace({
     if (outcome.ok) await reread();
     return outcome;
   };
-  const selection = organizer ? null : selected;
+  const selection = runner ? null : selected;
 
   return (
     <div className="mm-sheet">
@@ -159,41 +185,67 @@ function LiveFace({
         <header className="mm-head">
           <div className="mm-headline">
             <h1 className="mm-title">Match Mixer</h1>
-            <p className="mm-meta">Live · {draw.numbers}</p>
+            <p className="mm-meta">
+              {over ? "Finished" : "Live"} · {draw.numbers}
+            </p>
           </div>
           <p className="mm-lede">
-            {organizer
-              ? "This board is live. Paste the Player Link into the group chat, then tap Score under a Game when it ends. Standings update on every phone."
-              : "Tonight’s board, live from the organizer. Tap your name to see your evening and score your own Games. Standings update on every phone."}
+            {night === "fixing"
+              ? "This Live Mixer has finished. Everyone else sees these scores and Standings as final."
+              : finished
+                ? "This Live Mixer has finished. The scores and Standings below are final."
+                : runner
+                  ? "This board is live. Paste the Player Link into the group chat, then tap Score under a Game when it ends. Standings update on every phone."
+                  : "Tonight’s board, live from the organizer. Tap your name to see your evening and score your own Games. Standings update on every phone."}
           </p>
         </header>
 
         <div className="mm-cols">
           <div className="mm-controls">
-            {organizer ? (
+            {runner?.superadmin ? (
+              <p className="mm-note mb-6" role="note">
+                {night === "fixing"
+                  ? "You’re the superadmin, so you can still change anything on this finished night."
+                  : "You’re the superadmin, so you can run this night from any link."}
+              </p>
+            ) : null}
+            {runner ? (
               <>
-                <RoundControl token={token} current={live.currentRound} rounds={rounds} onSaved={reread} />
-                <RuleControl token={token} rule={live.rule} onSaved={reread} />
+                {finished ? null : (
+                  <>
+                    <RoundControl token={token} current={live.currentRound} rounds={rounds} onSaved={reread} />
+                    <RuleControl token={token} rule={live.rule} onSaved={reread} />
+                  </>
+                )}
                 <CopyLink
                   id="mm-player-link"
                   label="Player Link"
-                  path={organizer.playerPath}
-                  note="For the group chat. Anyone with it sees the board and the Standings, and can score their own Games."
+                  path={runner.playerPath}
+                  note={
+                    finished
+                      ? "Anyone with it sees the board and the final Standings."
+                      : "For the group chat. Anyone with it sees the board and the Standings, and can score their own Games."
+                  }
                 />
-                <CopyLink
-                  id="mm-organizer-link"
-                  label="Organizer Link"
-                  path={organizer.organizerPath}
-                  note="Yours alone. Whoever holds it runs the night."
-                />
+                {runner.organizerPath ? (
+                  <CopyLink
+                    id="mm-organizer-link"
+                    label="Organizer Link"
+                    path={runner.organizerPath}
+                    note="Yours alone. Whoever holds it runs the night."
+                  />
+                ) : null}
+                {over ? null : <FinishControl token={token} onSaved={reread} />}
               </>
             ) : (
               <>
                 <p className="mm-legend">Your Games</p>
                 <p className="mm-note mt-1" role="status">
-                  {selected === null
-                    ? "Tap your name on the board first. Then you can score your own Games."
-                    : `Tap Score under one of your Games when it ends, up to Round ${roundOn(live.currentRound, rounds)}. Tap your name again to see everyone.`}
+                  {finished
+                    ? "The night has finished. Tap your name to see how your evening went."
+                    : selected === null
+                      ? "Tap your name on the board first. Then you can score your own Games."
+                      : `Tap Score under one of your Games when it ends, up to Round ${roundOn(live.currentRound, rounds)}. Tap your name again to see everyone.`}
                 </p>
                 <p className="mm-legend mt-6">Game Rule</p>
                 <p className="mm-note mt-1">{describeGameRule(live.rule)}</p>
@@ -222,7 +274,11 @@ function LiveFace({
                 courtLabels={draw.config.courtLabels}
               />
             </div>
-            <StandingsTables standings={live.standings} pairs={draw.pools[0]?.score.format === "fixed"} />
+            <StandingsTables
+              standings={live.standings}
+              pairs={draw.pools[0]?.score.format === "fixed"}
+              final={over}
+            />
           </div>
         </div>
       </div>
@@ -267,7 +323,18 @@ function roundOn(currentRound: number, rounds: number): number {
   return Math.min(currentRound, rounds - 1) + 1;
 }
 
-const ROUND_UNREACHABLE = "Couldn't reach Match Mixer. Check your signal, then reload to see if the Round started.";
+/**
+ * A write from one of the Organizer Link's controls. One that never reached
+ * Match Mixer may still have landed, so the problem says to look rather than
+ * "it didn't change" (Mic Drop's #671). `landed` finishes "reload to see if …".
+ */
+async function reach(write: () => Promise<Outcome<null>>, landed: string): Promise<Outcome<null>> {
+  try {
+    return await write();
+  } catch {
+    return { ok: false, problem: `Couldn't reach Match Mixer. Check your signal, then reload to see if ${landed}.` };
+  }
+}
 
 /**
  * The Organizer Link's one Round control (#689): "Start round N+1", never a
@@ -294,12 +361,7 @@ function RoundControl({
   const start = async () => {
     setPending(true);
     setProblem(null);
-    let outcome: Awaited<ReturnType<typeof startRound>>;
-    try {
-      outcome = await startRound(token, next);
-    } catch {
-      outcome = { ok: false, problem: ROUND_UNREACHABLE };
-    }
+    const outcome = await reach(() => startRound(token, next), "the Round started");
     if (outcome.ok) await onSaved();
     else setProblem(outcome.problem);
     setPending(false);
@@ -324,8 +386,58 @@ function RoundControl({
   );
 }
 
-// The change may still have landed, so this says to look rather than "it didn't change" (Mic Drop's #671).
-const RULE_UNREACHABLE = "Couldn't reach Match Mixer. Check your signal, then reload to see if the Game Rule changed.";
+/**
+ * The Organizer Link's "Finish Mixer" (#690), behind a second tap: finishing
+ * makes every score final for everyone, and only the superadmin can undo a
+ * mistake after it.
+ */
+function FinishControl({ token, onSaved }: { token: string; onSaved: () => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const finish = async () => {
+    setPending(true);
+    setProblem(null);
+    const outcome = await reach(() => finishMixer(token), "the night finished");
+    if (outcome.ok) await onSaved();
+    else setProblem(outcome.problem);
+    setPending(false);
+    setConfirming(false);
+  };
+
+  return (
+    <div className="mt-8">
+      <p className="mm-legend">Finish</p>
+      <p className="mm-note mt-1">
+        Once the last Game is in, finish the night so the Standings are final. It finishes on its own 12 hours after
+        going live.
+      </p>
+      {confirming ? (
+        <div role="group" aria-labelledby="mm-finish-confirm">
+          <p className="mm-note mt-2" id="mm-finish-confirm">
+            Finish now? After this, nobody can change a score.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className="mm-share" onClick={finish} disabled={pending}>
+              {pending ? "Finishing…" : "Yes, finish the night"}
+            </button>
+            <button type="button" className="mm-share" onClick={() => setConfirming(false)} disabled={pending}>
+              Keep playing
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="mm-share mt-2" onClick={() => setConfirming(true)}>
+          Finish Mixer
+        </button>
+      )}
+      <p className="mm-note mt-1" role="status" data-tone={problem ? "refused" : undefined}>
+        {problem}
+      </p>
+    </div>
+  );
+}
 
 /** The Organizer Link's Game Rule: saved the moment it changes, for scores from then on. */
 function RuleControl({ token, rule, onSaved }: { token: string; rule: GameRule; onSaved: () => Promise<void> }) {
@@ -335,12 +447,7 @@ function RuleControl({ token, rule, onSaved }: { token: string; rule: GameRule; 
   const change = async (next: GameRule) => {
     setPending(next);
     setSaid(null);
-    let outcome: Awaited<ReturnType<typeof changeGameRule>>;
-    try {
-      outcome = await changeGameRule(token, next);
-    } catch {
-      outcome = { ok: false, problem: RULE_UNREACHABLE };
-    }
+    const outcome = await reach(() => changeGameRule(token, next), "the Game Rule changed");
     if (outcome.ok) await onSaved();
     setPending(null);
     setSaid(

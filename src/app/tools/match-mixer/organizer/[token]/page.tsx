@@ -14,8 +14,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * A Live Mixer's Organizer Link (#687): the board, both links to copy, and
- * score entry, the Game Rule and Standings (#688).
+ * A Live Mixer's Organizer Link (#687): the board, both links to copy, score
+ * entry, the Game Rule and Standings (#688), the Round (#689) and Finish
+ * Mixer (#690).
  */
 export default async function OrganizerLinkPage({ params }: Props) {
   const { token } = await params;

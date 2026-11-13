@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { LiveBoard } from "@/components/apps/match-mixer/live-board";
 import { readLiveMixer } from "@/lib/match-mixer/live-mixers";
+import { playerLinkPath } from "@/lib/match-mixer/routes";
 import { createClient } from "@/lib/match-mixer/supabase/server";
 
 type Props = { params: Promise<{ token: string }> };
@@ -14,7 +15,9 @@ export const metadata: Metadata = {
 
 /**
  * A Live Mixer's Player Link (#687): the board the organizer drew, with
- * find-me, and its scores and Standings kept live (#688). Read-only for now.
+ * find-me, its scores and Standings kept live (#688), and scoring for a
+ * player's own Games (#689). A signed-in superadmin runs the night from here
+ * too (#690), with this link the only one it shows.
  */
 export default async function PlayerLinkPage({ params }: Props) {
   const { token } = await params;
@@ -23,7 +26,7 @@ export default async function PlayerLinkPage({ params }: Props) {
 
   return (
     <div className="flex w-full flex-1 flex-col">
-      <LiveBoard token={token} initial={mixer} />
+      <LiveBoard token={token} initial={mixer} playerPath={playerLinkPath(token)} />
     </div>
   );
 }
