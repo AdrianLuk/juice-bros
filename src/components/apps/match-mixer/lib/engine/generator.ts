@@ -5,6 +5,7 @@ import {
   PARTNER_REPEAT_WEIGHT,
   recordRound,
   scoreRounds,
+  scoreTally,
   tallyRounds,
 } from "./scorer.ts";
 import { MARKERS } from "./types.ts";
@@ -63,6 +64,13 @@ export interface GenerationSpec {
    * took before this existed.
    */
   readonly markers?: readonly Marker[] | null;
+  /**
+   * Counts this Roster already carries into the first Round built, in place
+   * of a prefix (#692): a Live Mixer's locked Rounds, when the rest are
+   * rebuilt around somebody who arrived or left. Absent is every board drawn
+   * from a Config, and it takes exactly the path it took before this existed.
+   */
+  readonly history?: Tally;
 }
 
 /**
@@ -383,7 +391,7 @@ export function generateRounds(spec: GenerationSpec): Round[] {
     // Each attempt is its own deterministic stream, so the search is
     // reproducible even though it is random.
     const random = randomFrom(spec.seed + attempt * 0x9e3779b9);
-    const tally = tallyRounds(prefix, spec.n);
+    const tally = tallyRounds(prefix, spec.n, spec.history);
     const candidate = [...prefix];
 
     for (let r = 0; r < toBuild; r++) {
@@ -396,7 +404,9 @@ export function generateRounds(spec: GenerationSpec): Round[] {
     // something different here: the two sides take their Byes off separate
     // queues, and the whole-Roster spread would price a rotation that is
     // already the best one those counts allow.
-    const cost = scoreRounds(candidate, spec.n, "rotating", markers).cost;
+    const cost = spec.history
+      ? scoreTally(tallyRounds(candidate, spec.n, spec.history), spec.n, "rotating", markers).cost
+      : scoreRounds(candidate, spec.n, "rotating", markers).cost;
     if (cost < bestCost) {
       bestCost = cost;
       best = candidate;

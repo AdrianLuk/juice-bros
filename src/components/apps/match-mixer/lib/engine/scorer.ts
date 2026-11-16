@@ -77,6 +77,15 @@ export function emptyTally(n: number): Tally {
   };
 }
 
+function copyTally(tally: Tally): Tally {
+  return {
+    partnerMatrix: tally.partnerMatrix.map((row) => [...row]),
+    opponentMatrix: tally.opponentMatrix.map((row) => [...row]),
+    gamesPlayed: [...tally.gamesPlayed],
+    byes: [...tally.byes],
+  };
+}
+
 /**
  * Add one Round to a Tally, in place. This is the only place in the app that
  * counts who played with and against whom, so the generator guessing its next
@@ -106,8 +115,13 @@ export function recordRound(tally: Tally, round: Round): void {
   for (const p of round.byes) tally.byes[p] += 1;
 }
 
-export function tallyRounds(rounds: readonly Round[], n: number): Tally {
-  const tally = emptyTally(n);
+/**
+ * A Tally over these Rounds. `start` is counts the Roster already carries into
+ * the first of them (#692: a Live Mixer's locked Rounds, when the rest are
+ * rebuilt around a late arrival), copied rather than written to.
+ */
+export function tallyRounds(rounds: readonly Round[], n: number, start?: Tally): Tally {
+  const tally = start ? copyTally(start) : emptyTally(n);
   for (const round of rounds) recordRound(tally, round);
   return tally;
 }
@@ -190,7 +204,16 @@ export function scoreRounds(
   format: Format = "rotating",
   markers: readonly Marker[] | null = null,
 ): ScorerResult {
-  const tally = tallyRounds(rounds, n);
+  return scoreTally(tallyRounds(rounds, n), n, format, markers);
+}
+
+/** The same reading off counts already taken, for a search that starts from some (#692). */
+export function scoreTally(
+  tally: Tally,
+  n: number,
+  format: Format = "rotating",
+  markers: readonly Marker[] | null = null,
+): ScorerResult {
   const byes = byeVerdict(tally, n, markers);
 
   if (format === "fixed") return scoreFixed(tally, n, byes);

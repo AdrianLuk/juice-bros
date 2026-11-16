@@ -1,17 +1,21 @@
+import { generateCircleRounds } from "./circle.ts";
 import { clampConfig } from "./config.ts";
 import { generateFixedRounds } from "./fixed.ts";
-import { formatObjection } from "./format.ts";
+import { formatObjection, pairsOf } from "./format.ts";
 import { generateRounds } from "./generator.ts";
 import { markersOf, mixedObjection } from "./mixed.ts";
 import { seating } from "./random.ts";
-import { generateSinglesRounds } from "./singles.ts";
+import { generateSinglesRounds, soloOf } from "./singles.ts";
 import { findTable } from "./tables.ts";
 import {
   MAX_ROSTER_SIZE,
   MIN_ROSTER_SIZE,
   type Config,
+  type Format,
+  type Marker,
   type Round,
   type Schedule,
+  type Tally,
   type Team,
 } from "./types.ts";
 
@@ -94,6 +98,41 @@ function tablePrefix(
     // A Table seats everyone every Round, by construction.
     byes: [],
   }));
+}
+
+/** What `continueRounds` needs: a Roster with the names taken off, and what it already played. */
+export interface ContinueSpec {
+  readonly format: Format;
+  readonly n: number;
+  /** At most what these `n` can fill; zero sits everybody out. */
+  readonly courts: number;
+  readonly rounds: number;
+  readonly seed: number;
+  /** Mixed doubles: one per position, and every Team one of each. */
+  readonly markers: readonly Marker[] | null;
+  /** The counts these `n` carry into the first Round built. */
+  readonly history: Tally;
+}
+
+/**
+ * More Rounds for a Roster that has already played some (#692): what a Live
+ * Mixer's unlocked Rounds are rebuilt with when somebody arrives or leaves.
+ * Routed on the Format exactly as `generateSchedule` routes, and never a
+ * Table, because a Table cannot start from counts. Deterministic in `seed`.
+ *
+ * It takes no objection and no clamp: the caller has already worked out how
+ * many courts these Players fill. That is what lets a Round drop a Game
+ * rather than play three, and a Roster below one court sit out entirely.
+ */
+export function continueRounds(spec: ContinueSpec): Round[] {
+  const { format, n, courts, rounds, seed, markers, history } = spec;
+  if (courts < 1) {
+    const everyone = Array.from({ length: n }, (_, i) => i);
+    return Array.from({ length: rounds }, () => ({ games: [], byes: everyone }));
+  }
+  if (format === "fixed") return generateCircleRounds({ units: pairsOf(n), courts, rounds, seed, history });
+  if (format === "singles") return generateCircleRounds({ units: soloOf(n), courts, rounds, seed, history });
+  return generateRounds({ n, courts, rounds, seed, markers, history });
 }
 
 export function generateSchedule(config: Config): Schedule {

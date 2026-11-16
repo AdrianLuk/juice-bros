@@ -1,5 +1,5 @@
 import { seating } from "./random.ts";
-import type { Game, PlayerIndex, Round, Side } from "./types.ts";
+import type { Game, PlayerIndex, Round, Side, Tally } from "./types.ts";
 
 /**
  * The circle method, and the packing that turns it into Rounds.
@@ -36,6 +36,13 @@ export interface CircleSpec {
   readonly courts: number;
   readonly rounds: number;
   readonly seed: number;
+  /**
+   * Counts the units' Players already carry (#692): a Live Mixer's locked
+   * Rounds, when the rest are rebuilt around a late arrival. Meetings already
+   * played are spent and games already played set who goes on first. Absent
+   * is every board drawn from a Config, which starts from nothing as before.
+   */
+  readonly history?: Tally;
 }
 
 /**
@@ -105,8 +112,11 @@ export function generateCircleRounds(spec: CircleSpec): Round[] {
   // other and there is nothing left that is not a rematch, so it refills and
   // the rotation runs again — which is the honest answer to a Round count past
   // the natural length, the same one the rotating generator gives.
-  const fresh: Meeting[] = [...everyMeeting];
-  const played = new Array<number>(t).fill(0);
+  const { history } = spec;
+  const fresh: Meeting[] = history
+    ? everyMeeting.filter(([a, b]) => history.opponentMatrix[units[a][0]][units[b][0]] === 0)
+    : [...everyMeeting];
+  const played = units.map((unit) => history?.gamesPlayed[unit[0]] ?? 0);
 
   const rounds: Round[] = [];
   for (let round = 0; round < spec.rounds; round++) {

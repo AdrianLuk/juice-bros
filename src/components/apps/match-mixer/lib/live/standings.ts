@@ -23,6 +23,8 @@ export interface StandingsBoard {
   readonly format: Format;
   readonly roster: Roster;
   readonly schedule: Schedule;
+  /** Per Player: the Round index they joined (#692). Absent is everyone from the start. */
+  readonly joined?: readonly number[];
 }
 
 export interface StandingsRow {
@@ -34,6 +36,8 @@ export interface StandingsRow {
   readonly pointDiff: number;
   /** 1 for the top; rows level on every tiebreak share one. */
   readonly rank: number;
+  /** The Round index this row joined the night at, 0 for everyone on the Config (#692). */
+  readonly joined: number;
 }
 
 /** A scored Game, as the rows it was won and lost by. */
@@ -121,5 +125,6 @@ export function standings(board: StandingsBoard, scores: Scores): StandingsRow[]
     losses: entry.losses,
     pointDiff: entry.pointDiff,
     rank: ranks[position],
+    joined: board.joined?.[entry.players[0]] ?? 0,
   }));
 }

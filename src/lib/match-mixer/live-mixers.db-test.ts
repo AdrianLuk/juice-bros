@@ -12,8 +12,9 @@ import { anonClient, createTestUser, deleteTestUser, type TestUser } from "../db
 import { encodeSharePayload } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 import { parseRoster } from "../../components/apps/match-mixer/lib/engine/roster.ts";
 import { gameKey, replay, type GameAt } from "../../components/apps/match-mixer/lib/live/events.ts";
-import { gameOn, playsIn, redraw } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
+import { gameOn, playsIn, rebuild, redraw } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import {
+  addPlayer,
   changeGameRule,
   clearScore,
   enterScore,
@@ -22,12 +23,17 @@ import {
   goLive,
   LAST_ROUND,
   myMixers,
+  NO_ROUNDS_LEFT,
+  NO_SUCH_POOL,
+  NOT_A_PLAYER,
   NOT_ON_THE_BOARD,
   NOT_YOUR_GAME,
+  ONE_AT_A_TIME,
   ONE_ROUND_AT_A_TIME,
   ORGANIZER_ONLY,
   PICK_YOUR_NAME,
   readLiveMixer,
+  setPlaying,
   SIGN_IN_FOR_MY_MIXERS,
   SIGN_IN_TO_GO_LIVE,
   startRound,
@@ -461,4 +467,81 @@ test("signed out, My Mixers asks for sign-in and lists nothing", async () => {
     problem: SIGN_IN_FOR_MY_MIXERS,
     signIn: true,
   });
+});
+
+// #692: late arrivals and early departures.
+
+/** Every Roster index seated in one Round, on the board either link reads now. */
+async function seatedAt(token: string, round: number): Promise<number[]> {
+  const mixer = await readLiveMixer(anonClient(), token);
+  const live = rebuild(mixer!.config, mixer!.events)!;
+  return live.draw.pools.flatMap((pool) =>
+    pool.schedule.rounds[round].games.flatMap((game) => game.sides.flat().map((player) => pool.members[player])),
+  );
+}
+
+test("the Organizer Link adds a Player, who joins the next Round on both links, and the locked Round stands", async () => {
+  const { organizerToken, playerToken } = await live();
+  const roundOne = await seatedAt(playerToken, 0);
+  assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["Federico Staksrud"], 0), { ok: true, value: null });
+
+  assert.deepEqual(await seatedAt(playerToken, 0), roundOne);
+  assert.ok((await seatedAt(playerToken, 1)).includes(8));
+  // The newcomer can pick their name on the Player Link and score their own Game.
+  const mixer = await readLiveMixer(anonClient(), playerToken);
+  const board = rebuild(mixer!.config, mixer!.events)!;
+  const theirs = board.draw.pools[0].schedule.rounds[1].games.find((game) => game.sides.flat().includes(8))!;
+  assert.ok((await startRound(anonClient(), organizerToken, 1)).ok);
+  assert.ok((await enterScore(anonClient(), playerToken, { round: 1, court: theirs.court }, [11, 4], 8)).ok);
+});
+
+test("a Player marked as left is off the board from the next Round, and back again when they return", async () => {
+  const { organizerToken, playerToken } = await live();
+  assert.ok((await setPlaying(anonClient(), organizerToken, BEN, false)).ok);
+  for (const round of [1, 2, 3]) assert.ok(!(await seatedAt(playerToken, round)).includes(BEN));
+
+  // Marking them left again changes nothing.
+  assert.ok((await setPlaying(anonClient(), organizerToken, BEN, false)).ok);
+  assert.equal((await readLiveMixer(anonClient(), playerToken))?.events.length, 1);
+
+  assert.ok((await setPlaying(anonClient(), organizerToken, BEN, true)).ok);
+  assert.ok((await seatedAt(playerToken, 1)).includes(BEN));
+});
+
+test("adding a Player follows the Format's rules, and needs a Round nobody has started", async () => {
+  const { organizerToken } = await live();
+  assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["One", "Two"], 0), { ok: false, problem: ONE_AT_A_TIME });
+  assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["One"], 1), { ok: false, problem: NO_SUCH_POOL });
+  assert.deepEqual(await setPlaying(anonClient(), organizerToken, 40, false), { ok: false, problem: NOT_A_PLAYER });
+  for (const round of [1, 2, 3]) assert.ok((await startRound(anonClient(), organizerToken, round)).ok);
+  assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["Too Late"], 0), { ok: false, problem: NO_ROUNDS_LEFT });
+});
+
+test("the Player Link can't add a Player or mark one as left, through the server or the database", async () => {
+  const { playerToken } = await live();
+  assert.deepEqual(await addPlayer(anonClient(), playerToken, ["Sneaky"], 0), { ok: false, problem: ORGANIZER_ONLY });
+  assert.deepEqual(await setPlaying(anonClient(), playerToken, BEN, false), { ok: false, problem: ORGANIZER_ONLY });
+  const append = (kind: string, payload: unknown) =>
+    anonClient().rpc("match_mixer_append", { p_token: playerToken, p_kind: kind, p_payload: payload });
+  assert.equal((await append("player_added", { lines: ["Sneaky"], pool: 0 })).error?.code, "42501");
+  assert.equal((await append("player_left", { player: 0 })).error?.code, "42501");
+});
+
+test("the database refuses a Roster change of the wrong shape", async () => {
+  const { organizerToken } = await live();
+  const append = (kind: string, payload: unknown) =>
+    anonClient().rpc("match_mixer_append", { p_token: organizerToken, p_kind: kind, p_payload: payload });
+  for (const [kind, payload] of [
+    ["player_added", { lines: [], pool: 0 }],
+    ["player_added", { lines: ["A", "B", "C"], pool: 0 }],
+    ["player_added", { lines: ["   "], pool: 0 }],
+    ["player_added", { lines: [7], pool: 0 }],
+    ["player_added", { lines: ["x".repeat(61)], pool: 0 }],
+    ["player_added", { lines: ["Fine"] }],
+    ["player_left", { player: -1 }],
+    ["player_left", {}],
+  ] as const) {
+    const { error } = await append(kind, payload);
+    assert.equal(error?.code, "22023", `${kind} ${JSON.stringify(payload)}`);
+  }
 });

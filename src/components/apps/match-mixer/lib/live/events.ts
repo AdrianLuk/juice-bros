@@ -36,11 +36,30 @@ export function gameKey(round: number, court: number): string {
 /** Scores keyed by `gameKey`. */
 export type Scores = ReadonlyMap<string, GameScore>;
 
+/**
+ * Somebody arriving or leaving after Go Live (#692), from Round `from` on:
+ * the Round after the Current Round when the event was logged, which is the
+ * first Round not yet locked. Read off the log's own order rather than stored,
+ * so the Rounds a change can move are exactly the ones nobody has started.
+ *
+ * `joined` is new Players: one Roster line, or a Pairing's two in fixed
+ * partners, into Pool `pool`. `left` and `back` name a Roster index, where the
+ * live Roster is the Config's followed by everyone who joined, in log order.
+ */
+export type RosterChange =
+  | { readonly kind: "joined"; readonly from: number; readonly pool: number; readonly lines: readonly string[] }
+  | { readonly kind: "left" | "back"; readonly from: number; readonly player: number };
+
+/** The longest name a late arrival's line may carry. */
+export const MAX_LINE_LENGTH = 60;
+
 export interface Replay {
   readonly rule: GameRule;
   readonly scores: Scores;
   /** As a Round index, like a Game's `round`: Round 1 is 0. */
   readonly currentRound: number;
+  /** In log order, which is also `from` order. */
+  readonly changes: readonly RosterChange[];
 }
 
 const index = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;
@@ -63,8 +82,14 @@ export function replay(events: readonly MixerEvent[]): Replay {
   let rule = DEFAULT_GAME_RULE;
   const scores = new Map<string, GameScore>();
   let currentRound = 0;
+  const changes: RosterChange[] = [];
 
   for (const { kind, payload } of events) {
+    if (kind === "player_added" || kind === "player_left") {
+      const change = readRosterChange(kind, payload, currentRound + 1);
+      if (change) changes.push(change);
+      continue;
+    }
     if (kind === "round_started") {
       if (index(payload.round)) currentRound = Math.max(currentRound, payload.round);
       continue;
@@ -87,5 +112,21 @@ export function replay(events: readonly MixerEvent[]): Replay {
     currentRound = Math.max(currentRound, at.round + 1);
   }
 
-  return { rule, scores, currentRound };
+  return { rule, scores, currentRound, changes };
+}
+
+const line = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0 && value.length <= MAX_LINE_LENGTH;
+
+/** A Roster change off an event's payload, or null when it names nothing. */
+function readRosterChange(
+  kind: "player_added" | "player_left",
+  payload: Readonly<Record<string, unknown>>,
+  from: number,
+): RosterChange | null {
+  if (index(payload.player)) return { kind: kind === "player_left" ? "left" : "back", from, player: payload.player };
+  const { lines, pool } = payload;
+  if (kind !== "player_added" || !index(pool) || !Array.isArray(lines)) return null;
+  if (lines.length < 1 || lines.length > 2 || !lines.every(line)) return null;
+  return { kind: "joined", from, pool, lines: lines.map((text) => text.trim()) };
 }

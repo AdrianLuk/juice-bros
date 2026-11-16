@@ -12,6 +12,7 @@ import { poolName } from "../engine/pools.ts";
 import type { Game, PlayerIndex } from "../engine/types.ts";
 import { decodeShareLink } from "../persistence/share-link.ts";
 import { replay, type GameAt, type MixerEvent, type Replay } from "./events.ts";
+import { applyRosterChanges } from "./roster-changes.ts";
 import { standings, type StandingsRow } from "./standings.ts";
 
 /** The board a Config draws, or null when this build can't read it. */
@@ -75,21 +76,41 @@ export interface PoolStandings {
 }
 
 export interface RebuiltMixer extends Replay {
+  /**
+   * The board with every late arrival and departure in it (#692). Its Roster
+   * is the Config's followed by everyone who joined, so a Roster index means
+   * the same Player all night.
+   */
   readonly draw: DrawnBoard;
   /** One table per Pool. There is no verdict across Pools (ADR 0004). */
   readonly standings: readonly PoolStandings[];
+  /** Per Roster index: the Round index they joined, 0 for everyone on the Config. */
+  readonly joined: readonly number[];
+  /** Per Roster index: whether they are on the board from the first Round not yet locked. */
+  readonly playing: readonly boolean[];
 }
 
 export function rebuild(config: string, events: readonly MixerEvent[]): RebuiltMixer | null {
-  const draw = redraw(config);
-  if (!draw) return null;
+  const drawn = redraw(config);
+  if (!drawn) return null;
   const live = replay(events);
+  const { draw, joined, onBoard } = applyRosterChanges(drawn, live.changes);
   return {
     ...live,
     draw,
+    joined,
+    playing: joined.map((_, player) => onBoard(player, live.currentRound + 1)),
     standings: draw.pools.map((pool) => ({
       label: draw.pools.length > 1 ? poolName(pool.label) : null,
-      rows: standings({ format: pool.score.format, roster: pool.roster, schedule: pool.schedule }, live.scores),
+      rows: standings(
+        {
+          format: pool.score.format,
+          roster: pool.roster,
+          schedule: pool.schedule,
+          joined: pool.members.map((player) => joined[player]),
+        },
+        live.scores,
+      ),
     })),
   };
 }
