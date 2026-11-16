@@ -501,6 +501,12 @@ function settle(state: EditorState): EditorState {
 export type Source =
   /** A Share Link in the address bar, already decoded. */
   | { readonly from: "link"; readonly board: SharedBoard }
+  /**
+   * A Live Mixer's Config, from "Run it again" (#691): its Roster and settings
+   * with no board drawn, so the organizer edits the names and draws on a fresh
+   * Seed instead of replaying last week.
+   */
+  | { readonly from: "again"; readonly board: SharedBoard }
   /** This browser's own saved visit, or `null` when there is none. */
   | { readonly from: "visit"; readonly visit: SavedVisit | null };
 
@@ -510,7 +516,7 @@ export type Source =
  * longer the one showing.
  */
 export function restore(state: EditorState, source: Source): EditorState {
-  if (source.from === "link") {
+  if (source.from === "link" || source.from === "again") {
     // A link beats storage, and beats it without reading it at all.
     const { config } = source.board;
     const linked: EditorState = {
@@ -531,7 +537,9 @@ export function restore(state: EditorState, source: Source): EditorState {
       // a grid, which is what ADR 0001's determinism was for. `!current` is
       // never a decode failure (#494): an unrecognised or future version
       // still draws, it just carries the notice over the board.
-      draw: drawFrom(config, !source.board.current),
+      // Run it again keeps the inputs and drops the board: the next draw is
+      // the fresh Seed.
+      draw: source.from === "again" ? null : drawFrom(config, !source.board.current),
       restored: true,
       cleared: null,
     };

@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { bookedNumbers, PRESETS } from "../../../../lib/court-grid/grid.ts";
 import { courtLabel } from "./court-labels.ts";
-import { decodeShareLink } from "./persistence/share-link.ts";
+import { decodeShareLink, encodeSharePayload, type SharedBoard } from "./persistence/share-link.ts";
 import {
   chooseCourtLabels,
   chooseCourts,
@@ -325,4 +325,41 @@ test("a labelled link opens labelled, and relabelling it claims it", () => {
   assert.deepEqual(borrowed.courtLabels, [14, 17]);
   assert.equal(saveFor(borrowed), null);
   assert.notEqual(saveFor(chooseCourtLabels(borrowed, [1, 2])), null);
+});
+
+/** A Live Mixer's stored Config: eight players, two courts, seven Rounds, Seed 3. */
+function lastWeek(): SharedBoard {
+  const drawn = generate(typed(EIGHT.join("\n"), 2, 7), 3);
+  assert.ok(drawn.draw);
+  const shared = decodeShareLink(encodeSharePayload(drawn.draw.config));
+  assert.ok(shared, "last week's Config no longer opens");
+  return shared;
+}
+
+test("Run it again puts last week's Roster and settings in the editor with no board drawn (#691)", () => {
+  const last = lastWeek();
+  const again = restore(EMPTY, { from: "again", board: last });
+  assert.equal(again.draw, null, "a fresh Seed means a new board, not last week's");
+  assert.equal(again.text, EIGHT.join("\n"));
+  assert.deepEqual(
+    again.roster.map((player) => player.name),
+    EIGHT,
+  );
+  assert.equal(again.courts, 2);
+  assert.equal(again.rounds, 7);
+  assert.equal(again.format, last.config.format);
+  assert.equal(again.mixed, last.config.mixed);
+  assert.equal(again.pools, last.config.pools);
+});
+
+test("a Run it again screen is borrowed until it is worked on, then drawn on a fresh Seed (#691)", () => {
+  const again = restore(EMPTY, { from: "again", board: lastWeek() });
+  // Opening it writes nothing over the organizer's own saved Roster.
+  assert.equal(saveFor(again), null);
+
+  const drawn = generate(again, 99);
+  assert.equal(drawn.draw?.config.seed, 99);
+  assert.notEqual(drawn.draw?.config.seed, lastWeek().config.seed);
+  assert.equal(drawn.borrowed, null);
+  assert.equal(saveFor(drawn)?.edited.roster.length, 8);
 });

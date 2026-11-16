@@ -40,6 +40,13 @@ import { isFiniteNumber, readChoice } from "./read-config.ts";
 export const SHARE_PARAM = "b";
 
 /**
+ * "Run it again" (#691): the same payload as a Share Link, under its own name
+ * because the page treats it differently. A Share Link opens a drawn board to
+ * read; this opens last week's Roster and settings to edit, with nothing drawn.
+ */
+export const AGAIN_PARAM = "again";
+
+/**
  * Which generator minted a link. Bump it whenever a change alters what an
  * existing Config generates: a new or amended Table, a change to the search, a
  * change to the Scorer's weights. A Seed only reproduces a board if the thing
@@ -254,7 +261,9 @@ export function encodeSharePayload(config: SharedConfig): string {
 }
 
 /**
- * The address bar, with the share parameter gone.
+ * The address bar, with the share parameter gone, and the Run it again one
+ * (#691), which is the same board arriving the same way and goes stale for
+ * the same reason.
  *
  * The one thing a link-opened board can do that a saved one cannot is lie: the
  * moment the board on screen stops matching what the parameter describes —
@@ -275,9 +284,19 @@ export function stripShareParam(href: string): string {
   } catch {
     return href;
   }
-  if (!url.searchParams.has(SHARE_PARAM)) return href;
+  if (!url.searchParams.has(SHARE_PARAM) && !url.searchParams.has(AGAIN_PARAM)) return href;
   url.searchParams.delete(SHARE_PARAM);
+  url.searchParams.delete(AGAIN_PARAM);
   return url.toString();
+}
+
+/**
+ * The path that opens the editor with a Live Mixer's stored Config, for the
+ * "Run it again" link in My Mixers. `path` is the editor's own, so this stays
+ * free of routes.
+ */
+export function runItAgainHref(payload: string, path: string): string {
+  return `${path}?${AGAIN_PARAM}=${encodeURIComponent(payload)}`;
 }
 
 /**

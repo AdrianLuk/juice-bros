@@ -21,12 +21,14 @@ import {
   finishMixer,
   goLive,
   LAST_ROUND,
+  myMixers,
   NOT_ON_THE_BOARD,
   NOT_YOUR_GAME,
   ONE_ROUND_AT_A_TIME,
   ORGANIZER_ONLY,
   PICK_YOUR_NAME,
   readLiveMixer,
+  SIGN_IN_FOR_MY_MIXERS,
   SIGN_IN_TO_GO_LIVE,
   startRound,
   UNREADABLE_BOARD,
@@ -402,4 +404,61 @@ test("the tables themselves are shut, signed in or out", async () => {
     const events = await client.from("match_mixer_events").select("id");
     assert.ok(events.error, "expected no table access to events");
   }
+});
+
+// #691: My Mixers. A superadmin seeing every Live Mixer is in
+// supabase/tests/match_mixer_mine.test.sql: no role here can add one.
+
+test("My Mixers lists the Owner's own Live Mixers, newest first, each with the link to open it", async () => {
+  const owner = await organizer();
+  const first = await goLive(owner.supabase, CONFIG);
+  const second = await goLive(owner.supabase, CONFIG);
+  assert.ok(first.ok && second.ok);
+
+  const mine = await myMixers(owner.supabase);
+  assert.ok(mine.ok);
+  assert.deepEqual(
+    mine.value.map((mixer) => mixer.organizerToken),
+    [second.value.organizerToken, first.value.organizerToken],
+  );
+  for (const mixer of mine.value) {
+    assert.equal(mixer.players, 8);
+    assert.equal(mixer.config, CONFIG);
+    assert.equal(mixer.finishedAt, null);
+  }
+});
+
+test("My Mixers never lists another Owner's Live Mixer", async () => {
+  const owner = await organizer();
+  const other = await organizer();
+  const theirs = await goLive(other.supabase, CONFIG);
+  assert.ok(theirs.ok);
+  await goLive(owner.supabase, CONFIG);
+
+  const mine = await myMixers(owner.supabase);
+  assert.ok(mine.ok);
+  assert.equal(mine.value.length, 1);
+  const text = JSON.stringify(mine.value);
+  assert.ok(!text.includes(theirs.value.organizerToken));
+  assert.ok(!text.includes(theirs.value.playerToken));
+});
+
+test("a finished Live Mixer stays in My Mixers, marked finished", async () => {
+  const owner = await organizer();
+  const mixer = await goLive(owner.supabase, CONFIG);
+  assert.ok(mixer.ok);
+  assert.ok((await finishMixer(owner.supabase, mixer.value.organizerToken)).ok);
+
+  const mine = await myMixers(owner.supabase);
+  assert.ok(mine.ok);
+  assert.equal(mine.value.length, 1);
+  assert.notEqual(mine.value[0].finishedAt, null);
+});
+
+test("signed out, My Mixers asks for sign-in and lists nothing", async () => {
+  assert.deepEqual(await myMixers(anonClient()), {
+    ok: false,
+    problem: SIGN_IN_FOR_MY_MIXERS,
+    signIn: true,
+  });
 });

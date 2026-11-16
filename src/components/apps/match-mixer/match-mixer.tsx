@@ -50,6 +50,7 @@ import {
 import {
   decodeShareLink,
   encodeShareLink,
+  AGAIN_PARAM,
   SHARE_PARAM,
   stripShareParam,
 } from "@/components/apps/match-mixer/lib/persistence/share-link";
@@ -249,7 +250,10 @@ export function MatchMixer() {
   // exactly this.
   useEffect(() => {
     const seed = () => {
-      const param = new URLSearchParams(window.location.search).get(SHARE_PARAM);
+      const params = new URLSearchParams(window.location.search);
+      // "Run it again" (#691) rides the same payload under its own parameter.
+      const again = params.get(AGAIN_PARAM);
+      const param = again ?? params.get(SHARE_PARAM);
       if (seededFrom.current !== undefined && seededFrom.current === param) {
         return;
       }
@@ -259,7 +263,7 @@ export function MatchMixer() {
       const shared = decodeShareLink(param);
       linked.current = shared !== null;
       const source: Source = shared
-        ? { from: "link", board: shared }
+        ? { from: again !== null ? "again" : "link", board: shared }
         : { from: "visit", visit: load() };
       setEditor((state) => restore(state, source));
     };
