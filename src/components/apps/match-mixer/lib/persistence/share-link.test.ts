@@ -8,11 +8,13 @@ import { drawPools, type BoardConfig } from "../engine/pools.ts";
 import { generateSchedule } from "../engine/schedule.ts";
 import { MAX_ROSTER_SIZE } from "../engine/types.ts";
 import {
+  AGAIN_PARAM,
   decodeShareLink,
   encodeShareLink,
   encodeSharePayload,
   GENERATOR_VERSION,
   MAX_LINK_LENGTH,
+  runItAgainHref,
   SHARE_PARAM,
   stripShareParam,
 } from "./share-link.ts";
@@ -313,6 +315,23 @@ test("strips the share parameter and nothing else", () => {
   assert.equal(new URL(stripped).searchParams.has(SHARE_PARAM), false);
   assert.equal(new URL(stripped).searchParams.get("ref"), "chat");
   assert.equal(new URL(stripped).hash, "#top");
+});
+
+test("a Run it again link carries a stored Config and opens to the same board (#691)", () => {
+  const payload = encoded();
+  const href = runItAgainHref(payload, "/tools/match-mixer");
+  assert.ok(href.startsWith("/tools/match-mixer?"));
+  const param = new URL(href, BASE).searchParams.get(AGAIN_PARAM);
+  assert.deepEqual(decodeShareLink(param), decodeShareLink(payload));
+  // It is not a Share Link: the page reads the two differently.
+  assert.equal(new URL(href, BASE).searchParams.has(SHARE_PARAM), false);
+});
+
+test("the Run it again parameter comes off the address bar like the share one (#691)", () => {
+  const address = `${BASE}?ref=chat&${AGAIN_PARAM}=${encodeURIComponent(encoded())}`;
+  const stripped = new URL(stripShareParam(address));
+  assert.equal(stripped.searchParams.has(AGAIN_PARAM), false);
+  assert.equal(stripped.searchParams.get("ref"), "chat");
 });
 
 test("a URL with no share parameter is handed back unchanged", () => {

@@ -14,6 +14,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
  */
 
 const ROUTE = "/tools/match-mixer";
+const MY_MIXERS = `${ROUTE}/mixers`;
 const API_URL = "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
@@ -132,6 +133,65 @@ test("a signed-in organizer goes live and the Player Link opens the same board e
   await page.goto(ROUTE);
   await page.getByRole("link", { name: "Open its Organizer Link" }).click();
   await page.waitForURL(organizerLink);
+});
+
+test("My Mixers lists the night, and Run it again opens its Roster to edit and draw anew (#691)", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  // Signed out: a sign-in prompt, nothing listed.
+  await page.goto(MY_MIXERS);
+  await expect(page.getByText("Sign in with Google to see the Live Mixers you've taken live.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Run it again/ })).toHaveCount(0);
+
+  await signIn(page);
+  const eight = ROSTER.split("\n").slice(0, 8).join("\n");
+  await drawBoard(page, eight);
+  await page.getByRole("button", { name: "Go live" }).click();
+  await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
+  const organizerPath = new URL(page.url()).pathname;
+  const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+
+  // Players are never asked to sign in.
+  const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const player = await phone.newPage();
+  await player.goto(playerLink);
+  await expect(player.getByRole("link", { name: "My Mixers" })).toHaveCount(0);
+  await expect(player.getByText("Sign in")).toHaveCount(0);
+  await phone.close();
+
+  // The night is in the list. Opening it is the Organizer Link, with no token kept.
+  await page.goto(MY_MIXERS);
+  const night = page.locator(".mm-mine-row", { has: page.locator(`a[href="${organizerPath}"]`) });
+  await expect(night).toContainText("8 players");
+  await expect(night).toContainText("Live");
+  await night.getByRole("link", { name: /^Open/ }).click();
+  await page.waitForURL(organizerPath);
+  await expect(page.getByRole("button", { name: "Finish Mixer" })).toBeVisible();
+
+  // Run it again: last night's Roster, no board yet, and nothing sent until the new board goes live.
+  await page.goto(MY_MIXERS);
+  // After the goto: the organizer board's own re-read can still be in flight before it.
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
+  await night.getByRole("link", { name: /^Run it again/ }).click();
+  await expect(page.getByRole("textbox", { name: "Tonight" })).toHaveValue(eight);
+  await expect(page.getByRole("button", { name: "Go live" })).toHaveCount(0);
+
+  const edited = eight.replace("Jorja Johnson", "Collin Johns");
+  const make = page.getByRole("button", { name: "Make the board" });
+  await expect(async () => {
+    await page.getByRole("textbox", { name: "Tonight" }).fill(edited);
+    await expect(make).toBeEnabled({ timeout: 1_000 });
+  }).toPass();
+  await make.click();
+  await expect(page.getByRole("region", { name: "The board" })).toContainText("Collin Johns");
+  await expect(page.getByRole("button", { name: "Go live" })).toBeVisible();
+  await expect(page).not.toHaveURL(/again=/);
+  expect(posts).toEqual([]);
 });
 
 test("a board with tonight's court numbers goes live with them on both links (#697)", async ({

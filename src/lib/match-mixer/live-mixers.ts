@@ -41,10 +41,26 @@ export type LiveMixer = {
   events: MixerEvent[];
 };
 
+/** One of the organizer's nights, as My Mixers lists it (#691). */
+export type MyMixer = {
+  id: string;
+  /** The Share Link payload the night was drawn from; Run it again opens it. */
+  config: string;
+  /** Opens the night as the Organizer Link does, without the organizer having kept it. */
+  organizerToken: string;
+  wentLiveAt: string;
+  /** Set once the night finished, by a tap or by the 12 hours. */
+  finishedAt: string | null;
+  /** The Roster's size, read off the Config. */
+  players: number;
+};
+
 export const UNREADABLE_BOARD =
   "This board can't go live: this version of Match Mixer can't redraw it. Make the board again, then go live.";
 
 export const SIGN_IN_TO_GO_LIVE = "Sign in with Google to go live. Every board you take live is saved to your account.";
+
+export const SIGN_IN_FOR_MY_MIXERS = "Sign in with Google to see the Live Mixers you've taken live.";
 
 export const ORGANIZER_ONLY = "Only the Organizer Link can do that.";
 
@@ -88,6 +104,25 @@ export async function goLive(
   if (error?.code === "22023") return { ok: false, problem: UNREADABLE_BOARD };
   if (error) throw new Error(`Going live failed: ${error.message}`);
   return { ok: true, value: data as { organizerToken: string; playerToken: string } };
+}
+
+/**
+ * My Mixers (#691): the signed-in organizer's Live Mixers, newest first,
+ * finished ones included. A superadmin's list is every Live Mixer. A night
+ * whose Config this build can't read is left out: Run it again couldn't open it.
+ */
+export async function myMixers(supabase: SupabaseClient): Promise<Outcome<MyMixer[]>> {
+  const { data, error } = await supabase.rpc("match_mixer_my_mixers");
+  if (error?.code === "42501") return { ok: false, problem: SIGN_IN_FOR_MY_MIXERS, signIn: true };
+  if (error) throw new Error(`Reading My Mixers failed: ${error.message}`);
+  const rows = (data ?? []) as Omit<MyMixer, "players">[];
+  return {
+    ok: true,
+    value: rows.flatMap((row) => {
+      const board = decodeShareLink(row.config);
+      return board ? [{ ...row, players: board.config.roster.length }] : [];
+    }),
+  };
 }
 
 /** The Live Mixer behind either link's token, or null when there's none. */

@@ -15,7 +15,7 @@ import { encodeSharePayload } from "@/components/apps/match-mixer/lib/persistenc
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { goLive, signInWithGoogleIdToken } from "@/lib/match-mixer/actions";
 import { readGoogleSignInClientId } from "@/lib/match-mixer/env";
-import { MATCH_MIXER_ROOT } from "@/lib/match-mixer/routes";
+import { MATCH_MIXER_ROOT, MY_MIXERS_PATH } from "@/lib/match-mixer/routes";
 
 import { GameRulePicker } from "./game-rule-picker";
 
@@ -129,6 +129,12 @@ export function GoLive({ config }: { config: BoardConfig | null }) {
           </Link>
         </p>
       ) : null}
+      <p className="mm-note mt-2">
+        <Link href={MY_MIXERS_PATH} prefetch={false} className="underline">
+          My Mixers
+        </Link>{" "}
+        has every night you&rsquo;ve taken live, to open or run again.
+      </p>
     </div>
   );
 }

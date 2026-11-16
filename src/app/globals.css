@@ -4286,6 +4286,40 @@ html:has(.bb-app-chrome) {
     box-shadow: 0 0 0 rgb(0 0 0 / 0.1), 0 3px 7px -6px rgb(0 0 0 / 0.4);
   }
 
+  /* My Mixers (#691): one ruled row per night, ruled the way the field is. The
+     two actions are the same plates as the share links, side by side. */
+  .mm-mine {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .mm-mine-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem 1.2rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--mm-rule);
+  }
+  .mm-mine-when {
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--mm-vinyl);
+  }
+  .mm-mine-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .mm-mine-actions .mm-share {
+    width: auto;
+    text-align: center;
+    text-decoration: none;
+  }
+
   /* ---- The ruled field ---------------------------------------------------- */
 
   /* A wide board gets its own scroller so the page itself never scrolls
