@@ -41,15 +41,15 @@ export type LiveMixer = {
   events: MixerEvent[];
 };
 
-/** One of the organizer's nights, as My Mixers lists it (#691). */
+/** One of an Owner's Live Mixers, as My Mixers lists it (#691). */
 export type MyMixer = {
   id: string;
-  /** The Share Link payload the night was drawn from; Run it again opens it. */
+  /** The Share Link payload the board was drawn from; Run it again opens it. */
   config: string;
-  /** Opens the night as the Organizer Link does, without the organizer having kept it. */
+  /** Opens the Live Mixer as the Organizer Link does, without its Owner having kept the link. */
   organizerToken: string;
   wentLiveAt: string;
-  /** Set once the night finished, by a tap or by the 12 hours. */
+  /** Set once the Live Mixer finished, by a tap or by the 12 hours. */
   finishedAt: string | null;
   /** The Roster's size, read off the Config. */
   players: number;
@@ -107,8 +107,8 @@ export async function goLive(
 }
 
 /**
- * My Mixers (#691): the signed-in organizer's Live Mixers, newest first,
- * finished ones included. A superadmin's list is every Live Mixer. A night
+ * My Mixers (#691): the signed-in Owner's Live Mixers, newest first,
+ * finished ones included. A superadmin's list is every Live Mixer. A Live Mixer
  * whose Config this build can't read is left out: Run it again couldn't open it.
  */
 export async function myMixers(supabase: SupabaseClient): Promise<Outcome<MyMixer[]>> {

@@ -1,9 +1,9 @@
 -- Match Mixer: My Mixers (#691). What this pins down, where the TS db-tests
 -- can't reach (no API role can add a superadmin):
 --
---   * an organizer's list is their own Live Mixers, newest first, with the
---     clock's finish showing on an old night;
---   * another organizer's nights are never in it;
+--   * an Owner's list is their own Live Mixers, newest first, with the
+--     clock's finish showing on an old Live Mixer;
+--   * another Owner's Live Mixers are never in it;
 --   * a superadmin's list is every Live Mixer;
 --   * signed out, and the anon role itself, can't call it.
 --
@@ -46,23 +46,23 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "69169169-0000-0000-0000-00000000000a", "role": "authenticated"}';
 
-select is(jsonb_array_length(public.match_mixer_my_mixers()), 2, 'the organizer sees their two nights');
+select is(jsonb_array_length(public.match_mixer_my_mixers()), 2, 'the Owner sees their two Live Mixers');
 select is(
   public.match_mixer_my_mixers() -> 0 ->> 'organizerToken',
   'mine-organizer0000000000000000a2',
   'the newest first, with the Organizer Link''s token to open it'
 );
-select is(public.match_mixer_my_mixers() -> 0 ->> 'finishedAt', null, 'an hour in, the night is still running');
+select is(public.match_mixer_my_mixers() -> 0 ->> 'finishedAt', null, 'an hour in, the Live Mixer is still running');
 select isnt(
   public.match_mixer_my_mixers() -> 1 ->> 'finishedAt',
   null,
   'three days on, the clock has finished it'
 );
 select is(
-  (select count(*) from jsonb_array_elements(public.match_mixer_my_mixers()) night
-   where night ->> 'organizerToken' = 'mine-organizer0000000000000000c1'),
+  (select count(*) from jsonb_array_elements(public.match_mixer_my_mixers()) mixer
+   where mixer ->> 'organizerToken' = 'mine-organizer0000000000000000c1'),
   0::bigint,
-  'and another organizer''s night is not in it'
+  'and another Owner''s Live Mixer is not in it'
 );
 
 -- ---- someone who isn't a superadmin sees only theirs --------------------------------
@@ -70,7 +70,7 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "69169169-0000-0000-0000-00000000000c", "role": "authenticated"}';
 
-select is(jsonb_array_length(public.match_mixer_my_mixers()), 1, 'another organizer sees only their own night');
+select is(jsonb_array_length(public.match_mixer_my_mixers()), 1, 'another Owner sees only their own Live Mixer');
 
 -- ---- the superadmin ------------------------------------------------------------------
 reset role;
@@ -78,14 +78,14 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub": "69169169-0000-0000-0000-00000000000b", "role": "authenticated"}';
 
 select is(
-  (select count(*) from jsonb_array_elements(public.match_mixer_my_mixers()) night
-   where night ->> 'organizerToken' in (
+  (select count(*) from jsonb_array_elements(public.match_mixer_my_mixers()) mixer
+   where mixer ->> 'organizerToken' in (
      'mine-organizer0000000000000000a1',
      'mine-organizer0000000000000000a2',
      'mine-organizer0000000000000000c1'
    )),
   3::bigint,
-  'a superadmin sees every organizer''s nights'
+  'a superadmin sees every Owner''s Live Mixers'
 );
 
 select * from finish();

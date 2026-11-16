@@ -5,7 +5,7 @@
 
 export const MATCH_MIXER_ROOT = "/tools/match-mixer";
 
-/** My Mixers (#691): the signed-in organizer's nights. */
+/** My Mixers (#691): the signed-in Owner's Live Mixers. */
 export const MY_MIXERS_PATH = `${MATCH_MIXER_ROOT}/mixers`;
 
 /** The Organizer Link: can do everything. Kept by the organizer. */

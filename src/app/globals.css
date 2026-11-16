@@ -4286,7 +4286,7 @@ html:has(.bb-app-chrome) {
     box-shadow: 0 0 0 rgb(0 0 0 / 0.1), 0 3px 7px -6px rgb(0 0 0 / 0.4);
   }
 
-  /* My Mixers (#691): one ruled row per night, ruled the way the field is. The
+  /* My Mixers (#691): one ruled row per Live Mixer, ruled the way the field is. The
      two actions are the same plates as the share links, side by side. */
   .mm-mine {
     list-style: none;

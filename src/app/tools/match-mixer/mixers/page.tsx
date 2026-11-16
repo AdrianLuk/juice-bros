@@ -15,10 +15,9 @@ export const metadata: Metadata = {
  * Signed out, it asks for sign-in and lists nothing.
  */
 export default async function MyMixersPage() {
-  const outcome = await myMixers(await createClient());
   return (
     <div className="flex w-full flex-1 flex-col">
-      <MyMixers nights={outcome.ok ? outcome.value : null} problem={outcome.ok ? null : outcome.problem} />
+      <MyMixers outcome={await myMixers(await createClient())} />
     </div>
   );
 }

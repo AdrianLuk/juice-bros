@@ -135,7 +135,7 @@ test("a signed-in organizer goes live and the Player Link opens the same board e
   await page.waitForURL(organizerLink);
 });
 
-test("My Mixers lists the night, and Run it again opens its Roster to edit and draw anew (#691)", async ({
+test("My Mixers lists the Live Mixer, and Run it again opens its Roster to edit and draw anew (#691)", async ({
   page,
   browser,
   baseURL,
@@ -161,23 +161,23 @@ test("My Mixers lists the night, and Run it again opens its Roster to edit and d
   await expect(player.getByText("Sign in")).toHaveCount(0);
   await phone.close();
 
-  // The night is in the list. Opening it is the Organizer Link, with no token kept.
+  // The Live Mixer is in the list. Opening it is the Organizer Link, with no token kept.
   await page.goto(MY_MIXERS);
-  const night = page.locator(".mm-mine-row", { has: page.locator(`a[href="${organizerPath}"]`) });
-  await expect(night).toContainText("8 players");
-  await expect(night).toContainText("Live");
-  await night.getByRole("link", { name: /^Open/ }).click();
+  const mixer = page.locator(".mm-mine-row", { has: page.locator(`a[href="${organizerPath}"]`) });
+  await expect(mixer).toContainText("8 players");
+  await expect(mixer).toContainText("Live");
+  await mixer.getByRole("link", { name: /^Open/ }).click();
   await page.waitForURL(organizerPath);
   await expect(page.getByRole("button", { name: "Finish Mixer" })).toBeVisible();
 
-  // Run it again: last night's Roster, no board yet, and nothing sent until the new board goes live.
+  // Run it again: last week's Roster, no board yet, and nothing sent until the new board goes live.
   await page.goto(MY_MIXERS);
   // After the goto: the organizer board's own re-read can still be in flight before it.
   const posts: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "POST") posts.push(request.url());
   });
-  await night.getByRole("link", { name: /^Run it again/ }).click();
+  await mixer.getByRole("link", { name: /^Run it again/ }).click();
   await expect(page.getByRole("textbox", { name: "Tonight" })).toHaveValue(eight);
   await expect(page.getByRole("button", { name: "Go live" })).toHaveCount(0);
 

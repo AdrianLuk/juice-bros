@@ -409,7 +409,7 @@ test("the tables themselves are shut, signed in or out", async () => {
 // #691: My Mixers. A superadmin seeing every Live Mixer is in
 // supabase/tests/match_mixer_mine.test.sql: no role here can add one.
 
-test("My Mixers lists the organizer's own Live Mixers, newest first, each with the link to open it", async () => {
+test("My Mixers lists the Owner's own Live Mixers, newest first, each with the link to open it", async () => {
   const owner = await organizer();
   const first = await goLive(owner.supabase, CONFIG);
   const second = await goLive(owner.supabase, CONFIG);
@@ -428,7 +428,7 @@ test("My Mixers lists the organizer's own Live Mixers, newest first, each with t
   }
 });
 
-test("My Mixers never lists another organizer's Live Mixer", async () => {
+test("My Mixers never lists another Owner's Live Mixer", async () => {
   const owner = await organizer();
   const other = await organizer();
   const theirs = await goLive(other.supabase, CONFIG);
@@ -445,9 +445,9 @@ test("My Mixers never lists another organizer's Live Mixer", async () => {
 
 test("a finished Live Mixer stays in My Mixers, marked finished", async () => {
   const owner = await organizer();
-  const night = await goLive(owner.supabase, CONFIG);
-  assert.ok(night.ok);
-  assert.ok((await finishMixer(owner.supabase, night.value.organizerToken)).ok);
+  const mixer = await goLive(owner.supabase, CONFIG);
+  assert.ok(mixer.ok);
+  assert.ok((await finishMixer(owner.supabase, mixer.value.organizerToken)).ok);
 
   const mine = await myMixers(owner.supabase);
   assert.ok(mine.ok);

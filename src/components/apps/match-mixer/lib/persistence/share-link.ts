@@ -261,7 +261,9 @@ export function encodeSharePayload(config: SharedConfig): string {
 }
 
 /**
- * The address bar, with the share parameter gone.
+ * The address bar, with the share parameter gone, and the Run it again one
+ * (#691), which is the same board arriving the same way and goes stale for
+ * the same reason.
  *
  * The one thing a link-opened board can do that a saved one cannot is lie: the
  * moment the board on screen stops matching what the parameter describes —

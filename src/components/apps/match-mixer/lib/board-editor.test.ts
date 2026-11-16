@@ -339,7 +339,7 @@ function lastWeek(): SharedBoard {
 test("Run it again puts last week's Roster and settings in the editor with no board drawn (#691)", () => {
   const last = lastWeek();
   const again = restore(EMPTY, { from: "again", board: last });
-  assert.equal(again.draw, null, "a fresh Seed means a fresh draw, not last week's board");
+  assert.equal(again.draw, null, "a fresh Seed means a new board, not last week's");
   assert.equal(again.text, EIGHT.join("\n"));
   assert.deepEqual(
     again.roster.map((player) => player.name),
