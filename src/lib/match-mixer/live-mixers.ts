@@ -315,7 +315,7 @@ export async function addPlayer(
   token: string,
   lines: unknown,
   pool: unknown,
-): Promise<Outcome<null>> {
+): Promise<Outcome<{ player: number; name: string }>> {
   const live = await organizerMixer(supabase, token);
   if (!live.ok) return live;
   const { config, pools } = live.draw;
@@ -343,7 +343,10 @@ export async function addPlayer(
     return refusal(`A board holds up to ${MAX_BOARD_SIZE} players.`);
   }
   if (!roundLeft(live)) return refusal(NO_ROUNDS_LEFT);
-  return append(supabase, token, "player_added", { lines: given, pool });
+  const added = await append(supabase, token, "player_added", { lines: given, pool });
+  // Where they landed, for an undo. `setPlaying` checks the name, so a second
+  // phone's add landing first refuses the undo rather than taking off someone else.
+  return added.ok ? { ok: true, value: { player: config.roster.length, name: players[0].name } } : added;
 }
 
 /**
@@ -357,11 +360,14 @@ export async function setPlaying(
   token: string,
   player: unknown,
   playing: boolean,
+  /** The name the caller expects at `player`, when it has one to check. */
+  name?: string,
 ): Promise<Outcome<null>> {
   const live = await organizerMixer(supabase, token);
   if (!live.ok) return live;
-  const size = live.draw.config.roster.length;
-  if (!Number.isInteger(player) || (player as number) < 0 || (player as number) >= size) return refusal(NOT_A_PLAYER);
+  const { roster } = live.draw.config;
+  if (!Number.isInteger(player) || (player as number) < 0 || (player as number) >= roster.length) return refusal(NOT_A_PLAYER);
+  if (name !== undefined && roster[player as number].name !== name) return refusal(NOT_A_PLAYER);
   if (live.replayed.playing[player as number] === Boolean(playing)) return { ok: true, value: null };
   if (!roundLeft(live)) return refusal(NO_ROUNDS_LEFT);
   return append(supabase, token, playing ? "player_added" : "player_left", { player });

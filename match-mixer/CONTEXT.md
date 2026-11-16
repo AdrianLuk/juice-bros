@@ -243,7 +243,7 @@ Regeneration happens per Pool, above the engine (ADR 0004). A Pool's Rounds are 
 
 Courts stay where the pool layer put them. A Pool that can now fill fewer courts drops a Game in those Rounds rather than playing three; one that could fill more does not get another. On a dealt board the organizer picks the Pool; on a declared one they pick the Pool by its header. Only that Pool is drawn again. The Format's own rules still apply with their own messages: fixed partners adds and loses a Pairing whole, and mixed doubles needs a Marker on the new line.
 
-The engine learned one thing for it and nothing about Pools or Live Mixers: a search or a circle can start from counts a Roster already carries (`history`). Absent, every path is the one it was, so no Config draws a different board and `GENERATOR_VERSION` is unchanged.
+The engine learned one thing for it and nothing about Pools or Live Mixers: a search or a circle can start from counts a Roster already carries (`history`). Absent, every path is the one it was, so no Config draws a different board and `GENERATOR_VERSION` is unchanged. Present, it is now part of what a Seed reproduces: a Live Mixer's locked Rounds may have been drawn by it, so a later change to the `history` paths or to `lib/live/roster-changes.ts` bumps the version like any other change to the draw.
 _Avoid_: Substitution, swap, roster edit (the Config is never edited)
 
 **Late arrival**:

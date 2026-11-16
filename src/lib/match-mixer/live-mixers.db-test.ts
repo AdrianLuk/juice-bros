@@ -483,7 +483,10 @@ async function seatedAt(token: string, round: number): Promise<number[]> {
 test("the Organizer Link adds a Player, who joins the next Round on both links, and the locked Round stands", async () => {
   const { organizerToken, playerToken } = await live();
   const roundOne = await seatedAt(playerToken, 0);
-  assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["Federico Staksrud"], 0), { ok: true, value: null });
+  assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["Federico Staksrud"], 0), {
+    ok: true,
+    value: { player: 8, name: "Federico Staksrud" },
+  });
 
   assert.deepEqual(await seatedAt(playerToken, 0), roundOne);
   assert.ok((await seatedAt(playerToken, 1)).includes(8));
@@ -506,6 +509,20 @@ test("a Player marked as left is off the board from the next Round, and back aga
 
   assert.ok((await setPlaying(anonClient(), organizerToken, BEN, true)).ok);
   assert.ok((await seatedAt(playerToken, 1)).includes(BEN));
+});
+
+test("an undo aimed at a Player another phone added first is refused, not applied to them", async () => {
+  const { organizerToken, playerToken } = await live();
+  const mine = await addPlayer(anonClient(), organizerToken, ["Hayden Patriquin"], 0);
+  assert.ok(mine.ok);
+  // This phone guessed index 8 for a name that isn't there.
+  assert.deepEqual(await setPlaying(anonClient(), organizerToken, 8, false, "Federico Staksrud"), {
+    ok: false,
+    problem: NOT_A_PLAYER,
+  });
+  assert.ok((await seatedAt(playerToken, 1)).includes(8));
+  assert.ok((await setPlaying(anonClient(), organizerToken, mine.value.player, false, mine.value.name)).ok);
+  assert.ok(!(await seatedAt(playerToken, 1)).includes(8));
 });
 
 test("adding a Player follows the Format's rules, and needs a Round nobody has started", async () => {

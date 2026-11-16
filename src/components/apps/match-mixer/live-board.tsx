@@ -6,7 +6,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { courtLabel } from "@/components/apps/match-mixer/lib/court-labels";
 import { locate, poolName } from "@/components/apps/match-mixer/lib/engine/pools";
 import type { PlayerIndex } from "@/components/apps/match-mixer/lib/engine/types";
-import { gameKey, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
+import { resolveFormat } from "@/components/apps/match-mixer/lib/engine/format";
+import { resolveMixed } from "@/components/apps/match-mixer/lib/engine/mixed";
+import { gameKey, MAX_LINE_LENGTH, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
+import { linesPerArrival } from "@/components/apps/match-mixer/lib/live/roster-changes";
 import { describeGameRule, type GameRule, type GameScore } from "@/components/apps/match-mixer/lib/live/game-rule";
 import {
   gameOn,
@@ -337,7 +340,7 @@ function roundOn(currentRound: number, rounds: number): number {
  * Match Mixer may still have landed, so the problem says to look rather than
  * "it didn't change" (Mic Drop's #671). `landed` finishes "reload to see if …".
  */
-async function reach(write: () => Promise<Outcome<null>>, landed: string): Promise<Outcome<null>> {
+async function reach<T>(write: () => Promise<Outcome<T>>, landed: string): Promise<Outcome<T>> {
   try {
     return await write();
   } catch {
@@ -413,13 +416,14 @@ function PlayersControl({
   onSaved: () => Promise<void>;
 }) {
   const { draw } = live;
-  const format = draw.pools[0]?.score.format ?? "rotating";
+  const format = resolveFormat(draw.config.format);
   const pair = format === "fixed";
-  const mixed = draw.config.mixed === true;
+  const mixed = resolveMixed(format, draw.config.mixed);
   const pooled = draw.pools.length > 1;
   const from = live.currentRound + 1;
+  const blank = () => Array.from({ length: linesPerArrival(format) }, () => "");
 
-  const [lines, setLines] = useState<string[]>(pair ? ["", ""] : [""]);
+  const [lines, setLines] = useState<string[]>(blank);
   const [pool, setPool] = useState(0);
   const [player, setPlayer] = useState("");
   const [pending, setPending] = useState(false);
@@ -435,8 +439,16 @@ function PlayersControl({
   }
 
   // One entry per unit that comes and goes: a Player, or a Pairing in fixed partners.
+  // An arrival undone before their first Round is on no Round, and isn't offered back.
+  const seen = new Set(
+    draw.pools.flatMap((entry) =>
+      entry.schedule.rounds.flatMap((round) =>
+        [...round.byes, ...round.games.flatMap((game) => game.sides.flat())].map((at) => entry.members[at]),
+      ),
+    ),
+  );
   const units = draw.config.roster.flatMap((entry, index) => {
-    if (pair && index % 2 === 1) return [];
+    if ((pair && index % 2 === 1) || (!live.playing[index] && !seen.has(index))) return [];
     const name = pair ? `${entry.name} / ${draw.config.roster[index + 1]?.name ?? ""}` : entry.name;
     const located = locate(draw.pools, index);
     const where = pooled && located ? ` (${poolName(draw.pools[located.pool].label)})` : "";
@@ -444,12 +456,17 @@ function PlayersControl({
   });
   const chosen = units.find((unit) => String(unit.index) === player) ?? null;
 
-  const write = async (run: () => Promise<Outcome<null>>, done: string, undo?: () => Promise<void>) => {
+  // `undoFor` builds the change's undo from what the write handed back.
+  const write = async <T,>(run: () => Promise<Outcome<T>>, done: string, undoFor?: (value: T) => () => Promise<void>) => {
     setPending(true);
     setSaid(null);
     const outcome = await reach(run, "the board changed");
     if (outcome.ok) await onSaved();
-    setSaid(outcome.ok ? { tone: "done", text: done, undo } : { tone: "refused", text: outcome.problem });
+    setSaid(
+      outcome.ok
+        ? { tone: "done", text: done, undo: undoFor?.(outcome.value) }
+        : { tone: "refused", text: outcome.problem },
+    );
     setPending(false);
     return outcome.ok;
   };
@@ -461,14 +478,15 @@ function PlayersControl({
 
   const add = async (event: FormEvent) => {
     event.preventDefault();
-    const index = draw.config.roster.length;
     const name = lines.map((line) => line.trim()).filter(Boolean).join(" and ");
     const ok = await write(
       () => addPlayer(token, lines, pool),
       `${name} ${pair ? "join" : "joins"} in round ${from + 1}.`,
-      undo(() => setPlaying(token, index, false), `${name} ${pair ? "are" : "is"} off the board again.`),
+      // The index the server appended at, and the name it expects there.
+      (added) =>
+        undo(() => setPlaying(token, added.player, false, added.name), `${name} ${pair ? "are" : "is"} off the board again.`),
     );
-    if (ok) setLines(pair ? ["", ""] : [""]);
+    if (ok) setLines(blank());
   };
 
   const toggle = async () => {
@@ -477,7 +495,7 @@ function PlayersControl({
     await write(
       () => setPlaying(token, index, !playing),
       playing ? `${label} is off the board from round ${from + 1}.` : `${label} is back on the board from round ${from + 1}.`,
-      undo(() => setPlaying(token, index, playing), playing ? `${label} is back on the board.` : `${label} is off the board again.`),
+      () => undo(() => setPlaying(token, index, playing), playing ? `${label} is back on the board.` : `${label} is off the board again.`),
     );
   };
 
@@ -501,7 +519,7 @@ function PlayersControl({
             aria-label={pair ? `Partner ${index + 1}` : undefined}
             className="mm-input mt-1 w-full px-2 py-1"
             value={line}
-            maxLength={60}
+            maxLength={MAX_LINE_LENGTH}
             autoComplete="off"
             placeholder={mixed ? "Name M" : "Name"}
             onChange={(event) => setLines(lines.map((old, at) => (at === index ? event.target.value : old)))}

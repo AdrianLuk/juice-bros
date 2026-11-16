@@ -20,6 +20,13 @@
  * drops a Game in those Rounds rather than playing three; one that could fill
  * more does not get another.
  *
+ * A Live Mixer runs for up to 12 hours, across deploys, and its locked Rounds
+ * must not move under it. So a change to what this module draws (the walk,
+ * `seedAt`, the history it hands over) or to the `history` paths in the engine
+ * requires bumping `GENERATOR_VERSION` in `persistence/share-link.ts`, on the
+ * same rule as `generator.ts` and `circle.ts`: the board then says it may
+ * differ from the one that went live.
+ *
  * Relative imports only, for `node --test`.
  */
 

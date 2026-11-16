@@ -118,7 +118,12 @@ export function standings(board: StandingsBoard, scores: Scores): StandingsRow[]
     ranks.push(previous && level(previous, entry) && h2h(previous) === h2h(entry) ? ranks[position - 1] : position + 1);
   });
 
-  return ordered.map((entry, position) => ({
+  // A late arrival taken off before their first Round never reaches the board,
+  // and an undo leaves no row behind (#692). Everyone else is on it somewhere.
+  const onBoard = new Set(
+    board.schedule.rounds.flatMap((round) => [...round.byes, ...round.games.flatMap((game) => game.sides.flat())]),
+  );
+  return ordered.flatMap((entry, position) => (entry.players.some((player) => onBoard.has(player)) ? [{
     players: entry.players,
     name: entry.players.map((player) => board.roster[player]?.name ?? "").join(" / "),
     wins: entry.wins,
@@ -126,5 +131,5 @@ export function standings(board: StandingsBoard, scores: Scores): StandingsRow[]
     pointDiff: entry.pointDiff,
     rank: ranks[position],
     joined: board.joined?.[entry.players[0]] ?? 0,
-  }));
+  }] : []));
 }

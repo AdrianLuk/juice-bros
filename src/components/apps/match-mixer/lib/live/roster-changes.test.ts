@@ -82,6 +82,8 @@ test("taking an added Player off before their first Round puts the board back ex
   const before = built(nine, [started(1)]);
   const undone = built(nine, [started(1), added(["Late"]), left(9)]);
   assert.deepEqual(roundsOf(undone), roundsOf(before));
+  // Nor do they leave a row behind in the Standings.
+  assert.deepEqual(undone.standings, before.standings);
 });
 
 test("a Player marked as left is off the board from the next unlocked Round, and the locked ones stand", () => {

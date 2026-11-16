@@ -46,7 +46,7 @@ export async function readLiveMixer(token: string): Promise<LiveMixer | null> {
 }
 
 /** A write that failed behind the server reads as a refusal, not a crash. */
-async function settle(write: () => Promise<Outcome<null>>): Promise<Outcome<null>> {
+async function settle<T>(write: () => Promise<Outcome<T>>): Promise<Outcome<T>> {
   try {
     return await write();
   } catch (error) {
@@ -84,13 +84,27 @@ export async function finishMixer(token: string): Promise<Outcome<null>> {
 }
 
 /** The Organizer Link adds a late arrival to one Pool: a Roster line, or a Pairing's two (#692). */
-export async function addPlayer(token: string, lines: string[], pool: number): Promise<Outcome<null>> {
+export async function addPlayer(
+  token: string,
+  lines: string[],
+  pool: number,
+): Promise<Outcome<{ player: number; name: string }>> {
   return settle(async () => liveMixers.addPlayer(await createClient(), String(token), lines, pool));
 }
 
-/** The Organizer Link marks a Player as left, or back again, from the next unstarted Round (#692). */
-export async function setPlaying(token: string, player: number, playing: boolean): Promise<Outcome<null>> {
-  return settle(async () => liveMixers.setPlaying(await createClient(), String(token), player, playing === true));
+/**
+ * The Organizer Link marks a Player as left, or back again, from the next
+ * unstarted Round (#692). `name`, when given, must be the Player at `player`.
+ */
+export async function setPlaying(
+  token: string,
+  player: number,
+  playing: boolean,
+  name?: string,
+): Promise<Outcome<null>> {
+  return settle(async () =>
+    liveMixers.setPlaying(await createClient(), String(token), player, playing === true, typeof name === "string" ? name : undefined),
+  );
 }
 
 /** The Organizer Link changes the Game Rule for scores from now on. */
