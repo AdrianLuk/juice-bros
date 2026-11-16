@@ -444,3 +444,43 @@ test("a link with nothing behind it says so", async ({ page }) => {
   await page.goto(`${ROUTE}/player/${"0".repeat(32)}`);
   await expect(page.getByRole("heading", { name: "No such board" })).toBeVisible();
 });
+
+/** One Round's row on the board, as text. */
+async function roundRow(page: Page, round: number): Promise<string> {
+  await expect(boardGrid(page)).toBeVisible();
+  return (await boardGrid(page).locator("tbody tr").nth(round).textContent()) ?? "";
+}
+
+test("the organizer adds a late arrival and the Player Link shows the new Rounds, with the locked one unchanged (#692)", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  await signIn(page);
+  await drawBoard(page, ROSTER.split("\n").slice(0, 8).join("\n"));
+  await page.getByRole("button", { name: "Go live" }).click();
+  await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
+  const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+
+  const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const player = await phone.newPage();
+  await player.goto(playerLink);
+  const roundOne = await roundRow(player, 0);
+  await expect(boardGrid(player)).not.toContainText("Hayden Patriquin");
+
+  // Round 1 is on, so the newcomer joins Round 2.
+  await page.getByRole("textbox", { name: "Add a player" }).fill("Hayden Patriquin");
+  await page.getByRole("button", { name: "Add player" }).click();
+  await expect(page.getByText("Hayden Patriquin joins in round 2.")).toBeVisible();
+
+  await expect(boardGrid(player)).toContainText("Hayden Patriquin", { timeout: 10_000 });
+  expect(await roundRow(player, 0)).toBe(roundOne);
+  await expect(player.getByRole("region", { name: "Standings" })).toContainText("joined round 2");
+
+  // Undo takes them off again, and the other phone follows.
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByText("Hayden Patriquin is off the board again.")).toBeVisible();
+  await expect(boardGrid(player)).not.toContainText("Hayden Patriquin", { timeout: 10_000 });
+  expect(await roundRow(player, 0)).toBe(roundOne);
+  await phone.close();
+});

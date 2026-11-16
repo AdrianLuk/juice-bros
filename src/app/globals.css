@@ -5157,6 +5157,16 @@ html:has(.bb-app-chrome) {
     font-size: 0.875rem;
     line-height: 1.3;
   }
+  /* A late arrival's row says when they joined (#692), so a short record
+     reads as a short night rather than a bad one. */
+  .mm-table-joined {
+    display: block;
+    font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
+    font-weight: 400;
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+    color: var(--mm-vinyl-2);
+  }
   .mm-table tbody td {
     font-family: var(--font-mm-vinyl), "Archivo Narrow", "Arial Narrow", sans-serif;
     font-weight: 700;

@@ -61,6 +61,7 @@ export function StandingsTables({
                   </td>
                   <th scope="row" className="mm-table-name">
                     {row.name}
+                    {row.joined > 0 ? <span className="mm-table-joined">joined round {row.joined + 1}</span> : null}
                   </th>
                   <td>{row.wins}</td>
                   <td>{row.losses}</td>
