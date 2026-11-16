@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { courtLabel } from "@/components/apps/match-mixer/lib/court-labels";
 import { locate, poolName } from "@/components/apps/match-mixer/lib/engine/pools";
 import type { PlayerIndex } from "@/components/apps/match-mixer/lib/engine/types";
-import { gameKey, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
+import { resolveFormat } from "@/components/apps/match-mixer/lib/engine/format";
+import { resolveMixed } from "@/components/apps/match-mixer/lib/engine/mixed";
+import { gameKey, MAX_LINE_LENGTH, type GameAt } from "@/components/apps/match-mixer/lib/live/events";
+import { linesPerArrival } from "@/components/apps/match-mixer/lib/live/roster-changes";
 import { describeGameRule, type GameRule, type GameScore } from "@/components/apps/match-mixer/lib/live/game-rule";
 import {
   gameOn,
@@ -23,7 +26,15 @@ import {
   load as loadSelection,
   save as saveSelection,
 } from "@/components/apps/match-mixer/lib/persistence/selection-storage";
-import { changeGameRule, clearScore, enterScore, finishMixer, startRound } from "@/lib/match-mixer/actions";
+import {
+  addPlayer,
+  changeGameRule,
+  clearScore,
+  enterScore,
+  finishMixer,
+  setPlaying,
+  startRound,
+} from "@/lib/match-mixer/actions";
 import type { LiveMixer, Outcome } from "@/lib/match-mixer/live-mixers";
 
 import { GameRulePicker } from "./game-rule-picker";
@@ -214,6 +225,7 @@ function LiveFace({
                 {finished ? null : (
                   <>
                     <RoundControl token={token} current={live.currentRound} rounds={rounds} onSaved={reread} />
+                    <PlayersControl token={token} live={live} rounds={rounds} onSaved={reread} />
                     <RuleControl token={token} rule={live.rule} onSaved={reread} />
                   </>
                 )}
@@ -328,7 +340,7 @@ function roundOn(currentRound: number, rounds: number): number {
  * Match Mixer may still have landed, so the problem says to look rather than
  * "it didn't change" (Mic Drop's #671). `landed` finishes "reload to see if …".
  */
-async function reach(write: () => Promise<Outcome<null>>, landed: string): Promise<Outcome<null>> {
+async function reach<T>(write: () => Promise<Outcome<T>>, landed: string): Promise<Outcome<T>> {
   try {
     return await write();
   } catch {
@@ -381,6 +393,184 @@ function RoundControl({
       ) : null}
       <p className="mm-note mt-1" role="status" data-tone={problem ? "refused" : undefined}>
         {problem}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Late arrivals and early departures (#692). Both land on the first Round
+ * nobody has started, and only that Pool's unstarted Rounds are drawn again.
+ * Each change offers its own undo straight after: taking an added Player off
+ * before their first Round puts the board back exactly.
+ */
+function PlayersControl({
+  token,
+  live,
+  rounds,
+  onSaved,
+}: {
+  token: string;
+  live: RebuiltMixer;
+  rounds: number;
+  onSaved: () => Promise<void>;
+}) {
+  const { draw } = live;
+  const format = resolveFormat(draw.config.format);
+  const pair = format === "fixed";
+  const mixed = resolveMixed(format, draw.config.mixed);
+  const pooled = draw.pools.length > 1;
+  const from = live.currentRound + 1;
+  const blank = () => Array.from({ length: linesPerArrival(format) }, () => "");
+
+  const [lines, setLines] = useState<string[]>(blank);
+  const [pool, setPool] = useState(0);
+  const [player, setPlayer] = useState("");
+  const [pending, setPending] = useState(false);
+  const [said, setSaid] = useState<{ tone: "done" | "refused"; text: string; undo?: () => Promise<void> } | null>(null);
+
+  if (from >= rounds) {
+    return (
+      <div className="mb-6">
+        <p className="mm-legend">Players</p>
+        <p className="mm-note mt-1">Every Round has started, so who&rsquo;s playing tonight is settled.</p>
+      </div>
+    );
+  }
+
+  // One entry per unit that comes and goes: a Player, or a Pairing in fixed partners.
+  // An arrival undone before their first Round is on no Round, and isn't offered back.
+  const seen = new Set(
+    draw.pools.flatMap((entry) =>
+      entry.schedule.rounds.flatMap((round) =>
+        [...round.byes, ...round.games.flatMap((game) => game.sides.flat())].map((at) => entry.members[at]),
+      ),
+    ),
+  );
+  const units = draw.config.roster.flatMap((entry, index) => {
+    if ((pair && index % 2 === 1) || (!live.playing[index] && !seen.has(index))) return [];
+    const name = pair ? `${entry.name} / ${draw.config.roster[index + 1]?.name ?? ""}` : entry.name;
+    const located = locate(draw.pools, index);
+    const where = pooled && located ? ` (${poolName(draw.pools[located.pool].label)})` : "";
+    return [{ index, label: `${name}${where}`, playing: live.playing[index] }];
+  });
+  const chosen = units.find((unit) => String(unit.index) === player) ?? null;
+
+  // `undoFor` builds the change's undo from what the write handed back.
+  const write = async <T,>(run: () => Promise<Outcome<T>>, done: string, undoFor?: (value: T) => () => Promise<void>) => {
+    setPending(true);
+    setSaid(null);
+    const outcome = await reach(run, "the board changed");
+    if (outcome.ok) await onSaved();
+    setSaid(
+      outcome.ok
+        ? { tone: "done", text: done, undo: undoFor?.(outcome.value) }
+        : { tone: "refused", text: outcome.problem },
+    );
+    setPending(false);
+    return outcome.ok;
+  };
+
+  // A change's undo is the opposite change, offered once, with no undo of its own.
+  const undo = (run: () => Promise<Outcome<null>>, done: string) => async () => {
+    await write(run, done);
+  };
+
+  const add = async (event: FormEvent) => {
+    event.preventDefault();
+    const name = lines.map((line) => line.trim()).filter(Boolean).join(" and ");
+    const ok = await write(
+      () => addPlayer(token, lines, pool),
+      `${name} ${pair ? "join" : "joins"} in round ${from + 1}.`,
+      // The index the server appended at, and the name it expects there.
+      (added) =>
+        undo(() => setPlaying(token, added.player, false, added.name), `${name} ${pair ? "are" : "is"} off the board again.`),
+    );
+    if (ok) setLines(blank());
+  };
+
+  const toggle = async () => {
+    if (!chosen) return;
+    const { index, label, playing } = chosen;
+    await write(
+      () => setPlaying(token, index, !playing),
+      playing ? `${label} is off the board from round ${from + 1}.` : `${label} is back on the board from round ${from + 1}.`,
+      () => undo(() => setPlaying(token, index, playing), playing ? `${label} is back on the board.` : `${label} is off the board again.`),
+    );
+  };
+
+  return (
+    <div className="mb-6">
+      <p className="mm-legend">Players</p>
+      <p className="mm-note mt-1">
+        Changes start in round {from + 1}. Rounds already on stay as they are; only{" "}
+        {pooled ? "that Pool's" : "the"} later Rounds are drawn again.
+      </p>
+
+      <form className="mt-3" onSubmit={add}>
+        <label className="mm-note block" htmlFor="mm-add-0">
+          {pair ? "Add a pair" : "Add a player"}
+          {mixed ? ", with M or F after the name" : ""}
+        </label>
+        {lines.map((line, index) => (
+          <input
+            key={index}
+            id={`mm-add-${index}`}
+            aria-label={pair ? `Partner ${index + 1}` : undefined}
+            className="mm-input mt-1 w-full px-2 py-1"
+            value={line}
+            maxLength={MAX_LINE_LENGTH}
+            autoComplete="off"
+            placeholder={mixed ? "Name M" : "Name"}
+            onChange={(event) => setLines(lines.map((old, at) => (at === index ? event.target.value : old)))}
+          />
+        ))}
+        {pooled ? (
+          <select
+            aria-label="Pool"
+            className="mm-input mt-1 w-full px-2 py-1"
+            value={pool}
+            onChange={(event) => setPool(Number(event.target.value))}
+          >
+            {draw.pools.map((entry, index) => (
+              <option key={index} value={index}>
+                {poolName(entry.label)}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <button type="submit" className="mm-share mt-2" disabled={pending || lines.every((line) => !line.trim())}>
+          {pair ? "Add the pair" : "Add player"}
+        </button>
+      </form>
+
+      <label className="mm-note mt-4 block" htmlFor="mm-who">
+        {pair ? "A pair leaving, or back" : "Someone leaving, or back"}
+      </label>
+      <select
+        id="mm-who"
+        className="mm-input mt-1 w-full px-2 py-1"
+        value={player}
+        onChange={(event) => setPlayer(event.target.value)}
+      >
+        <option value="">{pair ? "Pick a pair" : "Pick a player"}</option>
+        {units.map((unit) => (
+          <option key={unit.index} value={unit.index}>
+            {unit.playing ? unit.label : `${unit.label}, off the board`}
+          </option>
+        ))}
+      </select>
+      <button type="button" className="mm-share mt-2" onClick={toggle} disabled={pending || !chosen}>
+        {chosen && !chosen.playing ? "Back on the board" : "Mark as left"}
+      </button>
+
+      <p className="mm-note mt-1" role="status" data-tone={said?.tone}>
+        {said?.text}{" "}
+        {said?.undo ? (
+          <button type="button" className="underline" onClick={said.undo} disabled={pending}>
+            Undo
+          </button>
+        ) : null}
       </p>
     </div>
   );

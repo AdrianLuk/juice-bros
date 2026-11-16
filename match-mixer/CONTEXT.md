@@ -198,9 +198,9 @@ Headers ride inside the Share Link's roster block, under the checksum, and arriv
 
 _Avoid_: Group (too loose to mean anything), flight, division, heat, bracket (nothing here is elimination), court group
 
-### Not built yet
+### Running a night
 
-Everything below is specced in #685 (RR-2 + RR-5) and not yet built. It is the one part of Match Mixer with a backend, and it only exists after **Go Live** ([ADR 0006](docs/adr/0006-match-mixer-gains-a-backend-at-go-live.md)). Drawing a board is unchanged.
+Everything below is #685 (RR-2 + RR-5), built across #687 to #692. It is the one part of Match Mixer with a backend, and it only exists after **Go Live** ([ADR 0006](docs/adr/0006-match-mixer-gains-a-backend-at-go-live.md)). Drawing a board is unchanged.
 
 **Mixer**:
 A Schedule plus everything that has since happened to it — Rounds locked, scores entered, people arriving and leaving. A Config and its Schedule describe a plan; a Mixer is a plan being run. A **Live Mixer** is a Mixer that has been committed to the database.
@@ -233,6 +233,22 @@ _Avoid_: Active round, live round, this round
 **Lock**:
 A Round at or before the Current Round: it stops being rebuilt when the Roster changes. Locking is what makes a Mixer more than a Schedule — later Rounds may be regenerated around someone who arrived or left, and locked Rounds never move. It is no longer an action the organizer takes; it follows from the Current Round.
 _Avoid_: Commit, freeze, finalise
+
+**Roster change** (#692):
+The Organizer Link adding a **Late arrival** or marking a Player as left after Go Live. Both are events (`player_added`, `player_left`), and both land on the first Round not yet locked: the Round after the Current Round at the moment the event is logged, read off the log's order rather than stored, so a Roster change can never move a Round that has started. A Player who left can be put back the same way, and an undo is just the opposite change.
+
+The **live Roster** is the Config's Roster followed by everyone who joined, in log order, so a Roster index (and a **Selection**) means the same Player all night. The Config itself is never edited: the Share Link payload a Live Mixer stores stays the plan it went live with.
+
+Regeneration happens per Pool, above the engine (ADR 0004). A Pool's Rounds are walked in order, and wherever its set of Players on the board differs from the Round before, every Round from there is drawn again by `continueRounds`, starting from the partner, opponent and Bye counts of the Rounds before it. A Round somebody was not on the board for counts as a Bye, which is what puts a late arrival on court first. Because it works off the set rather than the events, a Player added and taken off again before their first Round leaves the board exactly as it was. The Schedule is still never stored: the same Config and events always rebuild the same board.
+
+Courts stay where the pool layer put them. A Pool that can now fill fewer courts drops a Game in those Rounds rather than playing three; one that could fill more does not get another. On a dealt board the organizer picks the Pool; on a declared one they pick the Pool by its header. Only that Pool is drawn again. The Format's own rules still apply with their own messages: fixed partners adds and loses a Pairing whole, and mixed doubles needs a Marker on the new line.
+
+The engine learned one thing for it and nothing about Pools or Live Mixers: a search or a circle can start from counts a Roster already carries (`history`). Absent, every path is the one it was, so no Config draws a different board and `GENERATOR_VERSION` is unchanged. Present, it is now part of what a Seed reproduces: a Live Mixer's locked Rounds may have been drawn by it, so a later change to the `history` paths or to `lib/live/roster-changes.ts` bumps the version like any other change to the draw.
+_Avoid_: Substitution, swap, roster edit (the Config is never edited)
+
+**Late arrival**:
+A Player added after Go Live. Absent from the locked Rounds, on the board from the next one, and their Standings row says which Round they joined ("joined round 4").
+_Avoid_: Sub, walk-in
 
 **Standings**:
 One table per Pool, computed from the scores every time and never stored. Ranked by wins, then point differential, then head-to-head. Wins, not win percentage, so a late arrival who won their only Game does not top the table; their row says which Round they joined. Rows are Players in rotating partners and singles and Pairings in fixed partners. There is no verdict across Pools. Visible to everyone, live, all night.

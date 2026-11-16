@@ -8,16 +8,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { GameAt, MixerEvent } from "../../components/apps/match-mixer/lib/live/events.ts";
-import { readGameAt, replay } from "../../components/apps/match-mixer/lib/live/events.ts";
+import { formatObjection, resolveFormat } from "../../components/apps/match-mixer/lib/engine/format.ts";
+import { mixedObjection, resolveMixed, splitMarker } from "../../components/apps/match-mixer/lib/engine/mixed.ts";
+import { MAX_BOARD_SIZE, poolName } from "../../components/apps/match-mixer/lib/engine/pools.ts";
+import { MAX_ROSTER_SIZE } from "../../components/apps/match-mixer/lib/engine/types.ts";
+import { MAX_LINE_LENGTH, readGameAt } from "../../components/apps/match-mixer/lib/live/events.ts";
 import { readGameRule, scoreProblem, type GameRule, type GameScore } from "../../components/apps/match-mixer/lib/live/game-rule.ts";
 import {
   gameOn,
   notStarted,
   playerAccess,
+  rebuild,
   redraw,
   roundCount,
   runsTheNight,
 } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
+import { linesPerArrival } from "../../components/apps/match-mixer/lib/live/roster-changes.ts";
 import { decodeShareLink } from "../../components/apps/match-mixer/lib/persistence/share-link.ts";
 
 /** `signIn` marks the one refusal that signing in fixes. */
@@ -146,9 +152,10 @@ async function openMixer(supabase: SupabaseClient, token: string) {
   const mixer = await readLiveMixer(supabase, token);
   if (!mixer) return refusal(NO_SUCH_LIVE_MIXER);
   if (mixer.finishedAt && !mixer.superadmin) return refusal(FINISHED);
-  const draw = redraw(mixer.config);
-  if (!draw) return refusal(UNREADABLE_BOARD);
-  return { ok: true as const, mixer, draw, replayed: replay(mixer.events) };
+  // The board with every late arrival and departure in it (#692).
+  const replayed = rebuild(mixer.config, mixer.events);
+  if (!replayed) return refusal(UNREADABLE_BOARD);
+  return { ok: true as const, mixer, draw: replayed.draw, replayed };
 }
 
 async function organizerMixer(supabase: SupabaseClient, token: string) {
@@ -183,7 +190,7 @@ async function scorableGame(supabase: SupabaseClient, token: string, at: unknown
 async function append(
   supabase: SupabaseClient,
   token: string,
-  kind: "score_entered" | "score_cleared" | "game_rule_changed" | "round_started" | "finished",
+  kind: "score_entered" | "score_cleared" | "game_rule_changed" | "round_started" | "finished" | "player_added" | "player_left",
   payload: object,
 ): Promise<Outcome<null>> {
   const { error } = await supabase.rpc("match_mixer_append", {
@@ -279,4 +286,89 @@ export async function changeGameRule(
   const live = await organizerMixer(supabase, token);
   if (!live.ok) return live;
   return append(supabase, token, "game_rule_changed", checked);
+}
+
+export const NO_ROUNDS_LEFT = "Every Round on this board has started, so there's no Round left to change who's playing.";
+
+export const NOT_A_PLAYER = "That isn't a Player on this board. Reload the page to see the board as it is now.";
+
+export const ONE_AT_A_TIME = "Add one Player at a time.";
+
+export const NO_SUCH_POOL = "That Pool isn't on this board.";
+
+/**
+ * Whether a Round is left that nobody has started: the only Rounds a late
+ * arrival or a departure can move (#692).
+ */
+function roundLeft(live: { replayed: { currentRound: number }; draw: Parameters<typeof roundCount>[0] }): boolean {
+  return live.replayed.currentRound + 1 < roundCount(live.draw);
+}
+
+/**
+ * The Organizer Link adds a late arrival to one Pool (#692): a Roster line, or
+ * a Pairing's two in fixed partners, with a Marker under mixed doubles. They
+ * play from the first Round nobody has started, and only that Pool's
+ * unstarted Rounds are drawn again. The Format's own refusals are reused.
+ */
+export async function addPlayer(
+  supabase: SupabaseClient,
+  token: string,
+  lines: unknown,
+  pool: unknown,
+): Promise<Outcome<{ player: number; name: string }>> {
+  const live = await organizerMixer(supabase, token);
+  if (!live.ok) return live;
+  const { config, pools } = live.draw;
+  if (!Number.isInteger(pool) || (pool as number) < 0 || (pool as number) >= pools.length) return refusal(NO_SUCH_POOL);
+
+  const typed = Array.isArray(lines) ? lines.filter((line): line is string => typeof line === "string").map((line) => line.trim()) : [];
+  const given = typed.filter((line) => line.length > 0);
+  if (given.length === 0) return refusal("Type the new Player's name first.");
+  if (given.some((line) => line.length > MAX_LINE_LENGTH)) return refusal(`Keep a name to ${MAX_LINE_LENGTH} characters.`);
+
+  const format = resolveFormat(config.format);
+  const mixed = resolveMixed(format, config.mixed);
+  const players = given.map((line, index) => ({ id: `new${index}`, ...(mixed ? splitMarker(line) : { name: line }) }));
+  if (given.length !== linesPerArrival(format)) {
+    return refusal(formatObjection(players, format) ?? ONE_AT_A_TIME);
+  }
+  const unmarked = mixedObjection(players, 0, mixed);
+  if (unmarked) return refusal(unmarked);
+
+  const target = pools[pool as number];
+  if (target.members.length + given.length > MAX_ROSTER_SIZE) {
+    return refusal(`${pools.length > 1 ? poolName(target.label) : "This board"} holds up to ${MAX_ROSTER_SIZE} players.`);
+  }
+  if (config.roster.length + given.length > MAX_BOARD_SIZE) {
+    return refusal(`A board holds up to ${MAX_BOARD_SIZE} players.`);
+  }
+  if (!roundLeft(live)) return refusal(NO_ROUNDS_LEFT);
+  const added = await append(supabase, token, "player_added", { lines: given, pool });
+  // Where they landed, for an undo. `setPlaying` checks the name, so a second
+  // phone's add landing first refuses the undo rather than taking off someone else.
+  return added.ok ? { ok: true, value: { player: config.roster.length, name: players[0].name } } : added;
+}
+
+/**
+ * The Organizer Link marks a Player as left, or back again (#692), from the
+ * first Round nobody has started. In fixed partners the Pairing goes and comes
+ * back whole. Taking off someone added before their first Round undoes the
+ * add exactly. A Player already where they're asked to be changes nothing.
+ */
+export async function setPlaying(
+  supabase: SupabaseClient,
+  token: string,
+  player: unknown,
+  playing: boolean,
+  /** The name the caller expects at `player`, when it has one to check. */
+  name?: string,
+): Promise<Outcome<null>> {
+  const live = await organizerMixer(supabase, token);
+  if (!live.ok) return live;
+  const { roster } = live.draw.config;
+  if (!Number.isInteger(player) || (player as number) < 0 || (player as number) >= roster.length) return refusal(NOT_A_PLAYER);
+  if (name !== undefined && roster[player as number].name !== name) return refusal(NOT_A_PLAYER);
+  if (live.replayed.playing[player as number] === Boolean(playing)) return { ok: true, value: null };
+  if (!roundLeft(live)) return refusal(NO_ROUNDS_LEFT);
+  return append(supabase, token, playing ? "player_added" : "player_left", { player });
 }
