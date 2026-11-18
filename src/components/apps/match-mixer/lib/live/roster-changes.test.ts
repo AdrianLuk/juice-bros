@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parsePoolHeaders, parseRoster } from "../engine/roster.ts";
+import { parsePoolHeaders, parseRoster, rosterText } from "../engine/roster.ts";
 import type { Format, Round } from "../engine/types.ts";
-import { encodeSharePayload } from "../persistence/share-link.ts";
+import { decodeShareLink, encodeSharePayload } from "../persistence/share-link.ts";
 import type { MixerEvent } from "./events.ts";
-import { rebuild, type RebuiltMixer } from "./rebuild.ts";
+import { rebuild, runItAgainPayload, type RebuiltMixer } from "./rebuild.ts";
 
 /**
  * Late arrivals and early departures (#692), read through `rebuild`: the
@@ -219,4 +219,37 @@ test("a late arrival's Standings row says which Round they joined, and scores st
   for (const player of winners) {
     assert.equal(after.standings[0].rows.find((row) => row.players.includes(player))?.wins, 1);
   }
+});
+
+/** The Roster box "Run it again" opens with, as the organizer would read it. */
+function nextWeek(cfg: string, events: MixerEvent[]): string {
+  const payload = runItAgainPayload(cfg, events);
+  assert.ok(payload, "the night has a Run it again payload");
+  const board = decodeShareLink(payload);
+  assert.ok(board, "the payload decodes");
+  return rosterText(board.config.roster, board.config.headers ?? []);
+}
+
+test("Run it again keeps the night's late arrivals, and the Players who left early", () => {
+  const night = nextWeek(nine, [started(1), added(["Late"]), left(2)]);
+  assert.equal(night, [...names(9), "Late"].join("\n"));
+});
+
+test("Run it again leaves out an arrival taken off before their first Round", () => {
+  assert.equal(runItAgainPayload(nine, [started(1), added(["Late"]), left(9)]), nine);
+});
+
+test("Run it again opens a night without changes on exactly its Config", () => {
+  assert.equal(runItAgainPayload(nine, [started(1)]), nine);
+});
+
+test("Run it again puts a declared board's late arrival under their Pool's header, with a Marker kept", () => {
+  const pool = (prefix: string, size: number) => [
+    ...names(size, prefix).map((n) => `${n} M`),
+    ...names(size, `${prefix}f`).map((n) => `${n} F`),
+  ];
+  const lines = ["--- 3.5", ...pool("A", 3), "--- 4.0", ...pool("B", 4)];
+  const declared = config(lines, { courts: 3, rounds: 5, mixed: true });
+  const night = nextWeek(declared, [added(["Late F"], 0)]);
+  assert.deepEqual(night.split("\n").slice(0, 9), [...lines.slice(0, 7), "Late F", "--- 4.0"]);
 });

@@ -1,6 +1,7 @@
 import { Fragment, useRef, type CSSProperties } from "react";
 
 import { courtLabel, type CourtLabels } from "@/components/apps/match-mixer/lib/court-labels";
+import { describeByes } from "@/components/apps/match-mixer/lib/engine/describe";
 import {
   describeItinerary,
   itinerary,
@@ -629,23 +630,12 @@ function summarise(
   schedule: Schedule,
 ): { verdict: string; failed: boolean; rest: string } {
   const rounds = schedule.rounds.length;
-  const sitting = schedule.rounds[0]?.byes.length ?? 0;
-  // A Bye belongs to a Pairing in fixed partners, so it is counted in pairs:
-  // both members of a sitting team sit, and "4 players sit out" would have the
-  // organizer looking for four names to shuffle rather than two pairs. In
-  // singles the unit that sits is a Player again.
-  const idle = score.format === "fixed" ? sitting / 2 : sitting;
-  const unit = score.format === "fixed" ? "pair" : "player";
-  const sit = `${idle} ${unit}${idle === 1 ? " sits" : "s sit"}`;
-
-  let byes: string;
-  if (sitting === 0) {
-    byes = "nobody sits out";
-  } else if (score.byesRotateEvenly) {
-    byes = `${sit} out each round, rotating evenly`;
-  } else {
-    byes = `${sit} out each round, but some sit out ${score.byeSpread} more time${score.byeSpread === 1 ? "" : "s"} than others`;
-  }
+  const byes = describeByes(
+    schedule.rounds.map((round) => round.byes.length),
+    score.format,
+    score.byesRotateEvenly,
+    score.byeSpread,
+  );
 
   const { failed, verdict, opponents } = verdictOf(score);
 

@@ -461,6 +461,18 @@ test("a finished Live Mixer stays in My Mixers, marked finished", async () => {
   assert.notEqual(mine.value[0].finishedAt, null);
 });
 
+test("Run it again opens the night's Roster, late arrivals included", async () => {
+  const owner = await organizer();
+  const mixer = await goLive(owner.supabase, CONFIG);
+  assert.ok(mixer.ok);
+  assert.ok((await addPlayer(anonClient(), mixer.value.organizerToken, ["Federico Staksrud"], 0)).ok);
+
+  const mine = await myMixers(owner.supabase);
+  assert.ok(mine.ok);
+  assert.equal(mine.value[0].players, 9);
+  assert.match(mine.value[0].config, /Lea Jansen\nFederico Staksrud$/);
+});
+
 test("signed out, My Mixers asks for sign-in and lists nothing", async () => {
   assert.deepEqual(await myMixers(anonClient()), {
     ok: false,

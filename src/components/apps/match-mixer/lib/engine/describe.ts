@@ -239,6 +239,33 @@ export function describePooledConfig(
 }
 
 /**
+ * Who sits out, for a board's summary line: read off the Byes in every Round
+ * of the Schedule that was produced, and the Scorer's verdict on how they
+ * spread. Every Round, not the first, because a Live Mixer's late arrivals
+ * and departures (#692) change how many sit out partway through the night.
+ *
+ * A Bye belongs to a Pairing in fixed partners, so it is counted in pairs:
+ * "4 players sit out" would have the organizer looking for four names to
+ * shuffle rather than two pairs. In singles the unit that sits is a Player.
+ */
+export function describeByes(
+  byesPerRound: readonly number[],
+  format: Format,
+  evenly: boolean,
+  spread: number,
+): string {
+  const most = Math.max(0, ...byesPerRound);
+  if (most === 0) return "nobody sits out";
+  const idle = format === "fixed" ? most / 2 : most;
+  const sit = `${plural(idle, format === "fixed" ? "pair" : "player")} ${idle === 1 ? "sits" : "sit"} out`;
+  const steady = byesPerRound.every((count) => count === most);
+  const how = steady ? `${sit} each round` : `up to ${sit} a round`;
+  return evenly
+    ? `${how}, rotating evenly`
+    : `${how}, but some sit out ${spread} more time${spread === 1 ? "" : "s"} than others`;
+}
+
+/**
  * The same line for a Roster the tool cannot seat. It exists so that the
  * consequence line never goes away mid-edit: a Roster on its way from nothing
  * to eleven names passes through the sizes where there is no Config to

@@ -21,6 +21,7 @@ import {
   rebuild,
   redraw,
   roundCount,
+  runItAgainPayload,
   runsTheNight,
 } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import { linesPerArrival } from "../../components/apps/match-mixer/lib/live/roster-changes.ts";
@@ -50,14 +51,14 @@ export type LiveMixer = {
 /** One of an Owner's Live Mixers, as My Mixers lists it (#691). */
 export type MyMixer = {
   id: string;
-  /** The Share Link payload the board was drawn from; Run it again opens it. */
+  /** What Run it again opens: the drawn Config, with the night's late arrivals in its Roster (#685). */
   config: string;
   /** Opens the Live Mixer as the Organizer Link does, without its Owner having kept the link. */
   organizerToken: string;
   wentLiveAt: string;
   /** Set once the Live Mixer finished, by a tap or by the 12 hours. */
   finishedAt: string | null;
-  /** The Roster's size, read off the Config. */
+  /** The night's Roster size, late arrivals included. */
   players: number;
 };
 
@@ -121,12 +122,13 @@ export async function myMixers(supabase: SupabaseClient): Promise<Outcome<MyMixe
   const { data, error } = await supabase.rpc("match_mixer_my_mixers");
   if (error?.code === "42501") return { ok: false, problem: SIGN_IN_FOR_MY_MIXERS, signIn: true };
   if (error) throw new Error(`Reading My Mixers failed: ${error.message}`);
-  const rows = (data ?? []) as Omit<MyMixer, "players">[];
+  const rows = (data ?? []) as (Omit<MyMixer, "players"> & { events: MixerEvent[] })[];
   return {
     ok: true,
-    value: rows.flatMap((row) => {
-      const board = decodeShareLink(row.config);
-      return board ? [{ ...row, players: board.config.roster.length }] : [];
+    value: rows.flatMap(({ events, ...row }) => {
+      const config = runItAgainPayload(row.config, events);
+      const board = config ? decodeShareLink(config) : null;
+      return config && board ? [{ ...row, config, players: board.config.roster.length }] : [];
     }),
   };
 }
