@@ -21,6 +21,7 @@ import {
   rebuild,
   redraw,
   roundCount,
+  runItAgainPayload,
   runsTheNight,
 } from "../../components/apps/match-mixer/lib/live/rebuild.ts";
 import { linesPerArrival } from "../../components/apps/match-mixer/lib/live/roster-changes.ts";
@@ -50,14 +51,14 @@ export type LiveMixer = {
 /** One of an Owner's Live Mixers, as My Mixers lists it (#691). */
 export type MyMixer = {
   id: string;
-  /** The Share Link payload the board was drawn from; Run it again opens it. */
+  /** What Run it again opens: a Config built from the live Roster (#685). */
   config: string;
   /** Opens the Live Mixer as the Organizer Link does, without its Owner having kept the link. */
   organizerToken: string;
   wentLiveAt: string;
   /** Set once the Live Mixer finished, by a tap or by the 12 hours. */
   finishedAt: string | null;
-  /** The Roster's size, read off the Config. */
+  /** The live Roster's size, late arrivals included. */
   players: number;
 };
 
@@ -84,7 +85,9 @@ export const NOT_YOUR_GAME = "You can score your own Games only. The organizer c
 
 export const ONE_ROUND_AT_A_TIME = "Rounds start one at a time. Reload the page to see which Round is on.";
 
-export const LAST_ROUND = "That was the last Round on this board.";
+export const ONE_LINE = "Type the name on one line, without --- in front: that starts a Pool.";
+
+export const LAST_ROUND ="That was the last Round on this board.";
 
 /**
  * Commits a drawn board for the signed-in organizer and returns both links'
@@ -121,12 +124,15 @@ export async function myMixers(supabase: SupabaseClient): Promise<Outcome<MyMixe
   const { data, error } = await supabase.rpc("match_mixer_my_mixers");
   if (error?.code === "42501") return { ok: false, problem: SIGN_IN_FOR_MY_MIXERS, signIn: true };
   if (error) throw new Error(`Reading My Mixers failed: ${error.message}`);
-  const rows = (data ?? []) as Omit<MyMixer, "players">[];
+  const rows = (data ?? []) as (Omit<MyMixer, "players"> & { events: MixerEvent[] })[];
   return {
     ok: true,
-    value: rows.flatMap((row) => {
-      const board = decodeShareLink(row.config);
-      return board ? [{ ...row, players: board.config.roster.length }] : [];
+    value: rows.flatMap(({ events, ...row }) => {
+      // Only a Roster change can change what Run it again opens, so most rows skip the rebuild.
+      const grown = events.some((event) => event.kind === "player_added") ? runItAgainPayload(row.config, events) : null;
+      const config = grown && decodeShareLink(grown) ? grown : row.config;
+      const board = decodeShareLink(config);
+      return board ? [{ ...row, config, players: board.config.roster.length }] : [];
     }),
   };
 }
@@ -325,6 +331,8 @@ export async function addPlayer(
   const given = typed.filter((line) => line.length > 0);
   if (given.length === 0) return refusal("Type the new Player's name first.");
   if (given.some((line) => line.length > MAX_LINE_LENGTH)) return refusal(`Keep a name to ${MAX_LINE_LENGTH} characters.`);
+  // Run it again writes the name back into a Roster box (#685), where "---" starts a Pool.
+  if (given.some((line) => /[\r\n]/.test(line) || line.startsWith("---"))) return refusal(ONE_LINE);
 
   const format = resolveFormat(config.format);
   const mixed = resolveMixed(format, config.mixed);

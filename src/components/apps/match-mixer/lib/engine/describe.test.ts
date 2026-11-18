@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  describeByes,
   describeConfig,
   describeNumbers,
   describePooledConfig,
@@ -318,4 +319,16 @@ test("fixed partners counts a pool's byes in pairs", () => {
 
 test("singles talks about matchups in a pooled board too", () => {
   assert.match(pooled(18, 2, 8, undefined, "singles"), /runs? out of new matchups/);
+});
+
+test("the Bye clause reads every Round, so a late arrival's Byes are not missed", () => {
+  assert.equal(describeByes([0, 0, 0], "rotating", true, 0), "nobody sits out");
+  assert.equal(describeByes([1, 1, 1], "rotating", true, 0), "1 player sits out each round, rotating evenly");
+  assert.equal(
+    describeByes([1, 1], "rotating", false, 2),
+    "1 player sits out each round, but some sit out 2 more times than others",
+  );
+  // Nobody sat out Round 1, then somebody joined: Round 1 alone says nobody.
+  assert.equal(describeByes([0, 1, 1], "rotating", true, 0), "up to 1 player sits out a round, rotating evenly");
+  assert.equal(describeByes([0, 4, 2], "fixed", true, 0), "up to 2 pairs sit out a round, rotating evenly");
 });

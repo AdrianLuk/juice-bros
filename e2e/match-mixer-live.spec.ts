@@ -152,6 +152,10 @@ test("My Mixers lists the Live Mixer, and Run it again opens its Roster to edit 
   await page.waitForURL(/\/tools\/match-mixer\/organizer\/[0-9a-f]{32}$/);
   const organizerPath = new URL(page.url()).pathname;
   const playerLink = await page.getByRole("textbox", { name: "Player Link" }).inputValue();
+  // A late arrival, whom Run it again carries into next week's Roster (#685).
+  await page.getByRole("textbox", { name: "Add a player" }).fill("Hayden Patriquin");
+  await page.getByRole("button", { name: "Add player" }).click();
+  await expect(page.getByText("Hayden Patriquin joins in round 2.")).toBeVisible();
 
   // Players are never asked to sign in.
   const phone = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
@@ -164,7 +168,7 @@ test("My Mixers lists the Live Mixer, and Run it again opens its Roster to edit 
   // The Live Mixer is in the list. Opening it is the Organizer Link, with no token kept.
   await page.goto(MY_MIXERS);
   const mixer = page.locator(".mm-mine-row", { has: page.locator(`a[href="${organizerPath}"]`) });
-  await expect(mixer).toContainText("8 players");
+  await expect(mixer).toContainText("9 players");
   await expect(mixer).toContainText("Live");
   await mixer.getByRole("link", { name: /^Open/ }).click();
   await page.waitForURL(organizerPath);
@@ -178,7 +182,7 @@ test("My Mixers lists the Live Mixer, and Run it again opens its Roster to edit 
     if (request.method() === "POST") posts.push(request.url());
   });
   await mixer.getByRole("link", { name: /^Run it again/ }).click();
-  await expect(page.getByRole("textbox", { name: "Tonight" })).toHaveValue(eight);
+  await expect(page.getByRole("textbox", { name: "Tonight" })).toHaveValue(`${eight}\nHayden Patriquin`);
   await expect(page.getByRole("button", { name: "Go live" })).toHaveCount(0);
 
   const edited = eight.replace("Jorja Johnson", "Collin Johns");
