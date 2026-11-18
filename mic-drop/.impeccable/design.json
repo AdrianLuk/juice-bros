@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T00:00:00Z",
+  "title": "Design System: Mic Drop",
+  "extensions": {
+    "scope": {
+      "governs": [
+        "/tools/mic-drop/*"
+      ],
+      "selector": ".md-surface",
+      "outOfScope": [
+        "The marketing site (Broadcast Dark, root DESIGN.md)",
+        "The site header, footer and floating menu button, which SiteChromeSlot drops on every Mic Drop page"
+      ],
+      "fonts": "Big Shoulders (--font-md-chart, opsz axis) and Hanken Grotesk (--font-md), both via next/font/google in src/app/layout.tsx",
+      "note": "Tokens are declared on .md-surface in src/app/tools/mic-drop/mic-drop.css and reach no other route. SiteShell lists /tools/mic-drop in DARK_EXCEPTIONS. Direction contract: .impeccable/surfaces/src-app-tools-mic-drop.md. Finish review verdict: ship (#683)."
+    },
+    "colorMeta": {
+      "coral": {
+        "role": "primary",
+        "displayName": "Chart Coral",
+        "canonical": "#ff5a36",
+        "note": "The header field, the No. 1 bar, your Vote's chip and row edge, selection. Nothing else.",
+        "tonalRamp": ["#3d0f04", "#6b1a08", "#a3270c", "#d83a1a", "#ff5a36", "#ff8466", "#ffb19c", "#ffe0d6"]
+      },
+      "on-coral": {
+        "role": "primary",
+        "displayName": "Coral Ink",
+        "canonical": "#1a0b06",
+        "note": "Text on the coral field and the paper field, and on the Your vote chip."
+      },
+      "up": {
+        "role": "secondary",
+        "displayName": "Up Green",
+        "canonical": "#43e08a",
+        "note": "Up and New movement marks only.",
+        "tonalRamp": ["#0b3a20", "#12603a", "#1c8a52", "#2bb56c", "#43e08a", "#7beaa9", "#b0f3cc", "#e2fbec"]
+      },
+      "down": {
+        "role": "secondary",
+        "displayName": "Down Salmon",
+        "canonical": "#ff8b7a",
+        "note": "Down movement marks only. Never errors.",
+        "tonalRamp": ["#4a1510", "#7a2a20", "#b0453a", "#e06a5c", "#ff8b7a", "#ffa99c", "#ffc9c0", "#ffeae6"]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "#10131c",
+        "note": "Page ground, sticky footer, document behind the surface.",
+        "tonalRamp": ["#10131c", "#161b27", "#1a2030", "#1f2433", "#2a3042", "#8c93a6", "#c9cdd6", "#f4f1ea"]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised Night",
+        "canonical": "#161b27",
+        "note": "Input fill, pressed rows, remove hover, the landing's Host band."
+      },
+      "mine": {
+        "role": "neutral",
+        "displayName": "Your Row",
+        "canonical": "#1a2030",
+        "note": "Fill of the row you voted for."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#1f2433",
+        "note": "Every rule between rows and bands."
+      },
+      "track": {
+        "role": "neutral",
+        "displayName": "Track",
+        "canonical": "#2a3042",
+        "note": "Bar track, input border, demo frame border, Guest Link underline."
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f4f1ea",
+        "note": "Primary text, full bars, focus outline. Same value as paper."
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f4f1ea",
+        "note": "The closed field and the primary button's fill."
+      },
+      "mute": {
+        "role": "neutral",
+        "displayName": "Mute",
+        "canonical": "#8c93a6",
+        "note": "Secondary text, labels, unranked and no-change dashes, entry numbers. About 6.2:1 on the ground."
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The landing title only." },
+      "poll-name": { "displayName": "Poll Name", "purpose": "The field's heading on every app screen; notice headings at a fixed 2.6rem." },
+      "headline": { "displayName": "Headline", "purpose": "Landing section heads." },
+      "rank": { "displayName": "Rank", "purpose": "Chart rank numerals; No. 1 numeral steps to clamp(3.25rem, 14vw, 4rem), landing step numbers 2.75rem." },
+      "count": { "displayName": "Count", "purpose": "Vote counts; 1.25rem on the Host's line-up." },
+      "name": { "displayName": "Name", "purpose": "Contestant names and Poll names in the Host's list." },
+      "lead": { "displayName": "Lead", "purpose": "Landing standfirst; 1.25rem from 1024px." },
+      "body": { "displayName": "Body", "purpose": "Notice pages and confirm copy." },
+      "meta": { "displayName": "Meta", "purpose": "Field meta row, footer, problem lines, quiet links." },
+      "movement": { "displayName": "Movement", "purpose": "Places moved beside the triangle; NEW in caps at 0.06em." },
+      "label": { "displayName": "Label", "purpose": "Form labels and the Host column's section headings, uppercase." },
+      "chip": { "displayName": "Chip", "purpose": "The Your vote chip; the Host list's Live/Final state in tracked caps." }
+    },
+    "shadows": [
+      { "name": "your-vote-edge", "value": "inset 4px 0 0 #ff5a36", "purpose": "Left edge of the row you voted for." },
+      { "name": "demo-frame", "value": "0 40px 80px -32px rgb(0 0 0 / 0.7)", "purpose": "The landing demo framed as a phone screen, from 1024px only." },
+      { "name": "focus", "value": "outline: 2px solid #f4f1ea; outline-offset: 2px", "purpose": "Every focusable element; inputs use offset 0 and a paper border." }
+    ],
+    "motion": [
+      { "name": "resort-slide", "value": "450ms cubic-bezier(0.2, 0.8, 0.2, 1)", "purpose": "Signature: FLIP slide of moved chart rows on a re-sort, Web Animations API, transform only. Skipped under reduced motion." },
+      { "name": "bar-scale", "value": "transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1)", "purpose": "Bars rescale to the leader. Cut under reduced motion." },
+      { "name": "row-press", "value": "background-color 160ms ease-out", "purpose": "Chart row press fill. Cut under reduced motion." },
+      { "name": "faq-chevron", "value": "transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)", "purpose": "Landing question chevron turns 180deg when open." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px", "purpose": "Landing: 40px wrap sides, taller sections, steps two across, rules split." },
+      { "name": "lg", "value": "1024px", "purpose": "Landing: hero splits pitch and framed demo; rules and questions split heading and list." }
+    ],
+    "browserSurfaces": {
+      "selection": "coral background, coral ink text",
+      "documentBackground": "#10131c on body:has(.md-surface), so overscroll stays night"
+    }
+  },
+  "components": [
+    {
+      "name": "Header Field",
+      "kind": "custom",
+      "refersTo": "field",
+      "description": "The coral band that opens every app screen: Poll name, live label with dot, phones in. Paper white once closed.",
+      "html": "<header class=\"ds-md-field\"><h1>Thursday Karaoke</h1><div class=\"ds-md-field-meta\"><span class=\"ds-md-live\">Live chart</span><span>23 phones in</span></div></header><header class=\"ds-md-field is-final\"><h1>Thursday Karaoke</h1><div class=\"ds-md-field-meta\"><span>Final chart</span><span>23 phones in</span></div></header>",
+      "css": ".ds-md-field { background: #ff5a36; color: #1a0b06; padding: 20px 20px 16px; font-family: 'Hanken Grotesk', ui-sans-serif, sans-serif; } .ds-md-field.is-final { background: #f4f1ea; } .ds-md-field h1 { margin: 0; font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 900; font-size: clamp(2.5rem, 11vw, 3.5rem); line-height: 0.9; text-transform: uppercase; text-wrap: balance; } .ds-md-field-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-weight: 700; font-size: 0.875rem; } .ds-md-live { display: inline-flex; align-items: center; gap: 7px; } .ds-md-live::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }"
+    },
+    {
+      "name": "Chart Row",
+      "kind": "custom",
+      "refersTo": "chart-row",
+      "description": "Signature: one Contestant as a full-width tap row. Rank with movement mark, name, count, light bar. Your Vote gets the mine fill, coral edge and chip; No. 1's bar is coral.",
+      "html": "<ol class=\"ds-md-chart\"><li><button class=\"ds-md-row is-top\" aria-pressed=\"false\"><span class=\"ds-md-rank\"><b>1</b><span class=\"ds-md-move is-up\"><svg viewBox=\"0 0 10 8\" width=\"10\" height=\"8\" aria-hidden=\"true\"><path d=\"M5 0L10 8H0Z\" fill=\"currentColor\"/></svg>2</span></span><span class=\"ds-md-name\">Anna Leigh Waters</span><span class=\"ds-md-count\">9</span><span class=\"ds-md-bar\"><i style=\"transform: scaleX(1)\"></i></span></button></li><li><button class=\"ds-md-row\" aria-pressed=\"true\"><span class=\"ds-md-rank\"><b>2</b><span class=\"ds-md-move is-down\"><svg viewBox=\"0 0 10 8\" width=\"10\" height=\"8\" aria-hidden=\"true\"><path d=\"M0 0H10L5 8Z\" fill=\"currentColor\"/></svg>1</span></span><span class=\"ds-md-name\">Ben Johns<span class=\"ds-md-chip\">Your vote</span></span><span class=\"ds-md-count\">6</span><span class=\"ds-md-bar\"><i style=\"transform: scaleX(0.667)\"></i></span></button></li><li><button class=\"ds-md-row\" aria-pressed=\"false\"><span class=\"ds-md-rank\"><b>3</b><span class=\"ds-md-move is-same\"></span></span><span class=\"ds-md-name\">Federico Staksrud</span><span class=\"ds-md-count\">4</span><span class=\"ds-md-bar\"><i style=\"transform: scaleX(0.444)\"></i></span></button></li></ol>",
+      "css": ".ds-md-chart { margin: 0; padding: 0; list-style: none; background: #10131c; color: #f4f1ea; font-family: 'Hanken Grotesk', ui-sans-serif, sans-serif; font-variant-numeric: tabular-nums; } .ds-md-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 12px; row-gap: 7px; align-items: center; width: 100%; padding: 11px 18px 12px 14px; border: 0; border-bottom: 1px solid #1f2433; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color 160ms ease-out; } .ds-md-row:active { background: #161b27; } .ds-md-row[aria-pressed='true'] { background: #1a2030; box-shadow: inset 4px 0 0 #ff5a36; } .ds-md-row:focus-visible { outline: 2px solid #f4f1ea; outline-offset: 2px; } .ds-md-rank { grid-row: 1 / 3; display: grid; justify-items: center; gap: 3px; } .ds-md-rank b { font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 900; font-size: 2.1rem; line-height: 0.9; } .ds-md-move { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; font-size: 0.8125rem; line-height: 1; color: #8c93a6; min-height: 0.8125rem; } .ds-md-move.is-up { color: #43e08a; } .ds-md-move.is-down { color: #ff8b7a; } .ds-md-move.is-same::before { content: ''; display: block; width: 12px; height: 2px; margin-top: 5px; background: #8c93a6; } .ds-md-name { font-weight: 700; font-size: 1.125rem; line-height: 1.15; } .ds-md-chip { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #ff5a36; color: #1a0b06; font-weight: 800; font-size: 0.6875rem; vertical-align: 2px; white-space: nowrap; } .ds-md-count { font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 800; font-size: 1.6rem; line-height: 1; text-align: right; } .ds-md-bar { grid-column: 2 / 4; height: 8px; border-radius: 999px; background: #2a3042; overflow: hidden; } .ds-md-bar i { display: block; height: 100%; border-radius: 999px; background: #f4f1ea; transform-origin: left center; transition: transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-md-row.is-top .ds-md-bar i { background: #ff5a36; }"
+    },
+    {
+      "name": "No. 1 Block",
+      "kind": "custom",
+      "refersTo": "field-final",
+      "description": "Once closed and only with Votes: the rank numeral in the rank column and the winner's name in chart caps, no caption.",
+      "html": "<section class=\"ds-md-top\"><b class=\"ds-md-top-rank\">1</b><ul class=\"ds-md-top-names\"><li>Anna Leigh Waters</li></ul><p>9 votes.</p></section>",
+      "css": ".ds-md-top { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 12px; align-items: start; padding: 18px 18px 16px 14px; border-bottom: 1px solid #1f2433; background: #10131c; color: #f4f1ea; font-family: 'Hanken Grotesk', sans-serif; } .ds-md-top-rank { grid-row: 1 / 3; font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 900; font-size: clamp(3.25rem, 14vw, 4rem); line-height: 0.8; text-align: center; } .ds-md-top-names { margin: 0; padding: 0; list-style: none; font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 900; font-size: clamp(2rem, 9vw, 2.6rem); line-height: 0.95; text-transform: uppercase; } .ds-md-top p { margin: 8px 0 0; font-size: 0.875rem; color: #8c93a6; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Paper white pill on night ink; one per block. Pending labels name the action in flight.",
+      "html": "<button class=\"ds-md-btn\">Close the Poll</button> <button class=\"ds-md-btn\" disabled>Closing…</button>",
+      "css": ".ds-md-btn { height: 48px; padding: 0 20px; border: 0; border-radius: 999px; background: #f4f1ea; color: #10131c; font-family: 'Hanken Grotesk', ui-sans-serif, sans-serif; font-size: 1rem; font-weight: 800; white-space: nowrap; cursor: pointer; } .ds-md-btn:disabled { opacity: 0.6; cursor: default; } .ds-md-btn:focus-visible { outline: 2px solid #f4f1ea; outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Mute underlined text for the second choice in a pair and the way back.",
+      "html": "<button class=\"ds-md-quiet\">Not yet</button>",
+      "css": ".ds-md-quiet { padding: 0; border: 0; background: none; color: #8c93a6; font-family: 'Hanken Grotesk', ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; } .ds-md-quiet:focus-visible { outline: 2px solid #f4f1ea; outline-offset: 2px; }"
+    },
+    {
+      "name": "Input with Label",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Raised night field at 16px with a tracked caps label above and its button on the same wrapping row.",
+      "html": "<form class=\"ds-md-form\"><label class=\"ds-md-label\" for=\"ds-md-c\">Add a Contestant</label><div class=\"ds-md-form-row\"><input id=\"ds-md-c\" class=\"ds-md-input\" placeholder=\"A singer, or a duet as one\"><button type=\"button\" class=\"ds-md-btn\">Add</button></div></form>",
+      "css": ".ds-md-form { background: #10131c; padding: 20px; font-family: 'Hanken Grotesk', ui-sans-serif, sans-serif; } .ds-md-label { display: block; margin: 0 0 10px; font-weight: 800; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #8c93a6; } .ds-md-form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; } .ds-md-input { flex: 1 1 14rem; min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #2a3042; border-radius: 10px; background: #161b27; color: #f4f1ea; font: inherit; font-size: 1rem; } .ds-md-input::placeholder { color: #8c93a6; } .ds-md-input:focus-visible { outline: 2px solid #f4f1ea; outline-offset: 0; border-color: #f4f1ea; } .ds-md-btn { height: 48px; padding: 0 20px; border: 0; border-radius: 999px; background: #f4f1ea; color: #10131c; font: inherit; font-weight: 800; cursor: pointer; }"
+    },
+    {
+      "name": "Line-up Row",
+      "kind": "custom",
+      "refersTo": "remove-button",
+      "description": "The Host's Contestant in entry order: muted 01, name, live count, remove while open, paper bar. Never re-sorts, never coral.",
+      "html": "<ol class=\"ds-md-lineup\"><li><span>Ben Johns</span><span class=\"ds-md-lcount\">6</span><button class=\"ds-md-remove\" aria-label=\"Remove Ben Johns\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button><span class=\"ds-md-lbar\"><i style=\"transform: scaleX(0.667)\"></i></span></li></ol>",
+      "css": ".ds-md-lineup { margin: 0; padding: 0; list-style: none; border-top: 1px solid #1f2433; counter-reset: l; background: #10131c; color: #f4f1ea; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; } .ds-md-lineup li { counter-increment: l; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 44px; column-gap: 12px; row-gap: 7px; align-items: baseline; padding: 12px 4px; border-bottom: 1px solid #1f2433; font-weight: 700; font-size: 1.125rem; } .ds-md-lineup li::before { content: counter(l, decimal-leading-zero); font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 800; font-size: 1rem; color: #8c93a6; } .ds-md-lcount { font-family: 'Big Shoulders', 'Hanken Grotesk', sans-serif; font-weight: 800; font-size: 1.25rem; text-align: right; } .ds-md-remove { grid-column: 4; grid-row: 1; align-self: center; display: grid; place-items: center; width: 44px; height: 44px; margin-block: -10px; border: 0; border-radius: 999px; background: transparent; color: #8c93a6; cursor: pointer; } .ds-md-remove:hover { background: #161b27; color: #f4f1ea; } .ds-md-remove:focus-visible { outline: 2px solid #f4f1ea; outline-offset: 2px; } .ds-md-lbar { grid-column: 2 / 4; height: 8px; border-radius: 999px; background: #2a3042; overflow: hidden; } .ds-md-lbar i { display: block; height: 100%; border-radius: 999px; background: #f4f1ea; transform-origin: left center; }"
+    },
+    {
+      "name": "Guest Footer",
+      "kind": "custom",
+      "refersTo": "footer",
+      "description": "Sticky live region: what to do next, or a problem in paper white at 700.",
+      "html": "<footer class=\"ds-md-foot\"><b>Your vote: Ben Johns.</b> Tap another name to switch, or tap it again to take it back.</footer>",
+      "css": ".ds-md-foot { padding: 14px 20px 16px; border-top: 1px solid #1f2433; background: #10131c; font-family: 'Hanken Grotesk', sans-serif; font-size: 0.875rem; color: #8c93a6; } .ds-md-foot b { color: #f4f1ea; font-weight: 700; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Chart",
+    "overview": "The Leaderboard is set like a weekly music chart. Every Contestant is one full-width row: a big rank numeral with a movement mark under it, the name, the Vote count, and a thick light bar under the name scaled to the leader. When a Vote lands the chart re-sorts and each row slides to its new rank, and the marks say how far it moved. At the close the chart freezes and the No. 1 slot is read off it like the top of a countdown.\n\nThe room is dim and it is night, so the ground is night ink and no Guest phone shows a white field while voting is open. A solid chart-coral field opens every screen with the Poll's name and whether it is live; when the Poll closes that field turns paper white, the only white field in the world, and it means \"final\". Below the field there are no cards: rows sit on the ground divided by hairlines, the way a printed chart is ruled.\n\nThe personality is one move, not costume. Neon and themed props were tried for this world and rejected; showiness lives in the size of the numerals and the slide of a re-sort, and the names and counts stay plain enough to read with a drink in the other hand. Controls are standard web controls (buttons, text fields, links, `details`) restyled in the world.",
+    "keyCharacteristics": [
+      "Night ink ground with hairline-ruled rows and no cards.",
+      "A chart-coral field opens every screen; it turns paper white when the Poll is closed.",
+      "Big Shoulders caps for every rank numeral, count, Poll name and heading; Hanken Grotesk for names, prose and every control.",
+      "Coral is rationed to the field, the No. 1 bar and your Vote.",
+      "Green and salmon exist only in movement marks.",
+      "The whole surface sets tabular numerals, so a count going from 9 to 10 never shifts its column."
+    ],
+    "rules": [
+      { "name": "The Coral Is Rationed Rule", "body": "Coral marks the field, the No. 1 bar and your Vote (chip and row edge), plus selection. It never fills a button, colours a link or marks an error. On the landing it appears only inside the demo chart, where the chart already uses it.", "section": "colors" },
+      { "name": "The Movement Hues Rule", "body": "Green means up or new, salmon means down, and neither appears anywhere else. A failed Vote, a refused tap or a Host's form problem is said in paper white at 700, never in salmon, because salmon on this chart means \"down\".", "section": "colors" },
+      { "name": "The White Means Final Rule", "body": "While a Poll is open, nothing on the Guest's screen is a white field. Paper white fills the header field only once the Poll is closed, and it reads as \"Final chart\".", "section": "colors" },
+      { "name": "The Two Faces Rule", "body": "Big Shoulders caps for what the chart counts or announces (ranks, counts, the Poll name, headings, step numbers); Hanken Grotesk for what is read or tapped (names, prose, buttons, inputs, labels). A Contestant's name is never set in the chart face on a live row; only the closed No. 1 block sets winners in it.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "`.md-surface` sets `font-variant-numeric: tabular-nums`, and movement marks set it again, so counts and marks never jitter as they change.", "section": "typography" },
+      { "name": "The One Column Rule", "body": "Under the field, every Mic Drop screen is one 42rem column aligned to the Poll name. No sidebars, no multi-column app layouts; only the signed-out landing goes wider.", "section": "layout" },
+      { "name": "The Ruled Not Raised Rule", "body": "Rows, the No. 1 block and the line-up are divided by 1px hairlines on the ground. No cards and no lifted panels on any app screen.", "section": "elevation" },
+      { "name": "The Restyle Not Replace Rule", "body": "Buttons, inputs, links and `details` stay native controls dressed in the world. No custom pickers, toggles or faux controls.", "section": "components" },
+      { "name": "The Rows Hold Still For The Host Rule", "body": "The Host's line-up never moves; only the Guest's chart re-sorts.", "section": "components" }
+    ],
+    "dos": [
+      "Do open every Mic Drop app screen on the full-width chart-coral field (#ff5a36) with the Poll name in Big Shoulders caps, and turn it paper white (#f4f1ea) only when the Poll is closed.",
+      "Do set every Contestant as a full-width hairline-ruled row on night ink (#10131c): rank and movement mark, name, count, and an 8px light bar scaled to the leader.",
+      "Do draw movement as the authored 10x8 SVG triangle in `currentColor` with the places at 13px tabular, and no change as a 12px mute dash.",
+      "Do keep everything under the field in one 42rem column aligned with the Poll name.",
+      "Do say failures and refusals in paper white at 700, in the footer on the Guest's screen and under the form on the Host's.",
+      "Do make primary actions paper white pills (48px) and second choices quiet underlined mute text.",
+      "Do cut the re-sort slide and bar transitions under reduced motion."
+    ],
+    "donts": [
+      "Don't show a white field on a Guest's phone while the Poll is open.",
+      "Don't use coral for buttons, links, errors or decoration; it marks the field, the No. 1 bar and your Vote.",
+      "Don't use green or salmon outside movement marks, salmon least of all for errors.",
+      "Don't put rows in cards or lift them with shadows; rows are ruled by hairlines.",
+      "Don't type the movement arrows or the no-change dash as text characters.",
+      "Don't let the Host's line-up re-sort or take coral; ranking is the Guest Link's job.",
+      "Don't add an event or venue line above the Poll name, or a caption above the No. 1 names.",
+      "Don't bring back neon, themed props or other karaoke costume; the personality is the chart."
+    ]
+  }
+}

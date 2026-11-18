@@ -78,7 +78,7 @@ function GuestChart({ token, initial }: { token: string; initial: GuestPoll }) {
     <ChartView
       poll={poll}
       reconnecting={reconnecting}
-      problem={problem ?? (tappedClosed && !poll.open ? CLOSED_TAP : null) ?? (pickRemoved ? PICK_REMOVED : null)}
+      problem={problem ?? (tappedClosed && !poll.open ? CLOSED_TAP : null) ?? (pickRemoved && poll.open ? PICK_REMOVED : null)}
       saving={voting.isPending ? (voting.variables ?? poll.myVote) : null}
       onTap={tap}
     />

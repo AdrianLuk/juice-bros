@@ -165,8 +165,10 @@ Match Mixer (`/tools/match-mixer`) is a fourth such world as of 2026-09-09 and
 is documented at `match-mixer/DESIGN.md`. Drum Roll (`/tools/drum-roll`) is a
 fifth as of 2026-09-14 — "the wheel", scoped to `.dr-surface`, committed light,
 and documented at `src/components/apps/drum-roll/DESIGN.md` beside its code (the
-same placement Pickle Point Pal uses). The Tools index and the other
-`/tools/[slug]` pages remain in scope here.
+same placement Pickle Point Pal uses). Mic Drop (`/tools/mic-drop`) is another
+as of 2026-11-18: "the chart", a karaoke vote set like a weekly music chart on
+night ink, scoped to `.md-surface` and documented at `mic-drop/DESIGN.md`. The
+Tools index and the other `/tools/[slug]` pages remain in scope here.
 
 **Current adoption state.** The whole marketing site ships this system: Home,
 Podcast (index and `/podcast/[slug]`), Tools (index and `/tools/[slug]`), Gear,
@@ -179,7 +181,7 @@ per-page ground left a bare light band across the top of every dark route.
 elastic overscroll.
 
 Routes deliberately **outside** the scope: Booking Buddy, On Deck, Pickle
-Point Pal, Match Mixer and Drum Roll (their own worlds; the last three sit in
+Point Pal, Match Mixer, Drum Roll and Mic Drop (their own worlds; the last four sit in
 `DARK_EXCEPTIONS` in `site-shell.tsx` so `.bx-dark` never reaches them), and
 `/s/[token]` and `/connect/[token]`, which are Booking Buddy flows wearing the
 global chrome and stay on the incumbent light ground until Booking Buddy's
@@ -708,8 +710,8 @@ strongest asset that route owns, not from a rotation.
 - **Don't** stack a mono metadata line above the heading it belongs to; that is
   an eyebrow regardless of how real the data is.
 - **Don't** carry Broadcast Dark's `.bx-dark` scope, tokens, or components onto
-  Booking Buddy, On Deck, Pickle Point Pal, Match Mixer, or Drum Roll, or vice
-  versa — the six visual worlds are deliberately separate and none of them
+  Booking Buddy, On Deck, Pickle Point Pal, Match Mixer, Drum Roll, or Mic Drop,
+  or vice versa — the seven visual worlds are deliberately separate and none of them
   imports another's tokens.
 - **Don't** demote a removed eyebrow into a `.bx-meta` line under the heading.
   Dropping the eyebrow is right; keeping its words and setting them in tracked

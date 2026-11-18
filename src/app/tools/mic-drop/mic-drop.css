@@ -207,12 +207,24 @@ body:has(.md-surface) {
   color: var(--md-mute);
 }
 
+/* Movement is the second thing a chart is read for, so it is sized to be read
+   under the rank numeral, not glimpsed. */
 .md-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-weight: 800;
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--md-mute);
-  min-height: 0.6875rem;
+  min-height: 0.8125rem;
+}
+
+.md-move-tri {
+  width: 10px;
+  height: 8px;
+  flex: none;
 }
 
 .md-move.is-up {
@@ -233,10 +245,10 @@ body:has(.md-surface) {
 .md-move.is-same::before {
   content: "";
   display: block;
-  width: 10px;
+  width: 12px;
   height: 2px;
-  margin-top: 4px;
-  background: var(--md-track);
+  margin-top: 5px;
+  background: var(--md-mute);
 }
 
 .md-name {
@@ -611,7 +623,14 @@ body:has(.md-surface) {
   margin-bottom: 12px;
   color: var(--md-ink);
   font-weight: 600;
-  overflow-wrap: anywhere;
+  /* One line: the token is noise to read, and Copy Guest Link is the real action.
+     width 0 + min-width 100% keeps the unbroken line out of the page's
+     intrinsic width, so it truncates instead of widening the phone. */
+  width: 0;
+  min-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   text-decoration: underline;
   text-decoration-color: var(--md-track);
   text-underline-offset: 3px;

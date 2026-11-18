@@ -140,9 +140,14 @@ function MovementMark({ movement }: { movement: Movement | undefined }) {
     );
   }
   if (movement.kind === "new") return <span className="md-move is-new">New</span>;
+  const up = movement.kind === "up";
   return (
-    <span className={cn("md-move", movement.kind === "up" ? "is-up" : "is-down")}>
-      {movement.kind === "up" ? "▲" : "▼"} {movement.by}
+    <span className={cn("md-move", up ? "is-up" : "is-down")}>
+      <svg aria-hidden="true" viewBox="0 0 10 8" className="md-move-tri">
+        <path d={up ? "M5 0L10 8H0Z" : "M0 0H10L5 8Z"} fill="currentColor" />
+      </svg>
+      <span className="sr-only">{up ? "up" : "down"}</span>
+      {movement.by}
     </span>
   );
 }

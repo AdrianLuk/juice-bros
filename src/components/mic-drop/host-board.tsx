@@ -71,7 +71,7 @@ function LiveLineUp({ pollId, token, initial, lineUp, share, children }: Props) 
               />
             )}
           </section>
-          {children}
+          {poll.open && children}
           <ClosePoll pollId={pollId} poll={poll} />
           <Link href={MIC_DROP_ROOT} className="md-quiet">
             All your Polls
@@ -166,9 +166,15 @@ function ClosePoll({ pollId, poll }: { pollId: string; poll: GuestPoll }) {
   const [confirming, setConfirming] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Which way the write in flight goes. The live Poll can flip before the
+  // write settles, so a close still pending must not read as "Reopening…".
+  const [going, setGoing] = useState<"open" | "closed" | null>(null);
+  const closing = pending && going === "closed";
+  const reopening = pending && going === "open";
 
   function setOpen(open: boolean) {
     setProblem(null);
+    setGoing(open ? "open" : "closed");
     startTransition(async () => {
       const outcome = await settleWrite(setPollOpen(pollId, open));
       if (!outcome.ok) setProblem(outcome.problem);
@@ -188,8 +194,8 @@ function ClosePoll({ pollId, poll }: { pollId: string; poll: GuestPoll }) {
           <div className="md-confirm" role="group" aria-label="Close the Poll?">
             <p>Close voting? The chart freezes and whoever leads takes No. 1. You can reopen it.</p>
             <div className="md-form-row">
-              <button type="button" className="md-btn" disabled={pending} onClick={() => setOpen(false)}>
-                {pending ? "Closing…" : "Close the Poll"}
+              <button type="button" className="md-btn" disabled={closing} onClick={() => setOpen(false)}>
+                {closing ? "Closing…" : "Close the Poll"}
               </button>
               <button type="button" className="md-quiet" onClick={() => setConfirming(false)}>
                 Not yet
@@ -210,8 +216,8 @@ function ClosePoll({ pollId, poll }: { pollId: string; poll: GuestPoll }) {
                 ? `No. 1: ${winners[0].name}, with ${winners[0].votes} ${winners[0].votes === 1 ? "vote" : "votes"}.`
                 : `Joint No. 1: ${winners.map((winner) => winner.name).join(" and ")}, ${winners[0].votes} votes each. Time for a sing-off.`}
           </p>
-          <button type="button" className="md-btn" disabled={pending} onClick={() => setOpen(true)}>
-            {pending ? "Reopening…" : "Reopen the Poll"}
+          <button type="button" className="md-btn" disabled={reopening} onClick={() => setOpen(true)}>
+            {reopening ? "Reopening…" : "Reopen the Poll"}
           </button>
         </>
       )}
