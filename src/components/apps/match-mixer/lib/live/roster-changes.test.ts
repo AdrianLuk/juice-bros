@@ -224,13 +224,13 @@ test("a late arrival's Standings row says which Round they joined, and scores st
 /** The Roster box "Run it again" opens with, as the organizer would read it. */
 function nextWeek(cfg: string, events: MixerEvent[]): string {
   const payload = runItAgainPayload(cfg, events);
-  assert.ok(payload, "the night has a Run it again payload");
+  assert.ok(payload, "the Live Mixer has a Run it again payload");
   const board = decodeShareLink(payload);
   assert.ok(board, "the payload decodes");
   return rosterText(board.config.roster, board.config.headers ?? []);
 }
 
-test("Run it again keeps the night's late arrivals, and the Players who left early", () => {
+test("Run it again keeps the late arrivals, and the Players who left early", () => {
   const night = nextWeek(nine, [started(1), added(["Late"]), left(2)]);
   assert.equal(night, [...names(9), "Late"].join("\n"));
 });
@@ -239,7 +239,7 @@ test("Run it again leaves out an arrival taken off before their first Round", ()
   assert.equal(runItAgainPayload(nine, [started(1), added(["Late"]), left(9)]), nine);
 });
 
-test("Run it again opens a night without changes on exactly its Config", () => {
+test("Run it again opens a Live Mixer without Roster changes on exactly its Config", () => {
   assert.equal(runItAgainPayload(nine, [started(1)]), nine);
 });
 

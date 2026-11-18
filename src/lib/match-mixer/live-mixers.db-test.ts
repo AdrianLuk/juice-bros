@@ -29,6 +29,7 @@ import {
   NOT_ON_THE_BOARD,
   NOT_YOUR_GAME,
   ONE_AT_A_TIME,
+  ONE_LINE,
   ONE_ROUND_AT_A_TIME,
   ORGANIZER_ONLY,
   PICK_YOUR_NAME,
@@ -541,6 +542,10 @@ test("adding a Player follows the Format's rules, and needs a Round nobody has s
   const { organizerToken } = await live();
   assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["One", "Two"], 0), { ok: false, problem: ONE_AT_A_TIME });
   assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["One"], 1), { ok: false, problem: NO_SUCH_POOL });
+  // A line Run it again would read back as a Pool header, or as two names (#685).
+  for (const line of ["--- Pool C", "One\nTwo"]) {
+    assert.deepEqual(await addPlayer(anonClient(), organizerToken, [line], 0), { ok: false, problem: ONE_LINE });
+  }
   assert.deepEqual(await setPlaying(anonClient(), organizerToken, 40, false), { ok: false, problem: NOT_A_PLAYER });
   for (const round of [1, 2, 3]) assert.ok((await startRound(anonClient(), organizerToken, round)).ok);
   assert.deepEqual(await addPlayer(anonClient(), organizerToken, ["Too Late"], 0), { ok: false, problem: NO_ROUNDS_LEFT });

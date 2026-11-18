@@ -26,11 +26,17 @@ begin
         'organizerToken', mixer.organizer_token,
         'wentLiveAt', mixer.went_live_at,
         'finishedAt', public.match_mixer_finished_at(mixer.went_live_at, mixer.finished_at),
-        'events', coalesce((
+        -- Only a Live Mixer someone joined can open differently, so the rest
+        -- send no events: up to 100 full logs on every visit would be most
+        -- of the page for nothing.
+        'events', case when exists (
+          select 1 from public.match_mixer_events a
+          where a.live_mixer_id = mixer.id and a.kind = 'player_added'
+        ) then coalesce((
           select jsonb_agg(jsonb_build_object('id', e.id, 'kind', e.kind, 'payload', e.payload) order by e.id)
           from public.match_mixer_events e
           where e.live_mixer_id = mixer.id
-        ), '[]'::jsonb)
+        ), '[]'::jsonb) else '[]'::jsonb end
       )
       order by mixer.went_live_at desc
     )

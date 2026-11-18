@@ -116,12 +116,12 @@ export function rebuild(config: string, events: readonly MixerEvent[]): RebuiltM
 }
 
 /**
- * The Config "Run it again" opens (#685): the night's Roster, which is the
+ * The Config "Run it again" opens (#685), built from the live Roster: the
  * Config's plus every late arrival who made it onto the board. Players who
  * left early stay, since leaving early says nothing about next week; the
  * organizer edits the names anyway. On a declared board a late arrival goes
  * under their Pool's header; a dealt board is dealt again, so they go last.
- * A night with no arrivals opens on its own Config, unchanged.
+ * A Live Mixer with no arrivals opens on its own Config, unchanged.
  */
 export function runItAgainPayload(config: string, events: readonly MixerEvent[]): string | null {
   const board = decodeShareLink(config);
@@ -131,21 +131,21 @@ export function runItAgainPayload(config: string, events: readonly MixerEvent[])
 
   // After which Config line each arrival goes. An arrival taken off before
   // their first Round sits nowhere on the board, so they don't go anywhere.
-  const after = new Map<number, number[]>();
+  const arrivalsAfter = new Map<number, number[]>();
   for (const pool of live.draw.pools) {
     const seen = new Set(pool.schedule.rounds.flatMap((round) => [...round.games.flatMap((game) => game.sides.flat()), ...round.byes]));
     const anchor = headers.length > 0 ? Math.max(...pool.members.filter((player) => player < roster.length)) : roster.length - 1;
     pool.members.forEach((player, position) => {
-      if (player >= roster.length && seen.has(position)) after.set(anchor, [...(after.get(anchor) ?? []), player]);
+      if (player >= roster.length && seen.has(position)) arrivalsAfter.set(anchor, [...(arrivalsAfter.get(anchor) ?? []), player]);
     });
   }
-  if (after.size === 0) return config;
+  if (arrivalsAfter.size === 0) return config;
 
-  const night = roster.flatMap((player, index) => [player, ...(after.get(index) ?? []).map((late) => live.draw.config.roster[late])]);
-  const movedBy = (start: number) => [...after].reduce((sum, [anchor, late]) => sum + (anchor < start ? late.length : 0), 0);
+  const nextRoster = roster.flatMap((player, index) => [player, ...(arrivalsAfter.get(index) ?? []).map((late) => live.draw.config.roster[late])]);
+  const movedBy = (start: number) => [...arrivalsAfter].reduce((sum, [anchor, late]) => sum + (anchor < start ? late.length : 0), 0);
   return encodeSharePayload({
     ...board.config,
-    roster: night,
+    roster: nextRoster,
     headers: headers.map((header) => ({ ...header, start: header.start + movedBy(header.start) })),
   });
 }
