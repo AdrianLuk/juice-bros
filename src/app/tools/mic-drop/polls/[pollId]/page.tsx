@@ -50,7 +50,8 @@ export default async function HostPollPage({ params }: Props) {
       lineUp={poll.lineUp}
       share={<CopyGuestLink url={guestLink} />}
     >
-      {poll.open && <AddContestantForm pollId={poll.id} />}
+      {/* Shown while the live Poll is open: HostBoard decides, so a close or reopen needs no reload. */}
+      <AddContestantForm pollId={poll.id} />
     </HostBoard>
   );
 }

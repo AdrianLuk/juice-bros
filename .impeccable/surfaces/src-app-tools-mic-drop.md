@@ -33,7 +33,7 @@ Rec players at a karaoke night after dinner, in a dim room, voting from their ow
 
 **FIRST VIEWPORT:** Guest at 390 wide: coral field with the Poll name, "Live chart" and phones-in count; then every Contestant as a full-width tap row (rank and movement mark, name, count, bar), highest first, seven without scrolling; your pick gets a coral edge and a "Your vote" chip. Closed: white field reading "Final chart", a No. 1 block naming the winner or joint winners, the frozen chart below; no block with zero Votes. Signature interaction: on re-sort rows slide to their new rank and the marks update; reduced motion cuts.
 
-**FORM:** The Chart, candidate 1 of 2 in a safer-register hand (round 3, after two re-rolls), chosen by Adrian. seed:6fdcb67352c7ea99, mode operate, code-led. Decision page: https://claude.ai/artifact/AfLqyv2N9XN5SwhkSZksMn (version 3).
+**FORM:** The Chart, candidate 1 of 2 in a safer-register hand (round 3, after two re-rolls), chosen by Adrian. seed:6fdcb67352c7ea99 (not corroborated at the #683 finish review: the roll record is gone from this machine, and PR 674 does not carry it), mode operate, code-led. Decision page: https://claude.ai/artifact/AfLqyv2N9XN5SwhkSZksMn (version 3).
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
