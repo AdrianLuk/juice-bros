@@ -29,9 +29,9 @@ type Props = {
  * The Host's Poll (issue #670): its line-up in entry order, each Contestant
  * with their live count and bar, and how many phones are in. Rows never move,
  * so a row stays where the Host's thumb expects it; the ranked chart is the
- * Guest Link's job. While the Poll is open each row can be removed, with a
- * warning first when it has Votes; at the end the Host closes the Poll, or
- * reopens it (issue #671).
+ * Guest Link's job. While the Poll is open each row can be removed, always
+ * after a confirm so a stray tap can't wipe a Contestant and their Votes; at
+ * the end the Host closes the Poll, or reopens it (issue #671).
  */
 export function HostBoard(props: Props) {
   return (
@@ -108,12 +108,6 @@ function LineUp({
     });
   }
 
-  // A Contestant with Votes gets a warning first: removing them wipes those Votes.
-  function tapRemove(row: Row) {
-    if (row.votes > 0) setConfirming(row.id);
-    else remove(row);
-  }
-
   return (
     <>
       <ol className="md-lineup">
@@ -127,7 +121,7 @@ function LineUp({
                 className="md-remove"
                 aria-label={`Remove ${row.name}`}
                 disabled={pending}
-                onClick={() => tapRemove(row)}
+                onClick={() => setConfirming(row.id)}
               >
                 <X aria-hidden size={18} />
               </button>
@@ -138,8 +132,9 @@ function LineUp({
             {confirming === row.id && (
               <div className="md-confirm" role="group" aria-label={`Remove ${row.name}?`}>
                 <p>
-                  Remove {row.name}? Their {row.votes} {row.votes === 1 ? "vote goes" : "votes go"} too, and those
-                  phones can pick again.
+                  Remove {row.name}?
+                  {row.votes > 0 &&
+                    ` Their ${row.votes} ${row.votes === 1 ? "vote goes" : "votes go"} too, and those phones can pick again.`}
                 </p>
                 <div className="md-form-row">
                   <button type="button" className="md-btn" disabled={pending} onClick={() => remove(row)}>
