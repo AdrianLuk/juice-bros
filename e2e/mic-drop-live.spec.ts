@@ -163,8 +163,14 @@ test("the Host removes, closes and reopens while the Guest watches, and a Vote c
     await expect(guestRow(guest, "Tyson McGuffin")).toHaveCount(0, LIVE);
     await expect(guest.getByText("Your pick was taken off the line-up")).toBeVisible();
 
-    // One with no Votes goes at once.
+    // One with no Votes still asks first, and "Keep them" backs out.
     await host.getByRole("button", { name: "Remove Ben Johns" }).click();
+    const ask = host.getByRole("group", { name: "Remove Ben Johns?" });
+    await expect(ask).not.toContainText("vote");
+    await ask.getByRole("button", { name: "Keep them" }).click();
+    await expect(ask).toHaveCount(0);
+    await host.getByRole("button", { name: "Remove Ben Johns" }).click();
+    await ask.getByRole("button", { name: "Remove", exact: true }).click();
     await expect(guestRow(guest, "Ben Johns")).toHaveCount(0, LIVE);
 
     // Tapping your own pick again takes it back.
