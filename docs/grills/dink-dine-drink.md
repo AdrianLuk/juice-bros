@@ -44,14 +44,17 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 
 ## Decisions
 
-_(none settled yet)_
+- **D1 (Q1): A separate app, not a Format in Team Tally.** Its own context, data and
+  route (working name `/tools/dink-dine-drink`). It reuses Team Tally's building blocks
+  (site sign-in, token links, public page, court grid/Venues) by copying patterns, not by
+  sharing Team Tally's tables. Team Tally stays one-format.
 
 ## Open questions (asked in this order)
 
-1. **New app or a Format in Team Tally?** Recommended: a new, separate app reusing Team
-   Tally's pieces. ← **asked, awaiting answer**
-2. What must be ready for 2026-11-28? Recommended: roster import, lineups, spreads,
-   scoring, live standings, punishments; draft-night screen after.
+1. ~~New app or a Format in Team Tally?~~ Settled: D1.
+2. **What must be ready for 2026-11-28?** Recommended: roster import, lineups, spreads,
+   scoring, live standings, punishments; draft-night screen after. ← **asked, awaiting
+   answer**
 3. Roster input: paste spreadsheet rows (Name, Gender, Team, Captain, DUPR, DUAR, DUSR)?
    Is gender in the sheet?
 4. Rating scales for DUAR/DUSR; is DUPR the only rating that drives game day?
