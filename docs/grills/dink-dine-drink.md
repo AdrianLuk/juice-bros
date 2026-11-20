@@ -48,22 +48,31 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   route (working name `/tools/dink-dine-drink`). It reuses Team Tally's building blocks
   (site sign-in, token links, public page, court grid/Venues) by copying patterns, not by
   sharing Team Tally's tables. Team Tally stays one-format.
+- **D2 (Q2): Scope for 2026-11-28.** Must work: roster entry (players, teams, captains,
+  three ratings), lineup submission, spread entry, scoring with soju shots, live standings,
+  court assignment, punishments. After 2026-11-28: the live draft-night screen.
+  **Roster entry has to work days before the event**, so Godfrey can enter spreads ahead
+  of time rather than on the day. The spreadsheet is coming from Adrian later (shapes Q3/Q4).
 
 ## Open questions (asked in this order)
 
 1. ~~New app or a Format in Team Tally?~~ Settled: D1.
-2. **What must be ready for 2026-11-28?** Recommended: roster import, lineups, spreads,
-   scoring, live standings, punishments; draft-night screen after. ← **asked, awaiting
-   answer**
-3. Roster input: paste spreadsheet rows (Name, Gender, Team, Captain, DUPR, DUAR, DUSR)?
-   Is gender in the sheet?
-4. Rating scales for DUAR/DUSR; is DUPR the only rating that drives game day?
-5. Round 1 Dreambreaker: which teams play which, how 4 seeds come out, scoring (rally to
-   21?), pairing when rosters differ in size.
-6. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
-7. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
-8. Lineups: limits per player, blind submission, who sees them.
-9. Roles and links: Organizer, Organizer Link for co-organizers (Godfrey), one shared
+2. ~~What must be ready for 2026-11-28?~~ Settled: D2.
+3. Roster input format: paste spreadsheet rows? Gender column? ← **waiting on the
+   spreadsheet**
+4. Rating scales for DUAR/DUSR ← **waiting on the spreadsheet**
+5. **Spreads before the day vs. opponents unknown until Round 1.** Round 2 opponents come
+   from Round 1 seeding, playoff opponents from Round 2, both on the day. How can Godfrey
+   enter spreads beforehand? Recommended: one fixed lineup per team for the day, Godfrey
+   enters spreads for all 6 possible team pairings x 4 games = 24 numbers, the app picks
+   the right ones; a lineup changed on the day gets its spread re-entered. ← **asked,
+   awaiting answer**
+6. Round 1 Dreambreaker: which teams play which, how 4 seeds come out, scoring (rally to
+   21?), pairing when rosters differ in size. Does it have a spread?
+7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
+8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
+9. Lineups: limits per player, blind submission, who sees them, deadline.
+10. Roles and links: Organizer, Organizer Link for co-organizers (Godfrey), one shared
    Score Link vs per-team, Public Link.
-10. Courts: how many, one court per matchup?
-11. Punishments by final place; soju leaderboard?
+11. Courts: how many, one court per matchup?
+12. Punishments by final place; soju leaderboard?
