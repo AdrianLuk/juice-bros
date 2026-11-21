@@ -33,8 +33,8 @@ describe("the real sheet", () => {
     assert.equal(formatAverage(wildcard), "–");
   });
 
-  it("ignores the sheet's average, so Shaun L is not 1.167", () => {
-    const shaun = parsed.teams[2].players.find((player) => player.name === "Shaun L")!;
+  it("ignores the sheet's average, so Riley Newman is not 1.167", () => {
+    const shaun = parsed.teams[2].players.find((player) => player.name === "Riley Newman")!;
     assert.equal(formatAverage(shaun), "2.425");
   });
 });

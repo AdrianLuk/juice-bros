@@ -47,7 +47,7 @@ test("pasting the sheet previews 4 Teams of 6 with their Captains, and flags wha
 
   // A short paste: 1 Team, and one row that is not a row.
   await box.fill("Ann\tF\t4.0\t4.0\t4.0\t4.0\tAnn\nnot a row at all");
-  await expect(page.getByText("Found 1 Teams")).toBeVisible();
+  await expect(page.getByText("Found 1 Team.")).toBeVisible();
   await expect(page.getByText("Row 2 has 1 columns")).toBeVisible();
   await expect(page.getByRole("button", { name: "Save the roster" })).toBeDisabled();
 
@@ -65,7 +65,7 @@ test("pasting the sheet previews 4 Teams of 6 with their Captains, and flags wha
 
   await page.getByRole("button", { name: "Save the roster" }).click();
   await expect(page.getByText("Roster saved")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Paul Richardson" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Federico Staksrud" })).toBeVisible();
 });
 
 test("the Public Link shows the 4 Teams with Ratings and Average Rating", async ({ browser }) => {
@@ -78,7 +78,7 @@ test("the Public Link shows the 4 Teams with Ratings and Average Rating", async 
     await expect(stranger.getByRole("heading", { level: 2 })).toHaveText(SHEET_CAPTAINS);
     await expect(stranger.getByText("Captain", { exact: true })).toHaveCount(4);
     await expect(stranger.getByRole("row", { name: /^Ed Ju/ })).toContainText("4.258");
-    await expect(stranger.getByRole("row", { name: /^Shaun L/ })).toContainText("2.425");
+    await expect(stranger.getByRole("row", { name: /^Riley Newman/ })).toContainText("2.425");
   } finally {
     await visitor.close();
   }
@@ -92,12 +92,12 @@ test("an Organizer edits, adds, moves and removes players", async () => {
   await ed.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("form", { name: "Edit Ed Ju" }).getByText("Average 3.879")).toBeVisible();
 
-  await page.getByRole("form", { name: "Edit Ed Ju" }).getByLabel("Team").selectOption({ label: "Chris Holden" });
+  await page.getByRole("form", { name: "Edit Ed Ju" }).getByLabel("Team").selectOption({ label: "Anna Leigh Waters" });
   await page.getByRole("form", { name: "Edit Ed Ju" }).getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("region", { name: "Chris Holden" }).getByRole("form", { name: "Edit Ed Ju" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Anna Leigh Waters" }).getByRole("form", { name: "Edit Ed Ju" })).toBeVisible();
 
-  await page.getByText("Add a player to Paul Richardson").click();
-  const add = page.getByRole("form", { name: "Add a player to Paul Richardson" });
+  await page.getByText("Add a player to Federico Staksrud").click();
+  const add = page.getByRole("form", { name: "Add a player to Federico Staksrud" });
   await add.getByLabel("Name").fill("Sam Newman");
   await add.getByLabel("DUPR").fill("3.25");
   await add.getByRole("button", { name: "Add player" }).click();
@@ -109,7 +109,7 @@ test("an Organizer edits, adds, moves and removes players", async () => {
   await page.goto(`/tools/ddd/events/${eventId}`);
   const publicUrl = await page.getByRole("link", { name: /\/tools\/ddd\/live\// }).textContent();
   await page.goto(publicUrl!);
-  await expect(page.getByRole("region", { name: "Chris Holden" }).getByRole("row", { name: /^Ed Ju/ })).toContainText("3.879");
+  await expect(page.getByRole("region", { name: "Anna Leigh Waters" }).getByRole("row", { name: /^Ed Ju/ })).toContainText("3.879");
   await expect(page.getByRole("row", { name: /^Sam Newman/ })).toContainText("3.250");
   await expect(page.getByText("Wildcard")).toHaveCount(0);
 });

@@ -124,7 +124,7 @@ export function parseRoster(text: string): ParsedRoster {
       return;
     }
     const [dupr, duar, dusr] = ratings.map((rating) => ("value" in rating ? rating.value : null));
-    let team = teams.find((each) => each.name === teamName);
+    let team = teams.find((each) => each.name.toLowerCase() === teamName.toLowerCase());
     if (!team) {
       team = { name: teamName, players: [] };
       teams.push(team);
@@ -135,7 +135,7 @@ export function parseRoster(text: string): ParsedRoster {
   if (teams.length !== TEAM_COUNT) {
     teamProblems.push({
       line: null,
-      message: `Found ${teams.length} Teams. A DDD has exactly ${TEAM_COUNT}, so check the Team column.`,
+      message: `Found ${teams.length} ${teams.length === 1 ? "Team" : "Teams"}. A DDD has exactly ${TEAM_COUNT}, so check the Team column.`,
     });
   }
   for (const team of teams) {
