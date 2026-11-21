@@ -75,7 +75,7 @@ test("the Public Link shows the 4 Teams with Ratings and Average Rating", async 
   try {
     const stranger = await visitor.newPage();
     await stranger.goto(publicUrl!);
-    await expect(stranger.getByRole("heading", { level: 2 })).toHaveText(SHEET_CAPTAINS);
+    await expect(stranger.getByRole("heading", { level: 2 }).filter({ hasNotText: " v " })).toHaveText(SHEET_CAPTAINS);
     await expect(stranger.getByText("Captain", { exact: true })).toHaveCount(4);
     await expect(stranger.getByRole("row", { name: /^Ed Ju/ })).toContainText("4.258");
     await expect(stranger.getByRole("row", { name: /^Riley Newman/ })).toContainText("2.425");

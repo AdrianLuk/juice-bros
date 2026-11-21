@@ -660,6 +660,7 @@ body:has(.ddd-surface) {
 }
 
 .ddd-lineup li {
+  align-items: baseline;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;

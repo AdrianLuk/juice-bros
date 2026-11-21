@@ -104,3 +104,43 @@ export async function createEvent(organizer: DddAccount, name: string): Promise<
   );
   return (await res.json()) as string;
 }
+
+/**
+ * Gives every Team of a DDD a full Lineup, as `organizer`, straight through
+ * the REST API: men and women picked in roster order, doubling up when a
+ * Team is short of one gender.
+ */
+export async function seedLineups(organizer: DddAccount, eventId: string): Promise<void> {
+  const session = await ok(
+    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: organizer.email, password: PASSWORD }),
+    }),
+    "signing the Organizer in",
+  );
+  const token = ((await session.json()) as { access_token: string }).access_token;
+  const headers = { apikey: ANON_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const teams = (await (
+    await ok(
+      await fetch(`${API_URL}/rest/v1/ddd_teams?event_id=eq.${eventId}&select=id,ddd_players(id,gender,position)&order=position`, { headers }),
+      "reading the Teams",
+    )
+  ).json()) as { id: string; ddd_players: { id: string; gender: "M" | "F"; position: number }[] }[];
+  const rows = teams.flatMap((team) => {
+    const sorted = [...team.ddd_players].sort((a, b) => a.position - b.position);
+    const men = sorted.filter((p) => p.gender === "M").map((p) => p.id);
+    const women = sorted.filter((p) => p.gender === "F").map((p) => p.id);
+    const pairs = {
+      mens: [men[0], men[1]],
+      womens: [women[0], women[1]],
+      mixed1: [men[2] ?? men[0], women[0]],
+      mixed2: [men[3] ?? men[1], women[1]],
+    };
+    return Object.entries(pairs).map(([game, [a, b]]) => ({ team_id: team.id, game, player_a: a, player_b: b }));
+  });
+  await ok(
+    await fetch(`${API_URL}/rest/v1/ddd_lineup_pairs`, { method: "POST", headers, body: JSON.stringify(rows) }),
+    "saving the Lineups",
+  );
+}

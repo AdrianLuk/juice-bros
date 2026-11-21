@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DddHead } from "@/components/ddd/ddd-head";
 import { RosterTeams } from "@/components/ddd/roster-teams";
+import { SpreadsView } from "@/components/ddd/spreads-view";
 import { readLinkEvent } from "@/lib/ddd/events";
 import { createClient } from "@/lib/ddd/supabase/server";
 
@@ -29,6 +30,7 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
             <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
           </div>
           <RosterTeams teams={event.teams} />
+          <SpreadsView event={event} />
         </div>
       </main>
     </>
