@@ -121,8 +121,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    Settled: D13, D14, D15.
 21. **Final places from the playoff round** (Round 2 winners play for 1st/2nd, losers for
    3rd/4th?). Settled: D16.
-22. **Punishments per Final place and how Soju shot counts show.** ← **asked, awaiting
-   answer** (old item 12)
+22. **Punishments per Final place and how Soju shot counts show.** (old item 12) Heard so
+   far: **1st place defaults to one bottle.** So a Punishment is not always a count of
+   drinks. ← **asked, awaiting answer: free-text per place? defaults for 2nd-4th? live
+   Soju shot totals on standings + per-Game breakdown + results page?**
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
