@@ -681,3 +681,206 @@ body:has(.ddd-surface) {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ---- Round 1: Seeding and Dreambreakers (issue #715) -------------------- */
+
+.ddd-band-head {
+  margin: 0;
+  font-family: var(--ddd-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.ddd-seeds {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-seed {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.ddd-seed + .ddd-seed {
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-seed-n {
+  min-width: 1.5ch;
+  font-family: var(--ddd-display);
+  font-size: 2.25rem;
+  line-height: 1;
+  color: var(--ddd-green);
+}
+
+.ddd-seed-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ddd-seed-body p {
+  margin: 0;
+}
+
+.ddd-seed-name {
+  font-family: var(--ddd-display);
+  font-size: 1.375rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.ddd-seed-rule {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.ddd-db-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 40rem) {
+  .ddd-db-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ddd-db-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.ddd-db-card p {
+  margin: 0;
+}
+
+.ddd-db-later {
+  opacity: 0.72;
+}
+
+.ddd-db-status {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--ddd-stamp);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-db-now .ddd-db-status span:first-child {
+  color: var(--ddd-red);
+}
+
+.ddd-db-score p {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.ddd-db-score p + p {
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-db-team {
+  font-weight: 700;
+}
+
+.ddd-db-points {
+  font-family: var(--ddd-display);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.ddd-db-won .ddd-db-points {
+  color: var(--ddd-green);
+}
+
+.ddd-rotations summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.ddd-rotation-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ddd-rotation-head {
+  margin: 0;
+  font-weight: 700;
+}
+
+.ddd-rotation ol,
+.ddd-rotation-edit ol {
+  margin: 4px 0 0;
+  padding-left: 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.ddd-rotation-edit + .ddd-rotation-edit {
+  padding-top: 12px;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-rotation-edit li {
+  min-height: 2.25rem;
+  line-height: 2.25rem;
+}
+
+.ddd-rotation-edit li .ddd-quiet {
+  float: right;
+  min-height: 2.25rem;
+}
+
+.ddd-db-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.ddd-db-form .ddd-field input {
+  width: 100%;
+  min-width: 0;
+  font-size: 1.25rem;
+}
+
+.ddd-db-form .ddd-actions {
+  grid-column: 1 / -1;
+}
+
+/* The court name is data, so it reads in the body face, not the stamp. */
+.ddd-db-status .ddd-db-court {
+  font-family: var(--font-ddd), sans-serif;
+  font-size: 0.9375rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ddd-ink);
+}
+
+/* A Rotation is an order: keep the numbers the site's reset strips. */
+.ddd-rotation ol,
+.ddd-rotation-edit ol {
+  list-style: decimal;
+}

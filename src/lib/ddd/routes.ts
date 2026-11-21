@@ -77,3 +77,8 @@ export function lineupsPath(eventId: string): string {
 export function rosterPath(eventId: string): string {
   return `${dddPath(eventId)}/roster`;
 }
+
+/** Round 1 for an Organizer: enter or clear finals, reorder Rotations, call a tie. */
+export function roundOnePath(eventId: string): string {
+  return `${dddPath(eventId)}/round-1`;
+}
