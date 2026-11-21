@@ -9,6 +9,8 @@
  * `mic-drop.ts`.
  */
 
+import { torontoDate } from "./dates.ts";
+
 const API_URL = "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
@@ -72,4 +74,33 @@ export async function cleanUp(organizer: DddAccount, names: string[], accounts: 
   for (const account of accounts) {
     await fetch(`${API_URL}/auth/v1/admin/users/${account.userId}`, { method: "DELETE", headers: ADMIN });
   }
+}
+
+/** Creates a DDD as `organizer` through the database function the form calls, and returns its id. */
+export async function createEvent(organizer: DddAccount, name: string): Promise<string> {
+  const session = await ok(
+    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: organizer.email, password: PASSWORD }),
+    }),
+    "signing the Organizer in",
+  );
+  const token = ((await session.json()) as { access_token: string }).access_token;
+  const res = await ok(
+    await fetch(`${API_URL}/rest/v1/rpc/ddd_save_event`, {
+      method: "POST",
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        p_event_id: null,
+        p_name: name,
+        p_event_date: torontoDate(7),
+        p_play_venue: "Rec Hall",
+        p_dine_venue: "Noodle Bar",
+        p_courts: ["1", "2", "3", "4"],
+      }),
+    }),
+    "creating the DDD",
+  );
+  return (await res.json()) as string;
 }

@@ -6,7 +6,8 @@ import { DddHead } from "@/components/ddd/ddd-head";
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { verifyOrganizer } from "@/lib/ddd/dal";
 import { getEvent } from "@/lib/ddd/events";
-import { DDD_ROOT, editDddPath, publicLinkPath, scoreLinkPath } from "@/lib/ddd/routes";
+import { getRoster } from "@/lib/ddd/roster-db";
+import { DDD_ROOT, editDddPath, publicLinkPath, rosterPath, scoreLinkPath } from "@/lib/ddd/routes";
 import { createClient } from "@/lib/ddd/supabase/server";
 
 /**
@@ -20,9 +21,10 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
   const event = await getEvent(await createClient(), eventId);
   if (!event) notFound();
 
-  const [scoreUrl, publicUrl] = await Promise.all([
+  const [scoreUrl, publicUrl, teams] = await Promise.all([
     absoluteAppUrl(scoreLinkPath(event.scoreToken)),
     absoluteAppUrl(publicLinkPath(event.publicToken)),
+    getRoster(await createClient(), event.id),
   ]);
 
   return (
@@ -40,6 +42,19 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
             </h2>
             <CopyLink label="Score Link" url={scoreUrl} note="For the group chat. Anyone holding it can enter scores." />
             <CopyLink label="Public Link" url={publicUrl} note="Read only. For phones and the TV by the courts." />
+          </section>
+          <section className="ddd-slip ddd-section" aria-labelledby="ddd-roster">
+            <h2 id="ddd-roster" className="ddd-slip-head">
+              Roster
+            </h2>
+            <p>
+              {teams.length === 0
+                ? "No roster yet. Paste the rows from the sheet."
+                : `${teams.length} Teams, ${teams.reduce((sum, team) => sum + team.players.length, 0)} players.`}
+            </p>
+            <Link href={rosterPath(event.id)} className="ddd-quiet">
+              {teams.length === 0 ? "Paste the roster" : "Open the roster"}
+            </Link>
           </section>
           <section className="ddd-slip ddd-section" aria-labelledby="ddd-courts">
             <h2 id="ddd-courts" className="ddd-slip-head">

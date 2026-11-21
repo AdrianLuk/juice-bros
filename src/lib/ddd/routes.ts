@@ -67,3 +67,8 @@ export function safeRedirectTarget(next: string | null | undefined): string {
   }
   return isUnderRoot(next.split(/[?#]/, 1)[0]) ? next : DDD_ROOT;
 }
+
+/** The roster: paste it, then edit it. */
+export function rosterPath(eventId: string): string {
+  return `${dddPath(eventId)}/roster`;
+}
