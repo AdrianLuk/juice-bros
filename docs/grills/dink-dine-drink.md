@@ -113,6 +113,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   public as soon as they are entered.
 - **D21 (Q27): Build for exactly 4 Teams.** Usually 4; another Team count gets designed
   when a DDD actually needs one. Only Round 2 and the Playoff are tied to 4.
+- **D22 (Q28): Unlisted**, like Mic Drop: link only, not on the Apps page or tools index,
+  noindex. Named "Dink Dine & Drink" at `/tools/dink-dine-drink`. Added to
+  `CONTEXT-MAP.md`.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -152,7 +155,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    it. Settled: D21.
 28. **Listed or unlisted?** Show it on the site's Apps page and tools index, or keep it
    unlisted like Mic Drop (reachable by link only, noindex)? Name/route
-   "Dink Dine & Drink" at `/tools/dink-dine-drink`? ← **asked, awaiting answer**
+   "Dink Dine & Drink" at `/tools/dink-dine-drink`? Settled: D22.
+29. **Remaining assumptions** (no time cap on Games; any Organizer can enter a missing
+   Spread on the day; a DDD has a name, date and location). ← **asked, awaiting answer**
 25. Roster input format and gender column ← waiting on the spreadsheet (old item 3)
 26. DUAR/DUSR scales ← waiting on the spreadsheet (old item 4)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
