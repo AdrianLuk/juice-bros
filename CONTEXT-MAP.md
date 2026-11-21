@@ -8,7 +8,7 @@
 - [Match Mixer](./match-mixer/CONTEXT.md) — pickleball round robin generator at `/tools/match-mixer`, client-side until an organizer goes live with scores (Apps section)
 - [Team Tally](./team-tally/CONTEXT.md) — scoring for captained team events at `/tools/team-tally`: captains report, the night seeds itself into Flights (Apps section)
 - [Mic Drop](./mic-drop/CONTEXT.md) — unlisted live karaoke vote at `/tools/mic-drop`: Guests vote from their own phones, one changeable Vote each, live Leaderboard
-- [Dink Dine & Drink](./dink-dine-drink/CONTEXT.md) — unlisted app for the friends' DDD at `/tools/ddd`: four drafted Teams, a Dreambreaker round robin to seed, then MLP-style Matchups played against DUPR Spreads, with Soju shots and Punishments
+- [Dink Dine & Drink](./dink-dine-drink/CONTEXT.md) — unlisted app for the friends' DDD at `/tools/ddd`: four drafted Teams, a Dreambreaker round robin to seed, then MLP-style Matchups played against DUPR Spreads, with Shots and Punishments
 
 The seven contexts are independent — no shared domain concepts or data relationship, just the same Next.js app shell.
 
@@ -22,7 +22,7 @@ Several words collide across the contexts. Check the right glossary before reusi
 - **Round** — a synchronized set of Games across the courts in Match Mixer; a captains' game and a teammates' game played together inside one Matchup in Team Tally. On Deck has no Rounds.
 - **Organizer** — the account that runs a Club's Sessions in On Deck; the account that owns a Team Event in Team Tally; whoever holds a Live Mixer's Organizer Link in Match Mixer, which is a link first and optionally an account (the **Owner**). Separate models, even when one person is both.
 - **Dreambreaker** — Team Tally's tiebreak for a tied Matchup; Dink Dine & Drink's opening singles round, a round robin that seeds the Teams.
-- **Matchup** — three Rounds on a Court pair in Team Tally; four doubles Games in two Waves on two courts in Dink Dine & Drink. **Organizer** there is anyone on the DDD Organizer list, not one owner, and its **Superadmin** is its own, not Team Tally's.
+- **Matchup** — three Rounds on a Court pair in Team Tally; four doubles Games in two Court turns on two courts in Dink Dine & Drink. **Organizer** there is anyone on the DDD Organizer list, not one owner, and its **Superadmin** is its own, not Team Tally's.
 - **Organizer** is not Mic Drop's word: its equivalent is the **Host**, and its night is a **Poll**.
 - **Session** — one night at a club in On Deck. Match Mixer avoids the word entirely and calls its equivalent a **Mixer**; Team Tally calls its night a **Team Event**.
 - **User**, **Org**, **Connection** and **Invite Link** are Booking Buddy's alone, and are explicitly avoided in On Deck and Match Mixer.

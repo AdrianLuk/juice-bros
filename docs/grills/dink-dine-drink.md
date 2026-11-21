@@ -140,6 +140,15 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   to 7.0 with 1 decimal. Any rating can be blank. The Average Rating is the mean of the
   ratings filled in (Ed Ju: 4.258), "–" when none are. The sheet's Wildcard and Shaun L
   averages are spreadsheet quirks, ignored.
+- **D27 (#710): The look is The Tab.** Every Team runs a bar tab all day; shots ring up as
+  line items and the tabs settle at dinner. Chosen in the Impeccable direction round over
+  the roll's assignment (The Diner), after a revision for legibility. Contract:
+  `.impeccable/surfaces/src-app-tools-ddd.md`. Tone: openly a party; scene: indoor courts
+  by day, the dine & drink venue at night.
+- **D28 (#710): No "Wave" on screen.** Games show as On now, Up next or Final, with their
+  court. The glossary calls two Games played together a **Court turn**.
+- **D29 (#710): "Shots", not "Soju shots".** The drink is not always soju. Earlier
+  decisions below keep their original wording.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still

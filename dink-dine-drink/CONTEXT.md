@@ -2,7 +2,7 @@
 
 An app for the Juice Bros friends' DDD events (several a year) (route `/tools/ddd`): four
 drafted Teams, a singles round to seed them, then MLP-style team Matchups where every Game
-is played against a DUPR Spread and missing it costs soju. It replaces the spreadsheet the
+is played against a DUPR Spread and missing it costs the Team shots. It replaces the spreadsheet the
 event has run on. Separate from Team Tally (see `CONTEXT-MAP.md`), though built the same
 way.
 
@@ -70,7 +70,7 @@ order: the head-to-head Dreambreaker when exactly two Teams are tied, point diff
 across all three Dreambreakers, total points scored, then the Organizer's call. The
 standings say which rule decided each place.
 
-A Dreambreaker has no Spread and costs no soju: it is scored straight up and only seeds.
+A Dreambreaker has no Spread and costs no shots: it is scored straight up and only seeds.
 
 **Round 2**:
 The first doubles round: Seed 1 plays Seed 4 and Seed 2 plays Seed 3, one Matchup on each
@@ -86,7 +86,7 @@ Every Team's finishing position, first to fourth, set by the Playoff.
 **Punishment**:
 What a Team drinks for its Final place, set by the Organizers and editable at any time,
 before or after the DDD. Defaults are bottles by place: 1 for first, 2 for second, 3 for
-third, 4 for fourth. Separate from Soju shots, which come from the Games.
+third, 4 for fourth. Separate from Shots, which come from the Games.
 
 **Pair**:
 Two players from one Team who play a doubles Game together, as named in the Lineup.
@@ -111,14 +111,15 @@ _Avoid_: winner, alone (say Spread winner, or "won the game outright" for the ra
 **Matchup**:
 Two Teams playing their four Lineup Games against each other: men's doubles, women's
 doubles and two mixed doubles. The Team with more Spread winners wins it. A 2-2 split is
-decided by Spread margin. A Matchup has two courts and plays its four Games in two Waves
+decided by Spread margin. A Matchup has two courts and plays its four Games in two Court turns
 of two.
 
-**Wave**:
+**Court turn**:
 Two Games of one Matchup played at the same time, one on each of its courts. Two Games
-that share a player can never be in the same Wave; if a Lineup cannot be split that way,
+that share a player can never be in the same Court turn; if a Lineup cannot be split that way,
 the leftover Game plays on its own.
-_Avoid_: Match, outside a display label (Pickle Point Pal's word)
+Screens never name it: a Game shows as On now, Up next or Final, with its court.
+_Avoid_: Wave (rejected on screen, 2026-11-21); Match, outside a display label (Pickle Point Pal's word)
 
 **Spread margin**:
 How far a Team's Pair beat or missed the Spread in a Game, before rounding: the
@@ -128,11 +129,13 @@ negated for the other Team. Summed over a Matchup's four Games, the larger total
 If the totals also tie, total raw points across the four Games decide it, and if those
 tie, the Organizer's call. (Provisional: Adrian is confirming with the group.)
 
-**Soju shots**:
+**Shots**:
 What a Game costs the Team whose Pair loses against the Spread: the gap between the
 lower-rated Pair's points and the Spread, rounded up, counted against that Team, not its
 players. 11-3 against 5.5 is a gap of 2.5, so 3 shots go on that Team's count. Every Game
 puts at least one shot on someone's count.
+The drink is whatever is poured on the day.
+_Avoid_: soju shots (the drink is not always soju)
 
 ### Links
 
@@ -141,5 +144,5 @@ One link per DDD, posted in the group chat. Whoever holds it can enter or correc
 score; each score remembers who last edited it. No account needed.
 
 **Public Link**:
-The read-only link to standings, Games, Soju shot counts and punishments, for phones and a
+The read-only link to standings, Games, shot counts and punishments, for phones and a
 venue TV.
