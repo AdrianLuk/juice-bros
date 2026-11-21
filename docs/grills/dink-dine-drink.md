@@ -64,7 +64,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   type the lineups in and Godfrey types the 24 spreads in. A captain lineup screen moves
   to after 2026-11-28.
 - **D5 (Q6): Round 1 is a Dreambreaker round robin.** Every Team plays every other Team
-  once: 6 singles Dreambreakers, run 2 at a time on the 2 courts (3 waves).
+  once: 6 singles Dreambreakers, run 2 at a time (3 waves); each Team is in one at a
+  time, so extra courts do not speed Round 1 up.
 - **D6 (Q14, part 1): Dreambreaker score.** Rally to 21, win by 1, freeze at 20 (at 20 a
   side can only win the last point on its own serve). A valid final is 21 to 0..20.
 - **D7 (Q14, parts 2-3): Rotation is guidance; only the final score is entered.** The court
@@ -127,8 +128,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 21. **Final places from the playoff round** (Round 2 winners play for 1st/2nd, losers for
    3rd/4th?). Settled: D16.
 22. ~~Punishments and Soju shot display~~ Settled: D17.
-23. **Courts: how many, which Matchup/Dreambreaker goes where, who sets it.** ← **asked,
-   awaiting answer** (old item 11)
+23. **Courts.** Correction 2026-11-21: this DDD has **4 courts**, and DDDs can have more
+   than 2 (not always 2). Organizer types the court names. ← **asked, awaiting answer:
+   does a Matchup use 2 courts at once (4 Games in 2 waves of 2)? Can one player be in two
+   Pairs (which stops those two Games running together)?** Then: who assigns courts.
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),

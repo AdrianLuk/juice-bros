@@ -38,7 +38,7 @@ Matchup that day.
 
 **Dreambreaker**:
 The opening singles round. Every Team plays every other Team once (six Dreambreakers), two
-at a time on the two courts. Its results set the Seeding. Rally scoring to 21, win by 1,
+at a time, since each Team can only be in one at once. Its results set the Seeding. Rally scoring to 21, win by 1,
 with a freeze at 20: a side on 20 can only win the last point on its own serve. Every
 finished Dreambreaker ends 21 to something from 0 to 20. Only the final score is
 recorded.
