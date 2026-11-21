@@ -77,7 +77,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   only. Matches past DDDs.
 - **D10 (Q17): Game and Spread maths.** Doubles Games are side-out to 11, win by 2. Measure
   the lower-rated Pair's points against the Spread, always (even 13-11). The Pair that
-  loses against the Spread drinks the gap, rounded up, per player. Spreads end in .5.
+  loses against the Spread puts the gap, rounded up, on its **Team's** shot count
+  (corrected 2026-11-21: counted against the Team, not each player). Spreads end in .5.
 
 ## Open questions (asked in this order)
 

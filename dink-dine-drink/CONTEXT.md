@@ -68,6 +68,7 @@ that are measured, including in games that run past 11.
 _Avoid_: winner, alone (say Spread winner, or "won the game outright" for the raw score)
 
 **Soju shots**:
-What the Pair that loses against the Spread drinks: the gap between the lower-rated Pair's
-points and the Spread, rounded up, for each player in that Pair. 11-3 against 5.5 is a gap
-of 2.5, so each of the two players drinks 3. Every Game costs at least one shot each.
+What a Game costs the Team whose Pair loses against the Spread: the gap between the
+lower-rated Pair's points and the Spread, rounded up, counted against that Team, not its
+players. 11-3 against 5.5 is a gap of 2.5, so 3 shots go on that Team's count. Every Game
+puts at least one shot on someone's count.
