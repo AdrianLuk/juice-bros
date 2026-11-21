@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { DddHead } from "@/components/ddd/ddd-head";
+import { RosterTeams } from "@/components/ddd/roster-teams";
 import { readLinkEvent } from "@/lib/ddd/events";
 import { createClient } from "@/lib/ddd/supabase/server";
 
@@ -17,14 +18,17 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
     <>
       <DddHead event={event} />
       <main className="ddd-main">
-        <div className="ddd-col ddd-slip ddd-notice">
-          <p className="ddd-slip-head">{link === "score" ? "Score Link" : "Public Link"}</p>
-          <p>
-            {link === "score"
-              ? "Scores go in here on the day. Keep this link: it's the one for the group chat."
-              : "The standings show here on the day."}
-          </p>
-          <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
+        <div className="ddd-col ddd-stack-lg">
+          <div className="ddd-slip ddd-notice">
+            <p className="ddd-slip-head">{link === "score" ? "Score Link" : "Public Link"}</p>
+            <p>
+              {link === "score"
+                ? "Scores go in here on the day. Keep this link: it's the one for the group chat."
+                : "The standings show here on the day."}
+            </p>
+            <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
+          </div>
+          <RosterTeams teams={event.teams} />
         </div>
       </main>
     </>

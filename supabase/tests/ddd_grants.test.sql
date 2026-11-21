@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(17);
 
 create temporary table ddd_expected (fn text, args text[], anon boolean, signed_in boolean) on commit drop;
 insert into ddd_expected values
@@ -25,7 +25,8 @@ insert into ddd_expected values
   ('ddd_is_organizer', array[]::text[], false, true),
   ('ddd_create_invite', array[]::text[], false, true),
   ('ddd_join', array['text'], false, true),
-  ('ddd_save_event', array['uuid', 'text', 'date', 'text', 'text', 'text[]'], false, true);
+  ('ddd_save_event', array['uuid', 'text', 'date', 'text', 'text', 'text[]'], false, true),
+  ('ddd_replace_roster', array['uuid', 'jsonb'], false, true);
 
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace

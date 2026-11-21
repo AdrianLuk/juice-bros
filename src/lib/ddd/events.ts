@@ -6,6 +6,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { StoredTeam } from "./roster.ts";
+
 /** What the setup form sends: courts in order, court 1 first. */
 export type DddSetup = {
   name: string;
@@ -34,6 +36,7 @@ export type DddEvent = DddHeader & {
 export type LinkEvent = DddHeader & {
   link: "score" | "public";
   courts: string[];
+  teams: StoredTeam[];
 };
 
 export const MAX_NAME = 80;

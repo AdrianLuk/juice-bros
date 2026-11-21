@@ -450,3 +450,164 @@ body:has(.ddd-surface) {
   flex-direction: column;
   gap: 10px;
 }
+
+/* ---- Roster (issue #712) ------------------------------------------------ */
+
+.ddd-team-name {
+  margin: 0;
+  font-family: var(--ddd-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.ddd-roster {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.ddd-roster th,
+.ddd-roster td {
+  padding: 8px 6px;
+  border-top: 1px solid var(--ddd-rule);
+  text-align: right;
+  vertical-align: baseline;
+}
+
+.ddd-roster thead th {
+  border-top: 0;
+  font-family: var(--ddd-stamp);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-roster th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.ddd-roster td:last-child,
+.ddd-roster th:last-child {
+  padding-right: 0;
+}
+
+.ddd-roster tbody th {
+  font-weight: 700;
+}
+
+.ddd-gender {
+  font-weight: 400;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-captain {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--ddd-ink);
+  border-radius: 3px;
+  font-family: var(--ddd-stamp);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ddd-paste-box {
+  min-height: 9rem;
+  padding: 0.75rem;
+  border: 2px solid var(--ddd-ink);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--ddd-ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  white-space: pre;
+  overflow: auto;
+}
+
+.ddd-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+}
+
+.ddd-preview,
+.ddd-preview-team {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ddd-preview {
+  gap: 16px;
+}
+
+.ddd-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 2px solid var(--ddd-red);
+  border-radius: 3px;
+}
+
+.ddd-confirm p {
+  margin: 0;
+  font-weight: 700;
+}
+
+.ddd-players {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-players li + li {
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  padding: 14px 0;
+}
+
+.ddd-player .ddd-field label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+
+.ddd-field-wide {
+  flex: 1 1 12rem;
+}
+
+.ddd-field-rating {
+  width: 5.5rem;
+}
+
+.ddd-player .ddd-field select {
+  min-width: 0;
+}
+
+.ddd-player-avg {
+  flex-basis: 100%;
+}
+
+.ddd-add summary {
+  cursor: pointer;
+}
+
+@media (min-width: 40rem) {
+  .ddd-player-avg {
+    flex-basis: auto;
+    margin-left: auto;
+  }
+}
