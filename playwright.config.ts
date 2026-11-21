@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
@@ -19,10 +19,10 @@ import { TEST_WORKER_COUNT, allWorkerBenHandles } from "./e2e/support/account-se
  */
 const FIXED_PORT_MOCK = /\bnew (?:GooglePlacesMock|GmailMock|MicrosoftMock)\(/;
 const E2E_DIR = join(__dirname, "e2e");
-const FIXED_PORT_MOCK_SPECS = readdirSync(E2E_DIR)
-  .filter((name) => name.endsWith(".spec.ts"))
-  .filter((name) => FIXED_PORT_MOCK.test(readFileSync(join(E2E_DIR, name), "utf8")))
-  .map((name) => `**/${name}`);
+const FIXED_PORT_MOCK_SPECS = readdirSync(E2E_DIR, { recursive: true, encoding: "utf8" })
+  .filter((path) => path.endsWith(".spec.ts"))
+  .filter((path) => FIXED_PORT_MOCK.test(readFileSync(join(E2E_DIR, path), "utf8")))
+  .map((path) => `**/${basename(path)}`);
 
 /**
  * Browser tests, kept apart from `npm test`.
@@ -112,7 +112,7 @@ export default defineConfig({
     // Only takes effect when Playwright starts the server itself — i.e.
     // always in CI, where nothing is already listening on :3000. A locally
     // reused dev server keeps whatever's in its own `.env` (the real Google
-    // host by default), which is why e2e/places.spec.ts needs a dev server
+    // host by default), which is why e2e/booking-buddy/places.spec.ts needs a dev server
     // that *wasn't* already running to get the mock — see testing.md.
     env: {
       // Marks this server as the one Playwright started, so `/api/e2e-preflight`

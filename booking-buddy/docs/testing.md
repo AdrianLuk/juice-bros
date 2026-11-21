@@ -102,6 +102,19 @@ npx playwright test --debug         # pause on each action
 npx playwright show-report          # after a failure
 ```
 
+**Run only the app you're working on.** Specs live in one folder per app under
+`e2e/` (`booking-buddy`, `on-deck`, `team-tally`, `match-mixer`, `mic-drop`,
+`pickle-point-pal`), so pass the folder:
+
+```
+npm run test:e2e -- e2e/on-deck     # one app's specs
+npm run test:e2e -- e2e/on-deck/on-deck-undo.spec.ts   # one file
+```
+
+Run the whole suite before merging a change to code more than one app uses:
+`e2e/support/`, `src/components/auth/`, shared `src/lib/` or `src/components/ui/`,
+`playwright.config.ts`, or a Supabase migration. A new app gets its own folder.
+
 **The server they run against.** If something is already listening on port 3000
 (a `next dev` you have open), they reuse it as-is. If nothing is, Playwright
 builds the app and serves it with `next start` — a production build skips the
@@ -182,11 +195,11 @@ Some things worth knowing before writing more of them:
 - **`page.route()` can't mock a server-side `fetch`.** It only intercepts
   requests the *browser* makes; a Server Action's own `fetch` (Google Places,
   here) runs in the Next.js server process and never goes near the page's
-  network stack. `e2e/places.spec.ts` mocks it with a real local HTTP server
+  network stack. `e2e/booking-buddy/places.spec.ts` mocks it with a real local HTTP server
   (`e2e/support/google-places-mock.ts`) and a `GOOGLE_PLACES_API_BASE_URL` env
   override baked into `playwright.config.ts`'s `webServer.env` — which only
   takes effect when Playwright starts the dev server itself. **If you already
-  have `npm run dev` running on :3000, `e2e/places.spec.ts` will hit the real
+  have `npm run dev` running on :3000, `e2e/booking-buddy/places.spec.ts` will hit the real
   Google API against your own key instead of the mock** (reused per
   `reuseExistingServer: true`, same as any other spec). Stop your dev server
   first if you want that file mocked locally; CI always gets the override

@@ -113,8 +113,8 @@ async function forceUsername(email: string, username: string): Promise<void> {
 /**
  * The friendships the browser tests take as given.
  *
- * `e2e/friends.spec.ts` asserts that Amy and Ben are already friends, and
- * `e2e/friend-groups.spec.ts` can only group someone it is already connected
+ * `e2e/booking-buddy/friends.spec.ts` asserts that Amy and Ben are already friends, and
+ * `e2e/booking-buddy/friend-groups.spec.ts` can only group someone it is already connected
  * to — so without these, a fresh `supabase db reset` leaves five browser tests
  * failing for reasons that have nothing to do with the code under test.
  *
