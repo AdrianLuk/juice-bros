@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 import { torontoDate } from "../support/dates.ts";
 import { cleanUp, seedAccount, type DddAccount } from "../support/ddd.ts";
@@ -26,6 +26,19 @@ const VENUE_NAME = `Hall ${RUN}`;
 
 let organizer: DddAccount;
 let outsider: DddAccount;
+let contexts: BrowserContext[] = [];
+
+/** A page in a fresh context: one account per context, closed after the test. */
+async function open(browser: Browser): Promise<Page> {
+  const context = await browser.newContext();
+  contexts.push(context);
+  return context.newPage();
+}
+
+test.afterEach(async () => {
+  await Promise.all(contexts.map((context) => context.close()));
+  contexts = [];
+});
 
 test.beforeAll(async () => {
   [organizer, outsider] = await Promise.all([seedAccount(true), seedAccount(false)]);
@@ -36,13 +49,13 @@ test.afterAll(async () => {
 });
 
 test("an Organizer creates a DDD and invites another Organizer, who sees it", async ({ browser }) => {
-  const outsiderPage = await (await browser.newContext()).newPage();
+  const outsiderPage = await open(browser);
   await signIn(outsiderPage, outsider.email);
   await outsiderPage.goto("/tools/ddd");
   await expect(outsiderPage.getByRole("heading", { name: "Ask for an invite" })).toBeVisible();
   await expect(outsiderPage.getByRole("link", { name: "New DDD" })).toHaveCount(0);
 
-  const page = await (await browser.newContext()).newPage();
+  const page = await open(browser);
   await signIn(page, organizer.email);
   await page.goto("/tools/ddd");
   await page.getByRole("link", { name: "New DDD" }).click();
@@ -68,7 +81,7 @@ test("an Organizer creates a DDD and invites another Organizer, who sees it", as
   const publicUrl = await page.getByRole("link", { name: /\/tools\/ddd\/live\// }).textContent();
 
   // Both links open with no account.
-  const stranger = await (await browser.newContext()).newPage();
+  const stranger = await open(browser);
   await stranger.goto(scoreUrl!);
   await expect(stranger.getByRole("heading", { level: 1, name: DDD_NAME })).toBeVisible();
   await expect(stranger.getByText("Score Link", { exact: true })).toBeVisible();
