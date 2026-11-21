@@ -1,11 +1,36 @@
+import { GAME_LABEL, LINEUP_GAMES, readLineup, type RawLineup } from "@/lib/ddd/lineup";
 import { captainOf, formatAverage, formatRating, type StoredTeam } from "@/lib/ddd/roster";
 
+type Team = StoredTeam & { lineup: RawLineup | null };
+
+/** A Team's four Pairs, as saved. Nothing until the Lineup is in. No warnings: those are for Organizers. */
+function TeamLineup({ team }: { team: Team }) {
+  const lineup = readLineup(team.players, team.lineup);
+  if (!lineup) return null;
+  const name = (id: string | null) => team.players.find((player) => player.id === id)?.name ?? "–";
+  return (
+    <>
+      <h3 className="ddd-slip-head">Lineup</h3>
+      <ul className="ddd-lineup">
+        {LINEUP_GAMES.map((game) => (
+          <li key={game}>
+            <span className="ddd-lineup-game">{GAME_LABEL[game]}</span>
+            <span>
+              {name(lineup[game][0])} &amp; {name(lineup[game][1])}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 /**
- * The 4 Teams with their players, Ratings and Average Rating: what the
- * Public Link and Score Link show (issue #712). Read only. The Captain is
- * the player named like the Team.
+ * The 4 Teams with their players, Ratings, Average Rating and Lineup: what
+ * the Public Link and Score Link show (issues #712, #713). Read only. The
+ * Captain is the player named like the Team.
  */
-export function RosterTeams({ teams }: { teams: StoredTeam[] }) {
+export function RosterTeams({ teams }: { teams: Team[] }) {
   if (teams.length === 0) return null;
   return (
     <div className="ddd-stack-lg">
@@ -42,6 +67,7 @@ export function RosterTeams({ teams }: { teams: StoredTeam[] }) {
                 ))}
               </tbody>
             </table>
+            <TeamLineup team={team} />
           </section>
         );
       })}
