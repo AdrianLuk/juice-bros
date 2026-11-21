@@ -123,6 +123,10 @@ Default label vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-h
 
 Multi-context layout: root `CONTEXT-MAP.md` indexes per-context `CONTEXT.md` files (currently just `booking-buddy/`). See `docs/agents/domain.md`.
 
+### Browser tests
+
+Run only the e2e folder of the app you touched (`npm run test:e2e -- e2e/<app>`); run the full suite only when shared code changed. The list of what counts as shared is in `booking-buddy/docs/testing.md` under "The browser tests".
+
 ### PR screenshots
 
 Any PR touching a UI surface embeds desktop and mobile screenshots stored on a hidden `refs/screenshots/pr-N` ref, never in a branch. The rules are in "Screenshots in pull requests" below; capture tips are in `docs/agents/pr-screenshots.md`.
