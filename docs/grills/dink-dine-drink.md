@@ -138,7 +138,6 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    Nov 28 scope; Godfrey works off the chat in DUPR's forecast tool; the first ship
    (roster + lineups + spreads, organizer-entered) lands ~Tue 2026-11-24 and Godfrey types
    the 24 spreads in.
-10. Roles and links: Organizer, Organizer Link for co-organizers (Godfrey), one shared
-   Score Link vs per-team, Public Link.
-11. Courts: how many, one court per matchup?
-12. Punishments by final place; soju leaderboard?
+10. ~~Roles and links~~ → item 20, settled D13-D15.
+11. Courts → item 23.
+12. ~~Punishments~~ → item 22, settled D17.
