@@ -64,7 +64,10 @@ export async function cleanUp(organizer: DddAccount, names: string[], accounts: 
   const asOrganizer = { apikey: ANON_KEY, Authorization: `Bearer ${token}` };
   const list = `(${names.map((name) => `"${name}"`).join(",")})`;
   for (const table of ["ddd_events", "ddd_venues"]) {
-    await fetch(`${API_URL}/rest/v1/${table}?name=in.${encodeURIComponent(list)}`, { method: "DELETE", headers: asOrganizer });
+    await ok(
+      await fetch(`${API_URL}/rest/v1/${table}?name=in.${encodeURIComponent(list)}`, { method: "DELETE", headers: asOrganizer }),
+      `deleting the spec's ${table}`,
+    );
   }
   for (const account of accounts) {
     await fetch(`${API_URL}/auth/v1/admin/users/${account.userId}`, { method: "DELETE", headers: ADMIN });

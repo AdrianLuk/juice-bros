@@ -22,7 +22,7 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
           <p>
             {link === "score"
               ? "Scores go in here on the day. Keep this link: it's the one for the group chat."
-              : "Standings, Games and shots show here on the day."}
+              : "The standings show here on the day."}
           </p>
           <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
         </div>

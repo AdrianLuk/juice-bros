@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(34);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('71171171-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ddd-organizer-a@example.com'),
@@ -107,6 +107,19 @@ select lives_ok(
   'and edits it'
 );
 select is((select dine_venue from public.ddd_events), 'Dumpling House', 'the edit stuck');
+
+-- An edit updates courts in place (later tickets hang Games on them), so a
+-- swap passes through two courts briefly sharing a name.
+select lives_ok(
+  $$select public.ddd_save_event(
+      (select id from public.ddd_events), 'DDD November', '2026-11-28', 'Rec Hall', 'Dumpling House', array['17', '16', '18'])$$,
+  'an edit can swap two courts and drop one'
+);
+select results_eq(
+  $$select name from public.ddd_courts order by position$$,
+  $$values ('17'), ('16'), ('18')$$,
+  'the courts take the new order'
+);
 
 -- ---- a second account tries the same, used invite ----------------------------
 set local request.jwt.claims = '{"sub": "71171171-0000-0000-0000-00000000000e", "role": "authenticated"}';

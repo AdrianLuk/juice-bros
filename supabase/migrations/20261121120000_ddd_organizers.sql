@@ -216,7 +216,8 @@ create table public.ddd_courts (
   position smallint not null check (position between 1 and 20),
   name text not null check (char_length(btrim(name)) between 1 and 20),
   primary key (event_id, position),
-  constraint ddd_courts_name_unique unique (event_id, name)
+  -- Deferred so an edit can swap two courts' names in place.
+  constraint ddd_courts_name_unique unique (event_id, name) deferrable initially deferred
 );
 
 create table public.ddd_teams (
@@ -331,10 +332,15 @@ begin
     end if;
   end if;
 
-  delete from public.ddd_courts where event_id = v_event_id;
+  -- In place by position, not delete-and-insert: later tickets hang Games
+  -- and court assignments on these rows, and a setup edit must not drop them.
   insert into public.ddd_courts (event_id, position, name)
   select v_event_id, ordinality, name
-  from unnest(v_courts) with ordinality as c (name, ordinality);
+  from unnest(v_courts) with ordinality as c (name, ordinality)
+  on conflict (event_id, position) do update set name = excluded.name;
+
+  delete from public.ddd_courts
+  where event_id = v_event_id and position > cardinality(v_courts);
 
   return v_event_id;
 end;

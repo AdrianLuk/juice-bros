@@ -21,7 +21,7 @@ export async function signInWithGoogleIdToken(idToken: string, nonce: string, ne
 
   const token = inviteTokenOf(target);
   revalidatePath(DDD_ROOT, "layout");
-  if (token && (await joinWithInvite(supabase, token))) redirect(DDD_ROOT);
+  if (token) redirect((await joinWithInvite(supabase, token)) ? DDD_ROOT : `${invitePath(token)}?error=used`);
   redirect(target);
 }
 

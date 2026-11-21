@@ -21,7 +21,8 @@ export default async function JoinPage({
   const [{ token }, { error }, visitor] = await Promise.all([params, searchParams, getVisitor()]);
   if (visitor.kind === "organizer") redirect(DDD_ROOT);
 
-  if (error === "used") {
+  // A signed-out visitor here lost their session: signing in again retries the invite.
+  if (error === "used" && visitor.kind === "not-organizer") {
     return (
       <>
         <DddBar title="This invite is used up" />
@@ -40,7 +41,7 @@ export default async function JoinPage({
       <DddBar title="You're invited to organize" />
       <main className="ddd-main">
         <div className="ddd-col ddd-slip ddd-notice">
-          <p>Organizers set up every Dink Dine &amp; Drink: the roster, Lineups, Spreads and courts.</p>
+          <p>Organizers set up every Dink Dine &amp; Drink and run it on the day.</p>
           {visitor.kind === "signed-out" ? (
             <DddSignIn next={invitePath(token)} failed={error === "google_unavailable"} />
           ) : (

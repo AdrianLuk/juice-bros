@@ -131,7 +131,9 @@ export async function saveEvent(supabase: SupabaseClient, id: string | null, set
   });
   if (error?.code === "42501") return { ok: false, problem: "Only an Organizer can set up a DDD." };
   if (error?.code === "P0002") return { ok: false, problem: "That DDD is gone. Reload the page." };
-  if (error?.code === "22023") return { ok: false, problem: "Two courts share a number. Pick each court once." };
+  if (error?.code === "22023") return { ok: false, problem: "Book 1 to 20 courts, each one once." };
+  // A check constraint: the form's limits and the table's drifted apart.
+  if (error?.code === "23514") return { ok: false, problem: "Something in the setup is too long. Shorten it and save again." };
   if (error) throw new Error(`Saving a DDD failed: ${error.message}`);
   return { ok: true, id: data as string };
 }
