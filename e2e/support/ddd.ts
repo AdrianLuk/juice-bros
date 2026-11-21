@@ -104,3 +104,46 @@ export async function createEvent(organizer: DddAccount, name: string): Promise<
   );
   return (await res.json()) as string;
 }
+
+/** A REST call signed in as `organizer`, returning the parsed body. */
+async function asOrganizer(organizer: DddAccount, path: string, init: RequestInit, what: string): Promise<unknown> {
+  const session = await ok(
+    await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: organizer.email, password: PASSWORD }),
+    }),
+    "signing the Organizer in",
+  );
+  const token = ((await session.json()) as { access_token: string }).access_token;
+  const res = await ok(
+    await fetch(`${API_URL}/rest/v1/${path}`, {
+      ...init,
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    }),
+    what,
+  );
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+/** Saves a roster (4 Teams, as `parseRoster` gives them) on a DDD, as the paste does. */
+export async function saveRoster(organizer: DddAccount, eventId: string, teams: unknown[]): Promise<void> {
+  await asOrganizer(
+    organizer,
+    "rpc/ddd_replace_roster",
+    { method: "POST", body: JSON.stringify({ p_event_id: eventId, p_teams: teams }) },
+    "saving the roster",
+  );
+}
+
+/** A DDD's Score Link and Public Link paths. */
+export async function linkPaths(organizer: DddAccount, eventId: string): Promise<{ score: string; public: string }> {
+  const rows = (await asOrganizer(
+    organizer,
+    `ddd_events?id=eq.${eventId}&select=score_token,public_token`,
+    { method: "GET" },
+    "reading the link tokens",
+  )) as { score_token: string; public_token: string }[];
+  return { score: `/tools/ddd/score/${rows[0].score_token}`, public: `/tools/ddd/live/${rows[0].public_token}` };
+}

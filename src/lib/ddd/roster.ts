@@ -16,7 +16,8 @@ export type RosterPlayer = {
 };
 
 /** A saved player and Team: the same, with ids. */
-export type StoredPlayer = RosterPlayer & { id: string };
+/** `rotation` is an Organizer's Rotation order (#715), null until one is set. */
+export type StoredPlayer = RosterPlayer & { id: string; rotation: number | null };
 export type StoredTeam = { id: string; name: string; players: StoredPlayer[] };
 
 export type RosterTeam ={ name: string; players: RosterPlayer[] };

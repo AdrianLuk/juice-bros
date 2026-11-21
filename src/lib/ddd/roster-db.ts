@@ -20,6 +20,7 @@ type TeamRow = {
     dupr: number | null;
     duar: number | null;
     dusr: number | null;
+    rotation: number | null;
   }[];
 };
 
@@ -27,7 +28,7 @@ type TeamRow = {
 export async function getRoster(supabase: SupabaseClient, eventId: string): Promise<StoredTeam[]> {
   const { data, error } = await supabase
     .from("ddd_teams")
-    .select("id, name, position, ddd_players (id, name, gender, position, dupr, duar, dusr)")
+    .select("id, name, position, ddd_players (id, name, gender, position, dupr, duar, dusr, rotation)")
     .eq("event_id", eventId)
     .order("position");
   if (error) throw new Error(`Reading the roster failed: ${error.message}`);
@@ -36,7 +37,7 @@ export async function getRoster(supabase: SupabaseClient, eventId: string): Prom
     name: team.name,
     players: [...team.ddd_players]
       .sort((a, b) => a.position - b.position)
-      .map(({ id, name, gender, dupr, duar, dusr }) => ({ id, name, gender, dupr, duar, dusr })),
+      .map(({ id, name, gender, dupr, duar, dusr, rotation }) => ({ id, name, gender, dupr, duar, dusr, rotation })),
   }));
 }
 

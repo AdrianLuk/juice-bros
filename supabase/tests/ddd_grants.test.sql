@@ -15,18 +15,22 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(23);
 
 create temporary table ddd_expected (fn text, args text[], anon boolean, signed_in boolean) on commit drop;
 insert into ddd_expected values
   -- Link holders and signed-in Users.
   ('ddd_link_event', array['text'], true, true),
+  ('ddd_save_dreambreaker', array['text', 'uuid', 'uuid', 'integer', 'integer'], true, true),
+  -- The live broadcast trigger: nobody calls it.
+  ('ddd_broadcast_change', array[]::text[], false, false),
   -- Signed-in Users; each refuses anyone off the Organizer list.
   ('ddd_is_organizer', array[]::text[], false, true),
   ('ddd_create_invite', array[]::text[], false, true),
   ('ddd_join', array['text'], false, true),
   ('ddd_save_event', array['uuid', 'text', 'date', 'text', 'text', 'text[]'], false, true),
-  ('ddd_replace_roster', array['uuid', 'jsonb'], false, true);
+  ('ddd_replace_roster', array['uuid', 'jsonb'], false, true),
+  ('ddd_set_rotation', array['uuid', 'uuid[]'], false, true);
 
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
