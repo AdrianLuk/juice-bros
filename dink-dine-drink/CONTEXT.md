@@ -67,6 +67,18 @@ against a Spread of 5.5 is the Spread winner. It is always the lower-rated Pair'
 that are measured, including in games that run past 11.
 _Avoid_: winner, alone (say Spread winner, or "won the game outright" for the raw score)
 
+**Matchup**:
+Two Teams playing their four Lineup Games against each other: men's doubles, women's
+doubles and two mixed doubles. The Team with more Spread winners wins it. A 2-2 split is
+decided by Spread margin.
+_Avoid_: Match, outside a display label (Pickle Point Pal's word)
+
+**Spread margin**:
+How far a Team's Pair beat or missed the Spread in a Game, before rounding: the
+lower-rated Pair's points minus the Spread for that Pair's Team, and the same number
+negated for the other Team. Summed over a Matchup's four Games, the larger total wins a
+2-2 Matchup.
+
 **Soju shots**:
 What a Game costs the Team whose Pair loses against the Spread: the gap between the
 lower-rated Pair's points and the Spread, rounded up, counted against that Team, not its
