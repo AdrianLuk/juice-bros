@@ -46,6 +46,8 @@ order: the head-to-head Dreambreaker when exactly two Teams are tied, point diff
 across all three Dreambreakers, total points scored, then the Organizer's call. The
 standings say which rule decided each place.
 
+A Dreambreaker has no Spread and costs no soju: it is scored straight up and only seeds.
+
 **Spread**:
 The points the lower-rated Pair is forecast to score against the higher-rated Pair in a
 Game, entered by Godfrey from DUPR's forecast before the event (e.g. 5.5 in a game to 11).

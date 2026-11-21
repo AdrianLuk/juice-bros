@@ -73,6 +73,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D8 (Q15): Seeding.** Wins; then head-to-head if exactly two Teams tie; then point
   difference across the three Dreambreakers; then total points; then the Organizer's call.
   Standings name the rule that decided each place (same shape as Team Tally's).
+- **D9 (Q16): Dreambreakers have no Spread and no soju shots.** Straight-up score, seeding
+  only. Matches past DDDs.
 
 ## Open questions (asked in this order)
 
@@ -89,7 +91,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 6. ~~Round 1 Dreambreaker: which teams play which~~ Settled: D5.
 14. ~~Dreambreaker scoring and rotation~~ Settled: D6, D7.
 15. ~~Seeding: ranking and ties~~ Settled: D8.
-16. **Does a Dreambreaker carry a Spread or soju shots?** ← **asked, awaiting answer**
+16. ~~Does a Dreambreaker carry a Spread or soju shots?~~ Settled: D9.
+17. **Doubles Game and Spread maths**: game format (to 11, win by 2?), the gap measured on
+   the lower-rated Pair's points, who drinks, rounding, per player or per Pair.
+   ← **asked, awaiting answer** (this is old item 8)
 7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
 8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
