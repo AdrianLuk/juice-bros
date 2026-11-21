@@ -70,6 +70,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D7 (Q14, parts 2-3): Rotation is guidance; only the final score is entered.** The court
   card shows each Team's DUPR-ordered Rotation (each Team cycles its own list), and it can
   be changed on the day. Nobody enters rally by rally.
+- **D8 (Q15): Seeding.** Wins; then head-to-head if exactly two Teams tie; then point
+  difference across the three Dreambreakers; then total points; then the Organizer's call.
+  Standings name the rule that decided each place (same shape as Team Tally's).
 
 ## Open questions (asked in this order)
 
@@ -85,8 +88,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    the right ones. Settled: D3.
 6. ~~Round 1 Dreambreaker: which teams play which~~ Settled: D5.
 14. ~~Dreambreaker scoring and rotation~~ Settled: D6, D7.
-15. **Seeding from the round robin: ranking and ties (incl. a 3-way 2-1 tie).**
-   ← **asked, awaiting answer**. Then: does a Dreambreaker carry a Spread / soju shots?
+15. ~~Seeding: ranking and ties~~ Settled: D8.
+16. **Does a Dreambreaker carry a Spread or soju shots?** ← **asked, awaiting answer**
 7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
 8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),

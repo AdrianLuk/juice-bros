@@ -41,7 +41,10 @@ _Avoid_: tiebreak (Team Tally's Dreambreaker is a tiebreak; this one is a round)
 
 **Seeding**:
 Ranking the four Teams 1 to 4 on their Dreambreaker results, which decides the doubles
-Matchups (1 vs 4, 2 vs 3).
+Matchups (1 vs 4, 2 vs 3). Most Dreambreakers won ranks first. A tie is broken by, in
+order: the head-to-head Dreambreaker when exactly two Teams are tied, point difference
+across all three Dreambreakers, total points scored, then the Organizer's call. The
+standings say which rule decided each place.
 
 **Spread**:
 The points the lower-rated Pair is forecast to score against the higher-rated Pair in a
