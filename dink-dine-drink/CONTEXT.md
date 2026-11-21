@@ -78,6 +78,8 @@ How far a Team's Pair beat or missed the Spread in a Game, before rounding: the
 lower-rated Pair's points minus the Spread for that Pair's Team, and the same number
 negated for the other Team. Summed over a Matchup's four Games, the larger total wins a
 2-2 Matchup.
+If the totals also tie, total raw points across the four Games decide it, and if those
+tie, the Organizer's call. (Provisional: Adrian is confirming with the group.)
 
 **Soju shots**:
 What a Game costs the Team whose Pair loses against the Spread: the gap between the

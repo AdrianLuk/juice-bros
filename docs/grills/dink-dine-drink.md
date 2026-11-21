@@ -82,6 +82,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D11 (Q18): A 2-2 Matchup is decided by total Spread margin** (as past DDDs did, not a
   Dreambreaker). Per Game a Team's margin is the unrounded gap to the Spread, positive when
   its Pair was the Spread winner. Sum over the four Games; larger total wins.
+- **D12 (Q19, PROVISIONAL): Spread margins tied → total raw points → Organizer's call.**
+  Adrian will confirm with the group. Build it so an Organizer can always override the
+  winner of a 2-2 Matchup and record why.
 
 ## Open questions (asked in this order)
 
@@ -102,7 +105,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 17. ~~Doubles Game and Spread maths~~ Settled: D10.
 18. ~~Matchup winner and a 2-2 tie~~ Settled: D11.
 19. **A 2-2 Matchup whose Spread margins also tie** (e.g. +2.5 +1.5 -3.5 -0.5 = 0; Soju
-   shot totals tie too in that case). ← **asked, awaiting answer**
+   shot totals tie too in that case). Settled provisionally: D12.
+20. **Roles and links: who can enter what, and how they get in (Godfrey especially).**
+   ← **asked, awaiting answer** (old item 10)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
