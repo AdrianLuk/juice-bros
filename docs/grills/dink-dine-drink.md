@@ -96,6 +96,11 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   the most serious thing in the world."
 - **D16 (Q21): Playoff.** Round 2 winners play for 1st/2nd, Round 2 losers for 3rd/4th,
   one Matchup per court, same 4-Game format with Spreads from Godfrey's 24.
+- **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
+  bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
+  short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
+  fits). Standings show each Team's live Soju shot total, tap for the per-Game breakdown;
+  the results page shows Final place, Punishment and Soju shots together.
 
 ## Open questions (asked in this order)
 
@@ -121,10 +126,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    Settled: D13, D14, D15.
 21. **Final places from the playoff round** (Round 2 winners play for 1st/2nd, losers for
    3rd/4th?). Settled: D16.
-22. **Punishments per Final place and how Soju shot counts show.** (old item 12) Heard so
-   far: **1st place defaults to one bottle.** So a Punishment is not always a count of
-   drinks. ← **asked, awaiting answer: free-text per place? defaults for 2nd-4th? live
-   Soju shot totals on standings + per-Game breakdown + results page?**
+22. ~~Punishments and Soju shot display~~ Settled: D17.
+23. **Courts: how many, which Matchup/Dreambreaker goes where, who sets it.** ← **asked,
+   awaiting answer** (old item 11)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),

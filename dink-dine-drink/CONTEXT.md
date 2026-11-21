@@ -70,6 +70,11 @@ for third and fourth. Same four-Game Matchups with Spreads.
 **Final places**:
 Every Team's finishing position, first to fourth, set by the Playoff.
 
+**Punishment**:
+What a Team drinks for its Final place, set by the Organizers and editable at any time,
+before or after the DDD. Defaults are bottles by place: 1 for first, 2 for second, 3 for
+third, 4 for fourth. Separate from Soju shots, which come from the Games.
+
 **Pair**:
 Two players from one Team who play a doubles Game together, as named in the Lineup.
 
