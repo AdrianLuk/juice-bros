@@ -65,8 +65,8 @@ function PairingForm({
         {a.name} v {b.name}
       </h2>
       {both ? null : <p className="ddd-note">Spreads open once both Teams have a Lineup.</p>}
-      {/* Keyed on what is saved, so the cells always match it. */}
-      <form key={JSON.stringify(rows)} action={formAction} className="ddd-stack" aria-label={`${a.name} v ${b.name} Spreads`}>
+      {/* Keyed on what is saved and on what a refused save typed, so the cells match them (React resets a form after its action). */}
+      <form key={JSON.stringify([rows, state.typed])} action={formAction} className="ddd-stack" aria-label={`${a.name} v ${b.name} Spreads`}>
         {LINEUP_GAMES.map((game) => {
           const row = rows.find((each) => each.game === game);
           const names = both ? ([pairName(a.players, both[0], game), pairName(b.players, both[1], game)] as const) : null;
@@ -77,7 +77,7 @@ function PairingForm({
                 <div className="ddd-field">
                   <label>
                     <span className="ddd-sr">{GAME_LABEL[game]} lower-rated Pair</span>
-                    <select name={`${game}-lower`} defaultValue={row?.lower ?? ""}>
+                    <select name={`${game}-lower`} defaultValue={state.typed?.[`${game}-lower`] ?? row?.lower ?? ""}>
                       <option value="">{names ? "Lower-rated Pair" : "Lineup needed"}</option>
                       {names ? (
                         <>
@@ -99,7 +99,7 @@ function PairingForm({
                       name={`${game}-points`}
                       inputMode="decimal"
                       placeholder="Points, like 5.5"
-                      defaultValue={row ? row.points.toFixed(1) : ""}
+                      defaultValue={state.typed?.[`${game}-points`] ?? (row ? row.points.toFixed(1) : "")}
                       autoComplete="off"
                     />
                   </label>

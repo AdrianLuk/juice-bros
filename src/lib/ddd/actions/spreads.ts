@@ -11,7 +11,8 @@ import { lineupsOf, pairSig, readSpreadFields } from "../spreads.ts";
 import { savePairingSpreads } from "../spreads-db.ts";
 import { createClient } from "../supabase/server.ts";
 
-export type SpreadsState = { problem?: string; saved?: boolean };
+/** A refused save hands back what was typed: React resets the form after an action, and it must not wipe it. */
+export type SpreadsState = { problem?: string; saved?: boolean; typed?: Record<string, string> };
 
 /**
  * Saves one Team pairing's four Spreads (issue #714). Nothing saves unless
@@ -28,7 +29,7 @@ export async function savePairingAction(
 ): Promise<SpreadsState> {
   await verifyOrganizer();
   const read = readSpreadFields((field) => String(formData.get(field) ?? ""));
-  if ("problem" in read) return { problem: read.problem };
+  if ("problem" in read) return { problem: read.problem, typed: typed(formData) };
 
   const supabase = await createClient();
   const teams = await getRoster(supabase, String(eventId));
@@ -47,4 +48,8 @@ export async function savePairingAction(
   await savePairingSpreads(supabase, a.id, b.id, read.entries, sigs);
   revalidatePath(DDD_ROOT, "layout");
   return { saved: true };
+}
+
+function typed(formData: FormData): Record<string, string> {
+  return Object.fromEntries(LINEUP_GAMES.flatMap((game) => [`${game}-lower`, `${game}-points`].map((field) => [field, String(formData.get(field) ?? "")])));
 }

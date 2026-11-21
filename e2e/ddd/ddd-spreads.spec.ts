@@ -71,6 +71,9 @@ test("a Spread that does not end in .5 or is out of range is refused, and nothin
   await first.locator('input[name="womens-points"]').fill("3.5");
   await first.getByRole("button", { name: "Save Spreads" }).click();
   await expect(first.getByRole("alert")).toContainText("Men's doubles: 5 is refused: a Spread always ends in .5");
+  // What was typed stays put, so the Organizer fixes one cell instead of retyping the pairing.
+  await expect(first.locator('select[name="mens-lower"]')).toHaveValue("a");
+  await expect(first.locator('input[name="womens-points"]')).toHaveValue("3.5");
 
   await first.locator('input[name="mens-points"]').fill("11.5");
   await first.getByRole("button", { name: "Save Spreads" }).click();
