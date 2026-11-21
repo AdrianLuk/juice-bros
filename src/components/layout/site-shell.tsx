@@ -41,6 +41,7 @@ const DARK_EXCEPTIONS = [
   "/tools/drum-roll",
   "/tools/team-tally",
   "/tools/mic-drop",
+  "/tools/ddd",
 ];
 
 export function isDarkRoute(pathname: string): boolean {
