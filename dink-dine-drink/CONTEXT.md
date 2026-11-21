@@ -48,7 +48,26 @@ standings say which rule decided each place.
 
 A Dreambreaker has no Spread and costs no soju: it is scored straight up and only seeds.
 
+**Pair**:
+Two players from one Team who play a doubles Game together, as named in the Lineup.
+
+**Game**:
+One doubles game between two Pairs in a Matchup: side-out scoring to 11, win by 2.
+
 **Spread**:
 The points the lower-rated Pair is forecast to score against the higher-rated Pair in a
 Game, entered by Godfrey from DUPR's forecast before the event (e.g. 5.5 in a game to 11).
-Every possible pairing of two Teams has its four Spreads set ahead of time.
+Every possible pairing of two Teams has its four Spreads set ahead of time. A Spread always
+ends in .5, so no Game lands exactly on it.
+
+**Spread winner**:
+The Pair that wins a Game once the Spread is applied. The lower-rated Pair is the Spread
+winner when its points beat the Spread, whatever the final score: a 3.5 Pair losing 11-6
+against a Spread of 5.5 is the Spread winner. It is always the lower-rated Pair's points
+that are measured, including in games that run past 11.
+_Avoid_: winner, alone (say Spread winner, or "won the game outright" for the raw score)
+
+**Soju shots**:
+What the Pair that loses against the Spread drinks: the gap between the lower-rated Pair's
+points and the Spread, rounded up, for each player in that Pair. 11-3 against 5.5 is a gap
+of 2.5, so each of the two players drinks 3. Every Game costs at least one shot each.

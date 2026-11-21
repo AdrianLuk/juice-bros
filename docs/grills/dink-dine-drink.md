@@ -75,6 +75,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   Standings name the rule that decided each place (same shape as Team Tally's).
 - **D9 (Q16): Dreambreakers have no Spread and no soju shots.** Straight-up score, seeding
   only. Matches past DDDs.
+- **D10 (Q17): Game and Spread maths.** Doubles Games are side-out to 11, win by 2. Measure
+  the lower-rated Pair's points against the Spread, always (even 13-11). The Pair that
+  loses against the Spread drinks the gap, rounded up, per player. Spreads end in .5.
 
 ## Open questions (asked in this order)
 
@@ -92,11 +95,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 14. ~~Dreambreaker scoring and rotation~~ Settled: D6, D7.
 15. ~~Seeding: ranking and ties~~ Settled: D8.
 16. ~~Does a Dreambreaker carry a Spread or soju shots?~~ Settled: D9.
-17. **Doubles Game and Spread maths**: game format (to 11, win by 2?), the gap measured on
-   the lower-rated Pair's points, who drinks, rounding, per player or per Pair.
-   ← **asked, awaiting answer** (this is old item 8)
-7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
-8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
+17. ~~Doubles Game and Spread maths~~ Settled: D10.
+18. **Matchup winner and a 2-2 tie** (old item 7). ← **asked, awaiting answer**
+7. Round 2 / playoff: 2-2 tiebreak → now item 18.
+8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
    who sees them before the day.
 13. ~~How do lineups reach the app by Sunday 2026-11-22?~~ Settled: D4. Recommended was:
