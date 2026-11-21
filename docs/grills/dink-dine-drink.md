@@ -42,6 +42,17 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - `CONTEXT-MAP.md` lists word collisions (Game, Round, Matchup, Organizer, Dreambreaker…)
   that DDD's glossary must avoid or reuse deliberately.
 
+## The spreadsheet (seen 2026-11-21, "Copy of Nov 28 DDD")
+
+- Columns: Player, M/F, DUPR, DUAR, DUSR, Total Avg Rating, Team. 24 players, 4 Teams of 6.
+- Team is named after its captain; captain rows are highlighted yellow (Adrian Luk, Chris
+  Holden, Daven Wong, Paul Richardson).
+- DUPR has 3 decimals (3.003 to 5.056). DUAR and DUSR have 1 decimal, seen 1.0 to 7.0.
+- Gaps: Ed Ju has no DUAR/DUSR; "Wildcard (Kevin Ah-Chuen)" has no ratings at all.
+- The average counts a blank as 0 (Ed Ju: 4.258 / 3 = 1.419). Shaun L shows 1.167 = 3.5 / 3,
+  so his 2.0 and 1.5 are likely stored as text. Wildcard's 2.970 has no inputs behind it.
+- Gender mix: three Teams are 2 F + 4 M, Paul Richardson's is 3 F + 3 M.
+
 ## Decisions
 
 - **D1 (Q1): A separate app, not a Format in Team Tally.** Its own context, data and
@@ -121,6 +132,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   a **play venue** (the courts) and a **dine & drink venue** (where everyone eats and drinks
   after), shown at the top of every screen.
 - **D24 (Q30): "Spread", never "handicap"**, on screens, in code and in docs.
+- **D25 (Q25): Roster import is a paste of the sheet's rows.** Columns as in the sheet:
+  Player, M/F, DUPR, DUAR, DUSR, Team (the average column is ignored; the app computes it).
+  The Team's captain is the player whose name matches the Team name, so no captain column.
+  Organizers can edit any player after the paste.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
