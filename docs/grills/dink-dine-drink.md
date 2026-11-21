@@ -116,6 +116,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D22 (Q28): Unlisted**, like Mic Drop: link only, not on the Apps page or tools index,
   noindex. Named "Dink Dine & Drink" at `/tools/dink-dine-drink`. Added to
   `CONTEXT-MAP.md`.
+- **D23 (Q29): Last assumptions.** No time cap on Games. Any Organizer can enter a missing
+  Spread at the court; until then the Game shows "Spread needed". A DDD has a name, a date,
+  a **play venue** (the courts) and a **dine & drink venue** (where everyone eats and drinks
+  after), shown at the top of every screen.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -157,7 +161,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    unlisted like Mic Drop (reachable by link only, noindex)? Name/route
    "Dink Dine & Drink" at `/tools/dink-dine-drink`? Settled: D22.
 29. **Remaining assumptions** (no time cap on Games; any Organizer can enter a missing
-   Spread on the day; a DDD has a name, date and location). ← **asked, awaiting answer**
+   Spread on the day; a DDD has a name, date and location). Settled: D23.
+30. **"Spread" or "handicap"?** Adrian asked. ← **asked, awaiting answer**
 25. Roster input format and gender column ← waiting on the spreadsheet (old item 3)
 26. DUAR/DUSR scales ← waiting on the spreadsheet (old item 4)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.

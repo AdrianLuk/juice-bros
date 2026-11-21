@@ -21,6 +21,12 @@ list through an invite link from an Organizer already on it.
 **Superadmin**:
 Adrian's account, which can do anything on any DDD, including what Organizers cannot.
 
+### The event
+
+**DDD**:
+One Dink Dine & Drink event: a name, a date, a play venue (the courts) and a dine & drink
+venue (where everyone eats and drinks after). Several happen a year.
+
 ### Teams and players
 
 **Team**:
