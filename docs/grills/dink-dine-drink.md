@@ -91,6 +91,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D14 (Q20, part 2): One DDD Organizer list for every event.** DDDs happen several times
   a year. Anyone on the list can create and edit any DDD; Organizers add others by invite
   link (sign in with Google, then on the list). Not per-event ownership.
+- **D15 (Q20, part 3): One shared Score Link per DDD**, plus a read-only Public Link.
+  Anyone with the Score Link can enter any score; Organizers can fix any score. "It's not
+  the most serious thing in the world."
 
 ## Open questions (asked in this order)
 
@@ -113,8 +116,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 19. **A 2-2 Matchup whose Spread margins also tie** (e.g. +2.5 +1.5 -3.5 -0.5 = 0; Soju
    shot totals tie too in that case). Settled provisionally: D12.
 20. **Roles and links: who can enter what, and how they get in (Godfrey especially).**
-   Parts 1-2 settled: D13, D14. **Open: score entry (one shared Score Link vs per Team)
-   and the Public Link.** ← **asked, awaiting answer**
+   Settled: D13, D14, D15.
+21. **Final places from the playoff round** (Round 2 winners play for 1st/2nd, losers for
+   3rd/4th?). ← **asked, awaiting answer**. Then: punishments per final place, Soju shot
+   totals on standings (old item 12).
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),

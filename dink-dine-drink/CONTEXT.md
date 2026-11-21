@@ -97,3 +97,13 @@ What a Game costs the Team whose Pair loses against the Spread: the gap between 
 lower-rated Pair's points and the Spread, rounded up, counted against that Team, not its
 players. 11-3 against 5.5 is a gap of 2.5, so 3 shots go on that Team's count. Every Game
 puts at least one shot on someone's count.
+
+### Links
+
+**Score Link**:
+One link per DDD, posted in the group chat. Whoever holds it can enter or correct any
+score; each score remembers who last edited it. No account needed.
+
+**Public Link**:
+The read-only link to standings, Games, Soju shot counts and punishments, for phones and a
+venue TV.
