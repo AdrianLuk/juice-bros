@@ -100,6 +100,13 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D18 (Q23, part 1): Two courts per Matchup.** A Matchup plays its 4 Games in 2 Waves of
   2. The app pairs Games that share no player; a Lineup that cannot split cleanly leaves
   one Game playing alone. Shown before the day, since Lineups are in early.
+- **D19 (Q23, part 2): Courts are assigned automatically, Organizers override.** Organizers
+  enter the court names once. Round 1 Waves go on the first two courts; Round 2 puts Seed 1
+  v 4 on courts 1-2 and Seed 2 v 3 on courts 3-4; the Playoff puts the 1st/2nd Matchup on
+  courts 1-2 and the 3rd/4th on courts 3-4. Wave 1 is men's + women's doubles when they
+  share no player, then the mixed Games; otherwise whichever split works. Organizers can
+  move anything to another court or swap Waves in one tap. Public court cards show now
+  and next.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -132,8 +139,11 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    3rd/4th?). Settled: D16.
 22. ~~Punishments and Soju shot display~~ Settled: D17.
 23. **Courts.** Correction 2026-11-21: this DDD has **4 courts**, and DDDs can have more
-   than 2 (not always 2). Organizer types the court names. Part 1 settled: D18.
-   ← **asked, awaiting answer: who assigns courts, and which Games go in Wave 1.**
+   than 2 (not always 2). Settled: D18, D19.
+24. **Lineup rules** (old item 9): can a player be in two Pairs, must everyone play, a
+   maximum per player, who sees Lineups before the day. ← **asked, awaiting answer**
+25. Roster input format and gender column ← waiting on the spreadsheet (old item 3)
+26. DUAR/DUSR scales ← waiting on the spreadsheet (old item 4)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
