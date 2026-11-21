@@ -14,6 +14,7 @@ import {
 import {
   dreambreakerSlots,
   finalBetween,
+  resultBetween,
   POINTS_PER_CHANGE,
   rotationOf,
   seedRuleLabel,
@@ -23,7 +24,7 @@ import {
   type Seed,
   type SlotStatus,
 } from "@/lib/ddd/dreambreakers";
-import type { LinkEvent } from "@/lib/ddd/events";
+import type { DreambreakerFinal, LinkEvent } from "@/lib/ddd/events";
 import type { StoredTeam } from "@/lib/ddd/roster";
 import { RosterTeams } from "./roster-teams";
 import { useDddLive } from "./use-ddd-live";
@@ -81,13 +82,7 @@ export function RoundOne({
                     a={teamOf(slot.teamA)}
                     b={teamOf(slot.teamB)}
                     final={finalBetween(results, slot.teamA, slot.teamB)}
-                    editedBy={
-                      results.find(
-                        (result) =>
-                          (result.teamA === slot.teamA && result.teamB === slot.teamB) ||
-                          (result.teamA === slot.teamB && result.teamB === slot.teamA),
-                      )?.editedBy ?? null
-                    }
+                    editedBy={resultBetween(results, slot.teamA, slot.teamB)?.editedBy ?? null}
                     writer={writer}
                     onSaved={refresh}
                   />
@@ -218,7 +213,7 @@ function DreambreakerCard({
   a: StoredTeam;
   b: StoredTeam;
   final: [number, number] | null;
-  editedBy: "organizer" | "score_link" | null;
+  editedBy: DreambreakerFinal["editedBy"] | null;
   writer: LiveWriter | null;
   onSaved: () => void;
 }) {
@@ -238,7 +233,7 @@ function DreambreakerCard({
     <article className={`ddd-slip ddd-db-card ddd-db-${status}`} aria-label={`${a.name} v ${b.name}`}>
       <p className="ddd-db-status">
         <span>{STATUS_LABEL[status]}</span>
-        <span>Court {court}</span>
+        <span className="ddd-db-court">Court {court}</span>
       </p>
       <div className="ddd-db-score">
         <p className={final && final[0] > final[1] ? "ddd-db-won" : undefined}>
@@ -251,7 +246,7 @@ function DreambreakerCard({
         </p>
       </div>
       {final ? (
-        <p className="ddd-note">Entered by {editedBy === "organizer" ? "an Organizer" : "the Score Link"}.</p>
+        <p className="ddd-note">Last entered by {editedBy === "organizer" ? "an Organizer" : "the Score Link"}.</p>
       ) : (
         <details className="ddd-rotations">
           <summary>Rotation: one change every {POINTS_PER_CHANGE} points</summary>

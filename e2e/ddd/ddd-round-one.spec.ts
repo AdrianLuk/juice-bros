@@ -66,7 +66,7 @@ test("a final entered on the Score Link moves the Seeding on another phone", asy
   await card(scorer).getByLabel(`${FIRST} points`).fill("15");
   await card(scorer).getByLabel(`${SECOND} points`).fill("21");
   await card(scorer).getByRole("button", { name: "Save final" }).click();
-  await expect(card(scorer)).toContainText("Entered by the Score Link");
+  await expect(card(scorer)).toContainText("Last entered by the Score Link");
 
   await expect(watcher.getByRole("listitem", { name: `Seed 1: ${SECOND}` })).toContainText("1-0", { timeout: 10_000 });
   await expect(card(watcher)).toContainText("Final");
@@ -95,7 +95,7 @@ test("an Organizer corrects a final and reorders a Rotation", async ({ browser }
   await card(page).getByLabel(`${FIRST} points`).fill("21");
   await card(page).getByLabel(`${SECOND} points`).fill("19");
   await card(page).getByRole("button", { name: "Save final" }).click();
-  await expect(card(page)).toContainText("Entered by an Organizer");
+  await expect(card(page)).toContainText("Last entered by an Organizer");
   await expect(page.getByRole("listitem", { name: `Seed 1: ${FIRST}` })).toBeVisible();
 
   const rotation = page.getByRole("group", { name: `${FIRST} Rotation` });

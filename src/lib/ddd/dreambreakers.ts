@@ -53,11 +53,16 @@ export type DreambreakerResult = { teamA: string; teamB: string; scoreA: number;
 
 /** The final between two Teams as [a's points, b's points], or null before it is in. */
 export function finalBetween(results: readonly DreambreakerResult[], a: string, b: string): [number, number] | null {
-  for (const result of results) {
-    if (result.teamA === a && result.teamB === b) return [result.scoreA, result.scoreB];
-    if (result.teamA === b && result.teamB === a) return [result.scoreB, result.scoreA];
-  }
-  return null;
+  const result = resultBetween(results, a, b);
+  if (!result) return null;
+  return result.teamA === a ? [result.scoreA, result.scoreB] : [result.scoreB, result.scoreA];
+}
+
+/** The stored final between two Teams, whichever way round it was entered. */
+export function resultBetween<R extends DreambreakerResult>(results: readonly R[], a: string, b: string): R | undefined {
+  return results.find(
+    (result) => (result.teamA === a && result.teamB === b) || (result.teamA === b && result.teamB === a),
+  );
 }
 
 /** How a Dreambreaker shows: Final, On now, Up next, or Later. */

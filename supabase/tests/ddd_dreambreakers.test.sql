@@ -14,7 +14,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(15);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('71571571-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ddd-db-organizer@example.com'),
@@ -92,10 +92,17 @@ select throws_ok(
 
 -- ---- an Organizer ------------------------------------------------------------
 set local request.jwt.claims = '{"sub": "71571571-0000-0000-0000-00000000000a", "role": "authenticated"}';
+update public.ddd_events set tie_order = array['71571571-2222-0000-0000-000000000002'::uuid]
+where id = '71571571-1111-0000-0000-000000000001';
 select lives_ok(
   $$select public.ddd_save_dreambreaker(null,
     '71571571-2222-0000-0000-000000000003', '71571571-2222-0000-0000-000000000004', 21, 9)$$,
   'an Organizer enters a final'
+);
+select is(
+  (select cardinality(tie_order) from public.ddd_events where id = '71571571-1111-0000-0000-000000000001'),
+  0,
+  'a changed final drops an earlier Organizer''s call on a tie'
 );
 select is(
   (select last_edited_by_kind || ' ' || last_edited_by::text from public.ddd_dreambreakers

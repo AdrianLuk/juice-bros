@@ -869,3 +869,18 @@ body:has(.ddd-surface) {
 .ddd-db-form .ddd-actions {
   grid-column: 1 / -1;
 }
+
+/* The court name is data, so it reads in the body face, not the stamp. */
+.ddd-db-status .ddd-db-court {
+  font-family: var(--font-ddd), sans-serif;
+  font-size: 0.9375rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ddd-ink);
+}
+
+/* A Rotation is an order: keep the numbers the site's reset strips. */
+.ddd-rotation ol,
+.ddd-rotation-edit ol {
+  list-style: decimal;
+}

@@ -119,6 +119,10 @@ begin
     v_score_second := p_score_a;
   end if;
 
+  -- A changed final can make or break a tie, so an earlier Organizer's call
+  -- no longer stands: the standings ask again if a tie is still there.
+  update public.ddd_events set tie_order = '{}' where id = v_event.id and tie_order <> '{}';
+
   if v_score_first is null and v_score_second is null then
     if v_kind <> 'organizer' then
       raise exception 'Only an Organizer can clear a score.' using errcode = '42501';
