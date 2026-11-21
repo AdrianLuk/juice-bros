@@ -35,6 +35,11 @@ One of the four drafted sides at a DDD (always four, for now), about six players
 **Captain**:
 The player who leads a Team and submits its Lineup.
 
+**Ratings**:
+Each player's three numbers: DUPR (real pickleball, 3 decimals), DUAR (alcohol) and DUSR
+(singing), both 1.0 to 7.0 with 1 decimal. Any of them can be blank. The **Average
+Rating** is the mean of the ratings that are filled in; with none filled in it shows "–".
+
 **Lineup**:
 A Team's four doubles Pairs for the whole day: men's doubles, women's doubles and two
 mixed doubles. It is named once before the event and the same Pairs play every doubles

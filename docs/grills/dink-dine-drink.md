@@ -136,6 +136,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   Player, M/F, DUPR, DUAR, DUSR, Team (the average column is ignored; the app computes it).
   The Team's captain is the player whose name matches the Team name, so no captain column.
   Organizers can edit any player after the paste.
+- **D26 (Q26): Rating scales and blanks.** DUPR keeps 3 decimals; DUAR and DUSR are 1.0
+  to 7.0 with 1 decimal. Any rating can be blank. The Average Rating is the mean of the
+  ratings filled in (Ed Ju: 4.258), "–" when none are. The sheet's Wildcard and Shaun L
+  averages are spreadsheet quirks, ignored.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -180,11 +184,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    Spread on the day; a DDD has a name, date and location). Settled: D23.
 30. ~~"Spread" or "handicap"?~~ Settled: D24.
 
-**Status 2026-11-21:** every branch is settled except items 25-26, which wait on Adrian's
-spreadsheet. After those: confirm shared understanding, then spec → tickets → build. First
-ship (roster, Lineups, Spreads) targets ~Tue 2026-11-24.
-25. Roster input format and gender column ← waiting on the spreadsheet (old item 3)
-26. DUAR/DUSR scales ← waiting on the spreadsheet (old item 4)
+**Status 2026-11-21: grill complete.** Every question is settled. Next: spec → tickets →
+build. First ship (roster, Lineups, Spreads) targets ~Tue 2026-11-24.
+25. ~~Roster input format and gender column~~ Settled: D25.
+26. ~~DUAR/DUSR scales~~ Settled: D26.
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
