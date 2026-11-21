@@ -52,6 +52,7 @@ test("a half-filled Pair is not a gender warning", () => {
 test("readLineup: null when nothing is saved; a player who left the Team reads as an empty slot", () => {
   assert.equal(readLineup(even, null), null);
   assert.equal(readLineup(even, {}), null);
+  assert.equal(readLineup(even, { mens: [null, null], womens: [null, null] }), null);
   const read = readLineup(even, { mens: ["m1", "gone"], womens: ["w1", "w2"] });
   assert.deepEqual(read?.mens, ["m1", null]);
   assert.deepEqual(read?.mixed1, [null, null]);

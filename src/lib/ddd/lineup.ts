@@ -33,7 +33,7 @@ export const emptyLineup = (): Lineup => ({
 
 /** A Team's saved Lineup, or null when none is saved. An id no longer on the Team reads as an empty slot. */
 export function readLineup(players: Member[], raw: RawLineup | null | undefined): Lineup | null {
-  if (!raw || LINEUP_GAMES.every((game) => !raw[game])) return null;
+  if (!raw || LINEUP_GAMES.every((game) => !raw[game]?.some(Boolean))) return null;
   const known = new Set(players.map((player) => player.id));
   const slot = (id: string | null | undefined) => (id && known.has(id) ? id : null);
   const lineup = emptyLineup();
