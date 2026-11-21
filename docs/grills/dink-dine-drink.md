@@ -184,7 +184,7 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    Spread on the day; a DDD has a name, date and location). Settled: D23.
 30. ~~"Spread" or "handicap"?~~ Settled: D24.
 
-**Status 2026-11-21: grill complete.** Every question is settled. Next: spec → tickets →
+**Status 2026-11-21: grill complete.** Spec: #709, tickets #710-#721. Next:
 build. First ship (roster, Lineups, Spreads) targets ~Tue 2026-11-24.
 25. ~~Roster input format and gender column~~ Settled: D25.
 26. ~~DUAR/DUSR scales~~ Settled: D26.
