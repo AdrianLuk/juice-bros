@@ -2,8 +2,8 @@
 
 Live record of a `/grilling` + `/domain-modeling` session (the `/grill-with-docs` pair),
 started 2026-11-20. Any session can pick this up: read this file, then ask the next
-open question. Questions go **one at a time**. Settled terms move into the app's
-`CONTEXT.md` once its name and folder are settled (Q1).
+open question. Questions go **one at a time**. Settled terms live in
+`dink-dine-drink/CONTEXT.md`.
 
 Next event: **2026-11-28**. This year's teams and captains are already drafted.
 
@@ -63,6 +63,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   (roster, lineups, spreads, all organizer-entered) targets ~Tue 2026-11-24; organizers
   type the lineups in and Godfrey types the 24 spreads in. A captain lineup screen moves
   to after 2026-11-28.
+- **D5 (Q6): Round 1 is a Dreambreaker round robin.** Every Team plays every other Team
+  once: 6 singles Dreambreakers, run 2 at a time on the 2 courts (3 waves).
 
 ## Open questions (asked in this order)
 
@@ -76,9 +78,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    enter spreads beforehand? Recommended: one fixed lineup per team for the day, Godfrey
    enters spreads for all 6 possible team pairings x 4 games = 24 numbers, the app picks
    the right ones. Settled: D3.
-6. **Round 1 Dreambreaker: which teams play which, and how 4 seeds come out.**
-   ← **asked, awaiting answer**. Follow-ups after: scoring (rally to 21?), pairing when
-   rosters differ in size, does it have a spread / soju shots?
+6. ~~Round 1 Dreambreaker: which teams play which~~ Settled: D5.
+14. **Dreambreaker scoring and rotation**: rally to 21 win by 2? rotation order when
+   rosters differ (6 vs 5)? ← **asked, awaiting answer**. Then: ranking (wins, point
+   difference, 3-way ties), does it carry a Spread / soju shots?
 7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
 8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
