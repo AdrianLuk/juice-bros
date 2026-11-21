@@ -125,7 +125,7 @@ export function RosterPaste({ eventId, hasRoster }: { eventId: string; hasRoster
 
       {confirming ? (
         <div className="ddd-confirm" role="alert">
-          <p>This replaces every Team and player now on the roster. Lineups and Spreads that use them go too.</p>
+          <p>This replaces every Team and player now on the roster. Lineups, Spreads and Dreambreaker finals that use them go too.</p>
           <div className="ddd-actions">
             <button type="button" className="ddd-btn" disabled={saving} onClick={save}>
               {saving ? "Replacing…" : "Yes, replace the roster"}

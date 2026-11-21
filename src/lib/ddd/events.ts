@@ -40,6 +40,20 @@ export type LinkEvent = DddHeader & {
   courts: string[];
   teams: (StoredTeam & { lineup: RawLineup | null })[];
   spreads: SpreadRow[];
+  /** The Organizer's call on a tie every other rule leaves level: Team ids, best first. */
+  tieOrder: string[];
+  /** Round 1 finals entered so far (#715). */
+  dreambreakers: DreambreakerFinal[];
+};
+
+/** A Dreambreaker final as stored, with who last wrote it. */
+export type DreambreakerFinal = {
+  teamA: string;
+  teamB: string;
+  scoreA: number;
+  scoreB: number;
+  editedBy: "organizer" | "score_link";
+  editedAt: string;
 };
 
 export const MAX_NAME = 80;

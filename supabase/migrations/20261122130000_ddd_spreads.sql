@@ -33,7 +33,8 @@ grant select, insert, update, delete on public.ddd_spreads to authenticated;
 -- ---------------------------------------------------------------------------
 
 /**
- * As in #713, plus `spreads`: every saved Spread as
+ * As in #715 (each player's `rotation`, `tieOrder`, `dreambreakers`), plus
+ * `spreads`: every saved Spread as
  * { teamA, teamB, game, lower, points, sig }. Public as soon as saved.
  */
 create or replace function public.ddd_link_event(p_token text)
@@ -68,7 +69,8 @@ as $$
                 'gender', p.gender,
                 'dupr', p.dupr,
                 'duar', p.duar,
-                'dusr', p.dusr
+                'dusr', p.dusr,
+                'rotation', p.rotation
               ) order by p.position
             )
             from public.ddd_players p
@@ -83,6 +85,21 @@ as $$
       )
       from public.ddd_teams t
       where t.event_id = e.id
+    ), '[]'::jsonb),
+    'tieOrder', to_jsonb(e.tie_order),
+    'dreambreakers', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'teamA', d.team_a_id,
+          'teamB', d.team_b_id,
+          'scoreA', d.score_a,
+          'scoreB', d.score_b,
+          'editedBy', d.last_edited_by_kind,
+          'editedAt', d.updated_at
+        ) order by d.updated_at
+      )
+      from public.ddd_dreambreakers d
+      where d.event_id = e.id
     ), '[]'::jsonb),
     'spreads', coalesce((
       select jsonb_agg(
