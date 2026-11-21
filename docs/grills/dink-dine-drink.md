@@ -67,6 +67,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   once: 6 singles Dreambreakers, run 2 at a time on the 2 courts (3 waves).
 - **D6 (Q14, part 1): Dreambreaker score.** Rally to 21, win by 1, freeze at 20 (at 20 a
   side can only win the last point on its own serve). A valid final is 21 to 0..20.
+- **D7 (Q14, parts 2-3): Rotation is guidance; only the final score is entered.** The court
+  card shows each Team's DUPR-ordered Rotation (each Team cycles its own list), and it can
+  be changed on the day. Nobody enters rally by rally.
 
 ## Open questions (asked in this order)
 
@@ -81,10 +84,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    enters spreads for all 6 possible team pairings x 4 games = 24 numbers, the app picks
    the right ones. Settled: D3.
 6. ~~Round 1 Dreambreaker: which teams play which~~ Settled: D5.
-14. Dreambreaker scoring: settled D6. **Still open: rotation when rosters differ (6 vs 5,
-   recommended each team cycles its own DUPR order), and final-score-only entry with the
-   rotation order shown on the court card.** ← **asked, awaiting answer**. Then: ranking (wins, point
-   difference, 3-way ties), does it carry a Spread / soju shots?
+14. ~~Dreambreaker scoring and rotation~~ Settled: D6, D7.
+15. **Seeding from the round robin: ranking and ties (incl. a 3-way 2-1 tie).**
+   ← **asked, awaiting answer**. Then: does a Dreambreaker carry a Spread / soju shots?
 7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
 8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
