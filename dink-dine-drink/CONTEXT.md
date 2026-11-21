@@ -1,6 +1,6 @@
 # Dink Dine & Drink
 
-An app for the Juice Bros friends' DDD events (several a year) (working route `/tools/dink-dine-drink`): four
+An app for the Juice Bros friends' DDD events (several a year) (route `/tools/ddd`): four
 drafted Teams, a singles round to seed them, then MLP-style team Matchups where every Game
 is played against a DUPR Spread and missing it costs soju. It replaces the spreadsheet the
 event has run on. Separate from Team Tally (see `CONTEXT-MAP.md`), though built the same

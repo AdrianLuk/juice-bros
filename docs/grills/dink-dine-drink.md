@@ -56,7 +56,7 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 ## Decisions
 
 - **D1 (Q1): A separate app, not a Format in Team Tally.** Its own context, data and
-  route (working name `/tools/dink-dine-drink`). It reuses Team Tally's building blocks
+  route (`/tools/ddd`, see D22). It reuses Team Tally's building blocks
   (site sign-in, token links, public page, court grid/Venues) by copying patterns, not by
   sharing Team Tally's tables. Team Tally stays one-format.
 - **D2 (Q2): Scope for 2026-11-28.** Must work: roster entry (players, teams, captains,
@@ -125,7 +125,7 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D21 (Q27): Build for exactly 4 Teams.** Usually 4; another Team count gets designed
   when a DDD actually needs one. Only Round 2 and the Playoff are tied to 4.
 - **D22 (Q28): Unlisted**, like Mic Drop: link only, not on the Apps page or tools index,
-  noindex. Named "Dink Dine & Drink" at `/tools/dink-dine-drink`. Added to
+  noindex. Named "Dink Dine & Drink" at `/tools/ddd` (changed 2026-11-21 from `/tools/dink-dine-drink`). Added to
   `CONTEXT-MAP.md`.
 - **D23 (Q29): Last assumptions.** No time cap on Games. Any Organizer can enter a missing
   Spread at the court; until then the Game shows "Spread needed". A DDD has a name, a date,

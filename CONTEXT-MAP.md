@@ -8,7 +8,7 @@
 - [Match Mixer](./match-mixer/CONTEXT.md) — pickleball round robin generator at `/tools/match-mixer`, client-side until an organizer goes live with scores (Apps section)
 - [Team Tally](./team-tally/CONTEXT.md) — scoring for captained team events at `/tools/team-tally`: captains report, the night seeds itself into Flights (Apps section)
 - [Mic Drop](./mic-drop/CONTEXT.md) — unlisted live karaoke vote at `/tools/mic-drop`: Guests vote from their own phones, one changeable Vote each, live Leaderboard
-- [Dink Dine & Drink](./dink-dine-drink/CONTEXT.md) — unlisted app for the friends' DDD at `/tools/dink-dine-drink`: four drafted Teams, a Dreambreaker round robin to seed, then MLP-style Matchups played against DUPR Spreads, with Soju shots and Punishments
+- [Dink Dine & Drink](./dink-dine-drink/CONTEXT.md) — unlisted app for the friends' DDD at `/tools/ddd`: four drafted Teams, a Dreambreaker round robin to seed, then MLP-style Matchups played against DUPR Spreads, with Soju shots and Punishments
 
 The seven contexts are independent — no shared domain concepts or data relationship, just the same Next.js app shell.
 
