@@ -58,6 +58,11 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   and the playoff. No changes on the day. Godfrey enters a spread for every possible
   pairing before the event: 6 team pairings x 4 games = 24 spreads, and the app uses the
   right ones once seeds are known. **Captains' lineup deadline: Sunday 2026-11-22.**
+- **D4 (Q13): Lineups go through the group chat for 2026-11-28.** Captains post them by
+  Sunday; Godfrey works out spreads from the chat in DUPR's forecast tool. The first ship
+  (roster, lineups, spreads, all organizer-entered) targets ~Tue 2026-11-24; organizers
+  type the lineups in and Godfrey types the 24 spreads in. A captain lineup screen moves
+  to after 2026-11-28.
 
 ## Open questions (asked in this order)
 
@@ -71,17 +76,18 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    enter spreads beforehand? Recommended: one fixed lineup per team for the day, Godfrey
    enters spreads for all 6 possible team pairings x 4 games = 24 numbers, the app picks
    the right ones. Settled: D3.
-6. Round 1 Dreambreaker: which teams play which, how 4 seeds come out, scoring (rally to
-   21?), pairing when rosters differ in size. Does it have a spread?
+6. **Round 1 Dreambreaker: which teams play which, and how 4 seeds come out.**
+   ← **asked, awaiting answer**. Follow-ups after: scoring (rally to 21?), pairing when
+   rosters differ in size, does it have a spread / soju shots?
 7. Round 2 / playoff: 2-2 tiebreak in a 4-game matchup.
 8. Spread: who drinks, rounding, win-by-2 games, does every game get a spread.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
    who sees them before the day.
-13. **How do lineups reach the app by Sunday 2026-11-22, a day from now?** Recommended:
+13. ~~How do lineups reach the app by Sunday 2026-11-22?~~ Settled: D4. Recommended was:
    captains send lineups in the group chat; the captain lineup screen moves out of the
    Nov 28 scope; Godfrey works off the chat in DUPR's forecast tool; the first ship
    (roster + lineups + spreads, organizer-entered) lands ~Tue 2026-11-24 and Godfrey types
-   the 24 spreads in. ← **asked, awaiting answer**
+   the 24 spreads in.
 10. Roles and links: Organizer, Organizer Link for co-organizers (Godfrey), one shared
    Score Link vs per-team, Public Link.
 11. Courts: how many, one court per matchup?
