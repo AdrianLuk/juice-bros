@@ -111,6 +111,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   Teams (e.g. 2 women, 4 men) allowed with players doubling up. The app warns on a broken
   rule (3 Games, someone left out, wrong gender for the Game) but still saves. Lineups are
   public as soon as they are entered.
+- **D21 (Q27): Build for exactly 4 Teams.** Usually 4; another Team count gets designed
+  when a DDD actually needs one. Only Round 2 and the Playoff are tied to 4.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -147,7 +149,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 24. **Lineup rules** (old item 9): can a player be in two Pairs, must everyone play, a
    maximum per player, who sees Lineups before the day. Settled: D20.
 27. **Is a DDD always 4 Teams?** The whole format (1v4, 2v3, Playoff for 1st-4th) assumes
-   it. ← **asked, awaiting answer**
+   it. Settled: D21.
+28. **Listed or unlisted?** Show it on the site's Apps page and tools index, or keep it
+   unlisted like Mic Drop (reachable by link only, noindex)? Name/route
+   "Dink Dine & Drink" at `/tools/dink-dine-drink`? ← **asked, awaiting answer**
 25. Roster input format and gender column ← waiting on the spreadsheet (old item 3)
 26. DUAR/DUSR scales ← waiting on the spreadsheet (old item 4)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.

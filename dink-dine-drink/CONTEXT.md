@@ -24,7 +24,7 @@ Adrian's account, which can do anything on any DDD, including what Organizers ca
 ### Teams and players
 
 **Team**:
-One of the four drafted sides at a DDD, about six players, led by a Captain.
+One of the four drafted sides at a DDD (always four, for now), about six players, led by a Captain.
 
 **Captain**:
 The player who leads a Team and submits its Lineup.
