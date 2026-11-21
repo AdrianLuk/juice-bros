@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-import { torontoDate } from "./support/dates.ts";
-import { cleanUp, seedAccount, type DddAccount } from "./support/ddd.ts";
-import { signIn } from "./support/sign-in.ts";
+import { torontoDate } from "../support/dates.ts";
+import { cleanUp, seedAccount, type DddAccount } from "../support/ddd.ts";
+import { signIn } from "../support/sign-in.ts";
 
 /**
  * Dink Dine & Drink: Organizers sign in, invite each other and create a DDD

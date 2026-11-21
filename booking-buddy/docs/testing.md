@@ -103,7 +103,7 @@ npx playwright show-report          # after a failure
 ```
 
 **Run only the app you're working on.** Specs live in one folder per app under
-`e2e/` (`booking-buddy`, `on-deck`, `team-tally`, `match-mixer`, `mic-drop`,
+`e2e/` (`booking-buddy`, `on-deck`, `team-tally`, `match-mixer`, `mic-drop`, `ddd`,
 `pickle-point-pal`), so pass the folder:
 
 ```
