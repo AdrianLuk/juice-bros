@@ -94,6 +94,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D15 (Q20, part 3): One shared Score Link per DDD**, plus a read-only Public Link.
   Anyone with the Score Link can enter any score; Organizers can fix any score. "It's not
   the most serious thing in the world."
+- **D16 (Q21): Playoff.** Round 2 winners play for 1st/2nd, Round 2 losers for 3rd/4th,
+  one Matchup per court, same 4-Game format with Spreads from Godfrey's 24.
 
 ## Open questions (asked in this order)
 
@@ -118,8 +120,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 20. **Roles and links: who can enter what, and how they get in (Godfrey especially).**
    Settled: D13, D14, D15.
 21. **Final places from the playoff round** (Round 2 winners play for 1st/2nd, losers for
-   3rd/4th?). ← **asked, awaiting answer**. Then: punishments per final place, Soju shot
-   totals on standings (old item 12).
+   3rd/4th?). Settled: D16.
+22. **Punishments per Final place and how Soju shot counts show.** ← **asked, awaiting
+   answer** (old item 12)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),

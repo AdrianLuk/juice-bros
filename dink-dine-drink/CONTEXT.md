@@ -59,6 +59,17 @@ standings say which rule decided each place.
 
 A Dreambreaker has no Spread and costs no soju: it is scored straight up and only seeds.
 
+**Round 2**:
+The first doubles round: Seed 1 plays Seed 4 and Seed 2 plays Seed 3, one Matchup on each
+court.
+
+**Playoff**:
+The last round: the two Round 2 winners play for first and second, the two Round 2 losers
+for third and fourth. Same four-Game Matchups with Spreads.
+
+**Final places**:
+Every Team's finishing position, first to fourth, set by the Playoff.
+
 **Pair**:
 Two players from one Team who play a doubles Game together, as named in the Lineup.
 
