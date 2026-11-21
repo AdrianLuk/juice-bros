@@ -15,6 +15,7 @@ import {
   requiresOrganizerSession as requiresTeamTallyOrganizer,
 } from "@/lib/team-tally/routes";
 import { isHostPath as isMicDropHostPath } from "@/lib/mic-drop/routes";
+import { needsSession as dddNeedsSession } from "@/lib/ddd/routes";
 
 // The Vercel project answers on both juicebrospickleball.com and
 // www.juicebrospickleball.com (both are attached to the domain in Vercel), so
@@ -39,12 +40,15 @@ const WWW_HOST = `www.${CANONICAL_HOST}`;
 //
 // Mic Drop's Host pages are in scope too; its Guest Links aren't, since a
 // Guest has no account and the token is their credential. The pages check the
-// Host themselves (`verifyHost`), so nothing here redirects.
+// Host themselves (`verifyHost`), so nothing here redirects. Dink Dine &
+// Drink is the same: its Organizer pages and invite links are in scope, its
+// Score Link and Public Link aren't, and its pages check the Organizer.
 const SUPABASE_SCOPED_PREFIXES = ["/booking-buddy", "/on-deck/home", "/on-deck/dev", TEAM_TALLY_ROOT];
 
 function needsSupabaseRefresh(pathname: string) {
   if (isTeamTallyDemo(pathname)) return false;
   if (isMicDropHostPath(pathname)) return true;
+  if (dddNeedsSession(pathname)) return true;
   return SUPABASE_SCOPED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

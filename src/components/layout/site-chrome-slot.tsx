@@ -16,6 +16,9 @@ import { usePathname } from "next/navigation";
  *   chart with nothing to navigate to; the Host's pages open on the same coral
  *   field, which the site's orange header and floating menu button would sit
  *   on top of.
+ * - **`/tools/ddd`** — Dink Dine & Drink, unlisted, in its own bottle-green
+ *   world. Its links go to a group chat and a venue TV, with nothing to
+ *   navigate to.
  *
  * `/s/[token]` — the Guest Slot Link page — keeps the global chrome: it's a
  * public marketing surface, not part of the app.
@@ -44,5 +47,7 @@ export function SiteChromeSlot({ children }: { children: ReactNode }) {
 
   const isMicDrop = pathname === "/tools/mic-drop" || pathname.startsWith("/tools/mic-drop/");
 
-  return isBookingBuddy || isOnDeckApp || isMicDrop ? null : <>{children}</>;
+  const isDdd = pathname === "/tools/ddd" || pathname.startsWith("/tools/ddd/");
+
+  return isBookingBuddy || isOnDeckApp || isMicDrop || isDdd ? null : <>{children}</>;
 }
