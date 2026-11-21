@@ -1,6 +1,6 @@
 # Dink Dine & Drink
 
-An app for the Juice Bros friends' DDD event (working route `/tools/dink-dine-drink`): four
+An app for the Juice Bros friends' DDD events (several a year) (working route `/tools/dink-dine-drink`): four
 drafted Teams, a singles round to seed them, then MLP-style team Matchups where every Game
 is played against a DUPR Spread and missing it costs soju. It replaces the spreadsheet the
 event has run on. Separate from Team Tally (see `CONTEXT-MAP.md`), though built the same
@@ -9,6 +9,17 @@ way.
 Being settled in a grilling session; the live record is `docs/grills/dink-dine-drink.md`.
 
 ## Language
+
+### People
+
+**Organizer**:
+Someone on the DDD Organizer list. Any Organizer can create a DDD and edit every DDD:
+its roster, Lineups, Spreads, courts, scores and punishments. Lilliana is the main
+Organizer; Godfrey, who audits the Spreads, is another. Organizers sign in, and join the
+list through an invite link from an Organizer already on it.
+
+**Superadmin**:
+Adrian's account, which can do anything on any DDD, including what Organizers cannot.
 
 ### Teams and players
 
