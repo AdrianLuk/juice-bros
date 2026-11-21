@@ -85,6 +85,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 - **D12 (Q19, PROVISIONAL): Spread margins tied → total raw points → Organizer's call.**
   Adrian will confirm with the group. Build it so an Organizer can always override the
   winner of a 2-2 Matchup and record why.
+- **D13 (Q20, part 1): People.** Lilliana is the main organizer. Certain people (Godfrey,
+  for one) can also set up events and rosters. Adrian gets god mode (a Superadmin, like
+  Team Tally's: can do anything on any event). Setting up events implies signing in.
 
 ## Open questions (asked in this order)
 
@@ -107,7 +110,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 19. **A 2-2 Matchup whose Spread margins also tie** (e.g. +2.5 +1.5 -3.5 -0.5 = 0; Soju
    shot totals tie too in that case). Settled provisionally: D12.
 20. **Roles and links: who can enter what, and how they get in (Godfrey especially).**
-   ← **asked, awaiting answer** (old item 10)
+   Part 1 settled: D13. **Open: are Organizers per event or for every DDD event, and who
+   adds them?** ← **asked, awaiting answer**. Then: score entry (one shared Score Link vs
+   per Team) and the Public Link.
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),
