@@ -78,6 +78,11 @@ export function rosterPath(eventId: string): string {
   return `${dddPath(eventId)}/roster`;
 }
 
+/** The 24 Spreads: 6 Team pairings x 4 Games. */
+export function spreadsPath(eventId: string): string {
+  return `${dddPath(eventId)}/spreads`;
+}
+
 /** Round 1 for an Organizer: enter or clear finals, reorder Rotations, call a tie. */
 export function roundOnePath(eventId: string): string {
   return `${dddPath(eventId)}/round-1`;

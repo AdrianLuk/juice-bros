@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { RawLineup } from "./lineup.ts";
+import type { SpreadRow } from "./spreads.ts";
 import type { StoredTeam } from "./roster.ts";
 
 /** What the setup form sends: courts in order, court 1 first. */
@@ -38,6 +39,7 @@ export type LinkEvent = DddHeader & {
   link: "score" | "public";
   courts: string[];
   teams: (StoredTeam & { lineup: RawLineup | null })[];
+  spreads: SpreadRow[];
   /** The Organizer's call on a tie every other rule leaves level: Team ids, best first. */
   tieOrder: string[];
   /** Round 1 finals entered so far (#715). */

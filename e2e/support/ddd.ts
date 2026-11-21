@@ -147,3 +147,30 @@ export async function linkPaths(organizer: DddAccount, eventId: string): Promise
   )) as { score_token: string; public_token: string }[];
   return { score: `/tools/ddd/score/${rows[0].score_token}`, public: `/tools/ddd/live/${rows[0].public_token}` };
 }
+
+/**
+ * Gives every Team of a DDD a full Lineup, as `organizer`, straight through
+ * the REST API: men and women picked in roster order, doubling up when a
+ * Team is short of one gender.
+ */
+export async function seedLineups(organizer: DddAccount, eventId: string): Promise<void> {
+  const teams = (await asOrganizer(
+    organizer,
+    `ddd_teams?event_id=eq.${eventId}&select=id,ddd_players(id,gender,position)&order=position`,
+    { method: "GET" },
+    "reading the Teams",
+  )) as { id: string; ddd_players: { id: string; gender: "M" | "F"; position: number }[] }[];
+  const rows = teams.flatMap((team) => {
+    const sorted = [...team.ddd_players].sort((a, b) => a.position - b.position);
+    const men = sorted.filter((p) => p.gender === "M").map((p) => p.id);
+    const women = sorted.filter((p) => p.gender === "F").map((p) => p.id);
+    const pairs = {
+      mens: [men[0], men[1]],
+      womens: [women[0], women[1]],
+      mixed1: [men[2] ?? men[0], women[0]],
+      mixed2: [men[3] ?? men[1], women[1]],
+    };
+    return Object.entries(pairs).map(([game, [a, b]]) => ({ team_id: team.id, game, player_a: a, player_b: b }));
+  });
+  await asOrganizer(organizer, "ddd_lineup_pairs", { method: "POST", body: JSON.stringify(rows) }, "saving the Lineups");
+}

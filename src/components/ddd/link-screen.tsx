@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DddHead } from "@/components/ddd/ddd-head";
 import { QueryProvider } from "@/components/ddd/query-provider";
 import { RoundOne } from "@/components/ddd/round-one";
+import { SpreadsView } from "@/components/ddd/spreads-view";
 import { readLinkEvent } from "@/lib/ddd/events";
 import { createClient } from "@/lib/ddd/supabase/server";
 
@@ -32,6 +33,7 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
           <QueryProvider>
             <RoundOne reader={{ kind: link, token }} initial={event} showRoster />
           </QueryProvider>
+          <SpreadsView event={event} />
         </div>
       </main>
     </>
