@@ -97,6 +97,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   the most serious thing in the world."
 - **D16 (Q21): Playoff.** Round 2 winners play for 1st/2nd, Round 2 losers for 3rd/4th,
   one Matchup per court, same 4-Game format with Spreads from Godfrey's 24.
+- **D18 (Q23, part 1): Two courts per Matchup.** A Matchup plays its 4 Games in 2 Waves of
+  2. The app pairs Games that share no player; a Lineup that cannot split cleanly leaves
+  one Game playing alone. Shown before the day, since Lineups are in early.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -129,9 +132,8 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
    3rd/4th?). Settled: D16.
 22. ~~Punishments and Soju shot display~~ Settled: D17.
 23. **Courts.** Correction 2026-11-21: this DDD has **4 courts**, and DDDs can have more
-   than 2 (not always 2). Organizer types the court names. ← **asked, awaiting answer:
-   does a Matchup use 2 courts at once (4 Games in 2 waves of 2)? Can one player be in two
-   Pairs (which stops those two Games running together)?** Then: who assigns courts.
+   than 2 (not always 2). Organizer types the court names. Part 1 settled: D18.
+   ← **asked, awaiting answer: who assigns courts, and which Games go in Wave 1.**
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.
 8. Spread maths → settled D10.
 9. Lineups: limits per player (can one player be in two pairs? must everyone play?),

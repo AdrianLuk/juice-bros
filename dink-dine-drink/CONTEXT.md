@@ -97,7 +97,13 @@ _Avoid_: winner, alone (say Spread winner, or "won the game outright" for the ra
 **Matchup**:
 Two Teams playing their four Lineup Games against each other: men's doubles, women's
 doubles and two mixed doubles. The Team with more Spread winners wins it. A 2-2 split is
-decided by Spread margin.
+decided by Spread margin. A Matchup has two courts and plays its four Games in two Waves
+of two.
+
+**Wave**:
+Two Games of one Matchup played at the same time, one on each of its courts. Two Games
+that share a player can never be in the same Wave; if a Lineup cannot be split that way,
+the leftover Game plays on its own.
 _Avoid_: Match, outside a display label (Pickle Point Pal's word)
 
 **Spread margin**:
