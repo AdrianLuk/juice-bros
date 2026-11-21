@@ -107,6 +107,10 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
   share no player, then the mixed Games; otherwise whichever split works. Organizers can
   move anything to another court or swap Waves in one tap. Public court cards show now
   and next.
+- **D20 (Q24): Lineup rules.** Each player plays at least once and at most twice; uneven
+  Teams (e.g. 2 women, 4 men) allowed with players doubling up. The app warns on a broken
+  rule (3 Games, someone left out, wrong gender for the Game) but still saves. Lineups are
+  public as soon as they are entered.
 - **D17 (Q22): Punishments and Soju shot display.** Punishment per Final place, default
   bottles 1st: 1, 2nd: 2, 3rd: 3, 4th: 4, editable any time by Organizers. Entered as a
   short free-text field prefilled with those defaults (so "2 bottles + 3 shots" still
@@ -141,7 +145,9 @@ Next event: **2026-11-28**. This year's teams and captains are already drafted.
 23. **Courts.** Correction 2026-11-21: this DDD has **4 courts**, and DDDs can have more
    than 2 (not always 2). Settled: D18, D19.
 24. **Lineup rules** (old item 9): can a player be in two Pairs, must everyone play, a
-   maximum per player, who sees Lineups before the day. ← **asked, awaiting answer**
+   maximum per player, who sees Lineups before the day. Settled: D20.
+27. **Is a DDD always 4 Teams?** The whole format (1v4, 2v3, Playoff for 1st-4th) assumes
+   it. ← **asked, awaiting answer**
 25. Roster input format and gender column ← waiting on the spreadsheet (old item 3)
 26. DUAR/DUSR scales ← waiting on the spreadsheet (old item 4)
 7. Round 2 / playoff: 2-2 tiebreak → now item 18.

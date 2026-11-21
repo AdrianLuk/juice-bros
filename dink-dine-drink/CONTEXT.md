@@ -32,7 +32,9 @@ The player who leads a Team and submits its Lineup.
 **Lineup**:
 A Team's four doubles Pairs for the whole day: men's doubles, women's doubles and two
 mixed doubles. It is named once before the event and the same Pairs play every doubles
-Matchup that day.
+Matchup that day. Every player is in one or two Pairs; a Team short on men or women fills
+the gaps with the same players playing twice. A Lineup that breaks this is flagged, not
+refused. Lineups are public as soon as they are entered.
 
 ### Play
 
