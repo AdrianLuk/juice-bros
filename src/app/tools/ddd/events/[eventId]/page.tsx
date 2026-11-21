@@ -7,7 +7,7 @@ import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { verifyOrganizer } from "@/lib/ddd/dal";
 import { getEvent } from "@/lib/ddd/events";
 import { getRoster } from "@/lib/ddd/roster-db";
-import { DDD_ROOT, editDddPath, publicLinkPath, rosterPath, scoreLinkPath } from "@/lib/ddd/routes";
+import { DDD_ROOT, editDddPath, lineupsPath, publicLinkPath, rosterPath, scoreLinkPath } from "@/lib/ddd/routes";
 import { createClient } from "@/lib/ddd/supabase/server";
 
 /**
@@ -54,6 +54,15 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
             </p>
             <Link href={rosterPath(event.id)} className="ddd-quiet">
               {teams.length === 0 ? "Paste the roster" : "Open the roster"}
+            </Link>
+          </section>
+          <section className="ddd-slip ddd-section" aria-labelledby="ddd-lineups">
+            <h2 id="ddd-lineups" className="ddd-slip-head">
+              Lineups
+            </h2>
+            <p>Each Team&apos;s four Pairs, from the group chat.</p>
+            <Link href={lineupsPath(event.id)} className="ddd-quiet">
+              {teams.length === 0 ? "Paste the roster first" : "Open the Lineups"}
             </Link>
           </section>
           <section className="ddd-slip ddd-section" aria-labelledby="ddd-courts">

@@ -611,3 +611,73 @@ body:has(.ddd-surface) {
     margin-left: auto;
   }
 }
+
+/* ---- Lineups (issue #713) ----------------------------------------------- */
+
+.ddd-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ddd-pair {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-pair legend {
+  padding: 0;
+  font-family: var(--ddd-stamp);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-pair-slots {
+  display: grid;
+  gap: 10px;
+}
+
+.ddd-pair .ddd-field select {
+  min-width: 0;
+  width: 100%;
+}
+
+.ddd-lineup {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-lineup li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-lineup-game {
+  font-family: var(--ddd-stamp);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ddd-ink-2);
+}
+
+@media (min-width: 40rem) {
+  .ddd-pair-slots {
+    grid-template-columns: 1fr 1fr;
+  }
+}
