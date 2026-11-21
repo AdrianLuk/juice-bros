@@ -94,6 +94,7 @@ The points the lower-rated Pair is forecast to score against the higher-rated Pa
 Game, entered by Godfrey from DUPR's forecast before the event (e.g. 5.5 in a game to 11).
 Every possible pairing of two Teams has its four Spreads set ahead of time. A Spread always
 ends in .5, so no Game lands exactly on it.
+_Avoid_: handicap (it suggests a head start added to the score; the score is never changed)
 
 **Spread winner**:
 The Pair that wins a Game once the Spread is applied. The lower-rated Pair is the Spread
