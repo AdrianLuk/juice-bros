@@ -174,3 +174,55 @@ export async function seedLineups(organizer: DddAccount, eventId: string): Promi
   });
   await asOrganizer(organizer, "ddd_lineup_pairs", { method: "POST", body: JSON.stringify(rows) }, "saving the Lineups");
 }
+
+/** A DDD's Team ids in roster order. */
+async function teamIdsOf(organizer: DddAccount, eventId: string): Promise<string[]> {
+  const teams = (await asOrganizer(
+    organizer,
+    `ddd_teams?event_id=eq.${eventId}&select=id&order=position`,
+    { method: "GET" },
+    "reading the Teams",
+  )) as { id: string }[];
+  return teams.map((team) => team.id);
+}
+
+/**
+ * Enters all six Dreambreakers, as `organizer`, so the Seeding comes out in
+ * roster order: the earlier Team wins every one 21-10. Round 2 is then the
+ * first Team v the fourth and the second v the third.
+ */
+export async function seedRoundOne(organizer: DddAccount, eventId: string): Promise<void> {
+  const ids = await teamIdsOf(organizer, eventId);
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      await asOrganizer(
+        organizer,
+        "rpc/ddd_save_dreambreaker",
+        {
+          method: "POST",
+          body: JSON.stringify({ p_token: null, p_team_a: ids[i], p_team_b: ids[j], p_score_a: 21, p_score_b: 10 }),
+        },
+        "entering a Dreambreaker",
+      );
+    }
+  }
+}
+
+/**
+ * Sets a Spread of 5.5 on every Game of every Team pairing, as `organizer`,
+ * with the later Team's Pair as the lower-rated one. `skip` leaves Games out
+ * as [first Team index, second Team index, Game], so they read "Spread needed".
+ */
+export async function seedSpreads(organizer: DddAccount, eventId: string, skip: [number, number, string][] = []): Promise<void> {
+  const ids = await teamIdsOf(organizer, eventId);
+  const rows = [];
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      for (const game of ["mens", "womens", "mixed1", "mixed2"]) {
+        if (skip.some(([a, b, g]) => a === i && b === j && g === game)) continue;
+        rows.push({ team_a: ids[i], team_b: ids[j], game, lower: "b", points: 5.5, sig: "" });
+      }
+    }
+  }
+  await asOrganizer(organizer, "ddd_spreads", { method: "POST", body: JSON.stringify(rows) }, "saving the Spreads");
+}

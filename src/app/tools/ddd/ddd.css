@@ -885,3 +885,83 @@ body:has(.ddd-surface) {
 .ddd-rotation-edit ol {
   list-style: decimal;
 }
+
+/* ---- Round 2 and the Playoff (issue #716) -------------------------------- */
+
+.ddd-matchup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.ddd-matchup p {
+  margin: 0;
+}
+
+.ddd-matchup-outcome {
+  font-weight: 700;
+}
+
+.ddd-games {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-game {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+/* The Team under its Pair: the Pair is who plays, the Team is whose tab. */
+.ddd-pair-team {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--ddd-ink-2);
+}
+
+/* Shots owed: stamp red. */
+.ddd-shots {
+  font-weight: 700;
+  color: var(--ddd-red);
+}
+
+/* The running total under a heavy rule, as at the foot of a tab. */
+.ddd-matchup-total {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-top: 10px;
+  border-top: 3px solid var(--ddd-ink);
+  font-weight: 700;
+}
+
+/* Scoped to the row so it outranks `.ddd-section p`'s margin reset. */
+.ddd-seed .ddd-tab-total {
+  margin: 0 0 0 auto;
+  align-self: center;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ddd-red);
+}
+
+.ddd-tab-n {
+  font-family: var(--ddd-display);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.ddd-call {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ddd-rule);
+}

@@ -31,7 +31,7 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
             <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
           </div>
           <QueryProvider>
-            <RoundOne reader={{ kind: link, token }} initial={event} showRoster />
+            <RoundOne reader={{ kind: link, token }} initial={event} showRoster showDoubles />
           </QueryProvider>
           <SpreadsView event={event} />
         </div>
