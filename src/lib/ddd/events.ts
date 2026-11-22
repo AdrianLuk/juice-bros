@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { StoredCourtPlan } from "./courts.ts";
 import type { RawLineup } from "./lineup.ts";
 import type { GameFinal, MatchupCall } from "./matchups.ts";
 import type { SpreadRow } from "./spreads.ts";
@@ -49,6 +50,8 @@ export type LinkEvent = DddHeader & {
   games: (GameFinal & { editedBy: "organizer" | "score_link"; editedAt: string })[];
   /** Organizers' calls on 2-2 Matchups, with their reasons. */
   calls: MatchupCall[];
+  /** Organizers' changes to a Matchup's courts (#717). */
+  courtPlans: StoredCourtPlan[];
 };
 
 /** A Dreambreaker final as stored, with who last wrote it. */

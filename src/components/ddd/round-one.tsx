@@ -25,6 +25,7 @@ import {
 } from "@/lib/ddd/dreambreakers";
 import type { DreambreakerFinal, LinkEvent } from "@/lib/ddd/events";
 import type { StoredTeam } from "@/lib/ddd/roster";
+import { CourtCards } from "./court-cards";
 import { Doubles } from "./matchups";
 import { RosterTeams } from "./roster-teams";
 import { useDddLive } from "./use-ddd-live";
@@ -71,6 +72,7 @@ export function RoundOne({
         <p className="ddd-slip ddd-notice">Round 1 starts once the roster has its 4 Teams.</p>
       ) : (
         <>
+          {showDoubles ? <CourtCards event={event} /> : null}
           {showDoubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
           <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />
           <section className="ddd-stack" aria-labelledby="ddd-dreambreakers">
