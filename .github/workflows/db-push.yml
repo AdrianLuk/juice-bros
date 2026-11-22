@@ -1,0 +1,37 @@
+# Applies new Supabase migrations to prod when they land on master, so the
+# database changes alongside the Vercel deploy instead of waiting for someone
+# to run `supabase db push` by hand. The migration usually finishes before the
+# Vercel build (about 1 minute against about 2).
+#
+# Needs the SUPABASE_ACCESS_TOKEN secret (a personal access token from
+# supabase.com/dashboard/account/tokens) and the SUPABASE_PROJECT_ID variable.
+# Run it by hand from the Actions tab to check the connection: with nothing
+# pending it changes nothing.
+name: db-push
+
+on:
+  push:
+    branches: [master]
+    paths: ["supabase/migrations/**"]
+  workflow_dispatch:
+
+# Two quick merges must not push at the same time.
+concurrency:
+  group: db-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          # The version `db push` was last run with locally; bump it on purpose.
+          version: 2.117.0
+      - run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
+      - name: What will be pushed
+        run: supabase db push --dry-run
+      - run: supabase db push --yes
