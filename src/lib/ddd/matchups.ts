@@ -231,6 +231,13 @@ export function finalPlaces(matchups: readonly Matchup[]): string[] | null {
   return top && bottom ? [...top, ...bottom] : null;
 }
 
+/** The round the day is in, for the DDD header on the links. */
+export function roundOf(matchups: readonly Matchup[]): string {
+  if (matchups.length === 0) return "Round 1";
+  if (finalPlaces(matchups)) return "Final places";
+  return matchups.some((m) => m.key === "playoff-1st") ? "Playoff" : "Round 2";
+}
+
 /** One Game that cost a Team shots, read from that Team's side. */
 export type ShotLine = {
   key: MatchupKey;

@@ -11,7 +11,7 @@ export function SpreadsView({ event }: { event: LinkEvent }) {
   const raw = Object.fromEntries(event.teams.map((team) => [team.id, team.lineup]));
   if (event.teams.length < 2) return null;
   return (
-    <div className="ddd-stack-lg">
+    <div className="ddd-stack-lg ddd-spreads-view">
       {pairings(event.teams).map(([a, b]) => {
         const both = lineupsOf(a, b, raw);
         return (

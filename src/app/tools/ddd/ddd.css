@@ -45,6 +45,16 @@ body:has(.ddd-surface) {
   outline-offset: 2px;
 }
 
+.ddd-surface ::selection {
+  background: var(--ddd-mint);
+  color: var(--ddd-ink);
+}
+
+.ddd-surface input,
+.ddd-surface textarea {
+  caret-color: var(--ddd-green);
+}
+
 .ddd-col {
   width: 100%;
   max-width: 40rem;
@@ -58,7 +68,6 @@ body:has(.ddd-surface) {
     max(20px, env(safe-area-inset-left, 0px));
 }
 
-.ddd-stamp-line,
 .ddd-back {
   margin: 0 0 6px;
   font-family: var(--ddd-stamp);
@@ -117,6 +126,17 @@ body:has(.ddd-surface) {
 
 .ddd-head-action {
   margin-top: 10px;
+}
+
+/* The round the day is in, on the links: data on the green, so the body face. */
+.ddd-head-round {
+  margin: 10px 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.ddd-head .ddd-quiet {
+  margin-top: 4px;
 }
 
 /* ---- Body --------------------------------------------------------------- */
@@ -767,10 +787,6 @@ body:has(.ddd-surface) {
   margin: 0;
 }
 
-.ddd-db-later {
-  opacity: 0.72;
-}
-
 .ddd-db-status {
   display: flex;
   justify-content: space-between;
@@ -782,8 +798,17 @@ body:has(.ddd-surface) {
   color: var(--ddd-ink-2);
 }
 
+/* On now in bottle green: stamp red is kept for shots owed and OPEN. */
 .ddd-db-now .ddd-db-status span:first-child {
-  color: var(--ddd-red);
+  color: var(--ddd-green);
+}
+
+/* Up next and later print dim, as on the court cards: the ink dims, the slip stays white. */
+.ddd-game.ddd-db-next,
+.ddd-game.ddd-db-later,
+.ddd-db-card.ddd-db-next > *,
+.ddd-db-card.ddd-db-later > * {
+  opacity: 0.72;
 }
 
 .ddd-db-score p {
@@ -994,6 +1019,35 @@ body:has(.ddd-surface) {
   opacity: 0.72;
 }
 
+/* On a phone the court strip runs tight so the first tab lands in the first screen. */
+@media (max-width: 39.99rem) {
+  .ddd-court-cards {
+    gap: 8px;
+  }
+
+  .ddd-court-card {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .ddd-court-line + .ddd-court-line {
+    padding-top: 6px;
+  }
+
+  .ddd-court-card .ddd-court-sides {
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  .ddd-surface:has(.ddd-live) .ddd-head {
+    padding-bottom: 8px;
+  }
+
+  .ddd-head-round {
+    margin-top: 6px;
+  }
+}
+
 .ddd-court-when {
   font-family: var(--ddd-stamp);
   font-size: 0.75rem;
@@ -1005,7 +1059,7 @@ body:has(.ddd-surface) {
 
 .ddd-court-now .ddd-court-when,
 .ddd-db-now .ddd-game-status {
-  color: var(--ddd-red);
+  color: var(--ddd-green);
 }
 
 .ddd-court-game {
@@ -1148,4 +1202,189 @@ body:has(.ddd-results) {
 /* The header lines up with the results' wider column on a TV. */
 .ddd-surface:has(.ddd-results) .ddd-head .ddd-col {
   max-width: 72rem;
+}
+
+.ddd-result-owed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* ---- The tab settles (finish review, #721) ------------------------------- */
+
+/* Once the Playoff is final the links go to the dinner green too. */
+.ddd-surface:has(.ddd-settled) {
+  background-color: var(--ddd-deep);
+}
+
+body:has(.ddd-settled) {
+  background-color: #10241b;
+}
+
+/* A Game's line item: who beat the Spread and by how much, then the shots. */
+.ddd-ledger {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-ledger-who {
+  grid-column: 1 / -1;
+  font-weight: 700;
+}
+
+.ddd-ledger-by {
+  font-size: 0.9375rem;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-ledger .ddd-shots {
+  text-align: right;
+}
+
+/* OPEN and PAID: Courier stamps, filled so they read on a slip and on the deep green alike. */
+.ddd-stamp {
+  align-self: center;
+  margin-left: auto;
+  padding: 0.15em 0.5em;
+  border-radius: 3px;
+  font-family: var(--ddd-stamp);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ddd-stamp-open {
+  background: var(--ddd-red);
+  color: #fff;
+}
+
+.ddd-stamp-paid {
+  background: var(--ddd-mint);
+  color: var(--ddd-ink);
+}
+
+/* A tab's total with its stamp under it, as on the results. */
+.ddd-tab-owed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+  align-self: center;
+}
+
+.ddd-tab-owed .ddd-stamp,
+.ddd-result-owed .ddd-stamp {
+  margin-left: 0;
+}
+
+.ddd-result-owed .ddd-stamp {
+  font-size: clamp(0.8125rem, 1.4vw, 1.25rem);
+}
+
+/* The signature: a new line item prints onto the tab and the total ticks. Reduced motion cuts both. */
+@media (prefers-reduced-motion: no-preference) {
+  .ddd-print {
+    animation: ddd-print 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .ddd-tick {
+    display: inline-block;
+    animation: ddd-tick 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes ddd-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-6px);
+  }
+  to {
+    clip-path: inset(0);
+    transform: none;
+  }
+}
+
+@keyframes ddd-tick {
+  from {
+    transform: translateY(40%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ---- The Public Link on a venue TV --------------------------------------- */
+
+/* One 1920x1080 screen nobody scrolls: every court across the top, the
+   tabs and the Seeding side by side under them. The roster and the Spreads
+   stay on the phones. */
+@media (min-width: 100rem) {
+  .ddd-public .ddd-col,
+  .ddd-surface:has(.ddd-public) .ddd-head .ddd-col {
+    max-width: 112rem;
+  }
+
+  .ddd-surface:has(.ddd-public) .ddd-head {
+    padding-bottom: 12px;
+  }
+
+  .ddd-public .ddd-live {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 20px 32px;
+  }
+
+  .ddd-public .ddd-live > * {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  .ddd-public .ddd-live > :first-child {
+    order: 0;
+  }
+
+  .ddd-public .ddd-live > .ddd-standings,
+  .ddd-public .ddd-live > .ddd-seeding {
+    grid-column: auto;
+    order: 1;
+  }
+
+  /* Before Round 2 there are no tabs yet: the Dreambreakers sit beside the Seeding. */
+  .ddd-public .ddd-live:not(:has(.ddd-standings)) > .ddd-dbs {
+    grid-column: auto;
+    order: 2;
+  }
+
+  .ddd-public .ddd-court-cards {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+  }
+
+  .ddd-public .ddd-round {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 32px;
+  }
+
+  .ddd-public .ddd-round > h2 {
+    grid-column: 1 / -1;
+  }
+
+  .ddd-public .ddd-roster-teams,
+  .ddd-public .ddd-spreads-view {
+    display: none;
+  }
 }

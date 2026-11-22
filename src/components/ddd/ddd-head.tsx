@@ -16,9 +16,7 @@ export function DddHead({ event, back, children }: { event: DddHeader; back?: { 
           <Link href={back.href} className="ddd-back">
             {back.label}
           </Link>
-        ) : (
-          <p className="ddd-stamp-line">Dink Dine &amp; Drink</p>
-        )}
+        ) : null}
         <h1 className="ddd-title">{event.name}</h1>
         <dl className="ddd-facts">
           <div>
@@ -40,12 +38,11 @@ export function DddHead({ event, back, children }: { event: DddHeader; back?: { 
   );
 }
 
-/** The plain header for screens with no DDD yet: sign-in, invites, the list. */
+/** The plain header for screens with no DDD yet: sign-in, invites, the list. The app's name is the tab title, not a kicker. */
 export function DddBar({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <header className="ddd-head">
       <div className="ddd-col">
-        <p className="ddd-stamp-line">Dink Dine &amp; Drink</p>
         <h1 className="ddd-title">{title}</h1>
         {children}
       </div>

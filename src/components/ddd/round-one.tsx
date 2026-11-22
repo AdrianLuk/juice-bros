@@ -66,7 +66,7 @@ export function RoundOne({
   const teamOf = (id: string) => event.teams.find((team) => team.id === id)!;
 
   return (
-    <div className="ddd-stack-lg">
+    <div className="ddd-stack-lg ddd-live">
       {slots.length === 0 ? (
         <p className="ddd-slip ddd-notice">Round 1 starts once the roster has its 4 Teams.</p>
       ) : (
@@ -74,7 +74,7 @@ export function RoundOne({
           {showDoubles ? <CourtCards event={event} /> : null}
           {showDoubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
           <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />
-          <section className="ddd-stack" aria-labelledby="ddd-dreambreakers">
+          <section className="ddd-stack ddd-dbs" aria-labelledby="ddd-dreambreakers">
             <h2 id="ddd-dreambreakers" className="ddd-on-green ddd-band-head">
               Dreambreakers
             </h2>
@@ -131,7 +131,7 @@ function SeedingSlip({
   }
 
   return (
-    <section className="ddd-slip ddd-section" aria-labelledby="ddd-seeding">
+    <section className="ddd-slip ddd-section ddd-seeding" aria-labelledby="ddd-seeding">
       <h2 id="ddd-seeding" className="ddd-slip-head">
         Seeding
       </h2>
@@ -206,7 +206,8 @@ function DreambreakerCard({
 }) {
   const [editing, setEditing] = useState(false);
   const { pending, problem, run } = useWrite(onSaved);
-  const showForm = writer !== null && (final === null || editing);
+  // Only what is On now opens with a score form; a later one can still be entered early, one tap in.
+  const showForm = writer !== null && ((final === null && status === "now") || editing);
 
   function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -283,6 +284,14 @@ function DreambreakerCard({
             ) : null}
           </div>
         </form>
+      ) : null}
+
+      {writer && !final && !showForm ? (
+        <div className="ddd-actions">
+          <button type="button" className="ddd-quiet" onClick={() => setEditing(true)}>
+            Enter its final
+          </button>
+        </div>
       ) : null}
 
       {writer && final && !editing ? (

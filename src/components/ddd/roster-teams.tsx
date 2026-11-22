@@ -33,7 +33,7 @@ function TeamLineup({ team }: { team: Team }) {
 export function RosterTeams({ teams }: { teams: Team[] }) {
   if (teams.length === 0) return null;
   return (
-    <div className="ddd-stack-lg">
+    <div className="ddd-stack-lg ddd-roster-teams">
       {teams.map((team) => {
         const captain = captainOf(team);
         return (

@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-22T00:00:00Z",
+  "title": "Design System: Dink Dine & Drink",
+  "extensions": {
+    "scope": {
+      "governs": ["/tools/ddd/*"],
+      "selector": ".ddd-surface",
+      "outOfScope": [
+        "The marketing site (Broadcast Dark, root DESIGN.md)",
+        "The site header, footer and floating menu button, which SiteChromeSlot drops on every DDD page"
+      ],
+      "fonts": "Anton (--font-ddd-display, 400), Atkinson Hyperlegible (--font-ddd, 400/700) and Courier Prime (--font-ddd-stamp, 700), via next/font/google in src/app/tools/ddd/layout.tsx so only DDD's routes fetch them",
+      "note": "Tokens are declared on .ddd-surface in src/app/tools/ddd/ddd.css and reach no other route. SiteShell lists /tools/ddd in DARK_EXCEPTIONS. Direction contract and settled Adaptations: .impeccable/surfaces/src-app-tools-ddd.md. Finish review: #721. FORM seed 6a7cc74d9e01e449 is uncorroborated: no local roll record (concept-seed --check-seed exit 1) and no roll output kept; the reference is the decision page alone."
+    },
+    "colorMeta": {
+      "green": { "role": "primary", "displayName": "Bottle Green", "canonical": "#24563f", "note": "Ground by day, overscroll, caret, booked courts, Seed numerals, won points, On now.", "tonalRamp": ["#0b1d14", "#10241b", "#1a3f2e", "#24563f", "#3a7458", "#5f9479", "#a3c6b2", "#e3efe8"] },
+      "deep": { "role": "primary", "displayName": "Dinner Green", "canonical": "#10241b", "note": "Ground once the Playoff is final and on the results page." },
+      "red": { "role": "secondary", "displayName": "Stamp Red", "canonical": "#d0342c", "note": "Shots owed, OPEN, problems and refused saves, destructive confirm border. Only on a slip.", "tonalRamp": ["#3b0e0b", "#6a1914", "#9c251e", "#d0342c", "#de5f58", "#e98c87", "#f3bcb9", "#fbe7e6"] },
+      "mint": { "role": "secondary", "displayName": "Mint", "canonical": "#7fd6a4", "note": "PAID stamp with ink text; text selection.", "tonalRamp": ["#123a24", "#1f5c3a", "#2f8253", "#4aac74", "#7fd6a4", "#a3e2bd", "#c7eed7", "#ebf9f1"] },
+      "gold": { "role": "secondary", "displayName": "Gold", "canonical": "#ffd166", "note": "Final place numbers only. Its shipped use as the focus outline is an open defect, not a role.", "tonalRamp": ["#3d2b00", "#6b4c00", "#9c7000", "#d19a1a", "#ffd166", "#ffdd8c", "#ffe9b3", "#fff6dd"] },
+      "slip": { "role": "neutral", "displayName": "Slip", "canonical": "#fbfbf8", "note": "Every tab, court card, form, notice; the results' shots plate." },
+      "field": { "role": "neutral", "displayName": "Field White", "canonical": "#ffffff", "note": "Inputs, selects, paste box, chips." },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#111111", "note": "Text on slips, control borders, primary button fill, the heavy total rule." },
+      "ink-2": { "role": "neutral", "displayName": "Slip Grey", "canonical": "#4a4f4c", "note": "Secondary text on a slip, about 7:1." },
+      "rule": { "role": "neutral", "displayName": "Rule", "canonical": "#d9dbd5", "note": "1px rule between line items." },
+      "on-green": { "role": "neutral", "displayName": "On Green", "canonical": "#ffffff", "note": "Text on the green; results row rules are white at 20%." },
+      "on-green-2": { "role": "neutral", "displayName": "Green Grey", "canonical": "#cfe3d7", "note": "Secondary text on the green, about 6.5:1." }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Title", "purpose": "The DDD name opening every screen, uppercase." },
+      "place": { "displayName": "Place", "purpose": "Gold Final place numbers on the results." },
+      "place-team": { "displayName": "Place Team", "purpose": "The Team in each Final place." },
+      "seed": { "displayName": "Seed", "purpose": "Bottle-green Seed or place number heading a tab row." },
+      "total": { "displayName": "Total", "purpose": "A tab's shot count." },
+      "band": { "displayName": "Band", "purpose": "Section heads on the green and Team names atop a Matchup slip." },
+      "score": { "displayName": "Score", "purpose": "A Game's points beside each Pair." },
+      "team": { "displayName": "Team", "purpose": "Team names in tab rows; DDD names in the list at 1.625rem." },
+      "round": { "displayName": "Round", "purpose": "The round the day is in, on the green." },
+      "body": { "displayName": "Body", "purpose": "Surface default, tabular." },
+      "strong": { "displayName": "Strong", "purpose": "Pairs, labels, buttons, outcomes, problems." },
+      "note": { "displayName": "Note", "purpose": "Notes and secondary lines in slip grey." },
+      "stamp": { "displayName": "Stamp", "purpose": "OPEN, PAID, slip headers, a Game's status line. Never data." },
+      "stamp-small": { "displayName": "Stamp Small", "purpose": "Header fact labels, table heads, Pair legends, On now / Up next labels, Captain tag. Never data." }
+    },
+    "shadows": [
+      { "name": "none", "value": "none", "purpose": "The world is flat: slips on felt, rules inside." },
+      { "name": "focus", "value": "outline: 3px solid; outline-offset: 2px", "purpose": "Every focusable element. Shipped colour is gold (#ffd166), about 1.35:1 on a slip: an open defect, colour not recorded as a rule." }
+    ],
+    "motion": [
+      { "name": "print", "value": "420ms cubic-bezier(0.2, 0.7, 0.2, 1); clip-path inset(0 0 100% 0) to inset(0), translateY(-6px) to none", "purpose": "Signature: a new ledger line prints onto the tab. Cut under reduced motion." },
+      { "name": "tick", "value": "360ms cubic-bezier(0.2, 0.7, 0.2, 1); translateY(40%) and opacity 0 to none", "purpose": "A shot total ticks when it changes. Cut under reduced motion." },
+      { "name": "dim", "value": "opacity: 0.72", "purpose": "Up next and later Games and court lines. Static, not animated." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "max-width: 39.99rem", "purpose": "Tight court strip so the first tab lands in the first screen." },
+      { "name": "md", "value": "40rem", "purpose": "Pair slots and Dreambreakers two across." },
+      { "name": "tv", "value": "100rem", "purpose": "Public Link as one 1920x1080 screen: 112rem column, courts across the top, tabs beside the Seeding, roster and Spreads hidden." }
+    ],
+    "browserSurfaces": {
+      "selection": "mint background, ink text",
+      "documentBackground": "#24563f on body:has(.ddd-surface); #10241b on body:has(.ddd-results) and body:has(.ddd-settled)"
+    }
+  },
+  "components": [
+    {
+      "name": "Tab Rows (Shots so far)",
+      "kind": "custom",
+      "refersTo": "slip",
+      "description": "Signature: each Team's tab as a row on one slip. Seed number, Team in Anton caps, red total as the tap target, stamp once settled.",
+      "html": "<section class=\"ds-ddd-ground\"><div class=\"ds-ddd-slip\"><p class=\"ds-ddd-head\">Shots so far</p><ol class=\"ds-ddd-tabs\"><li><span class=\"ds-ddd-seed\">1</span><div><p class=\"ds-ddd-team\">Ben Johns</p><p class=\"ds-ddd-note\">Seed 1</p></div><div class=\"ds-ddd-owed\"><button class=\"ds-ddd-total\"><b>0</b> shots</button><span class=\"ds-ddd-stamp is-paid\">Paid</span></div></li><li><span class=\"ds-ddd-seed\">2</span><div><p class=\"ds-ddd-team\">Anna Leigh Waters</p><p class=\"ds-ddd-note\">Seed 2</p></div><div class=\"ds-ddd-owed\"><button class=\"ds-ddd-total\"><b>6</b> shots</button><span class=\"ds-ddd-stamp is-open\">Open</span></div></li></ol></div></section>",
+      "css": ".ds-ddd-ground { background: #24563f; padding: 16px; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-size: 1.0625rem; line-height: 1.5; font-variant-numeric: tabular-nums; } .ds-ddd-slip { background: #fbfbf8; color: #111; border-radius: 3px; padding: 20px; } .ds-ddd-head { margin: 0; font-family: 'Courier Prime', 'Courier New', monospace; font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase; color: #4a4f4c; } .ds-ddd-tabs { margin: 0; padding: 0; list-style: none; } .ds-ddd-tabs li { display: flex; gap: 14px; padding: 12px 0; } .ds-ddd-tabs li + li { border-top: 1px solid #d9dbd5; } .ds-ddd-tabs p { margin: 0; } .ds-ddd-seed { min-width: 1.5ch; font-family: Anton, Impact, sans-serif; font-size: 2.25rem; line-height: 1; color: #24563f; } .ds-ddd-team { font-family: Anton, Impact, sans-serif; font-size: 1.375rem; line-height: 1.1; text-transform: uppercase; } .ds-ddd-note { font-size: 0.9375rem; color: #4a4f4c; } .ds-ddd-owed { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: auto; align-self: center; } .ds-ddd-total { min-height: 2.75rem; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: #d0342c; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; } .ds-ddd-total b { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 2rem; line-height: 1; } .ds-ddd-total:focus-visible { outline: 3px solid #111; outline-offset: 2px; } .ds-ddd-stamp { padding: 0.15em 0.5em; border-radius: 3px; font-family: 'Courier Prime', 'Courier New', monospace; font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.08em; line-height: 1.4; text-transform: uppercase; } .ds-ddd-stamp.is-open { background: #d0342c; color: #fff; } .ds-ddd-stamp.is-paid { background: #7fd6a4; color: #111; }"
+    },
+    {
+      "name": "Matchup Slip with Ledger Line",
+      "kind": "custom",
+      "refersTo": "slip",
+      "description": "One slip per Matchup: Teams, a final Game with both Pairs and points, the ledger line, a dim Up next Game, the total under a heavy rule.",
+      "html": "<article class=\"ds-ddd-mu\"><h3>Ben Johns v Federico Staksrud</h3><p class=\"ds-ddd-mu-note\">Seed 1 v Seed 4</p><ol><li><p class=\"ds-ddd-status\"><span>Final</span> <span class=\"ds-ddd-court\">Court 1</span></p><p class=\"ds-ddd-side\"><b>Ben Johns / Ben Ortiz</b><span class=\"ds-ddd-pts\">11</span></p><p class=\"ds-ddd-side\"><b>Federico Staksrud / Nate Pruitt</b><span class=\"ds-ddd-pts\">3</span></p><p class=\"ds-ddd-ledger\"><b>Spread winner Ben Johns / Ben Ortiz</b><span class=\"ds-ddd-by\">by 2.5</span><span class=\"ds-ddd-shots\">3 shots on Federico Staksrud</span></p></li><li class=\"is-next\"><p class=\"ds-ddd-status\"><span>Up next</span> <span class=\"ds-ddd-court\">Court 2</span></p><p class=\"ds-ddd-side\"><b>Anna Bright / Leo Marsh</b></p><button class=\"ds-ddd-quiet\">Enter its final</button></li></ol><p class=\"ds-ddd-mu-total\"><span>Ben Johns: <b class=\"ds-ddd-shots\">0</b> shots</span><span>Federico Staksrud: <b class=\"ds-ddd-shots\">3</b> shots</span></p></article>",
+      "css": ".ds-ddd-mu { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #fbfbf8; color: #111; border-radius: 3px; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-size: 1.0625rem; line-height: 1.5; font-variant-numeric: tabular-nums; } .ds-ddd-mu p, .ds-ddd-mu h3 { margin: 0; } .ds-ddd-mu h3 { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 1.75rem; line-height: 1.1; text-transform: uppercase; } .ds-ddd-mu-note, .ds-ddd-by { font-size: 0.9375rem; color: #4a4f4c; } .ds-ddd-mu ol { margin: 0; padding: 0; list-style: none; } .ds-ddd-mu li { display: flex; flex-direction: column; gap: 8px; padding: 14px 0; border-top: 1px solid #d9dbd5; } .ds-ddd-mu li.is-next > :not(button) { opacity: 0.72; } .ds-ddd-status { display: flex; justify-content: space-between; font-family: 'Courier Prime', 'Courier New', monospace; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #4a4f4c; } .ds-ddd-court { font-family: 'Atkinson Hyperlegible', sans-serif; font-size: 0.9375rem; letter-spacing: 0; text-transform: none; color: #111; } .ds-ddd-side { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; } .ds-ddd-pts { font-family: Anton, Impact, sans-serif; font-size: 1.75rem; line-height: 1; } .ds-ddd-ledger { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding-top: 8px; border-top: 1px solid #d9dbd5; } .ds-ddd-ledger b { grid-column: 1 / -1; } .ds-ddd-shots { font-weight: 700; color: #d0342c; text-align: right; } .ds-ddd-quiet { align-self: flex-start; min-height: 2.75rem; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; } .ds-ddd-quiet:focus-visible { outline: 3px solid #111; outline-offset: 2px; } .ds-ddd-mu-total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding-top: 10px; border-top: 3px solid #111; font-weight: 700; }"
+    },
+    {
+      "name": "Court Card",
+      "kind": "card",
+      "refersTo": "court-card",
+      "description": "A slip per court: On now in bottle green, Up next dim under a rule.",
+      "html": "<div class=\"ds-ddd-green\"><div class=\"ds-ddd-court-card\"><p class=\"ds-ddd-ch\">Court 1</p><div><p class=\"ds-ddd-when is-now\">On now</p><p class=\"ds-ddd-game\">Mixed 1</p><p class=\"ds-ddd-sides\">Ed Ju / Ava Moreno v Quinn Tate / Mia Sato</p></div><div class=\"ds-ddd-next\"><p class=\"ds-ddd-when\">Up next</p><p class=\"ds-ddd-game\">Mixed 2</p><p class=\"ds-ddd-sides\">Hana Ito / Leo Marsh v Gus Hale / Ivy Cho</p></div></div></div>",
+      "css": ".ds-ddd-green { background: #24563f; padding: 16px; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-size: 1.0625rem; line-height: 1.5; } .ds-ddd-court-card { display: flex; flex-direction: column; gap: 10px; max-width: 12rem; padding: 14px; background: #fbfbf8; color: #111; border-radius: 3px; } .ds-ddd-court-card p { margin: 0; } .ds-ddd-ch { font-family: 'Courier Prime', 'Courier New', monospace; font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase; color: #4a4f4c; } .ds-ddd-when { font-family: 'Courier Prime', 'Courier New', monospace; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: #4a4f4c; } .ds-ddd-when.is-now { color: #24563f; } .ds-ddd-game { font-weight: 700; } .ds-ddd-sides { font-size: 0.9375rem; } .ds-ddd-next { padding-top: 10px; border-top: 1px solid #d9dbd5; opacity: 0.72; }"
+    },
+    {
+      "name": "Final Place Row",
+      "kind": "custom",
+      "refersTo": "result-shots",
+      "description": "Results on the deep green: gold place number, Team and Punishment, red count on a slip plate over its stamp.",
+      "html": "<ol class=\"ds-ddd-results\"><li><span class=\"ds-ddd-place\">2</span><div><p class=\"ds-ddd-pteam\">Anna Leigh Waters</p><p class=\"ds-ddd-pun\">2 bottles</p></div><div class=\"ds-ddd-rowed\"><p class=\"ds-ddd-plate\"><b>12</b> shots</p><span class=\"ds-ddd-rstamp\">Open</span></div></li></ol>",
+      "css": ".ds-ddd-results { margin: 0; padding: 0 24px; list-style: none; background: #10241b; color: #fff; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-variant-numeric: tabular-nums; } .ds-ddd-results li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 24px; padding: 20px 0; border-top: 1px solid rgb(255 255 255 / 0.2); } .ds-ddd-results p { margin: 0; } .ds-ddd-place { font-family: Anton, Impact, sans-serif; font-size: 4rem; line-height: 0.9; color: #ffd166; } .ds-ddd-pteam { font-family: Anton, Impact, sans-serif; font-size: 2.25rem; line-height: 1.05; text-transform: uppercase; } .ds-ddd-pun { font-size: 1.25rem; font-weight: 700; } .ds-ddd-rowed { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; } .ds-ddd-plate { padding: 0.2em 0.6em; border-radius: 3px; background: #fbfbf8; color: #d0342c; font-size: 1.125rem; font-weight: 700; white-space: nowrap; } .ds-ddd-plate b { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 1.6em; line-height: 1; } .ds-ddd-rstamp { padding: 0.15em 0.5em; border-radius: 3px; background: #d0342c; color: #fff; font-family: 'Courier Prime', 'Courier New', monospace; font-weight: 700; font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink fill on a slip; slip white and full width when directly on the green.",
+      "html": "<div class=\"ds-ddd-btn-slip\"><button class=\"ds-ddd-btn\">Save</button> <button class=\"ds-ddd-btn\" disabled>Saving…</button></div>",
+      "css": ".ds-ddd-btn-slip { padding: 20px; background: #fbfbf8; border-radius: 3px; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-size: 1.0625rem; } .ds-ddd-btn { min-height: 3rem; padding: 0 1.25rem; border: 2px solid #111; border-radius: 3px; background: #111; color: #fff; font: inherit; font-weight: 700; cursor: pointer; } .ds-ddd-btn:disabled { opacity: 0.6; cursor: default; } .ds-ddd-btn:focus-visible { outline: 3px solid #111; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost and Quiet Buttons",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ghost: transparent with the ink border. Quiet: underlined 700 text for second choices and Enter its final.",
+      "html": "<div class=\"ds-ddd-pair\"><button class=\"ds-ddd-ghost\">Invite an Organizer</button><button class=\"ds-ddd-q\">Remove</button></div>",
+      "css": ".ds-ddd-pair { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 20px; background: #fbfbf8; color: #111; border-radius: 3px; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-size: 1.0625rem; } .ds-ddd-ghost { min-height: 3rem; padding: 0 1.25rem; border: 2px solid #111; border-radius: 3px; background: transparent; color: #111; font: inherit; font-weight: 700; cursor: pointer; } .ds-ddd-q { min-height: 2.75rem; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; } .ds-ddd-ghost:focus-visible, .ds-ddd-q:focus-visible { outline: 3px solid #111; outline-offset: 2px; }"
+    },
+    {
+      "name": "Input with Label",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Field white, 2px ink border, 3px corner, 48px; label above at 700; a problem under it in red.",
+      "html": "<div class=\"ds-ddd-form\"><div class=\"ds-ddd-field\"><label for=\"ds-ddd-s\">Ben Johns / Ben Ortiz</label><input id=\"ds-ddd-s\" inputmode=\"numeric\" value=\"11\"></div><p class=\"ds-ddd-problem\">That score can't end a Game to 11.</p></div>",
+      "css": ".ds-ddd-form { display: flex; flex-direction: column; gap: 10px; padding: 20px; background: #fbfbf8; color: #111; border-radius: 3px; font-family: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif; font-size: 1.0625rem; } .ds-ddd-field { display: flex; flex-direction: column; gap: 6px; } .ds-ddd-field label { font-weight: 700; } .ds-ddd-field input { min-height: 3rem; padding: 0 0.75rem; border: 2px solid #111; border-radius: 3px; background: #fff; color: #111; font: inherit; font-size: 1.25rem; caret-color: #24563f; } .ds-ddd-field input:focus-visible { outline: 3px solid #111; outline-offset: 2px; } .ds-ddd-problem { margin: 0; font-weight: 700; color: #d0342c; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Tab",
+    "overview": "Every Team runs a bar tab all day. A Game missed against the Spread rings up as a line item, the running total ticks, and at dinner the tab settles. The ground is bottle green, like the felt of a bar back or a beer bottle; everything read sits on a white slip with a thin rule between line items, the way a bar prints a tab. Stamp red marks what is owed. When the Playoff is final the ground goes deep green, the dinner light, and the settled tabs carry a PAID or OPEN stamp.\n\nIt is openly a party, but readable first. The first Tab sketch was rejected as hard to read, so the type does the work: Atkinson Hyperlegible for everything read or tapped, Anton only for names, totals, scores and place numbers, and Courier Prime only for small stamps and slip headers. Scores and shot counts read at arm's length on a phone under gym light and across a room on a venue TV.\n\nThe world refuses both the sports-broadcast scoreboard (Team Tally's) and neon party costume. No cards beyond the slip, no shadows, no rounded panels past a 3px corner. Controls are standard web controls (buttons, text fields, selects, `details`) restyled in ink on paper.",
+    "keyCharacteristics": [
+      "Bottle green ground by day; deep green once the Playoff is final and on the results.",
+      "White slips with 1px rules between line items and a heavy 3px ink rule over a running total.",
+      "Stamp red for shots owed, OPEN and refusals; mint for PAID; gold only for Final place numbers.",
+      "Anton for names and numbers that count, Atkinson Hyperlegible for everything read or tapped, Courier Prime for stamps and slip headers.",
+      "The whole surface sets tabular numerals.",
+      "A new line item prints onto the tab and the total ticks; reduced motion cuts both."
+    ],
+    "rules": [
+      { "name": "The Red Means Owed Rule", "body": "Stamp red marks shots owed, OPEN, and anything refused or unresolved. On now is not red; it moved to bottle green so red keeps its meaning.", "section": "colors" },
+      { "name": "The Red Sits On Paper Rule", "body": "Red text appears on a slip, never directly on either green. On the results the shot count gets its own slip plate so the red still reads at dinner.", "section": "colors" },
+      { "name": "The Gold Is For Places Rule", "body": "Gold sets the Final place numbers 1 to 4 and nothing else in the palette's roles.", "section": "colors" },
+      { "name": "The Paid Means Nothing Owed Rule", "body": "Nobody records shots as drunk, so a settled tab stamps PAID at 0 shots and OPEN otherwise.", "section": "colors" },
+      { "name": "The Three Faces Rule", "body": "Anton for what is counted or named big (Team names, totals, scores, Seed and place numbers, section heads). Atkinson Hyperlegible for everything read or tapped. Courier Prime for stamps, slip headers and header fact labels, never for data: a court name inside a status line drops back to Atkinson at 0.9375rem, and so does the round on the green.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "`.ddd-surface` sets `font-variant-numeric: tabular-nums`, so a total going from 9 to 10 never shifts its column.", "section": "typography" },
+      { "name": "The TV Rule", "body": "At 100rem (1600px) and wider the Public Link is one 1920x1080 screen nobody scrolls: a 112rem column, every court across the top in one row, then the tabs (\"Shots so far\", then \"Final places\") beside the Seeding in two columns. Before Round 2 there are no tabs, so the Dreambreakers sit beside the Seeding. A round's Matchups go two across. The roster and the Spreads stay on the phones and are hidden on the TV.", "section": "layout" },
+      { "name": "The One Column Rule", "body": "Below 100rem every DDD screen is one centred column: 40rem, or 72rem on the results.", "section": "layout" },
+      { "name": "The Paper On Felt Rule", "body": "A slip is the only surface. No shadows, no lifted panels, no nested cards; inside a slip, line items are divided by rules.", "section": "elevation" },
+      { "name": "The Restyle Not Replace Rule", "body": "Buttons, inputs, selects, links and `details` stay native controls dressed as ink on paper. No custom pickers or faux controls.", "section": "components" },
+      { "name": "The Print And Tick Rule", "body": "The one signature motion is a line item printing onto a tab and its total ticking. Nothing else animates.", "section": "components" }
+    ],
+    "dos": [
+      "Do set every tab, court, form and notice on a slip (#fbfbf8, 3px corner, no shadow) on the bottle green (#24563f).",
+      "Do turn the ground deep green (#10241b) once the Playoff is final and on the results.",
+      "Do score each Game once, on its Matchup's slip, with its ledger line under it and a 3px ink rule over the running total.",
+      "Do keep red (#d0342c) for shots owed, OPEN and refusals, and set it only on a slip.",
+      "Do stamp PAID in mint at 0 shots and OPEN in red otherwise.",
+      "Do dim Up next Games to 72% and give them \"Enter its final\" instead of a form.",
+      "Do lay the Public Link out as one unscrolled screen from 100rem: courts across the top, tabs beside the Seeding.",
+      "Do cut the print and tick under reduced motion."
+    ],
+    "donts": [
+      "Don't set data (names, courts, rounds, scores) in Courier Prime; it is for stamps, slip headers and header fact labels.",
+      "Don't put a line above the title or above a Matchup's Team names; the app name is the tab title, not a kicker.",
+      "Don't use gold for anything but Final place numbers, or red for On now or decoration.",
+      "Don't split a Game across two Team tabs, or number tabs TAB 01.",
+      "Don't add shadows, pills, rounded panels past 3px, or cards inside a slip.",
+      "Don't bring in Team Tally's broadcast scoreboard or neon party costume."
+    ]
+  }
+}
