@@ -4,7 +4,7 @@ import type { LiveReader } from "@/lib/ddd/actions/live";
 import { seedTeams } from "@/lib/ddd/dreambreakers";
 import { PLACES, type LinkEvent } from "@/lib/ddd/events";
 import { doublesMatchups, finalPlaces, shotTotals } from "@/lib/ddd/matchups";
-import { shotWord } from "./matchups";
+import { shotWord, Stamp } from "./matchups";
 import { useDddLive } from "./use-ddd-live";
 
 /**
@@ -40,9 +40,12 @@ export function Results({ reader, initial }: { reader: LiveReader; initial: Link
                 <p className="ddd-result-punishment">{punishment}</p>
               </div>
               {id ? (
-                <p className="ddd-result-shots">
-                  <span className="ddd-result-shots-n">{totals[id]}</span> {shotWord(totals[id])}
-                </p>
+                <div className="ddd-result-owed">
+                  <p className="ddd-result-shots">
+                    <span className="ddd-result-shots-n">{totals[id]}</span> {shotWord(totals[id])}
+                  </p>
+                  <Stamp shots={totals[id]} />
+                </div>
               ) : null}
             </li>
           );

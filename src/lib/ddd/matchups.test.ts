@@ -8,6 +8,7 @@ import {
   decideMatchup,
   doublesMatchups,
   finalPlaces,
+  roundOf,
   shotLines,
   shotTotals,
   spreadResult,
@@ -241,6 +242,15 @@ describe("doublesMatchups: Round 2 and the Playoff", () => {
     const after = doublesMatchups(SEEDS, { ...all, calls: [] });
     assert.deepEqual(finalPlaces(after), ["t1", "t3", "t2", "t4"]);
     assert.deepEqual(shotTotals(TEAMS, after), { t1: 0, t2: 24, t3: 24, t4: 48 });
+  });
+
+  it("names the round the day is in, for the header", () => {
+    assert.equal(roundOf([]), "Round 1");
+    assert.equal(roundOf(doublesMatchups(SEEDS, { spreads: [], games: [], calls: [] })), "Round 2");
+    const round2 = merge(sweep("t3", "t2"), sweep("t1", "t4"));
+    assert.equal(roundOf(doublesMatchups(SEEDS, { ...round2, calls: [] })), "Playoff");
+    const all = merge(round2, sweep("t1", "t3"), sweep("t2", "t4"));
+    assert.equal(roundOf(doublesMatchups(SEEDS, { ...all, calls: [] })), "Final places");
   });
 });
 

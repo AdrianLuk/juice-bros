@@ -14,9 +14,14 @@ import { createClient } from "@/lib/ddd/supabase/client";
  * `use-live-event.ts` does. Realtime only invalidates; the data comes back
  * through `readLive`. `refresh` re-reads now, for the screen that just saved.
  */
+/** The one query every live screen of a DDD reads, so a second reader shares its cache. */
+export function liveQuery(reader: LiveReader) {
+  return { queryKey: ["ddd", "live", reader] as const, queryFn: () => readLive(reader) };
+}
+
 export function useDddLive(reader: LiveReader, initial: LinkEvent) {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(() => ["ddd", "live", reader] as const, [reader]);
+  const queryKey = useMemo(() => liveQuery(reader).queryKey, [reader]);
 
   // A missing env var makes createClient() throw; the poll still covers it.
   const supabase = useMemo(() => {
@@ -40,8 +45,8 @@ export function useDddLive(reader: LiveReader, initial: LinkEvent) {
   }, [supabase, initial.id, queryClient, queryKey]);
 
   const query = useQuery({
+    ...liveQuery(reader),
     queryKey,
-    queryFn: () => readLive(reader),
     initialData: initial,
     refetchInterval: pollIntervalFor(status),
   });

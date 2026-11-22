@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DddHead } from "@/components/ddd/ddd-head";
+import { LiveRound } from "@/components/ddd/live-round";
 import { QueryProvider } from "@/components/ddd/query-provider";
 import { RoundOne } from "@/components/ddd/round-one";
 import { SpreadsView } from "@/components/ddd/spreads-view";
@@ -10,20 +11,32 @@ import { resultsPath } from "@/lib/ddd/routes";
 import { createClient } from "@/lib/ddd/supabase/server";
 
 /**
- * What the Score Link and the Public Link open: the DDD header, then Round 1
- * live (#715) and the 4 Teams (#712). The Score Link enters finals; the
- * Public Link only reads. A token for the other link, or none, is a 404.
+ * What the Score Link and the Public Link open: the DDD header with the
+ * round, then the courts and the tabs live (#715 to #717) and the 4 Teams
+ * (#712). The Score Link enters finals; the Public Link only reads. A token
+ * for the other link, or none, is a 404. On a TV the Public Link fits one
+ * screen (`.ddd-public` in ddd.css).
  */
 export async function LinkScreen({ token, link }: { token: string; link: "score" | "public" }) {
   const event = await readLinkEvent(await createClient(), token);
   if (!event || event.link !== link) notFound();
+  const reader = { kind: link, token };
 
   return (
-    <>
-      <DddHead event={event} />
-      <main className="ddd-main">
+    <QueryProvider>
+      <DddHead event={event}>
+        <LiveRound reader={reader} initial={event} />
+        {link === "public" ? (
+          <Link href={resultsPath(token)} className="ddd-quiet ddd-on-green">
+            Final places and Punishments
+          </Link>
+        ) : null}
+      </DddHead>
+      <main className={`ddd-main ddd-${link}`}>
         <div className="ddd-col ddd-stack-lg">
-          <div className="ddd-slip ddd-notice">
+          <RoundOne reader={reader} initial={event} showRoster showDoubles />
+          <SpreadsView event={event} />
+          <div className="ddd-slip ddd-notice ddd-link-about">
             <p className="ddd-slip-head">{link === "score" ? "Score Link" : "Public Link"}</p>
             <p>
               {link === "score"
@@ -31,18 +44,9 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
                 : "Seeding and every court, updated as finals come in."}
             </p>
             <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
-            {link === "public" ? (
-              <Link href={resultsPath(token)} className="ddd-quiet">
-                Final places and Punishments
-              </Link>
-            ) : null}
           </div>
-          <QueryProvider>
-            <RoundOne reader={{ kind: link, token }} initial={event} showRoster showDoubles />
-          </QueryProvider>
-          <SpreadsView event={event} />
         </div>
       </main>
-    </>
+    </QueryProvider>
   );
 }

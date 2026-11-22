@@ -29,14 +29,36 @@ import { useWrite } from "./use-write";
 
 type Team = LinkEvent["teams"][number];
 
-const MATCHUP_LABEL: Record<MatchupKey, string> = {
-  "round2-1v4": "Round 2 · Seed 1 v Seed 4",
-  "round2-2v3": "Round 2 · Seed 2 v Seed 3",
-  "playoff-1st": "Playoff · for 1st and 2nd",
-  "playoff-3rd": "Playoff · for 3rd and 4th",
+// What a Matchup is for, under its Teams. The round is the band heading above it.
+const MATCHUP_NOTE: Record<MatchupKey, string> = {
+  "round2-1v4": "Seed 1 v Seed 4",
+  "round2-2v3": "Seed 2 v Seed 3",
+  "playoff-1st": "For 1st and 2nd",
+  "playoff-3rd": "For 3rd and 4th",
 };
 
 export const shotWord = (n: number) => (n === 1 ? "shot" : "shots");
+
+/** True once `value` differs from what it was when the row first drew, so only what lands live prints on. */
+function useChangedSinceMount<T>(value: T): boolean {
+  const [first] = useState(value);
+  return value !== first;
+}
+
+/** A shot count that ticks when it moves (`ddd-tick`); the key replays it on every change. */
+function Ticker({ n, className }: { n: number; className: string }) {
+  const moved = useChangedSinceMount(n);
+  return (
+    <span key={n} className={moved ? `${className} ddd-tick` : className}>
+      {n}
+    </span>
+  );
+}
+
+/** OPEN while a settled tab has shots to drink, PAID when it has none. */
+export function Stamp({ shots }: { shots: number }) {
+  return shots > 0 ? <span className="ddd-stamp ddd-stamp-open">Open</span> : <span className="ddd-stamp ddd-stamp-paid">Paid</span>;
+}
 
 /** The Organizer's own page (#716): one live read, then the doubles with the Organizer's powers. */
 export function Matchups({ reader, initial }: { reader: LiveReader; initial: LinkEvent }) {
@@ -75,7 +97,8 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
 
   return (
     <>
-      <section className="ddd-slip ddd-section" aria-labelledby="ddd-standings">
+      {/* ddd-settled turns the ground deep green once the Playoff is final. */}
+      <section className={`ddd-slip ddd-section ddd-standings${places ? " ddd-settled" : ""}`} aria-labelledby="ddd-standings">
         <h2 id="ddd-standings" className="ddd-slip-head">
           {places ? "Final places" : "Shots so far"}
         </h2>
@@ -95,7 +118,7 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
       </section>
       {rounds.map(([id, title, list]) =>
         list.length === 0 ? null : (
-          <section key={id} className="ddd-stack" aria-labelledby={id}>
+          <section key={id} className="ddd-stack ddd-round" aria-labelledby={id}>
             <h2 id={id} className="ddd-on-green ddd-band-head">
               {title}
             </h2>
@@ -129,7 +152,7 @@ function TabRow({
   const listId = `ddd-tab-lines-${team.id}`;
   const totalText = (
     <>
-      <span className="ddd-tab-n">{total}</span> {shotWord(total)}
+      <Ticker n={total} className="ddd-tab-n" /> {shotWord(total)}
     </>
   );
 
@@ -140,19 +163,22 @@ function TabRow({
         <p className="ddd-seed-name">{team.name}</p>
         <p className="ddd-note">{note}</p>
       </div>
-      {lines.length === 0 ? (
-        <p className="ddd-tab-total">{totalText}</p>
-      ) : (
-        <button
-          type="button"
-          className="ddd-tab-total"
-          aria-expanded={open}
-          aria-controls={listId}
-          onClick={() => setOpen(!open)}
-        >
-          {totalText}
-        </button>
-      )}
+      <div className="ddd-tab-owed">
+        {lines.length === 0 ? (
+          <p className="ddd-tab-total">{totalText}</p>
+        ) : (
+          <button
+            type="button"
+            className="ddd-tab-total"
+            aria-expanded={open}
+            aria-controls={listId}
+            onClick={() => setOpen(!open)}
+          >
+            {totalText}
+          </button>
+        )}
+        {place ? <Stamp shots={total} /> : null}
+      </div>
       {open && lines.length > 0 ? (
         <ol id={listId} className="ddd-tab-lines" aria-label={`${team.name}'s shots, Game by Game`}>
           {lines.map((line) => {
@@ -236,10 +262,12 @@ function MatchupCard({
 
   return (
     <article className="ddd-slip ddd-matchup" aria-label={`Matchup: ${a.name} v ${b.name}`}>
-      <p className="ddd-slip-head">{MATCHUP_LABEL[matchup.key]}</p>
-      <h3 className="ddd-team-name">
-        {a.name} v {b.name}
-      </h3>
+      <div>
+        <h3 className="ddd-team-name">
+          {a.name} v {b.name}
+        </h3>
+        <p className="ddd-note">{MATCHUP_NOTE[matchup.key]}</p>
+      </div>
       <p className={outcome.open ? "ddd-problem" : "ddd-matchup-outcome"}>{outcome.text}</p>
       <ol className="ddd-games">
         {placed.map((place) => (
@@ -274,10 +302,10 @@ function MatchupCard({
       ) : null}
       <p className="ddd-matchup-total">
         <span>
-          {a.name}: <span className="ddd-shots">{shots[0]}</span> {shotWord(shots[0])}
+          {a.name}: <Ticker n={shots[0]} className="ddd-shots" /> {shotWord(shots[0])}
         </span>
         <span>
-          {b.name}: <span className="ddd-shots">{shots[1]}</span> {shotWord(shots[1])}
+          {b.name}: <Ticker n={shots[1]} className="ddd-shots" /> {shotWord(shots[1])}
         </span>
       </p>
       {writer?.kind === "organizer" && twoAll ? <CallForm matchup={matchup} a={a} b={b} onSaved={onSaved} /> : null}
@@ -312,8 +340,10 @@ function GameRow({
   const pairs = [pairOf(a, game.game), pairOf(b, game.game)];
   const teams = [a, b];
   const side = (s: "a" | "b") => (s === "a" ? 0 : 1);
-  const showForm = writer !== null && game.spread !== null && (game.score === null || editing);
+  // Only what is On now opens with a score form; a later Game can still be entered early, one tap in.
+  const showForm = writer !== null && game.spread !== null && ((game.score === null && place.status === "now") || editing);
   const id = `${matchup.a}-${matchup.b}-${game.game}`;
+  const justScored = useChangedSinceMount(game.result !== null);
 
   function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -374,11 +404,15 @@ function GameRow({
         </p>
       )}
       {game.result ? (
-        <p>
-          Spread winner: {pairs[side(game.result.spreadWinner)]} ({teams[side(game.result.spreadWinner)].name}), by{" "}
-          {Math.abs(game.result.margin).toFixed(1)}.{" "}
+        // The line item this Game rings up: who beat the Spread, by how much, and the shots it costs whom.
+        <p className={justScored ? "ddd-ledger ddd-print" : "ddd-ledger"}>
+          <span className="ddd-ledger-who">
+            Spread winner {pairs[side(game.result.spreadWinner)]}
+            <span className="ddd-pair-team">{teams[side(game.result.spreadWinner)].name}</span>
+          </span>
+          <span className="ddd-ledger-by">by {Math.abs(game.result.margin).toFixed(1)}</span>
           <span className="ddd-shots">
-            {game.result.shots} {shotWord(game.result.shots)} on {teams[side(game.result.shotsOn)].name}.
+            {game.result.shots} {shotWord(game.result.shots)} on {teams[side(game.result.shotsOn)].name}
           </span>
         </p>
       ) : null}
@@ -410,6 +444,14 @@ function GameRow({
             ) : null}
           </div>
         </form>
+      ) : null}
+
+      {writer && game.spread && !game.score && !showForm ? (
+        <div className="ddd-actions">
+          <button type="button" className="ddd-quiet" onClick={() => setEditing(true)}>
+            Enter its final
+          </button>
+        </div>
       ) : null}
 
       {writer && game.score && !editing ? (

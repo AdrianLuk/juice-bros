@@ -32,11 +32,14 @@ The Juice Bros friend group on DDD day. By day at indoor courts under gym light:
 
 **FIRST VIEWPORT:** Score Link at 390 wide: Anton DDD title with date and round on the green; an On now strip of white court cards (court, Game, both Pairs, live score); then the viewer's Matchup as two Teams' tabs, one line per Game (Game, score, shots), the Spread line under each final Game, Up next Games dimmed, a running total under a heavy rule. Results: Final places 1 to 4 on deep green rows with gold numbers, each row's Punishment and shots and a PAID or OPEN stamp. Signature interaction: when a final is entered, the new line item prints onto the tab and the total ticks up; reduced motion cuts.
 
-**FORM:** The Tab, Impeccable's pick (candidate 1 of 7), chosen over the roll's assignment (The Diner, candidate 7) and revised for legibility at Adrian's request. seed:6a7cc74d9e01e449, mode operate, code-led (no image generation). Decision page: https://claude.ai/artifact/Af2DHewBvRyrUuM93gypML (version 2).
+**FORM:** The Tab, Impeccable's pick (candidate 1 of 7), chosen over the roll's assignment (The Diner, candidate 7) and revised for legibility at Adrian's request. seed:6a7cc74d9e01e449, mode operate, code-led (no image generation). Decision page: https://claude.ai/artifact/Af2DHewBvRyrUuM93gypML (version 2). Seed uncorroborated at the #721 finish review: `concept-seed --check-seed` finds no local roll record (exit 1) and no roll output was kept, so the reference stands on the decision page alone. Accepted by Adrian on 2026-11-22: "Merge it and do your recommendation" (the recommendation: accept the uncorroborated seed, with the decision page as the record).
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-## Unresolved
+## Adaptations (settled at the #721 finish review)
 
-- The TV layout of the Public Link (4 tabs side by side, or standings plus On now) is decided in #715 to #717 inside this contract.
-- The screen tickets (#711 to #718) build inside this contract; #721 runs the finish review and writes `dink-dine-drink/DESIGN.md`.
+- **TV:** standings plus On now. At 1600px and wider the Public Link puts every court across the top and the tabs ("Shots so far", then "Final places") beside the Seeding, in one 1920x1080 screen; the roster and Spreads stay on the phones.
+- **One slip per Matchup, not two tabs:** a Game belongs to both Teams, so it is scored once, on one slip with both Pairs, and its line item (Spread winner, by how much, the shots and on whom) sits under it. Each Team's own tab is its row in "Shots so far", which lists its line items on a tap. Shipped in #716 and kept.
+- **PAID means nothing owed:** nobody records shots as drunk, so a settled tab stamps PAID at 0 shots and OPEN otherwise. No TAB 01 numbering: the seed or place number already heads each tab.
+- **Red for refusals too:** stamp red marks shots owed, OPEN, and a refused save, which has to read as refused. On now moved to bottle green.
+- **Up next is dim and takes no form;** "Enter its final" opens one, since a court can run a Game early.
