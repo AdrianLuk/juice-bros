@@ -1144,3 +1144,8 @@ body:has(.ddd-results) {
 .ddd-results-back {
   margin-top: 24px;
 }
+
+/* The header lines up with the results' wider column on a TV. */
+.ddd-surface:has(.ddd-results) .ddd-head .ddd-col {
+  max-width: 72rem;
+}
