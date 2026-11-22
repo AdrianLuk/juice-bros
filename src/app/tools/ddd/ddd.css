@@ -1114,7 +1114,7 @@ body:has(.ddd-results) {
   overflow-wrap: anywhere;
 }
 
-.ddd-result-open {
+.ddd-result-pending {
   color: var(--ddd-on-green-2);
 }
 

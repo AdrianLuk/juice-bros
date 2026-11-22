@@ -38,8 +38,8 @@ let eventId: string;
 let links: { score: string; public: string };
 let contexts: BrowserContext[] = [];
 
-async function phone(browser: Browser): Promise<Page> {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+async function phone(browser: Browser, viewport = { width: 390, height: 844 }): Promise<Page> {
+  const context = await browser.newContext({ viewport });
   contexts.push(context);
   return context.newPage();
 }
@@ -69,7 +69,7 @@ test.afterAll(async () => {
 const place = (page: Page, name: string) => page.getByRole("listitem", { name: `${name} place`, exact: true });
 
 test("an Organizer's Punishment edit reaches the results on the TV", async ({ browser }) => {
-  const tv = await phone(browser);
+  const tv = await phone(browser, { width: 1920, height: 1080 });
   await tv.goto(links.public);
   await tv.getByRole("link", { name: "Final places and Punishments" }).click();
   await expect(place(tv, "1st")).toContainText(FIRST);

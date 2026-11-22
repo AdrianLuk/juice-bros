@@ -36,7 +36,7 @@ const MATCHUP_LABEL: Record<MatchupKey, string> = {
   "playoff-3rd": "Playoff · for 3rd and 4th",
 };
 
-const shotWord = (n: number) => (n === 1 ? "shot" : "shots");
+export const shotWord = (n: number) => (n === 1 ? "shot" : "shots");
 
 /** The Organizer's own page (#716): one live read, then the doubles with the Organizer's powers. */
 export function Matchups({ reader, initial }: { reader: LiveReader; initial: LinkEvent }) {
@@ -153,7 +153,7 @@ function TabRow({
           {totalText}
         </button>
       )}
-      {open ? (
+      {open && lines.length > 0 ? (
         <ol id={listId} className="ddd-tab-lines" aria-label={`${team.name}'s shots, Game by Game`}>
           {lines.map((line) => {
             const opponent = teamOf(line.opponent);

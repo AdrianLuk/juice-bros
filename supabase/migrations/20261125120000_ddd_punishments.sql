@@ -19,6 +19,14 @@ alter table public.ddd_events
     and char_length(btrim(punishments[4])) between 1 and 40
   );
 
+-- A Punishment edit reaches every phone and the TV, as a tie call does.
+drop trigger ddd_events_broadcast on public.ddd_events;
+create trigger ddd_events_broadcast
+  after update on public.ddd_events
+  for each row
+  when (old.tie_order is distinct from new.tie_order or old.punishments is distinct from new.punishments)
+  execute function public.ddd_broadcast_change();
+
 -- ---------------------------------------------------------------------------
 -- ddd_link_event, with the Punishments
 -- ---------------------------------------------------------------------------
