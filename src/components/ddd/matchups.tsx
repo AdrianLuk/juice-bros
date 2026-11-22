@@ -8,15 +8,17 @@ import { moveGame, swapCourtTurns } from "@/lib/ddd/actions/courts";
 import { callMatchup, clearCall, clearGame, saveGame } from "@/lib/ddd/actions/matchups";
 import { placeMatchup, type PlacedGame } from "@/lib/ddd/courts";
 import { seedTeams, STATUS_LABEL } from "@/lib/ddd/dreambreakers";
-import type { LinkEvent } from "@/lib/ddd/events";
+import { PLACES, type LinkEvent } from "@/lib/ddd/events";
 import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
 import {
   doublesMatchups,
   finalPlaces,
   MAX_REASON,
+  shotLines,
   shotTotals,
   tally,
   type Matchup,
+  type ShotLine,
   type MatchupGame,
   type MatchupKey,
 } from "@/lib/ddd/matchups";
@@ -34,9 +36,7 @@ const MATCHUP_LABEL: Record<MatchupKey, string> = {
   "playoff-3rd": "Playoff · for 3rd and 4th",
 };
 
-const PLACES = ["1st", "2nd", "3rd", "4th"];
-
-const shotWord = (n: number) => (n === 1 ? "shot" : "shots");
+export const shotWord = (n: number) => (n === 1 ? "shot" : "shots");
 
 /** The Organizer's own page (#716): one live read, then the doubles with the Organizer's powers. */
 export function Matchups({ reader, initial }: { reader: LiveReader; initial: LinkEvent }) {
@@ -81,16 +81,15 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
         </h2>
         <ol className="ddd-seeds">
           {order.map((id, index) => (
-            <li key={id} className="ddd-seed" aria-label={`Tab: ${teamOf(id).name}`}>
-              {places ? <span className="ddd-seed-n">{index + 1}</span> : null}
-              <div className="ddd-seed-body">
-                <p className="ddd-seed-name">{teamOf(id).name}</p>
-                <p className="ddd-note">{places ? PLACES[index] : `Seed ${index + 1}`}</p>
-              </div>
-              <p className="ddd-tab-total">
-                <span className="ddd-tab-n">{totals[id]}</span> {shotWord(totals[id])}
-              </p>
-            </li>
+            <TabRow
+              key={id}
+              team={teamOf(id)}
+              note={places ? `${PLACES[index]} · ${event.punishments[index]}` : `Seed ${index + 1}`}
+              place={places ? index + 1 : null}
+              total={totals[id]}
+              lines={shotLines(id, matchups)}
+              teamOf={teamOf}
+            />
           ))}
         </ol>
       </section>
@@ -107,6 +106,77 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
         ),
       )}
     </>
+  );
+}
+
+/** A Team's tab in the standings: tap the shot total for the Games that ran it up. */
+function TabRow({
+  team,
+  note,
+  place,
+  total,
+  lines,
+  teamOf,
+}: {
+  team: Team;
+  note: string;
+  place: number | null;
+  total: number;
+  lines: ShotLine[];
+  teamOf: (id: string) => Team;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = `ddd-tab-lines-${team.id}`;
+  const totalText = (
+    <>
+      <span className="ddd-tab-n">{total}</span> {shotWord(total)}
+    </>
+  );
+
+  return (
+    <li className="ddd-seed ddd-tab-row" aria-label={`Tab: ${team.name}`}>
+      {place ? <span className="ddd-seed-n">{place}</span> : null}
+      <div className="ddd-seed-body">
+        <p className="ddd-seed-name">{team.name}</p>
+        <p className="ddd-note">{note}</p>
+      </div>
+      {lines.length === 0 ? (
+        <p className="ddd-tab-total">{totalText}</p>
+      ) : (
+        <button
+          type="button"
+          className="ddd-tab-total"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen(!open)}
+        >
+          {totalText}
+        </button>
+      )}
+      {open && lines.length > 0 ? (
+        <ol id={listId} className="ddd-tab-lines" aria-label={`${team.name}'s shots, Game by Game`}>
+          {lines.map((line) => {
+            const opponent = teamOf(line.opponent);
+            return (
+              <li key={`${line.key}-${line.game}`}>
+                <p>
+                  <span className="ddd-db-team">
+                    {GAME_LABEL[line.game]} v {opponent.name}
+                  </span>{" "}
+                  <span className="ddd-shots">
+                    {line.shots} {shotWord(line.shots)}
+                  </span>
+                </p>
+                <p className="ddd-note">
+                  {line.score[0]}-{line.score[1]} · Spread {line.spread.points.toFixed(1)} on{" "}
+                  {pairOf(line.spread.ours ? team : opponent, line.game)}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
+      ) : null}
+    </li>
   );
 }
 

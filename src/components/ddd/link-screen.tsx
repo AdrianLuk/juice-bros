@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DddHead } from "@/components/ddd/ddd-head";
@@ -5,6 +6,7 @@ import { QueryProvider } from "@/components/ddd/query-provider";
 import { RoundOne } from "@/components/ddd/round-one";
 import { SpreadsView } from "@/components/ddd/spreads-view";
 import { readLinkEvent } from "@/lib/ddd/events";
+import { resultsPath } from "@/lib/ddd/routes";
 import { createClient } from "@/lib/ddd/supabase/server";
 
 /**
@@ -29,6 +31,11 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
                 : "Seeding and every court, updated as finals come in."}
             </p>
             <p className="ddd-note">Courts {event.courts.join(", ")}.</p>
+            {link === "public" ? (
+              <Link href={resultsPath(token)} className="ddd-quiet">
+                Final places and Punishments
+              </Link>
+            ) : null}
           </div>
           <QueryProvider>
             <RoundOne reader={{ kind: link, token }} initial={event} showRoster showDoubles />

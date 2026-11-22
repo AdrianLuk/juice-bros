@@ -1019,3 +1019,133 @@ body:has(.ddd-surface) {
 .ddd-move {
   max-width: 14rem;
 }
+
+/* ---- The tab's line items and the results (issue #718) -------------------- */
+
+.ddd-tab-row {
+  flex-wrap: wrap;
+}
+
+/* The total is the tap target for the Games behind it. */
+.ddd-seed button.ddd-tab-total {
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.ddd-tab-lines {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-tab-lines li {
+  padding: 8px 0;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-tab-lines p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+}
+
+/* The results are the settled tabs: deep green, as at dinner. */
+.ddd-surface:has(.ddd-results) {
+  background-color: var(--ddd-deep);
+}
+
+body:has(.ddd-results) {
+  background-color: #10241b;
+}
+
+.ddd-results,
+.ddd-results-back {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.ddd-results-wait {
+  margin: 8px 0 0;
+  color: var(--ddd-on-green-2);
+}
+
+.ddd-results-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-result {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 4px clamp(14px, 3vw, 40px);
+  padding: clamp(14px, 2.5vw, 32px) 0;
+  border-top: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.ddd-result p {
+  margin: 0;
+}
+
+.ddd-result-n {
+  min-width: 1ch;
+  font-family: var(--ddd-display);
+  font-size: clamp(3rem, 9vw, 8rem);
+  line-height: 0.9;
+  color: var(--ddd-gold);
+}
+
+.ddd-result-team {
+  font-family: var(--ddd-display);
+  font-size: clamp(1.75rem, 5vw, 4.5rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.ddd-result-pending {
+  color: var(--ddd-on-green-2);
+}
+
+.ddd-result-punishment {
+  font-size: clamp(1.125rem, 2.6vw, 2.25rem);
+  font-weight: 700;
+}
+
+/* Shots owed on a white slip: stamp red reads there, not on the deep green. */
+.ddd-result-shots {
+  padding: 0.2em 0.6em;
+  border-radius: 3px;
+  background: var(--ddd-slip);
+  color: var(--ddd-red);
+  font-size: clamp(1rem, 2.2vw, 2rem);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ddd-result-shots-n {
+  font-family: var(--ddd-display);
+  font-size: 1.6em;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.ddd-results-back {
+  margin-top: 24px;
+}
+
+/* The header lines up with the results' wider column on a TV. */
+.ddd-surface:has(.ddd-results) .ddd-head .ddd-col {
+  max-width: 72rem;
+}

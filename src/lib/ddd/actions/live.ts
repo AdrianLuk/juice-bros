@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getVisitor, verifyOrganizer } from "../dal.ts";
 import { checkDreambreakerScore } from "../dreambreakers.ts";
-import { getEvent, readLinkEvent, type LinkEvent } from "../events.ts";
+import { getEvent, punishmentsProblem, readLinkEvent, type LinkEvent } from "../events.ts";
 import { DDD_ROOT } from "../routes.ts";
 import { createClient } from "../supabase/server.ts";
 
@@ -93,6 +93,19 @@ export async function setRotation(teamId: string, playerIds: string[]): Promise<
     p_player_ids: Array.isArray(playerIds) ? playerIds.map(String) : [],
   });
   if (error) return { ok: false, problem: "Couldn't save the Rotation. Try again." };
+  revalidatePath(DDD_ROOT, "layout");
+  return { ok: true };
+}
+
+/** The four Punishments, 1st place first (#718). Any time, before or after the DDD. */
+export async function savePunishments(eventId: string, punishments: string[]): Promise<WriteResult> {
+  await verifyOrganizer();
+  const list = Array.isArray(punishments) ? punishments.map((each) => String(each ?? "").trim()) : [];
+  const problem = punishmentsProblem(list);
+  if (problem) return { ok: false, problem };
+  const supabase = await createClient();
+  const { error } = await supabase.from("ddd_events").update({ punishments: list }).eq("id", String(eventId));
+  if (error) return { ok: false, problem: "Couldn't save the Punishments. Try again." };
   revalidatePath(DDD_ROOT, "layout");
   return { ok: true };
 }

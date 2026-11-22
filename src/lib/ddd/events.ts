@@ -35,6 +35,8 @@ export type DddEvent = DddHeader & {
   courts: string[];
   scoreToken: string;
   publicToken: string;
+  /** One per Final place, 1st first. */
+  punishments: string[];
 };
 
 export type LinkEvent = DddHeader & {
@@ -44,6 +46,8 @@ export type LinkEvent = DddHeader & {
   spreads: SpreadRow[];
   /** The Organizer's call on a tie every other rule leaves level: Team ids, best first. */
   tieOrder: string[];
+  /** One per Final place, 1st first (#718). */
+  punishments: string[];
   /** Round 1 finals entered so far (#715). */
   dreambreakers: DreambreakerFinal[];
   /** Round 2 and Playoff Game finals entered so far (#716). */
@@ -90,6 +94,23 @@ export function eventProblem(setup: DddSetup): string | null {
   return null;
 }
 
+/** A Punishment is short free text, like "2 bottles + 3 shots". The table checks it too. */
+export const MAX_PUNISHMENT = 40;
+
+/** Final places, 1st first. */
+export const PLACES = ["1st", "2nd", "3rd", "4th"];
+
+/** What stops the four Punishments (1st place first) saving, or `null` when they can. */
+export function punishmentsProblem(punishments: readonly string[]): string | null {
+  if (punishments.length !== 4) return "One Punishment for each of the 4 places.";
+  for (const [index, punishment] of punishments.entries()) {
+    const text = String(punishment ?? "").trim();
+    if (text === "") return `Give ${PLACES[index]} place a Punishment.`;
+    if (text.length > MAX_PUNISHMENT) return `Keep ${PLACES[index]} place's Punishment to ${MAX_PUNISHMENT} characters.`;
+  }
+  return null;
+}
+
 /** "Sat Nov 28, 2026". The date is a calendar day, so no time zone moves it. */
 export function formatDddDate(date: string): string {
   const day = new Date(`${date}T12:00:00Z`);
@@ -125,7 +146,7 @@ export async function listEvents(supabase: SupabaseClient): Promise<DddHeader[]>
 export async function getEvent(supabase: SupabaseClient, id: string): Promise<DddEvent | null> {
   const { data, error } = await supabase
     .from("ddd_events")
-    .select("id, name, event_date, play_venue, dine_venue, score_token, public_token, ddd_courts (name, position)")
+    .select("id, name, event_date, play_venue, dine_venue, score_token, public_token, punishments, ddd_courts (name, position)")
     .eq("id", id)
     .maybeSingle();
   // 22P02: not a uuid, so not a DDD.
@@ -135,6 +156,7 @@ export async function getEvent(supabase: SupabaseClient, id: string): Promise<Dd
   const row = data as EventRow & {
     score_token: string;
     public_token: string;
+    punishments: string[];
     ddd_courts: { name: string; position: number }[];
   };
   return {
@@ -142,6 +164,7 @@ export async function getEvent(supabase: SupabaseClient, id: string): Promise<Dd
     courts: [...row.ddd_courts].sort((a, b) => a.position - b.position).map((court) => court.name),
     scoreToken: row.score_token,
     publicToken: row.public_token,
+    punishments: row.punishments,
   };
 }
 
