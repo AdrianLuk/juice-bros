@@ -124,18 +124,18 @@ describe("checkGameScore: side-out to 11, win by 2", () => {
 describe("spreadResult: one Game against its Spread", () => {
   it("11-6 against 5.5: the lower-rated Pair lost the Game but is the Spread winner, 1 shot to the other Team", () => {
     // Side b is the lower-rated Pair and scored 6.
-    assert.deepEqual(spreadResult([11, 6], "b", 5.5), { winner: "b", margin: -0.5, shots: 1, shotsOn: "a" });
+    assert.deepEqual(spreadResult([11, 6], "b", 5.5), { spreadWinner: "b", margin: -0.5, shots: 1, shotsOn: "a" });
   });
 
   it("11-3 against 5.5: a gap of 2.5 is 3 shots on the lower-rated Pair's Team", () => {
-    assert.deepEqual(spreadResult([11, 3], "b", 5.5), { winner: "a", margin: 2.5, shots: 3, shotsOn: "b" });
+    assert.deepEqual(spreadResult([11, 3], "b", 5.5), { spreadWinner: "a", margin: 2.5, shots: 3, shotsOn: "b" });
   });
 
   it("13-11 measures the lower-rated Pair's points, not the 11", () => {
     // Lower-rated Pair (a) won 13-11 against 7.5: it beat the Spread by 5.5, so 6 shots on b.
-    assert.deepEqual(spreadResult([13, 11], "a", 7.5), { winner: "a", margin: 5.5, shots: 6, shotsOn: "b" });
+    assert.deepEqual(spreadResult([13, 11], "a", 7.5), { spreadWinner: "a", margin: 5.5, shots: 6, shotsOn: "b" });
     // Lower-rated Pair (b) lost 11-13 against 9.5: 11 still beats 9.5, so 2 shots on a.
-    assert.deepEqual(spreadResult([13, 11], "b", 9.5), { winner: "b", margin: -1.5, shots: 2, shotsOn: "a" });
+    assert.deepEqual(spreadResult([13, 11], "b", 9.5), { spreadWinner: "b", margin: -1.5, shots: 2, shotsOn: "a" });
   });
 
   it("puts at least one shot on someone's count", () => {
@@ -202,7 +202,7 @@ describe("doublesMatchups: Round 2 and the Playoff", () => {
     const mens = top.games.find((each) => each.game === "mens")!;
     assert.deepEqual(mens.spread, { lower: "b", points: 5.5 });
     assert.deepEqual(mens.score, [11, 6]);
-    assert.deepEqual(mens.result, { winner: "b", margin: -0.5, shots: 1, shotsOn: "a" });
+    assert.deepEqual(mens.result, { spreadWinner: "b", margin: -0.5, shots: 1, shotsOn: "a" });
 
     const womens = top.games.find((each) => each.game === "womens")!;
     assert.deepEqual([womens.spread, womens.score, womens.result], [null, [2, 11], null]);
@@ -232,8 +232,8 @@ describe("doublesMatchups: Round 2 and the Playoff", () => {
     const round2 = merge(sweep("t3", "t2"), sweep("t1", "t4"));
     const before = doublesMatchups(SEEDS, { ...round2, calls: [] });
     const [first, third] = before.slice(2);
-    assert.deepEqual([first.key, first.a, first.b], ["first", "t3", "t1"]);
-    assert.deepEqual([third.key, third.a, third.b], ["third", "t2", "t4"]);
+    assert.deepEqual([first.key, first.a, first.b], ["playoff-1st", "t3", "t1"]);
+    assert.deepEqual([third.key, third.a, third.b], ["playoff-3rd", "t2", "t4"]);
     assert.equal(finalPlaces(before), null);
 
     const all = merge(round2, sweep("t1", "t3"), sweep("t2", "t4"));

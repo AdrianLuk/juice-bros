@@ -7,7 +7,7 @@
 --   * the Score Link can't clear a final, and another DDD's token, anon
 --     without one and an outsider can't write at all;
 --   * an Organizer's call on a 2-2 needs a reason, shows on the link, and
---     is dropped when a final of that Matchup changes; anon can't make one.
+--     stands through a corrected final; anon can't make one.
 
 begin;
 
@@ -126,8 +126,8 @@ select lives_ok(
 );
 select is(
   (select count(*)::int from public.ddd_matchup_calls),
-  0,
-  'a changed final drops the call on that Matchup'
+  1,
+  'the call stands through a correction'
 );
 
 select * from finish();

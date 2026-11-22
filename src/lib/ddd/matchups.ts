@@ -29,7 +29,7 @@ export function checkGameScore(a: number, b: number): string | null {
 /** One Game measured against its Spread. */
 export type GameResult = {
   /** The Pair that won once the Spread is applied. */
-  winner: Side;
+  spreadWinner: Side;
   /** Side a's Spread margin, unrounded; side b's is the same negated. */
   margin: number;
   /** The gap to the Spread, rounded up, never below 1. */
@@ -44,16 +44,28 @@ export type GameResult = {
  */
 export function spreadResult(score: readonly [number, number], lower: Side, spread: number): GameResult {
   const lowerMargin = (lower === "a" ? score[0] : score[1]) - spread;
-  const winner = lowerMargin > 0 ? lower : other(lower);
+  const spreadWinner = lowerMargin > 0 ? lower : other(lower);
   return {
-    winner,
+    spreadWinner,
     margin: lower === "a" ? lowerMargin : -lowerMargin,
     shots: Math.max(1, Math.ceil(Math.abs(lowerMargin))),
-    shotsOn: other(winner),
+    shotsOn: other(spreadWinner),
   };
 }
 
 // ---- The Matchup winner ------------------------------------------------------
+
+/** Spread winners and shots per side, [side a, side b], over the Games with a result so far. */
+export function tally(games: readonly { result: GameResult | null }[]): { wins: [number, number]; shots: [number, number] } {
+  const wins: [number, number] = [0, 0];
+  const shots: [number, number] = [0, 0];
+  for (const { result } of games) {
+    if (!result) continue;
+    wins[result.spreadWinner === "a" ? 0 : 1] += 1;
+    shots[result.shotsOn === "a" ? 0 : 1] += result.shots;
+  }
+  return { wins, shots };
+}
 
 /**
  * What decided a Matchup: more Spread winners; on a 2-2, total Spread
@@ -92,11 +104,10 @@ export type MatchupOutcome = {
  */
 export function decideMatchup(games: readonly ScoredGame[], call: Call | null): MatchupOutcome | null {
   if (games.length < 4) return null;
-  const wins: [number, number] = [0, 0];
+  const { wins } = tally(games);
   const points: [number, number] = [0, 0];
   let margin = 0;
   for (const { score, result } of games) {
-    wins[result.winner === "a" ? 0 : 1] += 1;
     points[0] += score[0];
     points[1] += score[1];
     margin += result.margin;
@@ -127,7 +138,7 @@ export type GameFinal = { teamA: string; teamB: string; game: LineupGame; scoreA
 export type MatchupCall = { teamA: string; teamB: string; winner: string; reason: string };
 
 /** Round 2's two Matchups, then the Playoff's two. */
-export type MatchupKey = "round2-1v4" | "round2-2v3" | "first" | "third";
+export type MatchupKey = "round2-1v4" | "round2-2v3" | "playoff-1st" | "playoff-3rd";
 
 /** One Game of a Matchup, read from side a (the Matchup's first Team). */
 export type MatchupGame = {
@@ -148,7 +159,7 @@ export type Matchup = {
   outcome: MatchupOutcome | null;
 };
 
-const samePair = (row: { teamA: string; teamB: string }, a: string, b: string) =>
+const sameTeams = (row: { teamA: string; teamB: string }, a: string, b: string) =>
   (row.teamA === a && row.teamB === b) || (row.teamA === b && row.teamB === a);
 
 /** True once all six Dreambreakers are in and no tie waits on an Organizer. */
@@ -163,20 +174,20 @@ function matchup(
   rows: { spreads: readonly SpreadRow[]; games: readonly GameFinal[]; calls: readonly MatchupCall[] },
 ): Matchup {
   const games = LINEUP_GAMES.map((game): MatchupGame => {
-    const row = rows.spreads.find((each) => each.game === game && samePair(each, a, b));
+    const row = rows.spreads.find((each) => each.game === game && sameTeams(each, a, b));
     const flip = (rowA: string) => rowA !== a;
     const spread = row ? { lower: flip(row.teamA) ? other(row.lower) : row.lower, points: Number(row.points) } : null;
-    const stored = rows.games.find((each) => each.game === game && samePair(each, a, b));
-    const score: [number, number] | null = stored
-      ? flip(stored.teamA)
-        ? [stored.scoreB, stored.scoreA]
-        : [stored.scoreA, stored.scoreB]
+    const final = rows.games.find((each) => each.game === game && sameTeams(each, a, b));
+    const score: [number, number] | null = final
+      ? flip(final.teamA)
+        ? [final.scoreB, final.scoreA]
+        : [final.scoreA, final.scoreB]
       : null;
     return { game, spread, score, result: spread && score ? spreadResult(score, spread.lower, spread.points) : null };
   });
   const scored = games.flatMap((each) => (each.score && each.result ? [{ score: each.score, result: each.result }] : []));
-  const stored = rows.calls.find((each) => samePair(each, a, b) && (each.winner === a || each.winner === b));
-  const call: Call | null = stored ? { winner: stored.winner === a ? "a" : "b", reason: stored.reason } : null;
+  const called = rows.calls.find((each) => sameTeams(each, a, b) && (each.winner === a || each.winner === b));
+  const call: Call | null = called ? { winner: called.winner === a ? "a" : "b", reason: called.reason } : null;
   return { key, a, b, games, outcome: decideMatchup(scored, call) };
 }
 
@@ -192,6 +203,12 @@ function decided(m: Matchup): [string, string] | null {
  * Playoff once both are decided: winners for 1st and 2nd, losers for 3rd
  * and 4th. A Team pairing meets at most once, so its stored Games and call
  * belong to whichever Matchup it is.
+ *
+ * Unlike Team Tally's Flights (its ADR 0001), Round 2 follows the live
+ * Seeding: a corrected Dreambreaker re-pairs it, as a corrected Round 2
+ * re-pairs the Playoff. Games stored for a pairing no longer playing stay in
+ * the table, out of view and out of the shots, and come back if the pairing
+ * does.
  */
 export function doublesMatchups(
   seeds: readonly Seed[],
@@ -202,13 +219,13 @@ export function doublesMatchups(
   const round2 = [matchup("round2-1v4", s1, s4, rows), matchup("round2-2v3", s2, s3, rows)];
   const [top, bottom] = round2.map(decided);
   if (!top || !bottom) return round2;
-  return [...round2, matchup("first", top[0], bottom[0], rows), matchup("third", top[1], bottom[1], rows)];
+  return [...round2, matchup("playoff-1st", top[0], bottom[0], rows), matchup("playoff-3rd", top[1], bottom[1], rows)];
 }
 
 /** First to fourth by Team, once both Playoff Matchups are decided; null before. */
 export function finalPlaces(matchups: readonly Matchup[]): string[] | null {
-  const first = matchups.find((m) => m.key === "first");
-  const third = matchups.find((m) => m.key === "third");
+  const first = matchups.find((m) => m.key === "playoff-1st");
+  const third = matchups.find((m) => m.key === "playoff-3rd");
   const top = first && decided(first);
   const bottom = third && decided(third);
   return top && bottom ? [...top, ...bottom] : null;
@@ -218,9 +235,9 @@ export function finalPlaces(matchups: readonly Matchup[]): string[] | null {
 export function shotTotals(teamIds: readonly string[], matchups: readonly Matchup[]): Record<string, number> {
   const totals = Object.fromEntries(teamIds.map((id) => [id, 0]));
   for (const m of matchups) {
-    for (const { result } of m.games) {
-      if (result) totals[result.shotsOn === "a" ? m.a : m.b] += result.shots;
-    }
+    const { shots } = tally(m.games);
+    totals[m.a] += shots[0];
+    totals[m.b] += shots[1];
   }
   return totals;
 }

@@ -69,7 +69,8 @@ const topMatchup = (page: Page) => page.getByRole("article", { name: `Matchup: $
 const tab = (page: Page, team: string) => page.getByRole("listitem", { name: `Tab: ${team}` });
 
 async function enterFinal(matchup: Locator, game: string, first: number, fourth: number) {
-  const row = matchup.getByRole("listitem", { name: game });
+  // Exact: "Men's doubles" is also a substring of "Women's doubles".
+  const row = matchup.getByRole("listitem", { name: game, exact: true });
   await row.getByLabel(`${SEED_1} points`).fill(String(first));
   await row.getByLabel(`${SEED_4} points`).fill(String(fourth));
   await row.getByRole("button", { name: "Save final" }).click();

@@ -13,6 +13,7 @@ import {
   finalPlaces,
   MAX_REASON,
   shotTotals,
+  tally,
   type Matchup,
   type MatchupGame,
   type MatchupKey,
@@ -27,8 +28,8 @@ type Team = LinkEvent["teams"][number];
 const MATCHUP_LABEL: Record<MatchupKey, string> = {
   "round2-1v4": "Round 2 · Seed 1 v Seed 4",
   "round2-2v3": "Round 2 · Seed 2 v Seed 3",
-  first: "Playoff · for 1st and 2nd",
-  third: "Playoff · for 3rd and 4th",
+  "playoff-1st": "Playoff · for 1st and 2nd",
+  "playoff-3rd": "Playoff · for 3rd and 4th",
 };
 
 const PLACES = ["1st", "2nd", "3rd", "4th"];
@@ -66,7 +67,7 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
   const places = finalPlaces(matchups);
   const order = places ?? seeds.map((seed) => seed.teamId);
   const rounds: [string, string, Matchup[]][] = [
-    ["ddd-playoff", "Playoff", matchups.filter((m) => m.key === "first" || m.key === "third")],
+    ["ddd-playoff", "Playoff", matchups.filter((m) => m.key === "playoff-1st" || m.key === "playoff-3rd")],
     ["ddd-round-2", "Round 2", matchups.filter((m) => m.key === "round2-1v4" || m.key === "round2-2v3")],
   ];
 
@@ -116,8 +117,7 @@ function pairOf(team: Team, game: LineupGame): string {
 function outcomeText(m: Matchup, a: Team, b: Team): { text: string; open: boolean } {
   const o = m.outcome;
   if (!o) {
-    const wins = [0, 0];
-    for (const { result } of m.games) if (result) wins[result.winner === "a" ? 0 : 1] += 1;
+    const { wins } = tally(m.games);
     return { text: `Spread winners so far: ${a.name} ${wins[0]}, ${b.name} ${wins[1]}.`, open: false };
   }
   const winner = o.winner === "a" ? a.name : b.name;
@@ -154,8 +154,7 @@ function MatchupCard({
   writer: LiveWriter | null;
   onSaved: () => void;
 }) {
-  const shots = [0, 0];
-  for (const { result } of matchup.games) if (result) shots[result.shotsOn === "a" ? 0 : 1] += result.shots;
+  const { shots } = tally(matchup.games);
   const outcome = outcomeText(matchup, a, b);
   // The Spreads editor heads each pairing with its Teams in roster order.
   const [first, second] = event.teams.indexOf(a) < event.teams.indexOf(b) ? [a, b] : [b, a];
@@ -224,7 +223,7 @@ function GameRow({
     <li className="ddd-game" aria-label={label}>
       <p className="ddd-db-status">
         <span>{label}</span>
-        <span>{game.score ? "Final" : game.spread ? "To play" : "Spread needed"}</span>
+        <span>{game.score ? "Final" : game.spread ? "" : "Spread needed"}</span>
       </p>
       <div className="ddd-db-score">
         {[0, 1].map((i) => (
@@ -253,7 +252,7 @@ function GameRow({
       )}
       {game.result ? (
         <p>
-          Spread winner: {pairs[side(game.result.winner)]} ({teams[side(game.result.winner)].name}), by{" "}
+          Spread winner: {pairs[side(game.result.spreadWinner)]} ({teams[side(game.result.spreadWinner)].name}), by{" "}
           {Math.abs(game.result.margin).toFixed(1)}.{" "}
           <span className="ddd-shots">
             {game.result.shots} {shotWord(game.result.shots)} on {teams[side(game.result.shotsOn)].name}.

@@ -86,9 +86,9 @@ grant select, insert, update, delete on public.ddd_matchup_calls to authenticate
  * `p_team_a`. With `p_token` it is the Score Link writing and the token must
  * be that DDD's Score Link; without, the caller must be an Organizer. Both
  * may correct any final; both scores null clears it, for an Organizer only.
- * A Game with no Spread is refused ("Spread needed"). A changed final drops
- * an Organizer's call on that Matchup, since it can make or break the 2-2.
- * SECURITY DEFINER because the Score Link holder is anon, with no table
+ * A Game with no Spread is refused ("Spread needed"). An Organizer's call
+ * on the Matchup stands through a correction: the app ignores it once the
+ * Matchup isn't 2-2. SECURITY DEFINER because the Score Link holder is anon, with no table
  * access.
  */
 create function public.ddd_save_game(
@@ -114,7 +114,6 @@ declare
   v_second uuid;
   v_score_first int := p_score_a;
   v_score_second int := p_score_b;
-  v_old public.ddd_games;
 begin
   select * into v_a from public.ddd_teams where id = p_team_a;
   select * into v_b from public.ddd_teams where id = p_team_b;
@@ -147,9 +146,6 @@ begin
     v_score_second := p_score_a;
   end if;
 
-  select * into v_old from public.ddd_games
-  where team_a_id = v_first and team_b_id = v_second and game = p_game;
-
   if v_score_first is null and v_score_second is null then
     if v_kind <> 'organizer' then
       raise exception 'Only an Organizer can clear a score.' using errcode = '42501';
@@ -178,11 +174,6 @@ begin
           last_edited_by_kind = excluded.last_edited_by_kind,
           last_edited_by = excluded.last_edited_by,
           updated_at = now();
-  end if;
-
-  if v_old.score_a is distinct from v_score_first or v_old.score_b is distinct from v_score_second then
-    delete from public.ddd_matchup_calls
-    where team_a = least(v_first, v_second) and team_b = greatest(v_first, v_second);
   end if;
 end;
 $$;
