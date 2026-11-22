@@ -28,7 +28,9 @@ export async function saveDddAction(eventId: string | null, _prev: FormState, fo
     name: String(formData.get("name") ?? ""),
     date: String(formData.get("date") ?? ""),
     playVenue: String(formData.get("playVenue") ?? ""),
+    playVenueMap: String(formData.get("playVenueMap") ?? ""),
     dineVenue: String(formData.get("dineVenue") ?? ""),
+    dineVenueMap: String(formData.get("dineVenueMap") ?? ""),
     courts: formData.getAll("court").map(String),
   };
   const problem = eventProblem(setup);

@@ -124,6 +124,16 @@ body:has(.ddd-surface) {
   font-weight: 700;
 }
 
+/* A venue with a map link (#734): underlined like the back link, with an arrow that says it leaves the app. */
+.ddd-venue-map {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ddd-venue-map::after {
+  content: " \2197" / "";
+}
+
 .ddd-head-action {
   margin-top: 10px;
 }

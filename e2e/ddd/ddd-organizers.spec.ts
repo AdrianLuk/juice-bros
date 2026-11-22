@@ -70,11 +70,14 @@ test("an Organizer creates a DDD and invites another Organizer, who sees it", as
   await page.getByRole("button", { name: "Save venue" }).click();
   await expect(page.getByText("Booked: courts 1, 2, 3, 4")).toBeVisible();
   await page.getByLabel("Dine & drink venue").fill("Noodle Bar");
+  // Pasted with no scheme, as a phone's share sheet sometimes does (#734).
+  await page.getByLabel("Dine & drink map link").fill("maps.app.goo.gl/noodlebar");
   await page.getByRole("button", { name: "Create the DDD" }).click();
 
   await expect(page.getByRole("heading", { level: 1, name: DDD_NAME })).toBeVisible();
   await expect(page.getByText(VENUE_NAME, { exact: true })).toBeVisible();
-  await expect(page.getByText("Noodle Bar", { exact: true })).toBeVisible();
+  const dinnerMap = page.getByRole("link", { name: "Noodle Bar", exact: true });
+  await expect(dinnerMap).toHaveAttribute("href", "https://maps.app.goo.gl/noodlebar");
   await expect(page.getByText("Court 4", { exact: true })).toBeVisible();
 
   const scoreUrl = await page.getByRole("link", { name: /\/tools\/ddd\/score\// }).textContent();
@@ -88,6 +91,10 @@ test("an Organizer creates a DDD and invites another Organizer, who sees it", as
   await stranger.goto(publicUrl!);
   await expect(stranger.getByRole("heading", { level: 1, name: DDD_NAME })).toBeVisible();
   await expect(stranger.getByText("Public Link", { exact: true })).toBeVisible();
+  await expect(stranger.getByRole("link", { name: "Noodle Bar", exact: true })).toHaveAttribute(
+    "href",
+    "https://maps.app.goo.gl/noodlebar",
+  );
 
   await page.goto("/tools/ddd");
   await expect(page.getByRole("link", { name: new RegExp(DDD_NAME) })).toBeVisible();
