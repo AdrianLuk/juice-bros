@@ -16,7 +16,7 @@ function TeamLineup({ team }: { team: Team }) {
           <li key={game}>
             <span className="ddd-lineup-game">{GAME_LABEL[game]}</span>
             <span>
-              {name(lineup[game][0])} &amp; {name(lineup[game][1])}
+              {name(lineup[game][0])} / {name(lineup[game][1])}
             </span>
           </li>
         ))}

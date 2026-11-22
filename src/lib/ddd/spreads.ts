@@ -25,10 +25,10 @@ export function pairings<T>(teams: T[]): [T, T][] {
   return out;
 }
 
-/** "Ben Johns & Ben Ortiz"; an empty slot reads "–". */
+/** "Ben Johns / Ben Ortiz"; an empty slot reads "–". */
 export function pairName(players: Member[], lineup: Lineup, game: LineupGame): string {
   const name = (id: string | null) => players.find((player) => player.id === id)?.name ?? "–";
-  return `${name(lineup[game][0])} & ${name(lineup[game][1])}`;
+  return `${name(lineup[game][0])} / ${name(lineup[game][1])}`;
 }
 
 /** The Pair a Team plays in a Game, or the Team's name before its Lineup is in. */
