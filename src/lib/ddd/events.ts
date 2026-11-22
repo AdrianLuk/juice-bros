@@ -18,7 +18,11 @@ export type DddSetup = {
   /** YYYY-MM-DD */
   date: string;
   playVenue: string;
+  /** As pasted; `mapLink` cleans it. */
+  playVenueMap: string;
+  /** May be blank when `dineVenueMap` isn't. */
   dineVenue: string;
+  dineVenueMap: string;
   courts: string[];
 };
 
@@ -28,7 +32,10 @@ export type DddHeader = {
   name: string;
   date: string;
   playVenue: string;
+  playVenueMap: string | null;
+  /** "" when the venue is only a map link. */
   dineVenue: string;
+  dineVenueMap: string | null;
 };
 
 export type DddEvent = DddHeader & {
@@ -71,6 +78,32 @@ export type DreambreakerFinal = {
 export const MAX_NAME = 80;
 export const MAX_VENUE = 60;
 export const MAX_COURTS = 20;
+/** The table checks it too. */
+export const MAX_MAP_LINK = 500;
+
+/**
+ * A pasted map link as it saves: trimmed, with `https://` added when it has
+ * no scheme; "" when blank; null when it isn't a web link. Only http(s), so a
+ * link in the header can never run script.
+ */
+export function mapLink(raw: string): string | null {
+  const text = raw.trim();
+  if (text === "") return "";
+  const link = /^[a-z][a-z\d+.-]*:/i.test(text) ? text : `https://${text}`;
+  try {
+    const url = new URL(link);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".") ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapProblem(raw: string, venue: string): string | null {
+  const link = mapLink(raw);
+  if (link === null) return `The ${venue}'s map link isn't a web link. Copy it from Share in Google Maps.`;
+  if (link.length > MAX_MAP_LINK) return `Shorten the ${venue}'s map link to ${MAX_MAP_LINK} characters.`;
+  return null;
+}
 
 function isRealDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -88,10 +121,12 @@ export function eventProblem(setup: DddSetup): string | null {
   if (setup.playVenue.trim().length > MAX_VENUE) return `Keep the play venue to ${MAX_VENUE} characters.`;
   if (setup.courts.length === 0) return "Tap the courts you booked.";
   if (setup.courts.length > MAX_COURTS) return `Book ${MAX_COURTS} courts at most.`;
+  const playMap = mapProblem(setup.playVenueMap, "play venue");
+  if (playMap) return playMap;
   const dine = setup.dineVenue.trim();
-  if (dine === "") return "Name the dine & drink venue.";
+  if (dine === "" && setup.dineVenueMap.trim() === "") return "Name the dine & drink venue or paste its map link.";
   if (dine.length > MAX_VENUE) return `Keep the dine & drink venue to ${MAX_VENUE} characters.`;
-  return null;
+  return mapProblem(setup.dineVenueMap, "dine & drink venue");
 }
 
 /** A Punishment is short free text, like "2 bottles + 3 shots". The table checks it too. */
@@ -125,17 +160,27 @@ type EventRow = {
   event_date: string;
   play_venue: string;
   dine_venue: string;
+  play_venue_map: string | null;
+  dine_venue_map: string | null;
 };
 
 function toHeader(row: EventRow): DddHeader {
-  return { id: row.id, name: row.name, date: row.event_date, playVenue: row.play_venue, dineVenue: row.dine_venue };
+  return {
+    id: row.id,
+    name: row.name,
+    date: row.event_date,
+    playVenue: row.play_venue,
+    playVenueMap: row.play_venue_map,
+    dineVenue: row.dine_venue,
+    dineVenueMap: row.dine_venue_map,
+  };
 }
 
 /** Every DDD, newest first. */
 export async function listEvents(supabase: SupabaseClient): Promise<DddHeader[]> {
   const { data, error } = await supabase
     .from("ddd_events")
-    .select("id, name, event_date, play_venue, dine_venue")
+    .select("id, name, event_date, play_venue, dine_venue, play_venue_map, dine_venue_map")
     .order("event_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Listing DDDs failed: ${error.message}`);
@@ -146,7 +191,7 @@ export async function listEvents(supabase: SupabaseClient): Promise<DddHeader[]>
 export async function getEvent(supabase: SupabaseClient, id: string): Promise<DddEvent | null> {
   const { data, error } = await supabase
     .from("ddd_events")
-    .select("id, name, event_date, play_venue, dine_venue, score_token, public_token, punishments, ddd_courts (name, position)")
+    .select("id, name, event_date, play_venue, dine_venue, play_venue_map, dine_venue_map, score_token, public_token, punishments, ddd_courts (name, position)")
     .eq("id", id)
     .maybeSingle();
   // 22P02: not a uuid, so not a DDD.
@@ -178,6 +223,8 @@ export async function saveEvent(supabase: SupabaseClient, id: string | null, set
     p_event_date: setup.date,
     p_play_venue: setup.playVenue.trim(),
     p_dine_venue: setup.dineVenue.trim(),
+    p_play_venue_map: mapLink(setup.playVenueMap) || null,
+    p_dine_venue_map: mapLink(setup.dineVenueMap) || null,
     p_courts: setup.courts,
   });
   if (error?.code === "42501") return { ok: false, problem: "Only an Organizer can set up a DDD." };

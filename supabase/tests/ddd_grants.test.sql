@@ -29,7 +29,7 @@ insert into ddd_expected values
   ('ddd_is_organizer', array[]::text[], false, true),
   ('ddd_create_invite', array[]::text[], false, true),
   ('ddd_join', array['text'], false, true),
-  ('ddd_save_event', array['uuid', 'text', 'date', 'text', 'text', 'text[]'], false, true),
+  ('ddd_save_event', array['uuid', 'text', 'date', 'text', 'text', 'text[]', 'text', 'text'], false, true),
   ('ddd_replace_roster', array['uuid', 'jsonb'], false, true),
   ('ddd_set_rotation', array['uuid', 'uuid[]'], false, true);
 

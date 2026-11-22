@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(37);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('71171171-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ddd-organizer-a@example.com'),
@@ -82,6 +82,12 @@ select throws_ok(
   null,
   'a DDD with no dine & drink venue is refused'
 );
+select throws_ok(
+  $$select public.ddd_save_event(null, 'Bad map', '2026-11-28', 'Rec Hall', 'Noodle Bar', array['1'], 'javascript:alert(1)')$$,
+  '23514',
+  null,
+  'a map link that isn''t a web link is refused (#734)'
+);
 select lives_ok(
   $$insert into public.ddd_venues (name, grid) values ('Rec Hall', '{"courts": [{"row": 0, "col": 0, "number": 16}]}')$$,
   'an Organizer saves a Venue'
@@ -107,6 +113,17 @@ select lives_ok(
   'and edits it'
 );
 select is((select dine_venue from public.ddd_events), 'Dumpling House', 'the edit stuck');
+select lives_ok(
+  $$select public.ddd_save_event(
+      (select id from public.ddd_events), 'DDD November', '2026-11-28', 'Rec Hall', ' ', array['16', '17', '18', '19'],
+      'https://maps.app.goo.gl/rechall', 'https://maps.app.goo.gl/dinner')$$,
+  'a dine & drink venue can be just a map link (#734)'
+);
+select results_eq(
+  $$select play_venue_map, dine_venue, dine_venue_map from public.ddd_events$$,
+  $$values ('https://maps.app.goo.gl/rechall', '', 'https://maps.app.goo.gl/dinner')$$,
+  'both map links saved'
+);
 
 -- An edit updates courts in place (later tickets hang Games on them), so a
 -- swap passes through two courts briefly sharing a name.

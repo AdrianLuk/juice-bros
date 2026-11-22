@@ -66,7 +66,7 @@ export default async function DddHome({ searchParams }: { searchParams: Promise<
                   <Link href={dddPath(event.id)} className="ddd-list-row">
                     <span className="ddd-list-name">{event.name}</span>
                     <span className="ddd-list-meta">
-                      {formatDddDate(event.date)} · {event.playVenue} · {event.dineVenue}
+                      {[formatDddDate(event.date), event.playVenue, event.dineVenue].filter(Boolean).join(" · ")}
                     </span>
                   </Link>
                 </li>

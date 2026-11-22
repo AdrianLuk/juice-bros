@@ -5,7 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { CourtGrid } from "@/components/court-grid/court-grid";
 import { bookedNumbers, EMPTY_GRID, PRESETS, type CourtGrid as Grid } from "@/lib/court-grid/grid";
 import { deleteVenueAction, saveDddAction, saveVenueAction, type FormState } from "@/lib/ddd/actions/organizer";
-import { MAX_NAME, MAX_VENUE, type DddEvent } from "@/lib/ddd/events";
+import { MAX_MAP_LINK, MAX_NAME, MAX_VENUE, type DddEvent } from "@/lib/ddd/events";
 import { MAX_VENUE_NAME, venueProblem, type Venue } from "@/lib/ddd/venues";
 
 type Drawing = { id?: string; name: string; grid: Grid };
@@ -105,8 +105,38 @@ export function DddForm({ venues: initialVenues, event }: { venues: Venue[]; eve
       ) : null}
 
       <div className="ddd-field">
+        <label htmlFor="ddd-play-map">Play venue map link (optional)</label>
+        <input
+          id="ddd-play-map"
+          name="playVenueMap"
+          inputMode="url"
+          maxLength={MAX_MAP_LINK}
+          defaultValue={event?.playVenueMap ?? ""}
+          placeholder="https://maps.app.goo.gl/…"
+          autoComplete="off"
+        />
+      </div>
+
+      <div className="ddd-field">
         <label htmlFor="ddd-dine">Dine &amp; drink venue</label>
-        <input id="ddd-dine" name="dineVenue" required maxLength={MAX_VENUE} defaultValue={event?.dineVenue} autoComplete="off" />
+        <input id="ddd-dine" name="dineVenue" maxLength={MAX_VENUE} defaultValue={event?.dineVenue} autoComplete="off" />
+      </div>
+
+      <div className="ddd-field">
+        <label htmlFor="ddd-dine-map">Dine &amp; drink map link</label>
+        <input
+          id="ddd-dine-map"
+          name="dineVenueMap"
+          inputMode="url"
+          maxLength={MAX_MAP_LINK}
+          defaultValue={event?.dineVenueMap ?? ""}
+          placeholder="https://maps.app.goo.gl/…"
+          autoComplete="off"
+          aria-describedby="ddd-dine-hint"
+        />
+        <p id="ddd-dine-hint" className="ddd-note">
+          A name, a map link, or both. Copy the link from Share in Google Maps.
+        </p>
       </div>
 
       <div className="ddd-actions">

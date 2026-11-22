@@ -25,16 +25,30 @@ export function DddHead({ event, back, children }: { event: DddHeader; back?: { 
           </div>
           <div>
             <dt>Play</dt>
-            <dd>{event.playVenue}</dd>
+            <dd>
+              <Venue name={event.playVenue} map={event.playVenueMap} />
+            </dd>
           </div>
           <div>
             <dt>Dine &amp; drink</dt>
-            <dd>{event.dineVenue}</dd>
+            <dd>
+              <Venue name={event.dineVenue} map={event.dineVenueMap} />
+            </dd>
           </div>
         </dl>
         {children}
       </div>
     </header>
+  );
+}
+
+/** A venue's name, linked to its map when it has one (#734). Only http(s) links save, so the href is safe. */
+function Venue({ name, map }: { name: string; map: string | null }) {
+  if (!map) return name;
+  return (
+    <a href={map} target="_blank" rel="noopener noreferrer" className="ddd-venue-map">
+      {name || "Open the map"}
+    </a>
   );
 }
 
