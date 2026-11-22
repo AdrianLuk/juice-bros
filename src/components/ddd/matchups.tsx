@@ -39,15 +39,15 @@ const MATCHUP_NOTE: Record<MatchupKey, string> = {
 
 export const shotWord = (n: number) => (n === 1 ? "shot" : "shots");
 
-/** True once `value` differs from what it was when the row first drew: what just landed prints on. */
-function useLanded<T>(value: T): boolean {
+/** True once `value` differs from what it was when the row first drew, so only what lands live prints on. */
+function useChangedSinceMount<T>(value: T): boolean {
   const [first] = useState(value);
   return value !== first;
 }
 
 /** A shot count that ticks when it moves (`ddd-tick`); the key replays it on every change. */
 function Ticker({ n, className }: { n: number; className: string }) {
-  const moved = useLanded(n);
+  const moved = useChangedSinceMount(n);
   return (
     <span key={n} className={moved ? `${className} ddd-tick` : className}>
       {n}
@@ -343,7 +343,7 @@ function GameRow({
   // Only what is On now opens with a score form; a later Game can still be entered early, one tap in.
   const showForm = writer !== null && game.spread !== null && ((game.score === null && place.status === "now") || editing);
   const id = `${matchup.a}-${matchup.b}-${game.game}`;
-  const printed = useLanded(game.result === null);
+  const justScored = useChangedSinceMount(game.result !== null);
 
   function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -405,7 +405,7 @@ function GameRow({
       )}
       {game.result ? (
         // The line item this Game rings up: who beat the Spread, by how much, and the shots it costs whom.
-        <p className={printed ? "ddd-ledger ddd-print" : "ddd-ledger"}>
+        <p className={justScored ? "ddd-ledger ddd-print" : "ddd-ledger"}>
           <span className="ddd-ledger-who">
             Spread winner {pairs[side(game.result.spreadWinner)]}
             <span className="ddd-pair-team">{teams[side(game.result.spreadWinner)].name}</span>

@@ -804,10 +804,8 @@ body:has(.ddd-surface) {
 }
 
 /* Up next and later print dim, as on the court cards: the ink dims, the slip stays white. */
-.ddd-game.ddd-db-next,
-.ddd-game.ddd-db-later,
-.ddd-db-card.ddd-db-next > *,
-.ddd-db-card.ddd-db-later > * {
+/* A form opened early with "Enter its final", and a refusal, stay at full strength. */
+:is(.ddd-game, .ddd-db-card):is(.ddd-db-next, .ddd-db-later) > :not(form, [role="alert"]) {
   opacity: 0.72;
 }
 
