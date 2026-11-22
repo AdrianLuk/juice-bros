@@ -31,6 +31,12 @@ export function pairName(players: Member[], lineup: Lineup, game: LineupGame): s
   return `${name(lineup[game][0])} & ${name(lineup[game][1])}`;
 }
 
+/** The Pair a Team plays in a Game, or the Team's name before its Lineup is in. */
+export function pairOf(team: Team & { name: string; lineup: RawLineup | null }, game: LineupGame): string {
+  const lineup = readLineup(team.players, team.lineup);
+  return lineup ? pairName(team.players, lineup, game) : team.name;
+}
+
 /** The two Pairs of a Game by player id: what a Spread was set against. A swap of players changes it. */
 export function pairSig(a: Lineup, b: Lineup, game: LineupGame): string {
   const side = (lineup: Lineup) => [...lineup[game]].map((id) => id ?? "").sort().join(",");

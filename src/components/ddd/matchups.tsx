@@ -6,10 +6,10 @@ import { useState, type FormEvent } from "react";
 import type { LiveReader, LiveWriter } from "@/lib/ddd/actions/live";
 import { moveGame, swapCourtTurns } from "@/lib/ddd/actions/courts";
 import { callMatchup, clearCall, clearGame, saveGame } from "@/lib/ddd/actions/matchups";
-import { placeMatchup, type Placed } from "@/lib/ddd/courts";
-import { seedTeams, type SlotStatus } from "@/lib/ddd/dreambreakers";
+import { placeMatchup, type PlacedGame } from "@/lib/ddd/courts";
+import { seedTeams, STATUS_LABEL } from "@/lib/ddd/dreambreakers";
 import type { LinkEvent } from "@/lib/ddd/events";
-import { GAME_LABEL, readLineup, type LineupGame } from "@/lib/ddd/lineup";
+import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
 import {
   doublesMatchups,
   finalPlaces,
@@ -21,7 +21,7 @@ import {
   type MatchupKey,
 } from "@/lib/ddd/matchups";
 import { spreadsPath } from "@/lib/ddd/routes";
-import { pairName } from "@/lib/ddd/spreads";
+import { pairOf } from "@/lib/ddd/spreads";
 import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
 
@@ -33,8 +33,6 @@ const MATCHUP_LABEL: Record<MatchupKey, string> = {
   "playoff-1st": "Playoff · for 1st and 2nd",
   "playoff-3rd": "Playoff · for 3rd and 4th",
 };
-
-const STATUS_LABEL: Record<SlotStatus, string> = { now: "On now", next: "Up next", later: "", final: "Final" };
 
 const PLACES = ["1st", "2nd", "3rd", "4th"];
 
@@ -115,12 +113,6 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
 /** A Team's saved Lineup, or null before it is in. */
 function lineupOf(team: Team) {
   return readLineup(team.players, team.lineup);
-}
-
-/** The Pair a Team plays in a Game, or the Team's name before its Lineup is in. */
-export function pairOf(team: Team, game: LineupGame): string {
-  const lineup = lineupOf(team);
-  return lineup ? pairName(team.players, lineup, game) : team.name;
 }
 
 function outcomeText(m: Matchup, a: Team, b: Team): { text: string; open: boolean } {
@@ -235,7 +227,7 @@ function GameRow({
   onSaved,
 }: {
   game: MatchupGame;
-  place: Placed & { status: SlotStatus };
+  place: PlacedGame;
   courts: string[];
   matchup: Matchup;
   a: Team;

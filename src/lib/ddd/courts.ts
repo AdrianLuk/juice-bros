@@ -7,7 +7,7 @@
  * never say "Court turn": a Game shows as On now, Up next or Final.
  */
 
-import type { SlotStatus } from "./dreambreakers.ts";
+import { resultBetween, turnStatuses, type SlotStatus } from "./dreambreakers.ts";
 import { LINEUP_GAMES, type Lineup, type LineupGame } from "./lineup.ts";
 import type { Matchup, MatchupKey } from "./matchups.ts";
 
@@ -54,6 +54,9 @@ export type CourtPlan = { swapped: boolean; moves: Partial<Record<LineupGame, nu
 /** A Game of a Matchup placed: its Court turn (0 first) and its court (index into the DDD's courts). */
 export type Placed = { game: LineupGame; turn: number; court: number };
 
+/** A placed Game with its status: On now, Up next, Later or Final. */
+export type PlacedGame = Placed & { status: SlotStatus };
+
 /** Seed 1 v 4 and the Playoff for 1st take the first two courts; the other Matchups the next two. */
 const FIRST_COURT: Record<MatchupKey, number> = { "round2-1v4": 0, "playoff-1st": 0, "round2-2v3": 2, "playoff-3rd": 2 };
 
@@ -75,12 +78,12 @@ export function placeGames(key: MatchupKey, turns: LineupGame[][], plan: CourtPl
  * The Court turn with a Game still to finish is On now; the one after it is
  * Up next; finished Games are Final.
  */
-export function withStatuses<P extends Placed>(placed: readonly P[], finals: readonly LineupGame[]): (P & { status: SlotStatus })[] {
-  const open = Math.min(...placed.filter((p) => !finals.includes(p.game)).map((p) => p.turn));
-  return placed.map((p) => {
-    const status: SlotStatus = finals.includes(p.game) ? "final" : p.turn === open ? "now" : p.turn === open + 1 ? "next" : "later";
-    return { ...p, status };
-  });
+export function withStatuses(placed: readonly Placed[], finals: readonly LineupGame[]): PlacedGame[] {
+  const statuses = turnStatuses(
+    placed.map((p) => p.turn),
+    placed.map((p) => finals.includes(p.game)),
+  );
+  return placed.map((p, index) => ({ ...p, status: statuses[index] }));
 }
 
 /** Per court, what is on now and what is up next: the first of each, in the order given. */
@@ -107,8 +110,8 @@ export function placeMatchup(
   lineups: [Lineup | null, Lineup | null],
   plans: readonly StoredCourtPlan[],
   courtCount: number,
-): (Placed & { status: SlotStatus })[] {
-  const plan = plans.find((p) => (p.teamA === m.a && p.teamB === m.b) || (p.teamA === m.b && p.teamB === m.a)) ?? null;
+): PlacedGame[] {
+  const plan = resultBetween(plans, m.a, m.b) ?? null;
   const finals = m.games.filter((g) => g.score !== null).map((g) => g.game);
   return withStatuses(placeGames(m.key, courtTurns(...lineups), plan, courtCount), finals);
 }

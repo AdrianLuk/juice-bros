@@ -16,7 +16,13 @@ import type { WriteResult } from "./live.ts";
  * once per pairing, the Team earlier in the roster first.
  */
 
-async function changePlan(teamA: string, teamB: string, change: (plan: CourtPlan) => CourtPlan): Promise<WriteResult> {
+/** Reads a pairing's plan, changes it and saves it. `court`, when given, must be one of the DDD's courts. */
+async function changePlan(
+  teamA: string,
+  teamB: string,
+  change: (plan: CourtPlan) => CourtPlan,
+  court?: number,
+): Promise<WriteResult> {
   await verifyOrganizer();
   const supabase = await createClient();
   const { data: teams, error } = await supabase
@@ -26,6 +32,10 @@ async function changePlan(teamA: string, teamB: string, change: (plan: CourtPlan
   const pair = (teams ?? []) as { id: string; position: number; event_id: string }[];
   if (error || pair.length !== 2 || pair[0].event_id !== pair[1].event_id) {
     return { ok: false, problem: "That Matchup is gone. Reload the page." };
+  }
+  if (court !== undefined) {
+    const { count } = await supabase.from("ddd_courts").select("*", { count: "exact", head: true }).eq("event_id", pair[0].event_id);
+    if (court >= (count ?? 0)) return { ok: false, problem: "That court isn't booked for this DDD." };
   }
   const [first, second] = [...pair].sort((x, y) => x.position - y.position);
   const { data: row } = await supabase
@@ -53,5 +63,5 @@ export async function moveGame(teamA: string, teamB: string, game: LineupGame, c
   const to = Number(court);
   if (!LINEUP_GAMES.includes(game)) return { ok: false, problem: "That Game isn't in a Lineup. Reload the page." };
   if (!Number.isInteger(to) || to < 0 || to >= MAX_COURTS) return { ok: false, problem: "Pick one of the courts." };
-  return changePlan(teamA, teamB, (plan) => ({ ...plan, moves: { ...plan.moves, [game]: to } }));
+  return changePlan(teamA, teamB, (plan) => ({ ...plan, moves: { ...plan.moves, [game]: to } }), to);
 }

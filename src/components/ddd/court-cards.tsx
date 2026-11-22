@@ -1,9 +1,9 @@
 import { courtBoard, placeMatchup } from "@/lib/ddd/courts";
-import { dreambreakerSlots, seedTeams, slotStatuses, type SlotStatus } from "@/lib/ddd/dreambreakers";
+import { dreambreakerSlots, seedTeams, slotStatuses, STATUS_LABEL, type SlotStatus } from "@/lib/ddd/dreambreakers";
 import type { LinkEvent } from "@/lib/ddd/events";
-import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
+import { GAME_LABEL, readLineup, type Lineup } from "@/lib/ddd/lineup";
 import { doublesMatchups } from "@/lib/ddd/matchups";
-import { pairOf } from "./matchups";
+import { pairOf } from "@/lib/ddd/spreads";
 
 type Card = { court: number; status: SlotStatus; title: string; sides: [string, string] };
 
@@ -21,8 +21,8 @@ export function CourtCards({ event }: { event: LinkEvent }) {
   if (matchups.length > 0) {
     cards = matchups.flatMap((m) => {
       const [a, b] = [teamOf(m.a), teamOf(m.b)];
-      const lineups = [readLineup(a.players, a.lineup), readLineup(b.players, b.lineup)] as const;
-      return placeMatchup(m, [lineups[0], lineups[1]], event.courtPlans, event.courts.length).map((place) => ({
+      const lineups = [readLineup(a.players, a.lineup), readLineup(b.players, b.lineup)] as [Lineup | null, Lineup | null];
+      return placeMatchup(m, lineups, event.courtPlans, event.courts.length).map((place) => ({
         court: place.court,
         status: place.status,
         title: GAME_LABEL[place.game],
@@ -50,8 +50,8 @@ export function CourtCards({ event }: { event: LinkEvent }) {
         {courtBoard(event.courts.length, cards).map((slot, index) => (
           <li key={event.courts[index]} className="ddd-slip ddd-court-card" aria-label={`Court ${event.courts[index]}`}>
             <p className="ddd-slip-head">Court {event.courts[index]}</p>
-            <CardLine when="On now" card={slot.now} />
-            <CardLine when="Up next" card={slot.next} />
+            <CardLine status="now" card={slot.now} />
+            <CardLine status="next" card={slot.next} />
           </li>
         ))}
       </ol>
@@ -59,10 +59,10 @@ export function CourtCards({ event }: { event: LinkEvent }) {
   );
 }
 
-function CardLine({ when, card }: { when: string; card: Card | null }) {
+function CardLine({ status, card }: { status: "now" | "next"; card: Card | null }) {
   return (
-    <div className={when === "On now" ? "ddd-court-line ddd-court-now" : "ddd-court-line"}>
-      <p className="ddd-court-when">{when}</p>
+    <div className={`ddd-court-line ddd-court-${status}`}>
+      <p className="ddd-court-when">{STATUS_LABEL[status]}</p>
       {card ? (
         <>
           <p className="ddd-court-game">{card.title}</p>

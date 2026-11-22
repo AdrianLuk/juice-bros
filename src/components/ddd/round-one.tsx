@@ -19,6 +19,7 @@ import {
   seedRuleLabel,
   seedTeams,
   slotStatuses,
+  STATUS_LABEL,
   type DreambreakerSlot,
   type Seed,
   type SlotStatus,
@@ -32,8 +33,6 @@ import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
 
 type Mode ="public" | "score" | "organizer";
-
-const STATUS_LABEL: Record<SlotStatus, string> = { now: "On now", next: "Up next", later: "Later", final: "Final" };
 
 /**
  * Round 1 on a live screen (#715): the Seeding as finals land, and the six
