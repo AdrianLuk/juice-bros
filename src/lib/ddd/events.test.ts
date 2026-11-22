@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { eventProblem, formatDddDate, type DddSetup } from "./events.ts";
+import { eventProblem, formatDddDate, MAX_PUNISHMENT, punishmentsProblem, type DddSetup } from "./events.ts";
 
 const november: DddSetup = {
   name: "DDD November",
@@ -32,4 +32,17 @@ test("lengths match what the database keeps", () => {
 
 test("the date reads the way the group chat writes it", () => {
   assert.equal(formatDddDate("2026-11-28"), "Sat Nov 28, 2026");
+});
+
+test("four short Punishments save, free text and all", () => {
+  assert.equal(punishmentsProblem(["1 bottle", "2 bottles", "3 bottles", "2 bottles + 3 shots"]), null);
+});
+
+test("a blank, a too-long or a missing Punishment is named", () => {
+  assert.equal(punishmentsProblem(["1 bottle", " ", "3 bottles", "4 bottles"]), "Give 2nd place a Punishment.");
+  assert.equal(
+    punishmentsProblem(["1 bottle", "2 bottles", "3 bottles", "x".repeat(MAX_PUNISHMENT + 1)]),
+    `Keep 4th place's Punishment to ${MAX_PUNISHMENT} characters.`,
+  );
+  assert.equal(punishmentsProblem(["1 bottle", "2 bottles", "3 bottles"]), "One Punishment for each of the 4 places.");
 });

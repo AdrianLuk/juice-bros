@@ -8,6 +8,7 @@ import {
   decideMatchup,
   doublesMatchups,
   finalPlaces,
+  shotLines,
   shotTotals,
   spreadResult,
   type GameFinal,
@@ -240,5 +241,33 @@ describe("doublesMatchups: Round 2 and the Playoff", () => {
     const after = doublesMatchups(SEEDS, { ...all, calls: [] });
     assert.deepEqual(finalPlaces(after), ["t1", "t3", "t2", "t4"]);
     assert.deepEqual(shotTotals(TEAMS, after), { t1: 0, t2: 24, t3: 24, t4: 48 });
+  });
+});
+
+describe("shotLines: what a Team's shot total is made of", () => {
+  it("lists every Game that cost the Team shots, read from its side, with the Spread", () => {
+    const spreads: SpreadRow[] = [
+      { teamA: "t2", teamB: "t3", game: "mens", lower: "a", points: 5.5, sig: "" },
+      { teamA: "t2", teamB: "t3", game: "womens", lower: "b", points: 4.5, sig: "" },
+      { teamA: "t2", teamB: "t3", game: "mixed1", lower: "a", points: 3.5, sig: "" },
+    ];
+    const games: GameFinal[] = [
+      // t2's Pair (lower) scores 3 against 5.5: 3 shots on t2.
+      { teamA: "t2", teamB: "t3", game: "mens", scoreA: 3, scoreB: 11 },
+      // t3's Pair (lower) scores 6 against 4.5: beats it, 2 shots on t2.
+      { teamA: "t2", teamB: "t3", game: "womens", scoreA: 11, scoreB: 6 },
+      // t2's Pair (lower) scores 9 against 3.5: beats it, 6 shots on t3, none on t2.
+      { teamA: "t2", teamB: "t3", game: "mixed1", scoreA: 9, scoreB: 11 },
+    ];
+    const matchups = doublesMatchups(SEEDS, { spreads, games, calls: [] });
+
+    assert.deepEqual(shotLines("t2", matchups), [
+      { key: "round2-1v4", game: "mens", opponent: "t3", score: [3, 11], spread: { ours: true, points: 5.5 }, shots: 3 },
+      { key: "round2-1v4", game: "womens", opponent: "t3", score: [11, 6], spread: { ours: false, points: 4.5 }, shots: 2 },
+    ]);
+    assert.deepEqual(shotLines("t3", matchups), [
+      { key: "round2-1v4", game: "mixed1", opponent: "t2", score: [11, 9], spread: { ours: false, points: 3.5 }, shots: 6 },
+    ]);
+    assert.deepEqual(shotLines("t1", matchups), []);
   });
 });

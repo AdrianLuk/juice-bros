@@ -9,6 +9,7 @@ test("the Organizer's pages and invites refresh a session; the Score and Public 
   assert.equal(needsSession("/tools/ddd/join/abc123"), true);
   assert.equal(needsSession("/tools/ddd/score/abc123"), false);
   assert.equal(needsSession("/tools/ddd/live/abc123"), false);
+  assert.equal(needsSession("/tools/ddd/live/abc123/results"), false);
   assert.equal(needsSession("/tools/dddx"), false);
   assert.equal(needsSession("/tools/team-tally"), false);
 });

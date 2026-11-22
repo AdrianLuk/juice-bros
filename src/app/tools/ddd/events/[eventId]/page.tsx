@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CopyLink } from "@/components/ddd/copy-link";
 import { DddHead } from "@/components/ddd/ddd-head";
+import { PunishmentsForm } from "@/components/ddd/punishments-form";
 import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { verifyOrganizer } from "@/lib/ddd/dal";
 import { getEvent } from "@/lib/ddd/events";
@@ -13,6 +14,7 @@ import {
   lineupsPath,
   matchupsPath,
   publicLinkPath,
+  resultsPath,
   rosterPath,
   roundOnePath,
   scoreLinkPath,
@@ -97,6 +99,16 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
               </Link>
             </section>
           ) : null}
+          <section className="ddd-slip ddd-section" aria-labelledby="ddd-punishments">
+            <h2 id="ddd-punishments" className="ddd-slip-head">
+              Punishments
+            </h2>
+            <p>What each Final place drinks. Change them any time, before or after the DDD.</p>
+            <PunishmentsForm eventId={event.id} punishments={event.punishments} />
+            <Link href={resultsPath(event.publicToken)} className="ddd-quiet">
+              Open the results
+            </Link>
+          </section>
           <section className="ddd-slip ddd-section" aria-labelledby="ddd-spreads">
             <h2 id="ddd-spreads" className="ddd-slip-head">
               Spreads

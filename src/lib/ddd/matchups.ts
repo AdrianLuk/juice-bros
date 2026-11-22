@@ -231,6 +231,41 @@ export function finalPlaces(matchups: readonly Matchup[]): string[] | null {
   return top && bottom ? [...top, ...bottom] : null;
 }
 
+/** One Game that cost a Team shots, read from that Team's side. */
+export type ShotLine = {
+  key: MatchupKey;
+  game: LineupGame;
+  opponent: string;
+  /** [the Team's points, the opponent's]. */
+  score: [number, number];
+  /** `ours` when the Spread was on the Team's own Pair. */
+  spread: { ours: boolean; points: number };
+  shots: number;
+};
+
+/** What a Team's shot total is made of: every Game it lost against the Spread, in order of play. */
+export function shotLines(teamId: string, matchups: readonly Matchup[]): ShotLine[] {
+  return matchups.flatMap((m) => {
+    if (m.a !== teamId && m.b !== teamId) return [];
+    const us: Side = m.a === teamId ? "a" : "b";
+    const opponent = us === "a" ? m.b : m.a;
+    return m.games.flatMap(({ game, spread, score, result }) =>
+      result && spread && score && result.shotsOn === us
+        ? [
+            {
+              key: m.key,
+              game,
+              opponent,
+              score: us === "a" ? score : [score[1], score[0]],
+              spread: { ours: spread.lower === us, points: spread.points },
+              shots: result.shots,
+            } satisfies ShotLine,
+          ]
+        : [],
+    );
+  });
+}
+
 /** Every Team's shots so far, by Team id. */
 export function shotTotals(teamIds: readonly string[], matchups: readonly Matchup[]): Record<string, number> {
   const totals = Object.fromEntries(teamIds.map((id) => [id, 0]));

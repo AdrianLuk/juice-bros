@@ -226,3 +226,29 @@ export async function seedSpreads(organizer: DddAccount, eventId: string, skip: 
   }
   await asOrganizer(organizer, "ddd_spreads", { method: "POST", body: JSON.stringify(rows) }, "saving the Spreads");
 }
+
+/**
+ * Enters every doubles Game of every Team pairing, as `organizer`: the
+ * earlier Team wins each 11-3. Against `seedSpreads`' 5.5 on the later
+ * Team's Pair that is 3 shots on the later Team a Game. With `seedRoundOne`
+ * the Final places come out in roster order; pairings that never meet are
+ * stored but out of view.
+ */
+export async function seedDoubles(organizer: DddAccount, eventId: string): Promise<void> {
+  const ids = await teamIdsOf(organizer, eventId);
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      for (const game of ["mens", "womens", "mixed1", "mixed2"]) {
+        await asOrganizer(
+          organizer,
+          "rpc/ddd_save_game",
+          {
+            method: "POST",
+            body: JSON.stringify({ p_token: null, p_team_a: ids[i], p_team_b: ids[j], p_game: game, p_score_a: 11, p_score_b: 3 }),
+          },
+          "entering a Game",
+        );
+      }
+    }
+  }
+}

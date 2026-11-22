@@ -92,3 +92,8 @@ export function roundOnePath(eventId: string): string {
 export function matchupsPath(eventId: string): string {
   return `${dddPath(eventId)}/matchups`;
 }
+
+/** The results on the Public Link: Final places, Punishments and shots, for the TV at dinner. */
+export function resultsPath(publicToken: string): string {
+  return `${publicLinkPath(publicToken)}/results`;
+}
