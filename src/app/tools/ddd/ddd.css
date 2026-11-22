@@ -942,7 +942,8 @@ body:has(.ddd-surface) {
   font-weight: 700;
 }
 
-.ddd-tab-total {
+/* Scoped to the row so it outranks `.ddd-section p`'s margin reset. */
+.ddd-seed .ddd-tab-total {
   margin: 0 0 0 auto;
   align-self: center;
   white-space: nowrap;
