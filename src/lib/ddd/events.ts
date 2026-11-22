@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { RawLineup } from "./lineup.ts";
+import type { GameFinal, MatchupCall } from "./matchups.ts";
 import type { SpreadRow } from "./spreads.ts";
 import type { StoredTeam } from "./roster.ts";
 
@@ -44,6 +45,10 @@ export type LinkEvent = DddHeader & {
   tieOrder: string[];
   /** Round 1 finals entered so far (#715). */
   dreambreakers: DreambreakerFinal[];
+  /** Round 2 and Playoff Game finals entered so far (#716). */
+  games: (GameFinal & { editedBy: "organizer" | "score_link"; editedAt: string })[];
+  /** Organizers' calls on 2-2 Matchups, with their reasons. */
+  calls: MatchupCall[];
 };
 
 /** A Dreambreaker final as stored, with who last wrote it. */

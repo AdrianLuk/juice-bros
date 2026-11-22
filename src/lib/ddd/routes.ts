@@ -87,3 +87,8 @@ export function spreadsPath(eventId: string): string {
 export function roundOnePath(eventId: string): string {
   return `${dddPath(eventId)}/round-1`;
 }
+
+/** Round 2 and the Playoff for an Organizer: finals, and the call on a 2-2. */
+export function matchupsPath(eventId: string): string {
+  return `${dddPath(eventId)}/matchups`;
+}

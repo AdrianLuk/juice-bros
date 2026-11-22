@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import {
   clearDreambreaker,
@@ -9,7 +9,6 @@ import {
   setTieOrder,
   type LiveReader,
   type LiveWriter,
-  type WriteResult,
 } from "@/lib/ddd/actions/live";
 import {
   dreambreakerSlots,
@@ -26,10 +25,12 @@ import {
 } from "@/lib/ddd/dreambreakers";
 import type { DreambreakerFinal, LinkEvent } from "@/lib/ddd/events";
 import type { StoredTeam } from "@/lib/ddd/roster";
+import { Doubles } from "./matchups";
 import { RosterTeams } from "./roster-teams";
 import { useDddLive } from "./use-ddd-live";
+import { useWrite } from "./use-write";
 
-type Mode = "public" | "score" | "organizer";
+type Mode ="public" | "score" | "organizer";
 
 const STATUS_LABEL: Record<SlotStatus, string> = { now: "On now", next: "Up next", later: "Later", final: "Final" };
 
@@ -38,16 +39,19 @@ const STATUS_LABEL: Record<SlotStatus, string> = { now: "On now", next: "Up next
  * Dreambreakers with their courts, Rotations and scores. The Score Link and
  * an Organizer enter finals; an Organizer also clears them, reorders a
  * Rotation and makes the call on a tie nothing else breaks. `showRoster`
- * adds the 4 Teams under it, for the links.
+ * adds the 4 Teams under it, and `showDoubles` Round 2 and the Playoff
+ * (#716) over it, for the links: one live read feeds the whole screen.
  */
 export function RoundOne({
   reader,
   initial,
   showRoster = false,
+  showDoubles = false,
 }: {
   reader: LiveReader;
   initial: LinkEvent;
   showRoster?: boolean;
+  showDoubles?: boolean;
 }) {
   const { event, refresh } = useDddLive(reader, initial);
   const mode: Mode = reader.kind;
@@ -67,6 +71,7 @@ export function RoundOne({
         <p className="ddd-slip ddd-notice">Round 1 starts once the roster has its 4 Teams.</p>
       ) : (
         <>
+          {showDoubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
           <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />
           <section className="ddd-stack" aria-labelledby="ddd-dreambreakers">
             <h2 id="ddd-dreambreakers" className="ddd-on-green ddd-band-head">
@@ -96,25 +101,6 @@ export function RoundOne({
       {showRoster ? <RosterTeams teams={event.teams} /> : null}
     </div>
   );
-}
-
-/** Runs a write, then re-reads; returns the problem to show, if any. */
-function useWrite(onSaved: () => void) {
-  const [pending, start] = useTransition();
-  const [problem, setProblem] = useState("");
-  function run(write: () => Promise<WriteResult>, after?: () => void) {
-    setProblem("");
-    start(async () => {
-      const result = await write();
-      if (!result.ok) {
-        setProblem(result.problem);
-        return;
-      }
-      after?.();
-      onSaved();
-    });
-  }
-  return { pending, problem, run };
 }
 
 function signed(value: number): string {

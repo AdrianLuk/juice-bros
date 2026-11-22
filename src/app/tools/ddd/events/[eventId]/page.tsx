@@ -7,7 +7,17 @@ import { absoluteAppUrl } from "@/lib/booking-buddy/request-origin";
 import { verifyOrganizer } from "@/lib/ddd/dal";
 import { getEvent } from "@/lib/ddd/events";
 import { getRoster } from "@/lib/ddd/roster-db";
-import { DDD_ROOT, editDddPath, lineupsPath, publicLinkPath, rosterPath, roundOnePath, scoreLinkPath, spreadsPath } from "@/lib/ddd/routes";
+import {
+  DDD_ROOT,
+  editDddPath,
+  lineupsPath,
+  matchupsPath,
+  publicLinkPath,
+  rosterPath,
+  roundOnePath,
+  scoreLinkPath,
+  spreadsPath,
+} from "@/lib/ddd/routes";
 import { createClient } from "@/lib/ddd/supabase/server";
 
 /**
@@ -73,6 +83,17 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
               <p>Six Dreambreakers seed the Teams.</p>
               <Link href={roundOnePath(event.id)} className="ddd-quiet">
                 Open the Dreambreakers
+              </Link>
+            </section>
+          ) : null}
+          {teams.length === 4 ? (
+            <section className="ddd-slip ddd-section" aria-labelledby="ddd-doubles">
+              <h2 id="ddd-doubles" className="ddd-slip-head">
+                Round 2 and Playoff
+              </h2>
+              <p>Four Games a Matchup, each against its Spread. Correct a final or make the call on a 2-2.</p>
+              <Link href={matchupsPath(event.id)} className="ddd-quiet">
+                Open the Matchups
               </Link>
             </section>
           ) : null}
