@@ -14,9 +14,9 @@ test("4 Teams make 6 pairings, each Team against each other once, in Team order"
 });
 
 test("every cell names the right Pairs", () => {
-  assert.equal(pairName(players, lineup, "mens"), "M1 & M2");
-  assert.equal(pairName(players, lineup, "mixed2"), "M2 & W2");
-  assert.equal(pairName(players, { ...lineup, mixed2: ["m2", null] }, "mixed2"), "M2 & –");
+  assert.equal(pairName(players, lineup, "mens"), "M1 / M2");
+  assert.equal(pairName(players, lineup, "mixed2"), "M2 / W2");
+  assert.equal(pairName(players, { ...lineup, mixed2: ["m2", null] }, "mixed2"), "M2 / –");
 });
 
 test("a Spread must end in .5 and sit between 0.5 and 10.5", () => {

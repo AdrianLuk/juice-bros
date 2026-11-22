@@ -1,3 +1,4 @@
+import { courtTurns } from "@/lib/ddd/courts";
 import { GAME_LABEL, LINEUP_GAMES } from "@/lib/ddd/lineup";
 import type { LinkEvent } from "@/lib/ddd/events";
 import { lineupsOf, pairName, pairings } from "@/lib/ddd/spreads";
@@ -18,6 +19,11 @@ export function SpreadsView({ event }: { event: LinkEvent }) {
             <h2 id={`ddd-spread-${a.id}-${b.id}`} className="ddd-team-name">
               {a.name} v {b.name}
             </h2>
+            {both ? (
+              <p className="ddd-note">
+                Order of play: {courtTurns(both[0], both[1]).map((turn) => turn.map((game) => GAME_LABEL[game]).join(" and ")).join(", then ")}.
+              </p>
+            ) : null}
             <ul className="ddd-lineup">
               {LINEUP_GAMES.map((game) => {
                 const row = event.spreads.find((each) => each.teamA === a.id && each.teamB === b.id && each.game === game);

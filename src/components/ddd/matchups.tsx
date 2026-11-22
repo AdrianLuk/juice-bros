@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 import type { LiveReader, LiveWriter } from "@/lib/ddd/actions/live";
+import { moveGame, swapCourtTurns } from "@/lib/ddd/actions/courts";
 import { callMatchup, clearCall, clearGame, saveGame } from "@/lib/ddd/actions/matchups";
-import { seedTeams } from "@/lib/ddd/dreambreakers";
+import { placeMatchup, type PlacedGame } from "@/lib/ddd/courts";
+import { seedTeams, STATUS_LABEL } from "@/lib/ddd/dreambreakers";
 import type { LinkEvent } from "@/lib/ddd/events";
-import { GAME_LABEL, readLineup, type LineupGame } from "@/lib/ddd/lineup";
+import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
 import {
   doublesMatchups,
   finalPlaces,
@@ -19,7 +21,7 @@ import {
   type MatchupKey,
 } from "@/lib/ddd/matchups";
 import { spreadsPath } from "@/lib/ddd/routes";
-import { pairName } from "@/lib/ddd/spreads";
+import { pairOf } from "@/lib/ddd/spreads";
 import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
 
@@ -108,10 +110,9 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
   );
 }
 
-/** The Pair a Team plays in a Game, or the Team's name before its Lineup is in. */
-function pairOf(team: Team, game: LineupGame): string {
-  const lineup = readLineup(team.players, team.lineup);
-  return lineup ? pairName(team.players, lineup, game) : team.name;
+/** A Team's saved Lineup, or null before it is in. */
+function lineupOf(team: Team) {
+  return readLineup(team.players, team.lineup);
 }
 
 function outcomeText(m: Matchup, a: Team, b: Team): { text: string; open: boolean } {
@@ -160,6 +161,8 @@ function MatchupCard({
   const [first, second] = event.teams.indexOf(a) < event.teams.indexOf(b) ? [a, b] : [b, a];
   const setSpread = writer?.kind === "organizer" ? `${spreadsPath(event.id)}#ddd-pairing-${first.id}-${second.id}` : null;
   const twoAll = matchup.outcome?.wins[0] === 2;
+  const placed = placeMatchup(matchup, [lineupOf(a), lineupOf(b)], event.courtPlans, event.courts.length);
+  const swap = useWrite(onSaved);
 
   return (
     <article className="ddd-slip ddd-matchup" aria-label={`Matchup: ${a.name} v ${b.name}`}>
@@ -169,10 +172,36 @@ function MatchupCard({
       </h3>
       <p className={outcome.open ? "ddd-problem" : "ddd-matchup-outcome"}>{outcome.text}</p>
       <ol className="ddd-games">
-        {matchup.games.map((game) => (
-          <GameRow key={game.game} game={game} matchup={matchup} a={a} b={b} writer={writer} setSpread={setSpread} onSaved={onSaved} />
+        {placed.map((place) => (
+          <GameRow
+            key={place.game}
+            game={matchup.games.find((game) => game.game === place.game)!}
+            place={place}
+            courts={event.courts}
+            matchup={matchup}
+            a={a}
+            b={b}
+            writer={writer}
+            setSpread={setSpread}
+            onSaved={onSaved}
+          />
         ))}
       </ol>
+      {writer?.kind === "organizer" && placed.some((place) => place.turn > 0) ? (
+        <div className="ddd-actions">
+          <button
+            type="button"
+            className="ddd-quiet"
+            disabled={swap.pending}
+            onClick={() => swap.run(() => swapCourtTurns(matchup.a, matchup.b))}
+          >
+            Swap which Games play first
+          </button>
+          <p role="alert" className="ddd-problem empty:hidden">
+            {swap.problem}
+          </p>
+        </div>
+      ) : null}
       <p className="ddd-matchup-total">
         <span>
           {a.name}: <span className="ddd-shots">{shots[0]}</span> {shotWord(shots[0])}
@@ -188,6 +217,8 @@ function MatchupCard({
 
 function GameRow({
   game,
+  place,
+  courts,
   matchup,
   a,
   b,
@@ -196,6 +227,8 @@ function GameRow({
   onSaved,
 }: {
   game: MatchupGame;
+  place: PlacedGame;
+  courts: string[];
   matchup: Matchup;
   a: Team;
   b: Team;
@@ -220,11 +253,31 @@ function GameRow({
   }
 
   return (
-    <li className="ddd-game" aria-label={label}>
+    <li className={`ddd-game ddd-db-${place.status}`} aria-label={label}>
       <p className="ddd-db-status">
         <span>{label}</span>
-        <span>{game.score ? "Final" : game.spread ? "" : "Spread needed"}</span>
+        <span>
+          <span className="ddd-game-status">{STATUS_LABEL[place.status]}</span>{" "}
+          <span className="ddd-db-court">Court {courts[place.court] ?? place.court + 1}</span>
+        </span>
       </p>
+      {writer?.kind === "organizer" && place.status !== "final" ? (
+        <div className="ddd-field ddd-move">
+          <label htmlFor={`${id}-court`}>Court</label>
+          <select
+            id={`${id}-court`}
+            value={place.court}
+            disabled={pending}
+            onChange={(change) => run(() => moveGame(matchup.a, matchup.b, game.game, Number(change.target.value)))}
+          >
+            {courts.map((court, index) => (
+              <option key={court} value={index}>
+                Court {court}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <div className="ddd-db-score">
         {[0, 1].map((i) => (
           <p key={i}>

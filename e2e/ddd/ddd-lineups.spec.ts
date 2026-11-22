@@ -98,8 +98,8 @@ test("the Public Link shows the Lineup, and a Team with none shows no Lineup", a
     const stranger = await visitor.newPage();
     await stranger.goto(publicUrl!);
     const ben = stranger.getByRole("region", { name: "Ben Johns", exact: true });
-    await expect(ben.getByRole("listitem").filter({ hasText: /^Men's doubles/ })).toContainText("Ben Johns & Ben Ortiz");
-    await expect(ben.getByRole("listitem").filter({ hasText: "Mixed 2" })).toContainText("Wildcard (Kevin Ah-Chuen) & Cleo Park");
+    await expect(ben.getByRole("listitem").filter({ hasText: /^Men's doubles/ })).toContainText("Ben Johns / Ben Ortiz");
+    await expect(ben.getByRole("listitem").filter({ hasText: "Mixed 2" })).toContainText("Wildcard (Kevin Ah-Chuen) / Cleo Park");
     await expect(stranger.getByRole("region", { name: "Anna Leigh Waters", exact: true }).getByText("Men's doubles")).toHaveCount(0);
     await expect(stranger.getByText(/in no Game|plays 3 Games/)).toHaveCount(0);
   } finally {

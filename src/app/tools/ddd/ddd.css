@@ -965,3 +965,57 @@ body:has(.ddd-surface) {
   padding-top: 12px;
   border-top: 1px solid var(--ddd-rule);
 }
+
+/* ---- Courts: On now and Up next (issue #717) ------------------------------ */
+
+.ddd-court-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-court-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.ddd-court-card p {
+  margin: 0;
+}
+
+.ddd-court-line + .ddd-court-line {
+  padding-top: 10px;
+  border-top: 1px solid var(--ddd-rule);
+  opacity: 0.72;
+}
+
+.ddd-court-when {
+  font-family: var(--ddd-stamp);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-court-now .ddd-court-when,
+.ddd-db-now .ddd-game-status {
+  color: var(--ddd-red);
+}
+
+.ddd-court-game {
+  font-weight: 700;
+}
+
+.ddd-court-sides {
+  font-size: 0.9375rem;
+}
+
+.ddd-move {
+  max-width: 14rem;
+}

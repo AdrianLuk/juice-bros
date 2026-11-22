@@ -19,20 +19,20 @@ import {
   seedRuleLabel,
   seedTeams,
   slotStatuses,
+  STATUS_LABEL,
   type DreambreakerSlot,
   type Seed,
   type SlotStatus,
 } from "@/lib/ddd/dreambreakers";
 import type { DreambreakerFinal, LinkEvent } from "@/lib/ddd/events";
 import type { StoredTeam } from "@/lib/ddd/roster";
+import { CourtCards } from "./court-cards";
 import { Doubles } from "./matchups";
 import { RosterTeams } from "./roster-teams";
 import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
 
 type Mode ="public" | "score" | "organizer";
-
-const STATUS_LABEL: Record<SlotStatus, string> = { now: "On now", next: "Up next", later: "Later", final: "Final" };
 
 /**
  * Round 1 on a live screen (#715): the Seeding as finals land, and the six
@@ -71,6 +71,7 @@ export function RoundOne({
         <p className="ddd-slip ddd-notice">Round 1 starts once the roster has its 4 Teams.</p>
       ) : (
         <>
+          {showDoubles ? <CourtCards event={event} /> : null}
           {showDoubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
           <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />
           <section className="ddd-stack" aria-labelledby="ddd-dreambreakers">

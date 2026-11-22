@@ -59,7 +59,7 @@ export function finalBetween(results: readonly DreambreakerResult[], a: string, 
 }
 
 /** The stored final between two Teams, whichever way round it was entered. */
-export function resultBetween<R extends DreambreakerResult>(results: readonly R[], a: string, b: string): R | undefined {
+export function resultBetween<R extends { teamA: string; teamB: string }>(results: readonly R[], a: string, b: string): R | undefined {
   return results.find(
     (result) => (result.teamA === a && result.teamB === b) || (result.teamA === b && result.teamB === a),
   );
@@ -68,15 +68,28 @@ export function resultBetween<R extends DreambreakerResult>(results: readonly R[
 /** How a Dreambreaker shows: Final, On now, Up next, or Later. */
 export type SlotStatus = "final" | "now" | "next" | "later";
 
+/** What every screen calls each status. */
+export const STATUS_LABEL: Record<SlotStatus, string> = { now: "On now", next: "Up next", later: "Later", final: "Final" };
+
+/**
+ * For things played in turns: the earliest turn with one still to finish is
+ * On now, the turn after it Up next, later ones Later, finished ones Final.
+ */
+export function turnStatuses(turns: readonly number[], done: readonly boolean[]): SlotStatus[] {
+  const open = Math.min(...turns.filter((_, index) => !done[index]));
+  return turns.map((turn, index) => {
+    if (done[index]) return "final";
+    if (turn === open) return "now";
+    return turn === open + 1 ? "next" : "later";
+  });
+}
+
 /** The earliest pair of Dreambreakers with one still to finish is On now; the pair after it is Up next. */
 export function slotStatuses(slots: readonly DreambreakerSlot[], results: readonly DreambreakerResult[]): SlotStatus[] {
-  const done = slots.map((slot) => finalBetween(results, slot.teamA, slot.teamB) !== null);
-  const open = Math.min(...slots.filter((_, index) => !done[index]).map((slot) => slot.turn));
-  return slots.map((slot, index) => {
-    if (done[index]) return "final";
-    if (slot.turn === open) return "now";
-    return slot.turn === open + 1 ? "next" : "later";
-  });
+  return turnStatuses(
+    slots.map((slot) => slot.turn),
+    slots.map((slot) => finalBetween(results, slot.teamA, slot.teamB) !== null),
+  );
 }
 
 // ---- Seeding -----------------------------------------------------------------

@@ -117,7 +117,7 @@ of two.
 **Court turn**:
 Two Games of one Matchup played at the same time, one on each of its courts. Two Games
 that share a player can never be in the same Court turn; if a Lineup cannot be split that way,
-the leftover Game plays on its own.
+the Games that clash play on their own (a woman in women's doubles and both mixed leaves two).
 Screens never name it: a Game shows as On now, Up next or Final, with its court.
 _Avoid_: Wave (rejected on screen, 2026-11-21); Match, outside a display label (Pickle Point Pal's word)
 

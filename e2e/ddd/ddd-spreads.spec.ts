@@ -58,8 +58,8 @@ test("6 pairings of 4 Games, every cell naming its Pairs and reading Spread need
   await expect(page.getByText("Spread needed", { exact: true })).toHaveCount(24);
   // Ben Johns' men's doubles is Ben Johns and Ben Ortiz; Anna's is Gus Hale's pair.
   const options = forms().first().locator('select[name="mens-lower"] option');
-  await expect(options.nth(1)).toHaveText("Ben Johns: Ben Johns & Ben Ortiz");
-  await expect(options.nth(2)).toHaveText("Anna Leigh Waters: Eli Banks & Gus Hale");
+  await expect(options.nth(1)).toHaveText("Ben Johns: Ben Johns / Ben Ortiz");
+  await expect(options.nth(2)).toHaveText("Anna Leigh Waters: Eli Banks / Gus Hale");
 });
 
 test("a Spread that does not end in .5 or is out of range is refused, and nothing saves", async () => {
@@ -111,7 +111,7 @@ test("all 24 are entered, and a reload and the Public Link show all 24", async (
     await stranger.goto(publicUrl!);
     await expect(stranger.getByText(/^Spread \d+\.\d on /)).toHaveCount(24);
     await expect(stranger.getByText("Spread needed")).toHaveCount(0);
-    await expect(stranger.getByText("Spread 1.5 on Ben Johns & Ben Ortiz")).toHaveCount(3);
+    await expect(stranger.getByText("Spread 1.5 on Ben Johns / Ben Ortiz")).toHaveCount(3);
   } finally {
     await visitor.close();
   }
