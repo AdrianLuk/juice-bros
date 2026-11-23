@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(27);
 
 create temporary table ddd_expected (fn text, args text[], anon boolean, signed_in boolean) on commit drop;
 insert into ddd_expected values
@@ -31,7 +31,9 @@ insert into ddd_expected values
   ('ddd_join', array['text'], false, true),
   ('ddd_save_event', array['uuid', 'text', 'date', 'text', 'text', 'text[]', 'text', 'text'], false, true),
   ('ddd_replace_roster', array['uuid', 'jsonb'], false, true),
-  ('ddd_set_rotation', array['uuid', 'uuid[]'], false, true);
+  ('ddd_set_rotation', array['uuid', 'uuid[]'], false, true),
+  -- The link generator: a column default, run by the Organizer who saves a DDD.
+  ('ddd_short_token', array['integer'], false, true);
 
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace

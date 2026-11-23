@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(37);
+select plan(39);
 
 insert into auth.users (id, instance_id, aud, role, email) values
   ('71171171-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ddd-organizer-a@example.com'),
@@ -167,6 +167,14 @@ select lives_ok(
 reset role;
 create temporary table ddd_tokens on commit drop as
   select score_token, public_token from public.ddd_events;
+select ok(
+  (select public_token ~ '^[2-9a-km-np-z]{5}$' from ddd_tokens),
+  'the Public Link is 5 characters, none that read alike'
+);
+select ok(
+  (select score_token ~ '^[2-9a-km-np-z]{10}$' from ddd_tokens),
+  'the Score Link is 10'
+);
 grant all on ddd_tokens to anon;
 set local role anon;
 set local request.jwt.claims = '{"role": "anon"}';
