@@ -5,10 +5,11 @@ import { useActionState } from "react";
 import {
   addPlayerAction,
   removePlayerAction,
+  renameTeamAction,
   savePlayerAction,
   type RosterState,
 } from "@/lib/ddd/actions/roster";
-import { captainOf, formatAverage, type StoredPlayer, type StoredTeam } from "@/lib/ddd/roster";
+import { MAX_TEAM_NAME, captainOf, formatAverage, type StoredPlayer, type StoredTeam } from "@/lib/ddd/roster";
 
 const text = (value: number | null, decimals: number) => (value === null ? "" : value.toFixed(decimals));
 
@@ -23,6 +24,7 @@ export function RosterEditor({ teams }: { teams: StoredTeam[] }) {
             <h2 id={`ddd-team-${team.id}`} className="ddd-team-name">
               {team.name}
             </h2>
+            <RenameTeam team={team} />
             {captain ? null : <p className="ddd-problem">No Captain: add (C) after a player&apos;s name.</p>}
             <ul className="ddd-players">
               {team.players.map((player) => (
@@ -130,6 +132,32 @@ function PlayerForm({
         </p>
       </div>
     </form>
+  );
+}
+
+function RenameTeam({ team }: { team: StoredTeam }) {
+  const [state, formAction, saving] = useActionState<RosterState, FormData>(renameTeamAction.bind(null, team.id), {});
+  return (
+    <details className="ddd-add">
+      <summary className="ddd-quiet">Rename {team.name}</summary>
+      {/* Keyed on the name so a saved rename refills the field. */}
+      <form key={team.name} action={formAction} className="ddd-player" aria-label={`Rename ${team.name}`}>
+        <div className="ddd-field ddd-field-wide">
+          <label>
+            Team name
+            <input name="name" required maxLength={MAX_TEAM_NAME} defaultValue={team.name} autoComplete="off" />
+          </label>
+        </div>
+        <div className="ddd-actions">
+          <button type="submit" className="ddd-btn" disabled={saving}>
+            {saving ? "Saving…" : "Save name"}
+          </button>
+          <p role="alert" className="ddd-problem empty:hidden">
+            {state.problem}
+          </p>
+        </div>
+      </form>
+    </details>
   );
 }
 

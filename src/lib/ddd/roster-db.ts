@@ -89,6 +89,13 @@ export async function removePlayer(supabase: SupabaseClient, playerId: string): 
   if (error) throw new Error(`Removing a player failed: ${error.message}`);
 }
 
+export async function renameTeam(supabase: SupabaseClient, teamId: string, name: string): Promise<RosterSaved> {
+  const { error } = await supabase.from("ddd_teams").update({ name }).eq("id", teamId);
+  if (error?.code === "23505") return { ok: false, problem: "Another Team already has that name." };
+  if (error) throw new Error(`Renaming a Team failed: ${error.message}`);
+  return { ok: true };
+}
+
 /** Moves a player to the end of another Team. */
 export async function movePlayer(supabase: SupabaseClient, playerId: string, teamId: string): Promise<RosterSaved> {
   const position = await nextPosition(supabase, teamId);

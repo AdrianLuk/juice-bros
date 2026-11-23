@@ -173,6 +173,14 @@ export function readPlayer(fields: PlayerFields): { player: RosterPlayer } | { p
   return { player: { name, gender: fields.gender, dupr, duar, dusr } };
 }
 
+/** A Team's new name from the rename form, or what stops it saving. */
+export function readTeamName(raw: string): { name: string } | { problem: string } {
+  const name = raw.trim();
+  if (name === "") return { problem: "Give the Team a name." };
+  if (name.length > MAX_TEAM_NAME) return { problem: `Keep the Team name to ${MAX_TEAM_NAME} characters.` };
+  return { name };
+}
+
 /** True when the roster can be saved: every row read and exactly 4 Teams. A missing Captain only warns. */
 export function canSave(parsed: ParsedRoster): boolean {
   return (
