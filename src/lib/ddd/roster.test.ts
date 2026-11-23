@@ -106,6 +106,22 @@ describe("flags", () => {
     assert.ok(canSave(parsed));
   });
 
+  it("finds a Captain marked (C) when the Team has its own name", () => {
+    const named = ["Critical Dink Unit", "B", "C", "D"].map((team) => row(team === "B" ? "Bea (C)" : "Al (c)", team));
+    const parsed = parseRoster(named.join("\n"));
+    assert.deepEqual(parsed.teamProblems, []);
+    assert.deepEqual(parsed.teams.map((team) => captainOf(team)?.name), ["Al (c)", "Bea (C)", "Al (c)", "Al (c)"]);
+  });
+
+  it("prefers the (C) mark over a name that matches the Team", () => {
+    const team = { name: "A", players: [{ name: "A" }, { name: "Bea (C)" }] };
+    assert.equal(captainOf(team)?.name, "Bea (C)");
+  });
+
+  it("does not read a bracketed nickname as a Captain mark", () => {
+    assert.equal(captainOf({ name: "T", players: [{ name: "Wildcard (Kevin Ah-Chuen)" }, { name: "Cam (Cee)" }] }), undefined);
+  });
+
   it("copes with Windows line endings and blank lines", () => {
     const parsed = parseRoster(SHEET_PASTE.replaceAll("\n", "\r\n") + "\r\n\r\n");
     assert.equal(parsed.teams.length, 4);

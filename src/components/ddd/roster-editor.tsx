@@ -23,7 +23,7 @@ export function RosterEditor({ teams }: { teams: StoredTeam[] }) {
             <h2 id={`ddd-team-${team.id}`} className="ddd-team-name">
               {team.name}
             </h2>
-            {captain ? null : <p className="ddd-problem">No Captain: no player is named {team.name}.</p>}
+            {captain ? null : <p className="ddd-problem">No Captain: add (C) after a player&apos;s name.</p>}
             <ul className="ddd-players">
               {team.players.map((player) => (
                 <li key={`${player.id}-${player.name}-${player.gender}-${player.dupr}-${player.duar}-${player.dusr}-${team.id}`}>

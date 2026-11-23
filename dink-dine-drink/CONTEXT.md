@@ -33,7 +33,8 @@ venue (where everyone eats and drinks after). Several happen a year.
 One of the four drafted sides at a DDD (always four, for now), about six players, led by a Captain.
 
 **Captain**:
-The player who leads a Team and submits its Lineup.
+The player who leads a Team and submits its Lineup. Marked by "(C)" after their name in the
+roster; failing that, the player whose name matches the Team name.
 
 **Ratings**:
 Each player's three numbers: DUPR (real pickleball, 3 decimals), DUAR (alcohol) and DUSR

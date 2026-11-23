@@ -64,7 +64,7 @@ export function RosterPaste({ eventId, hasRoster }: { eventId: string; hasRoster
         />
         <p className="ddd-note">
           Copy the rows in Google Sheets and paste them here. The header row is skipped and the average column is
-          ignored: the app works the Average Rating out itself.
+          ignored: the app works the Average Rating out itself. Put (C) after each Captain&apos;s name.
         </p>
       </div>
 
