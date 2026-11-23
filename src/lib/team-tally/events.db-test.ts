@@ -64,7 +64,8 @@ test("a saved Team Event loads back as it was set up", async () => {
     { red: 0, blue: 1 },
   ]);
   assert.equal(new Set(loaded.teams.map((team) => team.scoreToken)).size, 4);
-  assert.ok(loaded.publicToken.length >= 24);
+  assert.match(loaded.publicToken, /^[2-9a-km-np-z]{5}$/);
+  for (const team of loaded.teams) assert.match(team.scoreToken, /^[2-9a-km-np-z]{10}$/);
 });
 
 test("the Organizer's list shows their Team Events, newest night first", async () => {

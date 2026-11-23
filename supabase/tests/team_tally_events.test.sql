@@ -104,9 +104,9 @@ select is(
   'a blank nickname is stored as no nickname'
 );
 select is(
-  (select count(distinct score_token)::int from public.team_tally_teams where char_length(score_token) >= 24),
+  (select count(distinct score_token)::int from public.team_tally_teams where score_token ~ '^[2-9a-km-np-z]{10}$'),
   4,
-  'every Team gets its own Score Link token'
+  'every Team gets its own 10-character Score Link token'
 );
 
 insert into tt_ids select 'public_token', public_token from public.team_tally_events;
