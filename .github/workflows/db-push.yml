@@ -31,7 +31,16 @@ jobs:
         with:
           # The version `db push` was last run with locally; bump it on purpose.
           version: 2.117.0
-      - run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
+      # Writes what `supabase link` would. Link reads project details and API
+      # keys, which this narrowly scoped token can't. The pooler URL holds no
+      # password: db push gets a temporary login through the token.
+      - name: Point the CLI at the project
+        run: |
+          mkdir -p supabase/.temp
+          printf '%s' "$REF" > supabase/.temp/project-ref
+          printf '%s' "postgresql://postgres.$REF@aws-0-ca-central-1.pooler.supabase.com:5432/postgres" > supabase/.temp/pooler-url
+        env:
+          REF: ${{ vars.SUPABASE_PROJECT_ID }}
       - name: What will be pushed
         run: supabase db push --dry-run
       - run: supabase db push --yes
