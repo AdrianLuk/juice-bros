@@ -79,10 +79,18 @@ export function formatRating(value: number | null, kind: RatingKind): string {
   return value === null ? NO_AVERAGE : value.toFixed(RATINGS[kind].decimals);
 }
 
-/** The Captain is the player whose name matches the Team name. */
+const CAPTAIN_MARK = /\(c\)\s*$/i;
+
+/**
+ * The Captain is the player marked "(C)" after their name, else the player whose name matches the Team name.
+ * shortcut: the Captain lives in the name until a real Captain field is built.
+ */
 export function captainOf<P extends { name: string }>(team: { name: string; players: P[] }): P | undefined {
   const want = team.name.trim().toLowerCase();
-  return team.players.find((player) => player.name.trim().toLowerCase() === want);
+  return (
+    team.players.find((player) => CAPTAIN_MARK.test(player.name)) ??
+    team.players.find((player) => player.name.trim().toLowerCase() === want)
+  );
 }
 
 function isHeader(cells: string[]): boolean {
@@ -144,7 +152,7 @@ export function parseRoster(text: string): ParsedRoster {
       teamProblems.push({ line: null, message: `${team.name} has more than ${MAX_PLAYERS_PER_TEAM} players.` });
     }
     if (!captainOf(team)) {
-      teamProblems.push({ line: null, message: `${team.name} has no Captain: no player is named ${team.name}.` });
+      teamProblems.push({ line: null, message: `${team.name} has no Captain: mark one with (C) after their name.` });
     }
   }
   return { teams, rowProblems, teamProblems };
