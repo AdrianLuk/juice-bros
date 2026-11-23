@@ -224,7 +224,7 @@ One green ground in two lights, paper and ink on top of it, and three signal col
 ## Typography
 
 **Display Font:** Anton (fallback Impact, sans-serif), one weight, always uppercase, exposed as `--ddd-display`
-**Body Font:** Atkinson Hyperlegible (fallback ui-sans-serif, system-ui), 400 and 700
+**Body Font:** Atkinson Hyperlegible (fallback ui-sans-serif, system-ui), 400 and 700, with the digits 0 to 9 drawn in Figtree, exposed as `--ddd-body`
 **Label/Mono Font:** Courier Prime 700 (fallback Courier New, monospace), exposed as `--ddd-stamp`
 
 **Character:** Anton is a tall condensed poster face that makes a Team name or a shot count read across a room. Atkinson Hyperlegible was built for low-vision reading and carries every Pair, score line and control. Courier Prime is the bar's receipt printer, kept small and kept to labels.
@@ -247,6 +247,8 @@ One green ground in two lights, paper and ink on top of it, and three signal col
 
 ### Named Rules
 **The Three Faces Rule.** Anton for what is counted or named big (Team names, totals, scores, Seed and place numbers, section heads). Atkinson Hyperlegible for everything read or tapped. Courier Prime for stamps, slip headers and header fact labels, never for data: a court name inside a status line drops back to Atkinson at 0.9375rem, and so does the round on the green.
+
+**The Plain Zero Rule.** Atkinson's zero is slashed and has no plain alternate, so a digits-only Figtree subset (`src/app/tools/ddd/fonts/figtree-digits.woff2`, OFL) sits first in `--ddd-body` under a `unicode-range` of U+0030-0039. Letters and punctuation stay Atkinson. Anton and Courier Prime already have plain zeros and are untouched.
 
 **The Tabular Rule.** `.ddd-surface` sets `font-variant-numeric: tabular-nums`, so a total going from 9 to 10 never shifts its column.
 

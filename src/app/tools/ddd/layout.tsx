@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Anton, Atkinson_Hyperlegible, Courier_Prime } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./ddd.css";
 
@@ -11,6 +12,16 @@ import "./ddd.css";
 const anton = Anton({ variable: "--font-ddd-display", weight: "400", subsets: ["latin"] });
 const atkinson = Atkinson_Hyperlegible({ variable: "--font-ddd", weight: ["400", "700"], subsets: ["latin"] });
 const courier = Courier_Prime({ variable: "--font-ddd-stamp", weight: "700", subsets: ["latin"] });
+// Atkinson's zero is slashed and has no plain alternate, so 0 to 9 come from
+// Figtree (OFL, subset to the digits). The unicode-range keeps it off every
+// other character, and no Arial fallback face, or that would draw the letters.
+const digits = localFont({
+  src: "./fonts/figtree-digits.woff2",
+  variable: "--font-ddd-digits",
+  weight: "300 900",
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+0030-0039" }],
+});
 
 /**
  * Dink Dine & Drink is unlisted (spec #709): kept out of search, and a Score
@@ -29,7 +40,7 @@ export const metadata: Metadata = {
  */
 export default function DddLayout({ children }: { children: ReactNode }) {
   return (
-    <div className={`ddd-surface ${anton.variable} ${atkinson.variable} ${courier.variable} flex w-full flex-1 flex-col`}>
+    <div className={`ddd-surface ${anton.variable} ${atkinson.variable} ${digits.variable} ${courier.variable} flex w-full flex-1 flex-col`}>
       {children}
     </div>
   );

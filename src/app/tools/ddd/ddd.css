@@ -25,10 +25,12 @@
 
   --ddd-display: var(--font-ddd-display), Impact, sans-serif;
   --ddd-stamp: var(--font-ddd-stamp), "Courier New", monospace;
+  /* Atkinson for letters, Figtree for 0 to 9 only (see layout.tsx). */
+  --ddd-body: var(--font-ddd-digits), var(--font-ddd), ui-sans-serif, system-ui, sans-serif;
 
   background-color: var(--ddd-green);
   color: #fff;
-  font-family: var(--font-ddd), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ddd-body);
   font-size: 1.0625rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -339,7 +341,7 @@ body:has(.ddd-surface) {
   --cg-court-ink: #fff;
   --cg-accent: var(--ddd-ink);
   --cg-warn: var(--ddd-red);
-  --cg-label-font: var(--font-ddd), sans-serif;
+  --cg-label-font: var(--ddd-body);
 }
 
 .ddd-venue legend {
@@ -906,7 +908,7 @@ body:has(.ddd-surface) {
 
 /* The court name is data, so it reads in the body face, not the stamp. */
 .ddd-db-status .ddd-db-court {
-  font-family: var(--font-ddd), sans-serif;
+  font-family: var(--ddd-body);
   font-size: 0.9375rem;
   letter-spacing: 0;
   text-transform: none;
