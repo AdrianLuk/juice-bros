@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { averageRating, canSave, captainOf, formatAverage, parseRoster, readPlayer, readRating } from "./roster.ts";
+import { averageRating, canSave, captainOf, formatAverage, parseRoster, readPlayer, readRating, readTeamName } from "./roster.ts";
 import { SHEET_CAPTAINS, SHEET_PASTE } from "./roster-sheet.ts";
 
 describe("the real sheet", () => {
@@ -120,6 +120,13 @@ describe("flags", () => {
 
   it("does not read a bracketed nickname as a Captain mark", () => {
     assert.equal(captainOf({ name: "T", players: [{ name: "Wildcard (Kevin Ah-Chuen)" }, { name: "Cam (Cee)" }] }), undefined);
+  });
+
+  it("reads a Team rename: trimmed, not blank, 60 characters at most", () => {
+    assert.deepEqual(readTeamName("  Critical Dink Unit "), { name: "Critical Dink Unit" });
+    assert.ok("problem" in readTeamName("   "));
+    assert.ok("problem" in readTeamName("x".repeat(61)));
+    assert.deepEqual(readTeamName("x".repeat(60)), { name: "x".repeat(60) });
   });
 
   it("copes with Windows line endings and blank lines", () => {

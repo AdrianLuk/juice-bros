@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { verifyOrganizer } from "../dal.ts";
 import { DDD_ROOT } from "../routes.ts";
-import { addPlayer, movePlayer, removePlayer, replaceRoster, updatePlayer } from "../roster-db.ts";
-import { canSave, parseRoster, readPlayer, type PlayerFields } from "../roster.ts";
+import { addPlayer, movePlayer, removePlayer, renameTeam, replaceRoster, updatePlayer } from "../roster-db.ts";
+import { canSave, parseRoster, readPlayer, readTeamName, type PlayerFields } from "../roster.ts";
 import { createClient } from "../supabase/server.ts";
 
 /**
@@ -64,6 +64,16 @@ export async function addPlayerAction(teamId: string, _prev: RosterState, formDa
   if ("problem" in read) return { problem: read.problem };
   const added = await addPlayer(await createClient(), String(teamId), read.player);
   if (!added.ok) return { problem: added.problem };
+  refresh();
+  return { saved: true };
+}
+
+export async function renameTeamAction(teamId: string, _prev: RosterState, formData: FormData): Promise<RosterState> {
+  await verifyOrganizer();
+  const read = readTeamName(String(formData.get("name") ?? ""));
+  if ("problem" in read) return { problem: read.problem };
+  const renamed = await renameTeam(await createClient(), String(teamId), read.name);
+  if (!renamed.ok) return { problem: renamed.problem };
   refresh();
   return { saved: true };
 }

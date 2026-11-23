@@ -118,6 +118,26 @@ test("an Organizer edits, adds, moves and removes players", async () => {
   await expect(page.getByText("Wildcard")).toHaveCount(0);
 });
 
+test("an Organizer renames a Team, and a name another Team has is refused", async () => {
+  await page.goto(`/tools/ddd/events/${eventId}/roster`);
+
+  await page.getByText("Rename Tyson McGuffin").click();
+  const rename = page.getByRole("form", { name: "Rename Tyson McGuffin" });
+  await rename.getByLabel("Team name").fill("Ben Johns");
+  await rename.getByRole("button", { name: "Save name" }).click();
+  await expect(rename.getByText("Another Team already has that name.")).toBeVisible();
+
+  await rename.getByLabel("Team name").fill("Critical Dink Unit");
+  await rename.getByRole("button", { name: "Save name" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Critical Dink Unit", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Tyson McGuffin", exact: true })).toHaveCount(0);
+
+  await page.goto(`/tools/ddd/events/${eventId}`);
+  const publicUrl = await page.getByRole("link", { name: /\/tools\/ddd\/live\// }).textContent();
+  await page.goto(publicUrl!);
+  await expect(page.getByRole("heading", { level: 2, name: "Critical Dink Unit", exact: true })).toBeVisible();
+});
+
 test("pasting again asks before it replaces the roster", async () => {
   await page.goto(`/tools/ddd/events/${eventId}/roster`);
   await page.getByLabel("Rows from the sheet").fill(SHEET_PASTE);
