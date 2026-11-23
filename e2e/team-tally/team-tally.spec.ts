@@ -103,8 +103,8 @@ test("an Organizer signs in, builds a four-Team event and copies its brief", asy
   expect(copied).toContain("🏓 MATCH 2 — Courts 17 & 18");
   // A Team with no nickname prints no quoted part.
   expect(copied).toContain("🔵 Team Federico Staksrud\n");
-  expect(copied).toMatch(/📺 Live standings: http\S+\/tools\/team-tally\/live\/[0-9a-f]{32}/);
-  expect(copied.match(/🔗 Score link: http\S+\/tools\/team-tally\/score\/[0-9a-f]{32}/g)).toHaveLength(4);
+  expect(copied).toMatch(/📺 Live standings: http\S+\/tools\/team-tally\/live\/[2-9a-km-np-z]{5}\b/);
+  expect(copied.match(/🔗 Score link: http\S+\/tools\/team-tally\/score\/[2-9a-km-np-z]{10}\b/g)).toHaveLength(4);
   expect(copied).toContain("🅰️ Top 2 teams → Flight A\n🅱️ Next 2 teams → Flight B\n\n");
 
   await page.getByRole("link", { name: "Back to your Team Events" }).click();
