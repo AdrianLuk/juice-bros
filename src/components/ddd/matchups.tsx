@@ -13,6 +13,7 @@ import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
 import {
   doublesMatchups,
   finalPlaces,
+  forecast,
   MAX_REASON,
   shotLines,
   shotTotals,
@@ -384,16 +385,13 @@ function GameRow({
             <span className="ddd-db-team">
               {pairs[i]}
               <span className="ddd-pair-team">{teams[i].name}</span>
+              {game.spread ? <Forecast lower={side(game.spread.lower) === i} spread={game.spread.points} /> : null}
             </span>
             <span className="ddd-db-points">{game.score ? game.score[i] : ""}</span>
           </p>
         ))}
       </div>
-      {game.spread ? (
-        <p className="ddd-note">
-          Spread {game.spread.points.toFixed(1)} on {pairs[side(game.spread.lower)]}.
-        </p>
-      ) : (
+      {game.spread ? null : (
         <p className="ddd-problem">
           Spread needed before this Game is scored.{" "}
           {setSpread ? (
@@ -475,6 +473,16 @@ function GameRow({
         {problem}
       </p>
     </li>
+  );
+}
+
+/** A Pair's forecast score and what beats it, as Lilliana's spreadsheet words it. */
+function Forecast({ lower, spread }: { lower: boolean; spread: number }) {
+  const { points, beat } = forecast(lower, spread);
+  return (
+    <span className="ddd-forecast">
+      <span className="ddd-forecast-n">Forecast {points}</span> {beat}
+    </span>
   );
 }
 

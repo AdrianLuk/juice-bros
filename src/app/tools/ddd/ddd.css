@@ -843,6 +843,20 @@ body:has(.ddd-surface) {
   line-height: 1;
 }
 
+/* A Pair's forecast under its Team, in the spreadsheet's words. */
+.ddd-forecast {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-forecast-n {
+  font-weight: 700;
+  color: var(--ddd-ink);
+}
+
 .ddd-db-won .ddd-db-points {
   color: var(--ddd-green);
 }
