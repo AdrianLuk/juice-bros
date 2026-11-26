@@ -8,6 +8,7 @@ import {
   decideMatchup,
   doublesMatchups,
   finalPlaces,
+  forecast,
   roundOf,
   shotLines,
   shotTotals,
@@ -120,6 +121,24 @@ describe("checkGameScore: side-out to 11, win by 2", () => {
     assert.notEqual(checkGameScore(11.5, 3), null);
     assert.notEqual(checkGameScore(11, -1), null);
     assert.notEqual(checkGameScore(Number.NaN, 3), null);
+  });
+});
+
+describe("forecast: the spreadsheet's wording", () => {
+  it("words both Pairs against a 5.5 Spread", () => {
+    assert.deepEqual(forecast(false, 5.5), {
+      points: "11.0",
+      beat: "Holding your opponents to 5 points or less will beat expectations.",
+    });
+    assert.deepEqual(forecast(true, 5.5), {
+      points: "5.5",
+      beat: "You are the underdog! Scoring at least 6 points will beat expectations.",
+    });
+  });
+
+  it("says point, not points, for one", () => {
+    assert.match(forecast(true, 0.5).beat, /at least 1 point will/);
+    assert.match(forecast(false, 1.5).beat, /to 1 point or less/);
   });
 });
 

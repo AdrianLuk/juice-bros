@@ -53,6 +53,19 @@ export function spreadResult(score: readonly [number, number], lower: Side, spre
   };
 }
 
+/**
+ * A Pair's forecast and what beats it, worded as the event's spreadsheet
+ * had it: the higher-rated Pair is forecast 11, the lower-rated Pair the Spread.
+ */
+export function forecast(lower: boolean, spread: number): { points: string; beat: string } {
+  if (lower) {
+    const n = Math.ceil(spread);
+    return { points: spread.toFixed(1), beat: `You are the underdog! Scoring at least ${n} ${n === 1 ? "point" : "points"} will beat expectations.` };
+  }
+  const n = Math.floor(spread);
+  return { points: "11.0", beat: `Holding your opponents to ${n} ${n === 1 ? "point" : "points"} or less will beat expectations.` };
+}
+
 // ---- The Matchup winner ------------------------------------------------------
 
 /** Spread winners and shots per side, [side a, side b], over the Games with a result so far. */
