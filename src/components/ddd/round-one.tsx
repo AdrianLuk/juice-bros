@@ -33,6 +33,7 @@ import { RosterTeams } from "./roster-teams";
 import { SpreadsView } from "./spreads-view";
 import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
+import { YourGames } from "./your-games";
 
 type Mode ="public" | "score" | "organizer";
 
@@ -66,8 +67,8 @@ export function RoundOne({
   const seeds = seedTeams(teamIds, results, event.tieOrder);
   const statuses = slotStatuses(slots, results);
   const teamOf = (id: string) => event.teams.find((team) => team.id === id)!;
-  const doubles =
-    showDoubles && doublesMatchups(seeds, { spreads: event.spreads, games: event.games, calls: event.calls }).length > 0;
+  const matchups = showDoubles ? doublesMatchups(seeds, { spreads: event.spreads, games: event.games, calls: event.calls }) : [];
+  const doubles = matchups.length > 0;
   const seeding = <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />;
 
   return (
@@ -76,6 +77,8 @@ export function RoundOne({
         <p className="ddd-slip ddd-notice">Round 1 starts once the roster has its 4 Teams.</p>
       ) : (
         <>
+          {/* A player's own Games and Goals first, once the doubles start: what they check before walking on. */}
+          {doubles ? <YourGames event={event} matchups={matchups} /> : null}
           {showDoubles ? <CourtCards event={event} /> : null}
           {/* Whatever is being played sits on top: the doubles once they start, the Dreambreakers before. */}
           {doubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
