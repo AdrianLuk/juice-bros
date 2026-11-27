@@ -127,7 +127,7 @@ describe("checkGameScore: side-out to 11, win by 2", () => {
 
 describe("forecast: each Pair's Forecast and target", () => {
   it("5.5: the higher-rated Pair holds to 5, the lower-rated Pair scores 6+", () => {
-    assert.deepEqual(forecast(false, 5.5), { points: "11.0", target: "Hold to 5" });
+    assert.deepEqual(forecast(false, 5.5), { points: "11", target: "Hold to 5" });
     assert.deepEqual(forecast(true, 5.5), { points: "5.5", target: "Score 6+" });
   });
 
@@ -138,7 +138,7 @@ describe("forecast: each Pair's Forecast and target", () => {
   });
 
   it("covers the ends of the Spread range", () => {
-    assert.deepEqual(forecast(false, 0.5), { points: "11.0", target: "Hold to 0" });
+    assert.deepEqual(forecast(false, 0.5), { points: "11", target: "Hold to 0" });
     assert.deepEqual(forecast(true, 0.5), { points: "0.5", target: "Score 1+" });
     assert.deepEqual(forecast(true, 10.5), { points: "10.5", target: "Score 11+" });
   });

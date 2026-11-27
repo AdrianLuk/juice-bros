@@ -963,7 +963,8 @@ body:has(.ddd-surface) {
   color: var(--ddd-ink);
 }
 
-.ddd-forecast .ddd-underdog {
+.ddd-forecast .ddd-underdog,
+.ddd-pair-team .ddd-underdog {
   margin-left: 6px;
   vertical-align: 1px;
 }
@@ -1517,8 +1518,14 @@ body:has(.ddd-settled) {
     order: 3;
   }
 
-  .ddd-public .ddd-live > :first-child {
+  .ddd-public .ddd-live > :first-child,
+  .ddd-public .ddd-live > .ddd-mine + * {
     order: 0;
+  }
+
+  /* "Your games" is for a phone in a hand, not the venue TV. */
+  .ddd-public .ddd-mine {
+    display: none;
   }
 
   .ddd-public .ddd-live > .ddd-standings,
@@ -1563,4 +1570,118 @@ body:has(.ddd-settled) {
 
 .ddd-db-status > span:last-child {
   white-space: nowrap;
+}
+
+/* ---- Goals on the court cards, and "Your games" ------------------------- */
+
+/* A doubles card carries both Pairs and their Goals: one court per row on a phone. */
+.ddd-court-cards-doubles {
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.ddd-court-pairs {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-court-pair {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ddd-court-pair + .ddd-court-pair {
+  border-top: 1px dashed var(--ddd-rule);
+}
+
+/* Top-aligned, the tag under it: both Pairs' Goals sit at the same height. */
+.ddd-court-goal {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  font-weight: 400;
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.ddd-court-goal b {
+  font-size: 0.9375rem;
+}
+
+.ddd-court-goal .ddd-underdog {
+  margin-top: 3px;
+}
+
+.ddd-mine-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ddd-mine-games {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-mine-game {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: 1px solid var(--ddd-rule);
+}
+
+.ddd-mine-when {
+  font-family: var(--ddd-stamp);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ddd-green);
+}
+
+.ddd-mine-next .ddd-mine-when,
+.ddd-mine-later .ddd-mine-when,
+.ddd-mine-final .ddd-mine-when {
+  color: var(--ddd-ink-2);
+}
+
+/* Up next stays full strength: it is the Game a player is checking. Only finished ones dim. */
+.ddd-mine-final {
+  opacity: 0.72;
+}
+
+.ddd-mine-who {
+  font-size: 0.9375rem;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-mine-who b {
+  color: var(--ddd-ink);
+}
+
+.ddd-mine .ddd-mine-goal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ddd-mine-goal b {
+  font-family: var(--ddd-display);
+  font-weight: 400;
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+.ddd-mine-result {
+  font-weight: 700;
 }

@@ -28,7 +28,7 @@ export function SpreadsView({ event }: { event: LinkEvent }) {
               {a.name} v {b.name}
             </h3>
             <p className="ddd-fc-key" aria-hidden="true">
-              Forecast · To beat it
+              Forecast
             </p>
             {turns.map((turn, index) => (
               <div key={turn.join()}>
@@ -65,13 +65,19 @@ function PairingGame({ event, a, b, game }: { event: LinkEvent; a: Team; b: Team
             <li key={team.id} className="ddd-pair-row">
               <span className="ddd-db-team">
                 <PairNames names={pairPlayers(team, game)} />
-                <span className="ddd-pair-team">{team.name}</span>
+                <span className="ddd-pair-team">
+                  {team.name}
+                  {/* Beside the Team, not under the Goal, so both Pairs' right columns stay the same height. */}
+                  {lower ? <Underdog /> : null}
+                </span>
               </span>
               {fc ? (
                 <span className="ddd-fc-side">
-                  <span className="ddd-fc-n">{fc.points}</span>
-                  <span className="ddd-fc-target">{fc.target}</span>
-                  {lower ? <Underdog /> : null}
+                  <span className="ddd-fc-n">
+                    <span className="ddd-sr">Forecast </span>
+                    {fc.points}
+                  </span>
+                  <span className="ddd-fc-target">Goal: {fc.target}</span>
                 </span>
               ) : null}
             </li>
