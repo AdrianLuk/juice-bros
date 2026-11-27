@@ -12,6 +12,7 @@ import { PLACES, type LinkEvent } from "@/lib/ddd/events";
 import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
 import {
   doublesMatchups,
+  duprSpread,
   finalPlaces,
   MAX_REASON,
   shotLines,
@@ -199,7 +200,7 @@ function TabRow({
                   </span>
                 </p>
                 <p className="ddd-note">
-                  {line.score[0]}-{line.score[1]} · Spread {line.spread.points.toFixed(1)} on{" "}
+                  {line.score[0]}-{line.score[1]} · Forecast {line.spread.points.toFixed(1)} for{" "}
                   {pairOf(line.spread.ours ? team : opponent, line.game)}
                 </p>
               </li>
@@ -220,24 +221,24 @@ function outcomeText(m: Matchup, a: Team, b: Team): { text: string; open: boolea
   const o = m.outcome;
   if (!o) {
     const { wins } = tally(m.games);
-    return { text: `Spread winners so far: ${a.name} ${wins[0]}, ${b.name} ${wins[1]}.`, open: false };
+    return { text: `Beat the forecast so far: ${a.name} ${wins[0]}, ${b.name} ${wins[1]}.`, open: false };
   }
   const winner = o.winner === "a" ? a.name : b.name;
   const [high, low] = [Math.max(...o.wins), Math.min(...o.wins)];
   switch (o.rule) {
     case "spreadWins":
-      return { text: `${winner} wins, ${high}-${low} on Spread winners.`, open: false };
+      return { text: `${winner} wins, ${high}-${low} on beating the forecast.`, open: false };
     case "margin":
-      return { text: `${winner} wins 2-2 on Spread margin, by ${Math.abs(o.margin).toFixed(1)}.`, open: false };
+      return { text: `${winner} wins 2-2 on forecast margin, by ${Math.abs(o.margin).toFixed(1)}.`, open: false };
     case "points":
       return {
-        text: `${winner} wins 2-2 on points, ${Math.max(...o.points)} to ${Math.min(...o.points)}. Spread margin was level.`,
+        text: `${winner} wins 2-2 on points, ${Math.max(...o.points)} to ${Math.min(...o.points)}. Forecast margin was level.`,
         open: false,
       };
     case "organizer":
       return { text: `${winner} wins 2-2 on an Organizer's call: ${o.reason}`, open: false };
     case "unresolved":
-      return { text: "2-2, level on Spread margin and on points. An Organizer makes the call.", open: true };
+      return { text: "2-2, level on forecast margin and on points. An Organizer makes the call.", open: true };
   }
 }
 
@@ -398,7 +399,10 @@ function GameRow({
   return (
     <li className={`ddd-game ddd-db-${place.status}`} aria-label={label}>
       <p className="ddd-db-status">
-        <span>{label}</span>
+        <span>
+          {label}
+          {game.spread ? <span className="ddd-spread">Spread {duprSpread(game.spread.points)}</span> : null}
+        </span>
         <span>
           <span className="ddd-game-status">{STATUS_LABEL[place.status]}</span>{" "}
           <span className="ddd-db-court">Court {courts[place.court] ?? place.court + 1}</span>
@@ -440,10 +444,10 @@ function GameRow({
       )}
       {game.spread ? null : (
         <p className="ddd-problem">
-          Spread needed before this Game is scored.{" "}
+          Forecast needed before this Game is scored.{" "}
           {setSpread ? (
             <Link href={setSpread} className="ddd-quiet">
-              Set the Spread
+              Set the forecast
             </Link>
           ) : null}
         </p>

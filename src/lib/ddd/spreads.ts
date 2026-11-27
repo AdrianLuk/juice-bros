@@ -65,10 +65,10 @@ export function needsRecheck(row: SpreadRow, lineups: [Lineup, Lineup]): boolean
 export function readSpreadPoints(text: string): { value: number | null } | { problem: string } {
   const cell = text.trim();
   if (cell === "") return { value: null };
-  if (!/^\d+(\.\d+)?$/.test(cell)) return { problem: `"${cell}" is not a number. Spreads look like 5.5.` };
+  if (!/^\d+(\.\d+)?$/.test(cell)) return { problem: `"${cell}" is not a number. A forecast looks like 4.5.` };
   const value = Number(cell);
-  if (value % 1 !== 0.5) return { problem: `${cell} is refused: a Spread always ends in .5, like 5.5.` };
-  if (value < MIN_SPREAD || value > MAX_SPREAD) return { problem: `${cell} is refused: Spreads run ${MIN_SPREAD} to ${MAX_SPREAD}.` };
+  if (value % 1 !== 0.5) return { problem: `${cell} is refused: a forecast always ends in .5, like 4.5.` };
+  if (value < MIN_SPREAD || value > MAX_SPREAD) return { problem: `${cell} is refused: forecasts run ${MIN_SPREAD} to ${MAX_SPREAD}.` };
   return { value };
 }
 
@@ -83,8 +83,8 @@ export function readSpreadFields(get: (field: string) => string): { entries: Spr
     if ("problem" in points) return { problem: `${gameWord(game)}: ${points.problem}` };
     if (lower !== "" && lower !== "a" && lower !== "b") return { problem: `${gameWord(game)}: pick one of the two Pairs.` };
     if (lower === "" && points.value === null) entries.push({ game, set: null });
-    else if (lower === "") return { problem: `${gameWord(game)}: pick the lower-rated Pair.` };
-    else if (points.value === null) return { problem: `${gameWord(game)}: enter the points it is forecast to score.` };
+    else if (lower === "") return { problem: `${gameWord(game)}: pick the underdog Pair.` };
+    else if (points.value === null) return { problem: `${gameWord(game)}: enter the underdog's forecast.` };
     else entries.push({ game, set: { lower, points: points.value } });
   }
   return { entries };

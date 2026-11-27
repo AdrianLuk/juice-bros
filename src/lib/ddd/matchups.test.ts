@@ -7,6 +7,7 @@ import {
   checkGameScore,
   decideMatchup,
   doublesMatchups,
+  duprSpread,
   finalPlaces,
   forecast,
   roundOf,
@@ -128,6 +129,12 @@ describe("forecast: each Pair's Forecast and target", () => {
   it("5.5: the higher-rated Pair holds to 5, the lower-rated Pair scores 6+", () => {
     assert.deepEqual(forecast(false, 5.5), { points: "11.0", target: "Hold to 5" });
     assert.deepEqual(forecast(true, 5.5), { points: "5.5", target: "Score 6+" });
+  });
+
+  it("gives DUPR's spread as 11 minus the underdog's forecast", () => {
+    assert.equal(duprSpread(4.5), "6.5");
+    assert.equal(duprSpread(10.5), "0.5");
+    assert.equal(duprSpread(0.5), "10.5");
   });
 
   it("covers the ends of the Spread range", () => {

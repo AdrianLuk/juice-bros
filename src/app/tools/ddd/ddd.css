@@ -1554,3 +1554,13 @@ body:has(.ddd-settled) {
     display: none;
   }
 }
+
+/* DUPR's spread under a Game's name, so the status and court beside it keep one line. */
+.ddd-spread {
+  display: block;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-db-status > span:last-child {
+  white-space: nowrap;
+}

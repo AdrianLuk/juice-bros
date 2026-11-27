@@ -42,7 +42,7 @@ export async function savePairingAction(
   const both = lineupsOf(a, b, lineups);
   if (!both) {
     if (read.entries.every((entry) => !entry.set)) return { saved: true };
-    return { problem: "Both Teams need a Lineup before a Spread can be set." };
+    return { problem: "Both Teams need a Lineup before a forecast can be set." };
   }
   const sigs = Object.fromEntries(LINEUP_GAMES.map((game) => [game, pairSig(both[0], both[1], game)])) as Record<LineupGame, string>;
   await savePairingSpreads(supabase, a.id, b.id, read.entries, sigs);

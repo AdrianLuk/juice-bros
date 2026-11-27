@@ -1,7 +1,7 @@
 import { courtTurns } from "@/lib/ddd/courts";
 import type { LinkEvent } from "@/lib/ddd/events";
 import { GAME_LABEL, readLineup, type LineupGame } from "@/lib/ddd/lineup";
-import { forecast } from "@/lib/ddd/matchups";
+import { duprSpread, forecast } from "@/lib/ddd/matchups";
 import { pairings, pairPlayers } from "@/lib/ddd/spreads";
 import { PairNames, TurnBand, Underdog } from "./pair";
 
@@ -52,7 +52,10 @@ function PairingGame({ event, a, b, game }: { event: LinkEvent; a: Team; b: Team
   return (
     <li className="ddd-game" aria-label={GAME_LABEL[game]}>
       <p className="ddd-db-status">
-        <span>{GAME_LABEL[game]}</span>
+        <span>
+          {GAME_LABEL[game]}
+          {row ? <span className="ddd-spread">Spread {duprSpread(Number(row.points))}</span> : null}
+        </span>
       </p>
       <ul className="ddd-pairs">
         {([a, b] as const).map((team, i) => {
@@ -75,7 +78,7 @@ function PairingGame({ event, a, b, game }: { event: LinkEvent; a: Team; b: Team
           );
         })}
       </ul>
-      {row ? null : <p className="ddd-note">Spread needed</p>}
+      {row ? null : <p className="ddd-note">Forecast needed</p>}
     </li>
   );
 }

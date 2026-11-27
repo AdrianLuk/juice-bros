@@ -95,24 +95,33 @@ Two players from one Team who play a doubles Game together, as named in the Line
 **Game**:
 One doubles game between two Pairs in a Matchup: side-out scoring to 11, win by 2.
 
+**Underdog's forecast**:
+The points the lower-rated Pair (the Underdog) is forecast to score against the
+higher-rated Pair in a Game, entered by Godfrey off DUPR's Forecast screen before the event
+(the score under the underdog, e.g. 4.5 in a game to 11). It is the only number entered:
+every possible pairing of two Teams has its four set ahead of time. It always ends in .5,
+so no Game lands exactly on it. Code and the database still call it the spread
+(`ddd_spreads`, `spread.points`); screens never do.
+_Avoid_: Spread for this number (on screen Spread is DUPR's, below); handicap (it suggests a
+head start added to the score; the score is never changed)
+
 **Spread**:
-The points the lower-rated Pair is forecast to score against the higher-rated Pair in a
-Game, entered by Godfrey from DUPR's forecast before the event (e.g. 5.5 in a game to 11).
-Every possible pairing of two Teams has its four Spreads set ahead of time. A Spread always
-ends in .5, so no Game lands exactly on it.
-_Avoid_: handicap (it suggests a head start added to the score; the score is never changed)
+DUPR's word for the gap between the two forecasts: 11 minus the Underdog's forecast (4.5
+gives a Spread of 6.5). Worked out and shown beside each Game so Godfrey can check it
+against DUPR; never entered.
 
 **Spread winner**:
 The Pair that wins a Game once the Spread is applied. The lower-rated Pair is the Spread
 winner when its points beat the Spread, whatever the final score: a 3.5 Pair losing 11-6
 against a Spread of 5.5 is the Spread winner. It is always the lower-rated Pair's points
 that are measured, including in games that run past 11. On screen a Spread winner
-"beat the forecast" (players' own phrase, from the event's spreadsheet).
+"beat the forecast" (players' own phrase, from the event's spreadsheet), and a Matchup's
+running count is "Beat the forecast so far". The name stays in code.
 _Avoid_: winner, alone (say Spread winner, or "won the game outright" for the raw score)
 
 **Forecast**:
-A Pair's predicted score in a Game: 11 for the higher-rated Pair, the Spread for the
-lower-rated Pair (the Underdog). Its **target** is what beats it: the higher-rated Pair must
+A Pair's predicted score in a Game: 11 for the higher-rated Pair, the Underdog's forecast
+for the lower-rated Pair. Its **target** is what beats it: the higher-rated Pair must
 hold the other to the Spread rounded down ("Hold to 5"), the Underdog must score the Spread
 rounded up ("Score 6+").
 
@@ -133,8 +142,9 @@ the Games that clash play on their own (a woman in women's doubles and both mixe
 Screens never name it: a Game shows as On now, Up next or Final, with its court.
 _Avoid_: Wave (rejected on screen, 2026-11-21); Match, outside a display label (Pickle Point Pal's word)
 
-**Spread margin**:
-How far a Team's Pair beat or missed the Spread in a Game, before rounding: the
+**Forecast margin**:
+How far a Team's Pair beat or missed the Underdog's forecast in a Game, before rounding
+(`margin` in code, once "Spread margin"): the
 lower-rated Pair's points minus the Spread for that Pair's Team, and the same number
 negated for the other Team. Summed over a Matchup's four Games, the larger total wins a
 2-2 Matchup.

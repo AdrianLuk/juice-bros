@@ -64,6 +64,15 @@ export function forecast(lower: boolean, spread: number): { points: string; targ
     : { points: "11.0", target: `Hold to ${Math.floor(spread)}` };
 }
 
+/**
+ * What DUPR's Forecast screen calls the "Spread": the gap between the two
+ * forecasts, 11 minus the underdog's. Our stored Spread is the underdog's
+ * forecast itself, so this is shown, never entered.
+ */
+export function duprSpread(underdog: number): string {
+  return (11 - underdog).toFixed(1);
+}
+
 // ---- The Matchup winner ------------------------------------------------------
 
 /** Spread winners and shots per side, [side a, side b], over the Games with a result so far. */

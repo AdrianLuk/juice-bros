@@ -93,7 +93,7 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
               <h2 id="ddd-doubles" className="ddd-slip-head">
                 Round 2 and Playoff
               </h2>
-              <p>Four Games a Matchup, each against its Spread. Correct a final or make the call on a 2-2.</p>
+              <p>Four Games a Matchup, each against its forecast. Correct a final or make the call on a 2-2.</p>
               <Link href={matchupsPath(event.id)} className="ddd-quiet">
                 Open the Matchups
               </Link>
@@ -111,11 +111,11 @@ export default async function DddPage({ params }: { params: Promise<{ eventId: s
           </section>
           <section className="ddd-slip ddd-section" aria-labelledby="ddd-spreads">
             <h2 id="ddd-spreads" className="ddd-slip-head">
-              Spreads
+              Forecasts
             </h2>
-            <p>24 Spreads: each Team pairing, each Game.</p>
+            <p>24 forecasts: each Team pairing, each Game.</p>
             <Link href={spreadsPath(event.id)} className="ddd-quiet">
-              {teams.length === 0 ? "Paste the roster first" : "Open the Spreads"}
+              {teams.length === 0 ? "Paste the roster first" : "Open the forecasts"}
             </Link>
           </section>
           <section className="ddd-slip ddd-section" aria-labelledby="ddd-courts">

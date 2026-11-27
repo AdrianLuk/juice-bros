@@ -42,7 +42,7 @@ test.afterAll(async () => {
   if (organizer) await cleanUp(organizer, [DDD_NAME], [organizer]);
 });
 
-const forms = () => page.getByRole("form", { name: /Spreads$/ });
+const forms = () => page.getByRole("form", { name: /forecasts$/ });
 
 test("6 pairings of 4 Games, every cell naming its Pairs and reading Spread needed", async () => {
   await page.goto(`/tools/ddd/events/${eventId}/spreads`);
@@ -55,11 +55,11 @@ test("6 pairings of 4 Games, every cell naming its Pairs and reading Spread need
     "Anna Leigh Waters v Federico Staksrud",
     "Tyson McGuffin v Federico Staksrud",
   ]);
-  await expect(page.getByText("Spread needed", { exact: true })).toHaveCount(24);
+  await expect(page.getByText("Forecast needed", { exact: true })).toHaveCount(24);
   // Ben Johns' men's doubles is Ben Johns and Ben Ortiz; Anna's is Gus Hale's pair.
   const options = forms().first().locator('select[name="mens-lower"] option');
-  await expect(options.nth(1)).toHaveText("Ben Johns: Ben Johns / Ben Ortiz");
-  await expect(options.nth(2)).toHaveText("Anna Leigh Waters: Eli Banks / Gus Hale");
+  await expect(options.nth(1)).toHaveText("Ben Johns / Ben Ortiz (Ben Johns)");
+  await expect(options.nth(2)).toHaveText("Eli Banks / Gus Hale (Anna Leigh Waters)");
 });
 
 test("a Spread that does not end in .5 or is out of range is refused, and nothing saves", async () => {
@@ -69,18 +69,18 @@ test("a Spread that does not end in .5 or is out of range is refused, and nothin
   await first.locator('input[name="mens-points"]').fill("5");
   await first.locator('select[name="womens-lower"]').selectOption("b");
   await first.locator('input[name="womens-points"]').fill("3.5");
-  await first.getByRole("button", { name: "Save Spreads" }).click();
-  await expect(first.getByRole("alert")).toContainText("Men's doubles: 5 is refused: a Spread always ends in .5");
+  await first.getByRole("button", { name: "Save forecasts" }).click();
+  await expect(first.getByRole("alert")).toContainText("Men's doubles: 5 is refused: a forecast always ends in .5");
   // What was typed stays put, so the Organizer fixes one cell instead of retyping the pairing.
   await expect(first.locator('select[name="mens-lower"]')).toHaveValue("a");
   await expect(first.locator('input[name="womens-points"]')).toHaveValue("3.5");
 
   await first.locator('input[name="mens-points"]').fill("11.5");
-  await first.getByRole("button", { name: "Save Spreads" }).click();
-  await expect(first.getByRole("alert")).toContainText("Spreads run 0.5 to 10.5");
+  await first.getByRole("button", { name: "Save forecasts" }).click();
+  await expect(first.getByRole("alert")).toContainText("forecasts run 0.5 to 10.5");
 
   await page.reload();
-  await expect(page.getByText("Spread needed", { exact: true })).toHaveCount(24);
+  await expect(page.getByText("Forecast needed", { exact: true })).toHaveCount(24);
 });
 
 test("all 24 are entered, and a reload and the Public Link show all 24", async ({ browser }) => {
@@ -92,12 +92,12 @@ test("all 24 are entered, and a reload and the Public Link show all 24", async (
       await form.locator(`select[name="${game}-lower"]`).selectOption(g % 2 === 0 ? "a" : "b");
       await form.locator(`input[name="${game}-points"]`).fill(`${g + 1}.5`);
     }
-    await form.getByRole("button", { name: "Save Spreads" }).click();
+    await form.getByRole("button", { name: "Save forecasts" }).click();
     await expect(form.getByText("Saved.")).toBeVisible();
   }
 
   await page.reload();
-  await expect(page.getByText("Spread needed", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Forecast needed", { exact: true })).toHaveCount(0);
   await expect(page.locator('input[name$="-points"]')).toHaveCount(24);
   for (const [g, game] of GAMES.entries()) {
     for (const input of await page.locator(`input[name="${game}-points"]`).all()) await expect(input).toHaveValue(`${g + 1}.5`);
@@ -111,7 +111,7 @@ test("all 24 are entered, and a reload and the Public Link show all 24", async (
     await stranger.goto(publicUrl!);
     // The Order of play: one Underdog per Game, 4 Games in each of the 6 pairings.
     await expect(stranger.getByText("Underdog", { exact: true })).toHaveCount(24);
-    await expect(stranger.getByText("Spread needed")).toHaveCount(0);
+    await expect(stranger.getByText("Forecast needed")).toHaveCount(0);
     // Ben Johns' Pair is the lower-rated one in Men's doubles against 1.5, in each of his 3 pairings.
     const benPair = stranger.getByRole("listitem").filter({ hasText: /^Ben Johns \/ Ben Ortiz/ });
     await expect(benPair.filter({ hasText: "Score 2+" })).toHaveCount(3);
@@ -129,12 +129,12 @@ test("a Lineup change flags the Spread for a re-check and keeps it; saving clear
   await expect(lineup.getByText("Saved.")).toBeVisible();
 
   await page.goto(`/tools/ddd/events/${eventId}/spreads`);
-  const flag = page.getByText("The Lineup changed since this Spread was set");
+  const flag = page.getByText("The Lineup changed since this forecast was set");
   await expect(flag).toHaveCount(3);
   await expect(forms().first().locator('input[name="mens-points"]')).toHaveValue("1.5");
 
   const first = forms().first();
-  await first.getByRole("button", { name: "Save Spreads" }).click();
+  await first.getByRole("button", { name: "Save forecasts" }).click();
   await expect(first.getByText("Saved.")).toBeVisible();
   await expect(flag).toHaveCount(2);
 });

@@ -297,7 +297,10 @@ Always one player per line, so a long name wraps inside itself and never drags i
 An ink bar run edge to edge of its slip, white Courier caps: "PLAYED 1ST". It is how anyone finds what's on first without reading the Games.
 
 ### Order of play
-Every Team pairing's slip until the Seeding is final: the Team names in Band type, a right-aligned Courier key ("FORECAST · TO BEAT IT"), then each Turn band and its Games. Each Pair has its Team under it in slip grey and, on the right, its Forecast in Anton, the target at 700 ("Hold to 5", "Score 6+") and the green Underdog tag on the lower-rated Pair. Once the Seeding is final it leaves the page: each Matchup slip carries its own.
+Every Team pairing's slip until the Seeding is final: the Team names in Band type, a right-aligned Courier key ("FORECAST · TO BEAT IT"), then each Turn band and its Games. Each Game's Courier label carries DUPR's spread after it ("MEN'S DOUBLES · SPREAD 6.5"), as the Matchup slip's does. Each Pair has its Team under it in slip grey and, on the right, its Forecast in Anton, the target at 700 ("Hold to 5", "Score 6+") and the green Underdog tag on the lower-rated Pair. Once the Seeding is final it leaves the page: each Matchup slip carries its own.
+
+### Forecasts page (Organizers)
+One labelled number per Game: "Underdog Pair" (a pick list naming both Pairs) and "Underdog's forecast" (the score under the underdog on DUPR's Forecast screen). Under the number, as it is typed, "Spread 6.5, as DUPR shows it" so the two screens can be checked against each other. A notice slip at the top says the same in one line.
 
 ### Page order
 What people check most sits highest. Before Round 2: Courts, Dreambreakers, Seeding, Order of play, Teams. From Round 2: Courts, the Matchups, Shots so far, Seeding, Dreambreakers, Teams. Once the Playoff is final, Final places go above the Matchups.
