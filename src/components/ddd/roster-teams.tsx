@@ -1,5 +1,6 @@
 import { GAME_LABEL, LINEUP_GAMES, readLineup, type RawLineup } from "@/lib/ddd/lineup";
 import { captainOf, formatAverage, formatRating, type StoredTeam } from "@/lib/ddd/roster";
+import { PairNames } from "./pair";
 
 type Team = StoredTeam & { lineup: RawLineup | null };
 
@@ -11,13 +12,11 @@ function TeamLineup({ team }: { team: Team }) {
   return (
     <>
       <h3 className="ddd-slip-head">Lineup</h3>
-      <ul className="ddd-lineup">
+      <ul className="ddd-lineup ddd-lineup-grid">
         {LINEUP_GAMES.map((game) => (
           <li key={game}>
             <span className="ddd-lineup-game">{GAME_LABEL[game]}</span>
-            <span>
-              {name(lineup[game][0])} / {name(lineup[game][1])}
-            </span>
+            <PairNames names={lineup[game].map(name)} />
           </li>
         ))}
       </ul>

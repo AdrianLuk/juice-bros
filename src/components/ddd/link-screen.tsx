@@ -5,7 +5,6 @@ import { DddHead } from "@/components/ddd/ddd-head";
 import { LiveRound } from "@/components/ddd/live-round";
 import { QueryProvider } from "@/components/ddd/query-provider";
 import { RoundOne } from "@/components/ddd/round-one";
-import { SpreadsView } from "@/components/ddd/spreads-view";
 import { readLinkEvent } from "@/lib/ddd/events";
 import { resultsPath } from "@/lib/ddd/routes";
 import { createClient } from "@/lib/ddd/supabase/server";
@@ -35,7 +34,6 @@ export async function LinkScreen({ token, link }: { token: string; link: "score"
       <main className={`ddd-main ddd-${link}`}>
         <div className="ddd-col ddd-stack-lg">
           <RoundOne reader={reader} initial={event} showRoster showDoubles />
-          <SpreadsView event={event} />
           <div className="ddd-slip ddd-notice ddd-link-about">
             <p className="ddd-slip-head">{link === "score" ? "Score Link" : "Public Link"}</p>
             <p>

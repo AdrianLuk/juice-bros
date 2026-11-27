@@ -19,7 +19,7 @@ import type { LiveWriter, WriteResult } from "./live.ts";
 function refusal(code: string | undefined): string {
   if (code === "42501") return "This link can't enter scores any more. Ask an Organizer for the current one.";
   if (code === "22023") return "A Game ends 11 to anything up to 9, or by 2 past 11, like 13-11.";
-  if (code === "55000") return "Spread needed: an Organizer sets it before this Game is scored.";
+  if (code === "55000") return "Forecast needed: an Organizer sets it before this Game is scored.";
   return "Couldn't save the score. Try again.";
 }
 

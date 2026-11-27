@@ -54,16 +54,23 @@ export function spreadResult(score: readonly [number, number], lower: Side, spre
 }
 
 /**
- * A Pair's forecast and what beats it, worded as the event's spreadsheet
- * had it: the higher-rated Pair is forecast 11, the lower-rated Pair the Spread.
+ * A Pair's Forecast and the target that beats it: the higher-rated Pair is
+ * forecast 11 and must hold the other Pair under the Spread; the lower-rated
+ * Pair is forecast the Spread and must score past it.
  */
-export function forecast(lower: boolean, spread: number): { points: string; beat: string } {
-  if (lower) {
-    const n = Math.ceil(spread);
-    return { points: spread.toFixed(1), beat: `You are the underdog! Scoring at least ${n} ${n === 1 ? "point" : "points"} will beat expectations.` };
-  }
-  const n = Math.floor(spread);
-  return { points: "11.0", beat: `Holding your opponents to ${n} ${n === 1 ? "point" : "points"} or less will beat expectations.` };
+export function forecast(lower: boolean, spread: number): { points: string; target: string } {
+  return lower
+    ? { points: spread.toFixed(1), target: `Score ${Math.ceil(spread)}+` }
+    : { points: "11.0", target: `Hold to ${Math.floor(spread)}` };
+}
+
+/**
+ * What DUPR's Forecast screen calls the "Spread": the gap between the two
+ * forecasts, 11 minus the underdog's. Our stored Spread is the underdog's
+ * forecast itself, so this is shown, never entered.
+ */
+export function duprSpread(underdog: number): string {
+  return (11 - underdog).toFixed(1);
 }
 
 // ---- The Matchup winner ------------------------------------------------------

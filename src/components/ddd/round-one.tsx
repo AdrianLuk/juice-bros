@@ -26,9 +26,11 @@ import {
 } from "@/lib/ddd/dreambreakers";
 import type { DreambreakerFinal, LinkEvent } from "@/lib/ddd/events";
 import type { StoredTeam } from "@/lib/ddd/roster";
+import { doublesMatchups } from "@/lib/ddd/matchups";
 import { CourtCards } from "./court-cards";
 import { Doubles } from "./matchups";
 import { RosterTeams } from "./roster-teams";
+import { SpreadsView } from "./spreads-view";
 import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
 
@@ -64,6 +66,9 @@ export function RoundOne({
   const seeds = seedTeams(teamIds, results, event.tieOrder);
   const statuses = slotStatuses(slots, results);
   const teamOf = (id: string) => event.teams.find((team) => team.id === id)!;
+  const doubles =
+    showDoubles && doublesMatchups(seeds, { spreads: event.spreads, games: event.games, calls: event.calls }).length > 0;
+  const seeding = <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />;
 
   return (
     <div className="ddd-stack-lg ddd-live">
@@ -72,8 +77,9 @@ export function RoundOne({
       ) : (
         <>
           {showDoubles ? <CourtCards event={event} /> : null}
-          {showDoubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
-          <SeedingSlip seeds={seeds} teamOf={teamOf} mode={mode} eventId={event.id} onSaved={refresh} />
+          {/* Whatever is being played sits on top: the doubles once they start, the Dreambreakers before. */}
+          {doubles ? <Doubles event={event} writer={writer} onSaved={refresh} /> : null}
+          {doubles ? seeding : null}
           <section className="ddd-stack ddd-dbs" aria-labelledby="ddd-dreambreakers">
             <h2 id="ddd-dreambreakers" className="ddd-on-green ddd-band-head">
               Dreambreakers
@@ -96,6 +102,9 @@ export function RoundOne({
               ))}
             </ol>
           </section>
+          {doubles ? null : seeding}
+          {/* Every pairing's Order of play until the Seeding picks the Matchups; their cards carry it after. */}
+          {showDoubles && !doubles ? <SpreadsView event={event} /> : null}
           {mode === "organizer" ? <RotationsSlip teams={event.teams} onSaved={refresh} /> : null}
         </>
       )}

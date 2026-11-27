@@ -843,7 +843,114 @@ body:has(.ddd-surface) {
   line-height: 1;
 }
 
-/* A Pair's forecast under its Team, in the spreadsheet's words. */
+/* ---- Pairs, Forecasts and the Order of play ------------------------------ */
+
+/* One player per line: a long name wraps inside itself, never pushing its partner. */
+.ddd-pair-names {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.ddd-pairs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ddd-pair-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  line-height: 1.3;
+}
+
+.ddd-pair-row + .ddd-pair-row {
+  border-top: 1px dashed var(--ddd-rule);
+}
+
+.ddd-pair-row .ddd-db-team {
+  min-width: 0;
+}
+
+.ddd-pair-row .ddd-db-points {
+  flex: none;
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* A Court turn: ink bar edge to edge of the slip, so "what's first" reads at a glance. */
+.ddd-turn-band {
+  margin: 0 -16px;
+  padding: 6px 16px;
+  background: var(--ddd-ink);
+  color: #fff;
+  font-family: var(--ddd-stamp);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ddd-pairing {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.ddd-pairing p {
+  margin: 0;
+}
+
+.ddd-fc-key {
+  font-family: var(--ddd-stamp);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  color: var(--ddd-ink-2);
+}
+
+/* The Order of play's right column: the Forecast big, the target under it. */
+.ddd-fc-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.ddd-fc-n {
+  font-family: var(--ddd-display);
+  font-size: 1.875rem;
+  line-height: 1;
+}
+
+.ddd-fc-target {
+  margin-top: 4px;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.ddd-underdog {
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--ddd-green);
+  color: #fff;
+  font-family: var(--ddd-stamp);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The Forecast on one line under a Pair in a Matchup. */
 .ddd-forecast {
   display: block;
   margin-top: 2px;
@@ -852,9 +959,44 @@ body:has(.ddd-surface) {
   color: var(--ddd-ink-2);
 }
 
-.ddd-forecast-n {
-  font-weight: 700;
+.ddd-forecast b {
   color: var(--ddd-ink);
+}
+
+.ddd-forecast .ddd-underdog {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+/* A Matchup Game's score boxes sit beside their Pairs. */
+.ddd-mu-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ddd-score-box input {
+  width: 4rem;
+  height: 3.25rem;
+  box-sizing: border-box;
+  border: 2px solid var(--ddd-ink);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--ddd-ink);
+  font: inherit;
+  font-size: 1.375rem;
+  text-align: center;
+}
+
+/* A Team's Lineup: the Game in a fixed column, the Pair beside it. */
+.ddd-lineup-grid li {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.ddd-lineup-grid .ddd-pair-names {
+  font-weight: 700;
 }
 
 .ddd-db-won .ddd-db-points {
@@ -1411,4 +1553,14 @@ body:has(.ddd-settled) {
   .ddd-public .ddd-spreads-view {
     display: none;
   }
+}
+
+/* DUPR's spread under a Game's name, so the status and court beside it keep one line. */
+.ddd-spread {
+  display: block;
+  color: var(--ddd-ink-2);
+}
+
+.ddd-db-status > span:last-child {
+  white-space: nowrap;
 }

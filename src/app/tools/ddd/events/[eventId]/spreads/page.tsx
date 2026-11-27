@@ -29,7 +29,7 @@ export default async function SpreadsPage({ params }: { params: Promise<{ eventI
         <div className="ddd-col ddd-stack-lg">
           {teams.length === 0 ? (
             <div className="ddd-slip ddd-notice">
-              <p>Paste the roster first. Spreads are set between its Teams.</p>
+              <p>Paste the roster first. Forecasts are set between its Teams.</p>
               <Link href={rosterPath(event.id)} className="ddd-quiet">
                 Paste the roster
               </Link>

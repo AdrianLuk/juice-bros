@@ -106,7 +106,7 @@ test("tapping a Team's shot total lists the Games that cost it", async ({ browse
   await expect(lines).toHaveCount(8);
   await expect(lines.first()).toContainText(`Men's doubles v ${FIRST}`);
   await expect(lines.first()).toContainText("3 shots");
-  await expect(lines.first()).toContainText("3-11 · Spread 5.5 on");
+  await expect(lines.first()).toContainText("3-11 · Forecast 5.5 for");
 
   // A Team that never lost against the Spread has nothing to open.
   await expect(page.getByRole("listitem", { name: `Tab: ${FIRST}` }).getByRole("button")).toHaveCount(0);

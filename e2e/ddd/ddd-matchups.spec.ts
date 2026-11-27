@@ -74,13 +74,13 @@ async function enterFinal(matchup: Locator, game: string, first: number, fourth:
   await row.getByLabel(`${SEED_1} points`).fill(String(first));
   await row.getByLabel(`${SEED_4} points`).fill(String(fourth));
   await row.getByRole("button", { name: "Save final" }).click();
-  await expect(row).toContainText("Spread winner");
+  await expect(row).toContainText("beat the forecast");
 }
 
 test("four Games scored on the Score Link give the winner and the shots on the Public Link", async ({ browser }) => {
   const watcher = await phone(browser);
   await watcher.goto(links.public);
-  await expect(topMatchup(watcher)).toContainText("Spread winners so far");
+  await expect(topMatchup(watcher)).toContainText("Beat the forecast so far");
   // The Public Link only reads.
   await expect(topMatchup(watcher).getByRole("button", { name: "Save final" })).toHaveCount(0);
 
@@ -93,9 +93,9 @@ test("four Games scored on the Score Link give the winner and the shots on the P
   await enterFinal(matchup, "Mixed 1", 11, 8); // 8 beats it by 2.5: 3 shots on Seed 1
   await enterFinal(matchup, "Mixed 2", 11, 2); // 2 misses by 3.5: 4 shots on Seed 4
   // 2-2; Seed 1's Spread margin is -0.5 + 2.5 - 2.5 + 3.5 = +3.
-  await expect(matchup).toContainText(`${SEED_1} wins 2-2 on Spread margin, by 3.0.`);
+  await expect(matchup).toContainText(`${SEED_1} wins 2-2 on forecast margin, by 3.0.`);
 
-  await expect(topMatchup(watcher)).toContainText(`${SEED_1} wins 2-2 on Spread margin`, { timeout: 10_000 });
+  await expect(topMatchup(watcher)).toContainText(`${SEED_1} wins 2-2 on forecast margin`, { timeout: 10_000 });
   await expect(tab(watcher, SEED_1)).toContainText("4 shots");
   await expect(tab(watcher, SEED_4)).toContainText("7 shots");
   await expect(tab(watcher, SEED_2)).toContainText("0 shots");
@@ -107,7 +107,7 @@ test("a Game with no Spread can't be scored", async ({ browser }) => {
   const mixed2 = scorer
     .getByRole("article", { name: `Matchup: ${SEED_2} v ${SEED_3}` })
     .getByRole("listitem", { name: "Mixed 2" });
-  await expect(mixed2).toContainText("Spread needed");
+  await expect(mixed2).toContainText("Forecast needed");
   await expect(mixed2.getByRole("button", { name: "Save final" })).toHaveCount(0);
 });
 
