@@ -109,9 +109,12 @@ test("all 24 are entered, and a reload and the Public Link show all 24", async (
   try {
     const stranger = await visitor.newPage();
     await stranger.goto(publicUrl!);
-    await expect(stranger.getByText(/^Spread \d+\.\d on /)).toHaveCount(24);
+    // The Order of play: one Underdog per Game, 4 Games in each of the 6 pairings.
+    await expect(stranger.getByText("Underdog", { exact: true })).toHaveCount(24);
     await expect(stranger.getByText("Spread needed")).toHaveCount(0);
-    await expect(stranger.getByText("Spread 1.5 on Ben Johns / Ben Ortiz")).toHaveCount(3);
+    // Ben Johns' Pair is the lower-rated one in Men's doubles against 1.5, in each of his 3 pairings.
+    const benPair = stranger.getByRole("listitem").filter({ hasText: /^Ben Johns \/ Ben Ortiz/ });
+    await expect(benPair.filter({ hasText: "Score 2+" })).toHaveCount(3);
   } finally {
     await visitor.close();
   }

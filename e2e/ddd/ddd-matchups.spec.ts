@@ -74,7 +74,7 @@ async function enterFinal(matchup: Locator, game: string, first: number, fourth:
   await row.getByLabel(`${SEED_1} points`).fill(String(first));
   await row.getByLabel(`${SEED_4} points`).fill(String(fourth));
   await row.getByRole("button", { name: "Save final" }).click();
-  await expect(row).toContainText("Spread winner");
+  await expect(row).toContainText("beat the forecast");
 }
 
 test("four Games scored on the Score Link give the winner and the shots on the Public Link", async ({ browser }) => {

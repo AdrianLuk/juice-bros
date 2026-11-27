@@ -1,47 +1,81 @@
 import { courtTurns } from "@/lib/ddd/courts";
-import { GAME_LABEL, LINEUP_GAMES } from "@/lib/ddd/lineup";
 import type { LinkEvent } from "@/lib/ddd/events";
-import { lineupsOf, pairName, pairings } from "@/lib/ddd/spreads";
+import { GAME_LABEL, readLineup, type LineupGame } from "@/lib/ddd/lineup";
+import { forecast } from "@/lib/ddd/matchups";
+import { pairings, pairPlayers } from "@/lib/ddd/spreads";
+import { PairNames, TurnBand, Underdog } from "./pair";
+
+type Team = LinkEvent["teams"][number];
 
 /**
- * Every Team pairing's four Spreads, read only: what the Public Link and
- * Score Link show (issue #714). Each reads "Spread needed" until it is set.
+ * The Order of play: every Team pairing's four Games in the order they'd be
+ * played, each Pair with its Forecast and the target that beats it. What the
+ * Public Link and Score Link show until the Seeding is final; after that each
+ * Matchup card carries its own. Each Game reads "Spread needed" until it is set.
  */
 export function SpreadsView({ event }: { event: LinkEvent }) {
-  const raw = Object.fromEntries(event.teams.map((team) => [team.id, team.lineup]));
   if (event.teams.length < 2) return null;
   return (
-    <div className="ddd-stack-lg ddd-spreads-view">
+    <section className="ddd-stack ddd-spreads-view" aria-labelledby="ddd-order-of-play">
+      <h2 id="ddd-order-of-play" className="ddd-on-green ddd-band-head">
+        Order of play
+      </h2>
       {pairings(event.teams).map(([a, b]) => {
-        const both = lineupsOf(a, b, raw);
+        const turns = courtTurns(readLineup(a.players, a.lineup), readLineup(b.players, b.lineup));
         return (
-          <section key={`${a.id}-${b.id}`} className="ddd-slip ddd-section" aria-labelledby={`ddd-spread-${a.id}-${b.id}`}>
-            <h2 id={`ddd-spread-${a.id}-${b.id}`} className="ddd-team-name">
+          <section key={`${a.id}-${b.id}`} className="ddd-slip ddd-pairing" aria-labelledby={`ddd-spread-${a.id}-${b.id}`}>
+            <h3 id={`ddd-spread-${a.id}-${b.id}`} className="ddd-team-name">
               {a.name} v {b.name}
-            </h2>
-            {both ? (
-              <p className="ddd-note">
-                Order of play: {courtTurns(both[0], both[1]).map((turn) => turn.map((game) => GAME_LABEL[game]).join(" and ")).join(", then ")}.
-              </p>
-            ) : null}
-            <ul className="ddd-lineup">
-              {LINEUP_GAMES.map((game) => {
-                const row = event.spreads.find((each) => each.teamA === a.id && each.teamB === b.id && each.game === game);
-                const pa = both ? pairName(a.players, both[0], game) : null;
-                const pb = both ? pairName(b.players, both[1], game) : null;
-                const lowerName = row ? (row.lower === "a" ? pa : pb) : null;
-                return (
-                  <li key={game}>
-                    <span className="ddd-lineup-game">{GAME_LABEL[game]}</span>
-                    <span>{pa && pb ? `${pa} v ${pb}` : "Lineup needed"}</span>
-                    <span>{row ? `Spread ${row.points.toFixed(1)} on ${lowerName ?? "the lower-rated Pair"}` : "Spread needed"}</span>
-                  </li>
-                );
-              })}
-            </ul>
+            </h3>
+            <p className="ddd-fc-key" aria-hidden="true">
+              Forecast · To beat it
+            </p>
+            {turns.map((turn, index) => (
+              <div key={turn.join()}>
+                <TurnBand turn={index} />
+                <ol className="ddd-games">
+                  {turn.map((game) => (
+                    <PairingGame key={game} event={event} a={a} b={b} game={game} />
+                  ))}
+                </ol>
+              </div>
+            ))}
           </section>
         );
       })}
-    </div>
+    </section>
+  );
+}
+
+function PairingGame({ event, a, b, game }: { event: LinkEvent; a: Team; b: Team; game: LineupGame }) {
+  const row = event.spreads.find((each) => each.teamA === a.id && each.teamB === b.id && each.game === game);
+  return (
+    <li className="ddd-game" aria-label={GAME_LABEL[game]}>
+      <p className="ddd-db-status">
+        <span>{GAME_LABEL[game]}</span>
+      </p>
+      <ul className="ddd-pairs">
+        {([a, b] as const).map((team, i) => {
+          const lower = row ? (row.lower === "a") === (i === 0) : false;
+          const fc = row ? forecast(lower, Number(row.points)) : null;
+          return (
+            <li key={team.id} className="ddd-pair-row">
+              <span className="ddd-db-team">
+                <PairNames names={pairPlayers(team, game)} />
+                <span className="ddd-pair-team">{team.name}</span>
+              </span>
+              {fc ? (
+                <span className="ddd-fc-side">
+                  <span className="ddd-fc-n">{fc.points}</span>
+                  <span className="ddd-fc-target">{fc.target}</span>
+                  {lower ? <Underdog /> : null}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      {row ? null : <p className="ddd-note">Spread needed</p>}
+    </li>
   );
 }

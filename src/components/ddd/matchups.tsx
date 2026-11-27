@@ -13,7 +13,6 @@ import { GAME_LABEL, readLineup } from "@/lib/ddd/lineup";
 import {
   doublesMatchups,
   finalPlaces,
-  forecast,
   MAX_REASON,
   shotLines,
   shotTotals,
@@ -24,7 +23,8 @@ import {
   type MatchupKey,
 } from "@/lib/ddd/matchups";
 import { spreadsPath } from "@/lib/ddd/routes";
-import { pairOf } from "@/lib/ddd/spreads";
+import { pairOf, pairPlayers } from "@/lib/ddd/spreads";
+import { ForecastLine, PairNames, TurnBand } from "./pair";
 import { useDddLive } from "./use-ddd-live";
 import { useWrite } from "./use-write";
 
@@ -96,8 +96,23 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
     ["ddd-round-2", "Round 2", matchups.filter((m) => m.key === "round2-1v4" || m.key === "round2-2v3")],
   ];
 
+  const games = rounds.map(([id, title, list]) =>
+    list.length === 0 ? null : (
+      <section key={id} className="ddd-stack ddd-round" aria-labelledby={id}>
+        <h2 id={id} className="ddd-on-green ddd-band-head">
+          {title}
+        </h2>
+        {list.map((m) => (
+          <MatchupCard key={m.key} matchup={m} event={event} a={teamOf(m.a)} b={teamOf(m.b)} writer={writer} onSaved={onSaved} />
+        ))}
+      </section>
+    ),
+  );
+
+  // While Games are still to play they come first: that's what everyone checks. Once settled, the Final places do.
   return (
     <>
+      {places ? null : games}
       {/* ddd-settled turns the ground deep green once the Playoff is final. */}
       <section className={`ddd-slip ddd-section ddd-standings${places ? " ddd-settled" : ""}`} aria-labelledby="ddd-standings">
         <h2 id="ddd-standings" className="ddd-slip-head">
@@ -117,18 +132,7 @@ export function Doubles({ event, writer, onSaved }: { event: LinkEvent; writer: 
           ))}
         </ol>
       </section>
-      {rounds.map(([id, title, list]) =>
-        list.length === 0 ? null : (
-          <section key={id} className="ddd-stack ddd-round" aria-labelledby={id}>
-            <h2 id={id} className="ddd-on-green ddd-band-head">
-              {title}
-            </h2>
-            {list.map((m) => (
-              <MatchupCard key={m.key} matchup={m} event={event} a={teamOf(m.a)} b={teamOf(m.b)} writer={writer} onSaved={onSaved} />
-            ))}
-          </section>
-        ),
-      )}
+      {places ? games : null}
     </>
   );
 }
@@ -270,22 +274,29 @@ function MatchupCard({
         <p className="ddd-note">{MATCHUP_NOTE[matchup.key]}</p>
       </div>
       <p className={outcome.open ? "ddd-problem" : "ddd-matchup-outcome"}>{outcome.text}</p>
-      <ol className="ddd-games">
-        {placed.map((place) => (
-          <GameRow
-            key={place.game}
-            game={matchup.games.find((game) => game.game === place.game)!}
-            place={place}
-            courts={event.courts}
-            matchup={matchup}
-            a={a}
-            b={b}
-            writer={writer}
-            setSpread={setSpread}
-            onSaved={onSaved}
-          />
-        ))}
-      </ol>
+      {[...new Set(placed.map((place) => place.turn))].sort().map((turn) => (
+        <div key={turn}>
+          <TurnBand turn={turn} />
+          <ol className="ddd-games">
+            {placed
+              .filter((place) => place.turn === turn)
+              .map((place) => (
+                <GameRow
+                  key={place.game}
+                  game={matchup.games.find((game) => game.game === place.game)!}
+                  place={place}
+                  courts={event.courts}
+                  matchup={matchup}
+                  a={a}
+                  b={b}
+                  writer={writer}
+                  setSpread={setSpread}
+                  onSaved={onSaved}
+                />
+              ))}
+          </ol>
+        </div>
+      ))}
       {writer?.kind === "organizer" && placed.some((place) => place.turn > 0) ? (
         <div className="ddd-actions">
           <button
@@ -338,7 +349,6 @@ function GameRow({
   const [editing, setEditing] = useState(false);
   const { pending, problem, run } = useWrite(onSaved);
   const label = GAME_LABEL[game.game];
-  const pairs = [pairOf(a, game.game), pairOf(b, game.game)];
   const teams = [a, b];
   const side = (s: "a" | "b") => (s === "a" ? 0 : 1);
   // Only what is On now opens with a score form; a later Game can still be entered early, one tap in.
@@ -352,6 +362,38 @@ function GameRow({
     const [scoreA, scoreB] = [Number(data.get("scoreA")), Number(data.get("scoreB"))];
     run(() => saveGame(writer!, matchup.a, matchup.b, game.game, scoreA, scoreB), () => setEditing(false));
   }
+
+  // Each Pair one player per line with its Forecast; its points, or its score box while the form is open, beside it.
+  const pairRows = (
+    <ul className="ddd-pairs">
+      {[0, 1].map((i) => (
+        <li key={i} className="ddd-pair-row">
+          <span className="ddd-db-team">
+            <PairNames names={pairPlayers(teams[i], game.game)} />
+            {game.spread ? <ForecastLine lower={side(game.spread.lower) === i} spread={game.spread.points} /> : null}
+          </span>
+          {showForm ? (
+            <span className="ddd-score-box">
+              <label htmlFor={`${id}-${i}`} className="ddd-sr">
+                {teams[i].name} points
+              </label>
+              <input
+                id={`${id}-${i}`}
+                name={i === 0 ? "scoreA" : "scoreB"}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                required
+                defaultValue={game.score?.[i]}
+              />
+            </span>
+          ) : (
+            <span className="ddd-db-points">{game.score ? game.score[i] : ""}</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <li className={`ddd-game ddd-db-${place.status}`} aria-label={label}>
@@ -379,58 +421,9 @@ function GameRow({
           </select>
         </div>
       ) : null}
-      <div className="ddd-db-score">
-        {[0, 1].map((i) => (
-          <p key={i}>
-            <span className="ddd-db-team">
-              {pairs[i]}
-              <span className="ddd-pair-team">{teams[i].name}</span>
-              {game.spread ? <Forecast lower={side(game.spread.lower) === i} spread={game.spread.points} /> : null}
-            </span>
-            <span className="ddd-db-points">{game.score ? game.score[i] : ""}</span>
-          </p>
-        ))}
-      </div>
-      {game.spread ? null : (
-        <p className="ddd-problem">
-          Spread needed before this Game is scored.{" "}
-          {setSpread ? (
-            <Link href={setSpread} className="ddd-quiet">
-              Set the Spread
-            </Link>
-          ) : null}
-        </p>
-      )}
-      {game.result ? (
-        // The line item this Game rings up: who beat the Spread, by how much, and the shots it costs whom.
-        <p className={justScored ? "ddd-ledger ddd-print" : "ddd-ledger"}>
-          <span className="ddd-ledger-who">
-            Spread winner {pairs[side(game.result.spreadWinner)]}
-            <span className="ddd-pair-team">{teams[side(game.result.spreadWinner)].name}</span>
-          </span>
-          <span className="ddd-ledger-by">by {Math.abs(game.result.margin).toFixed(1)}</span>
-          <span className="ddd-shots">
-            {game.result.shots} {shotWord(game.result.shots)} on {teams[side(game.result.shotsOn)].name}
-          </span>
-        </p>
-      ) : null}
-
       {showForm ? (
-        <form className="ddd-db-form" onSubmit={submit} aria-label={`Final score, ${label}`}>
-          {[0, 1].map((i) => (
-            <div key={i} className="ddd-field">
-              <label htmlFor={`${id}-${i}`}>{teams[i].name} points</label>
-              <input
-                id={`${id}-${i}`}
-                name={i === 0 ? "scoreA" : "scoreB"}
-                type="number"
-                inputMode="numeric"
-                min={0}
-                required
-                defaultValue={game.score?.[i]}
-              />
-            </div>
-          ))}
+        <form className="ddd-mu-form" onSubmit={submit} aria-label={`Final score, ${label}`}>
+          {pairRows}
           <div className="ddd-actions">
             <button type="submit" className="ddd-btn" disabled={pending}>
               {pending ? "Saving…" : "Save final"}
@@ -442,6 +435,28 @@ function GameRow({
             ) : null}
           </div>
         </form>
+      ) : (
+        pairRows
+      )}
+      {game.spread ? null : (
+        <p className="ddd-problem">
+          Spread needed before this Game is scored.{" "}
+          {setSpread ? (
+            <Link href={setSpread} className="ddd-quiet">
+              Set the Spread
+            </Link>
+          ) : null}
+        </p>
+      )}
+      {game.result ? (
+        // The line item this Game rings up: whose Pair beat the forecast (the Spread winner), by how much, and the shots it costs whom.
+        <p className={justScored ? "ddd-ledger ddd-print" : "ddd-ledger"}>
+          <span className="ddd-ledger-who">{teams[side(game.result.spreadWinner)].name} beat the forecast</span>
+          <span className="ddd-ledger-by">by {Math.abs(game.result.margin).toFixed(1)}</span>
+          <span className="ddd-shots">
+            {game.result.shots} {shotWord(game.result.shots)} on {teams[side(game.result.shotsOn)].name}
+          </span>
+        </p>
       ) : null}
 
       {writer && game.spread && !game.score && !showForm ? (
@@ -473,16 +488,6 @@ function GameRow({
         {problem}
       </p>
     </li>
-  );
-}
-
-/** A Pair's forecast score and what beats it, as Lilliana's spreadsheet words it. */
-function Forecast({ lower, spread }: { lower: boolean; spread: number }) {
-  const { points, beat } = forecast(lower, spread);
-  return (
-    <span className="ddd-forecast">
-      <span className="ddd-forecast-n">Forecast {points}</span> {beat}
-    </span>
   );
 }
 

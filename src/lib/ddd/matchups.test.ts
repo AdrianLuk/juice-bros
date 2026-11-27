@@ -124,21 +124,16 @@ describe("checkGameScore: side-out to 11, win by 2", () => {
   });
 });
 
-describe("forecast: the spreadsheet's wording", () => {
-  it("words both Pairs against a 5.5 Spread", () => {
-    assert.deepEqual(forecast(false, 5.5), {
-      points: "11.0",
-      beat: "Holding your opponents to 5 points or less will beat expectations.",
-    });
-    assert.deepEqual(forecast(true, 5.5), {
-      points: "5.5",
-      beat: "You are the underdog! Scoring at least 6 points will beat expectations.",
-    });
+describe("forecast: each Pair's Forecast and target", () => {
+  it("5.5: the higher-rated Pair holds to 5, the lower-rated Pair scores 6+", () => {
+    assert.deepEqual(forecast(false, 5.5), { points: "11.0", target: "Hold to 5" });
+    assert.deepEqual(forecast(true, 5.5), { points: "5.5", target: "Score 6+" });
   });
 
-  it("says point, not points, for one", () => {
-    assert.match(forecast(true, 0.5).beat, /at least 1 point will/);
-    assert.match(forecast(false, 1.5).beat, /to 1 point or less/);
+  it("covers the ends of the Spread range", () => {
+    assert.deepEqual(forecast(false, 0.5), { points: "11.0", target: "Hold to 0" });
+    assert.deepEqual(forecast(true, 0.5), { points: "0.5", target: "Score 1+" });
+    assert.deepEqual(forecast(true, 10.5), { points: "10.5", target: "Score 11+" });
   });
 });
 

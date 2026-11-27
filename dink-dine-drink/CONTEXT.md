@@ -106,8 +106,19 @@ _Avoid_: handicap (it suggests a head start added to the score; the score is nev
 The Pair that wins a Game once the Spread is applied. The lower-rated Pair is the Spread
 winner when its points beat the Spread, whatever the final score: a 3.5 Pair losing 11-6
 against a Spread of 5.5 is the Spread winner. It is always the lower-rated Pair's points
-that are measured, including in games that run past 11.
+that are measured, including in games that run past 11. On screen a Spread winner
+"beat the forecast" (players' own phrase, from the event's spreadsheet).
 _Avoid_: winner, alone (say Spread winner, or "won the game outright" for the raw score)
+
+**Forecast**:
+A Pair's predicted score in a Game: 11 for the higher-rated Pair, the Spread for the
+lower-rated Pair (the Underdog). Its **target** is what beats it: the higher-rated Pair must
+hold the other to the Spread rounded down ("Hold to 5"), the Underdog must score the Spread
+rounded up ("Score 6+").
+
+**Order of play**:
+Every Team pairing's Games in the Court turns they would be played in, with each Pair's
+Forecast. Shown until the Seeding is final; after that each Matchup carries its own.
 
 **Matchup**:
 Two Teams playing their four Lineup Games against each other: men's doubles, women's

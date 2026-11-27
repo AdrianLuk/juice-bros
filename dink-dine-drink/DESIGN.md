@@ -240,7 +240,7 @@ One green ground in two lights, paper and ink on top of it, and three signal col
 - **Team** (Anton, 1.375rem to 1.625rem, 1.1, uppercase): Team names in a tab row and DDD names in the Organizer's list.
 - **Round** (Atkinson 700, 1.25rem): the round the day is in, under the facts on the links.
 - **Body** (Atkinson 400, 1.0625rem, 1.5, tabular): the surface default.
-- **Strong** (Atkinson 700): Pairs, labels, buttons, outcomes, the ledger's Spread winner, problems.
+- **Strong** (Atkinson 700): Pairs, labels, buttons, outcomes, targets, the ledger's "beat the forecast", problems.
 - **Note** (Atkinson 400, 0.9375rem, slip grey): notes, the Team under a Pair, list meta, link status. The Team under a Pair sets at 0.875rem.
 - **Stamp** (Courier Prime 700, 0.8125rem, 0.08em, uppercase): OPEN and PAID, slip headers (COURT 1, SHOTS SO FAR, SEEDING, LINEUP), a Game's status line.
 - **Stamp Small** (Courier Prime 700, 0.75rem, 0.06em, uppercase): header fact labels (DATE, PLAY, DINE & DRINK), roster table heads, Pair legends, the On now / Up next labels on a court card, the Captain tag (0.6875rem, 1px ink border).
@@ -261,7 +261,7 @@ On a phone the court strip runs tight (8px gaps, 10px by 12px card padding, Pair
 The results widen to 72rem, and the header widens with them so the title lines up over the places. Each place is a three-column row: number, Team and Punishment, then the shots plate with its stamp under it.
 
 ### Named Rules
-**The TV Rule.** At 100rem (1600px) and wider the Public Link is one 1920x1080 screen nobody scrolls: a 112rem column, every court across the top in one row, then the tabs ("Shots so far", then "Final places") beside the Seeding in two columns. Before Round 2 there are no tabs, so the Dreambreakers sit beside the Seeding. A round's Matchups go two across. The roster and the Spreads stay on the phones and are hidden on the TV.
+**The TV Rule.** At 100rem (1600px) and wider the Public Link is one 1920x1080 screen nobody scrolls: a 112rem column, every court across the top in one row, then the tabs ("Shots so far", then "Final places") beside the Seeding in two columns. Before Round 2 there are no tabs, so the Dreambreakers sit beside the Seeding. A round's Matchups go two across. The roster and the Order of play stay on the phones and are hidden on the TV.
 
 **The One Column Rule.** Below 100rem every DDD screen is one centred column: 40rem, or 72rem on the results.
 
@@ -285,10 +285,22 @@ Slip white, ink text, 3px corner, no shadow, 20px padding. Opens with a slip hea
 Each Team's own tab is its row in the "Shots so far" slip: the Seed or place number in bottle-green Anton, the Team name in Anton caps with a note under it, and on the right the total in red (Anton count plus "shots"). The total is the tap target, underlined at a 4px offset, and opens the Team's line items Game by Game under the row. Once the Playoff is final each total carries its PAID or OPEN stamp beneath it. No TAB 01 numbering: the Seed or place number already heads each tab.
 
 ### Matchup slip
-One slip per Matchup, not two tabs: a Game belongs to both Teams, so it is scored once. The two Team names head it in Band type with a note under, then the outcome line (red while unresolved), then one Game per ruled row: a status line (Courier "FINAL", the court in Atkinson), each Pair at 700 with its Team under it in slip grey, then its Forecast (the higher-rated Pair 11.0, the lower-rated Pair the Spread) and the spreadsheet's line on what beats it, its points in Anton on the right, then the ledger line. A 3px ink rule closes the slip over the running total, each Team's shots in red.
+One slip per Matchup, not two tabs: a Game belongs to both Teams, so it is scored once. The two Team names head it in Band type with a note under, then the outcome line (red while unresolved), then its Games under a Turn band per Court turn ("Played 1st", "Played 2nd"), one Game per ruled row: a status line (Courier "FINAL", the court in Atkinson), each Pair one player per line at 700 with its Forecast line under it in slip grey ("Forecast 5.5 · Score 6+" plus the Underdog tag), its points in Anton on the right, or its score box there while the Game is open, then the ledger line. A 3px ink rule closes the slip over the running total, each Team's shots in red.
 
 ### Ledger line
-Under each final Game: who beat the Spread (700, with the Team under it), "by 2.5" in slip grey, and the shots and on whom in red, right-aligned. When a final is entered the new ledger line prints onto the tab (clip from the top plus a 6px drop, 420ms, `cubic-bezier(0.2, 0.7, 0.2, 1)`) and the total ticks up (rises 40% and fades in, 360ms, same curve). Under `prefers-reduced-motion` neither runs.
+Under each final Game: "<Team> beat the forecast" (700), "by 2.5" in slip grey, and the shots and on whom in red, right-aligned. When a final is entered the new ledger line prints onto the tab (clip from the top plus a 6px drop, 420ms, `cubic-bezier(0.2, 0.7, 0.2, 1)`) and the total ticks up (rises 40% and fades in, 360ms, same curve). Under `prefers-reduced-motion` neither runs.
+
+### Pair
+Always one player per line, so a long name wraps inside itself and never drags its partner onto a ragged line. A screen reader still hears "Ben Johns / Ben Ortiz". The Lineup in each Team's slip puts the Game in a fixed 8.5rem Courier column with the Pair beside it.
+
+### Turn band
+An ink bar run edge to edge of its slip, white Courier caps: "PLAYED 1ST". It is how anyone finds what's on first without reading the Games.
+
+### Order of play
+Every Team pairing's slip until the Seeding is final: the Team names in Band type, a right-aligned Courier key ("FORECAST · TO BEAT IT"), then each Turn band and its Games. Each Pair has its Team under it in slip grey and, on the right, its Forecast in Anton, the target at 700 ("Hold to 5", "Score 6+") and the green Underdog tag on the lower-rated Pair. Once the Seeding is final it leaves the page: each Matchup slip carries its own.
+
+### Page order
+What people check most sits highest. Before Round 2: Courts, Dreambreakers, Seeding, Order of play, Teams. From Round 2: Courts, the Matchups, Shots so far, Seeding, Dreambreakers, Teams. Once the Playoff is final, Final places go above the Matchups.
 
 ### Game states
 On now labels in bottle green. Up next and later print dim at 72% and take no form; "Enter its final" (a quiet button) opens one, since a court can run a Game early. A final can be corrected the same way. A refused save says so in red at 700 under the Game.

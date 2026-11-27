@@ -26,6 +26,9 @@ export function SpreadsEditor({
 }) {
   return (
     <div className="ddd-stack-lg">
+      <p className="ddd-slip ddd-notice">
+        {"From DUPR's Forecast, type the underdog's points (like 4.5), not DUPR's Spread (6.5)."}
+      </p>
       {pairings(teams).map(([a, b]) => (
         <PairingForm
           key={`${a.id}-${b.id}`}
@@ -78,7 +81,7 @@ function PairingForm({
                   <label>
                     <span className="ddd-sr">{GAME_LABEL[game]} lower-rated Pair</span>
                     <select name={`${game}-lower`} defaultValue={state.typed?.[`${game}-lower`] ?? row?.lower ?? ""}>
-                      <option value="">{names ? "Lower-rated Pair" : "Lineup needed"}</option>
+                      <option value="">{names ? "Underdog Pair" : "Lineup needed"}</option>
                       {names ? (
                         <>
                           <option value="a">
@@ -98,7 +101,7 @@ function PairingForm({
                     <input
                       name={`${game}-points`}
                       inputMode="decimal"
-                      placeholder="Points, like 5.5"
+                      placeholder="Underdog's points, like 4.5"
                       defaultValue={state.typed?.[`${game}-points`] ?? (row ? row.points.toFixed(1) : "")}
                       autoComplete="off"
                     />
