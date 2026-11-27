@@ -61,7 +61,7 @@ export function spreadResult(score: readonly [number, number], lower: Side, spre
 export function forecast(lower: boolean, spread: number): { points: string; target: string } {
   return lower
     ? { points: spread.toFixed(1), target: `Score ${Math.ceil(spread)}+` }
-    : { points: "11.0", target: `Hold to ${Math.floor(spread)}` };
+    : { points: "11", target: `Hold to ${Math.floor(spread)}` };
 }
 
 /**

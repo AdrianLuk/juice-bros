@@ -963,7 +963,8 @@ body:has(.ddd-surface) {
   color: var(--ddd-ink);
 }
 
-.ddd-forecast .ddd-underdog {
+.ddd-forecast .ddd-underdog,
+.ddd-pair-team .ddd-underdog {
   margin-left: 6px;
   vertical-align: 1px;
 }

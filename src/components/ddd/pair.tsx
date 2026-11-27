@@ -26,12 +26,12 @@ export function Underdog() {
   return <span className="ddd-underdog">Underdog</span>;
 }
 
-/** The Forecast on one line, under a Pair in a Matchup: "Forecast 5.5 · Score 6+". */
+/** The Forecast on one line, under a Pair in a Matchup: "Forecast 5.5 · Goal: Score 6+". */
 export function ForecastLine({ lower, spread }: { lower: boolean; spread: number }) {
   const { points, target } = forecast(lower, spread);
   return (
     <span className="ddd-forecast">
-      Forecast <b>{points}</b> · <b>{target}</b>
+      Forecast <b>{points}</b> · Goal: <b>{target}</b>
       {lower ? <Underdog /> : null}
     </span>
   );
